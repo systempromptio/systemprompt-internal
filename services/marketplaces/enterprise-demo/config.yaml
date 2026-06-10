@@ -1,12 +1,12 @@
 marketplace:
   id: enterprise-demo
-  name: "Enterprise Demo Marketplace"
-  description: "Reference marketplace shipping the governance demo plugin, its skills, agents, and MCP servers."
+  name: "Astound Digital Marketplace"
+  description: "Astound Digital marketplace shipping the governance demo plugin, its skills, agents, and MCP servers."
   version: "2.0.0"
   visibility: public
   author:
-    name: systemprompt.io
-    email: ed@systemprompt.io
+    name: Astound Digital
+    email: ed@tyingshoelaces.com
   keywords:
     - governance
     - demo

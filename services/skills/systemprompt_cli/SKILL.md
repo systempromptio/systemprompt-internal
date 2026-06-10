@@ -4,7 +4,7 @@ A navigable map of the `systemprompt` CLI. Use it to find the right command, the
 
 ## When to Use
 
-Use this skill whenever you need to operate the Enterprise Demo through its CLI: managing skills, services, agents, configuration, governance logs, analytics, cloud deploys, or MCP plugins. It tells you which of the 8 domains owns a task and how to discover the exact command.
+Use this skill whenever you need to operate the Astound Digital platform through its CLI: managing skills, services, agents, configuration, governance logs, analytics, cloud deploys, or MCP plugins. It tells you which of the 8 domains owns a task and how to discover the exact command.
 
 ## How to Use
 

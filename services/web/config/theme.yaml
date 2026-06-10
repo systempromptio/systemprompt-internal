@@ -3,21 +3,22 @@
 
 branding:
   # ===== CUSTOMIZE THESE FOR EACH DEMO CLIENT =====
-  name: "systemprompt.io"
-  domain: "systemprompt.io"
-  display_name: "systemprompt.io"
-  title: "systemprompt.io — AI Governance Platform"
-  description: "Control how your organization uses Claude. One platform to deploy, secure, distribute, and observe AI usage across your entire organization."
-  copyright: "2026 systemprompt.io"
-  themeColor: "#f79938"
-  platform_name: "systemprompt.io"
-  support_email: "support@systemprompt.io"
+  name: "Astound Digital"
+  domain: "astounddigital.com"
+  display_name: "Astound Digital"
+  title: "Astound Digital — AI-Powered Commerce & Experience Solutions"
+  description: "Astound Digital delivers end-to-end digital commerce, data-driven strategy, AI solutions, marketing & CRM services for global brands seeking growth and transformation."
+  copyright: "2026 Astound Digital"
+  tagline: "Transformation That Endures."
+  themeColor: "#171717"
+  platform_name: "Astound Digital"
+  support_email: "ed@tyingshoelaces.com"
   logo_light: "/files/images/logo.svg"
   logo_dark: "/files/images/logo-white.svg"
   favicon: "/files/images/favicon.ico"
-  twitter_handle: "@systempromptio"
+  twitter_handle: "@astounddigital"
   password_hash: ""  # Set via: echo -n 'your-password' | sha256sum | cut -d' ' -f1
-  session_storage_key: "enterpriseDemoUnlocked"
+  session_storage_key: "astoundDemoUnlocked"
   # Legacy fields (used by public site pipeline)
   display_sitename: true
   image: "/files/images/logo.png"
@@ -33,7 +34,7 @@ branding:
 
 fonts:
   body:
-    family: "OpenSans"
+    family: "Inter"
     fallback: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
     files: []
   heading:
@@ -45,68 +46,67 @@ fonts:
     fallback: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
     files: []
 
-# Color palette - Blue default (change hue for your brand)
-# Hue guide: 0=red, 28=orange, 120=green, 220=blue, 280=purple
+# Color palette - Astound Digital monochrome (off-black on paper, red accent)
 colors:
   light:
     primary:
-      hsl: "hsl(28, 91%, 50%)"
-      rgb: [247, 153, 56]
+      hsl: "hsl(0, 0%, 9%)"
+      rgb: [23, 23, 23]
     secondary:
-      hsl: "hsl(28, 91%, 50%)"
-      rgb: [247, 153, 56]
-    accent: "#f79938"
+      hsl: "hsl(0, 0%, 30%)"
+      rgb: [77, 77, 77]
+    accent: "#fe190a"
     success: "#10b981"
     warning: "#f59e0b"
     error: "#ef4444"
     surface:
       default: "#FFFFFF"
-      dark: "#FAFAF9"
-      variant: "#F5F5F4"
-      secondaryContainer: "#FFF7ED"
+      dark: "#f8f7f3"
+      variant: "#f1efed"
+      secondaryContainer: "#f1efed"
       errorContainer: "#FEE2E2"
     text:
-      primary: "#0F172A"
-      secondary: "#475569"
-      inverted: "#FFFFFF"
-      disabled: "#A8A29E"
+      primary: "#171717"
+      secondary: "#4d4d4d"
+      inverted: "#f8f7f3"
+      disabled: "#b6b6b6"
     background:
-      default: "#FAFAF9"
-      dark: "#F5F5F4"
+      default: "#f8f7f3"
+      dark: "#f1efed"
     border:
-      default: "#D6D3D1"
-      dark: "#A8A29E"
-      outline: "#A8A29E"
+      default: "#dddddd"
+      dark: "#b6b6b6"
+      outline: "#b6b6b6"
 
   dark:
     primary:
-      hsl: "hsl(28, 91%, 50%)"
-      rgb: [247, 153, 56]
+      hsl: "hsl(48, 26%, 96%)"
+      rgb: [248, 247, 243]
     secondary:
-      hsl: "hsl(28, 91%, 50%)"
-      rgb: [247, 153, 56]
-    accent: "#f79938"
+      hsl: "hsl(0, 0%, 71%)"
+      rgb: [182, 182, 182]
+    accent: "#fe190a"
     success: "#34d399"
     warning: "#fbbf24"
     error: "#f87171"
     surface:
-      default: "#1C1917"
-      dark: "#0C0A09"
-      variant: "#292524"
-      secondaryContainer: "rgba(247, 153, 56, 0.1)"
+      default: "#171717"
+      dark: "#0a0a0a"
+      variant: "#292929"
+      secondaryContainer: "rgba(254, 25, 10, 0.1)"
       errorContainer: "rgba(248, 113, 113, 0.1)"
     text:
-      primary: "#FAFAF9"
-      secondary: "#D6D3D1"
-      inverted: "#000000"
-      disabled: "#78716C"
+      primary: "#f8f7f3"
+      secondary: "#b6b6b6"
+      inverted: "#171717"
+      disabled: "#707070"
     background:
-      default: "#1C1917"
-      dark: "#0C0A09"
+      default: "#0f0f0f"
+      dark: "#0a0a0a"
     border:
       default: "rgba(255, 255, 255, 0.1)"
-      dark: "#44403C"
-      outline: "#78716C"
+      dark: "#292929"
+      outline: "#707070"
 
 typography:
   sizes:
@@ -144,12 +144,12 @@ shadows:
     sm: "0 1px 2px rgba(0, 0, 0, 0.04)"
     md: "0 4px 6px rgba(0, 0, 0, 0.07)"
     lg: "0 10px 15px rgba(0, 0, 0, 0.1)"
-    accent: "0 4px 14px rgba(247, 153, 56, 0.15)"
+    accent: "0 4px 14px rgba(10, 10, 10, 0.15)"
   dark:
     sm: "0 2px 4px rgba(0, 0, 0, 0.3)"
     md: "0 4px 8px rgba(0, 0, 0, 0.4)"
     lg: "0 10px 20px rgba(0, 0, 0, 0.5)"
-    accent: "0 4px 14px rgba(247, 153, 56, 0.25)"
+    accent: "0 4px 14px rgba(0, 0, 0, 0.45)"
 
 animation:
   fast: "150ms"
@@ -185,9 +185,9 @@ card:
     md: "16px"
     lg: "24px"
   gradient:
-    start: "rgba(247, 153, 56, 0.08)"
-    mid: "rgba(247, 153, 56, 0.04)"
-    end: "rgba(247, 153, 56, 0.01)"
+    start: "rgba(23, 23, 23, 0.05)"
+    mid: "rgba(23, 23, 23, 0.025)"
+    end: "rgba(23, 23, 23, 0.01)"
 
 mobile:
   spacing:

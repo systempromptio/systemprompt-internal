@@ -68,19 +68,19 @@ categories:
     name: Pages
     slug: pages
 metadata:
-  default_author: Author
+  default_author: Astound Digital
   language: en
   structured_data:
     organization:
-      name: systemprompt.io
-      url: https://systemprompt.io
-      logo: https://systemprompt.io/logo.png
-      description: AI Agent Platform
+      name: Astound Digital
+      url: https://astounddigital.com
+      logo: https://astounddigital.com/files/images/logo.png
+      description: Global digital commerce and AI-powered experience consultancy
     blog:
       type: Blog
-      name: Blog
-      url: https://systemprompt.io/blog
-      description: Articles and updates
+      name: Insights
+      url: https://astounddigital.com/blog
+      description: Insights on digital commerce, AI, and experience transformation
       article_section: Technology
       language: en-US
     article:

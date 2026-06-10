@@ -1,169 +1,107 @@
 # Navigation Configuration
 # Header, footer, and documentation sidebar
 #
-# All external links point back to https://systemprompt.io.
-# The Login entries are the only local routes (they target the running
-# template instance's admin login page).
+# External links point to https://astounddigital.com.
+# Local routes (/blog, /documentation, /admin/login) target the running
+# template instance.
 
 header:
   items:
-    - id: infrastructure
-      label: "Infrastructure"
-      href: "https://systemprompt.io/features/self-hosted-ai-platform"
+    - id: solutions
+      label: "Solutions"
+      href: "https://astounddigital.com/solutions"
       external: true
       dropdown: true
       sections:
-        - title: "What It Is"
+        - title: "Commerce & Experience"
           links:
-            - label: "One Binary, Complete Stack"
-              description: "What others assemble from six services, this ships in 50MB of Rust. PostgreSQL is the only dependency."
-              href: "https://systemprompt.io/features/self-hosted-ai-platform"
+            - label: "Commerce"
+              description: "End-to-end digital commerce strategy, implementation, and optimization for global brands."
+              href: "https://astounddigital.com/solutions/commerce"
               external: true
-        - title: "How You Run It"
+            - label: "Experience Design"
+              description: "Customer experience and design services that turn journeys into measurable growth."
+              href: "https://astounddigital.com/solutions/experience-design"
+              external: true
+            - label: "Performance Marketing"
+              description: "Data-driven demand generation and performance marketing across the funnel."
+              href: "https://astounddigital.com/solutions/performance-marketing"
+              external: true
+        - title: "AI & Modernization"
           links:
-            - label: "Deploy Anywhere"
-              description: "The same binary runs in Docker, on bare metal, in the cloud, or in an air-gapped network."
-              href: "https://systemprompt.io/features/deploy-anywhere"
+            - label: "AI & Agentforce"
+              description: "AI, data, and intelligent automation — agentic solutions in production for visionary brands."
+              href: "https://astounddigital.com/solutions/ai-agentforce"
               external: true
-            - label: "One CLI, Every Environment"
-              description: "Manage agents, servers, and deployments from your terminal across local, staging, and production."
-              href: "https://systemprompt.io/features/unified-control-plane"
+            - label: "Platform Modernization"
+              description: "Platform modernization and integration across the front office."
+              href: "https://astounddigital.com/solutions/modernization"
               external: true
-        - title: "Why You Can Trust It"
-          links:
-            - label: "Every Layer, An Open Standard"
-              description: "MCP, OAuth 2.0, WebAuthn, Git, ChaCha20-Poly1305. Zero proprietary protocols at any layer."
-              href: "https://systemprompt.io/features/no-vendor-lock-in"
+            - label: "Revenue & Service Modernization"
+              description: "Sales, service, and operations transformation that endures."
+              href: "https://astounddigital.com/solutions/revenue-service-modernization"
               external: true
 
-    - id: use-cases
-      label: "Claude Cowork"
-      href: "https://systemprompt.io/features/claude-cowork-integration"
+    - id: industries
+      label: "Industries"
+      href: "https://astounddigital.com/industries"
       external: true
       dropdown: true
       sections:
-        - title: "Own your Cowork deployment"
+        - title: "Who We Serve"
           links:
-            - label: "Claude Cowork on Your Infrastructure"
-              description: "Your /v1/messages gateway, signed MCP allowlist, and org-plugins supply chain. Route inference to any upstream you operate. Every tool call governed, every prompt logged, nothing leaves your network."
-              href: "https://systemprompt.io/features/claude-cowork-integration"
+            - label: "Retail & Consumer Products"
+              description: "Commerce and experience transformation for retail and consumer goods brands."
+              href: "https://astounddigital.com/industries/retail-consumer-products"
               external: true
-            - label: "CTO / CISO Brief"
-              description: "The strategic case for Cowork-on-your-infrastructure. Why Anthropic's April 2026 opening is a procurement inflection, the five things you now own, RFI/RFP question bank, and a 90-day delivery plan."
-              href: "https://systemprompt.io/guides/claude-cowork-plugins-enterprise"
+            - label: "Travel & Hospitality"
+              description: "Digital experiences for travel, transport, and hospitality leaders."
+              href: "https://astounddigital.com/industries/travel-hospitality"
               external: true
-            - label: "Enterprise Factsheet (PDF)"
-              description: "Two-page brief: govern and own Claude Cowork on self-hosted infrastructure. For CISO/CTO review."
-              href: "https://systemprompt.io/files/documents/systemprompt-io-enterprise-factsheet.pdf"
+            - label: "Manufacturing"
+              description: "Manufacturing, technology, and aerospace & defense front-office solutions."
+              href: "https://astounddigital.com/industries/manufacturing"
               external: true
-        - title: "Technical documentation"
-          links:
-            - label: "Deployment Reference"
-              description: "Five-move architecture, three auth tiers (PAT, session, mTLS), Ed25519 signed manifest, audit schema. The platform-agnostic reference that underpins the install guides."
-              href: "https://systemprompt.io/documentation/services/cowork-deployment"
+            - label: "MedTech & Life Sciences"
+              description: "Compliant digital commerce and experience for med tech and life sciences."
+              href: "https://astounddigital.com/industries/medtech-life-sciences"
               external: true
-            - label: "Install on macOS"
-              description: ".mobileconfig payload, Jamf and Intune for Mac, Secure Enclave mTLS. Step-by-step."
-              href: "https://systemprompt.io/documentation/services/cowork-deployment-macos"
-              external: true
-            - label: "Install on Windows"
-              description: "Registry policy, Intune Custom OMA-URI, Group Policy ADMX, TPM-backed mTLS. Step-by-step."
-              href: "https://systemprompt.io/documentation/services/cowork-deployment-windows"
-              external: true
-            - label: "Gateway Service"
-              description: "/v1/messages and /v1/auth/cowork/* endpoint reference, provider routing, MCP allowlist routes."
-              href: "https://systemprompt.io/documentation/services/gateway"
+            - label: "Consumer & Business Services"
+              description: "Growth and transformation for consumer and business services brands."
+              href: "https://astounddigital.com/industries/consumer-business-services"
               external: true
 
-    - id: capabilities
-      label: "Capabilities"
-      href: "https://systemprompt.io/features/governance-pipeline"
-      external: true
-      dropdown: true
-      sections:
-        - title: "What It Does"
-          links:
-            - label: "Governance Pipeline"
-              description: "Four enforcement layers evaluate every tool call before execution. Scope, secrets, rate limits, and audit."
-              href: "https://systemprompt.io/features/governance-pipeline"
-              external: true
-            - label: "Secrets Management"
-              description: "Credentials are encrypted at rest and blocked from inference. Secrets never reach AI models."
-              href: "https://systemprompt.io/features/secrets-management"
-              external: true
-            - label: "MCP Governance"
-              description: "Every MCP server is registered, authenticated, and governed. Per-server OAuth2 with full audit trail."
-              href: "https://systemprompt.io/features/mcp-governance"
-              external: true
-        - title: "How It Protects You"
-          links:
-            - label: "Analytics & Observability"
-              description: "Every AI request is logged with tokens, cost, latency, model, user, and agent. Exportable to your SIEM."
-              href: "https://systemprompt.io/features/analytics-and-observability"
-              external: true
-            - label: "Closed-Loop Agents"
-              description: "Agents monitor their own performance, detect drift, and adapt automatically."
-              href: "https://systemprompt.io/features/closed-loop-agents"
-              external: true
-        - title: "Why It Passes Audit"
-          links:
-            - label: "Compliance"
-              description: "SOC 2, ISO 27001, HIPAA, and OWASP Agentic Top 10. Built to survive an audit."
-              href: "https://systemprompt.io/features/compliance"
-              external: true
-
-    - id: integrations
-      label: "Integrations"
-      href: "https://systemprompt.io/features/any-ai-agent"
-      external: true
-      dropdown: true
-      sections:
-        - title: "What It Connects To"
-          links:
-            - label: "Any AI Agent"
-              description: "Claude, Codex, Gemini, or your own custom agents. Provider-agnostic governance for all of them."
-              href: "https://systemprompt.io/features/any-ai-agent"
-              external: true
-        - title: "How You Use It"
-          links:
-            - label: "Claude Desktop & Cowork"
-              description: "One-click governed skills inside Claude. The fastest path from install to governed AI."
-              href: "https://systemprompt.io/features/claude-cowork-integration"
-              external: true
-            - label: "Web Server & Publisher"
-              description: "The same binary serves your website, blog, and documentation. CMS and static site generation built in."
-              href: "https://systemprompt.io/features/web-publisher"
-              external: true
-        - title: "Why It Scales"
-          links:
-            - label: "Fully Extensible Architecture"
-              description: "Add routes, tables, jobs, and providers through Rust extension traits. Your code compiles into your binary."
-              href: "https://systemprompt.io/features/extensible-architecture"
-              external: true
+    - id: insights
+      label: "Insights"
+      href: "/blog"
+      dropdown: false
 
     - id: resources
       label: "Resources"
-      href: "https://systemprompt.io/documentation/"
-      external: true
+      href: "/documentation/"
       dropdown: true
       sections:
-        - title: "Learn"
+        - title: "This Platform"
           links:
             - label: "Documentation"
-              description: "Deployment guides, API reference, and configuration for every domain."
-              href: "https://systemprompt.io/documentation/"
+              description: "Setup, authentication, dashboard, and governance API guides for this evaluation instance."
+              href: "/documentation/"
+            - label: "Getting Started"
+              description: "Authenticate and run the first governed demo in minutes."
+              href: "/documentation/demo-terminal-setup"
+        - title: "Astound Digital"
+          links:
+            - label: "AI Hub"
+              description: "Astound's AI insights, perspectives, and agentic enterprise resources."
+              href: "https://astounddigital.com/ai-hub"
               external: true
-            - label: "Guides"
-              description: "Step-by-step tutorials, workflows, and best practices for AI governance."
-              href: "https://systemprompt.io/guides"
-              external: true
-            - label: "Live Demo"
-              description: "Watch four governance layers execute in real time in under six minutes."
-              href: "https://systemprompt.io/features/demo"
+            - label: "Client Success"
+              description: "Case studies from AllSaints, Boots Opticians, Zermatt, and more."
+              href: "https://astounddigital.com/client-success"
               external: true
             - label: "About"
-              description: "Founder-led startup building self-hosted AI governance infrastructure."
-              href: "https://systemprompt.io/about"
+              description: "25+ years of digital commerce engineering. Boutique partnership, enterprise-grade impact."
+              href: "https://astounddigital.com/about"
               external: true
 
     - id: login
@@ -172,96 +110,91 @@ header:
 
 footer:
   infrastructure:
-    - path: "https://systemprompt.io/features/self-hosted-ai-platform"
-      label: "Self-Hosted Deployment"
+    - path: "https://astounddigital.com/solutions/commerce"
+      label: "Commerce"
       external: true
-    - path: "https://systemprompt.io/features/deploy-anywhere"
-      label: "Deploy Anywhere"
+    - path: "https://astounddigital.com/solutions/ai-agentforce"
+      label: "AI & Agentforce"
       external: true
-    - path: "https://systemprompt.io/features/unified-control-plane"
-      label: "Unified Control Plane"
+    - path: "https://astounddigital.com/solutions/experience-design"
+      label: "Experience Design"
       external: true
-    - path: "https://systemprompt.io/features/no-vendor-lock-in"
-      label: "No Vendor Lock-In"
+    - path: "https://astounddigital.com/solutions/modernization"
+      label: "Platform Modernization"
+      external: true
+    - path: "https://astounddigital.com/solutions/performance-marketing"
+      label: "Performance Marketing"
+      external: true
+    - path: "https://astounddigital.com/solutions/revenue-service-modernization"
+      label: "Revenue & Service Modernization"
       external: true
   capabilities:
-    - path: "https://systemprompt.io/features/governance-pipeline"
-      label: "Governance Pipeline"
+    - path: "https://astounddigital.com/industries/retail-consumer-products"
+      label: "Retail & Consumer Products"
       external: true
-    - path: "https://systemprompt.io/features/secrets-management"
-      label: "Secrets Management"
+    - path: "https://astounddigital.com/industries/travel-hospitality"
+      label: "Travel & Hospitality"
       external: true
-    - path: "https://systemprompt.io/features/mcp-governance"
-      label: "MCP Governance"
+    - path: "https://astounddigital.com/industries/manufacturing"
+      label: "Manufacturing"
       external: true
-    - path: "https://systemprompt.io/features/analytics-and-observability"
-      label: "Analytics & Observability"
+    - path: "https://astounddigital.com/industries/medtech-life-sciences"
+      label: "MedTech & Life Sciences"
       external: true
-    - path: "https://systemprompt.io/features/closed-loop-agents"
-      label: "Closed-Loop Agents"
-      external: true
-    - path: "https://systemprompt.io/features/compliance"
-      label: "Compliance"
+    - path: "https://astounddigital.com/industries/consumer-business-services"
+      label: "Consumer & Business Services"
       external: true
   integrations:
-    - path: "https://systemprompt.io/features/any-ai-agent"
-      label: "Any AI Agent"
+    - path: "https://astounddigital.com/about"
+      label: "About"
       external: true
-    - path: "https://systemprompt.io/features/claude-cowork-integration"
-      label: "Claude Desktop & Cowork"
+    - path: "https://astounddigital.com/partners"
+      label: "Partners"
       external: true
-    - path: "https://systemprompt.io/features/web-publisher"
-      label: "Web Server & Publisher"
+    - path: "https://astounddigital.com/client-success"
+      label: "Client Success"
       external: true
-    - path: "https://systemprompt.io/features/extensible-architecture"
-      label: "Extensible Architecture"
+    - path: "https://careers.astounddigital.com/"
+      label: "Careers"
+      external: true
+    - path: "https://trust.astounddigital.com/"
+      label: "Trust Center"
       external: true
   resources:
-    - path: "https://systemprompt.io/documentation/"
+    - path: "/documentation/"
       label: "Documentation"
+    - path: "/blog"
+      label: "Insights"
+    - path: "https://astounddigital.com/ai-hub"
+      label: "AI Hub"
       external: true
-    - path: "https://systemprompt.io/guides"
-      label: "Guides"
+    - path: "https://astounddigital.com/reports"
+      label: "Reports"
       external: true
-    - path: "https://systemprompt.io/files/documents/systemprompt-io-enterprise-factsheet.pdf"
-      label: "Enterprise Factsheet (PDF)"
-      external: true
-    - path: "https://systemprompt.io/sitemap.xml"
+    - path: "/sitemap.xml"
       label: "Sitemap"
-      external: true
-    - path: "https://systemprompt.io/llms.txt"
-      label: "llms.txt"
-      external: true
     - path: "/admin/login"
       label: "Login"
   legal:
-    - path: "https://systemprompt.io/legal/privacy-policy"
+    - path: "https://astounddigital.com/legal/privacy-policy"
       label: "Privacy Policy"
       external: true
-    - path: "https://systemprompt.io/legal/cookie-policy"
-      label: "Cookie Policy"
+    - path: "https://astounddigital.com/legal/privacy-policy-us"
+      label: "Privacy Policy (US)"
       external: true
-    - path: "https://systemprompt.io/legal/terms-of-service"
-      label: "Terms of Service"
-      external: true
-    - path: "https://systemprompt.io/legal/refund-policy"
-      label: "Refund Policy"
+    - path: "https://astounddigital.com/legal/terms-of-use"
+      label: "Terms of Use"
       external: true
   contact:
-    - href: "https://discord.gg/wkAbSuPWpr"
-      label: "Discord"
-    - href: "https://www.linkedin.com/in/edjburton/"
+    - href: "https://astounddigital.com/contact-us"
+      label: "Contact Us"
+    - href: "https://www.linkedin.com/company/astound-digital/"
       label: "LinkedIn"
-    - href: "https://github.com/systempromptio"
-      label: "GitHub"
 
 social:
-  - href: "https://github.com/systempromptio"
-    type: "github"
-    label: "GitHub"
-  - href: "https://x.com/tyingshoelaces_"
-    type: "twitter"
-    label: "Twitter"
+  - href: "https://www.linkedin.com/company/astound-digital/"
+    type: "linkedin"
+    label: "LinkedIn"
 
 # Docs sidebar - rendered dynamically via site.docs_sidebar in templates
 docs_sidebar:

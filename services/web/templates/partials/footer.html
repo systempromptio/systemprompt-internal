@@ -3,26 +3,26 @@
     <div class="footer-grid">
       <div class="footer-brand">
         <div class="footer-logo">
-          <img src="/files/images/logo-dark.svg" alt="{{ORG_NAME}}" class="logo-svg logo-light" width="140" height="32" loading="lazy" />
-          <img src="/files/images/logo.svg" alt="{{ORG_NAME}}" class="logo-svg logo-dark" width="140" height="32" loading="lazy" />
+          <img src="/files/images/logo.svg" alt="{{ORG_NAME}}" class="logo-svg logo-light" width="140" height="32" loading="lazy" />
+          <img src="/files/images/logo-white.svg" alt="{{ORG_NAME}}" class="logo-svg logo-dark" width="140" height="32" loading="lazy" />
         </div>
         <p>{{site.branding.tagline}}</p>
       </div>
       <nav class="footer-nav" aria-label="Footer">
         <div class="footer-links">
-          <h3>Infrastructure</h3>
+          <h3>Solutions</h3>
           {{#each site.navigation.footer.infrastructure}}
           <a href="{{this.path}}"{{#if this.external}} target="_blank" rel="noopener noreferrer"{{/if}}>{{this.label}}</a>
           {{/each}}
         </div>
         <div class="footer-links">
-          <h3>Capabilities</h3>
+          <h3>Industries</h3>
           {{#each site.navigation.footer.capabilities}}
           <a href="{{this.path}}"{{#if this.external}} target="_blank" rel="noopener noreferrer"{{/if}}>{{this.label}}</a>
           {{/each}}
         </div>
         <div class="footer-links">
-          <h3>Integrations</h3>
+          <h3>Company</h3>
           {{#each site.navigation.footer.integrations}}
           <a href="{{this.path}}"{{#if this.external}} target="_blank" rel="noopener noreferrer"{{/if}}>{{this.label}}</a>
           {{/each}}

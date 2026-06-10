@@ -3,19 +3,19 @@
 # ===== CUSTOMIZE THESE =====
 
 site:
-  name: "systemprompt.io"
-  title: "systemprompt.io — AI Agent Platform"
-  description: "One platform to deploy, secure, distribute, and observe AI usage across your entire organization. Role-based access, audit trails, and cost visibility from day one."
-  author: "systemprompt.io"
-  baseUrl: "https://systemprompt.io"
+  name: "Astound Digital"
+  title: "Astound Digital — AI-Powered Commerce & Experience Solutions"
+  description: "Astound Digital delivers end-to-end digital commerce, data-driven strategy, AI solutions, marketing & CRM services for global brands seeking growth and transformation."
+  author: "Astound Digital"
+  baseUrl: "https://astounddigital.com"
 
 seo:
   defaultImage: "/files/images/logo.png"
-  twitterHandle: "@systempromptio"
-  keywords: "systemprompt.io, AI governance, AI usage governance, enterprise security, MCP, Claude Code, AI management, audit trails, RBAC"
+  twitterHandle: "@astounddigital"
+  keywords: "Astound Digital, digital commerce, AI solutions, composable commerce, experience design, intelligent automation, CRM, data strategy, AI governance"
 
 copyright:
-  holder: "systemprompt.io"
+  holder: "Astound Digital"
   year: 2026
-  link: "https://systemprompt.io"
-  notice: "2026 systemprompt.io"
+  link: "https://astounddigital.com"
+  notice: "2026 Astound Digital"
