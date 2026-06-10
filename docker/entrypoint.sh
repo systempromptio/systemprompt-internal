@@ -1,5 +1,5 @@
 #!/bin/sh
-# Container entrypoint for systemprompt-template.
+# Container entrypoint for systemprompt-astound.
 # Generates profile + secrets from env vars on first boot,
 # waits for Postgres, runs migrations, starts the server.
 set -eu
@@ -34,7 +34,7 @@ name: docker
 display_name: Docker
 target: local
 site:
-  name: systemprompt.io
+  name: astounddigital.com
   github_link: null
 database:
   type: postgres

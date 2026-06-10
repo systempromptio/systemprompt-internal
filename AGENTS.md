@@ -1,6 +1,6 @@
-# AGENTS.md — systemprompt-template
+# AGENTS.md — systemprompt-astound
 
-Clone-and-run evaluation template for [systemprompt.io](https://systemprompt.io). Stand up a complete AI governance binary with demo data in under 10 minutes. MIT licensed.
+Astound Digital's branded fork of the [systemprompt.io](https://systemprompt.io) evaluation template. Stand up a complete AI governance binary with demo data in under 10 minutes. MIT licensed.
 
 ## What this is
 
@@ -11,8 +11,8 @@ It wraps [`systemprompt-core`](https://github.com/systempromptio/systemprompt-co
 ## Try it
 
 ```bash
-git clone https://github.com/systempromptio/systemprompt-template
-cd systemprompt-template
+git clone https://github.com/systempromptio/systemprompt-astound
+cd systemprompt-astound
 just setup-local <your-anthropic-api-key>   # builds, runs migrations, starts Postgres
 just start                                  # serves on http://localhost:8080
 ```
@@ -53,8 +53,8 @@ This template is **MIT licensed**. Fork it, modify it, ship it. The underlying `
 
 ## Links
 
-- Template: https://github.com/systempromptio/systemprompt-template
+- This fork: https://github.com/systempromptio/systemprompt-astound
+- Upstream template: https://github.com/systempromptio/systemprompt-template
 - Core: https://github.com/systempromptio/systemprompt-core
-- Docs: https://systemprompt.io/documentation
-- Agent-readable summary: https://systemprompt.io/llms.txt
-- Feedback: open a `feedback`-labelled issue, or email `hello@systemprompt.io`
+- Astound Digital: https://astounddigital.com
+- Feedback: open a `feedback`-labelled issue, or email `ed@tyingshoelaces.com`

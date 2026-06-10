@@ -1,4 +1,4 @@
-# Enterprise Demo — demo.systemprompt.io
+# Astound Digital — astounddigital.com
 
 Demonstrates enterprise governance for Claude Code using HTTP hooks, MCP servers, and secret detection policies.
 
@@ -22,7 +22,7 @@ After installing, add your plugin token to Claude Code settings:
 claude settings set env.SYSTEMPROMPT_PLUGIN_TOKEN "your-token-here"
 ```
 
-Get your token by signing up at [demo.systemprompt.io](https://demo.systemprompt.io) or by authenticating with one of the MCP servers — the platform issues a token during the OAuth flow.
+Get your token by signing up on this instance or by authenticating with one of the MCP servers — the platform issues a token during the OAuth flow.
 
 ## Try It
 
