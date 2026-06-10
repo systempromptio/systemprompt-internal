@@ -12,9 +12,9 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 60% 50% at 50% 40%, hsla(28, 100%, 70%, 0.25), transparent 70%),
-    radial-gradient(ellipse 40% 30% at 30% 60%, hsla(28, 90%, 75%, 0.15), transparent 60%),
-    radial-gradient(ellipse 40% 30% at 70% 60%, hsla(28, 90%, 75%, 0.15), transparent 60%);
+    radial-gradient(ellipse 60% 50% at 50% 40%, rgba(23, 23, 23, 0.05), transparent 70%),
+    radial-gradient(ellipse 40% 30% at 30% 60%, rgba(23, 23, 23, 0.03), transparent 60%),
+    radial-gradient(ellipse 40% 30% at 70% 60%, rgba(23, 23, 23, 0.03), transparent 60%);
   pointer-events: none;
   z-index: 0;
   animation: hero-glow-pulse 8s ease-in-out infinite;
@@ -39,12 +39,12 @@
 }
 
 .hero-eyebrow {
-  font-family: var(--sp-font-brand);
+  font-family: var(--sp-font-mono);
   font-size: 0.8rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.2em;
-  color: var(--sp-color-primary);
+  color: var(--sp-color-accent);
   margin-bottom: var(--sp-space-lg);
 }
 
@@ -58,7 +58,7 @@
 }
 
 .hero-title .highlight {
-  color: var(--sp-color-primary);
+  color: var(--sp-color-accent);
   display: block;
 }
 
@@ -83,7 +83,7 @@
   flex-direction: column;
   text-decoration: none;
   color: inherit;
-  background: linear-gradient(135deg, rgba(0, 113, 206, 0.08) 0%, transparent 60%);
+  background: linear-gradient(135deg, rgba(10, 10, 10, 0.04) 0%, transparent 60%);
   border: 1px solid var(--sp-brand-800);
   border-radius: var(--sp-card-radius);
   padding: var(--sp-space-xl);
@@ -95,7 +95,7 @@
   text-decoration: none;
   border-color: var(--sp-brand-500);
   transform: translateY(-4px);
-  box-shadow: 0 8px 32px rgba(0, 113, 206, 0.2);
+  box-shadow: 0 8px 32px rgba(10, 10, 10, 0.11);
 }
 
 .hero-feature-title {
@@ -133,9 +133,9 @@ body::before {
   position: fixed;
   inset: 0;
   background-image:
-    radial-gradient(ellipse 80vw 40vh at 50% 0%, hsla(28, 100%, 70%, 0.3), transparent 70%),
-    radial-gradient(ellipse 40vw 80vh at 0% 50%, hsla(28, 90%, 75%, 0.2), transparent 70%),
-    radial-gradient(ellipse 40vw 80vh at 100% 50%, hsla(28, 90%, 75%, 0.2), transparent 70%);
+    radial-gradient(ellipse 80vw 40vh at 50% 0%, rgba(23, 23, 23, 0.06), transparent 70%),
+    radial-gradient(ellipse 40vw 80vh at 0% 50%, rgba(23, 23, 23, 0.04), transparent 70%),
+    radial-gradient(ellipse 40vw 80vh at 100% 50%, rgba(23, 23, 23, 0.04), transparent 70%);
   opacity: 0.5;
   pointer-events: none;
   z-index: -1;

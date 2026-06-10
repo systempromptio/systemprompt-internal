@@ -22,8 +22,8 @@ body {
   height: 600px;
   border-radius: var(--sp-radius-full);
   background: radial-gradient(circle,
-    rgba(0, 113, 206, 0.35) 0%,
-    rgba(0, 113, 206, 0.06) 70%,
+    rgba(10, 10, 10, 0.19) 0%,
+    rgba(10, 10, 10, 0.03) 70%,
     transparent 100%);
   pointer-events: none;
 }
@@ -133,7 +133,7 @@ body {
 
 .highlight-item {
   list-style: none;
-  background: linear-gradient(135deg, rgba(0, 113, 206, 0.05) 0%, transparent 60%);
+  background: linear-gradient(135deg, rgba(10, 10, 10, 0.03) 0%, transparent 60%);
   border: 1px solid var(--sp-brand-800);
   border-radius: var(--sp-radius-md);
   transition: all var(--sp-transition-normal);
@@ -141,7 +141,7 @@ body {
 
 .highlight-item:hover {
   border-color: var(--sp-brand-500);
-  box-shadow: 0 4px 20px rgba(0, 113, 206, 0.15);
+  box-shadow: 0 4px 20px rgba(10, 10, 10, 0.08);
   transform: translateY(-2px);
 }
 

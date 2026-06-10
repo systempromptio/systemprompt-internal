@@ -63,7 +63,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse 60% 80% at 50% 100%, hsla(28, 100%, 70%, 0.12), transparent 70%);
+  background: radial-gradient(ellipse 60% 80% at 50% 100%, rgba(23, 23, 23, 0.04), transparent 70%);
   pointer-events: none;
 }
 

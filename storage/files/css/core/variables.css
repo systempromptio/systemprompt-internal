@@ -1,34 +1,35 @@
 :root {
-  /* Brand hue — change this single value to shift the entire brand palette */
-  --sp-brand-hue: 28;
-  --sp-brand-50: hsl(var(--sp-brand-hue), 91%, 95%);
-  --sp-brand-100: hsl(var(--sp-brand-hue), 91%, 90%);
-  --sp-brand-200: hsl(var(--sp-brand-hue), 91%, 80%);
-  --sp-brand-300: hsl(var(--sp-brand-hue), 91%, 70%);
-  --sp-brand-400: hsl(var(--sp-brand-hue), 91%, 65%);
-  --sp-brand-500: hsl(var(--sp-brand-hue), 91%, 60%);
-  --sp-brand-600: hsl(var(--sp-brand-hue), 91%, 50%);
-  --sp-brand-700: hsl(var(--sp-brand-hue), 91%, 40%);
-  --sp-brand-800: hsl(var(--sp-brand-hue), 91%, 30%);
-  --sp-brand-900: hsl(var(--sp-brand-hue), 91%, 20%);
-  --sp-brand-950: hsl(var(--sp-brand-hue), 91%, 10%);
+  /* Astound Digital monochrome ramp — neutral greys, literal hex (no hue ramp) */
+  --sp-brand-50: #f8f7f3;
+  --sp-brand-100: #f1efed;
+  --sp-brand-200: #dddddd;
+  --sp-brand-300: #b6b6b6;
+  --sp-brand-400: #707070;
+  --sp-brand-500: #4d4d4d;
+  --sp-brand-600: #292929;
+  --sp-brand-700: #171717;
+  --sp-brand-800: #0f0f0f;
+  --sp-brand-900: #0a0a0a;
+  --sp-brand-950: #050505;
 
-  --sp-color-primary: hsl(28, 91%, 50%);
-  --sp-color-primary-hover: hsl(28, 91%, 43%);
-  --sp-color-primary-dark: hsl(28, 91%, 37%);
-  --sp-color-primary-rgb: 247, 153, 56;
-  --sp-color-text-on-primary: #ffffff;
-  --sp-color-background: #FAFAF9;
-  --sp-color-surface: #F5F5F4;
-  --sp-color-surface-elevated: #FAFAF9;
+  --sp-color-primary: #171717;
+  --sp-color-primary-hover: #000000;
+  --sp-color-primary-dark: #0a0a0a;
+  --sp-color-primary-rgb: 23, 23, 23;
+  --sp-color-accent: #fe190a;
+  --sp-color-accent-rgb: 254, 25, 10;
+  --sp-color-text-on-primary: #f8f7f3;
+  --sp-color-background: #f8f7f3;
+  --sp-color-surface: #f1efed;
+  --sp-color-surface-elevated: #f8f7f3;
   --sp-color-surface-variant: #FFFFFF;
-  --sp-color-surface-dark: #E7E5E4;
-  --sp-color-text: #0F172A;
-  --sp-color-text-primary: #0F172A;
-  --sp-color-text-secondary: #475569;
-  --sp-color-text-muted: #A8A29E;
-  --sp-color-text-disabled: #A8A29E;
-  --sp-color-border: #D6D3D1;
+  --sp-color-surface-dark: #dddddd;
+  --sp-color-text: #171717;
+  --sp-color-text-primary: #171717;
+  --sp-color-text-secondary: #4d4d4d;
+  --sp-color-text-muted: #707070;
+  --sp-color-text-disabled: #b6b6b6;
+  --sp-color-border: #dddddd;
 
   --sp-color-success: #22c55e;
   --sp-color-warning: #fbbf24;
@@ -39,19 +40,19 @@
   --sp-terminal-dot-minimize: #febc2e;
   --sp-terminal-dot-maximize: #28c840;
 
-  --sp-syntax-bg: #1C1917;
-  --sp-syntax-fg: #FAFAF9;
-  --sp-syntax-comment: #A8A29E;
-  --sp-syntax-keyword: #f79938;
+  --sp-syntax-bg: #0a0a0a;
+  --sp-syntax-fg: #f8f7f3;
+  --sp-syntax-comment: #707070;
+  --sp-syntax-keyword: #fe190a;
   --sp-syntax-string: #22c55e;
-  --sp-syntax-number: #FDBA74;
-  --sp-syntax-function: #f79938;
-  --sp-syntax-variable: #e06c75;
-  --sp-syntax-operator: #f79938;
-  --sp-syntax-class: #FFC55B;
+  --sp-syntax-number: #b6b6b6;
+  --sp-syntax-function: #f1efed;
+  --sp-syntax-variable: #dddddd;
+  --sp-syntax-operator: #fe190a;
+  --sp-syntax-class: #b6b6b6;
 
   --sp-font-brand: "Inter", system-ui, sans-serif;
-  --sp-font-body: "OpenSans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --sp-font-body: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --sp-font-heading: "Inter", system-ui, sans-serif;
 
   --sp-font-size-xs: 12px;
@@ -116,28 +117,28 @@
   --sp-card-radius-notch: 6px;
   --sp-card-radius: 18px 6px 18px 18px;
   --sp-card-border-width: 1px;
-  --sp-card-bg-glass: hsla(28, 32%, 98%, 0.6);
+  --sp-card-bg-glass: rgba(248, 247, 243, 0.6);
   --sp-card-bg-gradient: linear-gradient(135deg,
-    rgba(247, 153, 56, 0.06) 0%,
-    rgba(253, 186, 116, 0.08) 50%,
-    rgba(250, 250, 249, 0.04) 100%);
+    rgba(23, 23, 23, 0.05) 0%,
+    rgba(23, 23, 23, 0.025) 50%,
+    rgba(248, 247, 243, 0.04) 100%);
   --sp-card-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
-  --sp-card-shadow-hover: 0 8px 32px rgba(28, 25, 23, 0.12);
-  --sp-card-shadow-highlight: 0 0 20px rgba(247, 153, 56, 0.15);
-  --sp-brand-green: #f79938;
-  --sp-brand-gradient: linear-gradient(135deg, #fde0b8, #FAFAF9);
-  --sp-brand-gradient-reverse: linear-gradient(135deg, #FAFAF9, #fde0b8);
+  --sp-card-shadow-hover: 0 8px 32px rgba(10, 10, 10, 0.12);
+  --sp-card-shadow-highlight: 0 0 20px rgba(23, 23, 23, 0.12);
+  --sp-brand-green: #fe190a;
+  --sp-brand-gradient: linear-gradient(135deg, #f1efed, #f8f7f3);
+  --sp-brand-gradient-reverse: linear-gradient(135deg, #f8f7f3, #f1efed);
 
-  --sp-client-black: #0F172A;
-  --sp-client-orange: #f79938;
-  --sp-client-tints-cta-orange: #f79938;
-  --sp-client-tints-orange-3: #fde0b8;
-  --sp-client-sand: #FAFAF9;
-  --sp-client-sand-60: hsla(28, 32%, 98%, 0.6);
-  --sp-client-yellow: #FFF4C1;
-  --sp-client-teal: #006463;
-  --sp-client-grey: #F5F5F4;
-  --sp-client-cards-card-bg: #F5F5F4;
+  --sp-client-black: #171717;
+  --sp-client-orange: #fe190a;
+  --sp-client-tints-cta-orange: #171717;
+  --sp-client-tints-orange-3: #f1efed;
+  --sp-client-sand: #f8f7f3;
+  --sp-client-sand-60: rgba(248, 247, 243, 0.6);
+  --sp-client-yellow: #f1efed;
+  --sp-client-teal: #292929;
+  --sp-client-grey: #f1efed;
+  --sp-client-cards-card-bg: #f1efed;
 
   /* Compatibility aliases for ported components from systemprompt-web */
   --sp-space-1: 4px;
@@ -158,9 +159,9 @@
   --sp-ease-out: ease-out;
   --sp-ease-in-out: ease-in-out;
 
-  --sp-color-surface-alt: var(--sp-color-surface-elevated, #FAFAF9);
+  --sp-color-surface-alt: var(--sp-color-surface-elevated, #f8f7f3);
   --sp-color-surface-hover: rgba(0, 0, 0, 0.04);
-  --sp-color-primary-text: var(--sp-color-primary);
+  --sp-color-primary-text: var(--sp-color-accent);
   --sp-color-border-subtle: var(--sp-color-border);
   --sp-color-header-bg: rgba(255, 255, 255, 0.85);
   --sp-color-header-border: var(--sp-color-border);

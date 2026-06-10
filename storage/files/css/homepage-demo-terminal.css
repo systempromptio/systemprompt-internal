@@ -41,7 +41,7 @@
   opacity: 1;
   visibility: visible;
   border-color: var(--sp-brand-700);
-  box-shadow: 0 8px 40px rgba(0, 113, 206, 0.15), 0 4px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 40px rgba(10, 10, 10, 0.08), 0 4px 24px rgba(0, 0, 0, 0.4);
 }
 
 .terminal-header {

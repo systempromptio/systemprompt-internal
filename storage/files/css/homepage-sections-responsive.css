@@ -51,7 +51,7 @@
       var(--sp-brand-500) 70%,
       transparent 100%
     );
-    box-shadow: 0 0 10px rgba(0, 113, 206, 0.4);
+    box-shadow: 0 0 10px rgba(10, 10, 10, 0.22);
   }
 
   .diagonal-title {

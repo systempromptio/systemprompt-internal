@@ -32,7 +32,7 @@
 
 .trait-tab.active {
   color: var(--sp-color-primary);
-  background: rgba(0, 113, 206, 0.1);
+  background: rgba(10, 10, 10, 0.06);
   border-bottom: 2px solid var(--sp-color-primary);
 }
 
@@ -104,7 +104,7 @@
 .architecture-note {
   text-align: center;
   padding: var(--sp-space-xl);
-  background: rgba(0, 113, 206, 0.05);
+  background: rgba(10, 10, 10, 0.03);
   border-radius: var(--sp-radius-button);
   margin-top: var(--sp-space-xl);
 }

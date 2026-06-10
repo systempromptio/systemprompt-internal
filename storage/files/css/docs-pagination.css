@@ -21,7 +21,7 @@
 
 .docs-pagination-link:hover {
   border-color: var(--sp-color-primary);
-  background: rgba(0, 113, 206, 0.05);
+  background: rgba(10, 10, 10, 0.03);
 }
 
 .docs-pagination-prev {

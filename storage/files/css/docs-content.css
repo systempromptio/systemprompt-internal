@@ -114,7 +114,7 @@
   margin: 0 0 var(--sp-spacing-md) 0;
   padding: var(--sp-spacing-md) var(--sp-spacing-lg);
   border-left: 4px solid var(--sp-color-primary);
-  background: rgba(0, 113, 206, 0.05);
+  background: rgba(10, 10, 10, 0.03);
   border-radius: 0 var(--sp-radius-sm) var(--sp-radius-sm) 0;
 }
 

@@ -22,8 +22,8 @@ body {
   height: 600px;
   border-radius: var(--sp-radius-full);
   background: radial-gradient(circle,
-    rgba(0, 113, 206, 0.35) 0%,
-    rgba(0, 113, 206, 0.06) 70%,
+    rgba(10, 10, 10, 0.19) 0%,
+    rgba(10, 10, 10, 0.03) 70%,
     transparent 100%);
   pointer-events: none;
 }
@@ -89,8 +89,8 @@ body {
   height: 100%;
   border-radius: var(--sp-radius-full);
   background: radial-gradient(circle,
-    rgba(0, 113, 206, 0.15) 0%,
-    rgba(0, 113, 206, 0.05) 40%,
+    rgba(10, 10, 10, 0.08) 0%,
+    rgba(10, 10, 10, 0.03) 40%,
     transparent 70%);
   pointer-events: none;
   z-index: 0;
