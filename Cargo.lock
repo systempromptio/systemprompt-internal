@@ -5044,6 +5044,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "systemprompt-astound"
+version = "0.14.4"
+dependencies = [
+ "anyhow",
+ "axum",
+ "serde",
+ "serde_yaml",
+ "sqlx",
+ "systemprompt",
+ "systemprompt-web-extension",
+ "tokio",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "systemprompt-cli"
 version = "0.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5745,23 +5762,6 @@ dependencies = [
  "uuid",
  "walkdir",
  "zip 8.6.0",
-]
-
-[[package]]
-name = "systemprompt-template"
-version = "0.14.4"
-dependencies = [
- "anyhow",
- "axum",
- "serde",
- "serde_yaml",
- "sqlx",
- "systemprompt",
- "systemprompt-web-extension",
- "tokio",
- "tower-http",
- "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]

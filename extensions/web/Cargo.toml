@@ -4,7 +4,7 @@ version = "1.0.0"
 edition = "2021"
 description = "Web extension for SystemPrompt - content, navigation, and templates"
 license = "MIT"
-repository = "https://github.com/systempromptio/systemprompt-template"
+repository = "https://github.com/systempromptio/systemprompt-astound"
 
 [lints]
 workspace = true

@@ -26,11 +26,10 @@ pub fn social_icon(platform_type: &str) -> &'static str {
 }
 
 pub fn render_social_action_bar(_slug: &str, _title: &str, _org_url: &str) -> String {
-    let social_links = [
-        ("github", "https://github.com/foodaborad"),
-        ("twitter", "https://twitter.com/foodaborad"),
-        ("linkedin", "https://www.linkedin.com/company/foodaborad"),
-    ];
+    let social_links = [(
+        "linkedin",
+        "https://www.linkedin.com/company/astound-digital/",
+    )];
 
     let mut links_html: Vec<String> = social_links
         .iter()

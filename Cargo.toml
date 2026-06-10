@@ -24,7 +24,7 @@ opt-level = "z"
 [workspace.package]
 edition = "2021"
 version = "0.14.4"
-authors = ["systemprompt.io <ed@systemprompt.io>"]
+authors = ["Astound Digital <ed@tyingshoelaces.com>"]
 license = "MIT"
 
 [workspace.dependencies]
@@ -194,15 +194,15 @@ variant_size_differences = "warn"
 # ROOT PACKAGE (Template Application)
 # ============================================
 [package]
-name = "systemprompt-template"
+name = "systemprompt-astound"
 version.workspace = true
 edition.workspace = true
-description = "AI Governance Infrastructure — local evaluation. The governance layer for AI agents: a single compiled Rust binary that authenticates, authorises, rate-limits, logs, and costs every AI interaction. Self-hosted, air-gap capable, provider-agnostic. Built on systemprompt-core."
+description = "Astound Digital branded AI governance platform — local evaluation. A single compiled Rust binary that authenticates, authorises, rate-limits, logs, and costs every AI interaction. Self-hosted, air-gap capable, provider-agnostic. Built on systemprompt-core."
 license = "MIT"
 readme = "README.md"
-repository = "https://github.com/systempromptio/systemprompt-template"
-homepage = "https://systemprompt.io"
-documentation = "https://systemprompt.io/documentation/"
+repository = "https://github.com/systempromptio/systemprompt-astound"
+homepage = "https://astounddigital.com"
+documentation = "https://astounddigital.com"
 keywords = ["ai", "governance", "mcp", "agents", "claude"]
 categories = ["command-line-utilities", "web-programming"]
 
