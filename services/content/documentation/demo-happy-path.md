@@ -1,7 +1,7 @@
 ---
 title: "Demo: Allowed Skill — Web Search Passes Governance"
 description: "Live demo showing the example-web-search skill passing through the PreToolUse governance hook. The tool call is evaluated, allowed, and tracked."
-author: "systemprompt.io"
+author: "Astound Digital"
 slug: "demo-happy-path"
 keywords: "demo, happy path, governance, allowed, web search, hook"
 kind: "guide"

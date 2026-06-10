@@ -1,7 +1,7 @@
 ---
 title: "Terminal Demo: Audit Trails & Cost Tracking"
 description: "Inspect governance decisions from the database, compare allowed vs denied policies, and view cost breakdown by agent. Every decision persists in the database and appears on the dashboard."
-author: "systemprompt.io"
+author: "Astound Digital"
 slug: "demo-terminal-audit"
 keywords: "demo, terminal, audit, governance, decisions, cost tracking, analytics"
 kind: "guide"

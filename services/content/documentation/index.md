@@ -1,7 +1,7 @@
 ---
-title: "Enterprise Demo Documentation"
-description: "Terminal demo walkthroughs and dashboard usage guide for the Enterprise Demo."
-author: "systemprompt.io"
+title: "Astound Digital Platform Documentation"
+description: "Terminal demo walkthroughs and dashboard usage guide for the Astound Digital evaluation platform."
+author: "Astound Digital"
 slug: ""
 keywords: "enterprise-demo, terminal demo, dashboard, authentication"
 kind: "guide"
@@ -14,7 +14,7 @@ after_reading_this:
   - "Log in to and navigate the admin dashboard"
 ---
 
-# Enterprise Demo Documentation
+# Astound Digital Platform Documentation
 
 This site covers two things: the **terminal demo** walkthroughs and how to **log in and use the dashboard**. Everything else lives in the code.
 

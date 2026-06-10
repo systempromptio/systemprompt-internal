@@ -1,7 +1,7 @@
 ---
 title: "Authentication"
-description: "Understand how systemprompt.io authenticates users via OAuth 2.0 with PKCE, session cookies, magic links, and the add-passkey onboarding flow."
-author: "systemprompt.io"
+description: "Understand how the platform authenticates users via OAuth 2.0 with PKCE, session cookies, magic links, and the add-passkey onboarding flow."
+author: "Astound Digital"
 slug: "authentication"
 keywords: "authentication, login, OAuth, PKCE, passkey, magic link, session, JWT, security"
 kind: "guide"
@@ -27,7 +27,7 @@ related_docs:
 
 # Authentication
 
-**TL;DR:** systemprompt.io uses OAuth 2.0 with PKCE for secure, passwordless authentication. When you visit the login page you are automatically redirected to the OAuth authorization flow, and upon success a JWT access token is stored as a session cookie. Magic links provide an email-based alternative for marketplace access, and the add-passkey page lets new users register their credentials.
+**TL;DR:** This platform uses OAuth 2.0 with PKCE for secure, passwordless authentication. When you visit the login page you are automatically redirected to the OAuth authorization flow, and upon success a JWT access token is stored as a session cookie. Magic links provide an email-based alternative for marketplace access, and the add-passkey page lets new users register their credentials.
 
 ## What You'll See
 

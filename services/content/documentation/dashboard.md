@@ -1,7 +1,7 @@
 ---
 title: "Dashboard"
 description: "Monitor AI usage across your organization with the admin dashboard. View real-time activity, metrics, top users, popular skills, model usage, and department breakdowns."
-author: "systemprompt.io"
+author: "Astound Digital"
 slug: "dashboard"
 keywords: "dashboard, analytics, metrics, usage, monitoring, activity, events, sessions"
 kind: "guide"
@@ -137,7 +137,7 @@ The dashboard links to other admin pages:
 
 ## Enterprise Cost & Usage Visibility
 
-The dashboard provides enterprise-scale visibility designed for large organizational deployments. At systemprompt.io scale, cost and usage data must be actionable across organizational boundaries — from individual agents to entire departments.
+The dashboard provides enterprise-scale visibility designed for large organizational deployments. At enterprise scale, cost and usage data must be actionable across organizational boundaries — from individual agents to entire departments.
 
 ### Per-Agent Token Consumption
 
@@ -187,8 +187,8 @@ Finance teams can export cost and usage data to CSV for integration with existin
 
 The dashboard analytics extend to enterprise-scale reporting with internal data mapping. Capabilities available for scoping in the Phase 1 PRD include:
 
-- **Internal data source mapping** — correlate platform analytics with systemprompt.io's existing data structures (CRM, ERP, workforce management) for unified reporting
-- **Custom analytics dashboards** — define which metrics, charts, and drill-downs appear in the systemprompt.io Control Center based on operational priorities
-- **User analytics with role context** — map platform usage data to systemprompt.io's internal user hierarchy, teams, and reporting lines
+- **Internal data source mapping** — correlate platform analytics with your existing data structures (CRM, ERP, workforce management) for unified reporting
+- **Custom analytics dashboards** — define which metrics, charts, and drill-downs appear in the Control Center based on operational priorities
+- **User analytics with role context** — map platform usage data to your internal user hierarchy, teams, and reporting lines
 - **Cross-system engagement metrics** — combine AI usage data with business outcomes to measure the impact of AI adoption on operational KPIs
 - **Scheduled reporting** — automated report generation and distribution to stakeholders on configurable schedules

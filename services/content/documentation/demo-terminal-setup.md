@@ -1,7 +1,7 @@
 ---
 title: "Terminal Demo: Setup & Authentication"
 description: "Verify platform services, obtain authentication tokens, and access the admin dashboard. Required before running any terminal demo."
-author: "systemprompt.io"
+author: "Astound Digital"
 slug: "demo-terminal-setup"
 keywords: "demo, terminal, setup, authentication, token, preflight"
 kind: "guide"

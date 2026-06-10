@@ -1,7 +1,7 @@
 ---
 title: "Terminal Demo: Agent Tracing — Full Pipeline"
 description: "Run a live agent through the platform runtime. See AI reasoning, MCP tool calls, artifact creation, and full execution tracing with typed IDs."
-author: "systemprompt.io"
+author: "Astound Digital"
 slug: "demo-terminal-agent-tracing"
 keywords: "demo, terminal, agents, tracing, artifacts, mcp, pipeline"
 kind: "guide"

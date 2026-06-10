@@ -1,7 +1,7 @@
 ---
 title: "Gateway API (/v1/messages)"
 description: "The governed inference gateway: the /v1/messages contract, the required x-session-id header, model allow-listing, and the three profile API URLs."
-author: "systemprompt.io"
+author: "Astound Digital"
 slug: "gateway-api"
 keywords: "gateway, /v1/messages, x-session-id, inference, model allow-list, api url, governance"
 kind: "guide"

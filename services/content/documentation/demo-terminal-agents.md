@@ -1,7 +1,7 @@
 ---
 title: "Terminal Demo: Governance Decisions — Allowed vs Denied"
 description: "Call the governance API directly with curl to simulate Claude Code's PreToolUse hook. An admin-scope agent is allowed; a user-scope agent is denied. See both decisions on the dashboard."
-author: "systemprompt.io"
+author: "Astound Digital"
 slug: "demo-terminal-agents"
 keywords: "demo, terminal, governance, curl, PreToolUse, scope, allow, deny"
 kind: "guide"
