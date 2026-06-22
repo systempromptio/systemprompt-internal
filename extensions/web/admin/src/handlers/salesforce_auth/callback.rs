@@ -1,6 +1,7 @@
 //! `GET /admin/auth/salesforce/callback` — exchange the code for tokens, gate on
 //! verified email + allow-listed domain, resolve the identity to a local user,
-//! bank the Salesforce tokens for later Hosted-MCP use, and set the session.
+//! and set the session. The Salesforce Hosted-MCP bearer is no longer banked
+//! here; it is minted on demand via the JWT-bearer grant at access time.
 
 use axum::extract::Query;
 use axum::http::header::SET_COOKIE;
@@ -18,7 +19,7 @@ use systemprompt::oauth::services::{
 use systemprompt::oauth::SessionCreationService;
 
 use super::config::SalesforceConfig;
-use super::tokens::{bank_tokens, exchange_code, SalesforceTokenResponse};
+use super::tokens::exchange_code;
 use super::{login_error, read_state_cookie, secure_flag, SalesforceDeps, STATE_COOKIE};
 use crate::repositories::users_grp::federated;
 
@@ -70,20 +71,7 @@ async fn run_callback(
 ) -> Result<SuccessfulLogin, &'static str> {
     let (code, code_verifier, redirect_to) = validate_request(headers, params)?;
 
-    let (resolved, tokens) = resolve_identity(deps, &code, &code_verifier).await?;
-
-    // Bank the Salesforce tokens for later Hosted-MCP use. A banking failure
-    // must not lock the user out of admin, so it is logged, not fatal.
-    if let Err(e) = bank_tokens(
-        &deps.write_pool,
-        &resolved.user_id,
-        &tokens,
-        &deps.config.client_id,
-    )
-    .await
-    {
-        tracing::error!(error = %e, user_id = %resolved.user_id, "Failed to bank Salesforce tokens");
-    }
+    let resolved = resolve_identity(deps, &code, &code_verifier).await?;
 
     let (jwt, max_age) = mint_session(&deps.session_service, &resolved, headers)
         .await
@@ -126,13 +114,14 @@ fn validate_request(
 }
 
 /// Exchange the code for tokens, read verified claims, gate them, and resolve
-/// the identity to a local user. Returns the resolved user plus the banked-able
-/// token set. Each step logs its own failure and collapses to a login *reason*.
+/// the identity to a local user. The access token is used only to fetch
+/// userinfo here — it is not retained. Each step logs its own failure and
+/// collapses to a login *reason*.
 async fn resolve_identity(
     deps: &SalesforceDeps,
     code: &str,
     code_verifier: &str,
-) -> Result<(federated::ResolvedFederatedUser, SalesforceTokenResponse), &'static str> {
+) -> Result<federated::ResolvedFederatedUser, &'static str> {
     let cfg = &deps.config;
 
     let client_secret = super::client_secret().ok_or_else(|| {
@@ -169,7 +158,7 @@ async fn resolve_identity(
         "error"
     })?;
 
-    Ok((resolved, tokens))
+    Ok(resolved)
 }
 
 /// Enforce the verified-email + allow-listed-domain gate, returning the

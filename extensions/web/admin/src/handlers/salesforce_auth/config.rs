@@ -17,12 +17,23 @@ pub fn client_secret() -> Option<String> {
     })
 }
 
+/// Resolve the Salesforce Connected App private key (PEM) used to sign the
+/// RFC 7523 JWT-bearer assertion. Env var first, then the encrypted secrets
+/// store, mirroring [`client_secret`]. Never persisted in `salesforce.yaml`.
+pub fn salesforce_private_key() -> Option<String> {
+    std::env::var("SALESFORCE_PRIVATE_KEY").ok().or_else(|| {
+        systemprompt::config::SecretsBootstrap::get()
+            .ok()
+            .and_then(|s| s.get("salesforce_private_key").cloned())
+    })
+}
+
 /// Default scopes — `openid`/`email`/`profile` drive login; `api` covers direct
-/// REST calls; `refresh_token` + `mcp_api` are what let the banked token reach
-/// the Salesforce *Hosted* MCP endpoint (an OAuth resource server that demands a
-/// Salesforce bearer with `mcp_api` on every call).
+/// REST calls. The Salesforce Hosted-MCP bearer is no longer banked at login;
+/// it is minted on demand via the RFC 7523 JWT-bearer grant, so the
+/// `refresh_token`/`mcp_api` login scopes are not requested here.
 pub(super) fn default_scopes() -> String {
-    "openid email profile api refresh_token mcp_api".to_string()
+    "openid email profile api".to_string()
 }
 
 /// Mirrors the registration gate in [`crate::handlers::public_register`].
@@ -84,8 +95,14 @@ impl SalesforceConfig {
         format!("{}/services/oauth2/authorize", self.base())
     }
 
-    pub(super) fn token_url(&self) -> String {
+    pub fn token_url(&self) -> String {
         format!("{}/services/oauth2/token", self.base())
+    }
+
+    /// The `aud` for the RFC 7523 JWT-bearer assertion — the org login host
+    /// (the My Domain base URL).
+    pub fn jwt_bearer_audience(&self) -> &str {
+        self.base()
     }
 
     pub(super) fn userinfo_url(&self) -> String {

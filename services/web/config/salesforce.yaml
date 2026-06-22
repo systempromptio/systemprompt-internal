@@ -25,11 +25,10 @@ client_id: "3MVG9rZjd7MXFdLiX4NDcmr4co_xkqFLJ9gCA1fUHJ94TYOaie9HnxPKHcg66h61R1Lb
 redirect_uri: "http://localhost:8080/admin/auth/salesforce/callback"
 
 # OAuth scopes requested. openid/email/profile drive login; api covers direct
-# REST calls; refresh_token + mcp_api are what let the banked token reach the
-# Salesforce *Hosted* MCP endpoint (an OAuth resource server that demands a
-# Salesforce bearer with mcp_api on every call). The External Client App must
-# grant all of these.
-scopes: "openid email profile api refresh_token mcp_api"
+# REST calls. The Salesforce Hosted-MCP bearer is no longer banked at login —
+# it is minted on demand via the RFC 7523 JWT-bearer grant — so refresh_token /
+# mcp_api are no longer requested here.
+scopes: "openid email profile api"
 
 # Only these verified email domains may sign in (mirrors the registration gate).
 # systemprompt.io is included so the platform/dev contact can test SSO; trim to

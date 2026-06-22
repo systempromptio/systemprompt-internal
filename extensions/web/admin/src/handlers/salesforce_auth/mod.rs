@@ -1,16 +1,16 @@
 //! "Sign in with Salesforce" — OAuth 2.0 / OIDC authorization-code login, plus
-//! per-user Salesforce *token banking* for the Hosted MCP server.
+//! the typed accessor that mints a per-user Salesforce bearer for the Hosted
+//! MCP server.
 //!
 //! - [`salesforce_start`] / [`salesforce_callback`] drive the browser login.
-//! - The callback banks the user's Salesforce `access_token`/`refresh_token`/
-//!   `instance_url`/`issued_at` in the per-user encrypted secret store so agents
-//!   can later reach the Salesforce Hosted MCP endpoint as that user.
 //! - [`salesforce_token_handler`] is the typed accessor core's external-MCP
-//!   client calls to obtain a fresh `{access_token, instance_url}` bearer.
+//!   client calls to obtain a fresh `{access_token, instance_url}` bearer. The
+//!   bearer is minted on demand via the RFC 7523 JWT-bearer grant
+//!   ([`crate::services::salesforce_jwt_bearer`]) — no tokens are banked.
 //!
 //! Module layout: [`config`] (the loaded YAML), [`start`] (the authorize
-//! redirect), [`callback`] (token exchange → identity → session → token bank),
-//! [`tokens`] (token shapes, exchange, persistence, the accessor endpoint).
+//! redirect), [`callback`] (token exchange → identity → session), [`tokens`]
+//! (token shapes, the code exchange, the accessor endpoint).
 
 mod callback;
 mod config;
@@ -29,18 +29,11 @@ use sqlx::PgPool;
 use systemprompt::models::Config;
 use systemprompt::oauth::SessionCreationService;
 
-pub use config::{client_secret, SalesforceConfig};
-pub use start::salesforce_start;
-pub use tokens::salesforce_token_handler;
-
-// Re-exported for callers that need the callback entrypoint directly.
 pub use callback::salesforce_callback;
-
-/// Plugin id under which Salesforce tokens are banked in `plugin_env_vars`.
-pub const PLUGIN_ID: &str = "salesforce";
-
-// Token plumbing reused by the refresh service in `crate::services`.
+pub use config::{client_secret, salesforce_private_key, SalesforceConfig};
+pub use start::salesforce_start;
 pub use tokens::post_token_request;
+pub use tokens::salesforce_token_handler;
 
 pub(super) const STATE_COOKIE: &str = "sf_oauth_state";
 const DEFAULT_REDIRECT: &str = "/admin";
@@ -58,22 +51,20 @@ pub enum SalesforceError {
     },
     #[error("Salesforce userinfo endpoint returned {0}")]
     UserInfo(reqwest::StatusCode),
-    #[error("No Salesforce tokens banked for this user — sign in with Salesforce first")]
-    NoStoredTokens,
-    #[error("SALESFORCE_CLIENT_SECRET is not set")]
-    MissingClientSecret,
+    #[error("SALESFORCE_PRIVATE_KEY is not set")]
+    MissingPrivateKey,
     #[error("Salesforce token store error: {0}")]
     Storage(#[from] systemprompt_web_shared::error::MarketplaceError),
     #[error("Salesforce token plumbing: {0}")]
     Internal(String),
 }
 
-/// Per-request dependencies handed to the Salesforce handlers via an axum
-/// `Extension`. All fields are `Arc`, so cloning is cheap.
+/// Per-request dependencies for the Salesforce handlers, shared via an axum
+/// `Extension`.
 #[derive(Clone)]
 pub struct SalesforceDeps {
     pub config: Arc<SalesforceConfig>,
-    /// Write-capable pool — the callback may provision a user and bank tokens.
+    /// Write-capable pool — the callback may provision a federated user.
     pub write_pool: Arc<PgPool>,
     pub session_service: Arc<SessionCreationService>,
 }
