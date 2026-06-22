@@ -92,3 +92,17 @@ steps:
       A validated hook inventory plus a fresh plugin_usage_events row keyed on
       a one-shot session_id — proof the hook-tracking path is wired into the
       audit store, not just the manifest.
+  - script: 09-ema-id-jag-loop.sh
+    label: Run the Enterprise-Managed Authorization (ID-JAG) loop end-to-end
+    narrative: >
+      With a real Salesforce id_token and a registered token-exchange client,
+      walks the full EMA loop on the one RFC 8693 /token endpoint: issue
+      (requested_token_type=id-jag mints a client-bound ID-JAG from the SF
+      id_token), consume (subject_token_type=id-jag returns a delegated access
+      token), then calls a protected MCP with that token. Okta/Claude-free —
+      our own client drives the loop. Skips cleanly when the SF id_token and
+      client credentials are not exported.
+    outcome: >
+      A spec-valid ID-JAG (typ oauth-id-jag+jwt), a delegated Bearer access
+      token from exchanging it, and a protected MCP that accepts the token —
+      the complete issuer→resource-server EMA round trip.
