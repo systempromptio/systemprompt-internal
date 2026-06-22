@@ -55,6 +55,18 @@ rules:
     access: deny
     roles: [user]
 
+  # plugins shipped with enterprise-demo
+  - entity_type: plugin
+    entity_id: astound-consultancy
+    access: allow
+    default_included: true
+    roles: [user]
+  - entity_type: plugin
+    entity_id: astound-commons
+    access: allow
+    default_included: true
+    roles: [user]
+
   # agents shipped with enterprise-demo
   - entity_type: agent
     entity_id: associate_agent

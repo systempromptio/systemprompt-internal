@@ -22,7 +22,7 @@
     <meta name="theme-color" content="{{site.branding.themeColor}}">
     <link rel="stylesheet" href="{{CSS_BASE_PATH}}/homepage-hero.css">
     <link rel="stylesheet" href="{{CSS_BASE_PATH}}/homepage-sections-titles.css">
-    <link rel="stylesheet" href="{{CSS_BASE_PATH}}/homepage-demos.css">
+    <link rel="stylesheet" href="{{CSS_BASE_PATH}}/homepage-getting-started.css">
 </head>
 <body>
     {{{HEADER}}}
@@ -45,150 +45,93 @@
                         {{/if}}
                     </div>
                     <nav class="hero-nav-chips" aria-label="Jump to homepage section">
-                        <a href="#quick-start" class="hero-nav-chip">Quick Start</a>
-                        <a href="#usage" class="hero-nav-chip">Usage</a>
-                        <a href="#demos" class="hero-nav-chip">Demos</a>
+                        <a href="#what-it-is" class="hero-nav-chip">What it is</a>
+                        <a href="#get-started" class="hero-nav-chip">Get started</a>
+                        <a href="/skills/" class="hero-nav-chip">Skills</a>
                     </nav>
                 </div>
             </div>
         </section>
 
-        {{#if site.homepage.demos}}
-        <section id="quick-start" class="demos-quick-start">
+        <section id="what-it-is" class="demos-quick-start">
             <div class="container">
                 <header class="section-header">
-                    <h2 class="section-title">Quick Start</h2>
-                    <p class="section-subtitle">Four commands from fresh clone to running demos.</p>
+                    <h2 class="section-title">One platform, your everyday AI tools</h2>
+                    <p class="section-subtitle">Astound's internal AI platform connects the tools you already use &mdash; Claude Code, Codex, Claude Desktop &mdash; to Astound's skills, governance, and identity.</p>
                 </header>
                 <ol class="quick-start-list">
-                    {{#each site.homepage.demos.quick_start}}
                     <li class="quick-start-step">
-                        <div class="quick-start-number">{{@index}}</div>
+                        <div class="quick-start-number">&#10003;</div>
                         <div class="quick-start-body">
-                            <h3 class="quick-start-label">{{this.label}}</h3>
-                            {{#if this.description}}<p class="quick-start-desc">{{this.description}}</p>{{/if}}
-                            <div class="command-row">
-                                <pre class="command-block"><code>{{this.command}}</code></pre>
-                                <button type="button" class="copy-btn" data-code="{{this.command}}" aria-label="Copy command">Copy</button>
-                            </div>
+                            <h3 class="quick-start-label">A skills marketplace, out of the box</h3>
+                            <p class="quick-start-desc">Consultancy workflows (RFP responses, statements of work, project estimates) and brand tools (voice and tone, client emails, boilerplate) are ready the moment you sign in &mdash; no setup, no prompt engineering. <a href="/skills/">Browse the catalogue</a>.</p>
                         </div>
                     </li>
-                    {{/each}}
+                    <li class="quick-start-step">
+                        <div class="quick-start-number">&#10003;</div>
+                        <div class="quick-start-body">
+                            <h3 class="quick-start-label">Your Cowork profile, installed by the bridge</h3>
+                            <p class="quick-start-desc">The desktop bridge app signs you in, installs your personal Cowork profile, and keeps your skills, agents, and MCP servers in sync inside Claude Code and Codex.</p>
+                        </div>
+                    </li>
+                    <li class="quick-start-step">
+                        <div class="quick-start-number">&#10003;</div>
+                        <div class="quick-start-body">
+                            <h3 class="quick-start-label">Governed and audited</h3>
+                            <p class="quick-start-desc">Every AI request and tool call runs through Astound's governance pipeline &mdash; scoped, secret-scanned, and fully audited &mdash; so you can use AI on client work with confidence.</p>
+                        </div>
+                    </li>
                 </ol>
             </div>
         </section>
 
-        <section id="demos" class="demos-catalogue">
+        <section id="get-started" class="demos-quick-start homepage-usage">
             <div class="container">
                 <header class="section-header">
-                    <h2 class="section-title">{{site.homepage.demos.title}}</h2>
-                    <p class="section-subtitle">{{site.homepage.demos.subtitle}}</p>
-                </header>
-
-                <nav class="demo-jump-nav" aria-label="Jump to demo section">
-                    <span class="demo-jump-nav-label">Jump to</span>
-                    <ul class="demo-jump-nav-list">
-                        {{#each site.homepage.demos.pillars}}
-                        <li><a href="#pillar-{{this.id}}" class="demo-jump-nav-link demo-jump-nav-pillar">{{this.title}}</a></li>
-                        {{/each}}
-                    </ul>
-                </nav>
-
-                {{#each site.homepage.demos.pillars}}
-                <div class="demo-pillar" id="pillar-{{this.id}}">
-                    <header class="demo-pillar-header">
-                        <h3 class="demo-pillar-title">{{this.title}}</h3>
-                        <p class="demo-pillar-subtitle">{{this.subtitle}}</p>
-                        {{#if this.feature_url}}
-                        <a href="{{this.feature_url}}" class="demo-pillar-link" target="_blank" rel="noopener">Learn more &rarr;</a>
-                        {{/if}}
-                    </header>
-
-                    {{#each this.categories}}
-                    <article class="demo-category" id="demo-{{this.id}}">
-                        <header class="demo-category-header">
-                            <div class="demo-category-heading">
-                                <h4 class="demo-category-title">{{this.title}}</h4>
-                                <p class="demo-category-tagline">{{this.tagline}}</p>
-                            </div>
-                            <div class="demo-category-meta">
-                                <span class="demo-category-cost">{{this.cost}}</span>
-                                {{#if this.feature_url}}
-                                <a href="{{this.feature_url}}" class="demo-category-feature-link" target="_blank" rel="noopener">Feature page &rarr;</a>
-                                {{/if}}
-                            </div>
-                        </header>
-                        <p class="demo-category-story">{{this.story}}</p>
-                        <ol class="demo-story-timeline">
-                            {{#each this.steps}}
-                            <li class="demo-step">
-                                <div class="demo-step-body">
-                                    <h5 class="demo-step-label">{{this.label}}</h5>
-                                    <p class="demo-step-narrative">{{this.narrative}}</p>
-                                    <p class="demo-step-outcome"><span class="demo-step-outcome-label">What you see</span> {{this.outcome}}</p>
-                                    <details class="demo-step-commands">
-                                        <summary class="demo-step-commands-summary">Run it — {{this.name}}</summary>
-                                        <div class="demo-step-commands-body">
-                                            <div class="demo-step-path">
-                                                <code>./{{this.path}}</code>
-                                                <button type="button" class="copy-btn copy-btn-small" data-code="./{{this.path}}" aria-label="Copy script path">Copy path</button>
-                                            </div>
-                                            {{#if this.commands}}
-                                            <p class="demo-step-commands-hint">Or run the individual commands below:</p>
-                                            {{#each this.commands}}
-                                            <div class="command-row">
-                                                <pre class="command-block"><code>{{this}}</code></pre>
-                                                <button type="button" class="copy-btn copy-btn-small" data-code="{{this}}" aria-label="Copy command">Copy</button>
-                                            </div>
-                                            {{/each}}
-                                            {{/if}}
-                                        </div>
-                                    </details>
-                                </div>
-                            </li>
-                            {{/each}}
-                        </ol>
-                    </article>
-                    {{/each}}
-                </div>
-                {{/each}}
-            </div>
-        </section>
-        {{/if}}
-
-        <section id="usage" class="demos-quick-start homepage-usage">
-            <div class="container">
-                <header class="section-header">
-                    <h2 class="section-title">Connect it to your local Claude Code</h2>
-                    <p class="section-subtitle">Three clicks, no config files, no tokens to paste. Your user identity is baked into the marketplace URL.</p>
+                    <h2 class="section-title">Get started in four steps</h2>
+                    <p class="section-subtitle">From your work email to Astound skills inside your AI tools in a few minutes.</p>
                 </header>
                 <ol class="quick-start-list">
                     <li class="quick-start-step">
                         <div class="quick-start-number">1</div>
                         <div class="quick-start-body">
                             <h3 class="quick-start-label">Create your account</h3>
-                            <p class="quick-start-desc">Sign up with an email &mdash; magic-link login, no passwords. You land on the dashboard straight after.</p>
+                            <p class="quick-start-desc">Sign up with your <strong>@astounddigital.com</strong> or <strong>@astoundcommerce.com</strong> email and register a passkey &mdash; no passwords.</p>
                             <div class="command-row">
-                                <a href="/admin/register" class="hero-cta hero-cta-primary">Sign up</a>
-                                <a href="/admin/login" class="hero-cta hero-cta-secondary">Log in</a>
+                                <a href="/admin/login?mode=register" class="hero-cta hero-cta-primary">Create account</a>
+                                <a href="/admin/login" class="hero-cta hero-cta-secondary">Sign in</a>
                             </div>
                         </div>
                     </li>
                     <li class="quick-start-step">
                         <div class="quick-start-number">2</div>
                         <div class="quick-start-body">
-                            <h3 class="quick-start-label">Click <strong>Connect to Claude Code</strong></h3>
-                            <p class="quick-start-desc">The connect button lives in the top-right of every dashboard page. It opens a panel with one command that installs your personal marketplace &mdash; plugins, skills, agents, and MCP servers, all scoped to your user.</p>
+                            <h3 class="quick-start-label">Download the desktop bridge</h3>
+                            <p class="quick-start-desc">The bridge runs in your menu bar or system tray. It handles credentials, installs your Cowork profile, and syncs Astound skills into your AI tools.</p>
                             <div class="command-row">
-                                <a href="/admin/dashboard" class="hero-cta hero-cta-secondary">Open dashboard</a>
+                                <a href="https://github.com/systempromptio/systemprompt-core/releases/latest/download/systemprompt-bridge-aarch64-apple-darwin" class="hero-cta hero-cta-primary">Download for Mac</a>
+                                <a href="https://github.com/systempromptio/systemprompt-core/releases/latest/download/systemprompt-bridge-x86_64-pc-windows-msvc.exe" class="hero-cta hero-cta-primary">Download for Windows</a>
                             </div>
                         </div>
                     </li>
                     <li class="quick-start-step">
                         <div class="quick-start-number">3</div>
                         <div class="quick-start-body">
-                            <h3 class="quick-start-label">Paste it into Claude Code</h3>
-                            <p class="quick-start-desc">Click <em>Copy command</em>, drop it into any Claude Code conversation, and your marketplace loads. That&rsquo;s the whole install &mdash; no <code>settings.json</code> edit, no token setup, no second step.</p>
+                            <h3 class="quick-start-label">Connect Claude Code or Codex</h3>
+                            <p class="quick-start-desc">Open your dashboard, click <strong>Connect</strong>, and follow the one-step instructions. The bridge links your identity to your tools &mdash; no config files, no tokens to paste.</p>
+                            <div class="command-row">
+                                <a href="/admin/dashboard" class="hero-cta hero-cta-secondary">Open dashboard</a>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="quick-start-step">
+                        <div class="quick-start-number">4</div>
+                        <div class="quick-start-body">
+                            <h3 class="quick-start-label">Use Astound skills</h3>
+                            <p class="quick-start-desc">Ask Claude Code to draft an RFP response, build a statement of work, or apply Astound's brand voice &mdash; the skills are already there.</p>
+                            <div class="command-row">
+                                <a href="/skills/" class="hero-cta hero-cta-secondary">Browse skills</a>
+                            </div>
                         </div>
                     </li>
                 </ol>
@@ -199,6 +142,5 @@
 
     {{{FOOTER}}}
     {{{SCRIPTS}}}
-    <script src="{{JS_BASE_PATH}}/homepage.js" defer></script>
 </body>
 </html>

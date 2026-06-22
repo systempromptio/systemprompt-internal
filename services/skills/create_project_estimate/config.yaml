@@ -1,0 +1,10 @@
+id: create_project_estimate
+name: Create Project Estimate
+description: "Build a phased project estimate with a role-based rate table, effort breakdown, and contingency for a digital-commerce engagement"
+enabled: true
+file: SKILL.md
+tags:
+  - consultancy
+  - estimate
+  - pricing
+category: consultancy

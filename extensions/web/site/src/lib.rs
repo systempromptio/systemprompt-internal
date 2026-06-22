@@ -23,5 +23,6 @@ pub mod navigation;
 pub mod partials;
 mod partials_animations;
 mod repositories;
+pub mod skills_page;
 
 pub use assets::web_assets;

@@ -1,0 +1,24 @@
+plugin:
+  id: astound-commons
+  name: "Astound Commons"
+  description: "Shared brand skills: voice, document formatting, client email, company boilerplate, and terminology for Astound Digital deliverables"
+  version: "1.0.0"
+  enabled: true
+  author:
+    name: Astound Digital
+    email: ed@tyingshoelaces.com
+  keywords: [brand, voice, formatting, email, glossary]
+  license: proprietary
+  category: brand
+  skills:
+    source: explicit
+    include:
+      - apply_brand_voice
+      - format_client_document
+      - draft_client_email
+      - company_boilerplate
+      - astound_glossary
+  agents:
+    include: []
+  mcp_servers: {}
+  content_sources: {}

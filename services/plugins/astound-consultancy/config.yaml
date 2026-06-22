@@ -1,0 +1,27 @@
+plugin:
+  id: astound-consultancy
+  name: "Astound Consultancy Workflows"
+  description: "Consultancy delivery skills: RFP responses, work orders, SOWs, estimates, and client proposals for digital-commerce engagements"
+  version: "1.0.0"
+  enabled: true
+  author:
+    name: Astound Digital
+    email: ed@tyingshoelaces.com
+  keywords: [consultancy, rfp, sow, proposal, estimate]
+  license: proprietary
+  category: consultancy
+  skills:
+    source: explicit
+    include:
+      - create_rfp_response
+      - create_work_order
+      - create_statement_of_work
+      - create_project_estimate
+      - create_client_proposal
+  agents:
+    include: []
+  mcp_servers:
+    source: explicit
+    include:
+      - salesforce
+  content_sources: {}

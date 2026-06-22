@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {{{HEAD_ASSETS}}}
+    <title>Astound Skills — {{site.branding.name}}</title>
+    <meta name="description" content="Browse the AI skills available on Astound Digital's internal AI platform — consultancy workflows, brand tools, and platform utilities for Claude Code and Codex.">
+    <link rel="icon" type="image/x-icon" href="{{FAVICON_PATH}}">
+    <link rel="canonical" href="{{ORG_URL}}/skills/">
+    <meta property="og:title" content="Astound Skills — {{site.branding.name}}">
+    <meta property="og:description" content="Browse the AI skills available on Astound Digital's internal AI platform.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ORG_URL}}/skills/">
+    <meta property="og:image" content="{{site.branding.image}}">
+    <meta property="og:site_name" content="{{site.branding.name}}">
+    <meta name="theme-color" content="{{site.branding.themeColor}}">
+    <link rel="stylesheet" href="{{CSS_BASE_PATH}}/homepage-hero.css">
+    <link rel="stylesheet" href="{{CSS_BASE_PATH}}/homepage-sections-titles.css">
+    <link rel="stylesheet" href="{{CSS_BASE_PATH}}/skills-page.css">
+</head>
+<body>
+    {{{HEADER}}}
+
+    <main>
+
+        <section class="hero skills-hero">
+            <div class="hero-glow"></div>
+            <div class="container">
+                <div class="hero-content">
+                    <p class="hero-eyebrow">Astound Digital &middot; Internal AI Platform</p>
+                    <h1 class="hero-title">Astound <span class="highlight">Skills</span></h1>
+                    <p class="hero-subtitle">Out-of-the-box AI skills for every Astound employee. Sign up, install the desktop bridge, and these skills appear directly inside Claude Code and Codex &mdash; governed, audited, and ready to use.</p>
+                    <div class="hero-ctas">
+                        <a href="/admin/login?mode=register" class="hero-cta hero-cta-primary">Create your account</a>
+                        <a href="/#get-started" class="hero-cta hero-cta-secondary">How it works</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="skills-catalogue">
+            <div class="container">
+                {{#each skills.categories}}
+                <div class="skills-category">
+                    <header class="section-header">
+                        <h2 class="section-title skills-category-title">{{this.name}}</h2>
+                    </header>
+                    <div class="skills-grid">
+                        {{#each this.skills}}
+                        <article class="skill-card">
+                            <h3 class="skill-card-title">{{this.name}}</h3>
+                            <p class="skill-card-description">{{this.description}}</p>
+                            {{#if this.tags}}
+                            <ul class="skill-card-tags">
+                                {{#each this.tags}}
+                                <li class="skill-tag">{{this}}</li>
+                                {{/each}}
+                            </ul>
+                            {{/if}}
+                        </article>
+                        {{/each}}
+                    </div>
+                </div>
+                {{/each}}
+            </div>
+        </section>
+
+        <section class="skills-cta">
+            <div class="container">
+                <div class="skills-cta-card">
+                    <h2 class="skills-cta-title">Use these skills in your own tools</h2>
+                    <p class="skills-cta-text">Create an account with your Astound work email, download the desktop bridge, and your skills sync straight into Claude Code and Codex.</p>
+                    <div class="hero-ctas">
+                        <a href="/admin/login?mode=register" class="hero-cta hero-cta-primary">Get started</a>
+                        <a href="https://github.com/systempromptio/systemprompt-core/releases/latest/download/systemprompt-bridge-aarch64-apple-darwin" class="hero-cta hero-cta-secondary">Download for Mac</a>
+                        <a href="https://github.com/systempromptio/systemprompt-core/releases/latest/download/systemprompt-bridge-x86_64-pc-windows-msvc.exe" class="hero-cta hero-cta-secondary">Download for Windows</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    {{{FOOTER}}}
+    {{{SCRIPTS}}}
+</body>
+</html>

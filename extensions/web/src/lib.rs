@@ -29,7 +29,7 @@ pub use systemprompt_web_shared::html_escape;
 pub use systemprompt_web_shared::BrandingConfig;
 pub use systemprompt_web_shared::{config, config_errors, error, models};
 pub use systemprompt_web_site::{
-    assets, blog, docs, extenders, features, homepage, navigation, partials,
+    assets, blog, docs, extenders, features, homepage, navigation, partials, skills_page,
 };
 pub mod utils {
     pub use systemprompt_web_shared::html_escape;
@@ -64,6 +64,7 @@ pub use models::{
 pub use navigation::{
     HeaderNavConfig, NavCta, NavItem, NavLink, NavSection, NavigationPageDataProvider,
 };
+pub use skills_page::{SkillEntry, SkillsPageConfig, SkillsPagePrerenderer};
 
 pub use extenders::OrgUrlExtender;
 pub use jobs::ContentIngestionJob;

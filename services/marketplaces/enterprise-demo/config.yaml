@@ -29,6 +29,20 @@ marketplace:
       - inspect_mcp_and_skills
       - manage_services
       - systemprompt_cli
+      - create_rfp_response
+      - create_work_order
+      - create_statement_of_work
+      - create_project_estimate
+      - create_client_proposal
+      - apply_brand_voice
+      - format_client_document
+      - draft_client_email
+      - company_boilerplate
+      - astound_glossary
+  plugins:
+    include:
+      - astound-consultancy
+      - astound-commons
   mcp_servers:
     source: explicit
     include:

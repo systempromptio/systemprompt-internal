@@ -1,19 +1,16 @@
 # Homepage Configuration
 #
-# The `demos` section (quick_start + categories) is populated at load time
-# from the demo/ directory on disk — see extensions/web/site/src/homepage/demo_scanner.rs.
-# Only `title` and `subtitle` here are authoritative; anything else is overwritten.
+# Front page for Astound Digital's internal AI platform. The hero section
+# below is authoritative; there is no demos section (the demo catalogue was
+# retired when the site moved from evaluation-instance to internal-platform
+# framing).
 
 hero:
-  title: "Transformation"
-  title_highlight: "That Endures."
-  subtitle: "This is Astound Digital's local evaluation of governed AI infrastructure, self-hosted in a single Rust binary. Clone the repo, bring your own provider key, and exercise the full governance pipeline, secrets management, MCP governance, and audit trail end-to-end on your own machine."
-  eyebrow: "Astound Digital · Local Evaluation"
-  cta: "Quick Start"
-  cta_url: "#quick-start"
-  cta_secondary: "Explore Astound"
-  cta_secondary_url: "https://astounddigital.com"
-
-demos:
-  title: "Demo Catalogue"
-  subtitle: "Every script below is a real, runnable shell script in demo/. Click a card to see the commands it runs, then copy them into your terminal."
+  title: "Your AI tools,"
+  title_highlight: "Astound-ready."
+  subtitle: "This is Astound Digital's internal AI platform. Create an account with your work email, download the desktop bridge for Mac or Windows, and Astound's skills — RFP responses, statements of work, brand voice, and more — appear directly inside Claude Code and Codex. Governed, audited, and ready out of the box."
+  eyebrow: "Astound Digital · Internal AI Platform"
+  cta: "Sign in / Create account"
+  cta_url: "/admin/login"
+  cta_secondary: "Browse skills"
+  cta_secondary_url: "/skills/"

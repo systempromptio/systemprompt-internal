@@ -1,0 +1,10 @@
+id: draft_client_email
+name: Draft Client Email
+description: "Draft professional client communications - status updates, kickoffs, escalations - in Astound Digital's voice"
+enabled: true
+file: SKILL.md
+tags:
+  - brand
+  - email
+  - communication
+category: brand

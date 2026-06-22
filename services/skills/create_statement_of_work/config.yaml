@@ -1,0 +1,10 @@
+id: create_statement_of_work
+name: Create Statement of Work
+description: "Draft a full statement of work - scope, assumptions, responsibilities, change control, payment schedule - for a digital-commerce engagement"
+enabled: true
+file: SKILL.md
+tags:
+  - consultancy
+  - sow
+  - contract
+category: consultancy

@@ -13,6 +13,7 @@ pub(super) fn css_assets(storage_css: &Path) -> Vec<AssetDefinition> {
     v.extend(blog_css(storage_css));
     v.extend(docs_css(storage_css));
     v.extend(feature_page_css(storage_css));
+    v.extend(skills_page_css(storage_css));
     v.extend(syntax_css(storage_css));
     v.extend(feature_base_css(storage_css));
     v
@@ -34,6 +35,7 @@ fn core_css(p: &Path) -> Vec<AssetDefinition> {
 fn homepage_css(p: &Path) -> Vec<AssetDefinition> {
     vec![
         css!(p, "homepage-hero.css"),
+        css!(p, "homepage-getting-started.css"),
         css!(p, "homepage-demos.css"),
         css!(p, "homepage-demo-terminal.css"),
         css!(p, "homepage-demo-responsive.css"),
@@ -119,6 +121,10 @@ fn feature_base_css(p: &Path) -> Vec<AssetDefinition> {
         css!(p, "content-cards-categories.css"),
         css!(p, "content-cards-list.css"),
     ]
+}
+
+fn skills_page_css(p: &Path) -> Vec<AssetDefinition> {
+    vec![css!(p, "skills-page.css")]
 }
 
 fn syntax_css(p: &Path) -> Vec<AssetDefinition> {
