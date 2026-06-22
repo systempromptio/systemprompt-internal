@@ -100,27 +100,11 @@ pub async fn verify_pending_page(Extension(engine): Extension<AdminTemplateEngin
     }
 }
 
-pub async fn register_page(
-    headers: HeaderMap,
-    Extension(engine): Extension<AdminTemplateEngine>,
-) -> Response {
+pub async fn register_page(headers: HeaderMap) -> Response {
     if extract_user_from_cookie(&headers).is_ok() {
         return Redirect::to("/admin/access/users").into_response();
     }
-    match engine.render("register", &branding_context(&engine)) {
-        Ok(html) => Html(html).into_response(),
-        Err(e) => {
-            tracing::error!(error = ?e, "Register page render failed");
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Html(format!(
-                    "<h1>Error</h1><p>{}</p>",
-                    html_escape(&e.to_string())
-                )),
-            )
-                .into_response()
-        }
-    }
+    Redirect::to("/admin/login?mode=register").into_response()
 }
 
 pub fn get_services_path() -> Result<std::path::PathBuf, Box<Response>> {

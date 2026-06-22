@@ -1,0 +1,40 @@
+# Salesforce SSO ("Sign in with Salesforce")
+#
+# OAuth 2.0 / OIDC authorization-code login against a single trusted Salesforce
+# org. The client SECRET is NOT configured here — the callback reads it from the
+# SALESFORCE_CLIENT_SECRET env var first, then the `salesforce_client_secret`
+# key in the active profile's secrets.json (gitignored).
+#
+# Prerequisite: a Salesforce Connected App in the org below with OAuth enabled,
+# the "openid email profile" scopes, and a callback URL that exactly matches
+# `redirect_uri`.
+
+# Flip to true once the Connected App + SALESFORCE_CLIENT_SECRET are in place.
+enabled: true
+
+# The org's My Domain base URL (Setup → My Domain → Current My Domain URL).
+# Also used as the federated-identity issuer key. This is a Dev Edition org;
+# swap to the production org's My Domain before going live.
+my_domain: "https://orgfarm-141013b2b4-dev-ed.develop.my.salesforce.com"
+
+# Connected App consumer key (the External Client App "Consumer Key"). Safe to
+# commit — it is not a secret. The secret goes in SALESFORCE_CLIENT_SECRET.
+client_id: "3MVG9rZjd7MXFdLiX4NDcmr4co_xkqFLJ9gCA1fUHJ94TYOaie9HnxPKHcg66h61R1LbRU1N1guO68v1WdhKr"
+
+# Must exactly match the Connected App callback URL.
+redirect_uri: "http://localhost:8080/admin/auth/salesforce/callback"
+
+# OAuth scopes requested. openid/email/profile drive login; api covers direct
+# REST calls; refresh_token + mcp_api are what let the banked token reach the
+# Salesforce *Hosted* MCP endpoint (an OAuth resource server that demands a
+# Salesforce bearer with mcp_api on every call). The External Client App must
+# grant all of these.
+scopes: "openid email profile api refresh_token mcp_api"
+
+# Only these verified email domains may sign in (mirrors the registration gate).
+# systemprompt.io is included so the platform/dev contact can test SSO; trim to
+# just the Astound domains for production if staff log in with @astound* only.
+allowed_email_domains:
+  - astounddigital.com
+  - astoundcommerce.com
+  - systemprompt.io

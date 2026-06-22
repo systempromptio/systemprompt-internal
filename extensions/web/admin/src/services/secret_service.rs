@@ -37,6 +37,18 @@ pub async fn resolve_secrets(
 
     let master_key = secret_crypto::load_master_key()?;
     let user_id = UserId::new(&user_id_str);
+
+    // Salesforce Hosted MCP tokens go stale; refresh-on-resolve so the bearer
+    // handed back is never expired. Best-effort — a refresh failure (e.g. no
+    // banked tokens yet) falls through to resolving whatever is stored.
+    if plugin_id == "salesforce" {
+        if let Err(e) =
+            crate::services::salesforce_token::get_fresh_token(pool, &user_id, false).await
+        {
+            tracing::warn!(error = %e, user_id = %user_id, "Salesforce refresh-on-resolve skipped");
+        }
+    }
+
     let secrets =
         secret_resolve::resolve_secrets_for_plugin(pool, &user_id, plugin_id, &master_key).await?;
     Ok(secrets)

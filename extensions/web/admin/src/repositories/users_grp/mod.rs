@@ -1,4 +1,5 @@
 pub mod access_control;
+pub mod federated;
 pub mod magic_links;
 pub mod profile_reports;
 pub mod registration;

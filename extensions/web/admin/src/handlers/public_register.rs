@@ -16,11 +16,12 @@ use super::shared;
 
 const TOKEN_PREFIX: &str = "sp_wst_";
 
+const ALLOWED_EMAIL_DOMAINS: [&str; 2] = ["astounddigital.com", "astoundcommerce.com"];
+
 #[derive(Deserialize, Debug)]
 pub struct PublicRegisterRequest {
     pub name: String,
     pub email: String,
-    pub role: String,
 }
 
 pub async fn public_register_handler(
@@ -42,7 +43,7 @@ pub async fn public_register_handler(
         return resp;
     }
 
-    let user = match create_registration_user(&pool, &name, email, &body.role).await {
+    let user = match create_registration_user(&pool, &name, email).await {
         Ok(u) => u,
         Err(resp) => return resp,
     };
@@ -91,6 +92,13 @@ fn validate_registration_input(email_str: &str, name: &str) -> Option<axum::resp
             "Name is required",
         ));
     }
+    let domain = email_str.rsplit('@').next().unwrap_or_default();
+    if !ALLOWED_EMAIL_DOMAINS.contains(&domain) {
+        return Some(shared::error_response(
+            StatusCode::FORBIDDEN,
+            "Registration is limited to Astound employees (@astounddigital.com or @astoundcommerce.com)",
+        ));
+    }
     None
 }
 
@@ -110,13 +118,9 @@ async fn create_registration_user(
     pool: &PgPool,
     name: &str,
     email: Email,
-    role: &str,
 ) -> Result<crate::types::UserSummary, axum::response::Response> {
     let user_id = UserId::new(uuid::Uuid::new_v4().to_string());
-    let roles = match role {
-        "admin" => vec!["user".to_string(), "admin".to_string()],
-        _ => vec!["user".to_string()],
-    };
+    let roles = vec!["user".to_string()];
 
     let create_req = CreateUserRequest {
         user_id,

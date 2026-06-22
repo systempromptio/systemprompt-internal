@@ -6,12 +6,16 @@ use crate::features::FeaturesConfig;
 use crate::homepage::HomepageConfig;
 use crate::jobs::ContentIngestionJob;
 use crate::navigation::NavigationConfig;
+use crate::skills_page::SkillsPageConfig;
 
 use systemprompt::extension::prelude::*;
 
 static NAVIGATION_CONFIG: OnceLock<Option<Arc<NavigationConfig>>> = OnceLock::new();
 static HOMEPAGE_CONFIG: OnceLock<Option<Arc<HomepageConfig>>> = OnceLock::new();
 static FEATURES_CONFIG: OnceLock<Option<Arc<FeaturesConfig>>> = OnceLock::new();
+static SKILLS_PAGE_CONFIG: OnceLock<Option<Arc<SkillsPageConfig>>> = OnceLock::new();
+static SALESFORCE_CONFIG: OnceLock<Option<Arc<systemprompt_web_admin::SalesforceConfig>>> =
+    OnceLock::new();
 
 #[derive(Debug, Default, Clone)]
 pub struct WebExtension {
@@ -72,6 +76,24 @@ impl WebExtension {
             &FEATURES_CONFIG,
             config_loader::load_features_config,
             "Features config error",
+        )
+    }
+
+    #[must_use]
+    pub fn skills_page_config() -> Option<Arc<SkillsPageConfig>> {
+        log_and_discard_err(
+            &SKILLS_PAGE_CONFIG,
+            config_loader::load_skills_page_config,
+            "Skills page config error",
+        )
+    }
+
+    #[must_use]
+    pub fn salesforce_config() -> Option<Arc<systemprompt_web_admin::SalesforceConfig>> {
+        log_and_discard_err(
+            &SALESFORCE_CONFIG,
+            config_loader::load_salesforce_config,
+            "Salesforce config error",
         )
     }
 }

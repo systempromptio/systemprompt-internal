@@ -1,0 +1,38 @@
+# Salesforce *Hosted* MCP Server (remote, runs as the authenticated user).
+#
+# This registers Salesforce's official Hosted MCP endpoint as an `external` MCP
+# server. The Hosted endpoint is an OAuth resource server: it requires a
+# Salesforce bearer carrying the `mcp_api` scope on every tool call. systemprompt
+# banks that per-user bearer at "Sign in with Salesforce" time (see
+# services/web/config/salesforce.yaml + the extension's token accessor at
+# GET /api/public/salesforce/token) and core's external-MCP client injects it.
+#
+# INTEGRATION GATE: enabling this requires (a) core's external-MCP client to
+# attach the per-user Salesforce bearer for a Salesforce-backed server instead
+# of the systemprompt JWT, and (b) an Enterprise-Edition org with Hosted MCP
+# turned on. Until both are in place this stays `enabled: false` so startup does
+# not health-check a placeholder endpoint.
+#
+# `oauth` below is the *systemprompt* gate (who on this platform may reach the
+# server), NOT the Salesforce scopes — those live in salesforce.yaml.
+
+mcp_servers:
+  salesforce:
+    type: external
+    # External servers are not spawned locally; binary/package are unused.
+    binary: ""
+    package: null
+    # Nominal — external servers are reached at `endpoint`, not a local port.
+    port: 5020
+    # The Salesforce Hosted MCP URL from your External Client App (ECA).
+    # Replace with the org-specific endpoint before enabling.
+    endpoint: "https://api.salesforce.com/platform/mcp/v1"
+    enabled: false
+    display_in_web: true
+    description: "Salesforce Hosted MCP — Data/SOQL+CRUD, Models/Einstein, Agentforce, Metadata (runs as the signed-in Salesforce user)"
+    oauth:
+      required: true
+      scopes:
+      - user
+      audience: mcp
+      client_id: null

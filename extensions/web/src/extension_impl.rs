@@ -22,6 +22,7 @@ use crate::partials::{
     HeaderPartialRenderer, MemoryLoopAnimationPartialRenderer, RustMeshAnimationPartialRenderer,
     ScriptsPartialRenderer,
 };
+use crate::skills_page::SkillsPagePrerenderer;
 use crate::{
     admin, api,
     assets::web_assets,
@@ -90,6 +91,10 @@ impl Extension for WebExtension {
             }
         }
 
+        if let Some(config) = Self::skills_page_config() {
+            prerenderers.push(Arc::new(SkillsPagePrerenderer::new(config)));
+        }
+
         prerenderers
     }
 
@@ -144,6 +149,14 @@ impl Extension for WebExtension {
         ));
         let session_service = Self::build_session_service(&dbpool)?;
 
+        let sf_config = Self::salesforce_config()
+            .unwrap_or_else(|| Arc::new(admin::SalesforceConfig::disabled()));
+        let sf_deps = admin::SalesforceDeps {
+            config: sf_config,
+            write_pool: Arc::clone(&write_pool),
+            session_service: Arc::clone(&session_service),
+        };
+
         let admin_api = admin::admin_router(Arc::clone(&pool));
         let webhook_api =
             admin::hooks_webhook_router(Arc::clone(&write_pool), Arc::clone(&session_service));
@@ -160,6 +173,7 @@ impl Extension for WebExtension {
             .merge(links_router)
             .merge(webhook_api)
             .merge(secrets_api)
+            .merge(admin::salesforce_api_router(sf_deps.clone()))
             .nest("/admin", admin_api);
 
         let admin_dir = std::env::current_dir()
@@ -185,7 +199,7 @@ impl Extension for WebExtension {
             }
         };
         let bridge_auth_router = admin::bridge_auth_ssr_router(Arc::clone(&pool), engine.clone());
-        let ssr_router = admin::admin_ssr_router(pool, engine);
+        let ssr_router = admin::admin_ssr_router(pool, engine, sf_deps);
 
         let combined = Router::new()
             .nest_service("/admin", ssr_router)
@@ -201,7 +215,12 @@ impl Extension for WebExtension {
         Some(SiteAuthConfig {
             login_path: "/admin/login",
             protected_prefixes: &["/admin", "/bridge-auth"],
-            public_prefixes: &["/admin/login", "/admin/add-passkey"],
+            public_prefixes: &[
+                "/admin/login",
+                "/admin/register",
+                "/admin/add-passkey",
+                "/admin/auth/salesforce",
+            ],
             required_scope: "user",
         })
     }

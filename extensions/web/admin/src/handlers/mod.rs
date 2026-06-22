@@ -16,6 +16,7 @@ mod plugins_env;
 pub mod public_register;
 pub mod resources;
 pub mod responses;
+pub mod salesforce_auth;
 pub mod secrets;
 pub mod share;
 pub mod shared;

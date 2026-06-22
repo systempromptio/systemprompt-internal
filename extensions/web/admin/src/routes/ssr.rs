@@ -9,8 +9,13 @@ use sqlx::PgPool;
 use tower_http::normalize_path::NormalizePathLayer;
 
 use super::super::{handlers, middleware, templates::AdminTemplateEngine};
+use crate::handlers::salesforce_auth::SalesforceDeps;
 
-pub fn admin_ssr_router(pool: Arc<PgPool>, engine: AdminTemplateEngine) -> Router {
+pub fn admin_ssr_router(
+    pool: Arc<PgPool>,
+    engine: AdminTemplateEngine,
+    sf_deps: SalesforceDeps,
+) -> Router {
     let inner = root_routes()
         .merge(access_routes())
         .merge(catalog_routes())
@@ -36,6 +41,7 @@ pub fn admin_ssr_router(pool: Arc<PgPool>, engine: AdminTemplateEngine) -> Route
 
     let combined = public_routes()
         .layer(Extension(engine))
+        .layer(Extension(sf_deps))
         .with_state(pool)
         .fallback_service(inner);
 
@@ -63,6 +69,14 @@ fn public_routes() -> Router<Arc<PgPool>> {
         .route(
             "/api/register",
             post(handlers::public_register::public_register_handler),
+        )
+        .route(
+            "/auth/salesforce/start",
+            get(handlers::salesforce_auth::salesforce_start),
+        )
+        .route(
+            "/auth/salesforce/callback",
+            get(handlers::salesforce_auth::salesforce_callback),
         )
 }
 

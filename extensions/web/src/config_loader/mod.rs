@@ -4,6 +4,10 @@ use systemprompt::config::ProfileBootstrap;
 use systemprompt::models::AppPaths;
 use thiserror::Error;
 
+mod skills;
+
+pub use skills::load_skills_page_config;
+
 fn load_app_paths() -> Result<AppPaths, String> {
     let profile = ProfileBootstrap::get().map_err(|e| e.to_string())?;
     AppPaths::from_profile(&profile.paths).map_err(|e| e.to_string())
@@ -88,6 +92,26 @@ fn populate_demo_showcase(homepage_config: &mut HomepageConfig, demo_root: &std:
             );
         }
     }
+}
+
+pub fn load_salesforce_config(
+) -> Result<Option<Arc<systemprompt_web_admin::SalesforceConfig>>, ConfigError> {
+    let Some(value) = load_config_section("salesforce.yaml")? else {
+        return Ok(None);
+    };
+
+    let config: systemprompt_web_admin::SalesforceConfig =
+        serde_yaml::from_value(value).map_err(|e| ConfigError::Parse {
+            config_name: "salesforce.yaml".to_string(),
+            message: e.to_string(),
+        })?;
+
+    tracing::info!(
+        enabled = config.enabled,
+        "Loaded Salesforce SSO config from config/salesforce.yaml"
+    );
+
+    Ok(Some(Arc::new(config)))
 }
 
 pub fn load_branding_config() -> Result<Option<BrandingConfig>, ConfigError> {
