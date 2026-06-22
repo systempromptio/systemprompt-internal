@@ -60,8 +60,8 @@ pub fn synthesize_route_id(model_pattern: &str, provider: &str) -> String {
     format!("{}-{}", slugify_pattern(model_pattern), hash6)
 }
 
-/// Best-effort: which route index (if any) would match the given model string,
-/// using the same first-match-wins glob semantics the gateway uses.
+/// Uses the same first-match-wins glob semantics the gateway applies at
+/// request time.
 #[must_use]
 pub fn find_matching_route_index(routes: &[GatewayRouteView], model: &str) -> Option<usize> {
     routes
@@ -69,8 +69,6 @@ pub fn find_matching_route_index(routes: &[GatewayRouteView], model: &str) -> Op
         .position(|r| glob_match(&r.model_pattern, model))
 }
 
-/// Sibling to [`find_matching_route_index`] that returns the route reference
-/// directly. Useful for ACL lookups where the caller wants the stable `id`.
 #[must_use]
 pub fn find_matching_route<'a>(
     routes: &'a [GatewayRouteView],

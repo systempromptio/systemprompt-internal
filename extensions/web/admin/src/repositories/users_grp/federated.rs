@@ -169,7 +169,6 @@ pub async fn resolve_federated_user(
     email: &str,
     display_name: &str,
 ) -> Result<ResolvedFederatedUser, sqlx::Error> {
-    // 1. Existing mapping wins outright.
     if let Some(user_id) = find_mapping(pool, issuer, external_sub).await? {
         if let Some(user) = load_user(pool, &user_id).await? {
             return Ok(ResolvedFederatedUser {
@@ -181,7 +180,6 @@ pub async fn resolve_federated_user(
         }
     }
 
-    // 2. Merge into an existing active account that owns this verified email.
     if let Some(user) = find_active_user_by_email(pool, email).await? {
         link_existing(pool, issuer, external_sub, &user.id).await?;
         return Ok(ResolvedFederatedUser {
@@ -192,6 +190,5 @@ pub async fn resolve_federated_user(
         });
     }
 
-    // 3. First touch with no local counterpart — provision.
     create_federated(pool, issuer, external_sub, email, display_name).await
 }

@@ -13,13 +13,13 @@
 //! per-entity rule (see `services/access-control/roles.yaml`). If neither the
 //! member nor the marketplace grants access, the item is dropped.
 
+mod entities;
+
 use std::sync::Arc;
 
 use sqlx::PgPool;
 use systemprompt::database::DbPool;
-use systemprompt::identifiers::{
-    AgentId, HookId, MarketplaceId, McpServerId, PluginId, RouteId, SkillId, UserId,
-};
+use systemprompt::identifiers::{MarketplaceId, UserId};
 use systemprompt::marketplace::{
     register_marketplace_filter, MarketplaceCandidate, MarketplaceFilter, MarketplaceFilterError,
 };
@@ -28,93 +28,13 @@ use systemprompt_security::authz::{
     EntityRef, ResolveInput, ResolveParent,
 };
 
-fn entity_ref_for(kind: EntityKind, id: &str) -> EntityRef {
-    match kind {
-        EntityKind::Plugin => EntityRef::Plugin(PluginId::new(id)),
-        EntityKind::Skill => EntityRef::Skill(SkillId::new(id)),
-        EntityKind::Agent => EntityRef::Agent(AgentId::new(id)),
-        EntityKind::McpServer => EntityRef::McpServer(McpServerId::new(id)),
-        EntityKind::Marketplace => EntityRef::Marketplace(MarketplaceId::new(id)),
-        EntityKind::GatewayRoute => EntityRef::GatewayRoute(RouteId::new(id)),
-        EntityKind::Hook => EntityRef::Hook(HookId::new(id)),
-    }
-}
-
 use crate::repositories::users_grp::users::get_user_roles_department;
+use entities::{apply_keep_sets, entity_ref_for, CandidateEntityIds, KeepSets};
 
 #[derive(Debug)]
 pub struct TemplateMarketplaceFilter {
     pool: Arc<PgPool>,
     repo: AccessControlRepository,
-}
-
-struct CandidateEntityIds {
-    plugins: Vec<String>,
-    skills: Vec<String>,
-    agents: Vec<String>,
-    hooks: Vec<String>,
-    mcp: Vec<String>,
-}
-
-impl CandidateEntityIds {
-    fn from_candidate(candidate: &MarketplaceCandidate) -> Self {
-        Self {
-            plugins: candidate.plugins.iter().map(|p| p.id.to_string()).collect(),
-            skills: candidate.skills.iter().map(|s| s.id.to_string()).collect(),
-            agents: candidate.agents.iter().map(|a| a.id.to_string()).collect(),
-            hooks: candidate.hooks.iter().map(|h| h.id.to_string()).collect(),
-            mcp: candidate
-                .managed_mcp_servers
-                .iter()
-                .map(|m| m.name.to_string())
-                .collect(),
-        }
-    }
-}
-
-type KeepSet = std::collections::HashSet<String>;
-
-struct KeepSets {
-    plugins: KeepSet,
-    skills: KeepSet,
-    agents: KeepSet,
-    hooks: KeepSet,
-    mcp: KeepSet,
-}
-
-fn apply_keep_sets(candidate: MarketplaceCandidate, keep: &KeepSets) -> MarketplaceCandidate {
-    MarketplaceCandidate {
-        plugins: candidate
-            .plugins
-            .into_iter()
-            .filter(|p| keep.plugins.contains(p.id.as_str()))
-            .collect(),
-        skills: candidate
-            .skills
-            .into_iter()
-            .filter(|s| keep.skills.contains(s.id.as_str()))
-            .collect(),
-        agents: candidate
-            .agents
-            .into_iter()
-            .filter(|a| keep.agents.contains(a.id.as_str()))
-            .collect(),
-        hooks: candidate
-            .hooks
-            .into_iter()
-            .filter(|h| keep.hooks.contains(h.id.as_str()))
-            .collect(),
-        managed_mcp_servers: candidate
-            .managed_mcp_servers
-            .into_iter()
-            .filter(|m| keep.mcp.contains(m.name.as_str()))
-            .collect(),
-        // Carry the owning marketplace context through unchanged; the
-        // filter only shrinks entry lists, it must not drop the scope the
-        // gateway attached.
-        marketplace_id: candidate.marketplace_id,
-        access: candidate.access,
-    }
 }
 
 impl TemplateMarketplaceFilter {

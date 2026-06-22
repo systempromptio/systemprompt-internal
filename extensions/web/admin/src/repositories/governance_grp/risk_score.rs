@@ -20,7 +20,6 @@ use sqlx::PgPool;
 
 use super::time_range::TimeRange;
 
-/// Weights loaded from `services/governance/risk_score.yaml`.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct RiskScoreWeights {
     pub deny_weight: f64,
@@ -49,8 +48,6 @@ struct RiskScoreFile {
 
 static WEIGHTS: OnceLock<RiskScoreWeights> = OnceLock::new();
 
-/// Cached weights from `services/governance/risk_score.yaml`.
-///
 /// Falls back to [`RiskScoreWeights::default`] if the file is missing or
 /// malformed (logged at WARN once).
 pub fn weights() -> RiskScoreWeights {
@@ -119,7 +116,6 @@ pub fn compute_risk_score(v: &ViolationCounts, w: RiskScoreWeights) -> RiskScore
     }
 }
 
-/// Group-by alignment with `identity::IdentityGroupBy`.
 #[derive(Debug, Clone, Copy, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum IdentityGroupBy {
@@ -146,8 +142,6 @@ impl IdentityGroupBy {
     }
 }
 
-/// Per-identity violation counts over a window, broken out by the policy
-/// categories the risk-score formula cares about (deny / secret / scope).
 pub async fn fetch_violation_counts(
     pool: &PgPool,
     range: TimeRange,

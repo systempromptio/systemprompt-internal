@@ -142,9 +142,8 @@ pub struct ToggleForm {
     pub enabled: Option<String>,
 }
 
-/// POST /admin/governance/{id}/toggle — flip `enabled` on the named policy in
-/// `services/governance/config.yaml`, then ask the registry to re-read so
-/// the change takes effect without a process restart.
+/// Flips `enabled` in `services/governance/config.yaml`, then reloads the
+/// registry so the change takes effect without a process restart.
 pub async fn governance_policy_toggle(
     Extension(user_ctx): Extension<UserContext>,
     Path(policy_id): Path<String>,

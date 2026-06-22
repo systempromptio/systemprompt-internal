@@ -157,9 +157,6 @@ pub struct AllAccessQuery {
     pub entity_type: String,
 }
 
-/// Bulk-list every entity of the given type with its rules + default. Used by
-/// the `/admin/access` matrix view. Routes/IDs come from the on-disk profile
-/// (`gateway_route`) or `services/mcp/*.yaml` (`mcp_server`).
 pub async fn list_all_entity_access_handler(
     State(pool): State<Arc<PgPool>>,
     Query(query): Query<AllAccessQuery>,
@@ -214,9 +211,6 @@ pub struct ApplyTemplateBody {
     pub action: String,
 }
 
-/// Apply a department/role template across every entity of a given type.
-/// Wraps repeated [`upsert_rule`]/[`delete_rule`] calls and triggers the
-/// gateway-ACL export once at the end.
 pub async fn apply_template_handler(
     State(pool): State<Arc<PgPool>>,
     Json(body): Json<ApplyTemplateBody>,

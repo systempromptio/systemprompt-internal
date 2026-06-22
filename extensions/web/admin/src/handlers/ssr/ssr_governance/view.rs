@@ -86,8 +86,7 @@ fn format_deny_rate(denied: i64, evaluations: i64) -> String {
 }
 
 /// Anything left in `lifetime_by_id` is a policy that produced decisions in
-/// the past but is no longer registered (renamed / removed). Surface it so
-/// operators don't lose sight of it.
+/// the past but is no longer registered (renamed / removed).
 pub(super) fn build_orphans_json(
     lifetime_by_id: &HashMap<String, repositories::governance::PerPolicyCounts>,
 ) -> Vec<serde_json::Value> {
@@ -104,8 +103,7 @@ pub(super) fn build_orphans_json(
         .collect()
 }
 
-/// Per-policy enforcement table (24h). Reshape `policies_json` sorted by
-/// denied DESC so operators see the busiest deniers first.
+/// Sorted by denied DESC so operators see the busiest deniers first.
 pub(super) fn build_enforcement_json(
     policies_json: &[serde_json::Value],
 ) -> (Vec<serde_json::Value>, bool) {
@@ -175,10 +173,8 @@ fn format_local(t: chrono::DateTime<chrono::Utc>) -> String {
         .to_string()
 }
 
-/// Renders the config block for a single policy as a compact list of
-/// `key: value` strings. Skips the policy's own `id` and `enabled` fields
-/// (already shown in the card chrome). Scalars render verbatim; sequences as
-/// comma-joined; nested maps as JSON one-liners.
+/// Skips the policy's own `id` and `enabled` fields (already shown in the
+/// card chrome).
 fn render_params_preview(params: &YamlValue) -> Vec<serde_json::Value> {
     let YamlValue::Mapping(map) = params else {
         return Vec::new();

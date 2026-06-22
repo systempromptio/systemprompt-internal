@@ -96,7 +96,6 @@ pub async fn list_department_members(
     .await
 }
 
-/// Top tools used by members of a department in the last 30 days.
 pub async fn list_department_top_tools(
     pool: &PgPool,
     department_name: &str,

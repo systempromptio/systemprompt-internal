@@ -6,7 +6,6 @@ use sqlx::PgPool;
 
 use crate::repositories::governance_grp::time_range::TimeRange;
 
-/// Per-tool aggregates used by the per-tool drill page.
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct ToolDetailStats {
     pub tool_name: String,

@@ -34,12 +34,10 @@ struct TraceRow {
     total_count: i64,
 }
 
-/// Returns trace summaries inside the window plus the unpaginated match count.
+/// The sort stays a single compile-time `query_as!`, never an interpolated string.
 ///
-/// The sort is a closed `TraceSort` (five columns × two directions); each
-/// `(column, dir)` pair is bound as text and selected by a per-key `CASE` in
-/// the `ORDER BY`, so the whole statement stays a single compile-time
-/// `query_as!` rather than an interpolated string.
+/// `TraceSort` is closed (five columns × two directions); each `(column, dir)`
+/// pair is bound as text and selected by a per-key `CASE` in the `ORDER BY`.
 #[expect(
     clippy::too_many_lines,
     reason = "body is one irreducible compile-time-checked query_as! SQL literal; see comment above"

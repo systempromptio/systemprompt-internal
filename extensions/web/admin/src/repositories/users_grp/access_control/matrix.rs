@@ -9,10 +9,6 @@ use sqlx::PgPool;
 use super::rules::list_all_rules;
 use crate::types::access_control::{AccessControlRule, AccessDecision, RuleType};
 
-/// Five-section access matrix for one user. Each section lists every entity of
-/// a given kind that exists on this deployment, paired with the access
-/// resolution chain for the target user.
-///
 /// Resolution precedence (highest first):
 ///   1. user-scoped rule (deny > allow)
 ///   2. department-scoped rule (deny > allow)
@@ -56,14 +52,9 @@ pub struct MatrixSource {
     pub detail: String,
 }
 
-/// Section definition supplied by the caller — list of entities of a given
-/// kind that exist on this deployment.
+/// `(entity_type, label, [(entity_id, name, description)])`.
 pub type SectionInput = (String, String, Vec<(String, String, Option<String>)>);
 
-/// Filter a catalog snapshot down to entries `user_id` is allowed to see.
-///
-/// Wraps [`resolve_user_matrix`] without altering the matrix shape —
-/// callers project the section rows themselves.
 pub async fn filter_catalog_for_user(
     pool: &PgPool,
     user_id: &str,

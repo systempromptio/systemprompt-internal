@@ -79,8 +79,7 @@ pub async fn governance_audit_detail_page(
     )
 }
 
-/// Pin the page to the request the user clicked when possible — fall back
-/// to the first request in the session.
+/// Pin to the request the user clicked, falling back to the first in the session.
 fn pick_primary<'a>(env: &'a ChainEnvelope, id: &str) -> Option<&'a AiRequestSummary> {
     env.requests
         .iter()
@@ -139,8 +138,7 @@ fn build_primary_json(r: &AiRequestSummary) -> serde_json::Value {
     })
 }
 
-/// Build the prominent failure / denial banner shown above the chain. None if
-/// nothing is amiss — the caller suppresses the banner entirely.
+/// None when nothing is amiss — the caller then suppresses the banner entirely.
 fn build_banner(
     primary: Option<&AiRequestSummary>,
     env: &ChainEnvelope,

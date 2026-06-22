@@ -32,8 +32,6 @@ struct ToolCallRowWithTotal {
     total_count: i64,
 }
 
-/// Page through tool-call events with their governance verdict and parent
-/// request `trace_id`. Filter / sort / search supported.
 pub async fn fetch_tool_calls_paged(
     pool: &PgPool,
     filter: &ToolCallFilter,

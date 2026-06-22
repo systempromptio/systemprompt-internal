@@ -29,13 +29,11 @@ pub use systemprompt_security::policy::GovernancePolicy;
 
 type PolicyFactory = fn(&YamlValue) -> Box<dyn GovernancePolicy>;
 
-/// Compile-time registration. Each built-in lives in its own file and submits
-/// one of these.
 pub struct PolicyRegistration {
     pub id: &'static str,
     pub factory: PolicyFactory,
-    /// Source file the policy is defined in (set with `file!()`). Surfaced on
-    /// the dashboard as the "as code" link.
+    /// Source file (set with `file!()`). Surfaced on the dashboard as the "as
+    /// code" link.
     pub source_path: &'static str,
 }
 
@@ -47,7 +45,6 @@ pub fn source_path_for(id: &str) -> &'static str {
         .map_or("", |r| r.source_path)
 }
 
-/// Per-policy config block from `services/governance/config.yaml`.
 #[derive(Debug, Clone)]
 pub struct PolicyConfig {
     pub id: String,
@@ -72,7 +69,6 @@ impl PolicyChain {
     }
 }
 
-/// Process-wide, hot-reloadable policy chain.
 static CHAIN: LazyLock<RwLock<PolicyChain>> = LazyLock::new(|| RwLock::new(load_chain()));
 
 pub fn chain() -> std::sync::RwLockReadGuard<'static, PolicyChain> {
@@ -81,7 +77,6 @@ pub fn chain() -> std::sync::RwLockReadGuard<'static, PolicyChain> {
         .unwrap_or_else(std::sync::PoisonError::into_inner)
 }
 
-/// Re-read `services/governance/config.yaml` and rebuild the chain.
 pub fn reload() {
     let new_chain = load_chain();
     if let Ok(mut guard) = CHAIN.write() {

@@ -78,7 +78,6 @@ pub struct ChainEntryOutcome {
     pub detail: String,
 }
 
-/// Snapshot of the authenticated principal at evaluation time.
 #[derive(Debug, Serialize, Clone)]
 pub struct PrincipalSnapshot {
     pub user_id: UserId,
@@ -93,10 +92,8 @@ pub struct AuditTarget {
     pub plugin_id: Option<String>,
 }
 
-/// Typed audit blob serialized into `governance_decisions.evaluated_rules`.
-///
-/// Replaces the historical `serde_json::json!` payload. The Anthropic-style
-/// `decision`/`reason` columns still get populated from the same data via the
+/// Typed audit blob serialized into `governance_decisions.evaluated_rules`. The
+/// `decision`/`reason` columns are populated from the same data in the
 /// repository layer.
 #[derive(Debug, Serialize, Clone)]
 pub struct DecisionAudit {

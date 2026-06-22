@@ -40,8 +40,6 @@ pub async fn list_governance_decisions(
     }
 }
 
-/// Decisions filtered to a single policy id. Used by the per-policy detail
-/// page so admins can see exactly which calls a given policy has fired on.
 pub async fn list_decisions_for_policy(
     pool: &PgPool,
     policy_id: &str,

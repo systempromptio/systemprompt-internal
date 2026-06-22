@@ -19,7 +19,6 @@ impl SkillsPagePrerenderer {
     }
 }
 
-// JSON: template render data — `PageRenderSpec` consumes `serde_json::Value`.
 fn group_by_category(skills: &[SkillEntry]) -> Vec<serde_json::Value> {
     let mut grouped: BTreeMap<String, Vec<&SkillEntry>> = BTreeMap::new();
     for skill in skills {

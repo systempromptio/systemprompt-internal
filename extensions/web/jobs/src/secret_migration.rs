@@ -130,9 +130,17 @@ async fn encrypt_and_store_secret(
     .await
     .map_err(|e| MarketplaceError::Internal(format!("Update error: {e}")))?;
 
-    let _ =
+    if let Err(e) =
         secret_migration::insert_migration_audit(pool.as_ref(), &row.user_id, &row.var_name, actor)
-            .await;
+            .await
+    {
+        tracing::warn!(
+            error = %e,
+            user_id = %row.user_id,
+            var_name = %row.var_name,
+            "secret_migration: failed to record migration audit"
+        );
+    }
 
     Ok(())
 }

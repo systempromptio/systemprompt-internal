@@ -2,7 +2,6 @@ use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
-/// Query parameters parsed from `?from=&to=&preset=` on audit pages.
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct TimeRangeQuery {
     pub from: Option<String>,
@@ -10,7 +9,6 @@ pub struct TimeRangeQuery {
     pub preset: Option<String>,
 }
 
-/// Resolved absolute time range used by every governance audit query.
 #[derive(Debug, Clone, Copy, Serialize)]
 pub struct TimeRange {
     pub from: DateTime<Utc>,
@@ -54,12 +52,6 @@ impl TimeRangePreset {
     }
 }
 
-/// Parse `?from=&to=&preset=` into a resolved `TimeRange`.
-///
-/// Resolution order:
-/// 1. If `preset` is one of the known windows, anchor `to` at `now()` and derive `from`.
-/// 2. Else parse RFC3339 `from`/`to` if both present.
-/// 3. Else default to last 24 hours.
 pub fn parse_time_range(query: &TimeRangeQuery) -> TimeRange {
     let now = Utc::now();
 
@@ -93,16 +85,11 @@ pub fn parse_time_range(query: &TimeRangeQuery) -> TimeRange {
 }
 
 fn parse_rfc3339(s: &str) -> Option<DateTime<Utc>> {
-    // Why: malformed input from user-supplied query strings is the "None"
-    // branch — the standard carve-out for parse failures.
     DateTime::parse_from_rfc3339(s)
         .ok()
         .map(|dt| dt.with_timezone(&Utc))
 }
 
-/// Resolve a fixed [`TimeRangePreset`] (not Custom) to a concrete window
-/// anchored at `now()`. Returns the same window `parse_time_range` would have
-/// produced for the matching preset string.
 pub fn preset_to_range(preset: TimeRangePreset) -> TimeRange {
     let now = Utc::now();
     let d = preset.duration().unwrap_or_else(|| Duration::hours(24));
@@ -113,9 +100,8 @@ pub fn preset_to_range(preset: TimeRangePreset) -> TimeRange {
     }
 }
 
-/// Cheap probe for the auto-widen path: just count rows in `ai_requests`
-/// inside the candidate window. Used to decide whether the default 24h
-/// window has data, or whether to fall back to a wider preset.
+/// Probe for the auto-widen path: decides whether the default 24h window has
+/// data or whether to fall back to a wider preset.
 pub async fn count_requests_in_range(pool: &PgPool, range: TimeRange) -> Result<i64, sqlx::Error> {
     let row = sqlx::query!(
         r#"SELECT COUNT(*)::bigint AS "count!"

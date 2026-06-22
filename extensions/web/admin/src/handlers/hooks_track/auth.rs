@@ -30,13 +30,11 @@ pub fn extract_and_validate_jwt(
         })?
         .jwt_issuer
         .clone();
-    // Validate with the canonical hook-token validator (same path the gateway's
-    // `/hooks/govern` endpoint uses): `aud` must contain `hook`, the `hook:track`
-    // scope must be present, and the `plugin_id` claim must be set. Hook tokens
-    // are minted with `audience=hook` + `scope=hook:govern hook:track`; the prior
-    // hand-rolled check accepted `api`/`plugin` instead and rejected every real
-    // hook token with InvalidAudience. `None` skips the request-vs-claim plugin_id
-    // cross-check because this endpoint takes no plugin_id path/query binding.
+    // Must use the canonical hook-token validator: hook tokens are minted with
+    // `audience=hook` + `scope=hook:govern hook:track`, so a hand-rolled check
+    // accepting `api`/`plugin` rejects every real hook token with
+    // InvalidAudience. `None` skips the request-vs-claim plugin_id cross-check
+    // because this endpoint takes no plugin_id path/query binding.
     let claims = HookTokenValidator::new(jwt_issuer)
         .validate_track(token, None)
         .map_err(|e| {

@@ -20,9 +20,6 @@ pub struct Anomaly {
     pub affected_agent_count: i64,
 }
 
-/// Find (policy, decision) buckets in `range` whose count is at least
-/// `Z_THRESHOLD` standard deviations above the daily baseline of the prior
-/// `BASELINE_DAYS` days.
 pub async fn fetch_decision_anomalies(
     pool: &PgPool,
     range: TimeRange,

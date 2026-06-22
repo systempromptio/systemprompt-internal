@@ -36,7 +36,6 @@ impl IdentitySort {
         }
     }
 
-    /// Bound text key naming the column the `ORDER BY` `CASE` ladder switches on.
     const fn sql_key(self) -> &'static str {
         match self {
             Self::LastActive => "last_active",
@@ -72,7 +71,6 @@ impl SortDir {
         }
     }
 
-    /// Bound text key naming the direction the `ORDER BY` `CASE` ladder uses.
     const fn sql_key(self) -> &'static str {
         match self {
             Self::Asc => "asc",
@@ -81,12 +79,8 @@ impl SortDir {
     }
 }
 
-/// Aggregates `ai_requests` and `governance_decisions` per user for the
-/// `/admin/overview/identity` table. Anonymous users are excluded the same
-/// way `fetch_department_stats` excludes them.
-///
-/// Returns `(rows, total_count)`. `total_count` ignores limit/offset but
-/// honours the search filter.
+/// Anonymous users are excluded by role and `@anonymous.local` email.
+/// `total_count` ignores limit/offset but honours the search filter.
 pub async fn fetch_user_identity_rows(
     pool: &PgPool,
     sort: IdentitySort,

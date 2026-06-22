@@ -177,8 +177,6 @@ fn request_json(r: &ContextRequestRow) -> Value {
     })
 }
 
-/// Build a chronological transcript by interleaving messages and tool calls
-/// within each request, then ordering requests by `created_at`.
 fn build_transcript(
     messages: &[ContextMessageRow],
     tool_calls: &[ContextToolCallRow],

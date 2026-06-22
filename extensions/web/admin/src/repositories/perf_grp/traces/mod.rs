@@ -117,7 +117,6 @@ pub struct TraceStats {
     pub p99_duration_ms: i64,
 }
 
-/// One waterfall span — normalised across the four span sources.
 #[derive(Debug, Clone, Serialize)]
 pub struct Span {
     pub id: String,

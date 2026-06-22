@@ -82,10 +82,8 @@ pub async fn list_plugin_env_handler(
     .into_response()
 }
 
-/// Resolve the principal for a plugin-env request from already-validated inputs.
-///
-/// Returns `Some(UserId)` only when an authenticated cookie session or an
-/// explicit `user_id` query parameter is present. Never synthesizes.
+/// Returns `Some` only when an authenticated cookie session or an explicit
+/// `user_id` query parameter is present. Never synthesizes a principal.
 pub fn resolve_principal(
     cookie_user_id: Option<&str>,
     query_user_id: Option<&str>,

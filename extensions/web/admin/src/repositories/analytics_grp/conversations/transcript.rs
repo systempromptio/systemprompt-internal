@@ -114,7 +114,6 @@ fn parse_tool_call(v: &serde_json::Value) -> ToolCall {
     }
 }
 
-/// Pull a textual representation of a transcript entry's body.
 /// Accepts plain strings, Anthropic-style content arrays, or `text` fields.
 pub(super) fn extract_content_text(entry: &serde_json::Value) -> String {
     if let Some(s) = entry.get("content").and_then(|v| v.as_str()) {

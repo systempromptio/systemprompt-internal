@@ -1,5 +1,6 @@
 mod categories_capabilities;
 mod categories_platform;
+mod error;
 mod meta;
 
 use std::fs;
@@ -10,6 +11,7 @@ use serde::Deserialize;
 use super::config::{DemoCategory, DemoPillar, DemoStep, DemosConfig, QuickStartStep};
 use categories_capabilities::CAPABILITY_CATEGORIES;
 use categories_platform::PLATFORM_CATEGORIES;
+pub use error::DemoScanError;
 use meta::{CategoryMeta, PillarMeta};
 
 const CLI_PREFIXES: &[&str] = &[
@@ -61,9 +63,9 @@ struct ManifestStep {
     outcome: String,
 }
 
-pub fn scan_demos(demo_root: &Path) -> anyhow::Result<DemosConfig> {
+pub fn scan_demos(demo_root: &Path) -> Result<DemosConfig, DemoScanError> {
     if !demo_root.is_dir() {
-        anyhow::bail!("demo root not found: {}", demo_root.display());
+        return Err(DemoScanError::RootNotFound(demo_root.to_path_buf()));
     }
 
     let quick_start = scan_quick_start(demo_root);
@@ -190,16 +192,21 @@ fn scan_quick_start(demo_root: &Path) -> Vec<QuickStartStep> {
     steps
 }
 
-fn build_category_steps(dir: &Path, meta: &CategoryMeta) -> anyhow::Result<Vec<DemoStep>> {
+fn build_category_steps(dir: &Path, meta: &CategoryMeta) -> Result<Vec<DemoStep>, DemoScanError> {
     let manifest_path = dir.join("manifest.yaml");
     if !manifest_path.is_file() {
         return Ok(Vec::new());
     }
 
-    let raw = fs::read_to_string(&manifest_path)
-        .map_err(|e| anyhow::anyhow!("read {}: {e}", manifest_path.display()))?;
-    let manifest: CategoryManifest = serde_yaml::from_str(&raw)
-        .map_err(|e| anyhow::anyhow!("parse {}: {e}", manifest_path.display()))?;
+    let raw = fs::read_to_string(&manifest_path).map_err(|source| DemoScanError::ReadManifest {
+        path: manifest_path.clone(),
+        source,
+    })?;
+    let manifest: CategoryManifest =
+        serde_yaml::from_str(&raw).map_err(|source| DemoScanError::ParseManifest {
+            path: manifest_path.clone(),
+            source,
+        })?;
 
     let mut out = Vec::with_capacity(manifest.steps.len());
     for step in manifest.steps {

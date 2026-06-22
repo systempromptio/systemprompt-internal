@@ -4,8 +4,6 @@ use serde_json::json;
 
 use crate::repositories;
 
-/// Lightweight list of every entity that can have an ACL rule attached, used
-/// by the unified access-control UI to populate dropdowns and lookup tables.
 pub(super) fn build_entity_catalogue(services_path: &Path) -> serde_json::Value {
     let gateway_routes = build_gateway_routes(services_path);
     let mcp_servers = build_mcp_servers(services_path);
