@@ -76,6 +76,29 @@ header:
       href: "/blog"
       dropdown: false
 
+    - id: skills
+      label: "Skills"
+      href: "/skills/"
+      dropdown: false
+
+    - id: download
+      label: "Download"
+      href: "#"
+      dropdown: true
+      sections:
+        # TODO(astound): replace ORG/REPO with the real Astound GitHub repo slug
+        # that release-bridge.yml publishes to (no git remote configured yet).
+        - title: "Desktop Bridge"
+          links:
+            - label: "Download for Mac"
+              description: "The Astound desktop bridge for macOS (Apple Silicon). Installs your Cowork profile and syncs Astound skills."
+              href: "https://github.com/ORG/REPO/releases/latest/download/astound-bridge-aarch64-apple-darwin"
+              external: true
+            - label: "Download for Windows"
+              description: "The Astound desktop bridge for Windows (x64). Installs your Cowork profile and syncs Astound skills."
+              href: "https://github.com/ORG/REPO/releases/latest/download/astound-bridge-x86_64-pc-windows-msvc.exe"
+              external: true
+
     - id: resources
       label: "Resources"
       href: "/documentation/"
@@ -84,11 +107,11 @@ header:
         - title: "This Platform"
           links:
             - label: "Documentation"
-              description: "Setup, authentication, dashboard, and governance API guides for this evaluation instance."
+              description: "Setup, authentication, dashboard, and governance API guides for the platform."
               href: "/documentation/"
             - label: "Getting Started"
-              description: "Authenticate and run the first governed demo in minutes."
-              href: "/documentation/demo-terminal-setup"
+              description: "Create your account, install the bridge, and connect your AI tools in minutes."
+              href: "/#get-started"
         - title: "Astound Digital"
           links:
             - label: "AI Hub"
@@ -104,9 +127,9 @@ header:
               href: "https://astounddigital.com/about"
               external: true
 
-    - id: login
-      label: "Login"
-      href: "/admin/login"
+  cta:
+    label: "Sign in"
+    href: "/admin/login"
 
 footer:
   infrastructure:
@@ -161,6 +184,8 @@ footer:
       label: "Trust Center"
       external: true
   resources:
+    - path: "/skills/"
+      label: "Skills"
     - path: "/documentation/"
       label: "Documentation"
     - path: "/blog"

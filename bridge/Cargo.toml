@@ -1,0 +1,29 @@
+# Astound Digital desktop bridge — a white-label build of the systemprompt
+# bridge. This is a STANDALONE crate (its own `[workspace]`), mirroring
+# systemprompt-core/bin/bridge: it must not be pulled into the main server
+# workspace (it carries GUI deps for Windows/macOS) and ships on its own
+# release cadence.
+[workspace]
+
+[package]
+name = "astound-bridge"
+version = "0.1.0"
+edition = "2024"
+authors = ["Astound Digital <ed@tyingshoelaces.com>"]
+license = "MIT"
+description = "Astound Digital desktop bridge — branded build of the systemprompt bridge."
+publish = false
+build = "build.rs"
+
+[[bin]]
+name = "astound-bridge"
+path = "src/main.rs"
+
+[dependencies]
+# Path dep on the core bridge library. The core crate resolves its own
+# systemprompt-* deps via relative paths, so no [patch.crates-io] is needed
+# here. The `brand` module + `run_with_brand` entry point come from this crate.
+systemprompt-bridge = { path = "../../systemprompt-core/bin/bridge" }
+
+[build-dependencies]
+winresource = "0.1"

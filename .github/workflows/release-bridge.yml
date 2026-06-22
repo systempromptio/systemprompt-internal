@@ -1,0 +1,170 @@
+name: Release — build, sign & publish Astound bridge
+
+# Builds the Astound-branded desktop bridge for macOS (Apple Silicon + Intel),
+# Windows, and Linux; signs every artifact with cosign (keyless OIDC); and
+# publishes a GitHub Release. Modeled on systemprompt-core's release-sign.yml.
+#
+# NOTE: the `astound-bridge` crate (bridge/) path-depends on the core bridge at
+# `../../systemprompt-core/bin/bridge`, so CI checks out BOTH repos as siblings
+# under the workspace. If systemprompt-core is private, set the CORE_REPO_TOKEN
+# secret to a PAT/deploy key with read access; for a public core, the default
+# token works.
+
+on:
+  push:
+    tags: ["bridge-v*"]
+  workflow_dispatch:
+    inputs:
+      bridge_tag:
+        description: "Bridge release tag (e.g. bridge-v0.1.0) — for re-runs without retagging"
+        required: true
+
+concurrency:
+  group: release-bridge-${{ github.event.inputs.bridge_tag || github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  id-token: write
+
+env:
+  CARGO_TERM_COLOR: always
+  # core ref the bridge builds against. Pin to a tag/branch as needed.
+  CORE_REF: main
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            runner: ubuntu-latest
+            asset: astound-bridge-x86_64-unknown-linux-gnu
+          - target: aarch64-apple-darwin
+            runner: macos-14
+            asset: astound-bridge-aarch64-apple-darwin
+          - target: x86_64-apple-darwin
+            runner: macos-14
+            asset: astound-bridge-x86_64-apple-darwin
+          - target: x86_64-pc-windows-msvc
+            runner: windows-latest
+            asset: astound-bridge-x86_64-pc-windows-msvc.exe
+    steps:
+      - name: Checkout astound (this repo)
+        uses: actions/checkout@v4
+        with:
+          path: systemprompt-astound
+
+      - name: Checkout systemprompt-core (sibling)
+        uses: actions/checkout@v4
+        with:
+          repository: systempromptio/systemprompt-core
+          ref: ${{ env.CORE_REF }}
+          path: systemprompt-core
+          token: ${{ secrets.CORE_REPO_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: systemprompt-astound/bridge
+          key: ${{ matrix.target }}
+
+      - name: Build release binary
+        working-directory: systemprompt-astound/bridge
+        run: cargo build --release --locked --target ${{ matrix.target }}
+
+      - name: Rename output (unix)
+        if: runner.os != 'Windows'
+        working-directory: systemprompt-astound/bridge
+        run: cp "target/${{ matrix.target }}/release/astound-bridge" "${{ github.workspace }}/${{ matrix.asset }}"
+      - name: Rename output (windows)
+        if: runner.os == 'Windows'
+        working-directory: systemprompt-astound/bridge
+        run: Copy-Item "target/${{ matrix.target }}/release/astound-bridge.exe" "${{ github.workspace }}/${{ matrix.asset }}"
+
+      - name: Build macOS .app bundle (+ zip)
+        if: runner.os == 'macOS'
+        working-directory: systemprompt-astound/bridge
+        run: |
+          scripts/make-mac-app.sh --target ${{ matrix.target }}
+          ditto -c -k --keepParent \
+            "target/${{ matrix.target }}/release/AstoundBridge.app" \
+            "${{ github.workspace }}/${{ matrix.asset }}-app.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: |
+            ${{ matrix.asset }}
+            ${{ matrix.asset }}-app.zip
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Sign & publish
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve tag
+        id: tag
+        run: echo "tag=${{ github.event.inputs.bridge_tag || github.ref_name }}" >> "$GITHUB_OUTPUT"
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Generate checksums
+        working-directory: dist
+        run: sha256sum astound-bridge-* > SHA256SUMS
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign artifacts (keyless)
+        working-directory: dist
+        run: |
+          for f in astound-bridge-* SHA256SUMS; do
+            cosign sign-blob --yes \
+              --output-signature "${f}.sig" \
+              --output-certificate "${f}.pem" \
+              "${f}"
+          done
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: Astound Bridge ${{ steps.tag.outputs.tag }}
+          body: |
+            ## Astound Bridge ${{ steps.tag.outputs.tag }}
+
+            Branded desktop bridge for Astound Digital. Downloads:
+            - macOS (Apple Silicon): `astound-bridge-aarch64-apple-darwin` / `…-app.zip`
+            - macOS (Intel): `astound-bridge-x86_64-apple-darwin` / `…-app.zip`
+            - Windows: `astound-bridge-x86_64-pc-windows-msvc.exe`
+            - Linux: `astound-bridge-x86_64-unknown-linux-gnu`
+
+            ### Verifying a signature (cosign keyless)
+
+            ```bash
+            cosign verify-blob \
+              --certificate-identity-regexp='https://github.com/.*/' \
+              --certificate-oidc-issuer='https://token.actions.githubusercontent.com' \
+              --signature astound-bridge-aarch64-apple-darwin.sig \
+              --certificate astound-bridge-aarch64-apple-darwin.pem \
+              astound-bridge-aarch64-apple-darwin
+            ```
+          files: |
+            dist/astound-bridge-*
+            dist/SHA256SUMS
+            dist/SHA256SUMS.sig
+            dist/SHA256SUMS.pem
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

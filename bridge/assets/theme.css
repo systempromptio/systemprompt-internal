@@ -1,0 +1,30 @@
+/* Astound Digital brand override for the bridge GUI.
+ *
+ * Injected by the core GUI as the last <style> in <head> (see
+ * gui/assets.rs::render_index), so these :root values win the cascade over the
+ * bundled tokens.css. Astound is monochrome (neutral greys) with a single
+ * vivid red accent (#fe190a ≈ oklch(0.63 0.25 28)). We retune the accent and
+ * neutralise the warm-grey backgrounds to true neutral; everything else
+ * inherits the core dark theme. */
+:root {
+  /* Red accent (#fe190a and tints) */
+  --sp-accent:        oklch(0.63 0.25 28);
+  --sp-accent-hover:  oklch(0.58 0.25 28);
+  --sp-accent-soft:   oklch(0.63 0.25 28 / 0.12);
+  --sp-accent-ring:   oklch(0.63 0.25 28 / 0.40);
+  --sp-accent-deep:   oklch(0.54 0.24 28);
+
+  /* Neutral (hue-less) greys */
+  --sp-bg:            oklch(0.17 0 0);
+  --sp-bg-elev-1:     oklch(0.20 0 0);
+  --sp-bg-elev-2:     oklch(0.24 0 0);
+  --sp-bg-glass:      oklch(0.15 0 0 / 0.72);
+  --sp-line:          oklch(0.30 0 0);
+  --sp-line-soft:     oklch(0.30 0 0 / 0.5);
+
+  --sp-text:          oklch(0.97 0 0);
+  --sp-muted:         oklch(0.68 0 0);
+  --sp-muted-strong:  oklch(0.80 0 0);
+
+  --sp-shadow-accent: 0 12px 40px oklch(0.58 0.25 28 / 0.22);
+}
