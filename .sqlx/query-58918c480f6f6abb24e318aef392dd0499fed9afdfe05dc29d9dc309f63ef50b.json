@@ -1,0 +1,47 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT var_name, var_value, is_secret, encrypted_value, value_nonce FROM plugin_env_vars WHERE user_id = $1 AND plugin_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "var_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "var_value",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "is_secret",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "encrypted_value",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 4,
+        "name": "value_nonce",
+        "type_info": "Bytea"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "58918c480f6f6abb24e318aef392dd0499fed9afdfe05dc29d9dc309f63ef50b"
+}
