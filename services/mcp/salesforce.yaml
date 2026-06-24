@@ -37,7 +37,13 @@ mcp_servers:
     #   prod:    https://api.salesforce.com/platform/mcp/v1/platform/<server>
     #   sandbox: https://api.salesforce.com/platform/mcp/v1/sandbox/<server>
     endpoint: "https://api.salesforce.com/platform/mcp/v1/platform/sobject-all"
-    enabled: true
+    # Disabled until the real Hosted-MCP Server URL, an org with Hosted MCP
+    # enabled, and SALESFORCE_PRIVATE_KEY are in place. NOTE: core's lifecycle
+    # start_server currently spawns *every* enabled server with no
+    # McpServerType::External branch, so enabling this before that core fix
+    # crashes startup with "Permission denied" (it tries to exec the empty
+    # binary path). Re-enable once core skips spawning external servers.
+    enabled: false
     display_in_web: true
     description: "Salesforce Hosted MCP — SObject CRUD/SOQL (runs as the signed-in user)"
     # Trips core onto the external-auth path: instead of forwarding the
