@@ -44,6 +44,11 @@ pub(super) fn default_allowed_domains() -> Vec<String> {
     ]
 }
 
+/// Default on: a verified, allow-listed first login needs no admin step.
+pub(super) const fn default_auto_provision() -> bool {
+    true
+}
+
 /// Salesforce SSO connection config.
 ///
 /// The client *secret* is never stored here — it is read from the
@@ -64,6 +69,11 @@ pub struct SalesforceConfig {
     pub scopes: String,
     #[serde(default = "default_allowed_domains")]
     pub allowed_email_domains: Vec<String>,
+    /// Whether a verified, allow-listed first-time login auto-creates a local
+    /// account. When `false`, SSO only logs in / links *existing* users and an
+    /// unknown user is rejected (admin must pre-create the account).
+    #[serde(default = "default_auto_provision")]
+    pub auto_provision: bool,
 }
 
 impl SalesforceConfig {
@@ -77,6 +87,7 @@ impl SalesforceConfig {
             redirect_uri: String::new(),
             scopes: default_scopes(),
             allowed_email_domains: default_allowed_domains(),
+            auto_provision: default_auto_provision(),
         }
     }
 

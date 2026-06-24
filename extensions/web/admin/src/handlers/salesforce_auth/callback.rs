@@ -145,18 +145,25 @@ async fn resolve_identity(
 
     let (sub, email, display_name) = gate_claims(cfg, info)?;
 
-    let resolved = federated::resolve_federated_user(
-        &deps.write_pool,
-        cfg.issuer(),
-        &sub,
-        &email,
-        &display_name,
-    )
-    .await
-    .map_err(|e| {
-        tracing::error!(error = %e, "Failed to resolve federated Salesforce user");
-        "error"
-    })?;
+    let claims = federated::FederatedClaims {
+        issuer: cfg.issuer(),
+        external_sub: &sub,
+        email: &email,
+        display_name: &display_name,
+    };
+    let resolved = federated::resolve_federated_user(&deps.write_pool, &claims, cfg.auto_provision)
+        .await
+        .map_err(|e| {
+            tracing::error!(error = %e, "Failed to resolve federated Salesforce user");
+            "error"
+        })?
+        .ok_or_else(|| {
+            tracing::warn!(
+                email,
+                "Salesforce login rejected: auto-provisioning disabled and no existing account"
+            );
+            "not_provisioned"
+        })?;
 
     Ok(resolved)
 }

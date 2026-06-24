@@ -28,6 +28,16 @@ pub struct ResolvedFederatedUser {
     pub roles: Vec<String>,
 }
 
+/// The verified external-identity claims carried into resolution. The caller
+/// must have already enforced the `email_verified` + allow-listed-domain gate.
+#[derive(Debug, Clone, Copy)]
+pub struct FederatedClaims<'a> {
+    pub issuer: &'a str,
+    pub external_sub: &'a str,
+    pub email: &'a str,
+    pub display_name: &'a str,
+}
+
 struct LocalUser {
     id: String,
     display_name: String,
@@ -162,33 +172,48 @@ async fn create_federated(
 /// `email` / `display_name` come from the verified `IdP` claims. The caller is
 /// responsible for the upstream gate (`email_verified == true` and an
 /// allow-listed domain) before invoking this.
+///
+/// When `auto_provision` is `false` and the identity matches neither an existing
+/// mapping nor an active local account, returns `Ok(None)` — the caller should
+/// surface "this account must be created by an admin first" rather than minting
+/// a session.
 pub async fn resolve_federated_user(
     pool: &PgPool,
-    issuer: &str,
-    external_sub: &str,
-    email: &str,
-    display_name: &str,
-) -> Result<ResolvedFederatedUser, sqlx::Error> {
+    claims: &FederatedClaims<'_>,
+    auto_provision: bool,
+) -> Result<Option<ResolvedFederatedUser>, sqlx::Error> {
+    let FederatedClaims {
+        issuer,
+        external_sub,
+        email,
+        display_name,
+    } = *claims;
     if let Some(user_id) = find_mapping(pool, issuer, external_sub).await? {
         if let Some(user) = load_user(pool, &user_id).await? {
-            return Ok(ResolvedFederatedUser {
+            return Ok(Some(ResolvedFederatedUser {
                 user_id: UserId::new(user.id),
                 email: email.to_string(),
                 display_name: user.display_name,
                 roles: user.roles,
-            });
+            }));
         }
     }
 
     if let Some(user) = find_active_user_by_email(pool, email).await? {
         link_existing(pool, issuer, external_sub, &user.id).await?;
-        return Ok(ResolvedFederatedUser {
+        return Ok(Some(ResolvedFederatedUser {
             user_id: UserId::new(user.id),
             email: email.to_string(),
             display_name: user.display_name,
             roles: user.roles,
-        });
+        }));
     }
 
-    create_federated(pool, issuer, external_sub, email, display_name).await
+    if !auto_provision {
+        return Ok(None);
+    }
+
+    create_federated(pool, issuer, external_sub, email, display_name)
+        .await
+        .map(Some)
 }

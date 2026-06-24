@@ -1,3 +1,4 @@
+#![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
 //! Astound Digital desktop bridge.
 //!
 //! A thin white-label wrapper over the systemprompt bridge: it defines the
@@ -37,6 +38,12 @@ static ASTOUND_BRAND: Brand = Brand {
     tray_tooltip: "Astound Bridge",
     window_title: "Astound Bridge",
     app_menu_name: "Astound Bridge",
+    // The Astound gateway federates identity through Salesforce, so the one-click
+    // setup button drives the device-link flow into the gateway's "Sign in with
+    // Salesforce" login. The bridge never speaks to Salesforce directly — it only
+    // carries the gateway credential the device-link approval returns.
+    sign_in_label: "Sign in with Salesforce",
+    sign_in_hint: "Opens your browser to sign in with Salesforce on the Astound gateway; this device is linked automatically.",
     assets: BrandAssets {
         icon_svg: include_str!("../assets/icon.svg"),
         logo_svg: include_str!("../assets/logo.svg"),

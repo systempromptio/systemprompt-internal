@@ -88,8 +88,6 @@ pub async fn salesforce_token_handler(
         return (StatusCode::SERVICE_UNAVAILABLE, "Salesforce not configured").into_response();
     }
 
-    // The Salesforce username to act as. For these orgs the SSO email is the
-    // Salesforce username; the Connected App must admin-pre-authorize the user.
     match salesforce_jwt_bearer::fetch_token(&deps.config, session.email.as_str()).await {
         Ok(fresh) => Json(TokenResponse {
             access_token: fresh.access_token,

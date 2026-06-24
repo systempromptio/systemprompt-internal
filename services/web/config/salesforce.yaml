@@ -37,3 +37,10 @@ allowed_email_domains:
   - astounddigital.com
   - astoundcommerce.com
   - systemprompt.io
+
+# Provisioning posture. When true (default), the first verified, allow-listed
+# Salesforce login auto-creates a local account — the frictionless path that lets
+# a new user link the desktop bridge with zero admin steps. Set to false to
+# require an admin to pre-create accounts: SSO then only logs in or links
+# *existing* users, and an unknown identity is rejected with `?sso=not_provisioned`.
+auto_provision: true
