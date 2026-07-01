@@ -8,6 +8,7 @@ pub const SCHEMA_ADMIN_DASHBOARD: &str = include_str!("../schema/10_admin_dashbo
 pub const SCHEMA_MANAGEMENT: &str = include_str!("../schema/12_management.sql");
 pub const SCHEMA_WEB_SIDE_TABLES: &str = include_str!("../schema/13_web_side_tables.sql");
 pub const SCHEMA_AUDIT_EVENT_NOTIFY: &str = include_str!("../schema/14_audit_event_notify.sql");
+pub const SCHEMA_SALESFORCE_IDENTITY: &str = include_str!("../schema/15_salesforce_identity.sql");
 
 pub fn schema_definitions() -> Vec<SchemaDefinition> {
     vec![
@@ -19,6 +20,7 @@ pub fn schema_definitions() -> Vec<SchemaDefinition> {
         SchemaDefinition::new("", SCHEMA_MANAGEMENT),
         SchemaDefinition::new("", SCHEMA_WEB_SIDE_TABLES),
         SchemaDefinition::new("", SCHEMA_AUDIT_EVENT_NOTIFY),
+        SchemaDefinition::new("", SCHEMA_SALESFORCE_IDENTITY),
     ]
 }
 

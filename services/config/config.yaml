@@ -11,6 +11,12 @@ includes:
   - ../mcp/systemprompt.yaml
   - ../mcp/salesforce.yaml
 
+  # Slack inbound surface (Events API / slash commands / interactivity)
+  - ../slack/dev.yaml
+
+  # Teams inbound surface (Bot Framework activities)
+  - ../teams/dev.yaml
+
   # AI, scheduler, content
   # Note: ../web/config.yaml is NOT included here — the web domain validator
   # reads it directly as WebConfigRaw (branding at top level). Including it
@@ -21,6 +27,15 @@ includes:
   # Agents (flat, wrapped in `agents:` map)
   - ../agents/developer_agent.yaml
   - ../agents/associate_agent.yaml
+
+  # Salesforce specialist agents (one per common object + a generalist)
+  - ../agents/salesforce_agent.yaml
+  - ../agents/pipeline_agent.yaml
+  - ../agents/account_agent.yaml
+  - ../agents/contact_agent.yaml
+  - ../agents/lead_agent.yaml
+  - ../agents/case_agent.yaml
+  - ../agents/activity_agent.yaml
 
   # External agents (super-agents — native apps + CLI tools that run off our infra, distinct from A2A agents above)
   - ../external_agents/claude_desktop.yaml

@@ -30,6 +30,7 @@ use systemprompt::models::Config;
 use systemprompt::oauth::SessionCreationService;
 
 pub use callback::salesforce_callback;
+pub use callback::select_sf_username;
 pub use config::{client_secret, salesforce_private_key, SalesforceConfig};
 pub use start::salesforce_start;
 pub use tokens::post_token_request;

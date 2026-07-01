@@ -35,17 +35,29 @@ cargo build --release --target aarch64-apple-darwin
 scripts/make-mac-app.sh --target aarch64-apple-darwin   # → AstoundBridge.app
 ```
 
-## ⚠️ Placeholder assets — replace before release
+## Icons
 
-`assets/icon.svg`, `assets/logo.svg`, and `assets/app-icon.ico` are Astound's
-real marks (copied from `storage/files/images/`). But the **raster icons**
-`assets/window-icon-1024.png` and `assets/tray-icon.png` are currently copies of
-the systemprompt artwork (no SVG→PNG tooling was available when scaffolding).
-Replace them with rendered Astound icons (1024×1024 window icon; ~44px template
-tray icon) before cutting a release. `app-icon.ico` should be regenerated from
-the final window icon as a multi-resolution `.ico`.
+`assets/icon.svg` is the master Astound "A" mark (white on a near-black rounded
+square, matching `storage/files/images/favicon-*`). The raster icons consumed by
+the build are generated from it by `scripts/render-icons.py` (cairosvg + Pillow):
 
-Also set `default_gateway_url` in `src/main.rs` to the real Astound gateway host
+```bash
+python3 scripts/render-icons.py
+```
+
+This regenerates, idempotently:
+
+- `assets/window-icon-1024.png` — GUI window icon + macOS `.icns` source.
+- `assets/tray-icon.png` — 44×44 tray icon (A on the rounded dark square, legible
+  on both the dark macOS menu bar and a light Windows tray).
+- `assets/app-icon.ico` — multi-resolution (16/32/48/256), embedded into the
+  Windows `.exe` by `build.rs`. Rebuild (`cargo build --release`) after changing
+  the icon so the new `.ico` is re-embedded.
+
+Edit `assets/icon.svg` and rerun the script to change the mark. `assets/logo.svg`
+is the full Astound wordmark, used by the GUI chrome.
+
+> ⚠️ Still pre-release: set `default_gateway_url` in `src/main.rs` to the real Astound gateway host
 (currently a `https://gateway.astounddigital.com` placeholder).
 
 ## Recipe: a new client bridge

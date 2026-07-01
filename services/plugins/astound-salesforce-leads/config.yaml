@@ -1,0 +1,26 @@
+plugin:
+  id: astound-salesforce-leads
+  name: "Salesforce — Leads & Prospects"
+  description: "Work with your Salesforce leads: find and filter prospects, read your funnel insights, and safely capture and update leads — with a leads specialist agent"
+  version: "1.0.0"
+  enabled: true
+  author:
+    name: Astound Digital
+    email: ed@tyingshoelaces.com
+  keywords: [salesforce, leads, prospects, sales, marketing]
+  license: proprietary
+  category: salesforce
+  skills:
+    source: explicit
+    include:
+      - leads_find
+      - leads_report
+      - leads_update
+  agents:
+    include:
+      - lead_agent
+  mcp_servers:
+    source: explicit
+    include:
+      - salesforce
+  content_sources: {}

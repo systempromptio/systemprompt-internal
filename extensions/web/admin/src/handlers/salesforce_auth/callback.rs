@@ -21,7 +21,7 @@ use systemprompt::oauth::SessionCreationService;
 use super::config::SalesforceConfig;
 use super::tokens::exchange_code;
 use super::{login_error, read_state_cookie, secure_flag, SalesforceDeps, STATE_COOKIE};
-use crate::repositories::users_grp::federated;
+use crate::repositories::users_grp::{federated, salesforce_identity};
 
 #[derive(Deserialize)]
 pub struct CallbackParams {
@@ -38,6 +38,9 @@ struct SalesforceUserInfo {
     #[serde(default)]
     email_verified: bool,
     name: Option<String>,
+    /// The Salesforce Username (e.g. `ed.aa…@agentforce.com`) — distinct from the
+    /// login email, and the value the JWT-bearer grant matches on `sub`.
+    preferred_username: Option<String>,
 }
 
 /// A completed Salesforce login, ready to be turned into a cookie-setting
@@ -143,7 +146,7 @@ async fn resolve_identity(
             "error"
         })?;
 
-    let (sub, email, display_name) = gate_claims(cfg, info)?;
+    let (sub, email, display_name, sf_username) = gate_claims(cfg, info)?;
 
     let claims = federated::FederatedClaims {
         issuer: cfg.issuer(),
@@ -165,15 +168,26 @@ async fn resolve_identity(
             "not_provisioned"
         })?;
 
+    // Record the Salesforce Username so the Hosted-MCP token accessor can mint a
+    // JWT-bearer token as this user. A failure here must not break login — the
+    // accessor falls back to the email if no row exists.
+    if let Err(e) =
+        salesforce_identity::upsert(&deps.write_pool, resolved.user_id.as_str(), &sf_username).await
+    {
+        tracing::warn!(error = %e, user_id = %resolved.user_id, "Failed to persist Salesforce username");
+    }
+
     Ok(resolved)
 }
 
 /// Enforce the verified-email + allow-listed-domain gate, returning the
-/// `(sub, email, display_name)` to provision/link with.
+/// `(sub, email, display_name, sf_username)` to provision/link with. `sf_username`
+/// is the Salesforce Username (userinfo `preferred_username`), falling back to the
+/// email when Salesforce omits it.
 fn gate_claims(
     cfg: &SalesforceConfig,
     info: SalesforceUserInfo,
-) -> Result<(String, String, String), &'static str> {
+) -> Result<(String, String, String, String), &'static str> {
     let email = info
         .email
         .map(|e| e.trim().to_lowercase())
@@ -189,7 +203,20 @@ fn gate_claims(
         return Err("forbidden");
     }
     let display_name = info.name.unwrap_or_else(|| email.clone());
-    Ok((info.sub, email, display_name))
+    let sf_username = select_sf_username(info.preferred_username.as_deref(), &email);
+    Ok((info.sub, email, display_name, sf_username))
+}
+
+/// The Salesforce Username to sign JWT-bearer assertions with.
+///
+/// Uses the userinfo `preferred_username` when present and non-blank, else the
+/// login email — the latter is only correct for orgs where the email *is* the
+/// Username.
+pub fn select_sf_username(preferred_username: Option<&str>, email: &str) -> String {
+    preferred_username
+        .map(str::trim)
+        .filter(|u| !u.is_empty())
+        .map_or_else(|| email.to_owned(), str::to_owned)
 }
 
 /// Build the cookie-setting redirect for a successful login: clear the spent

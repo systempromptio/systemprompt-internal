@@ -3,7 +3,9 @@ plugin:
   name: "Astound Commons"
   description: "Shared brand skills: voice, document formatting, client email, company boilerplate, and terminology for Astound Digital deliverables"
   version: "1.0.0"
-  enabled: true
+  # Disabled: superseded by the Salesforce-first marketplace. Kept on disk so the
+  # shared brand skills stay recoverable; re-enable to ship them again.
+  enabled: false
   author:
     name: Astound Digital
     email: ed@tyingshoelaces.com

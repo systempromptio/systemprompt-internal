@@ -1,0 +1,26 @@
+plugin:
+  id: astound-salesforce-contacts
+  name: "Salesforce — Contacts & People"
+  description: "Work with the people in your Salesforce: find contacts, get briefed on who you know at an account, and safely create and update contact records — with a contacts specialist agent"
+  version: "1.0.0"
+  enabled: true
+  author:
+    name: Astound Digital
+    email: ed@tyingshoelaces.com
+  keywords: [salesforce, contacts, people, accounts, crm]
+  license: proprietary
+  category: salesforce
+  skills:
+    source: explicit
+    include:
+      - contacts_find
+      - contacts_report
+      - contacts_update
+  agents:
+    include:
+      - contact_agent
+  mcp_servers:
+    source: explicit
+    include:
+      - salesforce
+  content_sources: {}

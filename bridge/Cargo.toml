@@ -27,3 +27,14 @@ systemprompt-bridge = { path = "../../systemprompt-core/bin/bridge" }
 
 [build-dependencies]
 winresource = "0.1"
+
+# This is a standalone workspace, so it does NOT inherit core's release profile.
+# Without this block the binary builds with cargo defaults (opt-level=3, no LTO,
+# 16 codegen units, unstripped) — ~30% larger. Mirror the size-optimised profile
+# from systemprompt-core/bin/bridge so the shipped white-label binary matches.
+[profile.release]
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+strip = "symbols"
+panic = "abort"

@@ -3,7 +3,9 @@ plugin:
   name: "Astound Consultancy Workflows"
   description: "Consultancy delivery skills: RFP responses, work orders, SOWs, estimates, and client proposals for digital-commerce engagements"
   version: "1.0.0"
-  enabled: true
+  # Disabled: superseded by the Salesforce-first marketplace. Kept on disk so the
+  # consultancy delivery skills stay recoverable; re-enable to ship them again.
+  enabled: false
   author:
     name: Astound Digital
     email: ed@tyingshoelaces.com

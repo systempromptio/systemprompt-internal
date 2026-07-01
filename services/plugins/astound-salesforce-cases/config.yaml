@@ -1,0 +1,26 @@
+plugin:
+  id: astound-salesforce-cases
+  name: "Salesforce — Support Cases"
+  description: "Work with your Salesforce support cases: find cases, read your queue and backlog, and safely create and update cases — with a support case specialist agent"
+  version: "1.0.0"
+  enabled: true
+  author:
+    name: Astound Digital
+    email: ed@tyingshoelaces.com
+  keywords: [salesforce, cases, support, service, escalation]
+  license: proprietary
+  category: salesforce
+  skills:
+    source: explicit
+    include:
+      - cases_find
+      - cases_report
+      - cases_update
+  agents:
+    include:
+      - case_agent
+  mcp_servers:
+    source: explicit
+    include:
+      - salesforce
+  content_sources: {}

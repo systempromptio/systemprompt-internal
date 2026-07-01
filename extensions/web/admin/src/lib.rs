@@ -47,8 +47,8 @@ pub use routes::{admin_ssr_router, bridge_auth_ssr_router};
 pub use types::{CreateUserRequest, MarketplaceContext, UsageEvent, UserContext, UserSummary};
 
 pub mod test_support {
-    pub use crate::handlers::bridge::plugin_file::resolve_within;
     pub use crate::handlers::resolve_principal;
+    pub use crate::handlers::salesforce_auth::select_sf_username;
 }
 
 pub fn hooks_webhook_router(

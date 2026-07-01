@@ -27,10 +27,11 @@ static ASTOUND_BRAND: Brand = Brand {
     // shared systemprompt value; only change it alongside a coordinated gateway
     // change.
     synthetic_plugin_name: "systemprompt-managed",
-    // TODO(astound): point at the real Astound gateway host before cutting a
-    // release. Overridable at runtime via ASTOUND_BRIDGE_GATEWAY_URL or
-    // `astound-bridge install --gateway <url>`.
-    default_gateway_url: "https://gateway.astounddigital.com",
+    // Pre-fills the setup/settings gateway field with the local gateway so a dev
+    // build talks to a `just start` server out of the box. Point at the deployed
+    // Astound gateway host before cutting a release. Overridable at runtime via
+    // ASTOUND_BRIDGE_GATEWAY_URL or `astound-bridge install --gateway <url>`.
+    default_gateway_url: "http://localhost:8080",
     // The Astound gateway mounts the device-link consent page under
     // /bridge-auth (see extensions/web/src/extension_impl.rs nest_service),
     // not the upstream default /bridge — keep these in lockstep.
@@ -44,12 +45,15 @@ static ASTOUND_BRAND: Brand = Brand {
     // carries the gateway credential the device-link approval returns.
     sign_in_label: "Sign in with Salesforce",
     sign_in_hint: "Opens your browser to sign in with Salesforce on the Astound gateway; this device is linked automatically.",
+    // Embedded from OUT_DIR (copied there by build.rs) rather than directly from
+    // `assets/`, so regenerating an asset reliably re-embeds it even under
+    // incremental/sccache builds. See build.rs.
     assets: BrandAssets {
-        icon_svg: include_str!("../assets/icon.svg"),
-        logo_svg: include_str!("../assets/logo.svg"),
-        window_icon_png: include_bytes!("../assets/window-icon-1024.png"),
-        tray_icon_png: include_bytes!("../assets/tray-icon.png"),
-        theme_css: include_str!("../assets/theme.css"),
+        icon_svg: include_str!(concat!(env!("OUT_DIR"), "/icon.svg")),
+        logo_svg: include_str!(concat!(env!("OUT_DIR"), "/logo.svg")),
+        window_icon_png: include_bytes!(concat!(env!("OUT_DIR"), "/window-icon-1024.png")),
+        tray_icon_png: include_bytes!(concat!(env!("OUT_DIR"), "/tray-icon.png")),
+        theme_css: include_str!(concat!(env!("OUT_DIR"), "/theme.css")),
     },
 };
 

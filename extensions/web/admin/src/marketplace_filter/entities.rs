@@ -1,7 +1,8 @@
 use std::collections::HashSet;
 
 use systemprompt::identifiers::{
-    AgentId, HookId, MarketplaceId, McpServerId, PluginId, RouteId, SkillId,
+    AgentId, HookId, MarketplaceId, McpServerId, PluginId, RouteId, SkillId, SlackChannelId,
+    SlackWorkspaceId, TeamsConversationId, TeamsTenantId,
 };
 use systemprompt::marketplace::MarketplaceCandidate;
 use systemprompt_security::authz::{EntityKind, EntityRef};
@@ -15,6 +16,10 @@ pub(super) fn entity_ref_for(kind: EntityKind, id: &str) -> EntityRef {
         EntityKind::Marketplace => EntityRef::Marketplace(MarketplaceId::new(id)),
         EntityKind::GatewayRoute => EntityRef::GatewayRoute(RouteId::new(id)),
         EntityKind::Hook => EntityRef::Hook(HookId::new(id)),
+        EntityKind::SlackWorkspace => EntityRef::SlackWorkspace(SlackWorkspaceId::new(id)),
+        EntityKind::SlackChannel => EntityRef::SlackChannel(SlackChannelId::new(id)),
+        EntityKind::TeamsTenant => EntityRef::TeamsTenant(TeamsTenantId::new(id)),
+        EntityKind::TeamsConversation => EntityRef::TeamsConversation(TeamsConversationId::new(id)),
     }
 }
 

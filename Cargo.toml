@@ -31,8 +31,8 @@ license = "MIT"
 # ============================================
 # CORE FACADE (single dependency for all systemprompt-core)
 # ============================================
-systemprompt = { version = "0.16.0", default-features = false, features = ["core", "database", "config"] }
-systemprompt-security = { version = "0.16.0" }
+systemprompt = { version = "0.18.0", default-features = false, features = ["core", "database", "config"] }
+systemprompt-security = { version = "0.18.0" }
 
 # ============================================
 # LOCAL EXTENSIONS
@@ -215,7 +215,7 @@ path = "src/main.rs"
 
 [dependencies]
 # Core framework (facade)
-systemprompt = { workspace = true, features = ["full"] }
+systemprompt = { workspace = true, features = ["full", "slack", "teams"] }
 
 # Local extensions
 systemprompt-web-extension = { workspace = true }
@@ -265,6 +265,8 @@ systemprompt-analytics = { path = "../systemprompt-core/crates/domain/analytics"
 systemprompt-content = { path = "../systemprompt-core/crates/domain/content" }
 systemprompt-ai = { path = "../systemprompt-core/crates/domain/ai" }
 systemprompt-mcp = { path = "../systemprompt-core/crates/domain/mcp" }
+systemprompt-slack = { path = "../systemprompt-core/crates/domain/slack" }
+systemprompt-teams = { path = "../systemprompt-core/crates/domain/teams" }
 systemprompt-agent = { path = "../systemprompt-core/crates/domain/agent" }
 systemprompt-marketplace = { path = "../systemprompt-core/crates/domain/marketplace" }
 systemprompt-templates = { path = "../systemprompt-core/crates/domain/templates" }

@@ -7,6 +7,25 @@
 )]
 
 fn main() {
+    // Copy the embedded brand assets into OUT_DIR and declare them as build
+    // inputs. `main.rs` `include_bytes!`/`include_str!`s them from OUT_DIR, so
+    // regenerating an asset deterministically invalidates the `main.rs`
+    // compilation — without this, incremental/sccache builds keep the stale
+    // bytes baked into the binary (the window/tray icons go stale while the
+    // winresource exe icon, re-read each build, does not).
+    let out_dir = std::env::var("OUT_DIR").expect("OUT_DIR set by cargo");
+    for f in [
+        "window-icon-1024.png",
+        "tray-icon.png",
+        "icon.svg",
+        "logo.svg",
+        "theme.css",
+    ] {
+        let src = format!("assets/{f}");
+        std::fs::copy(&src, format!("{out_dir}/{f}")).expect("copy brand asset to OUT_DIR");
+        println!("cargo:rerun-if-changed={src}");
+    }
+
     let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
     if target_os == "windows" {
         let mut res = winresource::WindowsResource::new();

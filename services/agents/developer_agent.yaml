@@ -45,7 +45,6 @@ agents:
       skills:
         source: explicit
         include:
-          - use_dangerous_secret
           - demonstrate_governance
           - manage_permissions
           - inspect_conversation

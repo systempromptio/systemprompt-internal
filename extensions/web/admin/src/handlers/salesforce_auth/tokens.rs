@@ -10,7 +10,8 @@ use serde::{Deserialize, Serialize};
 
 use super::config::SalesforceConfig;
 use super::{SalesforceDeps, SalesforceError};
-use crate::handlers::users::extract_user_from_cookie;
+use crate::handlers::users::extract_mcp_accessor_user;
+use crate::repositories::users_grp::salesforce_identity;
 use crate::services::salesforce_jwt_bearer;
 
 /// The Salesforce `/services/oauth2/token` response. Only the fields both the
@@ -81,14 +82,27 @@ pub async fn salesforce_token_handler(
     Extension(deps): Extension<SalesforceDeps>,
     headers: HeaderMap,
 ) -> Response {
-    let Ok(session) = extract_user_from_cookie(&headers) else {
+    let Ok(session) = extract_mcp_accessor_user(&headers) else {
         return (StatusCode::UNAUTHORIZED, "authentication required").into_response();
     };
     if !deps.config.is_usable() {
         return (StatusCode::SERVICE_UNAVAILABLE, "Salesforce not configured").into_response();
     }
 
-    match salesforce_jwt_bearer::fetch_token(&deps.config, session.email.as_str()).await {
+    // The JWT-bearer `sub` must be the Salesforce Username (captured at SSO login),
+    // not the login email. Fall back to the email if this user has no stored
+    // Username (e.g. they never completed a Salesforce login) or the lookup fails.
+    let username = match salesforce_identity::find(&deps.write_pool, session.user_id.as_str()).await
+    {
+        Ok(Some(u)) => u,
+        Ok(None) => session.email.as_str().to_string(),
+        Err(e) => {
+            tracing::warn!(error = %e, user_id = %session.user_id, "Salesforce username lookup failed; falling back to email");
+            session.email.as_str().to_string()
+        }
+    };
+
+    match salesforce_jwt_bearer::fetch_token(&deps.config, &username).await {
         Ok(fresh) => Json(TokenResponse {
             access_token: fresh.access_token,
             instance_url: fresh.instance_url,

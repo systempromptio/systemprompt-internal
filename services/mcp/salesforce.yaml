@@ -37,13 +37,12 @@ mcp_servers:
     #   prod:    https://api.salesforce.com/platform/mcp/v1/platform/<server>
     #   sandbox: https://api.salesforce.com/platform/mcp/v1/sandbox/<server>
     endpoint: "https://api.salesforce.com/platform/mcp/v1/platform/sobject-all"
-    # Disabled until the real Hosted-MCP Server URL, an org with Hosted MCP
-    # enabled, and SALESFORCE_PRIVATE_KEY are in place. NOTE: core's lifecycle
-    # start_server currently spawns *every* enabled server with no
-    # McpServerType::External branch, so enabling this before that core fix
-    # crashes startup with "Permission denied" (it tries to exec the empty
-    # binary path). Re-enable once core skips spawning external servers.
-    enabled: false
+    # Enabled: the Astound Salesforce dev org has Hosted MCP on with `sobject-all`
+    # activated, SALESFORCE_PRIVATE_KEY is provisioned, and the per-user JWT-bearer
+    # mint is proven end-to-end. Core 0.16.1 excludes external servers from local
+    # spawn (get_managed_servers = internal only), so enabling this no longer
+    # crashes startup — the empty `binary` path is never exec'd.
+    enabled: true
     display_in_web: true
     description: "Salesforce Hosted MCP — SObject CRUD/SOQL (runs as the signed-in user)"
     # Trips core onto the external-auth path: instead of forwarding the

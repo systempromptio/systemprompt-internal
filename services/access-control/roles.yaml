@@ -38,50 +38,69 @@ rules:
     default_included: true
     roles: [user]
 
-  # Skills shipped with enterprise-demo need NO per-skill rule: they inherit the
-  # marketplace grant above via the parent cascade in marketplace_filter.rs (the
-  # bridge listing) and authz.rs (runtime authz). Add a `entity_type: skill` rule
-  # here only to DENY a specific skill — an entity-level deny overrides the
-  # inherited marketplace allow (deny-overrides).
+  # Skills, plugins, agents, and mcp servers shipped with enterprise-demo need NO
+  # per-entity rule: they inherit the marketplace grant above via the parent
+  # cascade in marketplace_filter.rs (the bridge listing) and authz.rs (runtime
+  # authz). Add an entity-level rule here only to DENY a specific member — an
+  # entity-level deny overrides the inherited marketplace allow (deny-overrides).
 
-  # use_dangerous_secret is intentionally refused at the authz layer. It is
-  # catalogued by the marketplace, but this deny rule overrides the inherited
-  # grant (deny-overrides), so a user-role attempt to use it is refused before it
-  # can run — independent of the runtime secret_scan governance hook. This is the
-  # access-control demonstration: a dangerous capability that exists in the
-  # catalog but is denied by policy.
-  - entity_type: skill
-    entity_id: use_dangerous_secret
-    access: deny
-    roles: [user]
-
-  # plugins shipped with enterprise-demo
-  - entity_type: plugin
-    entity_id: astound-consultancy
-    access: allow
-    default_included: true
-    roles: [user]
-  - entity_type: plugin
-    entity_id: astound-commons
-    access: allow
-    default_included: true
-    roles: [user]
-
-  # agents shipped with enterprise-demo
+  # Salesforce specialist agents. Agents are granted explicitly (mirroring the
+  # marketplace grant) so runtime authz lets user-role members invoke them, not
+  # just list them. Ids match services/agents/*.yaml and the marketplace's
+  # agents.include.
   - entity_type: agent
-    entity_id: associate_agent
+    entity_id: salesforce_agent
     access: allow
     default_included: true
     roles: [user]
   - entity_type: agent
-    entity_id: developer_agent
+    entity_id: pipeline_agent
+    access: allow
+    default_included: true
+    roles: [user]
+  - entity_type: agent
+    entity_id: account_agent
+    access: allow
+    default_included: true
+    roles: [user]
+  - entity_type: agent
+    entity_id: contact_agent
+    access: allow
+    default_included: true
+    roles: [user]
+  - entity_type: agent
+    entity_id: lead_agent
+    access: allow
+    default_included: true
+    roles: [user]
+  - entity_type: agent
+    entity_id: case_agent
+    access: allow
+    default_included: true
+    roles: [user]
+  - entity_type: agent
+    entity_id: activity_agent
     access: allow
     default_included: true
     roles: [user]
 
-  # mcp servers shipped with enterprise-demo
+  # Salesforce Hosted MCP server — the one server shipped to users. Per-user
+  # Salesforce bearer is injected at call time (see services/mcp/salesforce.yaml).
   - entity_type: mcp_server
-    entity_id: systemprompt
+    entity_id: salesforce
+    access: allow
+    default_included: true
+    roles: [user]
+
+  # Slack inbound surface. Wildcard grant over every Slack channel for the
+  # `user` role — the role federated Slack users are minted with (see
+  # services/slack/dev.yaml authz.allowed_roles). Channels inherit their
+  # workspace grant via authz parent inheritance. Tighten entity_match to
+  # specific channel ids (e.g. "C0ABC*") for production. To demonstrate a
+  # denial, add a channel-specific `access: deny` rule below — an entity-level
+  # deny overrides this inherited allow (deny-overrides).
+  - entity_type: slack_channel
+    entity_match: "*"
     access: allow
     default_included: true
     roles: [user]

@@ -1,0 +1,12 @@
+id: opportunities_report
+name: Pipeline & Forecast
+description: "Summaries and rollups of your Salesforce pipeline - by stage, forecast, win rate, and what's at risk - in plain English"
+enabled: true
+file: SKILL.md
+tags:
+  - salesforce
+  - opportunities
+  - pipeline
+  - forecast
+  - reporting
+category: salesforce

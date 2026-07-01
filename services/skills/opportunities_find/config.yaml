@@ -1,0 +1,11 @@
+id: opportunities_find
+name: Find Deals
+description: "Browse, search, and filter Salesforce opportunities in plain English - by stage, amount, close date, owner, or account"
+enabled: true
+file: SKILL.md
+tags:
+  - salesforce
+  - opportunities
+  - sales
+  - pipeline
+category: salesforce

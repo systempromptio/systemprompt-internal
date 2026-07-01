@@ -1,0 +1,46 @@
+# Slack inbound surface (dev workspace).
+#
+# Registers a Slack app as a first-class inbound protocol surface, peer to the
+# gateway and MCP. A verified Slack message / slash command / Block Kit
+# interaction is mapped to a federated systemprompt user, authorized against
+# RBAC, dispatched to an A2A agent, and answered back in Slack — with the full
+# audit trail every other surface gets. Handled by the `systemprompt-slack`
+# core extension; this file is the binding descriptor.
+#
+# SECRETS: the signing secret and bot token are NEVER stored here. The `*_ref`
+# values name keys resolved env-var-first, then from the active profile's
+# secrets.json (gitignored) — same pattern as Salesforce SSO
+# (services/web/config/salesforce.yaml). Set:
+#   - SLACK_SIGNING_SECRET  / secrets.json "slack_signing_secret"
+#   - SLACK_BOT_TOKEN       / secrets.json "slack_bot_token"  (xoxb-...)
+#
+# REQUEST URLs (point the Slack app at these; astound runs on :8080, expose via
+# a tunnel for a real app):
+#   Events API     POST https://<public>/api/v1/slack/events
+#   Slash commands POST https://<public>/api/v1/slack/commands
+#   Interactivity  POST https://<public>/api/v1/slack/interactivity
+
+slack_apps:
+  astound-dev:
+    # Slack team_id (Slack → About this workspace → settings). Replace with the
+    # real workspace id before pointing a live Slack app at this deployment.
+    workspace_id: "T0123456789"
+
+    signing_secret_ref: "slack_signing_secret"
+    bot_token_ref: "slack_bot_token"
+
+    enabled: true
+
+    # Must resolve to a real agent id in services/agents/. associate_agent is a
+    # real, enabled, user-scope agent (port 9102).
+    default_agent: "associate_agent"
+
+    # Optional channel/command → agent overrides. Keys are channel ids (C…) or
+    # slash commands (/ask); values are agent ids. Empty = always default_agent.
+    routing: {}
+
+    authz:
+      # Role granted to federated Slack users. Channels are authorized against
+      # this role via services/access-control/roles.yaml (entity_type:
+      # slack_channel). Keep in sync with that file.
+      allowed_roles: ["user"]

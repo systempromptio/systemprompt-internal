@@ -45,8 +45,10 @@ struct Assertion {
 
 /// Mint a fresh Salesforce access token for `username` via the JWT-bearer grant.
 ///
-/// `username` is the Salesforce username to act as (for these orgs, the user's
-/// SSO email). The Connected App must have the user admin-pre-authorized.
+/// `username` is the Salesforce Username to act as — the userinfo
+/// `preferred_username` captured at SSO login (e.g. `ed.aa…@agentforce.com`), NOT
+/// the login email; the two differ and Salesforce matches `sub` on the Username.
+/// The External Client App must have the user admin-pre-authorized.
 ///
 /// # Errors
 /// - [`SalesforceError::MissingPrivateKey`] if `SALESFORCE_PRIVATE_KEY` is unset.

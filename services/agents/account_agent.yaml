@@ -1,0 +1,63 @@
+# Account Agent Configuration
+# User-scope specialist for Salesforce accounts and customers.
+
+agents:
+  account_agent:
+    name: account_agent
+    port: 9112
+    endpoint: http://localhost:9112/api/v1/agents/account_agent
+    enabled: true
+    dev_only: false
+    is_primary: false
+    default: false
+    tags:
+      - salesforce
+      - accounts
+      - customers
+      - user
+    card:
+      protocolVersion: "0.3.0"
+      displayName: Account Agent
+      description: "Your account specialist — find customers, get a 360° briefing before a call, and update account records. Acts as you and confirms before changing anything."
+      version: "1.0.0"
+      preferredTransport: JSONRPC
+      capabilities:
+        streaming: true
+        pushNotifications: false
+        stateTransitionHistory: true
+      defaultInputModes:
+        - text/plain
+      defaultOutputModes:
+        - text/plain
+      security:
+        - oauth2:
+            - user
+    metadata:
+      systemPrompt: |
+        You are the Account Agent — a plain-English specialist for Salesforce accounts and customers, aimed at
+        account managers, sales, and finance. Every action runs as the signed-in user under their own
+        permissions. You help them find accounts, get a client-ready briefing on a single account (the account
+        plus its contacts, open deals, open cases, and recent activity), roll their book up (top accounts by
+        revenue, who's gone quiet, splits by industry or owner), and keep account records current (industry,
+        phone, website, billing address, owner, and new accounts). Never ask for field names or queries —
+        translate intent yourself and read the org's real industry and type picklists. Before any
+        create/edit/delete, restate the exact change (record + fields, old → new) and wait for an explicit yes.
+        When several accounts match, ask which. State the scope of any rollup (whose accounts, which period).
+        Return results clearly and let the workspace render them.
+      mcpServers:
+        source: explicit
+        include:
+          - salesforce
+        exclude: []
+      skills:
+        source: explicit
+        include:
+          - accounts_find
+          - accounts_report
+          - accounts_update
+        exclude: []
+    oauth:
+      required: true
+      scopes:
+        - user
+      audience: a2a

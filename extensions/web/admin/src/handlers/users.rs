@@ -26,6 +26,24 @@ use super::responses::{EventsListResponse, UsersListResponse};
 pub fn extract_user_from_cookie(
     headers: &HeaderMap,
 ) -> Result<crate::types::CookieSession, String> {
+    extract_user_with_audiences(headers, &[JwtAudience::Api])
+}
+
+/// Authenticate the caller of the Salesforce token accessor. Accepts an `Api`
+/// audience (admin/direct path) or an `Mcp` audience — the latter is the token
+/// the bridge forwards through the external-MCP flow this accessor belongs to.
+/// Deliberately kept separate from `extract_user_from_cookie` so sensitive
+/// endpoints (secrets, middleware) stay strictly `[Api]`-only.
+pub fn extract_mcp_accessor_user(
+    headers: &HeaderMap,
+) -> Result<crate::types::CookieSession, String> {
+    extract_user_with_audiences(headers, &[JwtAudience::Api, JwtAudience::Mcp])
+}
+
+fn extract_user_with_audiences(
+    headers: &HeaderMap,
+    audiences: &[JwtAudience],
+) -> Result<crate::types::CookieSession, String> {
     let token = extract_token_from_headers(headers)?;
 
     let jwt_issuer = Config::get()
@@ -33,7 +51,7 @@ pub fn extract_user_from_cookie(
         .jwt_issuer
         .clone();
 
-    let claims = validate_jwt_token(&token, &jwt_issuer, &[JwtAudience::Api])
+    let claims = validate_jwt_token(&token, &jwt_issuer, audiences)
         .map_err(|e| format!("JWT validation failed: {e}"))?;
 
     let email =

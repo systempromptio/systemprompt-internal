@@ -1,54 +1,64 @@
 marketplace:
   id: enterprise-demo
-  name: "Astound Digital Marketplace"
-  description: "Astound Digital marketplace shipping the governance demo plugin, its skills, agents, and MCP servers."
-  version: "2.0.0"
+  name: "Astound Digital — Salesforce Productivity"
+  description: "A Salesforce-first workspace: plain-English assistants for your deals, accounts, contacts, leads, cases, and to-dos. One plugin per common object, each bundling skills, a specialist agent, and the Salesforce MCP server."
+  version: "3.0.0"
   visibility: public
   author:
     name: Astound Digital
     email: ed@tyingshoelaces.com
   keywords:
-    - governance
-    - demo
-    - enterprise
+    - salesforce
+    - sales
+    - crm
+    - productivity
   license: proprietary
-  category: governance
+  category: salesforce
   access:
     default_included: true
     roles: [user]
-    justification: "Public enterprise governance evaluation demo"
+    justification: "Public Salesforce productivity workspace for signed-in users"
   skills:
     include:
-      - use_dangerous_secret
-      - demonstrate_governance
-      - manage_permissions
-      - inspect_conversation
-      - inspect_ai_requests
-      - analytics_dashboards
-      - inspect_agents
-      - inspect_mcp_and_skills
-      - manage_services
-      - systemprompt_cli
-      - create_rfp_response
-      - create_work_order
-      - create_statement_of_work
-      - create_project_estimate
-      - create_client_proposal
-      - apply_brand_voice
-      - format_client_document
-      - draft_client_email
-      - company_boilerplate
-      - astound_glossary
+      - salesforce_essentials
+      - opportunities_find
+      - opportunities_report
+      - opportunities_update
+      - accounts_find
+      - accounts_report
+      - accounts_update
+      - contacts_find
+      - contacts_report
+      - contacts_update
+      - leads_find
+      - leads_report
+      - leads_update
+      - cases_find
+      - cases_report
+      - cases_update
+      - activities_find
+      - activities_report
+      - activities_update
   plugins:
     include:
-      - astound-consultancy
-      - astound-commons
+      - astound-salesforce
+      - astound-salesforce-opportunities
+      - astound-salesforce-accounts
+      - astound-salesforce-contacts
+      - astound-salesforce-leads
+      - astound-salesforce-cases
+      - astound-salesforce-activities
   mcp_servers:
     source: explicit
     include:
-      - systemprompt
+      - salesforce
     exclude: []
   agents:
     include:
-      - developer_agent
-      - associate_agent
+      - salesforce_agent
+      - pipeline_agent
+      - account_agent
+      - contact_agent
+      - lead_agent
+      - case_agent
+      - activity_agent

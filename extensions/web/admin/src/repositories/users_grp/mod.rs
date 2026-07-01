@@ -3,6 +3,7 @@ pub mod federated;
 pub mod magic_links;
 pub mod profile_reports;
 pub mod registration;
+pub mod salesforce_identity;
 pub mod user_queries;
 pub mod user_settings;
 pub mod users;
