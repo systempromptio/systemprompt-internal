@@ -81,24 +81,6 @@ header:
       href: "/skills/"
       dropdown: false
 
-    - id: download
-      label: "Download"
-      href: "#"
-      dropdown: true
-      sections:
-        # TODO(astound): replace ORG/REPO with the real Astound GitHub repo slug
-        # that release-bridge.yml publishes to (no git remote configured yet).
-        - title: "Desktop Bridge"
-          links:
-            - label: "Download for Mac"
-              description: "The Astound desktop bridge for macOS (Apple Silicon). Installs your Cowork profile and syncs Astound skills."
-              href: "https://github.com/ORG/REPO/releases/latest/download/astound-bridge-aarch64-apple-darwin"
-              external: true
-            - label: "Download for Windows"
-              description: "The Astound desktop bridge for Windows (x64). Installs your Cowork profile and syncs Astound skills."
-              href: "https://github.com/ORG/REPO/releases/latest/download/astound-bridge-x86_64-pc-windows-msvc.exe"
-              external: true
-
     - id: resources
       label: "Resources"
       href: "/documentation/"
@@ -126,10 +108,6 @@ header:
               description: "25+ years of digital commerce engineering. Boutique partnership, enterprise-grade impact."
               href: "https://astounddigital.com/about"
               external: true
-
-  cta:
-    label: "Sign in"
-    href: "/admin/login"
 
 footer:
   infrastructure:
