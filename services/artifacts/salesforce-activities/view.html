@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Activities — Tasks &amp; Meetings</title>
+<style>
+  :root {
+    --bg: #f8f7f3; --surface: #ffffff; --glass: rgba(248, 247, 243, 0.6);
+    --ink: #171717; --ink-2: #4d4d4d; --muted: #707070; --border: #dddddd;
+    --accent: #fe190a; --card-radius: 18px 6px 18px 18px;
+    --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.10); --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06);
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: var(--font); color: var(--ink); background: var(--bg); padding: 24px; line-height: 1.45;
+    background-image:
+      radial-gradient(60rem 60rem at 110% -10%, rgba(254, 25, 10, 0.10), transparent 60%),
+      radial-gradient(50rem 50rem at -10% 120%, rgba(23, 23, 23, 0.06), transparent 55%);
+  }
+  .sf-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+  .sf-title { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+  .sf-title .dot { color: var(--accent); }
+  .sf-sub { margin: 4px 0 0; color: var(--ink-2); font-size: 13px; }
+  .sf-meta { display: flex; align-items: center; gap: 10px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px;
+    font-size: 12px; font-weight: 600; background: var(--surface); border: 1px solid var(--border); color: var(--ink-2); box-shadow: var(--shadow-sm); }
+  .pill .cnt { color: var(--accent); }
+  .sf-card {
+    background: var(--glass); backdrop-filter: blur(12px) saturate(160%); -webkit-backdrop-filter: blur(12px) saturate(160%);
+    border: 1px solid var(--border); border-radius: var(--card-radius); box-shadow: var(--shadow-lg); overflow: hidden;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    text-align: left; font-weight: 600; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--muted); padding: 12px 16px; background: rgba(255, 255, 255, 0.55);
+    border-bottom: 1px solid var(--border); position: sticky; top: 0; backdrop-filter: blur(6px);
+  }
+  tbody td { padding: 12px 16px; border-bottom: 1px solid rgba(221, 221, 221, 0.6); vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:nth-child(even) { background: rgba(255, 255, 255, 0.35); }
+  tbody tr:hover { background: rgba(254, 25, 10, 0.05); }
+  .strong { font-weight: 600; color: var(--ink); }
+  .due { font-variant-numeric: tabular-nums; }
+  .due.overdue { color: #b91c1c; font-weight: 600; }
+  .badge { display: inline-block; padding: 3px 9px; border-radius: 9999px; font-size: 11px; font-weight: 600; line-height: 1.4; white-space: nowrap; }
+  .b-info { background: rgba(59, 130, 246, 0.12); color: #1d4ed8; }
+  .b-warn { background: rgba(251, 191, 36, 0.18); color: #92600a; }
+  .b-ok   { background: rgba(34, 197, 94, 0.15); color: #15803d; }
+  .b-neutral { background: rgba(23, 23, 23, 0.06); color: var(--ink-2); }
+  .muted { color: var(--muted); }
+  .empty { padding: 40px 16px; text-align: center; color: var(--muted); font-size: 14px; }
+  .foot { margin-top: 10px; color: var(--muted); font-size: 11px; }
+</style>
+</head>
+<body>
+  <div class="sf-head">
+    <div>
+      <h1 class="sf-title">Activities <span class="dot">—</span> Tasks &amp; Meetings</h1>
+      <p class="sf-sub">Your open tasks, soonest due first. Hit <strong>Refresh</strong> to pull your own to-dos.</p>
+    </div>
+    <div class="sf-meta"><span class="pill"><span class="cnt" id="count">0</span>&nbsp;open</span></div>
+  </div>
+
+  <div class="sf-card">
+    <table>
+      <thead>
+        <tr><th>Subject</th><th>Due</th><th>Type</th><th>Status</th><th>Who</th><th>What</th><th>Owner</th></tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="empty" id="empty" hidden>No open tasks. Press Refresh to sync your Salesforce activities.</div>
+  </div>
+  <p class="foot">Live data via the Salesforce Hosted MCP connection · Refresh runs run_soql_query with the SOQL embedded in #sf-query · fields: Subject, ActivityDate, Type, Status, Who.Name, What.Name, Owner.Name</p>
+
+  <!-- Refresh contract: re-run this tool with this SOQL, then re-render the table
+       from the result records (window.__ARTIFACT_DATA__ / artifactData.records / #sf-data). -->
+  <script type="application/json" id="sf-query">
+  {"tool": "mcp__salesforce__run_soql_query", "soql": "SELECT Subject, ActivityDate, Type, Status, Priority, Who.Name, What.Name, Owner.Name FROM Task WHERE IsClosed = false ORDER BY ActivityDate ASC LIMIT 200"}
+  </script>
+
+  <script type="application/json" id="sf-data">
+  [
+    {"Subject":"Follow up on renewal quote","ActivityDate":"2026-06-30","Type":"Call","Status":"Not Started","Who":{"Name":"Maria Gonzalez"},"What":{"Name":"Acme — Platform Renewal"},"Owner":{"Name":"Dana Lee"}},
+    {"Subject":"Send security docs","ActivityDate":"2026-07-02","Type":"Email","Status":"In Progress","Who":{"Name":"James Park"},"What":{"Name":"Globex Expansion"},"Owner":{"Name":"Sam Ortiz"}},
+    {"Subject":"Discovery call","ActivityDate":"2026-07-03","Type":"Meeting","Status":"Not Started","Who":{"Name":"Derek Obi"},"What":{"Name":"Fabrikam"},"Owner":{"Name":"Priya Shah"}},
+    {"Subject":"Prepare QBR deck","ActivityDate":"2026-07-08","Type":"Task","Status":"In Progress","Who":{"Name":"Aisha Rahman"},"What":{"Name":"Umbrella Inc"},"Owner":{"Name":"Dana Lee"}},
+    {"Subject":"Check in after pilot","ActivityDate":"2026-07-10","Type":"Call","Status":"Deferred","Who":{"Name":"Tom Nguyen"},"What":{"Name":"Initech Pilot → Prod"},"Owner":{"Name":"Sam Ortiz"}}
+  ]
+  </script>
+
+  <script>
+    var get = function (row, path) { return path.split(".").reduce(function (o, k) { return (o == null) ? undefined : o[k]; }, row); };
+    var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]; }); };
+    var resolveData = function () {
+      if (Array.isArray(window.__ARTIFACT_DATA__)) return window.__ARTIFACT_DATA__;
+      if (window.artifactData && Array.isArray(window.artifactData.records)) return window.artifactData.records;
+      try { return JSON.parse(document.getElementById("sf-data").textContent) || []; } catch (e) { return []; }
+    };
+    var dueCell = function (s) {
+      if (!s) return '<span class="muted">—</span>';
+      var d = new Date(s); if (isNaN(d)) return esc(s);
+      var today = new Date(); today.setHours(0, 0, 0, 0);
+      var overdue = d < today;
+      var label = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      return '<span class="due' + (overdue ? " overdue" : "") + '">' + esc(label) + (overdue ? " · overdue" : "") + "</span>";
+    };
+    var statusBadge = function (v) {
+      var s = String(v || "").toLowerCase(), cls = "b-neutral";
+      if (s.indexOf("complet") > -1) cls = "b-ok";
+      else if (s.indexOf("progress") > -1) cls = "b-info";
+      else if (s.indexOf("defer") > -1 || s.indexOf("wait") > -1) cls = "b-warn";
+      return '<span class="badge ' + cls + '">' + esc(v || "—") + "</span>";
+    };
+
+    var render = function () {
+      var data = resolveData(), body = document.getElementById("rows"), empty = document.getElementById("empty");
+      document.getElementById("count").textContent = data.length;
+      if (!data.length) { body.innerHTML = ""; empty.hidden = false; return; }
+      empty.hidden = true;
+      body.innerHTML = data.map(function (r) {
+        return "<tr>" +
+          '<td class="strong">' + esc(get(r, "Subject") || "—") + "</td>" +
+          "<td>" + dueCell(get(r, "ActivityDate")) + "</td>" +
+          "<td>" + esc(get(r, "Type") || "—") + "</td>" +
+          "<td>" + statusBadge(get(r, "Status")) + "</td>" +
+          "<td>" + esc(get(r, "Who.Name") || "—") + "</td>" +
+          "<td>" + esc(get(r, "What.Name") || "—") + "</td>" +
+          "<td>" + esc(get(r, "Owner.Name") || "—") + "</td>" +
+        "</tr>";
+      }).join("");
+    };
+    render();
+    window.addEventListener("message", render);
+  </script>
+</body>
+</html>

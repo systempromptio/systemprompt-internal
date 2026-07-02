@@ -1,0 +1,24 @@
+id: salesforce-contacts
+name: "Contacts — People"
+description: "Your Salesforce contacts as a live, refreshable table — account, title, email, phone and owner. Refresh re-runs against your own Salesforce: SELECT Name, Account.Name, Title, Email, Phone, Owner.Name FROM Contact ORDER BY LastActivityDate DESC NULLS LAST LIMIT 200"
+version: "1.0.0"
+enabled: true
+plugin_id: astound-salesforce-contacts
+starred: true
+# `category`, `tags` and `query` are forward-compatible metadata — the core
+# loader ignores them today; the SOQL also lives in `description` and view.html.
+category: salesforce
+tags:
+  - salesforce
+  - contacts
+  - people
+# Salesforce Hosted MCP `sobject-all` SOQL tool via the `salesforce` server
+# (services/mcp/salesforce.yaml). Grep-replace if the live toolset differs.
+mcp_tools:
+  - "mcp__salesforce__run_soql_query"
+query: |
+  SELECT Name, Account.Name, Title, Email, Phone, Owner.Name
+  FROM Contact
+  ORDER BY LastActivityDate DESC NULLS LAST
+  LIMIT 200
+file: view.html

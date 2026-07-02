@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Accounts — Book of Business</title>
+<style>
+  :root {
+    --bg: #f8f7f3; --surface: #ffffff; --glass: rgba(248, 247, 243, 0.6);
+    --ink: #171717; --ink-2: #4d4d4d; --muted: #707070; --border: #dddddd;
+    --accent: #fe190a; --card-radius: 18px 6px 18px 18px;
+    --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.10); --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06);
+    --ok: #22c55e; --warn: #fbbf24; --err: #ef4444; --info: #3b82f6;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: var(--font); color: var(--ink); background: var(--bg); padding: 24px; line-height: 1.45;
+    background-image:
+      radial-gradient(60rem 60rem at 110% -10%, rgba(254, 25, 10, 0.10), transparent 60%),
+      radial-gradient(50rem 50rem at -10% 120%, rgba(23, 23, 23, 0.06), transparent 55%);
+  }
+  .sf-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+  .sf-title { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+  .sf-title .dot { color: var(--accent); }
+  .sf-sub { margin: 4px 0 0; color: var(--ink-2); font-size: 13px; }
+  .sf-meta { display: flex; align-items: center; gap: 10px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px;
+    font-size: 12px; font-weight: 600; background: var(--surface); border: 1px solid var(--border); color: var(--ink-2); box-shadow: var(--shadow-sm); }
+  .pill .cnt { color: var(--accent); }
+  .sf-card {
+    background: var(--glass); backdrop-filter: blur(12px) saturate(160%); -webkit-backdrop-filter: blur(12px) saturate(160%);
+    border: 1px solid var(--border); border-radius: var(--card-radius); box-shadow: var(--shadow-lg); overflow: hidden;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    text-align: left; font-weight: 600; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--muted); padding: 12px 16px; background: rgba(255, 255, 255, 0.55);
+    border-bottom: 1px solid var(--border); position: sticky; top: 0; backdrop-filter: blur(6px);
+  }
+  tbody td { padding: 12px 16px; border-bottom: 1px solid rgba(221, 221, 221, 0.6); vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:nth-child(even) { background: rgba(255, 255, 255, 0.35); }
+  tbody tr:hover { background: rgba(254, 25, 10, 0.05); }
+  .strong { font-weight: 600; color: var(--ink); }
+  .num { font-variant-numeric: tabular-nums; text-align: right; }
+  th.num { text-align: right; }
+  .badge { display: inline-block; padding: 3px 9px; border-radius: 9999px; font-size: 11px; font-weight: 600; line-height: 1.4; white-space: nowrap; }
+  .b-neutral { background: rgba(23, 23, 23, 0.06); color: var(--ink-2); }
+  .muted { color: var(--muted); }
+  .empty { padding: 40px 16px; text-align: center; color: var(--muted); font-size: 14px; }
+  .foot { margin-top: 10px; color: var(--muted); font-size: 11px; }
+</style>
+</head>
+<body>
+  <div class="sf-head">
+    <div>
+      <h1 class="sf-title">Accounts <span class="dot">—</span> Book of Business</h1>
+      <p class="sf-sub">Your Salesforce accounts, largest first. Hit <strong>Refresh</strong> to pull your own book of business.</p>
+    </div>
+    <div class="sf-meta"><span class="pill"><span class="cnt" id="count">0</span>&nbsp;accounts</span></div>
+  </div>
+
+  <div class="sf-card">
+    <table>
+      <thead>
+        <tr><th>Account</th><th>Industry</th><th>Location</th><th class="num">Annual revenue</th><th class="num">Employees</th><th>Owner</th></tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="empty" id="empty" hidden>No accounts. Press Refresh to sync your Salesforce accounts.</div>
+  </div>
+  <p class="foot">Live data via the Salesforce Hosted MCP connection · Refresh runs run_soql_query with the SOQL embedded in #sf-query · fields: Name, Industry, AnnualRevenue, NumberOfEmployees, BillingCity, BillingState, Owner.Name</p>
+
+  <!-- Refresh contract: re-run this tool with this SOQL, then re-render the table
+       from the result records (window.__ARTIFACT_DATA__ / artifactData.records / #sf-data). -->
+  <script type="application/json" id="sf-query">
+  {"tool": "mcp__salesforce__run_soql_query", "soql": "SELECT Name, Industry, AnnualRevenue, NumberOfEmployees, BillingCity, BillingState, Owner.Name FROM Account ORDER BY AnnualRevenue DESC NULLS LAST LIMIT 200"}
+  </script>
+
+  <script type="application/json" id="sf-data">
+  [
+    {"Name":"Acme Corp","Industry":"Manufacturing","AnnualRevenue":48000000,"NumberOfEmployees":1200,"BillingCity":"Columbus","BillingState":"OH","Owner":{"Name":"Dana Lee"}},
+    {"Name":"Globex","Industry":"Technology","AnnualRevenue":25000000,"NumberOfEmployees":540,"BillingCity":"Austin","BillingState":"TX","Owner":{"Name":"Sam Ortiz"}},
+    {"Name":"Umbrella Inc","Industry":"Healthcare","AnnualRevenue":91000000,"NumberOfEmployees":3400,"BillingCity":"Raleigh","BillingState":"NC","Owner":{"Name":"Priya Shah"}},
+    {"Name":"Initech","Industry":"Financial Services","AnnualRevenue":12000000,"NumberOfEmployees":210,"BillingCity":"Dallas","BillingState":"TX","Owner":{"Name":"Dana Lee"}},
+    {"Name":"Soylent","Industry":"Food & Beverage","AnnualRevenue":6000000,"NumberOfEmployees":95,"BillingCity":"Fresno","BillingState":"CA","Owner":{"Name":"Sam Ortiz"}}
+  ]
+  </script>
+
+  <script>
+    var get = function (row, path) { return path.split(".").reduce(function (o, k) { return (o == null) ? undefined : o[k]; }, row); };
+    var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]; }); };
+    var money = function (n) { if (n == null || n === "") return "—"; return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 1 }).format(Number(n)); };
+    var numf = function (n) { if (n == null || n === "") return "—"; return new Intl.NumberFormat().format(Number(n)); };
+    var loc = function (r) { var c = get(r, "BillingCity"), s = get(r, "BillingState"); return [c, s].filter(Boolean).join(", ") || "—"; };
+    var resolveData = function () {
+      if (Array.isArray(window.__ARTIFACT_DATA__)) return window.__ARTIFACT_DATA__;
+      if (window.artifactData && Array.isArray(window.artifactData.records)) return window.artifactData.records;
+      try { return JSON.parse(document.getElementById("sf-data").textContent) || []; } catch (e) { return []; }
+    };
+    var industry = function (v) { return v ? '<span class="badge b-neutral">' + esc(v) + "</span>" : '<span class="muted">—</span>'; };
+
+    var render = function () {
+      var data = resolveData(), body = document.getElementById("rows"), empty = document.getElementById("empty");
+      document.getElementById("count").textContent = data.length;
+      if (!data.length) { body.innerHTML = ""; empty.hidden = false; return; }
+      empty.hidden = true;
+      body.innerHTML = data.map(function (r) {
+        return "<tr>" +
+          '<td class="strong">' + esc(get(r, "Name")) + "</td>" +
+          "<td>" + industry(get(r, "Industry")) + "</td>" +
+          "<td>" + esc(loc(r)) + "</td>" +
+          '<td class="num strong">' + money(get(r, "AnnualRevenue")) + "</td>" +
+          '<td class="num">' + numf(get(r, "NumberOfEmployees")) + "</td>" +
+          "<td>" + esc(get(r, "Owner.Name") || "—") + "</td>" +
+        "</tr>";
+      }).join("");
+    };
+    render();
+    window.addEventListener("message", render);
+  </script>
+</body>
+</html>

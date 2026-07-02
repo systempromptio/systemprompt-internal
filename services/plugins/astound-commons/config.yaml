@@ -1,20 +1,19 @@
 plugin:
   id: astound-commons
-  name: "Astound Commons"
-  description: "Shared brand skills: voice, document formatting, client email, company boilerplate, and terminology for Astound Digital deliverables"
-  version: "1.0.0"
-  # Disabled: superseded by the Salesforce-first marketplace. Kept on disk so the
-  # shared brand skills stay recoverable; re-enable to ship them again.
-  enabled: false
+  name: "Astound Commons — Workspace Setup"
+  description: "First-run workspace setup (installs the Salesforce dashboards into your Artifacts library) plus shared brand skills: voice, document formatting, client email, company boilerplate, and terminology"
+  version: "2.0.0"
+  enabled: true
   author:
     name: Astound Digital
     email: ed@tyingshoelaces.com
-  keywords: [brand, voice, formatting, email, glossary]
+  keywords: [setup, onboarding, artifacts, brand, voice, formatting, email, glossary]
   license: proprietary
-  category: brand
+  category: setup
   skills:
     source: explicit
     include:
+      - cowork_setup
       - apply_brand_voice
       - format_client_document
       - draft_client_email

@@ -1,0 +1,24 @@
+id: salesforce-accounts
+name: "Accounts — Book of Business"
+description: "Your Salesforce accounts as a live, refreshable table — industry, owner, location and annual revenue. Refresh re-runs against your own Salesforce: SELECT Name, Industry, AnnualRevenue, NumberOfEmployees, BillingCity, BillingState, Owner.Name FROM Account ORDER BY AnnualRevenue DESC NULLS LAST LIMIT 200"
+version: "1.0.0"
+enabled: true
+plugin_id: astound-salesforce-accounts
+starred: true
+# `category`, `tags` and `query` are forward-compatible metadata — the core
+# loader ignores them today; the SOQL also lives in `description` and view.html.
+category: salesforce
+tags:
+  - salesforce
+  - accounts
+  - book-of-business
+# Salesforce Hosted MCP `sobject-all` SOQL tool via the `salesforce` server
+# (services/mcp/salesforce.yaml). Grep-replace if the live toolset differs.
+mcp_tools:
+  - "mcp__salesforce__run_soql_query"
+query: |
+  SELECT Name, Industry, AnnualRevenue, NumberOfEmployees, BillingCity, BillingState, Owner.Name
+  FROM Account
+  ORDER BY AnnualRevenue DESC NULLS LAST
+  LIMIT 200
+file: view.html

@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pipeline — Open Deals</title>
+<style>
+  /* Astound brand tokens (inlined — the Cowork artifact render context has no site CSS). */
+  :root {
+    --bg: #f8f7f3; --surface: #ffffff; --glass: rgba(248, 247, 243, 0.6);
+    --ink: #171717; --ink-2: #4d4d4d; --muted: #707070; --border: #dddddd;
+    --accent: #fe190a; --card-radius: 18px 6px 18px 18px;
+    --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.10); --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06);
+    --ok: #22c55e; --warn: #fbbf24; --err: #ef4444; --info: #3b82f6;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: var(--font); color: var(--ink); background: var(--bg);
+    padding: 24px; line-height: 1.45;
+    background-image:
+      radial-gradient(60rem 60rem at 110% -10%, rgba(254, 25, 10, 0.10), transparent 60%),
+      radial-gradient(50rem 50rem at -10% 120%, rgba(23, 23, 23, 0.06), transparent 55%);
+  }
+  .sf-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+  .sf-title { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+  .sf-title .dot { color: var(--accent); }
+  .sf-sub { margin: 4px 0 0; color: var(--ink-2); font-size: 13px; }
+  .sf-meta { display: flex; align-items: center; gap: 10px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px;
+    font-size: 12px; font-weight: 600; background: var(--surface); border: 1px solid var(--border); color: var(--ink-2); box-shadow: var(--shadow-sm); }
+  .pill .cnt { color: var(--accent); }
+  .sf-card {
+    background: var(--glass); backdrop-filter: blur(12px) saturate(160%); -webkit-backdrop-filter: blur(12px) saturate(160%);
+    border: 1px solid var(--border); border-radius: var(--card-radius); box-shadow: var(--shadow-lg); overflow: hidden;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    text-align: left; font-weight: 600; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--muted); padding: 12px 16px; background: rgba(255, 255, 255, 0.55);
+    border-bottom: 1px solid var(--border); position: sticky; top: 0; backdrop-filter: blur(6px);
+  }
+  tbody td { padding: 12px 16px; border-bottom: 1px solid rgba(221, 221, 221, 0.6); vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:nth-child(even) { background: rgba(255, 255, 255, 0.35); }
+  tbody tr:hover { background: rgba(254, 25, 10, 0.05); }
+  .strong { font-weight: 600; color: var(--ink); }
+  .num { font-variant-numeric: tabular-nums; text-align: right; }
+  th.num { text-align: right; }
+  .badge { display: inline-block; padding: 3px 9px; border-radius: 9999px; font-size: 11px; font-weight: 600; line-height: 1.4; white-space: nowrap; }
+  .b-info { background: rgba(59, 130, 246, 0.12); color: #1d4ed8; }
+  .b-warn { background: rgba(251, 191, 36, 0.18); color: #92600a; }
+  .b-ok   { background: rgba(34, 197, 94, 0.15); color: #15803d; }
+  .b-err  { background: rgba(239, 68, 68, 0.13); color: #b91c1c; }
+  .b-neutral { background: rgba(23, 23, 23, 0.06); color: var(--ink-2); }
+  .prob { display: flex; align-items: center; gap: 8px; }
+  .prob .bar { flex: 1; height: 6px; border-radius: 9999px; background: rgba(23, 23, 23, 0.08); overflow: hidden; min-width: 44px; }
+  .prob .bar > i { display: block; height: 100%; background: var(--accent); border-radius: 9999px; }
+  .prob .val { font-variant-numeric: tabular-nums; color: var(--ink-2); font-size: 12px; min-width: 30px; text-align: right; }
+  .empty { padding: 40px 16px; text-align: center; color: var(--muted); font-size: 14px; }
+  .foot { margin-top: 10px; color: var(--muted); font-size: 11px; }
+</style>
+</head>
+<body>
+  <div class="sf-head">
+    <div>
+      <h1 class="sf-title">Pipeline <span class="dot">—</span> Open Deals</h1>
+      <p class="sf-sub">Open Salesforce opportunities, ordered by close date. Hit <strong>Refresh</strong> to pull your own live pipeline.</p>
+    </div>
+    <div class="sf-meta">
+      <span class="pill"><span class="cnt" id="count">0</span>&nbsp;deals</span>
+    </div>
+  </div>
+
+  <div class="sf-card">
+    <table>
+      <thead>
+        <tr>
+          <th>Deal</th><th>Account</th><th>Stage</th>
+          <th class="num">Amount</th><th>Close date</th><th>Probability</th><th>Owner</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="empty" id="empty" hidden>No open opportunities. Press Refresh to sync your Salesforce pipeline.</div>
+  </div>
+  <p class="foot">Live data via the Salesforce Hosted MCP connection · Refresh runs run_soql_query with the SOQL embedded in #sf-query · fields: Name, Account.Name, StageName, Amount, CloseDate, Probability, Owner.Name</p>
+
+  <!-- Refresh contract: re-run this tool with this SOQL, then re-render the table
+       from the result records (window.__ARTIFACT_DATA__ / artifactData.records / #sf-data). -->
+  <script type="application/json" id="sf-query">
+  {"tool": "mcp__salesforce__run_soql_query", "soql": "SELECT Name, Account.Name, StageName, Amount, CloseDate, Probability, Owner.Name FROM Opportunity WHERE IsClosed = false ORDER BY CloseDate ASC LIMIT 200"}
+  </script>
+
+  <!-- Sample rows so the artifact renders standalone. On Refresh, Cowork replaces the
+       dataset (see resolveData()); the SOQL in config.yaml drives the real columns. -->
+  <script type="application/json" id="sf-data">
+  [
+    {"Name":"Acme — Platform Renewal","Account":{"Name":"Acme Corp"},"StageName":"Negotiation","Amount":180000,"CloseDate":"2026-07-18","Probability":75,"Owner":{"Name":"Dana Lee"}},
+    {"Name":"Globex Expansion","Account":{"Name":"Globex"},"StageName":"Proposal","Amount":92000,"CloseDate":"2026-07-25","Probability":50,"Owner":{"Name":"Sam Ortiz"}},
+    {"Name":"Initech Pilot → Prod","Account":{"Name":"Initech"},"StageName":"Qualification","Amount":45000,"CloseDate":"2026-08-05","Probability":30,"Owner":{"Name":"Dana Lee"}},
+    {"Name":"Umbrella Managed Services","Account":{"Name":"Umbrella Inc"},"StageName":"Closed Won","Amount":260000,"CloseDate":"2026-06-28","Probability":100,"Owner":{"Name":"Priya Shah"}},
+    {"Name":"Soylent Data Migration","Account":{"Name":"Soylent"},"StageName":"Prospecting","Amount":30000,"CloseDate":"2026-08-20","Probability":15,"Owner":{"Name":"Sam Ortiz"}}
+  ]
+  </script>
+
+  <script>
+    // --- shared engine -------------------------------------------------------
+    var get = function (row, path) {
+      return path.split(".").reduce(function (o, k) { return (o == null) ? undefined : o[k]; }, row);
+    };
+    var esc = function (s) {
+      return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+        return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c];
+      });
+    };
+    var money = function (n) {
+      if (n == null || n === "") return "—";
+      return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(Number(n));
+    };
+    var date = function (s) {
+      if (!s) return "—";
+      var d = new Date(s); if (isNaN(d)) return esc(s);
+      return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    };
+    // Cowork injects refreshed records; fall back to the embedded sample.
+    var resolveData = function () {
+      if (Array.isArray(window.__ARTIFACT_DATA__)) return window.__ARTIFACT_DATA__;
+      if (window.artifactData && Array.isArray(window.artifactData.records)) return window.artifactData.records;
+      try { return JSON.parse(document.getElementById("sf-data").textContent) || []; } catch (e) { return []; }
+    };
+
+    var stageBadge = function (stage) {
+      var s = String(stage || "").toLowerCase(), cls = "b-neutral";
+      if (s.indexOf("won") > -1) cls = "b-ok";
+      else if (s.indexOf("lost") > -1) cls = "b-err";
+      else if (s.indexOf("negoti") > -1 || s.indexOf("proposal") > -1) cls = "b-warn";
+      else if (s.indexOf("qualif") > -1 || s.indexOf("prospect") > -1) cls = "b-info";
+      return '<span class="badge ' + cls + '">' + esc(stage || "—") + "</span>";
+    };
+    var probCell = function (p) {
+      var v = Math.max(0, Math.min(100, Number(p || 0)));
+      return '<div class="prob"><span class="bar"><i style="width:' + v + '%"></i></span><span class="val">' + v + "%</span></div>";
+    };
+
+    var render = function () {
+      var data = resolveData();
+      var body = document.getElementById("rows"), empty = document.getElementById("empty");
+      document.getElementById("count").textContent = data.length;
+      if (!data.length) { body.innerHTML = ""; empty.hidden = false; return; }
+      empty.hidden = true;
+      body.innerHTML = data.map(function (r) {
+        return "<tr>" +
+          '<td class="strong">' + esc(get(r, "Name")) + "</td>" +
+          "<td>" + esc(get(r, "Account.Name") || "—") + "</td>" +
+          "<td>" + stageBadge(get(r, "StageName")) + "</td>" +
+          '<td class="num strong">' + money(get(r, "Amount")) + "</td>" +
+          "<td>" + date(get(r, "CloseDate")) + "</td>" +
+          "<td>" + probCell(get(r, "Probability")) + "</td>" +
+          "<td>" + esc(get(r, "Owner.Name") || "—") + "</td>" +
+        "</tr>";
+      }).join("");
+    };
+    render();
+    window.addEventListener("message", render); // re-render if the host posts new data
+  </script>
+</body>
+</html>

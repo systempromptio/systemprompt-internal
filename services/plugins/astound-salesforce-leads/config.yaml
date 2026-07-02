@@ -24,3 +24,11 @@ plugin:
     include:
       - salesforce
   content_sources: {}
+  # Default Cowork Artifacts-library entries seeded for users of this plugin.
+  # The bridge artifacts transport has landed in core; binding is enforced via each
+  # artifact's `plugin_id` (gate_artifacts_by_plugin). This include list is
+  # forward-compatible until `PluginConfig.artifacts` exists in core.
+  artifacts:
+    source: explicit
+    include:
+      - salesforce-leads

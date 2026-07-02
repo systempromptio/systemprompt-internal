@@ -87,6 +87,13 @@ pub(super) fn apply_keep_sets(
             .into_iter()
             .filter(|m| keep.mcp.contains(m.name.as_str()))
             .collect(),
+        // Artifacts follow their owning plugin: a user who loses a plugin here
+        // must not receive that plugin's seeded library artifacts.
+        artifacts: candidate
+            .artifacts
+            .into_iter()
+            .filter(|a| keep.plugins.contains(a.plugin_id.as_str()))
+            .collect(),
         // The filter only shrinks entry lists; it must not drop the marketplace
         // scope the gateway attached, so carry that context through unchanged.
         marketplace_id: candidate.marketplace_id,

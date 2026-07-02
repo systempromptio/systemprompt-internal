@@ -20,6 +20,12 @@ marketplace:
     justification: "Public Salesforce productivity workspace for signed-in users"
   skills:
     include:
+      - cowork_setup
+      - apply_brand_voice
+      - format_client_document
+      - draft_client_email
+      - company_boilerplate
+      - astound_glossary
       - salesforce_essentials
       - opportunities_find
       - opportunities_report
@@ -41,6 +47,7 @@ marketplace:
       - activities_update
   plugins:
     include:
+      - astound-commons
       - astound-salesforce
       - astound-salesforce-opportunities
       - astound-salesforce-accounts
