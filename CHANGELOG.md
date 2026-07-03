@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.14.8 — 2026-07-03
+
+### Removed
+
+- The vestigial pre-generated `storage/files/plugins/` tree and the `just marketplace` recipe (`core plugins generate`) that produced it. The bridge plugin-file endpoint assembles every bundle live from the `build_plugin_bundle` pipeline — the same bytes the gateway hashes into the signed manifest — so the static tree was never served and only invited drift from the manifest hash.
+
 ## 0.14.7 — 2026-06-03
 
 ### Fixed

@@ -836,10 +836,6 @@ scaled-test:
 webauthn-admin EMAIL:
     {{CLI}} admin users webauthn generate-setup-token --email "{{EMAIL}}"
 
-# Generate plugin output
-marketplace:
-    {{CLI}} core plugins generate
-
 # Update Anthropic official plugins from vendor submodule and reimport
 update-anthropic-plugins:
     git submodule update --remote vendor/knowledge-work-plugins

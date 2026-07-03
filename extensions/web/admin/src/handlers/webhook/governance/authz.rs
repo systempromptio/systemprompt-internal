@@ -147,6 +147,14 @@ async fn audit_decision(
         evaluated_rules: &evaluated,
         plugin_id: None,
         act_chain: &[],
+        context_id: req
+            .context_id
+            .as_ref()
+            .map(systemprompt::identifiers::ContextId::as_str),
+        task_id: req
+            .task_id
+            .as_ref()
+            .map(systemprompt::identifiers::TaskId::as_str),
     };
     if let Err(e) = insert_governance_decision(pool, &record).await {
         tracing::error!(error = %e, "Failed to record authz decision");

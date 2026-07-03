@@ -2,8 +2,8 @@
 //!
 //! Bytes are assembled live from the same `build_plugin_bundle` pipeline the
 //! gateway hashes into the signed manifest, so every file the bridge fetches is
-//! byte-identical to its manifest hash. Serving the pre-generated
-//! `storage/files/plugins/` tree instead drifts from that hash and fails the
+//! byte-identical to its manifest hash. A pre-generated static plugin tree
+//! must never be served here — it drifts from that hash and fails the
 //! bridge's manifest verification.
 
 use std::collections::BTreeMap;

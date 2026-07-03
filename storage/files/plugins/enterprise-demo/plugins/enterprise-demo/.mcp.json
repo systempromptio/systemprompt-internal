@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "systemprompt": {
-      "type": "http",
-      "url": "https://abc3dd581f80.systemprompt.io/api/v1/mcp/systemprompt/mcp"
-    }
-  }
-}
