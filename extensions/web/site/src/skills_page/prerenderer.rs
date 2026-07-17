@@ -25,7 +25,7 @@ fn group_by_category(skills: &[SkillEntry]) -> Vec<serde_json::Value> {
         let category = skill
             .category
             .clone()
-            .unwrap_or_else(|| "general".to_string());
+            .unwrap_or_else(|| "general".to_owned());
         grouped.entry(category).or_default().push(skill);
     }
 

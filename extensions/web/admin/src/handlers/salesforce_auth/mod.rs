@@ -29,12 +29,13 @@ use sqlx::PgPool;
 use systemprompt::models::Config;
 use systemprompt::oauth::SessionCreationService;
 
-pub use callback::salesforce_callback;
+pub(crate) use callback::salesforce_callback;
 pub use callback::select_sf_username;
-pub use config::{client_secret, salesforce_private_key, SalesforceConfig};
-pub use start::salesforce_start;
-pub use tokens::post_token_request;
-pub use tokens::salesforce_token_handler;
+pub(crate) use config::{client_secret, salesforce_private_key};
+pub use config::SalesforceConfig;
+pub(crate) use start::salesforce_start;
+pub(crate) use tokens::post_token_request;
+pub(crate) use tokens::salesforce_token_handler;
 
 pub(super) const STATE_COOKIE: &str = "sf_oauth_state";
 const DEFAULT_REDIRECT: &str = "/admin";
@@ -42,7 +43,7 @@ const DEFAULT_REDIRECT: &str = "/admin";
 /// Errors from the Salesforce OAuth/token plumbing. Logged once at the HTTP
 /// boundary; the browser only ever sees an opaque `?sso=<reason>`.
 #[derive(Debug, thiserror::Error)]
-pub enum SalesforceError {
+pub(crate) enum SalesforceError {
     #[error("Salesforce HTTP error: {0}")]
     Http(#[from] reqwest::Error),
     #[error("Salesforce token endpoint returned {status}: {body}")]
@@ -90,7 +91,7 @@ pub(super) fn secure_flag() -> &'static str {
 pub(super) fn sanitize_redirect(raw: Option<String>) -> String {
     match raw {
         Some(r) if r.starts_with('/') && !r.starts_with("//") => r,
-        _ => DEFAULT_REDIRECT.to_string(),
+        _ => DEFAULT_REDIRECT.to_owned(),
     }
 }
 
@@ -115,8 +116,8 @@ pub(super) fn read_state_cookie(headers: &HeaderMap) -> Option<(String, String, 
         .map(str::trim)
         .find_map(|kv| kv.strip_prefix(&format!("{STATE_COOKIE}=")))?;
     let mut parts = raw.splitn(3, '|');
-    let state = parts.next()?.to_string();
-    let verifier = parts.next()?.to_string();
-    let redirect = parts.next()?.to_string();
+    let state = parts.next()?.to_owned();
+    let verifier = parts.next()?.to_owned();
+    let redirect = parts.next()?.to_owned();
     Some((state, verifier, sanitize_redirect(Some(redirect))))
 }

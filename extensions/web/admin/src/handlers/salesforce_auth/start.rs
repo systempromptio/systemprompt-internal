@@ -16,11 +16,11 @@ use super::{
 };
 
 #[derive(Deserialize)]
-pub struct StartParams {
+pub(crate) struct StartParams {
     redirect: Option<String>,
 }
 
-pub async fn salesforce_start(
+pub(crate) async fn salesforce_start(
     Extension(deps): Extension<SalesforceDeps>,
     Query(params): Query<StartParams>,
 ) -> Response {
@@ -50,7 +50,7 @@ pub async fn salesforce_start(
     let authorize = format!(
         "{}?response_type=code&client_id={}&redirect_uri={}&scope={}&state={}&code_challenge={}&code_challenge_method=S256",
         cfg.authorize_url(),
-        urlencoding::encode(&cfg.client_id),
+        urlencoding::encode(&cfg.consumer_key),
         urlencoding::encode(&cfg.redirect_uri),
         urlencoding::encode(&cfg.scopes),
         urlencoding::encode(&state_token),

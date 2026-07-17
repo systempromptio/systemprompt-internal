@@ -132,7 +132,7 @@ async fn create_registration_user(
     email: Email,
 ) -> Result<crate::types::UserSummary, axum::response::Response> {
     let user_id = UserId::new(uuid::Uuid::new_v4().to_string());
-    let roles = vec!["user".to_string()];
+    let roles = vec!["user".to_owned()];
 
     let create_req = CreateUserRequest {
         user_id,

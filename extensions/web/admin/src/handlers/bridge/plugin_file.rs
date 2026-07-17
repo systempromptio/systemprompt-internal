@@ -23,7 +23,7 @@ use systemprompt::models::AppPaths;
 
 use crate::handlers::shared;
 
-pub async fn handle(
+pub(crate) async fn handle(
     AxumPath((plugin_id, relative_path)): AxumPath<(String, String)>,
     headers: HeaderMap,
 ) -> Response {

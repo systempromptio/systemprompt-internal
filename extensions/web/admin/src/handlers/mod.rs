@@ -15,7 +15,7 @@ mod plugins;
 mod plugins_env;
 pub(crate) mod public_register;
 pub(crate) mod resources;
-pub mod salesforce_auth;
+pub(crate) mod salesforce_auth;
 pub(crate) mod responses;
 pub(crate) mod secrets;
 pub(crate) mod share;

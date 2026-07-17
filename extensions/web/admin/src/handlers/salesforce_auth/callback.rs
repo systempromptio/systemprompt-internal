@@ -24,7 +24,7 @@ use super::{login_error, read_state_cookie, secure_flag, SalesforceDeps, STATE_C
 use crate::repositories::users_grp::{federated, salesforce_identity};
 
 #[derive(Deserialize)]
-pub struct CallbackParams {
+pub(crate) struct CallbackParams {
     code: Option<String>,
     state: Option<String>,
     error: Option<String>,
@@ -51,7 +51,7 @@ struct SuccessfulLogin {
     max_age: i64,
 }
 
-pub async fn salesforce_callback(
+pub(crate) async fn salesforce_callback(
     Extension(deps): Extension<SalesforceDeps>,
     headers: HeaderMap,
     Query(params): Query<CallbackParams>,
@@ -172,7 +172,7 @@ async fn resolve_identity(
     // JWT-bearer token as this user. A failure here must not break login — the
     // accessor falls back to the email if no row exists.
     if let Err(e) =
-        salesforce_identity::upsert(&deps.write_pool, resolved.user_id.as_str(), &sf_username).await
+        salesforce_identity::upsert(&deps.write_pool, &resolved.user_id, &sf_username).await
     {
         tracing::warn!(error = %e, user_id = %resolved.user_id, "Failed to persist Salesforce username");
     }

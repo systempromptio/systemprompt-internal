@@ -23,7 +23,7 @@ use crate::handlers::salesforce_auth::{
     post_token_request, salesforce_private_key, SalesforceConfig, SalesforceError,
 };
 
-pub struct FreshToken {
+pub(crate) struct FreshToken {
     pub access_token: String,
     pub instance_url: String,
 }
@@ -54,7 +54,7 @@ struct Assertion {
 /// - [`SalesforceError::MissingPrivateKey`] if `SALESFORCE_PRIVATE_KEY` is unset.
 /// - [`SalesforceError::Internal`] if the key is not valid PEM or signing fails.
 /// - [`SalesforceError::TokenEndpoint`] / [`SalesforceError::Http`] on a failed POST.
-pub async fn fetch_token(
+pub(crate) async fn fetch_token(
     cfg: &SalesforceConfig,
     username: &str,
 ) -> Result<FreshToken, SalesforceError> {
@@ -66,7 +66,7 @@ pub async fn fetch_token(
         .as_secs();
 
     let assertion = Assertion {
-        iss: cfg.client_id.clone(),
+        iss: cfg.consumer_key.clone(),
         sub: username.to_owned(),
         aud: cfg.jwt_bearer_audience().to_owned(),
         exp: now + ASSERTION_TTL_SECS,

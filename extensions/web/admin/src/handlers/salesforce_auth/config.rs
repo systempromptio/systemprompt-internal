@@ -6,7 +6,7 @@ use serde::Deserialize;
 /// Resolve the Salesforce Connected App secret, env var first then the encrypted
 /// secrets store, mirroring [`crate::repositories::secret_crypto::load_master_key`].
 /// The secret is never persisted in `salesforce.yaml`.
-pub fn client_secret() -> Option<String> {
+pub(crate) fn client_secret() -> Option<String> {
     // Why: env::var().ok() and SecretsBootstrap::get().ok() are both
     // missing-is-normal carve-outs encoding the priority chain (env var
     // first, then bootstrap).
@@ -20,7 +20,7 @@ pub fn client_secret() -> Option<String> {
 /// Resolve the Salesforce Connected App private key (PEM) used to sign the
 /// RFC 7523 JWT-bearer assertion. Env var first, then the encrypted secrets
 /// store, mirroring [`client_secret`]. Never persisted in `salesforce.yaml`.
-pub fn salesforce_private_key() -> Option<String> {
+pub(crate) fn salesforce_private_key() -> Option<String> {
     std::env::var("SALESFORCE_PRIVATE_KEY").ok().or_else(|| {
         systemprompt::config::SecretsBootstrap::get()
             .ok()
@@ -33,14 +33,14 @@ pub fn salesforce_private_key() -> Option<String> {
 /// it is minted on demand via the RFC 7523 JWT-bearer grant, so the
 /// `refresh_token`/`mcp_api` login scopes are not requested here.
 pub(super) fn default_scopes() -> String {
-    "openid email profile api".to_string()
+    "openid email profile api".to_owned()
 }
 
 /// Mirrors the registration gate in [`crate::handlers::public_register`].
 pub(super) fn default_allowed_domains() -> Vec<String> {
     vec![
-        "astounddigital.com".to_string(),
-        "astoundcommerce.com".to_string(),
+        "astounddigital.com".to_owned(),
+        "astoundcommerce.com".to_owned(),
     ]
 }
 
@@ -61,7 +61,8 @@ pub struct SalesforceConfig {
     /// The org's My Domain base URL, e.g. `https://astound.my.salesforce.com`.
     /// Doubles as the federated-identity `issuer` key.
     pub my_domain: String,
-    pub client_id: String,
+    #[serde(alias = "client_id")]
+    pub consumer_key: String,
     /// Must exactly match the Connected App callback, e.g.
     /// `https://example.com/admin/auth/salesforce/callback`.
     pub redirect_uri: String,
@@ -83,7 +84,7 @@ impl SalesforceConfig {
         Self {
             enabled: false,
             my_domain: String::new(),
-            client_id: String::new(),
+            consumer_key: String::new(),
             redirect_uri: String::new(),
             scopes: default_scopes(),
             allowed_email_domains: default_allowed_domains(),
@@ -94,7 +95,7 @@ impl SalesforceConfig {
     pub(super) const fn is_usable(&self) -> bool {
         self.enabled
             && !self.my_domain.is_empty()
-            && !self.client_id.is_empty()
+            && !self.consumer_key.is_empty()
             && !self.redirect_uri.is_empty()
     }
 

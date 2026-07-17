@@ -30,7 +30,7 @@ pub(crate) fn extract_user_from_cookie(
 /// the bridge forwards through the external-MCP flow this accessor belongs to.
 /// Deliberately kept separate from `extract_user_from_cookie` so sensitive
 /// endpoints (secrets, middleware) stay strictly `[Api]`-only.
-pub fn extract_mcp_accessor_user(
+pub(crate) fn extract_mcp_accessor_user(
     headers: &HeaderMap,
 ) -> Result<crate::types::CookieSession, AdminError> {
     extract_user_with_audiences(headers, &[JwtAudience::Api, JwtAudience::Mcp])

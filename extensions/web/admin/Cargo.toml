@@ -50,6 +50,7 @@ handlebars = { workspace = true }
 tempfile = { workspace = true }
 
 # HTTP client
+reqwest = { workspace = true }
 
 # RFC 7523 JWT-bearer assertion signing for outbound Salesforce token requests
 jsonwebtoken = { version = "10", features = ["rust_crypto"] }

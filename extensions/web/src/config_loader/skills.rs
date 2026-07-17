@@ -4,7 +4,7 @@ use crate::skills_page::{SkillEntry, SkillsPageConfig};
 
 use super::{load_app_paths, ConfigError};
 
-pub fn load_skills_page_config() -> Result<Option<Arc<SkillsPageConfig>>, ConfigError> {
+pub(crate) fn load_skills_page_config() -> Result<Option<Arc<SkillsPageConfig>>, ConfigError> {
     let paths = match load_app_paths() {
         Ok(p) => p,
         Err(e) => {

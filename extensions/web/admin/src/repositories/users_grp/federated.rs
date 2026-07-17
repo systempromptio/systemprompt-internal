@@ -39,7 +39,7 @@ pub struct FederatedClaims<'a> {
 }
 
 struct LocalUser {
-    id: String,
+    id: UserId,
     display_name: String,
     roles: Vec<String>,
 }
@@ -48,7 +48,7 @@ async fn find_mapping(
     pool: &PgPool,
     issuer: &str,
     external_sub: &str,
-) -> Result<Option<String>, sqlx::Error> {
+) -> Result<Option<UserId>, sqlx::Error> {
     let row = sqlx::query!(
         "UPDATE federated_identities SET last_seen_at = CURRENT_TIMESTAMP \
          WHERE issuer = $1 AND external_sub = $2 RETURNING user_id",
@@ -57,7 +57,7 @@ async fn find_mapping(
     )
     .fetch_optional(pool)
     .await?;
-    Ok(row.map(|r| r.user_id))
+    Ok(row.map(|r| UserId::new(r.user_id)))
 }
 
 async fn find_active_user_by_email(
@@ -66,7 +66,7 @@ async fn find_active_user_by_email(
 ) -> Result<Option<LocalUser>, sqlx::Error> {
     let row = sqlx::query!(
         r#"
-        SELECT id, COALESCE(display_name, name) AS "display_name!", roles AS "roles!: Vec<String>"
+        SELECT id AS "id: UserId", COALESCE(display_name, name) AS "display_name!", roles AS "roles!: Vec<String>"
         FROM users
         WHERE LOWER(email) = LOWER($1) AND status = 'active'
         "#,
@@ -81,13 +81,13 @@ async fn find_active_user_by_email(
     }))
 }
 
-async fn load_user(pool: &PgPool, user_id: &str) -> Result<Option<LocalUser>, sqlx::Error> {
+async fn load_user(pool: &PgPool, user_id: &UserId) -> Result<Option<LocalUser>, sqlx::Error> {
     let row = sqlx::query!(
         r#"
-        SELECT id, COALESCE(display_name, name) AS "display_name!", roles AS "roles!: Vec<String>"
+        SELECT id AS "id: UserId", COALESCE(display_name, name) AS "display_name!", roles AS "roles!: Vec<String>"
         FROM users WHERE id = $1
         "#,
-        user_id
+        user_id.as_str()
     )
     .fetch_optional(pool)
     .await?;
@@ -104,14 +104,14 @@ async fn link_existing(
     pool: &PgPool,
     issuer: &str,
     external_sub: &str,
-    user_id: &str,
+    user_id: &UserId,
 ) -> Result<(), sqlx::Error> {
     sqlx::query!(
         "INSERT INTO federated_identities (issuer, external_sub, user_id) \
          VALUES ($1, $2, $3) ON CONFLICT (issuer, external_sub) DO NOTHING",
         issuer,
         external_sub,
-        user_id
+        user_id.as_str()
     )
     .execute(pool)
     .await?;
@@ -131,7 +131,7 @@ async fn create_federated(
     display_name: &str,
 ) -> Result<ResolvedFederatedUser, sqlx::Error> {
     let user_id = uuid::Uuid::new_v4().to_string();
-    let roles = vec!["user".to_string()];
+    let roles = vec!["user".to_owned()];
     let mut tx = pool.begin().await?;
 
     sqlx::query!(
@@ -161,8 +161,8 @@ async fn create_federated(
 
     Ok(ResolvedFederatedUser {
         user_id: UserId::new(user_id),
-        email: email.to_string(),
-        display_name: display_name.to_string(),
+        email: email.to_owned(),
+        display_name: display_name.to_owned(),
         roles,
     })
 }
@@ -188,22 +188,22 @@ pub async fn resolve_federated_user(
         email,
         display_name,
     } = *claims;
-    if let Some(user_id) = find_mapping(pool, issuer, external_sub).await? {
-        if let Some(user) = load_user(pool, &user_id).await? {
-            return Ok(Some(ResolvedFederatedUser {
-                user_id: UserId::new(user.id),
-                email: email.to_string(),
-                display_name: user.display_name,
-                roles: user.roles,
-            }));
-        }
+    if let Some(user_id) = find_mapping(pool, issuer, external_sub).await?
+        && let Some(user) = load_user(pool, &user_id).await?
+    {
+        return Ok(Some(ResolvedFederatedUser {
+            user_id: user.id,
+            email: email.to_owned(),
+            display_name: user.display_name,
+            roles: user.roles,
+        }));
     }
 
     if let Some(user) = find_active_user_by_email(pool, email).await? {
         link_existing(pool, issuer, external_sub, &user.id).await?;
         return Ok(Some(ResolvedFederatedUser {
-            user_id: UserId::new(user.id),
-            email: email.to_string(),
+            user_id: user.id,
+            email: email.to_owned(),
             display_name: user.display_name,
             roles: user.roles,
         }));

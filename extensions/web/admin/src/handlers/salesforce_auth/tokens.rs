@@ -18,7 +18,7 @@ use crate::services::salesforce_jwt_bearer;
 /// authorization-code (login) and JWT-bearer (Hosted-MCP) flows consume are
 /// modelled; other fields are ignored.
 #[derive(Debug, Deserialize)]
-pub struct SalesforceTokenResponse {
+pub(crate) struct SalesforceTokenResponse {
     pub access_token: String,
     #[serde(default)]
     pub instance_url: Option<String>,
@@ -36,7 +36,7 @@ pub(super) async fn exchange_code(
     let body = format!(
         "grant_type=authorization_code&code={}&client_id={}&client_secret={}&redirect_uri={}&code_verifier={}",
         urlencoding::encode(code),
-        urlencoding::encode(&cfg.client_id),
+        urlencoding::encode(&cfg.consumer_key),
         urlencoding::encode(client_secret),
         urlencoding::encode(&cfg.redirect_uri),
         urlencoding::encode(code_verifier),
@@ -46,7 +46,7 @@ pub(super) async fn exchange_code(
 
 /// Shared `application/x-www-form-urlencoded` POST against a Salesforce token
 /// endpoint, used by both the code exchange and the refresh service.
-pub async fn post_token_request(
+pub(crate) async fn post_token_request(
     token_url: &str,
     body: String,
 ) -> Result<SalesforceTokenResponse, SalesforceError> {
@@ -78,7 +78,7 @@ struct TokenResponse {
 /// bearer injection consumes. Authenticates the caller, mints a fresh bearer via
 /// the RFC 7523 JWT-bearer grant (acting as the caller's Salesforce username),
 /// and returns `{ access_token, instance_url }`.
-pub async fn salesforce_token_handler(
+pub(crate) async fn salesforce_token_handler(
     Extension(deps): Extension<SalesforceDeps>,
     headers: HeaderMap,
 ) -> Response {
@@ -92,13 +92,13 @@ pub async fn salesforce_token_handler(
     // The JWT-bearer `sub` must be the Salesforce Username (captured at SSO login),
     // not the login email. Fall back to the email if this user has no stored
     // Username (e.g. they never completed a Salesforce login) or the lookup fails.
-    let username = match salesforce_identity::find(&deps.write_pool, session.user_id.as_str()).await
+    let username = match salesforce_identity::find(&deps.write_pool, &session.user_id).await
     {
         Ok(Some(u)) => u,
-        Ok(None) => session.email.as_str().to_string(),
+        Ok(None) => session.email.as_str().to_owned(),
         Err(e) => {
             tracing::warn!(error = %e, user_id = %session.user_id, "Salesforce username lookup failed; falling back to email");
-            session.email.as_str().to_string()
+            session.email.as_str().to_owned()
         }
     };
 
