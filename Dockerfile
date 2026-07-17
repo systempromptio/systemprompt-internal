@@ -28,6 +28,14 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     && cp target/release/systemprompt /out/bin/ \
     && cp target/release/systemprompt-mcp-agent /out/bin/
 
+# hey powers the demo/performance load tests; its upstream S3 binary host is
+# dead (403), so build it from source and ship it on PATH — demo/_common.sh's
+# install_hey() prefers a system hey.
+FROM golang:1-bookworm AS heybuilder
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go install github.com/rakyll/hey@latest
+
 FROM debian:bookworm-slim AS runtime
 
 LABEL org.opencontainers.image.title="systemprompt" \
@@ -46,6 +54,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     postgresql-client \
     lsof \
     jq \
+    python3 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN useradd -m -u 1000 app
@@ -54,11 +63,15 @@ WORKDIR /app
 RUN mkdir -p /app/bin /app/logs /app/storage /app/web /app/services/profiles/docker
 
 COPY --from=builder /out/bin/ /app/bin/
+COPY --from=heybuilder /go/bin/hey /app/bin/hey
 
 COPY services /app/services
 COPY storage /app/storage
 COPY migrations /app/migrations
 COPY web /app/web
+# The homepage demo showcase scans <system_root>/demo at runtime; without
+# this the catalogue renders as an empty section.
+COPY demo /app/demo
 # MCP manifests live alongside their extension crates; the runtime validator
 # globs extensions/mcp/*/manifest.yaml to resolve binary -> manifest.
 COPY extensions/mcp /app/extensions/mcp
@@ -76,7 +89,7 @@ ENV HOST=0.0.0.0 \
     PATH="/app/bin:${PATH}" \
     SYSTEMPROMPT_SERVICES_PATH=/app/services \
     SYSTEMPROMPT_MCP_PATH=/app/bin \
-    SYSTEMPROMPT_PROFILE=/app/services/profiles/docker/profile.yaml \
+    SYSTEMPROMPT_PROFILE=/app/.systemprompt/profiles/docker/profile.yaml \
     WEB_DIR=/app/web
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \

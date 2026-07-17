@@ -11,17 +11,16 @@
 
 use std::sync::Arc;
 
-use axum::{
-    extract::{Path, State},
-    http::StatusCode,
-    response::{IntoResponse, Response},
-    Extension, Json,
-};
+use axum::extract::{Path, State};
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
+use axum::{Extension, Json};
 use base64::Engine;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use sqlx::PgPool;
 use systemprompt::config::SecretsBootstrap;
+use systemprompt::identifiers::UserId;
 
 use crate::handlers::shared;
 use crate::repositories;
@@ -29,7 +28,7 @@ use crate::types::UserContext;
 
 /// HMAC keyed off the existing JWT signing secret — reused to avoid
 /// introducing a second piece of bootstrap config.
-fn sign(secret: &[u8], user_id: &str, version: i32) -> String {
+fn sign(secret: &[u8], user_id: &UserId, version: i32) -> String {
     let payload = format!("{user_id}:{version}");
     let mut padded = [0u8; 64];
     if secret.len() > 64 {
@@ -56,23 +55,23 @@ fn sign(secret: &[u8], user_id: &str, version: i32) -> String {
     let mac = outer.finalize();
 
     let b64 = base64::engine::general_purpose::URL_SAFE_NO_PAD;
-    let uid_b64 = b64.encode(user_id.as_bytes());
+    let uid_b64 = b64.encode(user_id.as_str().as_bytes());
     let ver_b64 = b64.encode(version.to_string().as_bytes());
     let mut mac_hex = String::with_capacity(mac.len() * 2);
     for b in mac {
         use std::fmt::Write;
-        let _ = write!(mac_hex, "{b:02x}");
+        _ = write!(mac_hex, "{b:02x}");
     }
     format!("{uid_b64}:{ver_b64}:{mac_hex}")
 }
 
-fn verify(secret: &[u8], token: &str) -> Option<(String, i32)> {
+fn verify(secret: &[u8], token: &str) -> Option<(UserId, i32)> {
     let parts: Vec<&str> = token.split(':').collect();
     if parts.len() != 3 {
         return None;
     }
     let b64 = base64::engine::general_purpose::URL_SAFE_NO_PAD;
-    let user_id = String::from_utf8(b64.decode(parts[0]).ok()?).ok()?;
+    let user_id = UserId::new(String::from_utf8(b64.decode(parts[0]).ok()?).ok()?);
     let ver_s = String::from_utf8(b64.decode(parts[1]).ok()?).ok()?;
     let version: i32 = ver_s.parse().ok()?;
     let expected = sign(secret, &user_id, version);
@@ -96,7 +95,7 @@ struct ShareTokenResponse {
     url: String,
 }
 
-pub async fn issue_share_token_handler(
+pub(crate) async fn issue_share_token_handler(
     Extension(user_ctx): Extension<UserContext>,
     State(pool): State<Arc<PgPool>>,
     Path(target_user_id): Path<String>,
@@ -104,6 +103,7 @@ pub async fn issue_share_token_handler(
     if !user_ctx.is_admin {
         return shared::error_response(StatusCode::FORBIDDEN, "Admin access required");
     }
+    let target_user_id = UserId::new(target_user_id);
     let secret = match SecretsBootstrap::manifest_signing_secret_seed() {
         Ok(s) => s,
         Err(e) => {
@@ -112,16 +112,11 @@ pub async fn issue_share_token_handler(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Failed to load secret",
             );
-        }
+        },
     };
-    let row = sqlx::query!(
-        "SELECT share_token_version FROM user_profile_ext WHERE user_id = $1",
-        target_user_id,
-    )
-    .fetch_optional(&*pool)
-    .await;
+    let row = repositories::profile_grp::get_share_token_version(&pool, &target_user_id).await;
     let version = match row {
-        Ok(Some(r)) => r.share_token_version,
+        Ok(Some(v)) => v,
         Ok(None) => return shared::error_response(StatusCode::NOT_FOUND, "User not found"),
         Err(e) => {
             tracing::error!(error = %e, "Failed to load share_token_version");
@@ -129,7 +124,7 @@ pub async fn issue_share_token_handler(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Internal server error",
             );
-        }
+        },
     };
     let token = sign(&secret, &target_user_id, version);
     let url = format!("/share/manifest/{token}");
@@ -152,11 +147,11 @@ struct ManifestItem {
 
 #[derive(Debug, Serialize)]
 struct ManifestResponse {
-    user_id: String,
+    user_id: UserId,
     sections: Vec<ManifestSection>,
 }
 
-pub async fn public_manifest_handler(
+pub(crate) async fn public_manifest_handler(
     State(pool): State<Arc<PgPool>>,
     Path(token): Path<String>,
 ) -> Response {
@@ -168,27 +163,23 @@ pub async fn public_manifest_handler(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Failed to load secret",
             );
-        }
+        },
     };
     let Some((user_id, version)) = verify(&secret, &token) else {
         return shared::error_response(StatusCode::UNAUTHORIZED, "Invalid or revoked token");
     };
 
-    let current_version = match sqlx::query!(
-        "SELECT share_token_version FROM user_profile_ext WHERE user_id = $1",
-        user_id,
-    )
-    .fetch_optional(&*pool)
-    .await
+    let current_version = match repositories::profile_grp::get_share_token_version(&pool, &user_id)
+        .await
     {
-        Ok(Some(row)) => row.share_token_version,
+        Ok(Some(v)) => v,
         Ok(None) => {
             return shared::error_response(StatusCode::UNAUTHORIZED, "Invalid or revoked token");
-        }
+        },
         Err(e) => {
             tracing::warn!(error = %e, "Failed to load share_token_version for verification");
             return shared::error_response(StatusCode::UNAUTHORIZED, "Invalid or revoked token");
-        }
+        },
     };
     if current_version != version {
         return shared::error_response(StatusCode::UNAUTHORIZED, "Token has been revoked");
@@ -201,11 +192,7 @@ pub async fn public_manifest_handler(
 }
 
 fn opt_desc(desc: String) -> Option<String> {
-    if desc.is_empty() {
-        None
-    } else {
-        Some(desc)
-    }
+    if desc.is_empty() { None } else { Some(desc) }
 }
 
 fn collect_manifest_sections(
@@ -217,7 +204,7 @@ fn collect_manifest_sections(
         let rows = servers
             .into_iter()
             .map(|s| {
-                let id = s.id.as_str().to_string();
+                let id = s.id.as_str().to_owned();
                 (id.clone(), id, opt_desc(s.description))
             })
             .collect();
@@ -233,14 +220,14 @@ fn collect_manifest_sections(
     if let Ok(agents) = repositories::list_agent_catalog(services_path) {
         let rows = agents
             .into_iter()
-            .map(|a| (a.id.as_str().to_string(), a.name, opt_desc(a.description)))
+            .map(|a| (a.id.as_str().to_owned(), a.name, opt_desc(a.description)))
             .collect();
         sections_in.push(("agent".into(), "Agents".into(), rows));
     }
     if let Ok(skills) = repositories::list_skill_catalog(services_path) {
         let rows = skills
             .into_iter()
-            .map(|s| (s.id.as_str().to_string(), s.name, opt_desc(s.description)))
+            .map(|s| (s.id.as_str().to_owned(), s.name, opt_desc(s.description)))
             .collect();
         sections_in.push(("skill".into(), "Skills".into(), rows));
     }
@@ -248,14 +235,17 @@ fn collect_manifest_sections(
     sections_in
 }
 
-async fn build_user_manifest(pool: &PgPool, user_id: &str) -> Result<ManifestResponse, Response> {
+async fn build_user_manifest(
+    pool: &PgPool,
+    user_id: &UserId,
+) -> Result<ManifestResponse, Response> {
     let services_path = shared::get_services_path().map_err(|r| *r)?;
     let sections_in = collect_manifest_sections(&services_path);
 
     let matrix = repositories::access_control::filter_catalog_for_user(pool, user_id, sections_in)
         .await
         .map_err(|e| {
-            tracing::error!(error = %e, user_id, "Failed to resolve manifest matrix");
+            tracing::error!(error = %e, user_id = %user_id, "Failed to resolve manifest matrix");
             shared::error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
         })?;
 
@@ -279,7 +269,7 @@ async fn build_user_manifest(pool: &PgPool, user_id: &str) -> Result<ManifestRes
         .collect();
 
     Ok(ManifestResponse {
-        user_id: matrix.user.id,
+        user_id: matrix.user.id.into(),
         sections,
     })
 }

@@ -1,6 +1,8 @@
 # Blog/content ingestion config — read by the web jobs extension
 # (extensions/web/jobs ingestion job via BlogConfigValidated::load_from_env_or_none).
-# Relative paths resolve against this file's directory (services/config/).
+# Without this file the blog_content_ingestion job silently skips and /blog
+# and /documentation serve 404 even though markdown exists under
+# services/content/. Relative paths resolve against this file's directory.
 
 base_url: "https://astounddigital.com"
 enable_link_tracking: true

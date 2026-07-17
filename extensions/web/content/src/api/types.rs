@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use systemprompt::identifiers::{CampaignId, CategoryId, ContentId, LinkId};
+use systemprompt::identifiers::{CampaignId, CategoryId, ContentId, LinkId, SessionId};
 
 use systemprompt_web_shared::models::UtmParams;
 
@@ -27,7 +27,7 @@ pub struct ContentJourneyQuery {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RecordClickRequest {
     pub link_id: LinkId,
-    pub session_id: Option<String>,
+    pub session_id: Option<SessionId>,
     pub referrer_page: Option<String>,
     pub referrer_url: Option<String>,
     pub user_agent: Option<String>,
@@ -47,4 +47,41 @@ pub struct SearchQuery {
     pub q: String,
     pub category_id: Option<CategoryId>,
     pub limit: Option<i64>,
+}
+
+/// JSON body returned for any handler error (`{ "error": "..." }`).
+#[derive(Debug, Clone, Serialize)]
+pub struct ErrorResponse {
+    pub error: String,
+}
+
+impl ErrorResponse {
+    pub fn new(message: impl Into<String>) -> Self {
+        Self {
+            error: message.into(),
+        }
+    }
+}
+
+/// JSON body returned by the session cookie endpoints (`{ "ok": true }`).
+#[derive(Debug, Clone, Copy, Serialize)]
+pub struct OkResponse {
+    pub ok: bool,
+}
+
+/// JSON body returned by `list_links_handler` (`{ "links": [...], "total": N
+/// }`).
+#[derive(Debug, Clone, Serialize)]
+pub struct ListLinksResponse<T> {
+    pub links: Vec<T>,
+    pub total: usize,
+}
+
+impl<T> ListLinksResponse<T> {
+    pub const fn new(links: Vec<T>) -> Self {
+        Self {
+            total: links.len(),
+            links,
+        }
+    }
 }

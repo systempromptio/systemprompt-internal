@@ -7,16 +7,16 @@
 
 use std::sync::Arc;
 
-use axum::{
-    extract::{Extension, Path, State},
-    http::StatusCode,
-    response::{Html, IntoResponse, Response},
-};
-use serde_json::json;
+use systemprompt::identifiers::SessionId;
+
+use axum::extract::{Extension, Path, State};
+use axum::http::StatusCode;
+use axum::response::{Html, IntoResponse, Response};
+use serde::Serialize;
 use sqlx::PgPool;
 
 use crate::repositories::perf_grp::traces::{
-    fetch_trace_spans, resolve_trace_session, Span, SpanStatus,
+    Span, SpanStatus, fetch_trace_spans, resolve_trace_session,
 };
 use crate::templates::AdminTemplateEngine;
 use crate::types::{MarketplaceContext, UserContext};
@@ -26,7 +26,32 @@ use super::ACCESS_DENIED_HTML;
 const NOT_FOUND_HTML: &str = "<h1>Trace not found</h1>\
 <p>No spans found for that session or trace id.</p>";
 
-pub async fn perf_trace_detail_page(
+#[derive(Debug, Serialize)]
+struct TraceDetailContext {
+    page: &'static str,
+    title: String,
+    summary: Summary,
+    spans: Vec<Span>,
+    spans_payload: String,
+    back_url: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+struct Summary {
+    session_id: SessionId,
+    session_id_short: String,
+    started_at: Option<String>,
+    started_at_local: Option<String>,
+    ended_at: Option<String>,
+    duration_ms: i64,
+    duration_display: String,
+    identity: String,
+    span_count: usize,
+    deny_count: usize,
+    error_count: usize,
+}
+
+pub(crate) async fn perf_trace_detail_page(
     Extension(user_ctx): Extension<UserContext>,
     Extension(mkt_ctx): Extension<MarketplaceContext>,
     Extension(engine): Extension<AdminTemplateEngine>,
@@ -43,7 +68,7 @@ pub async fn perf_trace_detail_page(
         Err(e) => {
             tracing::warn!(error = %e, "resolve_trace_session failed");
             return (StatusCode::NOT_FOUND, Html(NOT_FOUND_HTML)).into_response();
-        }
+        },
     };
 
     let spans = fetch_trace_spans(&pool, &session_id)
@@ -58,22 +83,21 @@ pub async fn perf_trace_detail_page(
     }
 
     let summary = build_summary(&session_id, &spans);
-    let spans_json = spans.iter().map(span_to_json).collect::<Vec<_>>();
-    let spans_payload = serde_json::to_string(&spans_json).unwrap_or_else(|_| "[]".to_string());
+    let spans_payload = serde_json::to_string(&spans).unwrap_or_else(|_| "[]".to_owned());
 
-    let data = json!({
-        "page": "trace-detail",
-        "title": format!("Trace · {}", short_id(&session_id)),
-        "summary": summary,
-        "spans": spans_json,
-        "spans_payload": spans_payload,
-        "back_url": "/admin/entities/traces",
-    });
+    let ctx = TraceDetailContext {
+        page: "trace-detail",
+        title: format!("Trace · {}", short_id(session_id.as_str())),
+        summary,
+        spans,
+        spans_payload,
+        back_url: "/admin/entities/traces",
+    };
 
-    super::render_page(&engine, "perf-trace-detail", &data, &user_ctx, &mkt_ctx)
+    super::render_typed_page(&engine, "perf-trace-detail", &ctx, &user_ctx, &mkt_ctx)
 }
 
-fn build_summary(session_id: &str, spans: &[Span]) -> serde_json::Value {
+fn build_summary(session_id: &SessionId, spans: &[Span]) -> Summary {
     let started = spans.iter().map(|s| s.started_at).min();
     let ended = spans.iter().map(|s| s.ended_at).max();
     let total_ms = match (started, ended) {
@@ -83,7 +107,7 @@ fn build_summary(session_id: &str, spans: &[Span]) -> serde_json::Value {
     let identity = spans
         .iter()
         .find_map(|s| s.identity_label.clone())
-        .unwrap_or_else(|| "unknown".to_string());
+        .unwrap_or_else(|| "unknown".to_owned());
     let span_count = spans.len();
     let deny_count = spans
         .iter()
@@ -93,41 +117,30 @@ fn build_summary(session_id: &str, spans: &[Span]) -> serde_json::Value {
         .iter()
         .filter(|s| matches!(s.status, SpanStatus::Error))
         .count();
-    json!({
-        "session_id": session_id,
-        "session_id_short": short_id(session_id),
-        "started_at": started.map(|t| t.to_rfc3339()),
-        "started_at_local": started
-            .map(|t| t.with_timezone(&chrono::Local).format("%Y-%m-%d %H:%M:%S").to_string()),
-        "ended_at": ended.map(|t| t.to_rfc3339()),
-        "duration_ms": total_ms,
-        "duration_display": format_duration(total_ms),
-        "identity": identity,
-        "span_count": span_count,
-        "deny_count": deny_count,
-        "error_count": error_count,
-    })
-}
-
-fn span_to_json(s: &Span) -> serde_json::Value {
-    json!({
-        "id": s.id,
-        "kind": s.kind.as_str(),
-        "name": s.name,
-        "started_at": s.started_at.to_rfc3339(),
-        "ended_at": s.ended_at.to_rfc3339(),
-        "duration_ms": s.duration_ms,
-        "status": s.status.as_str(),
-        "identity_label": s.identity_label,
-        "raw": s.raw,
-    })
+    Summary {
+        session_id: session_id.clone(),
+        session_id_short: short_id(session_id.as_str()),
+        started_at: started.map(|t| t.to_rfc3339()),
+        started_at_local: started.map(|t| {
+            t.with_timezone(&chrono::Local)
+                .format("%Y-%m-%d %H:%M:%S")
+                .to_string()
+        }),
+        ended_at: ended.map(|t| t.to_rfc3339()),
+        duration_ms: total_ms,
+        duration_display: format_duration(total_ms),
+        identity,
+        span_count,
+        deny_count,
+        error_count,
+    }
 }
 
 fn short_id(id: &str) -> String {
     if id.len() > 12 {
         format!("{}…", &id[..12])
     } else {
-        id.to_string()
+        id.to_owned()
     }
 }
 

@@ -12,9 +12,10 @@ use serde::Serialize;
 use sqlx::PgPool;
 use systemprompt::identifiers::{McpServerId, RouteId, UserId};
 use systemprompt_security::authz::{
-    resolve, AccessControlRepository, AccessRule, Decision, EntityKind, EntityRef, ResolveInput,
+    AccessControlRepository, AccessRule, Decision, EntityKind, EntityRef, ResolveInput, resolve,
 };
 
+use crate::error::AdminError;
 use crate::handlers::shared;
 use crate::repositories::{self, mcp_servers};
 
@@ -34,7 +35,7 @@ pub struct EffectivePermissions {
 
 pub async fn compute_effective_permissions(
     pool: &PgPool,
-    user_id: &str,
+    user_id: &UserId,
     user_roles: &[String],
     department: &str,
 ) -> EffectivePermissions {
@@ -68,7 +69,7 @@ pub async fn compute_effective_permissions(
             entity_type: "gateway_route",
             entity: EntityRef::GatewayRoute(RouteId::new(id.clone())),
             rules: &rules,
-            user_id,
+            user_id: user_id.as_str(),
             user_roles,
             department,
             default_included,
@@ -92,7 +93,7 @@ pub async fn compute_effective_permissions(
             entity_type: "mcp_server",
             entity: EntityRef::McpServer(McpServerId::new(id.clone())),
             rules: &rules,
-            user_id,
+            user_id: user_id.as_str(),
             user_roles,
             department,
             default_included,
@@ -139,19 +140,19 @@ fn decide(args: DecideArgs<'_>) -> EntityDecision {
     });
     let (decision, reason) = match dec {
         Decision::Allow { .. } => (
-            "allow".to_string(),
+            "allow".to_owned(),
             allow_reason(
                 rules,
-                user_id,
+                &uid,
                 user_roles,
                 department,
                 default_included.unwrap_or(false),
             ),
         ),
-        Decision::Deny { reason } => ("deny".to_string(), reason.to_string()),
+        Decision::Deny { reason } => ("deny".to_owned(), reason.to_string()),
     };
     EntityDecision {
-        entity_id: entity_id.to_string(),
+        entity_id: entity_id.to_owned(),
         decision,
         reason,
         matrix_url: format!(
@@ -170,14 +171,16 @@ fn decide(args: DecideArgs<'_>) -> EntityDecision {
 /// reasons for Deny. Mirrors the resolver's specificity ordering.
 fn allow_reason(
     rules: &[AccessRule],
-    user_id: &str,
+    user_id: &UserId,
     user_roles: &[String],
     department: &str,
     default_included: bool,
 ) -> String {
     use systemprompt_security::authz::{Access, RuleType};
     if rules.iter().any(|r| {
-        r.rule_type == RuleType::User && r.rule_value == user_id && r.access == Access::Allow
+        r.rule_type == RuleType::User
+            && r.rule_value.as_str() == user_id.as_str()
+            && r.access == Access::Allow
     }) {
         return format!("user-level allow: {user_id}");
     }
@@ -190,28 +193,30 @@ fn allow_reason(
     }
     let _ = department;
     if default_included {
-        return "default included".to_string();
+        return "default included".to_owned();
     }
-    "allow (resolver)".to_string()
+    "allow (resolver)".to_owned()
 }
 
-fn collect_gateway_ids() -> Result<Vec<String>, String> {
+fn collect_gateway_ids() -> Result<Vec<String>, AdminError> {
     let profile_path = shared_path_or_err(shared::get_profile_path())?;
-    let cfg = repositories::get_gateway_config(&profile_path).map_err(|e| e.to_string())?;
+    let cfg = repositories::get_gateway_config(&profile_path)
+        .map_err(|e| AdminError::internal(e.to_string()))?;
     Ok(cfg.routes.into_iter().map(|r| r.id).collect())
 }
 
-fn collect_mcp_ids() -> Result<Vec<String>, String> {
+fn collect_mcp_ids() -> Result<Vec<String>, AdminError> {
     let services_path = shared_path_or_err(shared::get_services_path())?;
-    let servers = mcp_servers::list_mcp_servers(&services_path).map_err(|e| e.to_string())?;
+    let servers = mcp_servers::list_mcp_servers(&services_path)
+        .map_err(|e| AdminError::internal(e.to_string()))?;
     Ok(servers
         .into_iter()
-        .map(|s| s.id.as_str().to_string())
+        .map(|s| s.id.as_str().to_owned())
         .collect())
 }
 
 fn shared_path_or_err(
     r: Result<std::path::PathBuf, Box<axum::response::Response>>,
-) -> Result<std::path::PathBuf, String> {
-    r.map_err(|_| "path lookup failed".to_string())
+) -> Result<std::path::PathBuf, AdminError> {
+    r.map_err(|resp| AdminError::internal(format!("path lookup failed: HTTP {}", resp.status())))
 }

@@ -10,11 +10,11 @@ use std::sync::Arc;
 
 use sqlx::PgPool;
 use systemprompt::config::ProfileBootstrap;
-use systemprompt::identifiers::TenantId;
+use systemprompt::identifiers::{TenantId, UserId};
 use systemprompt::models::Config;
 use uuid::Uuid;
 
-use crate::repositories::bridge_grp::{find_bridge_user, BridgeUserRow};
+use crate::repositories::bridge_grp::{BridgeUserRow, find_bridge_user};
 use crate::repositories::profile_grp::usage as usage_repo;
 
 use super::{
@@ -31,7 +31,7 @@ pub(super) struct UsageSections {
     pub(super) bridge_user: Option<BridgeUserRow>,
 }
 
-pub(super) async fn fetch_usage_sections(pool: &Arc<PgPool>, user_id: &str) -> UsageSections {
+pub(super) async fn fetch_usage_sections(pool: &Arc<PgPool>, user_id: &UserId) -> UsageSections {
     let pool_for_d1 = Arc::clone(pool);
     let pool_for_d7 = Arc::clone(pool);
     let pool_for_d30 = Arc::clone(pool);
@@ -39,12 +39,12 @@ pub(super) async fn fetch_usage_sections(pool: &Arc<PgPool>, user_id: &str) -> U
     let pool_for_conv = Arc::clone(pool);
     let pool_for_user = Arc::clone(pool);
 
-    let user_id_d1 = user_id.to_string();
-    let user_id_d7 = user_id.to_string();
-    let user_id_d30 = user_id.to_string();
-    let user_id_models = user_id.to_string();
-    let user_id_conv = user_id.to_string();
-    let user_id_user = user_id.to_string();
+    let user_id_d1 = user_id.to_owned();
+    let user_id_d7 = user_id.to_owned();
+    let user_id_d30 = user_id.to_owned();
+    let user_id_models = user_id.to_owned();
+    let user_id_conv = user_id.to_owned();
+    let user_id_user = user_id.to_owned();
 
     let (d1, d7, d30, top_models, conversations, bridge_user) = tokio::join!(
         async move {
@@ -125,17 +125,17 @@ pub(super) fn read_config_strings() -> (Option<String>, Option<String>) {
     Config::get().map_or((None, None), |c| {
         (
             Some(c.jwt_issuer.clone()),
-            Some(c.api_external_url.trim_end_matches('/').to_string()),
+            Some(c.api_external_url.trim_end_matches('/').to_owned()),
         )
     })
 }
 
-pub(super) fn read_tenant_id() -> Option<String> {
+pub(super) fn read_tenant_id() -> Option<TenantId> {
     let bootstrap = ProfileBootstrap::get().ok()?;
     bootstrap
         .cloud
         .as_ref()
-        .and_then(|cloud| cloud.tenant_id.as_ref().map(|id| id.as_str().to_string()))
+        .and_then(|cloud| cloud.tenant_id.clone())
 }
 
 pub(super) fn build_bridge_profile_block() -> Option<BridgeProfileBlock> {
@@ -161,7 +161,7 @@ pub(super) fn build_bridge_profile_block() -> Option<BridgeProfileBlock> {
     let organization_uuid = profile
         .cloud
         .as_ref()
-        .and_then(|cloud| cloud.tenant_id.as_ref().map(TenantId::as_str))
+        .and_then(|cloud| cloud.tenant_id.as_ref())
         .map(canonicalize_org_uuid);
 
     let models_count = models.len();
@@ -174,12 +174,13 @@ pub(super) fn build_bridge_profile_block() -> Option<BridgeProfileBlock> {
     })
 }
 
-fn canonicalize_org_uuid(tenant_id: &str) -> String {
-    let suffix = tenant_id.strip_prefix("local_").unwrap_or(tenant_id);
+fn canonicalize_org_uuid(tenant_id: &TenantId) -> String {
+    let s = tenant_id.as_str();
+    let suffix = s.strip_prefix("local_").unwrap_or(s);
     if let Ok(parsed) = Uuid::parse_str(suffix) {
         return parsed.to_string();
     }
-    Uuid::new_v5(&Uuid::NAMESPACE_OID, tenant_id.as_bytes()).to_string()
+    Uuid::new_v5(&Uuid::NAMESPACE_OID, s.as_bytes()).to_string()
 }
 
 pub(super) fn build_agents_block() -> AgentsBlock {
@@ -193,7 +194,7 @@ pub(super) fn build_agents_block() -> AgentsBlock {
         Err(e) => {
             tracing::warn!(error = %e, "list_agents failed for profile pane");
             return AgentsBlock::default();
-        }
+        },
     };
 
     let visible: Vec<_> = agents.into_iter().filter(|a| a.show_in_ui).collect();
@@ -203,9 +204,9 @@ pub(super) fn build_agents_block() -> AgentsBlock {
     let items = visible
         .into_iter()
         .map(|a| AgentItem {
-            id: a.id.as_str().to_string(),
+            id: a.id.as_str().to_owned(),
             display_name: if a.name.is_empty() {
-                a.id.as_str().to_string()
+                a.id.as_str().to_owned()
             } else {
                 a.name
             },

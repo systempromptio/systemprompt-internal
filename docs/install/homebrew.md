@@ -2,12 +2,13 @@
 
 Installs the `systemprompt-gateway` server on macOS (or Linuxbrew). For the bridge client, see [../cowork/install-macos.md](../cowork/install-macos.md).
 
-Uses the [`systempromptio/tap`](https://github.com/systempromptio/homebrew-tap) tap — faster iteration than Homebrew core, and avoids pinning our release cadence to homebrew/core review queues. The compiled binary is `MIT AND BUSL-1.1` (template MIT + linked BSL-1.1 core).
+Uses the [`systempromptio/tap`](https://github.com/systempromptio/homebrew-tap) tap: faster iteration than Homebrew core, and avoids pinning our release cadence to homebrew/core review queues. The compiled binary is `MIT AND BUSL-1.1` (template MIT + linked BSL-1.1 core).
 
 ## Install
 
 ```bash
 brew tap systempromptio/tap
+brew trust systempromptio/tap   # newer brew gates third-party taps; skip on older versions
 brew install gateway
 ```
 
@@ -34,7 +35,7 @@ brew services stop gateway
 
 ## Configuration
 
-The formula installs `systemprompt`, `systemprompt-mcp-agent`, and `systemprompt-mcp-marketplace` to `$(brew --prefix)/bin`.
+The formula installs `systemprompt` and `systemprompt-mcp-agent` to `$(brew --prefix)/bin` (macOS Apple silicon, Linux amd64/arm64).
 
 Before starting, export required env vars or set them in `$(brew --prefix)/etc/systemprompt.env`:
 

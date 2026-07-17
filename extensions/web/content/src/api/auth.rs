@@ -1,7 +1,9 @@
-use axum::http::header::SET_COOKIE;
-use axum::http::HeaderMap;
 use axum::Json;
+use axum::http::HeaderMap;
+use axum::http::header::SET_COOKIE;
 use serde::Deserialize;
+
+use crate::api::OkResponse;
 
 #[derive(Deserialize, Debug)]
 pub struct SetSessionRequest {
@@ -62,14 +64,14 @@ fn build_clear_cookies() -> HeaderMap {
 pub async fn set_session(
     _req_headers: HeaderMap,
     Json(body): Json<SetSessionRequest>,
-) -> (HeaderMap, Json<serde_json::Value>) {
+) -> (HeaderMap, Json<OkResponse>) {
     std::future::ready(()).await;
     let headers = build_session_cookies(&body);
-    (headers, Json(serde_json::json!({ "ok": true })))
+    (headers, Json(OkResponse { ok: true }))
 }
 
-pub async fn clear_session() -> (HeaderMap, Json<serde_json::Value>) {
+pub async fn clear_session() -> (HeaderMap, Json<OkResponse>) {
     std::future::ready(()).await;
     let headers = build_clear_cookies();
-    (headers, Json(serde_json::json!({ "ok": true })))
+    (headers, Json(OkResponse { ok: true }))
 }

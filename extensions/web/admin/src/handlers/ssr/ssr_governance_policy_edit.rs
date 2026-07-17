@@ -10,26 +10,66 @@
 
 use std::sync::Arc;
 
-use axum::{
-    extract::{Extension, Path, State},
-    http::StatusCode,
-    response::{Html, IntoResponse, Redirect, Response},
-    Form,
-};
-use serde::Deserialize;
-use serde_json::json;
+use systemprompt::identifiers::{AgentId, UserId};
+
+use axum::Form;
+use axum::extract::{Extension, Path, State};
+use axum::http::StatusCode;
+use axum::response::{Html, IntoResponse, Redirect, Response};
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
+
+use crate::error::AdminError;
 
 use crate::handlers::webhook::governance;
 use crate::repositories;
 use crate::templates::AdminTemplateEngine;
-use crate::types::{MarketplaceContext, UserContext, DECISION_DENY};
+use crate::types::{DECISION_DENY, MarketplaceContext, UserContext};
 
 use super::ACCESS_DENIED_HTML;
 
 const RECENT_LIMIT: i64 = 50;
 
-pub async fn governance_policy_edit_page(
+#[derive(Debug, Serialize)]
+struct PolicyEditContext {
+    page: &'static str,
+    title: String,
+    policy: PolicySummary,
+    params_yaml: String,
+    recent: Vec<RecentDecisionRow>,
+    has_recent: bool,
+    config_path: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+struct PolicySummary {
+    id: String,
+    name: String,
+    description: String,
+    enabled: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct UnknownPolicyContext {
+    page: &'static str,
+    title: &'static str,
+    policy_id: String,
+}
+
+#[derive(Debug, Serialize)]
+struct RecentDecisionRow {
+    id: String,
+    user_id: UserId,
+    tool_name: String,
+    agent_id: Option<AgentId>,
+    agent_scope: Option<String>,
+    decision: String,
+    is_denied: bool,
+    reason: String,
+    created_at: String,
+}
+
+pub(crate) async fn governance_policy_edit_page(
     Extension(user_ctx): Extension<UserContext>,
     Extension(mkt_ctx): Extension<MarketplaceContext>,
     Extension(engine): Extension<AdminTemplateEngine>,
@@ -43,15 +83,15 @@ pub async fn governance_policy_edit_page(
     let Some((id_str, name, description, params_yaml, enabled, lookup_id)) =
         find_policy_snapshot(&policy_id)
     else {
-        let data = json!({
-            "page": "governance",
-            "title": "Unknown policy",
-            "policy_id": policy_id,
-        });
-        return super::render_page(
+        let ctx = UnknownPolicyContext {
+            page: "governance",
+            title: "Unknown policy",
+            policy_id,
+        };
+        return super::render_typed_page(
             &engine,
             "governance-unknown-policy",
-            &data,
+            &ctx,
             &user_ctx,
             &mkt_ctx,
         );
@@ -70,81 +110,75 @@ pub async fn governance_policy_edit_page(
 
     let recent_json = recent_decisions_json(&recent);
 
-    let data = json!({
-        "page": "governance",
-        "title": format!("{name} — Policy"),
-        "policy": {
-            "id": id_str,
-            "name": name,
-            "description": description,
-            "enabled": enabled,
+    let ctx = PolicyEditContext {
+        page: "governance",
+        title: format!("{name} — Policy"),
+        policy: PolicySummary {
+            id: id_str,
+            name,
+            description,
+            enabled,
         },
-        "params_yaml": params_yaml,
-        "recent": recent_json,
-        "has_recent": !recent_json.is_empty(),
-        "config_path": "services/governance/config.yaml",
-    });
+        params_yaml,
+        has_recent: !recent_json.is_empty(),
+        recent: recent_json,
+        config_path: "services/governance/config.yaml",
+    };
 
-    super::render_page(
-        &engine,
-        "governance-policy-edit",
-        &data,
-        &user_ctx,
-        &mkt_ctx,
-    )
+    super::render_typed_page(&engine, "governance-policy-edit", &ctx, &user_ctx, &mkt_ctx)
 }
 
 type PolicySnapshot = (String, String, String, String, bool, String);
 
 fn find_policy_snapshot(policy_id: &str) -> Option<PolicySnapshot> {
     let chain = governance::chain();
-    let snapshot = chain
+
+    chain
         .iter()
         .find(|(_, p)| p.id().as_str() == policy_id)
         .map(|(cfg, p)| {
-            let id = p.id().as_str().to_string();
+            let id = p.id().as_str().to_owned();
             (
                 id.clone(),
-                p.name().to_string(),
-                p.description().to_string(),
+                p.name().to_owned(),
+                p.description().to_owned(),
                 serde_yaml::to_string(&cfg.params).unwrap_or_default(),
                 cfg.enabled,
                 id,
             )
-        });
-    snapshot
+        })
 }
 
-fn recent_decisions_json(recent: &[crate::types::GovernanceDecisionRow]) -> Vec<serde_json::Value> {
+fn recent_decisions_json(recent: &[crate::types::GovernanceDecisionRow]) -> Vec<RecentDecisionRow> {
     recent
         .iter()
-        .map(|r| {
-            json!({
-                "id": r.id,
-                "user_id": r.user_id,
-                "tool_name": r.tool_name,
-                "agent_id": r.agent_id,
-                "agent_scope": r.agent_scope,
-                "decision": r.decision,
-                "is_denied": r.decision == DECISION_DENY,
-                "reason": r.reason,
-                "created_at": r.created_at
-                    .with_timezone(&chrono::Local)
-                    .format("%Y-%m-%d %H:%M:%S")
-                    .to_string(),
-            })
+        .map(|r| RecentDecisionRow {
+            id: r.id.clone(),
+            user_id: r.user_id.clone(),
+            tool_name: r.tool_name.clone(),
+            agent_id: r.agent_id.clone(),
+            agent_scope: r.agent_scope.clone(),
+            decision: r.decision.clone(),
+            is_denied: r.decision == DECISION_DENY,
+            reason: r.reason.clone(),
+            created_at: r
+                .created_at
+                .with_timezone(&chrono::Local)
+                .format("%Y-%m-%d %H:%M:%S")
+                .to_string(),
         })
         .collect()
 }
 
 #[derive(Debug, Deserialize)]
-pub struct ToggleForm {
+pub(crate) struct ToggleForm {
     pub enabled: Option<String>,
 }
 
-/// Flips `enabled` in `services/governance/config.yaml`, then reloads the
-/// registry so the change takes effect without a process restart.
-pub async fn governance_policy_toggle(
+/// POST /admin/governance/{id}/toggle — flip `enabled` on the named policy in
+/// `services/governance/config.yaml`, then ask the registry to re-read so
+/// the change takes effect without a process restart.
+pub(crate) async fn governance_policy_toggle(
     Extension(user_ctx): Extension<UserContext>,
     Path(policy_id): Path<String>,
     Form(form): Form<ToggleForm>,
@@ -173,21 +207,23 @@ pub async fn governance_policy_toggle(
     Redirect::to(&format!("/admin/governance/{policy_id}")).into_response()
 }
 
-fn update_enabled_in_yaml(policy_id: &str, enabled: bool) -> Result<(), String> {
+fn update_enabled_in_yaml(policy_id: &str, enabled: bool) -> Result<(), AdminError> {
     use systemprompt::config::ProfileBootstrap;
-    let bootstrap = ProfileBootstrap::get().map_err(|e| e.to_string())?;
+    let bootstrap = ProfileBootstrap::get().map_err(|e| AdminError::internal(e.to_string()))?;
     let path = std::path::PathBuf::from(&bootstrap.paths.services).join("governance/config.yaml");
 
-    let text =
-        std::fs::read_to_string(&path).map_err(|e| format!("read {}: {e}", path.display()))?;
-    let mut root: serde_yaml::Value =
-        serde_yaml::from_str(&text).map_err(|e| format!("parse YAML: {e}"))?;
+    let text = std::fs::read_to_string(&path)
+        .map_err(|e| AdminError::internal(format!("read {}: {e}", path.display())))?;
+    let mut root: serde_yaml::Value = serde_yaml::from_str(&text)
+        .map_err(|e| AdminError::internal(format!("parse YAML: {e}")))?;
 
     let policies = root
         .get_mut("governance")
         .and_then(|g| g.get_mut("policies"))
         .and_then(|p| p.as_sequence_mut())
-        .ok_or_else(|| "governance.policies missing or not a sequence".to_string())?;
+        .ok_or_else(|| {
+            AdminError::internal("governance.policies missing or not a sequence".to_owned())
+        })?;
 
     let mut found = false;
     for entry in policies.iter_mut() {
@@ -195,32 +231,32 @@ fn update_enabled_in_yaml(policy_id: &str, enabled: bool) -> Result<(), String> 
             .get("id")
             .and_then(|v| v.as_str())
             .is_some_and(|s| s == policy_id);
-        if matches {
-            if let serde_yaml::Value::Mapping(map) = entry {
-                map.insert(
-                    serde_yaml::Value::String("enabled".to_string()),
-                    serde_yaml::Value::Bool(enabled),
-                );
-                found = true;
-                break;
-            }
+        if matches && let serde_yaml::Value::Mapping(map) = entry {
+            map.insert(
+                serde_yaml::Value::String("enabled".to_owned()),
+                serde_yaml::Value::Bool(enabled),
+            );
+            found = true;
+            break;
         }
     }
 
     if !found {
         let mut map = serde_yaml::Mapping::new();
         map.insert(
-            serde_yaml::Value::String("id".to_string()),
-            serde_yaml::Value::String(policy_id.to_string()),
+            serde_yaml::Value::String("id".to_owned()),
+            serde_yaml::Value::String(policy_id.to_owned()),
         );
         map.insert(
-            serde_yaml::Value::String("enabled".to_string()),
+            serde_yaml::Value::String("enabled".to_owned()),
             serde_yaml::Value::Bool(enabled),
         );
         policies.push(serde_yaml::Value::Mapping(map));
     }
 
-    let updated = serde_yaml::to_string(&root).map_err(|e| format!("serialize: {e}"))?;
-    std::fs::write(&path, updated).map_err(|e| format!("write {}: {e}", path.display()))?;
+    let updated = serde_yaml::to_string(&root)
+        .map_err(|e| AdminError::internal(format!("serialize: {e}")))?;
+    std::fs::write(&path, updated)
+        .map_err(|e| AdminError::internal(format!("write {}: {e}", path.display())))?;
     Ok(())
 }

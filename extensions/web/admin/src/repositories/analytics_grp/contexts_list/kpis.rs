@@ -1,8 +1,9 @@
 //! KPI strip + distinct-model lookup for the contexts list page.
 
 use sqlx::PgPool;
+use systemprompt::identifiers::UserId;
 
-use super::{free_text_pattern, ContextListFilter};
+use super::{ContextListFilter, free_text_pattern};
 
 #[derive(Debug, Clone, Copy)]
 pub struct ContextListKpis {
@@ -77,7 +78,7 @@ pub async fn fetch_context_list_kpis(
                OR j.context_id ILIKE $4
                OR j.user_id ILIKE $4)
         "#,
-        filter.user_id,
+        filter.user_id.as_ref().map(UserId::as_str),
         filter.model,
         filter.since,
         pattern,

@@ -82,7 +82,7 @@ fn format_session_timing(t: &hooks_track::SessionTimingRow) -> Option<String> {
     }
 }
 
-pub async fn gather_analysis_context(
+pub(crate) async fn gather_analysis_context(
     pool: &PgPool,
     user_id: &UserId,
     session_id: &SessionId,
@@ -95,13 +95,12 @@ pub async fn gather_analysis_context(
         parts.push(msg_part);
     }
 
-    let entity_links =
-        conversation_analytics::fetch_session_entity_links(pool, session_id.as_str())
-            .await
-            .unwrap_or_else(|e| {
-                tracing::warn!(error = %e, "Failed to fetch session entity links");
-                Vec::new()
-            });
+    let entity_links = conversation_analytics::fetch_session_entity_links(pool, session_id)
+        .await
+        .unwrap_or_else(|e| {
+            tracing::warn!(error = %e, "Failed to fetch session entity links");
+            Vec::new()
+        });
 
     let skills: Vec<&str> = entity_links
         .iter()
@@ -121,21 +120,21 @@ pub async fn gather_analysis_context(
 
     let timing = hooks_track::fetch_session_timing(pool, session_id, user_id).await;
 
-    if let Some(t) = timing {
-        if let Some(timing_part) = format_session_timing(&t) {
-            parts.push(timing_part);
-        }
+    if let Some(t) = timing
+        && let Some(timing_part) = format_session_timing(&t)
+    {
+        parts.push(timing_part);
     }
 
     parts.join("\n\n")
 }
 
-pub fn build_full_context(
+pub(crate) fn build_full_context(
     analysis_context: &str,
     events_ctx: Option<&session_summary::SessionSummary>,
 ) -> String {
     events_ctx.map_or_else(
-        || analysis_context.to_string(),
+        || analysis_context.to_owned(),
         |s| {
             let tags_part = if s.tags.is_empty() {
                 String::new()
@@ -151,14 +150,14 @@ pub fn build_full_context(
     )
 }
 
-pub async fn resolve_last_message(
+pub(crate) async fn resolve_last_message(
     pool: &PgPool,
     user_id: &UserId,
     session_id: &SessionId,
     direct_message: Option<&str>,
 ) -> String {
     if let Some(msg) = direct_message.filter(|m| !m.is_empty()) {
-        return msg.to_string();
+        return msg.to_owned();
     }
 
     hooks_track::fetch_last_message(pool, session_id, user_id).await

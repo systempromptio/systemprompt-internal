@@ -11,12 +11,10 @@
 
 use std::sync::Arc;
 
-use axum::{
-    extract::{Extension, Path, State},
-    http::StatusCode,
-    response::{IntoResponse, Response},
-    Json,
-};
+use axum::Json;
+use axum::extract::{Extension, Path, State};
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 use serde::Serialize;
 use sqlx::PgPool;
 
@@ -24,14 +22,13 @@ use systemprompt::identifiers::{RouteId, UserId};
 use systemprompt_security::authz::{EntityRef, ResolveInput};
 
 use crate::handlers::shared;
-use crate::repositories::{
-    self,
-    gateway_acl::{self, Decision},
-};
+use crate::repositories::gateway_acl::{self, Decision};
+use crate::repositories::governance_grp::acl_detect;
+use crate::repositories::{self};
 use crate::types::{GatewayRouteView, UserContext};
 
 #[derive(Debug, Serialize)]
-pub struct CatalogEntry {
+pub(crate) struct CatalogEntry {
     pub id: String,
     pub model_pattern: String,
     pub provider: String,
@@ -39,17 +36,18 @@ pub struct CatalogEntry {
 }
 
 #[derive(Debug, Serialize)]
-pub struct CatalogResponse {
-    pub user_id: String,
+pub(crate) struct CatalogResponse {
+    pub user_id: UserId,
     pub routes: Vec<CatalogEntry>,
 }
 
-pub async fn for_user_handler(
+pub(crate) async fn for_user_handler(
     State(pool): State<Arc<PgPool>>,
     Extension(user_ctx): Extension<UserContext>,
     Path(user_id): Path<String>,
 ) -> Response {
-    if !user_ctx.is_admin && user_ctx.user_id.as_str() != user_id {
+    let user_id = UserId::new(user_id);
+    if !user_ctx.is_admin && user_ctx.user_id != user_id {
         return shared::error_response(StatusCode::FORBIDDEN, "Forbidden");
     }
     let profile_path = match shared::get_profile_path() {
@@ -64,7 +62,7 @@ pub async fn for_user_handler(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Failed to load gateway",
             );
-        }
+        },
     };
 
     let (user_roles, department) =
@@ -72,12 +70,12 @@ pub async fn for_user_handler(
             Ok(Some(rd)) => rd,
             Ok(None) => return shared::error_response(StatusCode::NOT_FOUND, "User not found"),
             Err(e) => {
-                tracing::error!(error = %e, user_id, "Failed to load user roles");
+                tracing::error!(error = %e, user_id = %user_id, "Failed to load user roles");
                 return shared::error_response(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     "Failed to load user",
                 );
-            }
+            },
         };
 
     match collect_allowed_routes(&pool, &cfg.routes, &user_id, &user_roles, &department).await {
@@ -89,7 +87,7 @@ pub async fn for_user_handler(
 async fn collect_allowed_routes(
     pool: &PgPool,
     routes: &[GatewayRouteView],
-    user_id: &str,
+    user_id: &UserId,
     user_roles: &[String],
     _department: &str,
 ) -> Result<Vec<CatalogEntry>, Box<Response>> {
@@ -112,12 +110,11 @@ async fn collect_allowed_routes(
             })
             .map(|e| e.default_included);
         let entity = EntityRef::GatewayRoute(RouteId::new(route.id.clone()));
-        let uid = UserId::new(user_id);
         if matches!(
             gateway_acl::resolve(ResolveInput {
                 entity: &entity,
                 rules: &rules,
-                user_id: &uid,
+                user_id,
                 user_roles,
                 default_included,
                 parents: &[],
@@ -136,7 +133,7 @@ async fn collect_allowed_routes(
 }
 
 #[derive(Debug, serde::Deserialize)]
-pub struct DetectQuery {
+pub(crate) struct DetectQuery {
     #[serde(default = "default_since_minutes")]
     pub since_minutes: i64,
 }
@@ -146,12 +143,16 @@ const fn default_since_minutes() -> i64 {
 }
 
 #[derive(Debug, Serialize)]
-pub struct DetectResponse {
+pub(crate) struct DetectResponse {
     pub emitted: usize,
     pub since_minutes: i64,
 }
 
-pub async fn detect_handler(
+/// Admin-triggered after-the-fact detector. POST endpoint that scans recent
+/// `ai_requests` and emits `governance_decisions` rows for denied combos.
+/// Until a scheduled job wires this up automatically, admins can poke it
+/// from the CLI or a dashboard button — gap deliberately small.
+pub(crate) async fn detect_handler(
     State(pool): State<Arc<PgPool>>,
     Extension(user_ctx): Extension<UserContext>,
     axum::extract::Query(query): axum::extract::Query<DetectQuery>,
@@ -171,7 +172,7 @@ pub async fn detect_handler(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Failed to load gateway",
             );
-        }
+        },
     };
     match detect_after_the_fact(&pool, &cfg.routes, query.since_minutes).await {
         Ok(emitted) => Json(DetectResponse {
@@ -182,24 +183,19 @@ pub async fn detect_handler(
         Err(e) => {
             tracing::error!(error = %e, "ACL detector failed");
             shared::error_response(StatusCode::INTERNAL_SERVER_ERROR, "Detector failed")
-        }
+        },
     }
 }
 
-pub async fn detect_after_the_fact(
+/// After-the-fact detector: scan recent `ai_requests` and emit a
+/// `governance_decisions` row for any request whose user/model combination
+/// the ACL would have denied. Best-effort; called by [`detect_handler`].
+pub(crate) async fn detect_after_the_fact(
     pool: &PgPool,
     routes: &[GatewayRouteView],
     since_minutes: i64,
 ) -> Result<usize, sqlx::Error> {
-    let rows = sqlx::query!(
-        r#"SELECT id AS "id!", user_id, session_id, model
-           FROM ai_requests
-           WHERE created_at >= NOW() - ($1 || ' minutes')::interval
-             AND status NOT IN ('rejected', 'denied')"#,
-        since_minutes.to_string()
-    )
-    .fetch_all(pool)
-    .await?;
+    let rows = acl_detect::list_recent_unrejected_requests(pool, since_minutes).await?;
 
     let mut emitted = 0usize;
     for row in rows {
@@ -228,27 +224,32 @@ pub async fn detect_after_the_fact(
         }) {
             let decision_id = uuid::Uuid::new_v4().to_string();
             let reason_str = reason.to_string();
+            let session_id = row
+                .session_id
+                .as_ref()
+                .map(|s| s.as_str().to_owned())
+                .unwrap_or_default();
+            // variable-shape: governance audit `evaluated_rules` JSONB payload, not a
+            // template/response body
             let evaluated = serde_json::json!({
                 "ai_request_id": row.id,
                 "model": row.model,
                 "matched_route_id": route.id,
                 "reason": reason,
             });
-            sqlx::query!(
-                "INSERT INTO governance_decisions \
-                 (id, user_id, session_id, tool_name, agent_id, agent_scope, \
-                  decision, policy, reason, evaluated_rules, plugin_id) \
-                 VALUES ($1, $2, $3, $4, NULL, $5, $6, 'gateway_acl', $7, $8, NULL)",
-                decision_id,
-                row.user_id,
-                row.session_id.unwrap_or_default(),
-                row.model,
-                "inference",
-                "deny_after_the_fact",
-                reason_str,
-                evaluated,
+            acl_detect::insert_gateway_acl_decision(
+                pool,
+                acl_detect::GatewayAclDecision {
+                    decision_id: &decision_id,
+                    user_id: row.user_id.as_str(),
+                    session_id: &session_id,
+                    model: &row.model,
+                    agent_scope: "inference",
+                    decision: "deny_after_the_fact",
+                    reason: &reason_str,
+                    evaluated_rules: &evaluated,
+                },
             )
-            .execute(pool)
             .await?;
             emitted += 1;
         }

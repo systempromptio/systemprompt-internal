@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use systemprompt::config::ProfileBootstrap;
 use tokio::process::Command;
 
-pub fn get_cli_path() -> Result<PathBuf, McpError> {
+pub(crate) fn get_cli_path() -> Result<PathBuf, McpError> {
     if let Ok(path) = std::env::var("SYSTEMPROMPT_CLI_PATH") {
         return Ok(PathBuf::from(path));
     }
@@ -15,7 +15,7 @@ pub fn get_cli_path() -> Result<PathBuf, McpError> {
     Ok(PathBuf::from(&profile.paths.bin).join("systemprompt"))
 }
 
-pub fn workdir() -> PathBuf {
+pub(crate) fn workdir() -> PathBuf {
     if let Ok(path) = std::env::var("SYSTEMPROMPT_WORKDIR") {
         return PathBuf::from(path);
     }
@@ -23,7 +23,12 @@ pub fn workdir() -> PathBuf {
     ProfileBootstrap::get().map_or_else(|_| PathBuf::from("."), |p| PathBuf::from(&p.paths.system))
 }
 
-fn filter_hallucinated_args(args: Vec<String>) -> Vec<String> {
+/// Strip CLI flags that models routinely hallucinate onto `systemprompt`
+/// invocations (output-format toggles the gateway sets itself). Exposed behind
+/// `#[doc(hidden)]` so the external test workspace can assert the filter set;
+/// not part of the public API.
+#[doc(hidden)]
+pub fn filter_hallucinated_args(args: Vec<String>) -> Vec<String> {
     const HALLUCINATED_ARGS: &[&str] = &["--json", "--output-format", "--format"];
 
     args.into_iter()
@@ -31,7 +36,7 @@ fn filter_hallucinated_args(args: Vec<String>) -> Vec<String> {
         .collect()
 }
 
-pub async fn execute(command: &str, auth_token: &str) -> Result<CliOutput, McpError> {
+pub(crate) async fn execute(command: &str, auth_token: &str) -> Result<CliOutput, McpError> {
     let cli_path = get_cli_path()?;
     let workdir = workdir();
 

@@ -1,9 +1,9 @@
 //! [`MarketplaceFilter`] implementation for the systemprompt template.
 //!
 //! Resolves a user's `(roles, department)` from `users` joined to
-//! `user_profile_ext` and consults `access_control_rules` rows keyed by the entity's own
-//! [`EntityKind`] (`Plugin`, `Skill`, `Agent`, `McpServer`) to decide
-//! which marketplace items the gateway should sign for that user.
+//! `user_profile_ext` and consults `access_control_rules` rows keyed by the
+//! entity's own [`EntityKind`] (`Plugin`, `Skill`, `Agent`, `McpServer`) to
+//! decide which marketplace items the gateway should sign for that user.
 //!
 //! Default policy is **explicit allow**, but the owning marketplace is passed
 //! to the resolver as a parent: a member is kept if it has its own allow rule
@@ -13,7 +13,7 @@
 //! per-entity rule (see `services/access-control/roles.yaml`). If neither the
 //! member nor the marketplace grants access, the item is dropped.
 
-mod entities;
+mod keepsets;
 
 use std::sync::Arc;
 
@@ -21,15 +21,16 @@ use sqlx::PgPool;
 use systemprompt::database::DbPool;
 use systemprompt::identifiers::{MarketplaceId, UserId};
 use systemprompt::marketplace::{
-    register_marketplace_filter, MarketplaceCandidate, MarketplaceFilter, MarketplaceFilterError,
+    MarketplaceCandidate, MarketplaceFilter, MarketplaceFilterError, register_marketplace_filter,
 };
 use systemprompt_security::authz::{
-    resolve as resolve_access, AccessControlRepository, AccessRule, Decision, EntityKind,
-    EntityRef, ResolveInput, ResolveParent,
+    AccessControlRepository, AccessRule, Decision, EntityKind, EntityRef, ResolveInput,
+    ResolveParent, resolve as resolve_access,
 };
 
+use keepsets::{CandidateEntityIds, KeepIdsQuery, KeepSets, apply_keep_sets, entity_ref_for};
+
 use crate::repositories::users_grp::users::get_user_roles_department;
-use entities::{apply_keep_sets, entity_ref_for, CandidateEntityIds, KeepSets};
 
 #[derive(Debug)]
 pub struct TemplateMarketplaceFilter {
@@ -55,7 +56,7 @@ impl TemplateMarketplaceFilter {
         &self,
         user_id: &UserId,
     ) -> Result<(Vec<String>, String), MarketplaceFilterError> {
-        match get_user_roles_department(self.pool.as_ref(), user_id.as_str()).await {
+        match get_user_roles_department(self.pool.as_ref(), user_id).await {
             Ok(Some(pair)) => Ok(pair),
             Ok(None) => Err(MarketplaceFilterError::UnknownUser(user_id.to_string())),
             Err(e) => Err(MarketplaceFilterError::Backend(e.to_string())),
@@ -64,13 +65,15 @@ impl TemplateMarketplaceFilter {
 
     async fn keep_ids(
         &self,
-        user_id: &str,
-        roles: &[String],
-        department: &str,
-        kind: EntityKind,
-        ids: &[String],
-        parents: &[ResolveParent<'_>],
+        query: KeepIdsQuery<'_>,
     ) -> Result<std::collections::HashSet<String>, MarketplaceFilterError> {
+        let KeepIdsQuery {
+            user_id,
+            roles,
+            kind,
+            ids,
+            parents,
+        } = query;
         if ids.is_empty() {
             return Ok(std::collections::HashSet::new());
         }
@@ -97,7 +100,6 @@ impl TemplateMarketplaceFilter {
                 .map(|e| e.default_included);
             let entity = entity_ref_for(kind, id);
             let uid = UserId::new(user_id);
-            let _ = department;
             let decision = resolve_access(ResolveInput {
                 entity: &entity,
                 rules: entity_rules,
@@ -155,7 +157,7 @@ impl MarketplaceFilter for TemplateMarketplaceFilter {
         user_id: &UserId,
         candidate: MarketplaceCandidate,
     ) -> Result<MarketplaceCandidate, MarketplaceFilterError> {
-        let (roles, department) = self.user_principal(user_id).await?;
+        let (roles, _department) = self.user_principal(user_id).await?;
         let uid = user_id.as_str();
 
         let mp_parent = self.marketplace_parent(&candidate).await?;
@@ -172,46 +174,41 @@ impl MarketplaceFilter for TemplateMarketplaceFilter {
         let ids = CandidateEntityIds::from_candidate(&candidate);
 
         let (plugins, skills, agents, hooks, mcp) = tokio::try_join!(
-            self.keep_ids(
-                uid,
-                &roles,
-                &department,
-                EntityKind::Plugin,
-                &ids.plugins,
-                &parents
-            ),
-            self.keep_ids(
-                uid,
-                &roles,
-                &department,
-                EntityKind::Skill,
-                &ids.skills,
-                &parents
-            ),
-            self.keep_ids(
-                uid,
-                &roles,
-                &department,
-                EntityKind::Agent,
-                &ids.agents,
-                &parents
-            ),
-            self.keep_ids(
-                uid,
-                &roles,
-                &department,
-                EntityKind::Hook,
-                &ids.hooks,
-                &parents
-            ),
-            self.keep_ids(
-                uid,
-                &roles,
-                &department,
-                EntityKind::McpServer,
-                &ids.mcp,
-                &parents
-            ),
+            self.keep_ids(KeepIdsQuery {
+                user_id: uid,
+                roles: &roles,
+                kind: EntityKind::Plugin,
+                ids: &ids.plugins,
+                parents: &parents,
+            }),
+            self.keep_ids(KeepIdsQuery {
+                user_id: uid,
+                roles: &roles,
+                kind: EntityKind::Skill,
+                ids: &ids.skills,
+                parents: &parents,
+            }),
+            self.keep_ids(KeepIdsQuery {
+                user_id: uid,
+                roles: &roles,
+                kind: EntityKind::Agent,
+                ids: &ids.agents,
+                parents: &parents,
+            }),
+            self.keep_ids(KeepIdsQuery {
+                user_id: uid,
+                roles: &roles,
+                kind: EntityKind::Hook,
+                ids: &ids.hooks,
+                parents: &parents,
+            }),
+            self.keep_ids(KeepIdsQuery {
+                user_id: uid,
+                roles: &roles,
+                kind: EntityKind::McpServer,
+                ids: &ids.mcp,
+                parents: &parents,
+            }),
         )?;
 
         let keep = KeepSets {

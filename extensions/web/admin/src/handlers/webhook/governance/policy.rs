@@ -25,34 +25,37 @@ use std::sync::{LazyLock, RwLock};
 use serde_yaml::Value as YamlValue;
 use systemprompt::config::ProfileBootstrap;
 
-pub use systemprompt_security::policy::GovernancePolicy;
+pub(crate) use systemprompt_security::policy::GovernancePolicy;
 
 type PolicyFactory = fn(&YamlValue) -> Box<dyn GovernancePolicy>;
 
-pub struct PolicyRegistration {
+/// Compile-time registration. Each built-in lives in its own file and submits
+/// one of these.
+pub(crate) struct PolicyRegistration {
     pub id: &'static str,
     pub factory: PolicyFactory,
-    /// Source file (set with `file!()`). Surfaced on the dashboard as the "as
-    /// code" link.
+    /// Source file the policy is defined in (set with `file!()`). Surfaced on
+    /// the dashboard as the "as code" link.
     pub source_path: &'static str,
 }
 
 inventory::collect!(PolicyRegistration);
 
-pub fn source_path_for(id: &str) -> &'static str {
+pub(crate) fn source_path_for(id: &str) -> &'static str {
     inventory::iter::<PolicyRegistration>()
         .find(|r| r.id == id)
         .map_or("", |r| r.source_path)
 }
 
+/// Per-policy config block from `services/governance/config.yaml`.
 #[derive(Debug, Clone)]
-pub struct PolicyConfig {
+pub(crate) struct PolicyConfig {
     pub id: String,
     pub enabled: bool,
     pub params: YamlValue,
 }
 
-pub struct PolicyChain {
+pub(crate) struct PolicyChain {
     entries: Vec<ChainEntry>,
 }
 
@@ -62,22 +65,24 @@ struct ChainEntry {
 }
 
 impl PolicyChain {
-    pub fn iter(&self) -> impl Iterator<Item = (&PolicyConfig, &dyn GovernancePolicy)> {
+    pub(crate) fn iter(&self) -> impl Iterator<Item = (&PolicyConfig, &dyn GovernancePolicy)> {
         self.entries
             .iter()
             .map(|e| (&e.config, e.instance.as_ref()))
     }
 }
 
+/// Process-wide, hot-reloadable policy chain.
 static CHAIN: LazyLock<RwLock<PolicyChain>> = LazyLock::new(|| RwLock::new(load_chain()));
 
-pub fn chain() -> std::sync::RwLockReadGuard<'static, PolicyChain> {
+pub(crate) fn chain() -> std::sync::RwLockReadGuard<'static, PolicyChain> {
     CHAIN
         .read()
         .unwrap_or_else(std::sync::PoisonError::into_inner)
 }
 
-pub fn reload() {
+/// Re-read `services/governance/config.yaml` and rebuild the chain.
+pub(crate) fn reload() {
     let new_chain = load_chain();
     if let Ok(mut guard) = CHAIN.write() {
         *guard = new_chain;
@@ -113,7 +118,7 @@ fn load_chain() -> PolicyChain {
             continue;
         }
         let cfg = PolicyConfig {
-            id: r.id.to_string(),
+            id: r.id.to_owned(),
             enabled: false,
             params: YamlValue::Null,
         };
@@ -162,7 +167,7 @@ fn parse_policies(root: &YamlValue) -> Option<Vec<PolicyConfig>> {
 
     let mut out = Vec::with_capacity(policies.len());
     for entry in policies {
-        let id = entry.get("id").and_then(|v| v.as_str())?.to_string();
+        let id = entry.get("id").and_then(|v| v.as_str())?.to_owned();
         let enabled = entry
             .get("enabled")
             .and_then(YamlValue::as_bool)
@@ -185,7 +190,7 @@ fn default_configs() -> Vec<PolicyConfig> {
     ]
     .into_iter()
     .map(|(id, params)| PolicyConfig {
-        id: id.to_string(),
+        id: id.to_owned(),
         enabled: true,
         params,
     })

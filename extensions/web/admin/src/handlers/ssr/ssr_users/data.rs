@@ -59,7 +59,7 @@ pub(super) async fn collect_user_detail_extras(
     pool: &PgPool,
     d: &crate::types::UserDetail,
 ) -> UserDetailExtras {
-    let (roles, department) = repositories::get_user_roles_department(pool, d.user_id.as_str())
+    let (roles, department) = repositories::get_user_roles_department(pool, &d.user_id)
         .await
         .inspect_err(|e| tracing::warn!(error = %e, user_id = %d.user_id, "ssr_users: get_user_roles_department failed"))
         .ok()
@@ -67,13 +67,14 @@ pub(super) async fn collect_user_detail_extras(
         .unwrap_or_else(|| (Vec::new(), String::new()));
 
     let mut assignments = UserAssignmentSummary::default();
-    let mut devices_count = 0i64;
-    if let Ok(rows) = repositories::list_user_management_aggregates(pool).await {
-        if let Some(row) = rows.into_iter().find(|r| r.user_id == d.user_id.as_str()) {
-            assignments.skills_count = row.assigned_skills_count;
-            devices_count = row.devices_count;
-        }
-    }
+    let devices_count = if let Ok(rows) = repositories::list_user_management_aggregates(pool).await
+        && let Some(row) = rows.into_iter().find(|r| r.user_id == d.user_id.as_str())
+    {
+        assignments.skills_count = row.assigned_skills_count;
+        row.devices_count
+    } else {
+        0i64
+    };
 
     let yaml_marketplaces: Vec<(String, String)> = load_marketplaces()
         .into_iter()
@@ -96,7 +97,7 @@ pub(super) async fn collect_user_detail_extras(
     let effective = Some(
         repositories::governance_grp::effective::compute_effective_permissions(
             pool,
-            d.user_id.as_str(),
+            &d.user_id,
             &roles,
             &department,
         )
@@ -113,22 +114,13 @@ async fn collect_user_devices(pool: &PgPool, d: &crate::types::UserDetail) -> Ve
     let app_links: std::collections::HashMap<
         String,
         (String, String, Option<chrono::DateTime<chrono::Utc>>),
-    > = sqlx::query!(
-        r#"SELECT device_id AS "device_id!",
-                  app_platform AS "app_platform!",
-                  app_version AS "app_version!",
-                  last_seen_at
-             FROM device_app_links
-             WHERE user_id = $1"#,
-        d.user_id.as_str(),
-    )
-    .fetch_all(pool)
-    .await
-    .inspect_err(|e| tracing::warn!(error = %e, "ssr_users: load device app_links failed"))
-    .unwrap_or_default()
-    .into_iter()
-    .map(|r| (r.device_id, (r.app_platform, r.app_version, r.last_seen_at)))
-    .collect();
+    > = repositories::users_grp::devices::list_device_app_links(pool, &d.user_id)
+        .await
+        .inspect_err(|e| tracing::warn!(error = %e, "ssr_users: load device app_links failed"))
+        .unwrap_or_default()
+        .into_iter()
+        .map(|r| (r.device_id, (r.app_platform, r.app_version, r.last_seen_at)))
+        .collect();
 
     pats.into_iter()
         .map(|row| {
@@ -147,8 +139,7 @@ async fn collect_user_devices(pool: &PgPool, d: &crate::types::UserDetail) -> Ve
 }
 
 pub(super) async fn fetch_departments(pool: &PgPool) -> Vec<String> {
-    sqlx::query_scalar!("SELECT name FROM departments ORDER BY name")
-        .fetch_all(pool)
+    repositories::list_department_names(pool)
         .await
         .inspect_err(|e| tracing::warn!(error = %e, "ssr_users: load departments failed"))
         .unwrap_or_default()

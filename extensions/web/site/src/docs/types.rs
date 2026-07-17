@@ -1,4 +1,5 @@
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 fn parse_field<T: DeserializeOwned + Default>(item: &Value, field: &str) -> T {
@@ -10,7 +11,7 @@ fn parse_field<T: DeserializeOwned + Default>(item: &Value, field: &str) -> T {
         Err(e) => {
             tracing::warn!(field, error = %e, "Parse failed");
             T::default()
-        }
+        },
     }
 }
 
@@ -25,6 +26,29 @@ pub struct DocsLearningContent {
 pub struct RelatedLink {
     pub title: String,
     pub url: String,
+}
+
+/// Template context fragment for the docs-page learning aside. Empty lists and
+/// a `false` flag are omitted so the `{{#if}}` guards in `docs-page.html`
+/// behave exactly as when the keys were inserted conditionally.
+#[derive(Debug, Serialize)]
+struct DocsLearningTemplateData {
+    #[serde(rename = "AFTER_READING_THIS", skip_serializing_if = "Vec::is_empty")]
+    after_reading_this: Vec<String>,
+    #[serde(rename = "RELATED_PLAYBOOKS", skip_serializing_if = "Vec::is_empty")]
+    related_playbooks: Vec<RelatedLink>,
+    #[serde(rename = "RELATED_CODE", skip_serializing_if = "Vec::is_empty")]
+    related_code: Vec<RelatedLink>,
+    #[serde(rename = "HAS_LEARNING_CONTENT", skip_serializing_if = "is_false")]
+    has_learning_content: bool,
+}
+
+#[expect(
+    clippy::trivially_copy_pass_by_ref,
+    reason = "serde skip_serializing_if requires a &T predicate signature"
+)]
+const fn is_false(value: &bool) -> bool {
+    !*value
 }
 
 impl DocsLearningContent {
@@ -46,33 +70,12 @@ impl DocsLearningContent {
 
     #[must_use]
     pub fn to_template_data(&self) -> Value {
-        let mut data = serde_json::Map::new();
-
-        if !self.after_reading_this.is_empty() {
-            data.insert(
-                "AFTER_READING_THIS".to_string(),
-                serde_json::json!(self.after_reading_this),
-            );
-        }
-
-        if !self.related_playbooks.is_empty() {
-            data.insert(
-                "RELATED_PLAYBOOKS".to_string(),
-                serde_json::json!(self.related_playbooks),
-            );
-        }
-
-        if !self.related_code.is_empty() {
-            data.insert(
-                "RELATED_CODE".to_string(),
-                serde_json::json!(self.related_code),
-            );
-        }
-
-        if self.has_content() {
-            data.insert("HAS_LEARNING_CONTENT".to_string(), Value::Bool(true));
-        }
-
-        Value::Object(data)
+        let data = DocsLearningTemplateData {
+            after_reading_this: self.after_reading_this.clone(),
+            related_playbooks: self.related_playbooks.clone(),
+            related_code: self.related_code.clone(),
+            has_learning_content: self.has_content(),
+        };
+        serde_json::to_value(data).unwrap_or_else(|_| Value::Object(serde_json::Map::new()))
     }
 }

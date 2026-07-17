@@ -2,14 +2,15 @@ mod health;
 mod queries;
 mod today_summary;
 
-pub use health::{fetch_health_metrics, HealthMetrics};
+pub use health::{HealthMetrics, fetch_health_metrics};
 pub use queries::{
     fetch_analysed_session_ids, fetch_recent_analyses, fetch_session_analyses_batch,
     fetch_session_analysis,
 };
-pub use today_summary::{fetch_today_summary, TodaySummary};
+pub use today_summary::{TodaySummary, fetch_today_summary};
 
 use sqlx::PgPool;
+use systemprompt::identifiers::{SessionId, UserId};
 
 use crate::handlers::hooks_track::ai_summary::SessionAnalysis;
 
@@ -17,7 +18,7 @@ pub type SessionAnalysisDetail = SessionAnalysisRow;
 
 #[derive(Debug, sqlx::FromRow)]
 pub struct SessionAnalysisRow {
-    pub session_id: String,
+    pub session_id: SessionId,
     pub title: String,
     pub description: String,
     pub summary: String,
@@ -80,7 +81,7 @@ fn prepare_upsert_params(analysis: &SessionAnalysis) -> UpsertParams {
             .skill_scores
             .as_ref()
             .and_then(|s| serde_json::to_value(s).ok()),
-        category: analysis.category.as_deref().unwrap_or("other").to_string(),
+        category: analysis.category.as_deref().unwrap_or("other").to_owned(),
         goal_outcome_map_json: analysis
             .goal_outcome_map
             .as_ref()
@@ -105,28 +106,28 @@ fn prepare_upsert_params(analysis: &SessionAnalysis) -> UpsertParams {
         total_turns: analysis.efficiency_metrics.as_ref().map(|e| e.total_turns),
         automation_ratio: analysis.automation_ratio,
         plan_mode_used: analysis.plan_mode_used.unwrap_or(false),
-        client_surface: analysis.client_surface.as_deref().unwrap_or("").to_string(),
+        client_surface: analysis.client_surface.as_deref().unwrap_or("").to_owned(),
     }
 }
 
 pub async fn insert_session_analysis(
     pool: &PgPool,
-    session_id: &str,
-    user_id: &str,
+    session_id: &SessionId,
+    user_id: &UserId,
     analysis: &SessionAnalysis,
 ) {
     let p = prepare_upsert_params(analysis);
 
     tracing::debug!(
-        session_id,
+        session_id = %session_id,
         quality_score = analysis.quality_score,
         goal_achieved = %analysis.goal_achieved,
         "Inserting session analysis"
     );
 
     let ids = UpsertAnalysisIds {
-        session_id,
-        user_id,
+        session_id: session_id.as_str(),
+        user_id: user_id.as_str(),
     };
     if let Err(e) = run_upsert_query(pool, &ids, &p).await {
         tracing::warn!(error = %e, "Failed to insert session analysis");
@@ -138,7 +139,6 @@ struct UpsertAnalysisIds<'a> {
     user_id: &'a str,
 }
 
-#[allow(clippy::cognitive_complexity)]
 async fn run_upsert_query(
     pool: &PgPool,
     ids: &UpsertAnalysisIds<'_>,

@@ -36,6 +36,8 @@ impl IdentitySort {
         }
     }
 
+    /// Bound text key naming the column the `ORDER BY` `CASE` ladder switches
+    /// on.
     const fn sql_key(self) -> &'static str {
         match self {
             Self::LastActive => "last_active",
@@ -71,6 +73,7 @@ impl SortDir {
         }
     }
 
+    /// Bound text key naming the direction the `ORDER BY` `CASE` ladder uses.
     const fn sql_key(self) -> &'static str {
         match self {
             Self::Asc => "asc",
@@ -79,25 +82,28 @@ impl SortDir {
     }
 }
 
-/// Anonymous users are excluded by role and `@anonymous.local` email.
-/// `total_count` ignores limit/offset but honours the search filter.
-pub async fn fetch_user_identity_rows(
+/// Aggregates `ai_requests` and `governance_decisions` per user for the
+/// `/admin/overview/identity` table. Anonymous users are excluded the same
+/// way `fetch_department_stats` excludes them.
+///
+/// Returns `(rows, total_count)`. `total_count` ignores limit/offset but
+/// honours the search filter.
+/// Sort/search/page inputs for [`fetch_user_identity_rows`] (was 5 trailing
+/// positional args).
+#[derive(Debug, Clone, Copy)]
+pub struct IdentityQuery<'a> {
+    pub sort: IdentitySort,
+    pub dir: SortDir,
+    pub search: Option<&'a str>,
+    pub limit: i64,
+    pub offset: i64,
+}
+
+async fn count_user_identity_rows(
     pool: &PgPool,
-    sort: IdentitySort,
-    dir: SortDir,
-    search: Option<&str>,
-    limit: i64,
-    offset: i64,
-) -> Result<(Vec<crate::types::UserIdentityRow>, i64), sqlx::Error> {
-    let search_pattern = search
-        .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .map(|s| format!("%{}%", s.to_lowercase()));
-
-    let sort_col = sort.sql_key();
-    let sort_dir = dir.sql_key();
-
-    let total: i64 = sqlx::query_scalar!(
+    search_pattern: Option<&str>,
+) -> Result<i64, sqlx::Error> {
+    sqlx::query_scalar!(
         r#"
         SELECT COUNT(*)::BIGINT AS "count!"
         FROM users u
@@ -109,10 +115,36 @@ pub async fn fetch_user_identity_rows(
                OR LOWER(COALESCE(u.email, '')) LIKE $1
                OR LOWER(COALESCE(upe.department, '')) LIKE $1)
         "#,
-        search_pattern.as_deref(),
+        search_pattern,
     )
     .fetch_one(pool)
-    .await?;
+    .await
+}
+
+#[expect(
+    clippy::too_many_lines,
+    reason = "body is one irreducible compile-time-checked query_as! SQL literal"
+)]
+pub async fn fetch_user_identity_rows(
+    pool: &PgPool,
+    query: IdentityQuery<'_>,
+) -> Result<(Vec<crate::types::UserIdentityRow>, i64), sqlx::Error> {
+    let IdentityQuery {
+        sort,
+        dir,
+        search,
+        limit,
+        offset,
+    } = query;
+    let search_pattern = search
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(|s| format!("%{}%", s.to_lowercase()));
+
+    let sort_col = sort.sql_key();
+    let sort_dir = dir.sql_key();
+
+    let total = count_user_identity_rows(pool, search_pattern.as_deref()).await?;
 
     // The sort is the closed `IdentitySort` × `SortDir`; each `(column, dir)`
     // pair is bound as text ($4/$5) and selected by a per-key `CASE` in the

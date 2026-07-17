@@ -1,9 +1,54 @@
 //! Per-context list query — one row per context with its request, message,
 //! token, and cost rollups.
 
+use chrono::{DateTime, Utc};
 use sqlx::PgPool;
+use systemprompt::identifiers::{ContextId, SessionId, UserId};
 
-use super::{free_text_pattern, resolved_limit, ContextListFilter, ContextListItem};
+use super::{ContextListFilter, ContextListItem, free_text_pattern, resolved_limit};
+
+#[derive(Debug)]
+struct ContextListRow {
+    context_id: ContextId,
+    name: Option<String>,
+    kind: Option<String>,
+    user_id: Option<UserId>,
+    display_name: Option<String>,
+    session_id: Option<SessionId>,
+    model: Option<String>,
+    request_count: i64,
+    message_count: i64,
+    error_count: i64,
+    total_input_tokens: i64,
+    total_output_tokens: i64,
+    total_cost_microdollars: i64,
+    first_request_at: Option<DateTime<Utc>>,
+    last_request_at: Option<DateTime<Utc>>,
+    last_activity_at: Option<DateTime<Utc>>,
+}
+
+impl From<ContextListRow> for ContextListItem {
+    fn from(r: ContextListRow) -> Self {
+        Self {
+            context_id: r.context_id,
+            name: r.name,
+            kind: r.kind,
+            user_id: r.user_id,
+            display_name: r.display_name,
+            session_id: r.session_id,
+            model: r.model,
+            request_count: r.request_count,
+            message_count: r.message_count,
+            error_count: r.error_count,
+            total_input_tokens: r.total_input_tokens,
+            total_output_tokens: r.total_output_tokens,
+            total_cost_microdollars: r.total_cost_microdollars,
+            first_request_at: r.first_request_at,
+            last_request_at: r.last_request_at,
+            last_activity_at: r.last_activity_at,
+        }
+    }
+}
 
 pub async fn fetch_context_list(
     pool: &PgPool,
@@ -12,7 +57,8 @@ pub async fn fetch_context_list(
     let limit = resolved_limit(filter.limit);
     let pattern = free_text_pattern(filter);
 
-    let rows = sqlx::query!(
+    let rows = sqlx::query_as!(
+        ContextListRow,
         r#"
         WITH req AS (
             SELECT
@@ -39,11 +85,12 @@ pub async fn fetch_context_list(
             GROUP BY r.context_id
         )
         SELECT
-            COALESCE(c.context_id, req.context_id)        AS "context_id!",
+            COALESCE(c.context_id, req.context_id)        AS "context_id!: ContextId",
             c.name                                        AS "name?",
-            COALESCE(c.user_id, req.user_id)              AS "user_id?",
+            c.kind                                        AS "kind?",
+            COALESCE(c.user_id, req.user_id)              AS "user_id?: UserId",
             u.display_name                                AS "display_name?",
-            COALESCE(c.session_id, req.session_id)        AS "session_id?",
+            COALESCE(c.session_id, req.session_id)        AS "session_id?: SessionId",
             req.model                                     AS "model?",
             COALESCE(req.request_count, 0)::bigint        AS "request_count!",
             COALESCE(msgs.message_count, 0)::bigint       AS "message_count!",
@@ -70,7 +117,7 @@ pub async fn fetch_context_list(
         ORDER BY COALESCE(req.last_request_at, c.updated_at) DESC NULLS LAST
         LIMIT $5
         "#,
-        filter.user_id,
+        filter.user_id.as_ref().map(UserId::as_str),
         filter.model,
         filter.since,
         pattern,
@@ -79,24 +126,5 @@ pub async fn fetch_context_list(
     .fetch_all(pool)
     .await?;
 
-    Ok(rows
-        .into_iter()
-        .map(|r| ContextListItem {
-            context_id: r.context_id,
-            name: r.name,
-            user_id: r.user_id,
-            display_name: r.display_name,
-            session_id: r.session_id,
-            model: r.model,
-            request_count: r.request_count,
-            message_count: r.message_count,
-            error_count: r.error_count,
-            total_input_tokens: r.total_input_tokens,
-            total_output_tokens: r.total_output_tokens,
-            total_cost_microdollars: r.total_cost_microdollars,
-            first_request_at: r.first_request_at,
-            last_request_at: r.last_request_at,
-            last_activity_at: r.last_activity_at,
-        })
-        .collect())
+    Ok(rows.into_iter().map(ContextListItem::from).collect())
 }

@@ -1,5 +1,5 @@
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, LazyLock};
+use std::sync::Arc;
 
 use serde::Deserialize;
 use systemprompt::config::ProfileBootstrap;
@@ -8,11 +8,6 @@ use systemprompt::models::AppPaths;
 use url::Url;
 
 pub use crate::config_errors::{ExtensionConfigError, ExtensionConfigErrors};
-
-static FALLBACK_URL: LazyLock<Url> = LazyLock::new(|| {
-    Url::parse("https://invalid.example.com")
-        .unwrap_or_else(|_| Url::parse("https://localhost").unwrap_or_else(|_| unreachable!()))
-});
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct BlogConfigRaw {
@@ -28,7 +23,7 @@ pub struct BlogConfigRaw {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ContentSourceRaw {
-    pub source_id: String,
+    pub source_id: SourceId,
     pub category_id: String,
     pub path: String,
     #[serde(default)]
@@ -40,7 +35,7 @@ pub struct ContentSourceRaw {
 }
 
 fn default_base_url() -> String {
-    "https://example.com".to_string()
+    "https://example.com".to_owned()
 }
 
 const fn default_true() -> bool {
@@ -87,11 +82,16 @@ impl BlogConfigValidated {
             }
         }
 
-        errors.into_result(Self {
-            content_sources,
-            base_url,
-            enable_link_tracking: raw.enable_link_tracking,
-        })
+        // `base_url` is `None` only when the URL failed to parse, which always
+        // records an error above — so `into_result` will surface it as `Err`.
+        match base_url {
+            Some(base_url) => errors.into_result(Self {
+                content_sources,
+                base_url,
+                enable_link_tracking: raw.enable_link_tracking,
+            }),
+            None => Err(errors),
+        }
     }
 
     pub fn load_from_file(path: &Path) -> Result<Self, ExtensionConfigErrors> {
@@ -111,8 +111,13 @@ impl BlogConfigValidated {
         Self::validate(raw, base_path)
     }
 
-    /// `Ok(None)` when no blog config file exists is a valid "blog disabled"
-    /// state, not a degraded one.
+    /// Load `services/config/blog.yaml` resolved via the profile-aware
+    /// [`AppPaths`].
+    ///
+    /// Returns `Ok(None)` when no blog config file exists — a valid "blog
+    /// disabled" state, not a degraded one. Returns `Ok(Some(_))` when the
+    /// file parses and validates. Returns `Err` only on
+    /// read/parse/validation failures.
     pub fn load_from_env_or_none() -> Result<Option<Arc<Self>>, ExtensionConfigErrors> {
         let config_path = resolve_blog_config_path();
         if config_path.exists() {
@@ -142,7 +147,7 @@ impl BlogConfigValidated {
     }
 }
 
-fn validate_base_url(raw_url: &str, errors: &mut ExtensionConfigErrors) -> Url {
+fn validate_base_url(raw_url: &str, errors: &mut ExtensionConfigErrors) -> Option<Url> {
     match Url::parse(raw_url) {
         Ok(url) => {
             if url.scheme() != "http" && url.scheme() != "https" {
@@ -153,16 +158,16 @@ fn validate_base_url(raw_url: &str, errors: &mut ExtensionConfigErrors) -> Url {
                     "Use a URL like https://example.com",
                 );
             }
-            url
-        }
+            Some(url)
+        },
         Err(e) => {
             errors.push_with_suggestion(
                 "base_url",
                 format!("Invalid URL: {e}"),
                 "Use a valid URL like https://example.com",
             );
-            FALLBACK_URL.clone()
-        }
+            None
+        },
     }
 }
 
@@ -174,7 +179,7 @@ fn validate_content_source(
 ) -> Option<ContentSourceValidated> {
     let field_prefix = format!("content_sources[{index}]");
 
-    if src.source_id.trim().is_empty() {
+    if src.source_id.as_str().trim().is_empty() {
         errors.push(
             format!("{field_prefix}.source_id"),
             "source_id cannot be empty",
@@ -216,7 +221,7 @@ fn validate_content_source(
     let canonical_path = resolved_path.canonicalize().unwrap_or(resolved_path);
 
     Some(ContentSourceValidated {
-        source_id: SourceId::new(src.source_id),
+        source_id: src.source_id,
         category_id: CategoryId::new(src.category_id),
         path: canonical_path,
         allowed_content_types: src.allowed_content_types,

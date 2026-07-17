@@ -1,15 +1,20 @@
-use axum::{
-    extract::Path,
-    http::StatusCode,
-    response::{IntoResponse, Response},
-    Json,
-};
+use axum::Json;
+use axum::extract::Path;
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
+use serde::Serialize;
 
 use crate::handlers::shared;
 use crate::repositories;
 use crate::types::{GatewayRouteView, ReorderRoutesRequest, UpdateGatewaySettingsRequest};
 
-pub async fn get_gateway_handler() -> Response {
+/// JSON body returned by [`create_gateway_route_handler`] on success.
+#[derive(Debug, Serialize)]
+pub(crate) struct CreateRouteResponse {
+    pub index: usize,
+}
+
+pub(crate) async fn get_gateway_handler() -> Response {
     let profile_path = match shared::get_profile_path() {
         Ok(p) => p,
         Err(r) => return *r,
@@ -19,11 +24,11 @@ pub async fn get_gateway_handler() -> Response {
         Err(e) => {
             tracing::error!(error = %e, "Failed to get gateway config");
             shared::error_response(StatusCode::INTERNAL_SERVER_ERROR, "Failed to load gateway")
-        }
+        },
     }
 }
 
-pub async fn update_gateway_settings_handler(
+pub(crate) async fn update_gateway_settings_handler(
     Json(body): Json<UpdateGatewaySettingsRequest>,
 ) -> Response {
     let profile_path = match shared::get_profile_path() {
@@ -36,18 +41,18 @@ pub async fn update_gateway_settings_handler(
     }
 }
 
-pub async fn create_gateway_route_handler(Json(body): Json<GatewayRouteView>) -> Response {
+pub(crate) async fn create_gateway_route_handler(Json(body): Json<GatewayRouteView>) -> Response {
     let profile_path = match shared::get_profile_path() {
         Ok(p) => p,
         Err(r) => return *r,
     };
     match repositories::create_gateway_route(&profile_path, &body) {
-        Ok(idx) => (StatusCode::CREATED, Json(serde_json::json!({"index": idx}))).into_response(),
+        Ok(index) => (StatusCode::CREATED, Json(CreateRouteResponse { index })).into_response(),
         Err(e) => map_error(e, "create gateway route"),
     }
 }
 
-pub async fn update_gateway_route_handler(
+pub(crate) async fn update_gateway_route_handler(
     Path(idx): Path<usize>,
     Json(body): Json<GatewayRouteView>,
 ) -> Response {
@@ -62,7 +67,7 @@ pub async fn update_gateway_route_handler(
     }
 }
 
-pub async fn delete_gateway_route_handler(Path(idx): Path<usize>) -> Response {
+pub(crate) async fn delete_gateway_route_handler(Path(idx): Path<usize>) -> Response {
     let profile_path = match shared::get_profile_path() {
         Ok(p) => p,
         Err(r) => return *r,
@@ -74,7 +79,9 @@ pub async fn delete_gateway_route_handler(Path(idx): Path<usize>) -> Response {
     }
 }
 
-pub async fn reorder_gateway_routes_handler(Json(body): Json<ReorderRoutesRequest>) -> Response {
+pub(crate) async fn reorder_gateway_routes_handler(
+    Json(body): Json<ReorderRoutesRequest>,
+) -> Response {
     let profile_path = match shared::get_profile_path() {
         Ok(p) => p,
         Err(r) => return *r,
@@ -93,6 +100,6 @@ fn map_error(err: systemprompt_web_shared::error::MarketplaceError, op: &str) ->
         other => {
             tracing::error!(error = %other, op = op, "gateway operation failed");
             shared::error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
-        }
+        },
     }
 }

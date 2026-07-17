@@ -8,24 +8,25 @@
 
 use chrono::{DateTime, Utc};
 use serde::Serialize;
+use systemprompt::identifiers::{AgentId, SessionId, UserId};
 
 mod list;
 mod spans;
 mod stats;
 
-pub use list::fetch_trace_list;
+pub use list::{TracePage, fetch_trace_list};
 pub use spans::{fetch_trace_spans, resolve_trace_session};
 pub use stats::fetch_trace_stats;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct TraceSummary {
-    pub session_id: String,
+    pub session_id: SessionId,
     pub trace_id: Option<String>,
     pub started_at: DateTime<Utc>,
     pub ended_at: DateTime<Utc>,
     pub duration_ms: i64,
-    pub user_id: Option<String>,
-    pub agent_id: Option<String>,
+    pub user_id: Option<UserId>,
+    pub agent_id: Option<AgentId>,
     pub agent_scope: Option<String>,
     pub model: Option<String>,
     pub provider: Option<String>,

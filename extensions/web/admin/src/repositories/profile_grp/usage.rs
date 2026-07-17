@@ -1,10 +1,12 @@
-//! Per-user usage aggregations against `ai_requests` for the bridge profile pane.
+//! Per-user usage aggregations against `ai_requests` for the bridge profile
+//! pane.
 //!
 //! Mirrors the shape of `BridgeProfileUsage` so the SSR profile page and the
 //! `/v1/bridge/profile/usage` API endpoint render the same data.
 
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
+use systemprompt::identifiers::{ContextId, UserId};
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct UsageWindow {
@@ -32,7 +34,7 @@ pub struct ConversationGroup {
 
 #[derive(Debug, Clone)]
 pub struct RecentConversation {
-    pub context_id: String,
+    pub context_id: ContextId,
     pub context_name: Option<String>,
     pub last_activity: DateTime<Utc>,
     pub ai_requests: i64,
@@ -53,7 +55,7 @@ pub struct ConversationSummary {
 /// window so the caller can compute a delta.
 pub async fn fetch_usage_window(
     pool: &PgPool,
-    user_id: &str,
+    user_id: &UserId,
     window_days: i32,
 ) -> Result<UsageWindow, sqlx::Error> {
     let curr = sqlx::query!(
@@ -64,7 +66,7 @@ pub async fn fetch_usage_window(
           FROM ai_requests
           WHERE user_id = $1
             AND created_at >= NOW() - make_interval(days => $2)"#,
-        user_id,
+        user_id.as_str(),
         window_days,
     )
     .fetch_one(pool)
@@ -76,7 +78,7 @@ pub async fn fetch_usage_window(
            WHERE user_id = $1
              AND created_at >= NOW() - make_interval(days => $2 * 2)
              AND created_at <  NOW() - make_interval(days => $2)"#,
-        user_id,
+        user_id.as_str(),
         window_days,
     )
     .fetch_one(pool)
@@ -94,7 +96,7 @@ pub async fn fetch_usage_window(
 /// user has no activity.
 pub async fn fetch_top_models(
     pool: &PgPool,
-    user_id: &str,
+    user_id: &UserId,
     limit: i64,
 ) -> Result<Vec<ModelShare>, sqlx::Error> {
     let total = sqlx::query!(
@@ -102,7 +104,7 @@ pub async fn fetch_top_models(
            FROM ai_requests
            WHERE user_id = $1
              AND created_at >= NOW() - INTERVAL '30 days'"#,
-        user_id,
+        user_id.as_str(),
     )
     .fetch_one(pool)
     .await?
@@ -120,7 +122,7 @@ pub async fn fetch_top_models(
           GROUP BY model
           ORDER BY SUM(tokens_used) DESC NULLS LAST
           LIMIT $2"#,
-        user_id,
+        user_id.as_str(),
         limit,
     )
     .fetch_all(pool)
@@ -149,8 +151,25 @@ pub async fn fetch_top_models(
 /// agent ids from `plugin_usage_events`, which is keyed differently.
 pub async fn fetch_conversation_summary(
     pool: &PgPool,
-    user_id: &str,
+    user_id: &UserId,
 ) -> Result<ConversationSummary, sqlx::Error> {
+    let (total_conversations, total_ai_requests) = fetch_conversation_totals(pool, user_id).await?;
+    let by_model = fetch_conversation_by_model(pool, user_id).await?;
+    let recent = fetch_recent_conversations(pool, user_id).await?;
+
+    Ok(ConversationSummary {
+        total_conversations,
+        total_ai_requests,
+        by_model,
+        by_agent: Vec::new(),
+        recent,
+    })
+}
+
+async fn fetch_conversation_totals(
+    pool: &PgPool,
+    user_id: &UserId,
+) -> Result<(i64, i64), sqlx::Error> {
     let totals = sqlx::query!(
         r#"SELECT
             COUNT(DISTINCT context_id)::bigint AS "total_conversations!",
@@ -159,12 +178,18 @@ pub async fn fetch_conversation_summary(
           WHERE user_id = $1
             AND context_id IS NOT NULL
             AND created_at >= NOW() - INTERVAL '30 days'"#,
-        user_id,
+        user_id.as_str(),
     )
     .fetch_one(pool)
     .await?;
+    Ok((totals.total_conversations, totals.total_ai_requests))
+}
 
-    let by_model = sqlx::query!(
+async fn fetch_conversation_by_model(
+    pool: &PgPool,
+    user_id: &UserId,
+) -> Result<Vec<ConversationGroup>, sqlx::Error> {
+    Ok(sqlx::query!(
         r#"SELECT
             model AS "model!",
             COUNT(DISTINCT context_id)::bigint AS "conversations!",
@@ -176,7 +201,7 @@ pub async fn fetch_conversation_summary(
           GROUP BY model
           ORDER BY COUNT(*) DESC
           LIMIT 5"#,
-        user_id,
+        user_id.as_str(),
     )
     .fetch_all(pool)
     .await?
@@ -186,9 +211,14 @@ pub async fn fetch_conversation_summary(
         conversations: r.conversations,
         ai_requests: r.ai_requests,
     })
-    .collect();
+    .collect())
+}
 
-    let recent = sqlx::query!(
+async fn fetch_recent_conversations(
+    pool: &PgPool,
+    user_id: &UserId,
+) -> Result<Vec<RecentConversation>, sqlx::Error> {
+    Ok(sqlx::query!(
         r#"WITH ranked AS (
             SELECT
               context_id,
@@ -202,7 +232,7 @@ pub async fn fetch_conversation_summary(
             GROUP BY context_id
           )
           SELECT
-            ranked.context_id AS "context_id!",
+            ranked.context_id AS "context_id!: ContextId",
             uc.name           AS "context_name?",
             ranked.last_activity AS "last_activity!",
             ranked.ai_requests AS "ai_requests!",
@@ -211,7 +241,7 @@ pub async fn fetch_conversation_summary(
           LEFT JOIN user_contexts uc ON uc.context_id = ranked.context_id
           ORDER BY ranked.last_activity DESC
           LIMIT 5"#,
-        user_id,
+        user_id.as_str(),
     )
     .fetch_all(pool)
     .await?
@@ -224,13 +254,5 @@ pub async fn fetch_conversation_summary(
         model: r.model,
         agent_name: None,
     })
-    .collect();
-
-    Ok(ConversationSummary {
-        total_conversations: totals.total_conversations,
-        total_ai_requests: totals.total_ai_requests,
-        by_model,
-        by_agent: Vec::new(),
-        recent,
-    })
+    .collect())
 }

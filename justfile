@@ -143,12 +143,12 @@ build *FLAGS:
 
 # Clippy (Windows) - always uses offline mode
 [windows]
-clippy *FLAGS: lint-no-synthesis
+clippy *FLAGS: lint-no-synthesis lint-gates
     $env:SQLX_OFFLINE="true"; cargo clippy --workspace {{FLAGS}} -- -D warnings
 
 # Clippy (Unix) - tries database, falls back to offline
 [unix]
-clippy *FLAGS: lint-no-synthesis
+clippy *FLAGS: lint-no-synthesis lint-gates
     #!/usr/bin/env bash
     set -euo pipefail
     SECRETS_FILE="{{justfile_directory()}}/.systemprompt/profiles/local/secrets.json"
@@ -187,6 +187,17 @@ clippy *FLAGS: lint-no-synthesis
     else
         SQLX_OFFLINE=false cargo clippy --workspace {{FLAGS}} -- -D warnings
     fi
+
+# Source gates ported from systemprompt-core (scripts/*.sh)
+lint-gates:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    bash scripts/lint-schema.sh
+    bash scripts/lint-extensions.sh
+    bash scripts/check-sqlx.sh
+    bash scripts/check-http-errors.sh
+    bash scripts/check-test-value.sh
+    bash scripts/lint-raw-ids.sh
 
 # Structural guard: no string-literal `UserId::new("...")` in extension code.
 # String literals are how principal synthesis sneaks in — every legitimate
@@ -257,9 +268,14 @@ prepare:
     # Workspace-level prepare (catches lib crates)
     cargo sqlx prepare --workspace
     # Per-crate prepare for binary/extension crates that cargo sqlx skips
-    EXTENSION_DIRS="extensions/cli/activity extensions/cli/slack extensions/web extensions/marketplace extensions/mcp/systemprompt"
+    EXTENSION_DIRS="extensions/cli/activity extensions/cli/slack extensions/web extensions/marketplace extensions/mcp/shared extensions/mcp/systemprompt"
     for dir in $EXTENSION_DIRS; do
         if [ -f "{{justfile_directory()}}/$dir/Cargo.toml" ]; then
+            # Skip crates with no sqlx dependency — prepare would only
+            # resurrect an orphaned .sqlx cache.
+            if ! grep -qE '^sqlx' "{{justfile_directory()}}/$dir/Cargo.toml"; then
+                continue
+            fi
             echo "  Preparing $dir..."
             (cd "{{justfile_directory()}}/$dir" && cargo sqlx prepare 2>&1 | tail -1) || true
             if ls "{{justfile_directory()}}/$dir/.sqlx/"*.json >/dev/null 2>&1; then
@@ -917,3 +933,29 @@ install-sh-test:
 flake-check:
     nix flake check
     nix run .# -- --version
+
+# --- Release ------------------------------------------------------------
+
+# Step A of a release: bump every version pin to the new core release and
+# gate locally (migrate + build + clippy). Review + commit + push, then
+# `just release <version>`. See docs/RELEASING.md.
+core-bump version:
+    @! grep -q '^\[patch\.crates-io\]' Cargo.toml || (echo "ERROR: [patch.crates-io] is active — publish core and re-comment it first" && exit 1)
+    scripts/sync-release-version.sh {{version}}
+    cargo update -w
+    just db-up
+    cargo run --bin systemprompt -- infra db migrate || true
+    just build
+    just clippy
+    @echo "core-bump {{version}} complete — review the diff, run tests, commit to main, push, then: just release {{version}}"
+
+# Step B: push the release tag. Everything downstream (image, chart,
+# tarballs, smoke tests, GHCR pruning) is automatic from the tag.
+release version:
+    @test -z "$(git status --porcelain)" || (echo "ERROR: working tree not clean" && exit 1)
+    git fetch origin main
+    @test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" || (echo "ERROR: HEAD != origin/main — push first" && exit 1)
+    scripts/sync-release-version.sh {{version}} --check
+    git tag "v{{version}}"
+    git push origin "v{{version}}"
+    @echo "v{{version}} pushed — watch Actions: docker (image), release-gateway (tarballs), helm (chart), smoke-tests"

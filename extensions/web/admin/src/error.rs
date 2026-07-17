@@ -1,8 +1,9 @@
+use axum::Json;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use thiserror::Error;
 
+use crate::handlers::shared::ErrorBody;
 use crate::repositories::bridge_grp::BridgeRepoError;
 use crate::repositories::secret_crypto::SecretCryptoError;
 use systemprompt_web_shared::error::MarketplaceError;
@@ -54,7 +55,7 @@ impl AdminError {
         match self {
             Self::NotFound(_) | Self::Marketplace(MarketplaceError::NotFound(_)) => {
                 StatusCode::NOT_FOUND
-            }
+            },
             Self::BadRequest(_)
             | Self::BridgeRepo(BridgeRepoError::Validation(_))
             | Self::Marketplace(MarketplaceError::BadRequest(_)) => StatusCode::BAD_REQUEST,
@@ -80,10 +81,10 @@ impl AdminError {
             | Self::Marketplace(
                 MarketplaceError::BadRequest(msg) | MarketplaceError::NotFound(msg),
             ) => msg.clone(),
-            Self::Crypto(_) => "Internal configuration error".to_string(),
+            Self::Crypto(_) => "Internal configuration error".to_owned(),
             Self::Database(_) | Self::BridgeRepo(_) | Self::Marketplace(_) | Self::Internal(_) => {
-                "Internal server error".to_string()
-            }
+                "Internal server error".to_owned()
+            },
         }
     }
 }
@@ -108,7 +109,9 @@ impl IntoResponse for AdminError {
         } else {
             tracing::warn!(error = %self, "Admin handler returned client error");
         }
-        let body = Json(serde_json::json!({ "error": self.public_message() }));
+        let body = Json(ErrorBody {
+            error: self.public_message(),
+        });
         (status, body).into_response()
     }
 }

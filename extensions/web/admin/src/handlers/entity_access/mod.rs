@@ -1,22 +1,20 @@
 //! Generic entity-access HTTP handlers backing the unified `/admin/access`
 //! matrix and per-entity inline panels (gateway routes, MCP servers, …).
 //!
-//! Wraps [`systemprompt_security::authz::AccessControlRepository`] with the same
-//! endpoint shape the gateway-specific handlers use, but parameterized on
+//! Wraps [`systemprompt_security::authz::AccessControlRepository`] with the
+//! same endpoint shape the gateway-specific handlers use, but parameterized on
 //! `entity_type`. Allowed values mirror the Postgres CHECK constraint on
 //! `access_control_rules.entity_type`.
 
 mod support;
+mod types;
 
 use std::sync::Arc;
 
-use axum::{
-    extract::{Path, Query, State},
-    http::StatusCode,
-    response::{IntoResponse, Response},
-    Json,
-};
-use serde::Deserialize;
+use axum::Json;
+use axum::extract::{Path, Query, State};
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 use sqlx::PgPool;
 use systemprompt::identifiers::RuleId;
 use systemprompt_security::authz::{Access, AccessRule, UpsertRuleParams};
@@ -24,8 +22,13 @@ use systemprompt_security::authz::{Access, AccessRule, UpsertRuleParams};
 use crate::handlers::shared;
 
 use support::{collect_entity_ids, parse_access, parse_rule_type, repo, validate_entity_type};
+use types::{
+    AllAccessQuery, ApplyTemplateBody, ApplyTemplateResponse, DefaultIncludedBody,
+    EntityAccessEntry, EntityAccessResponse, EntityDefaultResponse, ListAllEntityAccessResponse,
+    UpsertRuleBody, UpsertRuleResponse,
+};
 
-pub async fn list_entity_access_handler(
+pub(crate) async fn list_entity_access_handler(
     State(pool): State<Arc<PgPool>>,
     Path((entity_type, entity_id)): Path<(String, String)>,
 ) -> Response {
@@ -39,7 +42,7 @@ pub async fn list_entity_access_handler(
         Err(e) => {
             tracing::error!(error = %e, entity_type, entity_id, "list_rules_for_entity failed");
             return shared::error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal error");
-        }
+        },
     };
     let default_included = match r.get_entity(kind, &entity_id).await {
         Ok(Some(entity)) => entity.default_included,
@@ -47,27 +50,18 @@ pub async fn list_entity_access_handler(
         Err(e) => {
             tracing::error!(error = %e, entity_type, entity_id, "get_entity failed");
             return shared::error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal error");
-        }
+        },
     };
-    Json(serde_json::json!({
-        "entity_type": entity_type,
-        "entity_id": entity_id,
-        "default_included": default_included,
-        "rules": rules,
-    }))
+    Json(EntityAccessResponse {
+        entity_type,
+        entity_id,
+        default_included,
+        rules,
+    })
     .into_response()
 }
 
-#[derive(Debug, Deserialize)]
-pub struct UpsertRuleBody {
-    pub rule_type: String,
-    pub rule_value: String,
-    pub access: String,
-    #[serde(default)]
-    pub justification: Option<String>,
-}
-
-pub async fn upsert_entity_rule_handler(
+pub(crate) async fn upsert_entity_rule_handler(
     State(pool): State<Arc<PgPool>>,
     Path((entity_type, entity_id)): Path<(String, String)>,
     Json(body): Json<UpsertRuleBody>,
@@ -96,15 +90,15 @@ pub async fn upsert_entity_rule_handler(
         })
         .await
     {
-        Ok(rule) => Json(serde_json::json!({ "rule": rule })).into_response(),
+        Ok(rule) => Json(UpsertRuleResponse { rule }).into_response(),
         Err(e) => {
             tracing::error!(error = %e, entity_type, entity_id, "upsert_rule failed");
             shared::error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal error")
-        }
+        },
     }
 }
 
-pub async fn delete_entity_rule_handler(
+pub(crate) async fn delete_entity_rule_handler(
     State(pool): State<Arc<PgPool>>,
     Path((entity_type, _entity_id, rule_id)): Path<(String, String, String)>,
 ) -> Response {
@@ -117,16 +111,11 @@ pub async fn delete_entity_rule_handler(
         Err(e) => {
             tracing::error!(error = %e, rule_id, "delete_rule failed");
             shared::error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal error")
-        }
+        },
     }
 }
 
-#[derive(Debug, Deserialize)]
-pub struct DefaultIncludedBody {
-    pub default_included: bool,
-}
-
-pub async fn set_entity_default_handler(
+pub(crate) async fn set_entity_default_handler(
     State(pool): State<Arc<PgPool>>,
     Path((entity_type, entity_id)): Path<(String, String)>,
     Json(body): Json<DefaultIncludedBody>,
@@ -139,25 +128,23 @@ pub async fn set_entity_default_handler(
         .upsert_entity(kind, &entity_id, body.default_included, "admin:dashboard")
         .await
     {
-        Ok(()) => Json(serde_json::json!({
-            "entity_type": entity_type,
-            "entity_id": entity_id,
-            "default_included": body.default_included,
-        }))
+        Ok(()) => Json(EntityDefaultResponse {
+            entity_type,
+            entity_id,
+            default_included: body.default_included,
+        })
         .into_response(),
         Err(e) => {
             tracing::error!(error = %e, entity_type, entity_id, "upsert_entity failed");
             shared::error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal error")
-        }
+        },
     }
 }
 
-#[derive(Debug, Deserialize)]
-pub struct AllAccessQuery {
-    pub entity_type: String,
-}
-
-pub async fn list_all_entity_access_handler(
+/// Bulk-list every entity of the given type with its rules + default. Used by
+/// the `/admin/access` matrix view. Routes/IDs come from the on-disk profile
+/// (`gateway_route`) or `services/mcp/*.yaml` (`mcp_server`).
+pub(crate) async fn list_all_entity_access_handler(
     State(pool): State<Arc<PgPool>>,
     Query(query): Query<AllAccessQuery>,
 ) -> Response {
@@ -175,9 +162,9 @@ pub async fn list_all_entity_access_handler(
         Err(e) => {
             tracing::error!(error = %e, entity_type = %query.entity_type, "list_rules_bulk failed");
             return shared::error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal error");
-        }
+        },
     };
-    let mut entries: Vec<serde_json::Value> = Vec::with_capacity(entity_ids.len());
+    let mut entries: Vec<EntityAccessEntry> = Vec::with_capacity(entity_ids.len());
     for eid in &entity_ids {
         let default_included = r
             .get_entity(kind, eid)
@@ -189,29 +176,23 @@ pub async fn list_all_entity_access_handler(
             .flatten()
             .is_some_and(|e| e.default_included);
         let rules: Vec<AccessRule> = bulk.get(eid).cloned().unwrap_or_default();
-        entries.push(serde_json::json!({
-            "entity_id": eid,
-            "default_included": default_included,
-            "rules": rules,
-        }));
+        entries.push(EntityAccessEntry {
+            entity_id: eid.clone(),
+            default_included,
+            rules,
+        });
     }
-    Json(serde_json::json!({
-        "entity_type": query.entity_type,
-        "entities": entries,
-    }))
+    Json(ListAllEntityAccessResponse {
+        entity_type: query.entity_type,
+        entities: entries,
+    })
     .into_response()
 }
 
-#[derive(Debug, Deserialize)]
-pub struct ApplyTemplateBody {
-    pub entity_type: String,
-    pub subject_type: String,
-    pub subject_value: String,
-    /// One of: "allow", "deny", "clear".
-    pub action: String,
-}
-
-pub async fn apply_template_handler(
+/// Apply a department/role template across every entity of a given type.
+/// Wraps repeated [`upsert_rule`]/[`delete_rule`] calls and triggers the
+/// gateway-ACL export once at the end.
+pub(crate) async fn apply_template_handler(
     State(pool): State<Arc<PgPool>>,
     Json(body): Json<ApplyTemplateBody>,
 ) -> Response {
@@ -270,15 +251,15 @@ pub async fn apply_template_handler(
                 Err(e) => {
                     tracing::warn!(error = %e, entity_id = %eid, "apply_template upsert failed");
                     failed += 1;
-                }
+                },
             }
         }
     }
 
-    Json(serde_json::json!({
-        "applied": applied,
-        "failed": failed,
-        "entity_count": entity_ids.len(),
-    }))
+    Json(ApplyTemplateResponse {
+        applied,
+        failed,
+        entity_count: entity_ids.len(),
+    })
     .into_response()
 }

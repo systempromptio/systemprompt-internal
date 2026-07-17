@@ -7,18 +7,19 @@
 //! `context_detail::fetch_context_header`.
 
 use chrono::{DateTime, Utc};
+use systemprompt::identifiers::{ContextId, SessionId, UserId};
 
 mod kpis;
 mod list;
 mod users;
 
-pub use kpis::{fetch_context_list_kpis, fetch_distinct_models, ContextListKpis};
+pub use kpis::{ContextListKpis, fetch_context_list_kpis, fetch_distinct_models};
 pub use list::fetch_context_list;
 pub use users::fetch_context_user_summary;
 
 #[derive(Debug, Clone, Default)]
 pub struct ContextListFilter {
-    pub user_id: Option<String>,
+    pub user_id: Option<UserId>,
     pub model: Option<String>,
     pub free_text: Option<String>,
     pub since: Option<DateTime<Utc>>,
@@ -27,11 +28,13 @@ pub struct ContextListFilter {
 
 #[derive(Debug, Clone)]
 pub struct ContextListItem {
-    pub context_id: String,
+    pub context_id: ContextId,
     pub name: Option<String>,
-    pub user_id: Option<String>,
+    /// `user_contexts.kind` — `"user"` or `"cli_session"` (ephemeral CLI rows).
+    pub kind: Option<String>,
+    pub user_id: Option<UserId>,
     pub display_name: Option<String>,
-    pub session_id: Option<String>,
+    pub session_id: Option<SessionId>,
     pub model: Option<String>,
     pub request_count: i64,
     pub message_count: i64,
@@ -46,7 +49,7 @@ pub struct ContextListItem {
 
 #[derive(Debug, Clone)]
 pub struct ContextUserSummary {
-    pub user_id: String,
+    pub user_id: UserId,
     pub display_name: Option<String>,
     pub context_count: i64,
     pub request_count: i64,

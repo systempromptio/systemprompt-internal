@@ -50,8 +50,8 @@ impl HookEventPayload {
     #[must_use]
     pub fn tool_name(&self) -> Option<&str> {
         match &self.event {
-            HookEvent::PreToolUse(d) if !d.tool_name.is_empty() => Some(&d.tool_name),
-            HookEvent::PostToolUse(d) if !d.tool_name.is_empty() => Some(&d.tool_name),
+            HookEvent::PreToolUse(d) if !d.name.is_empty() => Some(&d.name),
+            HookEvent::PostToolUse(d) if !d.name.is_empty() => Some(&d.name),
             HookEvent::PostToolUseFailure(d) if !d.tool_name.is_empty() => Some(&d.tool_name),
             HookEvent::PermissionRequest(d) if !d.tool_name.is_empty() => Some(&d.tool_name),
             _ => None,
@@ -61,8 +61,8 @@ impl HookEventPayload {
     #[must_use]
     pub const fn tool_input(&self) -> Option<&serde_json::Value> {
         match &self.event {
-            HookEvent::PreToolUse(d) => Some(&d.tool_input),
-            HookEvent::PostToolUse(d) => Some(&d.tool_input),
+            HookEvent::PreToolUse(d) => Some(&d.input),
+            HookEvent::PostToolUse(d) => Some(&d.input),
             HookEvent::PostToolUseFailure(d) => Some(&d.tool_input),
             _ => None,
         }
@@ -87,7 +87,7 @@ impl HookEventPayload {
 
     #[must_use]
     pub fn session_id(&self) -> &str {
-        &self.common.session_id
+        self.common.session_id.as_str()
     }
 }
 
@@ -96,7 +96,7 @@ fn parse_common_fields(raw: &serde_json::Value, warnings: &mut Vec<String>) -> H
     let common: HookCommonFields = serde_json::from_value(raw.clone()).unwrap_or_else(|e| {
         warnings.push(format!("Failed to parse common fields: {e}"));
         HookCommonFields {
-            session_id: String::new(),
+            session_id: systemprompt::identifiers::SessionId::new(String::new()),
             cwd: String::new(),
             permission_mode: String::new(),
             transcript_path: String::new(),
@@ -112,11 +112,11 @@ fn parse_common_fields(raw: &serde_json::Value, warnings: &mut Vec<String>) -> H
         "Hook common fields parsed"
     );
 
-    if common.session_id.is_empty() {
-        warnings.push("Missing required common field: session_id".to_string());
+    if common.session_id.as_str().is_empty() {
+        warnings.push("Missing required common field: session_id".to_owned());
     }
     if common.cwd.is_empty() {
-        warnings.push("Missing required common field: cwd".to_string());
+        warnings.push("Missing required common field: cwd".to_owned());
     }
 
     common
@@ -157,8 +157,8 @@ fn dispatch_event(
         "InstructionsLoaded" => parsers::parse_instructions_loaded(raw, warnings),
         other => {
             warnings.push(format!("Unknown hook event type: {other}"));
-            HookEvent::Unknown(other.to_string())
-        }
+            HookEvent::Unknown(other.to_owned())
+        },
     }
 }
 
@@ -218,12 +218,12 @@ pub struct ContextWindowUsage {
 #[derive(Debug, Deserialize)]
 pub struct StatusLineQuery {
     pub plugin_id: Option<String>,
-    pub session_id: Option<String>,
+    pub session_id: Option<systemprompt::identifiers::SessionId>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct TranscriptPayload {
-    pub session_id: Option<String>,
+    pub session_id: Option<systemprompt::identifiers::SessionId>,
     pub transcript: serde_json::Value,
 }
 

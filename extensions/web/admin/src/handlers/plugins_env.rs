@@ -1,11 +1,9 @@
 use std::sync::Arc;
 
-use axum::{
-    extract::{Path, Query, State},
-    http::{HeaderMap, StatusCode},
-    response::{IntoResponse, Response},
-    Json,
-};
+use axum::Json;
+use axum::extract::{Path, Query, State};
+use axum::http::{HeaderMap, StatusCode};
+use axum::response::{IntoResponse, Response};
 use sqlx::PgPool;
 use systemprompt::config::ProfileBootstrap;
 
@@ -17,7 +15,7 @@ use crate::types::UserQuery;
 
 use super::responses::PluginEnvResponse;
 
-pub async fn list_plugin_env_handler(
+pub(crate) async fn list_plugin_env_handler(
     State(pool): State<Arc<PgPool>>,
     Path(plugin_id): Path<String>,
     headers: HeaderMap,
@@ -31,7 +29,7 @@ pub async fn list_plugin_env_handler(
         .map(|s| s.user_id);
     let Some(user_id) = resolve_principal(
         cookie_uid.as_ref().map(UserId::as_str),
-        query.user_id.as_deref(),
+        query.user_id.as_ref().map(UserId::as_str),
     ) else {
         return shared::error_response(StatusCode::UNAUTHORIZED, "missing principal");
     };
@@ -49,7 +47,7 @@ pub async fn list_plugin_env_handler(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Internal server error",
             );
-        }
+        },
     };
 
     let stored_names: std::collections::HashSet<String> = stored
@@ -66,7 +64,7 @@ pub async fn list_plugin_env_handler(
                 .and_then(serde_json::Value::as_bool)
                 .unwrap_or(true);
             if required && !stored_names.contains(name) {
-                Some(name.to_string())
+                Some(name.to_owned())
             } else {
                 None
             }
@@ -82,8 +80,11 @@ pub async fn list_plugin_env_handler(
     .into_response()
 }
 
-/// Returns `Some` only when an authenticated cookie session or an explicit
-/// `user_id` query parameter is present. Never synthesizes a principal.
+/// Resolve the principal for a plugin-env request from already-validated
+/// inputs.
+///
+/// Returns `Some(UserId)` only when an authenticated cookie session or an
+/// explicit `user_id` query parameter is present. Never synthesizes.
 pub fn resolve_principal(
     cookie_user_id: Option<&str>,
     query_user_id: Option<&str>,

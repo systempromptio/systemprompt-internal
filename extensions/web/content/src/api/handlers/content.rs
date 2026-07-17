@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
-use axum::{
-    extract::{Path, State},
-    http::StatusCode,
-    response::{IntoResponse, Response},
-    Json,
-};
+use axum::Json;
+use axum::extract::{Path, State};
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 
-use crate::api::BlogState;
+use systemprompt::identifiers::SourceId;
+
+use crate::api::{BlogState, ErrorResponse};
 use crate::services::{ContentService, SearchService};
 use systemprompt_web_shared::models::SearchRequest;
 
@@ -23,17 +23,17 @@ pub async fn query_handler(
         Ok(response) => {
             tracing::info!(total = response.total, "Search completed");
             Json(response).into_response()
-        }
+        },
         Err(e) => {
             tracing::error!(error = %e, "Search error");
             error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
-        }
+        },
     }
 }
 
 pub async fn list_content_handler(
     State(state): State<BlogState>,
-    Path(source_id): Path<String>,
+    Path(source_id): Path<SourceId>,
 ) -> Response {
     let content_service = ContentService::new(Arc::clone(&state.pool));
 
@@ -42,13 +42,13 @@ pub async fn list_content_handler(
         Err(e) => {
             tracing::error!(error = %e, "Failed to list content");
             error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
-        }
+        },
     }
 }
 
 pub async fn get_content_handler(
     State(state): State<BlogState>,
-    Path((source_id, slug)): Path<(String, String)>,
+    Path((source_id, slug)): Path<(SourceId, String)>,
 ) -> Response {
     let content_service = ContentService::new(Arc::clone(&state.pool));
 
@@ -61,10 +61,10 @@ pub async fn get_content_handler(
         Err(e) => {
             tracing::error!(error = %e, "Failed to get content");
             error_response(StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
-        }
+        },
     }
 }
 
 fn error_response(status: StatusCode, message: &str) -> Response {
-    (status, Json(serde_json::json!({"error": message}))).into_response()
+    (status, Json(ErrorResponse::new(message))).into_response()
 }

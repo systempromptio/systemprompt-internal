@@ -1,25 +1,26 @@
 //! Gateway-request read models for the analytics requests page.
 //!
 //! [`fetch_requests_paged`] (in `paged`) pages `ai_requests` with optional
-//! filters and per-row governance / tool-call counts; [`list_recent_gateway_requests`]
-//! (in `recent`) is the lightweight recent-activity feed; the dropdown option
-//! lists live in `options`.
+//! filters and per-row governance / tool-call counts;
+//! [`list_recent_gateway_requests`] (in `recent`) is the lightweight
+//! recent-activity feed; the dropdown option lists live in `options`.
 
 use chrono::{DateTime, Utc};
 use serde::Serialize;
+use systemprompt::identifiers::{AgentId, SessionId, UserId};
 
 mod options;
 mod paged;
 mod recent;
 
-pub use options::{fetch_request_filter_options, RequestFilterOptions};
-pub use paged::fetch_requests_paged;
-pub use recent::{list_recent_gateway_requests, RecentGatewayRequestRow};
+pub use options::{RequestFilterOptions, fetch_request_filter_options};
+pub use paged::{RequestPage, fetch_requests_paged};
+pub use recent::{RecentGatewayRequestRow, list_recent_gateway_requests};
 
 #[derive(Debug, Clone, Default)]
 pub struct RequestFilter {
-    pub user_id: Option<String>,
-    pub agent_id: Option<String>,
+    pub user_id: Option<UserId>,
+    pub agent_id: Option<AgentId>,
     pub model: Option<String>,
     pub provider: Option<String>,
     pub status: Option<String>,
@@ -80,9 +81,9 @@ pub struct RequestRow {
     pub id: String,
     pub request_id: String,
     pub created_at: DateTime<Utc>,
-    pub user_id: String,
+    pub user_id: UserId,
     pub user_label: Option<String>,
-    pub session_id: Option<String>,
+    pub session_id: Option<SessionId>,
     pub trace_id: Option<String>,
     pub provider: String,
     pub model: String,

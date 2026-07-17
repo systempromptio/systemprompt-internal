@@ -2,7 +2,8 @@
 name = "systemprompt-web-admin"
 version.workspace = true
 edition.workspace = true
-license = "MIT"
+authors.workspace = true
+license.workspace = true
 
 [dependencies]
 # Foundation
@@ -21,20 +22,16 @@ tower-http = { workspace = true }
 
 # Async runtime
 tokio = { workspace = true }
-tokio-stream = { workspace = true }
-async-stream = { workspace = true }
 
 # Serialization
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
 chrono = { workspace = true }
-chrono-tz = { workspace = true }
 uuid = { workspace = true }
 
 # Error handling
 thiserror = { workspace = true }
-anyhow = { workspace = true }
 
 # Logging
 tracing = { workspace = true }
@@ -48,29 +45,23 @@ rand = { workspace = true }
 
 # Templating
 handlebars = { workspace = true }
-indexmap = { workspace = true }
 
 # Archive
-flate2 = { workspace = true }
-tar = { workspace = true }
-zip = { workspace = true }
 tempfile = { workspace = true }
 
 # HTTP client
-reqwest = { workspace = true }
 
 # RFC 7523 JWT-bearer assertion signing for outbound Salesforce token requests
 jsonwebtoken = { version = "10", features = ["rust_crypto"] }
 
 # Utilities
-walkdir = { workspace = true }
 url = { workspace = true }
 urlencoding = { workspace = true }
 inventory = { workspace = true }
 async-trait = { workspace = true }
-once_cell = { workspace = true }
 
 [dev-dependencies]
+anyhow = { workspace = true }
 tempfile = { workspace = true }
 tower = { workspace = true, features = ["util"] }
 

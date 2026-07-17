@@ -1,19 +1,20 @@
 //! Trace list query: one aggregated summary row per session in the window.
 
 use sqlx::PgPool;
+use systemprompt::identifiers::{AgentId, SessionId, UserId};
 
 use super::{TraceFilter, TraceSort, TraceSummary};
 use crate::repositories::governance_grp::time_range::TimeRange;
 
 #[derive(Debug)]
 struct TraceRow {
-    session_id: String,
+    session_id: SessionId,
     trace_id: Option<String>,
     started_at: chrono::DateTime<chrono::Utc>,
     ended_at: chrono::DateTime<chrono::Utc>,
     duration_ms: i64,
-    user_id: Option<String>,
-    agent_id: Option<String>,
+    user_id: Option<UserId>,
+    agent_id: Option<AgentId>,
     agent_scope: Option<String>,
     model: Option<String>,
     provider: Option<String>,
@@ -34,10 +35,21 @@ struct TraceRow {
     total_count: i64,
 }
 
-/// The sort stays a single compile-time `query_as!`, never an interpolated string.
+/// Pagination window for [`fetch_trace_list`] (was 3 trailing positional
+/// args: sort, limit, offset).
+#[derive(Debug, Clone, Copy)]
+pub struct TracePage {
+    pub sort: TraceSort,
+    pub limit: i64,
+    pub offset: i64,
+}
+
+/// Returns trace summaries inside the window plus the unpaginated match count.
 ///
-/// `TraceSort` is closed (five columns × two directions); each `(column, dir)`
-/// pair is bound as text and selected by a per-key `CASE` in the `ORDER BY`.
+/// The sort is a closed `TraceSort` (five columns × two directions); each
+/// `(column, dir)` pair is bound as text and selected by a per-key `CASE` in
+/// the `ORDER BY`, so the whole statement stays a single compile-time
+/// `query_as!` rather than an interpolated string.
 #[expect(
     clippy::too_many_lines,
     reason = "body is one irreducible compile-time-checked query_as! SQL literal; see comment above"
@@ -46,10 +58,13 @@ pub async fn fetch_trace_list(
     pool: &PgPool,
     filter: TraceFilter<'_>,
     range: TimeRange,
-    sort: TraceSort,
-    limit: i64,
-    offset: i64,
+    page: TracePage,
 ) -> Result<(Vec<TraceSummary>, i64), sqlx::Error> {
+    let TracePage {
+        sort,
+        limit,
+        offset,
+    } = page;
     let sort_col = sort.column.sql_key();
     let sort_dir = sort.dir.sql_key();
 
@@ -186,13 +201,13 @@ pub async fn fetch_trace_list(
             FROM filtered f
         )
         SELECT
-            session_id              AS "session_id!",
+            session_id              AS "session_id!: SessionId",
             trace_id                AS "trace_id?",
             started_at              AS "started_at!",
             ended_at                AS "ended_at!",
             duration_ms             AS "duration_ms!",
-            user_id                 AS "user_id?",
-            agent_id                AS "agent_id?",
+            user_id                 AS "user_id?: UserId",
+            agent_id                AS "agent_id?: AgentId",
             agent_scope             AS "agent_scope?",
             model                   AS "model?",
             provider                AS "provider?",

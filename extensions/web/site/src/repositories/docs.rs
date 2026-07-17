@@ -1,25 +1,26 @@
 use sqlx::PgPool;
+use systemprompt::identifiers::{ContentId, SourceId};
 
 #[derive(Debug)]
-pub struct DocContentRow {
+pub(crate) struct DocContentRow {
     pub slug: String,
     pub kind: String,
-    pub source_id: String,
+    pub source_id: SourceId,
     pub after_reading_this: serde_json::Value,
     pub related_playbooks: serde_json::Value,
     pub related_code: serde_json::Value,
 }
 
-pub async fn get_doc_content(
+pub(crate) async fn get_doc_content(
     pool: &PgPool,
-    content_id: &str,
+    content_id: &ContentId,
 ) -> Result<DocContentRow, sqlx::Error> {
     let row = sqlx::query!(
         r#"
         SELECT
             mc.slug,
             mc.kind,
-            mc.source_id,
+            mc.source_id as "source_id: SourceId",
             COALESCE(mce.after_reading_this, '[]'::jsonb) as "after_reading_this!",
             COALESCE(mce.related_playbooks, '[]'::jsonb) as "related_playbooks!",
             COALESCE(mce.related_code, '[]'::jsonb) as "related_code!"
@@ -27,7 +28,7 @@ pub async fn get_doc_content(
         LEFT JOIN markdown_content_enrichment mce ON mce.content_id = mc.id
         WHERE mc.id = $1
         "#,
-        content_id
+        content_id.as_str()
     )
     .fetch_one(pool)
     .await?;
@@ -42,15 +43,15 @@ pub async fn get_doc_content(
 }
 
 #[derive(Debug)]
-pub struct DocChildRow {
+pub(crate) struct DocChildRow {
     pub slug: String,
     pub title: String,
     pub description: String,
 }
 
-pub async fn list_root_doc_children(
+pub(crate) async fn list_root_doc_children(
     pool: &PgPool,
-    source_id: &str,
+    source_id: &SourceId,
 ) -> Result<Vec<DocChildRow>, sqlx::Error> {
     let rows = sqlx::query!(
         r#"
@@ -62,7 +63,7 @@ pub async fn list_root_doc_children(
           AND slug NOT LIKE '%/%'
         ORDER BY title
         "#,
-        source_id
+        source_id.as_str()
     )
     .fetch_all(pool)
     .await?;
@@ -76,9 +77,9 @@ pub async fn list_root_doc_children(
         .collect())
 }
 
-pub async fn list_nested_doc_children(
+pub(crate) async fn list_nested_doc_children(
     pool: &PgPool,
-    source_id: &str,
+    source_id: &SourceId,
     slug_prefix: &str,
     current_slug: &str,
 ) -> Result<Vec<DocChildRow>, sqlx::Error> {
@@ -91,7 +92,7 @@ pub async fn list_nested_doc_children(
           AND slug != $3
         ORDER BY title
         "#,
-        source_id,
+        source_id.as_str(),
         slug_prefix,
         current_slug
     )

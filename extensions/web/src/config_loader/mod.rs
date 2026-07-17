@@ -6,11 +6,12 @@ use thiserror::Error;
 
 mod skills;
 
-pub use skills::load_skills_page_config;
+pub(crate) use skills::load_skills_page_config;
 
-fn load_app_paths() -> Result<AppPaths, String> {
-    let profile = ProfileBootstrap::get().map_err(|e| e.to_string())?;
-    AppPaths::from_profile(&profile.paths).map_err(|e| e.to_string())
+fn load_app_paths() -> Result<AppPaths, ConfigError> {
+    let profile =
+        ProfileBootstrap::get().map_err(|e| ConfigError::PathsUnavailable(e.to_string()))?;
+    AppPaths::from_profile(&profile.paths).map_err(|e| ConfigError::PathsUnavailable(e.to_string()))
 }
 
 use crate::features::{FeaturePage, FeaturesConfig};
@@ -18,22 +19,25 @@ use crate::homepage::HomepageConfig;
 use crate::navigation::{BrandingConfig, NavigationConfig};
 
 #[derive(Debug, Clone, Error)]
-pub enum ConfigError {
+pub(crate) enum ConfigError {
     #[error("Failed to parse {config_name}: {message}")]
     Parse {
         config_name: String,
         message: String,
     },
+
+    #[error("Application paths unavailable: {0}")]
+    PathsUnavailable(String),
 }
 
-pub fn load_navigation_config() -> Result<Option<Arc<NavigationConfig>>, ConfigError> {
+pub(crate) fn load_navigation_config() -> Result<Option<Arc<NavigationConfig>>, ConfigError> {
     let Some(nav_value) = load_config_section("navigation.yaml")? else {
         return Ok(None);
     };
 
     let nav_config: NavigationConfig =
         serde_yaml::from_value(nav_value).map_err(|e| ConfigError::Parse {
-            config_name: "navigation.yaml".to_string(),
+            config_name: "navigation.yaml".to_owned(),
             message: e.to_string(),
         })?;
 
@@ -42,14 +46,14 @@ pub fn load_navigation_config() -> Result<Option<Arc<NavigationConfig>>, ConfigE
     Ok(Some(Arc::new(nav_config)))
 }
 
-pub fn load_homepage_config() -> Result<Option<Arc<HomepageConfig>>, ConfigError> {
+pub(crate) fn load_homepage_config() -> Result<Option<Arc<HomepageConfig>>, ConfigError> {
     let Some(homepage_value) = load_config_section("homepage.yaml")? else {
         return Ok(None);
     };
 
     let mut homepage_config: HomepageConfig =
         serde_yaml::from_value(homepage_value).map_err(|e| ConfigError::Parse {
-            config_name: "homepage.yaml".to_string(),
+            config_name: "homepage.yaml".to_owned(),
             message: e.to_string(),
         })?;
 
@@ -83,18 +87,18 @@ fn populate_demo_showcase(homepage_config: &mut HomepageConfig, demo_root: &std:
                 "Scanned demo/ for homepage showcase"
             );
             homepage_config.demos = Some(scanned);
-        }
+        },
         Err(e) => {
             tracing::warn!(
                 error = %e,
                 path = %demo_root.display(),
                 "Failed to scan demo/ directory — homepage will render without demo cards"
             );
-        }
+        },
     }
 }
 
-pub fn load_salesforce_config(
+pub(crate) fn load_salesforce_config(
 ) -> Result<Option<Arc<systemprompt_web_admin::SalesforceConfig>>, ConfigError> {
     let Some(value) = load_config_section("salesforce.yaml")? else {
         return Ok(None);
@@ -102,7 +106,7 @@ pub fn load_salesforce_config(
 
     let config: systemprompt_web_admin::SalesforceConfig =
         serde_yaml::from_value(value).map_err(|e| ConfigError::Parse {
-            config_name: "salesforce.yaml".to_string(),
+            config_name: "salesforce.yaml".to_owned(),
             message: e.to_string(),
         })?;
 
@@ -114,7 +118,7 @@ pub fn load_salesforce_config(
     Ok(Some(Arc::new(config)))
 }
 
-pub fn load_branding_config() -> Result<Option<BrandingConfig>, ConfigError> {
+pub(crate) fn load_branding_config() -> Result<Option<BrandingConfig>, ConfigError> {
     let Some(theme_value) = load_config_section("theme.yaml")? else {
         return Ok(None);
     };
@@ -125,7 +129,7 @@ pub fn load_branding_config() -> Result<Option<BrandingConfig>, ConfigError> {
 
     let branding_config: BrandingConfig =
         serde_yaml::from_value(branding_value.clone()).map_err(|e| ConfigError::Parse {
-            config_name: "theme.yaml (branding section)".to_string(),
+            config_name: "theme.yaml (branding section)".to_owned(),
             message: e.to_string(),
         })?;
 
@@ -134,13 +138,13 @@ pub fn load_branding_config() -> Result<Option<BrandingConfig>, ConfigError> {
     Ok(Some(branding_config))
 }
 
-pub fn load_features_config() -> Result<Option<Arc<FeaturesConfig>>, ConfigError> {
+pub(crate) fn load_features_config() -> Result<Option<Arc<FeaturesConfig>>, ConfigError> {
     let paths = match load_app_paths() {
         Ok(p) => p,
         Err(e) => {
             tracing::debug!(error = %e, "AppPaths not available for features config");
             return Ok(None);
-        }
+        },
     };
 
     let features_dir = paths.system().services().join("web/config/features");
@@ -177,7 +181,7 @@ fn read_features_dir(
                 "Features config directory does not exist"
             );
             Ok(None)
-        }
+        },
         Err(e) => Err(ConfigError::Parse {
             config_name: features_dir.display().to_string(),
             message: format!("Failed to read directory: {e}"),
@@ -186,30 +190,31 @@ fn read_features_dir(
 }
 
 fn parse_feature_pages(entries: std::fs::ReadDir) -> Result<Vec<FeaturePage>, ConfigError> {
-    let results: Vec<Result<FeaturePage, String>> = entries
+    let mut pages: Vec<FeaturePage> = Vec::new();
+    let mut errors: Vec<String> = Vec::new();
+
+    for entry in entries
         .flatten()
         .filter(|entry| entry.path().extension().is_some_and(|ext| ext == "yaml"))
-        .map(|entry| {
-            let path = entry.path();
-            let content = std::fs::read_to_string(&path)
-                .map_err(|e| format!("{}: failed to read: {e}", path.display()))?;
-            serde_yaml::from_str(&content)
-                .map_err(|e| format!("{}: failed to parse: {e}", path.display()))
-        })
-        .collect();
+    {
+        let path = entry.path();
+        match std::fs::read_to_string(&path) {
+            Ok(content) => match serde_yaml::from_str(&content) {
+                Ok(page) => pages.push(page),
+                Err(e) => errors.push(format!("{}: failed to parse: {e}", path.display())),
+            },
+            Err(e) => errors.push(format!("{}: failed to read: {e}", path.display())),
+        }
+    }
 
-    let errors: Vec<String> = results
-        .iter()
-        .filter_map(|r| r.as_ref().err().cloned())
-        .collect();
     if !errors.is_empty() {
         return Err(ConfigError::Parse {
-            config_name: "features".to_string(),
+            config_name: "features".to_owned(),
             message: errors.join("; "),
         });
     }
 
-    Ok(results.into_iter().filter_map(Result::ok).collect())
+    Ok(pages)
 }
 
 fn load_config_section(filename: &str) -> Result<Option<serde_yaml::Value>, ConfigError> {
@@ -218,7 +223,7 @@ fn load_config_section(filename: &str) -> Result<Option<serde_yaml::Value>, Conf
         Err(e) => {
             tracing::debug!(error = %e, "AppPaths not available for config section");
             return Ok(None);
-        }
+        },
     };
 
     let config_path = paths
@@ -234,19 +239,19 @@ fn load_config_section(filename: &str) -> Result<Option<serde_yaml::Value>, Conf
                 "Config file does not exist"
             );
             return Ok(None);
-        }
+        },
         Err(e) => {
             return Err(ConfigError::Parse {
-                config_name: filename.to_string(),
+                config_name: filename.to_owned(),
                 message: format!("Failed to read file: {e}"),
             });
-        }
+        },
     };
 
     serde_yaml::from_str(&yaml_content)
         .map(Some)
         .map_err(|e| ConfigError::Parse {
-            config_name: filename.to_string(),
+            config_name: filename.to_owned(),
             message: e.to_string(),
         })
 }

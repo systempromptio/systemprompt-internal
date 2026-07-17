@@ -1,14 +1,42 @@
 //! Per-session waterfall spans, unioned and normalised across the governance,
 //! gateway-request, and tool-event tables.
 
+use serde::Serialize;
 use sqlx::PgPool;
+use systemprompt::identifiers::SessionId;
 
 use super::{Span, SpanKind, SpanStatus};
 
+#[derive(Debug, Serialize)]
+struct GovernanceSpanRaw<'a> {
+    policy: &'a str,
+    decision: &'a str,
+    tool_name: &'a str,
+    agent_id: Option<&'a str>,
+}
+
+#[derive(Debug, Serialize)]
+struct RequestSpanRaw<'a> {
+    request_id: &'a str,
+    provider: &'a str,
+    model: &'a str,
+    status: &'a str,
+    latency_ms: Option<i32>,
+}
+
+#[derive(Debug, Serialize)]
+struct EventSpanRaw<'a> {
+    event_type: &'a str,
+    tool_name: Option<&'a str>,
+}
+
 /// Resolve `id` (a `session_id` or `trace_id`) to an absolute `session_id`.
-pub async fn resolve_trace_session(pool: &PgPool, id: &str) -> Result<Option<String>, sqlx::Error> {
+pub async fn resolve_trace_session(
+    pool: &PgPool,
+    id: &str,
+) -> Result<Option<SessionId>, sqlx::Error> {
     if let Some(row) = sqlx::query!(
-        r#"SELECT session_id AS "session_id!"
+        r#"SELECT session_id AS "session_id!: SessionId"
            FROM ai_requests
            WHERE trace_id = $1 AND session_id IS NOT NULL
            LIMIT 1"#,
@@ -21,7 +49,7 @@ pub async fn resolve_trace_session(pool: &PgPool, id: &str) -> Result<Option<Str
     }
 
     if let Some(row) = sqlx::query!(
-        r#"SELECT session_id AS "session_id!"
+        r#"SELECT session_id AS "session_id!: SessionId"
            FROM governance_decisions
            WHERE session_id = $1
            LIMIT 1"#,
@@ -34,7 +62,7 @@ pub async fn resolve_trace_session(pool: &PgPool, id: &str) -> Result<Option<Str
     }
 
     if let Some(row) = sqlx::query!(
-        r#"SELECT session_id AS "session_id!"
+        r#"SELECT session_id AS "session_id!: SessionId"
            FROM ai_requests
            WHERE session_id = $1
            LIMIT 1"#,
@@ -49,7 +77,10 @@ pub async fn resolve_trace_session(pool: &PgPool, id: &str) -> Result<Option<Str
     Ok(None)
 }
 
-async fn fetch_governance_spans(pool: &PgPool, session_id: &str) -> Result<Vec<Span>, sqlx::Error> {
+async fn fetch_governance_spans(
+    pool: &PgPool,
+    session_id: &SessionId,
+) -> Result<Vec<Span>, sqlx::Error> {
     let decisions = sqlx::query!(
         r#"SELECT
             id              AS "id!",
@@ -66,7 +97,7 @@ async fn fetch_governance_spans(pool: &PgPool, session_id: &str) -> Result<Vec<S
                SELECT DISTINCT trace_id FROM ai_requests
                WHERE session_id = $1 AND trace_id IS NOT NULL)
         ORDER BY created_at ASC"#,
-        session_id,
+        session_id.as_str(),
     )
     .fetch_all(pool)
     .await?;
@@ -93,18 +124,22 @@ async fn fetch_governance_spans(pool: &PgPool, session_id: &str) -> Result<Vec<S
                     d.agent_id.as_deref(),
                     d.agent_scope.as_deref(),
                 )),
-                raw: serde_json::json!({
-                    "policy": d.policy,
-                    "decision": d.decision,
-                    "tool_name": d.tool_name,
-                    "agent_id": d.agent_id,
-                }),
+                raw: serde_json::to_value(GovernanceSpanRaw {
+                    policy: &d.policy,
+                    decision: &d.decision,
+                    tool_name: &d.tool_name,
+                    agent_id: d.agent_id.as_deref(),
+                })
+                .unwrap_or_default(),
             }
         })
         .collect())
 }
 
-async fn fetch_request_spans(pool: &PgPool, session_id: &str) -> Result<Vec<Span>, sqlx::Error> {
+async fn fetch_request_spans(
+    pool: &PgPool,
+    session_id: &SessionId,
+) -> Result<Vec<Span>, sqlx::Error> {
     let requests = sqlx::query!(
         r#"SELECT
             id              AS "id!",
@@ -119,7 +154,7 @@ async fn fetch_request_spans(pool: &PgPool, session_id: &str) -> Result<Vec<Span
         FROM ai_requests
         WHERE session_id = $1
         ORDER BY created_at ASC"#,
-        session_id,
+        session_id.as_str(),
     )
     .fetch_all(pool)
     .await?;
@@ -147,19 +182,23 @@ async fn fetch_request_spans(pool: &PgPool, session_id: &str) -> Result<Vec<Span
                 duration_ms: dur,
                 status,
                 identity_label: Some(format_identity(Some(r.user_id.as_str()), None, None)),
-                raw: serde_json::json!({
-                    "request_id": r.request_id,
-                    "provider": r.provider,
-                    "model": r.model,
-                    "status": r.status,
-                    "latency_ms": r.latency_ms,
-                }),
+                raw: serde_json::to_value(RequestSpanRaw {
+                    request_id: &r.request_id,
+                    provider: &r.provider,
+                    model: &r.model,
+                    status: &r.status,
+                    latency_ms: r.latency_ms,
+                })
+                .unwrap_or_default(),
             }
         })
         .collect())
 }
 
-async fn fetch_event_spans(pool: &PgPool, session_id: &str) -> Result<Vec<Span>, sqlx::Error> {
+async fn fetch_event_spans(
+    pool: &PgPool,
+    session_id: &SessionId,
+) -> Result<Vec<Span>, sqlx::Error> {
     let events = sqlx::query!(
         r#"SELECT
             id              AS "id!",
@@ -170,7 +209,7 @@ async fn fetch_event_spans(pool: &PgPool, session_id: &str) -> Result<Vec<Span>,
         FROM plugin_usage_events
         WHERE session_id = $1
         ORDER BY created_at ASC"#,
-        session_id,
+        session_id.as_str(),
     )
     .fetch_all(pool)
     .await?;
@@ -199,16 +238,20 @@ async fn fetch_event_spans(pool: &PgPool, session_id: &str) -> Result<Vec<Span>,
                 duration_ms: 0,
                 status,
                 identity_label: Some(format_identity(Some(e.user_id.as_str()), None, None)),
-                raw: serde_json::json!({
-                    "event_type": e.event_type,
-                    "tool_name": e.tool_name,
-                }),
+                raw: serde_json::to_value(EventSpanRaw {
+                    event_type: &e.event_type,
+                    tool_name: e.tool_name.as_deref(),
+                })
+                .unwrap_or_default(),
             }
         })
         .collect())
 }
 
-pub async fn fetch_trace_spans(pool: &PgPool, session_id: &str) -> Result<Vec<Span>, sqlx::Error> {
+pub async fn fetch_trace_spans(
+    pool: &PgPool,
+    session_id: &SessionId,
+) -> Result<Vec<Span>, sqlx::Error> {
     let mut spans = fetch_governance_spans(pool, session_id).await?;
     spans.extend(fetch_request_spans(pool, session_id).await?);
     spans.extend(fetch_event_spans(pool, session_id).await?);
@@ -221,6 +264,6 @@ fn format_identity(user: Option<&str>, agent: Option<&str>, scope: Option<&str>)
     match (agent, scope) {
         (Some(a), Some(s)) => format!("{user_part} · {a} ({s})"),
         (Some(a), None) => format!("{user_part} · {a}"),
-        _ => user_part.to_string(),
+        _ => user_part.to_owned(),
     }
 }

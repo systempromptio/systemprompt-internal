@@ -1,27 +1,31 @@
 use crate::templates::AdminTemplateEngine;
 use crate::types::{MarketplaceContext, UserContext};
-use axum::{
-    http::StatusCode,
-    response::{Html, IntoResponse, Response},
-    Extension,
-};
-use serde_json::json;
+use axum::Extension;
+use axum::http::StatusCode;
+use axum::response::{Html, IntoResponse, Response};
+use serde::Serialize;
 
-use super::{render_page, ACCESS_DENIED_HTML};
+use super::{ACCESS_DENIED_HTML, render_typed_page};
 
-pub async fn demo_register_page(
+#[derive(Debug, Serialize)]
+struct DemoRegisterContext {
+    title: &'static str,
+    page: &'static str,
+}
+
+pub(crate) async fn demo_register_page(
     Extension(user_ctx): Extension<UserContext>,
     Extension(mkt_ctx): Extension<MarketplaceContext>,
     Extension(engine): Extension<AdminTemplateEngine>,
 ) -> Response {
     if !user_ctx.is_admin {
-        return (StatusCode::FORBIDDEN, Html(ACCESS_DENIED_HTML.to_string())).into_response();
+        return (StatusCode::FORBIDDEN, Html(ACCESS_DENIED_HTML.to_owned())).into_response();
     }
 
-    let data = json!({
-        "title": "Demo User Registration",
-        "page": "demo-register",
-    });
+    let ctx = DemoRegisterContext {
+        title: "Demo User Registration",
+        page: "demo-register",
+    };
 
-    render_page(&engine, "demo-register", &data, &user_ctx, &mkt_ctx)
+    render_typed_page(&engine, "demo-register", &ctx, &user_ctx, &mkt_ctx)
 }

@@ -3,15 +3,13 @@ use std::sync::Arc;
 use crate::repositories;
 use crate::templates::AdminTemplateEngine;
 use crate::types::{MarketplaceContext, UserContext};
-use axum::{
-    extract::{Extension, State},
-    response::Response,
-};
+use axum::extract::{Extension, State};
+use axum::response::Response;
 use sqlx::PgPool;
 
 use super::types::{SettingsPageData, SettingsView};
 
-pub async fn settings_page(
+pub(crate) async fn settings_page(
     Extension(user_ctx): Extension<UserContext>,
     Extension(mkt_ctx): Extension<MarketplaceContext>,
     Extension(engine): Extension<AdminTemplateEngine>,
@@ -31,7 +29,7 @@ pub async fn settings_page(
             notify_daily_summary: true,
             notify_achievements: true,
             leaderboard_opt_in: true,
-            timezone: "UTC".to_string(),
+            timezone: "UTC".to_owned(),
         },
         |s| SettingsView {
             display_name: s.display_name.clone(),
@@ -48,7 +46,7 @@ pub async fn settings_page(
         title: "Account Settings",
         settings: settings_view,
         user_email: user_ctx.email.to_string(),
-        user_id: user_ctx.user_id.to_string(),
+        user_id: user_ctx.user_id.clone(),
         username: user_ctx.username.clone(),
     };
 

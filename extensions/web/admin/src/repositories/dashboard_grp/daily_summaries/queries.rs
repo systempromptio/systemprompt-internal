@@ -3,13 +3,14 @@ use std::sync::Arc;
 use chrono::NaiveDate;
 use sqlx::PgPool;
 use systemprompt::ai::AiService;
+use systemprompt::identifiers::UserId;
 use systemprompt_web_shared::error::MarketplaceError;
 
 use super::types::{DailySummaryInput, DailySummaryRow, GlobalAverages, UpsertCloned};
 
 pub async fn upsert_daily_summary(
     pool: &PgPool,
-    user_id: &str,
+    user_id: &UserId,
     date: NaiveDate,
     input: &DailySummaryInput,
 ) -> Result<(), sqlx::Error> {
@@ -26,10 +27,13 @@ pub async fn upsert_daily_summary(
     execute_upsert_query(pool, user_id, date, input, &cloned).await
 }
 
-#[allow(clippy::cognitive_complexity)]
+#[expect(
+    clippy::cognitive_complexity,
+    reason = "large sqlx upsert macro inflates branch count"
+)]
 async fn execute_upsert_query(
     pool: &PgPool,
-    user_id: &str,
+    user_id: &UserId,
     date: NaiveDate,
     input: &DailySummaryInput,
     cloned: &UpsertCloned,
@@ -76,7 +80,7 @@ async fn execute_upsert_query(
             total_corrections = EXCLUDED.total_corrections,
             avg_automation_ratio = EXCLUDED.avg_automation_ratio,
             plan_mode_sessions = EXCLUDED.plan_mode_sessions, updated_at = NOW()",
-        user_id, date, input.session_count, input.avg_quality_score,
+        user_id.as_str(), date, input.session_count, input.avg_quality_score,
         input.goals_achieved, input.goals_partial, input.goals_failed,
         input.total_prompts, input.total_tool_uses, input.total_errors,
         input.summary, cloned.patterns,
@@ -102,7 +106,7 @@ async fn execute_upsert_query(
 
 pub async fn fetch_daily_summary(
     pool: &PgPool,
-    user_id: &str,
+    user_id: &UserId,
     date: NaiveDate,
 ) -> Option<DailySummaryRow> {
     sqlx::query_as!(
@@ -122,7 +126,7 @@ pub async fn fetch_daily_summary(
             avg_automation_ratio, plan_mode_sessions
            FROM daily_summaries
            WHERE user_id = $1 AND summary_date = $2"#,
-        user_id,
+        user_id.as_str(),
         date,
     )
     .fetch_optional(pool)
@@ -136,7 +140,7 @@ pub async fn fetch_daily_summary(
 
 pub async fn fetch_recent_daily_summaries(
     pool: &PgPool,
-    user_id: &str,
+    user_id: &UserId,
     limit: i64,
 ) -> Vec<DailySummaryRow> {
     sqlx::query_as!(
@@ -158,7 +162,7 @@ pub async fn fetch_recent_daily_summaries(
            WHERE user_id = $1
            ORDER BY summary_date DESC
            LIMIT $2"#,
-        user_id,
+        user_id.as_str(),
         limit,
     )
     .fetch_all(pool)
@@ -196,20 +200,20 @@ pub async fn fetch_global_averages(pool: &PgPool) -> GlobalAverages {
     .unwrap_or_else(GlobalAverages::default)
 }
 
-#[allow(clippy::cognitive_complexity)]
+#[expect(clippy::cognitive_complexity, reason = "large sqlx macro function")]
 pub async fn generate_user_daily_summary(
     pool: &PgPool,
-    user_id: &str,
+    user_id: &UserId,
     date: NaiveDate,
     ai_service: Option<&Arc<AiService>>,
 ) -> Result<(), MarketplaceError> {
     let _ai = ai_service.ok_or(MarketplaceError::Internal(
-        "AI service not available".to_string(),
+        "AI service not available".to_owned(),
     ))?;
 
     let existing: Option<i64> = sqlx::query_scalar!(
         "SELECT COUNT(*)::BIGINT FROM daily_summaries WHERE user_id = $1 AND summary_date = $2",
-        user_id,
+        user_id.as_str(),
         date,
     )
     .fetch_optional(pool)
@@ -218,13 +222,13 @@ pub async fn generate_user_daily_summary(
     .flatten();
 
     if existing.unwrap_or(0) > 0 {
-        tracing::info!(user_id, %date, "Daily summary already exists, skipping");
+        tracing::info!(user_id = %user_id, %date, "Daily summary already exists, skipping");
         return Ok(());
     }
 
     let session_count: i64 = sqlx::query_scalar!(
         "SELECT COUNT(*)::BIGINT FROM plugin_session_summaries WHERE user_id = $1 AND started_at::date = $2",
-        user_id,
+        user_id.as_str(),
         date,
     )
     .fetch_one(pool)
@@ -233,7 +237,7 @@ pub async fn generate_user_daily_summary(
     .unwrap_or(0);
 
     if session_count == 0 {
-        tracing::debug!(user_id, %date, "No sessions found for daily summary");
+        tracing::debug!(user_id = %user_id, %date, "No sessions found for daily summary");
         return Ok(());
     }
 
@@ -242,7 +246,7 @@ pub async fn generate_user_daily_summary(
         "INSERT INTO daily_summaries (user_id, summary_date, session_count, created_at)
          VALUES ($1, $2, $3, NOW())
          ON CONFLICT (user_id, summary_date) DO NOTHING",
-        user_id,
+        user_id.as_str(),
         date,
         session_count_i32,
     )
@@ -250,6 +254,6 @@ pub async fn generate_user_daily_summary(
     .await
     .map_err(MarketplaceError::Database)?;
 
-    tracing::info!(user_id, %date, sessions = session_count, "Daily summary generated");
+    tracing::info!(user_id = %user_id, %date, sessions = session_count, "Daily summary generated");
     Ok(())
 }

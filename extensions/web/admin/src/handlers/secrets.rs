@@ -1,16 +1,14 @@
 use std::sync::Arc;
 
-use axum::{
-    extract::{Path, Query, State},
-    http::HeaderMap,
-    response::{IntoResponse, Response},
-    Json,
-};
+use axum::Json;
+use axum::extract::{Path, Query, State};
+use axum::http::HeaderMap;
+use axum::response::{IntoResponse, Response};
 use sqlx::PgPool;
 
 use systemprompt::identifiers::UserId;
 
-use crate::error::{AdminError, AdminResult};
+use crate::error::AdminResult;
 use crate::handlers::users::extract_user_from_cookie;
 use crate::services::auth::validate_plugin_jwt;
 use crate::services::secret_service;
@@ -23,11 +21,11 @@ use super::responses::{
 const RESOLUTION_TOKEN_EXPIRY_SECS: u32 = 300;
 
 #[derive(serde::Deserialize, Debug)]
-pub struct ResolveQuery {
+pub(crate) struct ResolveQuery {
     token: String,
 }
 
-pub async fn create_resolution_token_handler(
+pub(crate) async fn create_resolution_token_handler(
     State(pool): State<Arc<PgPool>>,
     Path(plugin_id): Path<String>,
     headers: HeaderMap,
@@ -53,7 +51,7 @@ async fn create_resolution_token_inner(
     .into_response())
 }
 
-pub async fn resolve_secrets_handler(
+pub(crate) async fn resolve_secrets_handler(
     State(pool): State<Arc<PgPool>>,
     Path(plugin_id): Path<String>,
     Query(params): Query<ResolveQuery>,
@@ -64,7 +62,7 @@ pub async fn resolve_secrets_handler(
     }
 }
 
-pub async fn audit_log_handler(
+pub(crate) async fn audit_log_handler(
     State(pool): State<Arc<PgPool>>,
     Path(plugin_id): Path<String>,
     headers: HeaderMap,
@@ -80,7 +78,7 @@ async fn audit_log_inner(
     plugin_id: &str,
     headers: &HeaderMap,
 ) -> AdminResult<Response> {
-    let session = extract_user_from_cookie(headers).map_err(AdminError::Unauthorized)?;
+    let session = extract_user_from_cookie(headers)?;
     let entries = secret_service::list_audit_log(pool, &session.user_id, plugin_id).await?;
     let items: Vec<AuditLogEntry> = entries
         .into_iter()
@@ -96,7 +94,7 @@ async fn audit_log_inner(
     Ok(Json(AuditLogListResponse { entries: items }).into_response())
 }
 
-pub async fn rotate_handler(
+pub(crate) async fn rotate_handler(
     State(pool): State<Arc<PgPool>>,
     Path(plugin_id): Path<String>,
     headers: HeaderMap,
@@ -112,7 +110,7 @@ async fn rotate_inner(
     plugin_id: &str,
     headers: &HeaderMap,
 ) -> AdminResult<Response> {
-    let session = extract_user_from_cookie(headers).map_err(AdminError::Unauthorized)?;
+    let session = extract_user_from_cookie(headers)?;
     secret_service::rotate_user_keys(pool, &session.user_id, plugin_id).await?;
     Ok(Json(ResultOkResponse { result: "ok" }).into_response())
 }

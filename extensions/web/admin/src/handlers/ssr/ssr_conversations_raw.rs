@@ -1,33 +1,34 @@
-//! `GET /admin/api/conversations/:session_id/raw` — capability-gated raw bodies.
+//! `GET /admin/api/conversations/:session_id/raw` — capability-gated raw
+//! bodies.
 //!
 //! Returns the un-redacted text of every turn for a session, keyed by ordinal.
 //! Refused with 403 unless the caller is admin or holds the `auditor` role.
 
 use std::sync::Arc;
 
-use axum::{
-    extract::{Extension, Path, State},
-    http::StatusCode,
-    response::{IntoResponse, Response},
-    Json,
-};
+use axum::Json;
+use axum::extract::{Extension, Path, State};
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 use serde::Serialize;
 use sqlx::PgPool;
+use systemprompt::identifiers::SessionId;
 
-use crate::repositories::analytics_grp::{fetch_raw_turns, RawTurnBody};
+use crate::repositories::analytics_grp::{RawTurnBody, fetch_raw_turns};
 use crate::types::UserContext;
 
 #[derive(Debug, Serialize)]
-pub struct RawTranscriptEnvelope {
-    pub session_id: String,
+pub(super) struct RawTranscriptEnvelope {
+    pub session_id: SessionId,
     pub turns: Vec<RawTurnBody>,
 }
 
-pub async fn conversations_raw(
+pub(crate) async fn conversations_raw(
     Extension(user_ctx): Extension<UserContext>,
     State(pool): State<Arc<PgPool>>,
     Path(session_id): Path<String>,
 ) -> Response {
+    let session_id = SessionId::new(session_id);
     let allowed = user_ctx.is_admin
         || user_ctx
             .roles
@@ -43,6 +44,6 @@ pub async fn conversations_raw(
         Err(e) => {
             tracing::error!(error = %e, session_id = %session_id, "fetch_raw_turns failed");
             StatusCode::INTERNAL_SERVER_ERROR.into_response()
-        }
+        },
     }
 }

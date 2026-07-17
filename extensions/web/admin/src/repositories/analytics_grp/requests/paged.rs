@@ -8,6 +8,7 @@
 
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
+use systemprompt::identifiers::{AgentId, SessionId, UserId};
 
 use super::{RequestFilter, RequestRow, RequestSortSpec};
 use crate::repositories::governance_grp::time_range::TimeRange;
@@ -17,9 +18,9 @@ struct RequestRowWithTotal {
     id: String,
     request_id: String,
     created_at: DateTime<Utc>,
-    user_id: String,
+    user_id: UserId,
     user_label: Option<String>,
-    session_id: Option<String>,
+    session_id: Option<SessionId>,
     trace_id: Option<String>,
     provider: String,
     model: String,
@@ -35,13 +36,20 @@ struct RequestRowWithTotal {
     total_count: i64,
 }
 
+/// Pagination window for [`fetch_requests_paged`]: LIMIT/OFFSET plus the
+/// closed sort spec, grouped since callers always pass all three together.
+#[derive(Debug, Clone, Copy)]
+pub struct RequestPage {
+    pub sort: RequestSortSpec,
+    pub limit: i64,
+    pub offset: i64,
+}
+
 pub async fn fetch_requests_paged(
     pool: &PgPool,
     filter: &RequestFilter,
     range: TimeRange,
-    sort: RequestSortSpec,
-    limit: i64,
-    offset: i64,
+    page: RequestPage,
 ) -> Result<(Vec<RequestRow>, i64), sqlx::Error> {
     let search_pattern = filter
         .search
@@ -49,10 +57,33 @@ pub async fn fetch_requests_paged(
         .filter(|s| !s.is_empty())
         .map(|s| format!("%{s}%"));
 
+    let rows = run_paged_query(pool, filter, range, page, search_pattern.as_deref()).await?;
+
+    let total = rows.first().map_or(0, |r| r.total_count);
+    let out = rows.into_iter().map(RequestRow::from).collect();
+    Ok((out, total))
+}
+
+#[expect(
+    clippy::too_many_lines,
+    reason = "body is one irreducible compile-time-checked query_as! SQL literal"
+)]
+async fn run_paged_query(
+    pool: &PgPool,
+    filter: &RequestFilter,
+    range: TimeRange,
+    page: RequestPage,
+    search_pattern: Option<&str>,
+) -> Result<Vec<RequestRowWithTotal>, sqlx::Error> {
+    let RequestPage {
+        sort,
+        limit,
+        offset,
+    } = page;
     let sort_col = sort.column.sql_key();
     let sort_dir = sort.dir.sql_key();
 
-    let rows = sqlx::query_as!(
+    sqlx::query_as!(
         RequestRowWithTotal,
         r#"WITH joined AS (
             SELECT
@@ -98,9 +129,9 @@ pub async fn fetch_requests_paged(
             id AS "id!",
             request_id AS "request_id!",
             created_at AS "created_at!",
-            user_id AS "user_id!",
+            user_id AS "user_id!: UserId",
             user_label,
-            session_id,
+            session_id AS "session_id: SessionId",
             trace_id,
             provider AS "provider!",
             model AS "model!",
@@ -125,23 +156,19 @@ pub async fn fetch_requests_paged(
         LIMIT $9 OFFSET $10"#,
         range.from,
         range.to,
-        filter.user_id.as_deref(),
-        filter.agent_id.as_deref(),
+        filter.user_id.as_ref().map(UserId::as_str),
+        filter.agent_id.as_ref().map(AgentId::as_str),
         filter.model.as_deref(),
         filter.provider.as_deref(),
         filter.status.as_deref(),
-        search_pattern.as_deref(),
+        search_pattern,
         limit,
         offset,
         sort_col,
         sort_dir,
     )
     .fetch_all(pool)
-    .await?;
-
-    let total = rows.first().map_or(0, |r| r.total_count);
-    let out = rows.into_iter().map(RequestRow::from).collect();
-    Ok((out, total))
+    .await
 }
 
 impl From<RequestRowWithTotal> for RequestRow {

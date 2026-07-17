@@ -1,16 +1,15 @@
 //! View-model assembly for the user roster and detail pages.
 //!
 //! Pure transforms from repository rows into the serde structs the `users` /
-//! `user-detail` templates render: marketplace resolution, per-user enrichment,
-//! department grouping, and the final serde-value enrichment (page stats and
-//! effective-permission injection) the templates expect as extra top-level keys.
+//! `user-detail` templates render: marketplace resolution, per-user
+//! enrichment, and department grouping. `UsersPageData` / `UserDetailPageData`
+//! are fully self-contained typed structs; callers in `mod.rs` populate them
+//! directly and hand them to `render_typed_page` with no post-hoc value
+//! mutation.
 
 use crate::repositories;
-use crate::repositories::governance_grp::effective::EffectivePermissions;
 
-use super::super::types::{
-    DepartmentGroup, EnrichedUserView, UserDetailPageData, UserMarketplaceRef, UsersPageData,
-};
+use super::super::types::{DepartmentGroup, EnrichedUserView, UserMarketplaceRef};
 
 fn freshness_for(ts: Option<chrono::DateTime<chrono::Utc>>) -> &'static str {
     ts.map_or("never", |t| {
@@ -53,9 +52,9 @@ pub(super) fn resolve_marketplaces(
                     name,
                     source: "override",
                 });
-            }
+            },
             "deny" => entries.retain(|e| e.id != ovr.entity_id),
-            _ => {}
+            _ => {},
         }
     }
     entries
@@ -84,11 +83,11 @@ pub(super) fn enrich_users(
             let agg = agg_map.get(u.user_id.as_str());
             let rt = rt_map.get(u.user_id.as_str());
             let device_freshness =
-                freshness_for(rt.and_then(|r| r.newest_device_seen_at)).to_string();
+                freshness_for(rt.and_then(|r| r.newest_device_seen_at)).to_owned();
             let user_overrides = ovr_map.get(u.user_id.as_str()).cloned().unwrap_or_default();
             let marketplaces = resolve_marketplaces(yaml_marketplaces, &user_overrides);
             EnrichedUserView {
-                user_id: u.user_id.to_string(),
+                user_id: u.user_id.clone(),
                 display_name: u.display_name.clone(),
                 email: u.email.as_ref().map(ToString::to_string),
                 roles: u.roles.clone(),
@@ -123,7 +122,7 @@ pub(super) fn group_by_department(users: Vec<EnrichedUserView>) -> Vec<Departmen
         std::collections::BTreeMap::new();
     for u in users {
         let key = if u.department.is_empty() {
-            "Unassigned".to_string()
+            "Unassigned".to_owned()
         } else {
             u.department.clone()
         };
@@ -134,8 +133,8 @@ pub(super) fn group_by_department(users: Vec<EnrichedUserView>) -> Vec<Departmen
         .into_iter()
         .map(|(department, mut users)| {
             users.sort_by(|a, b| {
-                let an = a.display_name.as_deref().unwrap_or(&a.user_id);
-                let bn = b.display_name.as_deref().unwrap_or(&b.user_id);
+                let an = a.display_name.as_deref().unwrap_or(a.user_id.as_str());
+                let bn = b.display_name.as_deref().unwrap_or(b.user_id.as_str());
                 an.to_lowercase().cmp(&bn.to_lowercase())
             });
             let total_tokens = users.iter().map(|u| u.lifetime_tokens).sum();
@@ -165,59 +164,4 @@ pub(super) fn group_by_department(users: Vec<EnrichedUserView>) -> Vec<Departmen
         })
     });
     groups
-}
-
-pub(super) fn users_page_value(
-    data: &UsersPageData,
-    total_users: usize,
-    active_users: usize,
-    total_events: i64,
-) -> serde_json::Value {
-    let mut value = serde_json::to_value(data).unwrap_or(serde_json::Value::Null);
-    if let Some(obj) = value.as_object_mut() {
-        obj.insert(
-            "page_stats".to_string(),
-            serde_json::json!([
-                {"value": total_users, "label": "Users"},
-                {"value": active_users, "label": "Active"},
-                {"value": total_events, "label": "Events"},
-            ]),
-        );
-    }
-    value
-}
-
-pub(super) fn not_found_value() -> serde_json::Value {
-    let data = UserDetailPageData {
-        page: "user-detail",
-        title: "User Detail",
-        user: None,
-        gamification: None,
-        not_found: true,
-        user_department: String::new(),
-        user_assignments: super::super::types::UserAssignmentSummary::default(),
-        user_devices: Vec::new(),
-        user_devices_count: 0,
-        departments: Vec::new(),
-        runtime: None,
-    };
-    serde_json::to_value(&data).unwrap_or(serde_json::Value::Null)
-}
-
-pub(super) fn detail_page_value(
-    data: &UserDetailPageData,
-    effective: Option<EffectivePermissions>,
-) -> serde_json::Value {
-    let mut value = serde_json::to_value(data).unwrap_or(serde_json::Value::Null);
-    if let (serde_json::Value::Object(ref mut map), Some(eff)) = (&mut value, effective) {
-        map.insert(
-            "effective_permissions".to_string(),
-            serde_json::to_value(&eff).unwrap_or(serde_json::Value::Null),
-        );
-        map.insert(
-            "has_effective_permissions".to_string(),
-            serde_json::Value::Bool(!eff.gateway_routes.is_empty() || !eff.mcp_servers.is_empty()),
-        );
-    }
-    value
 }

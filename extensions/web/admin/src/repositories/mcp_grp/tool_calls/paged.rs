@@ -6,6 +6,7 @@
 
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
+use systemprompt::identifiers::{AgentId, SessionId, UserId};
 
 use super::{ToolCallFilter, ToolCallRow, ToolSortSpec};
 use crate::repositories::governance_grp::time_range::TimeRange;
@@ -17,9 +18,9 @@ struct ToolCallRowWithTotal {
     event_type: String,
     tool_name: Option<String>,
     plugin_id: Option<String>,
-    user_id: String,
-    session_id: String,
-    agent_id: Option<String>,
+    user_id: UserId,
+    session_id: SessionId,
+    agent_id: Option<AgentId>,
     agent_scope: Option<String>,
     content_input_bytes: i64,
     content_output_bytes: i64,
@@ -32,13 +33,22 @@ struct ToolCallRowWithTotal {
     total_count: i64,
 }
 
+/// Pagination window for [`fetch_tool_calls_paged`] (was 3 trailing
+/// positional args: sort, limit, offset).
+#[derive(Debug, Clone, Copy)]
+pub struct ToolCallPage {
+    pub sort: ToolSortSpec,
+    pub limit: i64,
+    pub offset: i64,
+}
+
+/// Page through tool-call events with their governance verdict and parent
+/// request `trace_id`. Filter / sort / search supported.
 pub async fn fetch_tool_calls_paged(
     pool: &PgPool,
     filter: &ToolCallFilter,
     range: TimeRange,
-    sort: ToolSortSpec,
-    limit: i64,
-    offset: i64,
+    page: ToolCallPage,
 ) -> Result<(Vec<ToolCallRow>, i64), sqlx::Error> {
     let search_pattern = filter
         .search
@@ -46,10 +56,33 @@ pub async fn fetch_tool_calls_paged(
         .filter(|s| !s.is_empty())
         .map(|s| format!("%{s}%"));
 
+    let rows = run_tool_calls_query(pool, filter, range, page, search_pattern.as_deref()).await?;
+
+    let total = rows.first().map_or(0, |r| r.total_count);
+    let out = rows.into_iter().map(ToolCallRow::from).collect();
+    Ok((out, total))
+}
+
+#[expect(
+    clippy::too_many_lines,
+    reason = "body is one irreducible compile-time-checked query_as! SQL literal"
+)]
+async fn run_tool_calls_query(
+    pool: &PgPool,
+    filter: &ToolCallFilter,
+    range: TimeRange,
+    page: ToolCallPage,
+    search_pattern: Option<&str>,
+) -> Result<Vec<ToolCallRowWithTotal>, sqlx::Error> {
+    let ToolCallPage {
+        sort,
+        limit,
+        offset,
+    } = page;
     let sort_col = sort.column.sql_key();
     let sort_dir = sort.dir.sql_key();
 
-    let rows = sqlx::query_as!(
+    sqlx::query_as!(
         ToolCallRowWithTotal,
         r#"WITH joined AS (
             SELECT
@@ -96,9 +129,9 @@ pub async fn fetch_tool_calls_paged(
             event_type AS "event_type!",
             tool_name,
             plugin_id,
-            user_id AS "user_id!",
-            session_id AS "session_id!",
-            agent_id,
+            user_id AS "user_id!: UserId",
+            session_id AS "session_id!: SessionId",
+            agent_id AS "agent_id: AgentId",
             agent_scope,
             content_input_bytes AS "content_input_bytes!",
             content_output_bytes AS "content_output_bytes!",
@@ -117,22 +150,18 @@ pub async fn fetch_tool_calls_paged(
         range.from,
         range.to,
         filter.tool_name.as_deref(),
-        filter.user_id.as_deref(),
+        filter.user_id.as_ref().map(UserId::as_str),
         filter.agent_scope.as_deref(),
         filter.plugin_id.as_deref(),
         filter.decision.as_deref(),
-        search_pattern.as_deref(),
+        search_pattern,
         limit,
         offset,
         sort_col,
         sort_dir,
     )
     .fetch_all(pool)
-    .await?;
-
-    let total = rows.first().map_or(0, |r| r.total_count);
-    let out = rows.into_iter().map(ToolCallRow::from).collect();
-    Ok((out, total))
+    .await
 }
 
 impl From<ToolCallRowWithTotal> for ToolCallRow {

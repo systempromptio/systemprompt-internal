@@ -1,4 +1,5 @@
-//! Wire and audit types for the `/api/public/hooks/govern` `PreToolUse` webhook.
+//! Wire and audit types for the `/api/public/hooks/govern` `PreToolUse`
+//! webhook.
 //!
 //! The on-the-wire response shape is dictated by the Anthropic Claude Code
 //! hook contract ([`HookSpecificOutput`]). Internally everything is typed —
@@ -11,7 +12,7 @@ use serde::Serialize;
 use std::sync::Arc;
 
 use sqlx::PgPool;
-use systemprompt::identifiers::{PolicyId, SessionId, UserId};
+use systemprompt::identifiers::{AgentId, PolicyId, SessionId, UserId};
 use systemprompt::oauth::SessionCreationService;
 use systemprompt_security::authz::{Decision, DecisionTag};
 use systemprompt_security::policy::types::AccessScope;
@@ -43,13 +44,13 @@ impl From<GovernanceDecision> for DecisionTag {
 }
 
 #[derive(Debug, Serialize, Clone)]
-pub struct GovernanceResponse {
+pub(super) struct GovernanceResponse {
     #[serde(rename = "hookSpecificOutput")]
     pub hook_specific_output: HookSpecificOutput,
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct HookSpecificOutput {
+pub(super) struct HookSpecificOutput {
     #[serde(rename = "hookEventName")]
     pub hook_event_name: &'static str,
     #[serde(rename = "permissionDecision")]
@@ -63,7 +64,7 @@ pub struct HookSpecificOutput {
 
 #[derive(Debug, Serialize, Clone)]
 #[serde(tag = "result", rename_all = "lowercase")]
-pub enum ChainEntryResult {
+pub(super) enum ChainEntryResult {
     Pass,
     Fail,
     /// Policy was disabled in config, or skipped after a prior deny.
@@ -71,7 +72,7 @@ pub enum ChainEntryResult {
 }
 
 #[derive(Debug, Serialize, Clone)]
-pub struct ChainEntryOutcome {
+pub(super) struct ChainEntryOutcome {
     pub policy_id: PolicyId,
     #[serde(flatten)]
     pub result: ChainEntryResult,
@@ -79,15 +80,15 @@ pub struct ChainEntryOutcome {
 }
 
 #[derive(Debug, Serialize, Clone)]
-pub struct PrincipalSnapshot {
+pub(super) struct PrincipalSnapshot {
     pub user_id: UserId,
     pub session_id: SessionId,
-    pub agent_id: Option<String>,
+    pub agent_id: Option<AgentId>,
     pub agent_scope: AccessScope,
 }
 
 #[derive(Debug, Serialize, Clone)]
-pub struct AuditTarget {
+pub(super) struct AuditTarget {
     pub tool_name: String,
     pub plugin_id: Option<String>,
 }
@@ -96,7 +97,7 @@ pub struct AuditTarget {
 /// `decision`/`reason` columns are populated from the same data in the
 /// repository layer.
 #[derive(Debug, Serialize, Clone)]
-pub struct DecisionAudit {
+pub(super) struct DecisionAudit {
     pub decision: Decision,
     pub principal: PrincipalSnapshot,
     pub target: AuditTarget,
@@ -107,7 +108,7 @@ pub(super) struct AuthDenialParams<'a> {
     pub pool: &'a Arc<PgPool>,
     pub session_id: &'a SessionId,
     pub tool_name: &'a str,
-    pub agent_id: Option<&'a str>,
+    pub agent_id: Option<&'a AgentId>,
     pub plugin_id: Option<&'a str>,
     pub session_service: &'a Arc<SessionCreationService>,
     pub headers: &'a HeaderMap,

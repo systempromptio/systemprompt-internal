@@ -4,24 +4,22 @@ use systemprompt::identifiers::{CategoryId, ContentId, SourceId};
 use systemprompt_web_shared::models::Content;
 
 #[derive(Debug, Clone)]
-pub struct ContentQueryRepository {
+pub(super) struct ContentQueryRepository {
     pool: Arc<PgPool>,
 }
 
 impl ContentQueryRepository {
     #[must_use]
-    pub const fn new(pool: Arc<PgPool>) -> Self {
+    pub(super) const fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
 
-    pub async fn get_by_id(&self, id: &ContentId) -> Result<Option<Content>, sqlx::Error> {
+    pub(super) async fn get_by_id(&self, id: &ContentId) -> Result<Option<Content>, sqlx::Error> {
         sqlx::query_as!(
             Content,
             r#"
-            SELECT mc.id as "id!: ContentId", mc.slug as "slug!", mc.title as "title!",
-                   mc.description as "description!", mc.body as "body!", mc.author as "author!",
-                   mc.published_at as "published_at!", mc.keywords as "keywords!",
-                   mc.kind as "kind!", mc.image,
+            SELECT mc.id as "id!: ContentId", mc.slug as "slug!", mc.title as "title!", mc.description as "description!", mc.body as "body!", mc.author as "author!",
+                   mc.published_at as "published_at!", mc.keywords as "keywords!", mc.kind as "kind!", mc.image,
                    mc.category_id as "category_id: CategoryId",
                    mc.source_id as "source_id!: SourceId",
                    mc.version_hash as "version_hash!",
@@ -41,14 +39,12 @@ impl ContentQueryRepository {
         .await
     }
 
-    pub async fn get_by_slug(&self, slug: &str) -> Result<Option<Content>, sqlx::Error> {
+    pub(super) async fn get_by_slug(&self, slug: &str) -> Result<Option<Content>, sqlx::Error> {
         sqlx::query_as!(
             Content,
             r#"
-            SELECT mc.id as "id!: ContentId", mc.slug as "slug!", mc.title as "title!",
-                   mc.description as "description!", mc.body as "body!", mc.author as "author!",
-                   mc.published_at as "published_at!", mc.keywords as "keywords!",
-                   mc.kind as "kind!", mc.image,
+            SELECT mc.id as "id!: ContentId", mc.slug as "slug!", mc.title as "title!", mc.description as "description!", mc.body as "body!", mc.author as "author!",
+                   mc.published_at as "published_at!", mc.keywords as "keywords!", mc.kind as "kind!", mc.image,
                    mc.category_id as "category_id: CategoryId",
                    mc.source_id as "source_id!: SourceId",
                    mc.version_hash as "version_hash!",
@@ -68,7 +64,7 @@ impl ContentQueryRepository {
         .await
     }
 
-    pub async fn get_by_source_and_slug(
+    pub(super) async fn get_by_source_and_slug(
         &self,
         source_id: &SourceId,
         slug: &str,
@@ -76,10 +72,8 @@ impl ContentQueryRepository {
         sqlx::query_as!(
             Content,
             r#"
-            SELECT mc.id as "id!: ContentId", mc.slug as "slug!", mc.title as "title!",
-                   mc.description as "description!", mc.body as "body!", mc.author as "author!",
-                   mc.published_at as "published_at!", mc.keywords as "keywords!",
-                   mc.kind as "kind!", mc.image,
+            SELECT mc.id as "id!: ContentId", mc.slug as "slug!", mc.title as "title!", mc.description as "description!", mc.body as "body!", mc.author as "author!",
+                   mc.published_at as "published_at!", mc.keywords as "keywords!", mc.kind as "kind!", mc.image,
                    mc.category_id as "category_id: CategoryId",
                    mc.source_id as "source_id!: SourceId",
                    mc.version_hash as "version_hash!",
@@ -100,14 +94,12 @@ impl ContentQueryRepository {
         .await
     }
 
-    pub async fn list(&self, limit: i64, offset: i64) -> Result<Vec<Content>, sqlx::Error> {
+    pub(super) async fn list(&self, limit: i64, offset: i64) -> Result<Vec<Content>, sqlx::Error> {
         sqlx::query_as!(
             Content,
             r#"
-            SELECT mc.id as "id!: ContentId", mc.slug as "slug!", mc.title as "title!",
-                   mc.description as "description!", mc.body as "body!", mc.author as "author!",
-                   mc.published_at as "published_at!", mc.keywords as "keywords!",
-                   mc.kind as "kind!", mc.image,
+            SELECT mc.id as "id!: ContentId", mc.slug as "slug!", mc.title as "title!", mc.description as "description!", mc.body as "body!", mc.author as "author!",
+                   mc.published_at as "published_at!", mc.keywords as "keywords!", mc.kind as "kind!", mc.image,
                    mc.category_id as "category_id: CategoryId",
                    mc.source_id as "source_id!: SourceId",
                    mc.version_hash as "version_hash!",
@@ -129,14 +121,15 @@ impl ContentQueryRepository {
         .await
     }
 
-    pub async fn list_by_source(&self, source_id: &SourceId) -> Result<Vec<Content>, sqlx::Error> {
+    pub(super) async fn list_by_source(
+        &self,
+        source_id: &SourceId,
+    ) -> Result<Vec<Content>, sqlx::Error> {
         sqlx::query_as!(
             Content,
             r#"
-            SELECT mc.id as "id!: ContentId", mc.slug as "slug!", mc.title as "title!",
-                   mc.description as "description!", mc.body as "body!", mc.author as "author!",
-                   mc.published_at as "published_at!", mc.keywords as "keywords!",
-                   mc.kind as "kind!", mc.image,
+            SELECT mc.id as "id!: ContentId", mc.slug as "slug!", mc.title as "title!", mc.description as "description!", mc.body as "body!", mc.author as "author!",
+                   mc.published_at as "published_at!", mc.keywords as "keywords!", mc.kind as "kind!", mc.image,
                    mc.category_id as "category_id: CategoryId",
                    mc.source_id as "source_id!: SourceId",
                    mc.version_hash as "version_hash!",
@@ -157,14 +150,16 @@ impl ContentQueryRepository {
         .await
     }
 
-    pub async fn list_all(&self, limit: i64, offset: i64) -> Result<Vec<Content>, sqlx::Error> {
+    pub(super) async fn list_all(
+        &self,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Vec<Content>, sqlx::Error> {
         sqlx::query_as!(
             Content,
             r#"
-            SELECT mc.id as "id!: ContentId", mc.slug as "slug!", mc.title as "title!",
-                   mc.description as "description!", mc.body as "body!", mc.author as "author!",
-                   mc.published_at as "published_at!", mc.keywords as "keywords!",
-                   mc.kind as "kind!", mc.image,
+            SELECT mc.id as "id!: ContentId", mc.slug as "slug!", mc.title as "title!", mc.description as "description!", mc.body as "body!", mc.author as "author!",
+                   mc.published_at as "published_at!", mc.keywords as "keywords!", mc.kind as "kind!", mc.image,
                    mc.category_id as "category_id: CategoryId",
                    mc.source_id as "source_id!: SourceId",
                    mc.version_hash as "version_hash!",
@@ -186,7 +181,7 @@ impl ContentQueryRepository {
         .await
     }
 
-    pub async fn get_slugs_by_source(
+    pub(super) async fn get_slugs_by_source(
         &self,
         source_id: &SourceId,
     ) -> Result<Vec<String>, sqlx::Error> {

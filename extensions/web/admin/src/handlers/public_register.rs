@@ -1,10 +1,13 @@
 use std::sync::Arc;
 
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+use axum::Json;
+use axum::extract::State;
+use axum::http::StatusCode;
+use axum::response::IntoResponse;
 use base64::Engine;
+use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use rand::Rng;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use sqlx::PgPool;
 use systemprompt::identifiers::{Email, UserId};
@@ -19,17 +22,26 @@ const TOKEN_PREFIX: &str = "sp_wst_";
 const ALLOWED_EMAIL_DOMAINS: [&str; 2] = ["astounddigital.com", "astoundcommerce.com"];
 
 #[derive(Deserialize, Debug)]
-pub struct PublicRegisterRequest {
+pub(crate) struct PublicRegisterRequest {
     pub name: String,
     pub email: String,
 }
 
-pub async fn public_register_handler(
+#[derive(Debug, Serialize)]
+pub(crate) struct PublicRegisterResponse {
+    pub ok: bool,
+    pub token: String,
+    pub email: String,
+    pub user_id: UserId,
+    pub display_name: String,
+}
+
+pub(crate) async fn public_register_handler(
     State(pool): State<Arc<PgPool>>,
     Json(body): Json<PublicRegisterRequest>,
 ) -> impl IntoResponse {
     let email_str = body.email.trim().to_lowercase();
-    let name = body.name.trim().to_string();
+    let name = body.name.trim().to_owned();
 
     if let Some(resp) = validate_registration_input(&email_str, &name) {
         return resp;
@@ -54,7 +66,7 @@ pub async fn public_register_handler(
     if let Err(e) = repositories::registration::insert_setup_token(
         pool.as_ref(),
         &token_id,
-        user.user_id.as_str(),
+        &user.user_id,
         &token_hash,
     )
     .await
@@ -68,13 +80,13 @@ pub async fn public_register_handler(
 
     (
         StatusCode::OK,
-        Json(serde_json::json!({
-            "ok": true,
-            "token": raw_token,
-            "email": email_str,
-            "user_id": user.user_id,
-            "display_name": name,
-        })),
+        Json(PublicRegisterResponse {
+            ok: true,
+            token: raw_token,
+            email: email_str,
+            user_id: user.user_id.clone(),
+            display_name: name,
+        }),
     )
         .into_response()
 }
@@ -124,10 +136,10 @@ async fn create_registration_user(
 
     let create_req = CreateUserRequest {
         user_id,
-        display_name: name.to_string(),
+        display_name: name.to_owned(),
         email,
         roles,
-        status: Some("active".to_string()),
+        status: Some("active".to_owned()),
     };
 
     repositories::create_user(pool, &create_req)

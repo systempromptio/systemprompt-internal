@@ -1,7 +1,8 @@
 use serde::Serialize;
+use systemprompt::identifiers::UserId;
 
 #[derive(Debug, Clone, Serialize)]
-pub struct SettingsView {
+pub(crate) struct SettingsView {
     pub display_name: Option<String>,
     pub avatar_url: Option<String>,
     pub notify_daily_summary: bool,
@@ -11,11 +12,11 @@ pub struct SettingsView {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct SettingsPageData {
+pub(crate) struct SettingsPageData {
     pub page: &'static str,
     pub title: &'static str,
     pub settings: SettingsView,
     pub user_email: String,
-    pub user_id: String,
+    pub user_id: UserId,
     pub username: String,
 }

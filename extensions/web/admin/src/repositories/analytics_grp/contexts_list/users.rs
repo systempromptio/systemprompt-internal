@@ -1,10 +1,49 @@
 //! Per-user rollup of context activity — one row per user across all their
 //! contexts.
 
+use chrono::{DateTime, Utc};
 use sqlx::PgPool;
+use systemprompt::identifiers::UserId;
 
-use super::{free_text_pattern, resolved_limit, ContextListFilter, ContextUserSummary};
+use super::{ContextListFilter, ContextUserSummary, free_text_pattern, resolved_limit};
 
+#[derive(Debug)]
+struct ContextUserSummaryRow {
+    user_id: UserId,
+    display_name: Option<String>,
+    context_count: i64,
+    request_count: i64,
+    message_count: i64,
+    total_input_tokens: i64,
+    total_output_tokens: i64,
+    total_cost_microdollars: i64,
+    error_count: i64,
+    last_activity_at: Option<DateTime<Utc>>,
+    distinct_models: Vec<String>,
+}
+
+impl From<ContextUserSummaryRow> for ContextUserSummary {
+    fn from(r: ContextUserSummaryRow) -> Self {
+        Self {
+            user_id: r.user_id,
+            display_name: r.display_name,
+            context_count: r.context_count,
+            request_count: r.request_count,
+            message_count: r.message_count,
+            total_input_tokens: r.total_input_tokens,
+            total_output_tokens: r.total_output_tokens,
+            total_cost_microdollars: r.total_cost_microdollars,
+            error_count: r.error_count,
+            last_activity_at: r.last_activity_at,
+            distinct_models: r.distinct_models,
+        }
+    }
+}
+
+#[expect(
+    clippy::too_many_lines,
+    reason = "body is one irreducible compile-time-checked query_as! SQL literal"
+)]
 pub async fn fetch_context_user_summary(
     pool: &PgPool,
     filter: &ContextListFilter,
@@ -12,7 +51,8 @@ pub async fn fetch_context_user_summary(
     let limit = resolved_limit(filter.limit);
     let pattern = free_text_pattern(filter);
 
-    let rows = sqlx::query!(
+    let rows = sqlx::query_as!(
+        ContextUserSummaryRow,
         r#"
         WITH ctx AS (
             SELECT
@@ -50,7 +90,7 @@ pub async fn fetch_context_user_summary(
             GROUP BY r.user_id
         )
         SELECT
-            ctx.user_id                                       AS "user_id!",
+            ctx.user_id                                       AS "user_id!: UserId",
             u.display_name                                    AS "display_name?",
             COUNT(ctx.context_id)::bigint                     AS "context_count!",
             COALESCE(MAX(req_per_user.request_count), 0)::bigint     AS "request_count!",
@@ -79,7 +119,7 @@ pub async fn fetch_context_user_summary(
                  DESC NULLS LAST
         LIMIT $5
         "#,
-        filter.user_id,
+        filter.user_id.as_ref().map(UserId::as_str),
         filter.model,
         filter.since,
         pattern,
@@ -88,20 +128,5 @@ pub async fn fetch_context_user_summary(
     .fetch_all(pool)
     .await?;
 
-    Ok(rows
-        .into_iter()
-        .map(|r| ContextUserSummary {
-            user_id: r.user_id,
-            display_name: r.display_name,
-            context_count: r.context_count,
-            request_count: r.request_count,
-            message_count: r.message_count,
-            total_input_tokens: r.total_input_tokens,
-            total_output_tokens: r.total_output_tokens,
-            total_cost_microdollars: r.total_cost_microdollars,
-            error_count: r.error_count,
-            last_activity_at: r.last_activity_at,
-            distinct_models: r.distinct_models,
-        })
-        .collect())
+    Ok(rows.into_iter().map(ContextUserSummary::from).collect())
 }

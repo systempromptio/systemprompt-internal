@@ -1,8 +1,8 @@
 use sqlx::PgPool;
-use systemprompt::identifiers::Actor;
+use systemprompt::identifiers::{Actor, AgentId};
 use systemprompt_security::authz::{Decision, DecisionTag};
 
-use crate::repositories::governance_grp::{insert_governance_decision, GovernanceDecisionRecord};
+use crate::repositories::governance_grp::{GovernanceDecisionRecord, insert_governance_decision};
 
 use super::types::DecisionAudit;
 
@@ -13,26 +13,23 @@ pub(super) async fn record_decision(
     let id = uuid::Uuid::new_v4().to_string();
     let actor = Actor::from_tool_name(
         audit.principal.user_id.clone(),
-        audit.principal.agent_id.as_deref(),
+        audit.principal.agent_id.as_ref().map(AgentId::as_str),
         &audit.target.tool_name,
     );
     let (decision_tag, reason_str, policy_str) = match &audit.decision {
         Decision::Allow { .. } => (
             DecisionTag::Allow,
             String::new(),
-            "default_allow".to_string(),
+            "default_allow".to_owned(),
         ),
         Decision::Deny { reason } => {
             let policy_str = audit
                 .chain
                 .iter()
                 .find(|e| matches!(e.result, super::types::ChainEntryResult::Fail))
-                .map_or_else(
-                    || "unknown".to_string(),
-                    |e| e.policy_id.as_str().to_string(),
-                );
+                .map_or_else(|| "unknown".to_owned(), |e| e.policy_id.as_str().to_owned());
             (DecisionTag::Deny, reason.to_string(), policy_str)
-        }
+        },
     };
     let evaluated_rules = serde_json::to_value(audit).unwrap_or(serde_json::Value::Null);
 
@@ -41,7 +38,7 @@ pub(super) async fn record_decision(
         actor: &actor,
         session_id: audit.principal.session_id.as_str(),
         tool_name: &audit.target.tool_name,
-        agent_id: audit.principal.agent_id.as_deref(),
+        agent_id: audit.principal.agent_id.as_ref().map(AgentId::as_str),
         agent_scope: Some(audit.principal.agent_scope),
         decision: decision_tag,
         policy: &policy_str,
