@@ -187,6 +187,8 @@ clippy *FLAGS: lint-no-synthesis lint-gates
     else
         SQLX_OFFLINE=false cargo clippy --workspace {{FLAGS}} -- -D warnings
     fi
+    # bridge/ is a standalone workspace and is not covered by --workspace
+    cargo clippy --manifest-path bridge/Cargo.toml --all-targets {{FLAGS}} -- -D warnings
 
 # Source gates ported from systemprompt-core (scripts/*.sh)
 lint-gates:

@@ -28,6 +28,32 @@ systemprompt-bridge = { path = "../../systemprompt-core/bin/bridge" }
 [build-dependencies]
 winresource = "0.1"
 
+# Standalone workspace, so it cannot inherit the root [workspace.lints] — this
+# mirrors the root deny set. Keep in lockstep with the root Cargo.toml.
+[lints.rust]
+unsafe_code = "deny"
+unsafe_op_in_unsafe_fn = "deny"
+unreachable_pub = "warn"
+unused_qualifications = "warn"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+suspicious = { level = "deny", priority = -1 }
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+dbg_macro = "deny"
+print_stdout = "deny"
+print_stderr = "deny"
+let_underscore_must_use = "deny"
+let_underscore_future = "deny"
+exit = "deny"
+mem_forget = "deny"
+allow_attributes_without_reason = "warn"
+
 # This is a standalone workspace, so it does NOT inherit core's release profile.
 # Without this block the binary builds with cargo defaults (opt-level=3, no LTO,
 # 16 codegen units, unstripped) — ~30% larger. Mirror the size-optimised profile

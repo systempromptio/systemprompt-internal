@@ -5,6 +5,10 @@
     clippy::print_stderr,
     reason = "cargo build-script protocol uses stdout for `cargo:` directives"
 )]
+#![allow(
+    clippy::expect_used,
+    reason = "panicking is the conventional build-script failure mode; a missing brand asset must fail the build"
+)]
 
 fn main() {
     // Copy the embedded brand assets into OUT_DIR and declare them as build
