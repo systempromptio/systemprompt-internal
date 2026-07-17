@@ -9,17 +9,15 @@
 use std::collections::BTreeMap;
 use std::path::{Component, Path};
 
-use axum::{
-    body::Body,
-    extract::Path as AxumPath,
-    http::{header, HeaderMap, HeaderValue, StatusCode},
-    response::Response,
-};
+use axum::body::Body;
+use axum::extract::Path as AxumPath;
+use axum::http::{HeaderMap, HeaderValue, StatusCode, header};
+use axum::response::Response;
 use systemprompt::config::ProfileBootstrap;
 use systemprompt::loader::ConfigLoader;
-use systemprompt::marketplace::{plugin_bundles, CatalogContent, PluginBundle};
-use systemprompt::models::bridge::ids::PluginId;
+use systemprompt::marketplace::{CatalogContent, PluginBundle, plugin_bundles};
 use systemprompt::models::AppPaths;
+use systemprompt::models::bridge::ids::PluginId;
 
 use crate::handlers::shared;
 

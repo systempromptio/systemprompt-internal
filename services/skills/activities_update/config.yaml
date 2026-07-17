@@ -10,3 +10,5 @@ tags:
   - calendar
   - write
 category: salesforce
+display_category: "Salesforce"
+href: "/features/activities/#log-schedule-activity"

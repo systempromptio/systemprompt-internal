@@ -10,3 +10,5 @@ tags:
   - service
   - reporting
 category: salesforce
+display_category: "Salesforce"
+href: "/features/support-cases/#case-insights"

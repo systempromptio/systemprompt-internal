@@ -9,3 +9,5 @@ tags:
   - support
   - service
 category: salesforce
+display_category: "Salesforce"
+href: "/features/support-cases/#find-cases"

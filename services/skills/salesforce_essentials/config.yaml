@@ -9,3 +9,5 @@ tags:
   - onboarding
   - getting-started
 category: salesforce
+display_category: "Salesforce"
+href: "/features/getting-started/#salesforce-essentials"

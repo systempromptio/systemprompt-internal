@@ -1,0 +1,58 @@
+slug: leads
+title: "Leads & Prospects | Astound AI Salesforce Gateway"
+headline: "Your funnel,"
+headline_highlight: "never goes cold."
+subtitle: "See what came in, where it came from, and what needs follow-up today. Capture a new lead in one sentence and keep the funnel honest without touching a form."
+description: "Find and filter leads, read funnel insights, and safely capture and update leads in Salesforce."
+icon: plug
+highlights:
+  - text: "Find and filter every lead"
+    id: find-leads
+  - text: "Funnel insights and stale-lead alerts"
+    id: lead-insights
+  - text: "Capture and update with confirmation"
+    id: update-leads
+cta:
+  text: "Keep every lead warm"
+  url: "/#get-started"
+sections:
+  - id: find-leads
+    title: "Find Leads"
+    content: |
+      <p>Browse, search, and filter leads by status, source, owner, company, industry, or how recently they arrived. The state of your funnel in one question.</p>
+      <p><strong>Ask it:</strong></p>
+      <ul>
+        <li>"Show me every new lead from the last two weeks."</li>
+        <li>"Which leads came from the Salesforce ecosystem event?"</li>
+        <li>"List my open leads in manufacturing."</li>
+      </ul>
+  - id: lead-insights
+    title: "Lead Insights"
+    content: |
+      <p>Rollups by source, status, rating, and conversion, plus the stale leads that need follow-up before they die quietly. Know which channels are working and where the funnel leaks.</p>
+      <p><strong>Ask it:</strong></p>
+      <ul>
+        <li>"Which lead sources converted best this quarter?"</li>
+        <li>"Which of my hot leads have had no follow-up in a week?"</li>
+        <li>"Summarise my funnel by status and rating."</li>
+      </ul>
+  - id: update-leads
+    title: "Update Leads"
+    content: |
+      <p>Capture a new lead, move a status, update a rating, reassign an owner, or fix contact details. Shown to you and confirmed before every change, so capturing a lead takes one sentence, not one form.</p>
+      <p><strong>Ask it:</strong></p>
+      <ul>
+        <li>"New lead: Dana Reid at Fenwick, met at the commerce roundtable."</li>
+        <li>"Mark the Screwfix lead as qualified."</li>
+        <li>"Reassign my unworked leads to the UK team."</li>
+      </ul>
+related:
+  - title: "Sales Pipeline & Deals"
+    description: "Where qualified leads go next."
+    url: "/features/sales-pipeline/"
+  - title: "Contacts & People"
+    description: "Turn leads into mapped, known relationships."
+    url: "/features/contacts/"
+  - title: "Tasks, Calls & Meetings"
+    description: "Follow-ups scheduled the moment you promise them."
+    url: "/features/activities/"

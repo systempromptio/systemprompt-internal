@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::skills_page::{SkillEntry, SkillsPageConfig};
 
-use super::{load_app_paths, ConfigError};
+use super::{ConfigError, load_app_paths};
 
 pub(crate) fn load_skills_page_config() -> Result<Option<Arc<SkillsPageConfig>>, ConfigError> {
     let paths = match load_app_paths() {
@@ -10,7 +10,7 @@ pub(crate) fn load_skills_page_config() -> Result<Option<Arc<SkillsPageConfig>>,
         Err(e) => {
             tracing::debug!(error = %e, "AppPaths not available for skills page config");
             return Ok(None);
-        }
+        },
     };
 
     let skills_dir = paths.system().services().join("skills");
@@ -49,7 +49,7 @@ fn read_skills_dir(skills_dir: &std::path::Path) -> Result<Option<std::fs::ReadD
                 "Skills directory does not exist"
             );
             Ok(None)
-        }
+        },
         Err(e) => Err(ConfigError::Parse {
             config_name: skills_dir.display().to_string(),
             message: format!("Failed to read directory: {e}"),
@@ -73,7 +73,7 @@ fn parse_skill_entries(entries: std::fs::ReadDir) -> Vec<SkillEntry> {
                         "Skipping skill with unparseable config.yaml"
                     );
                     None
-                }
+                },
             }
         })
         .filter(|skill: &SkillEntry| skill.enabled)

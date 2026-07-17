@@ -9,3 +9,5 @@ tags:
   - customers
   - reporting
 category: salesforce
+display_category: "Salesforce"
+href: "/features/accounts/#account-briefings"

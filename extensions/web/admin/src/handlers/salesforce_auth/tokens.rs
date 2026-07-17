@@ -74,10 +74,10 @@ struct TokenResponse {
     instance_url: String,
 }
 
-/// `GET /api/public/salesforce/token` — the typed contract core's Salesforce-MCP
-/// bearer injection consumes. Authenticates the caller, mints a fresh bearer via
-/// the RFC 7523 JWT-bearer grant (acting as the caller's Salesforce username),
-/// and returns `{ access_token, instance_url }`.
+/// `GET /api/public/salesforce/token` — the typed contract core's
+/// Salesforce-MCP bearer injection consumes. Authenticates the caller, mints a
+/// fresh bearer via the RFC 7523 JWT-bearer grant (acting as the caller's
+/// Salesforce username), and returns `{ access_token, instance_url }`.
 pub(crate) async fn salesforce_token_handler(
     Extension(deps): Extension<SalesforceDeps>,
     headers: HeaderMap,
@@ -92,14 +92,13 @@ pub(crate) async fn salesforce_token_handler(
     // The JWT-bearer `sub` must be the Salesforce Username (captured at SSO login),
     // not the login email. Fall back to the email if this user has no stored
     // Username (e.g. they never completed a Salesforce login) or the lookup fails.
-    let username = match salesforce_identity::find(&deps.write_pool, &session.user_id).await
-    {
+    let username = match salesforce_identity::find(&deps.write_pool, &session.user_id).await {
         Ok(Some(u)) => u,
         Ok(None) => session.email.as_str().to_owned(),
         Err(e) => {
             tracing::warn!(error = %e, user_id = %session.user_id, "Salesforce username lookup failed; falling back to email");
             session.email.as_str().to_owned()
-        }
+        },
     };
 
     match salesforce_jwt_bearer::fetch_token(&deps.config, &username).await {
@@ -115,6 +114,6 @@ pub(crate) async fn salesforce_token_handler(
                 "Salesforce token acquisition failed",
             )
                 .into_response()
-        }
+        },
     }
 }

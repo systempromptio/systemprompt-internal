@@ -8,3 +8,5 @@ tags:
   - contacts
   - people
 category: salesforce
+display_category: "Salesforce"
+href: "/features/contacts/#find-contacts"

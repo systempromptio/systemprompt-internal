@@ -9,3 +9,5 @@ tags:
   - customers
   - write
 category: salesforce
+display_category: "Salesforce"
+href: "/features/accounts/#update-accounts"

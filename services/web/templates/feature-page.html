@@ -259,11 +259,11 @@
 
         <section class="feature-final-cta">
             <div class="container">
-                <h2>Ready to build?</h2>
-                <p>Get started in minutes.</p>
+                <h2>{{#if feature.cta}}{{feature.cta.text}}{{else}}Ready to try it?{{/if}}</h2>
+                <p>Sign in once. Everything is connected.</p>
                 <div class="cta-group">
-                    <a href="/documentation/demo-terminal-setup" class="primary-cta">Get Started</a>
-                    <a href="/documentation" class="secondary-cta">Read the Docs</a>
+                    <a href="{{#if feature.cta}}{{feature.cta.url}}{{else}}/#get-started{{/if}}" class="primary-cta">Get started</a>
+                    <a href="{{#if feature.cta.secondary_url}}{{feature.cta.secondary_url}}{{else}}/skills/{{/if}}" class="secondary-cta">{{#if feature.cta.secondary_text}}{{feature.cta.secondary_text}}{{else}}Browse all skills{{/if}}</a>
                 </div>
             </div>
         </section>

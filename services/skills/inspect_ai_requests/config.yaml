@@ -10,3 +10,5 @@ tags:
   - audit
   - admin
 category: governance
+display_category: "Governance & Analytics"
+href: "/features/governance-and-platform/#audit-and-inspection"

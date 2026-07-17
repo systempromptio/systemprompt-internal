@@ -1,0 +1,58 @@
+slug: support-cases
+title: "Support Cases | Astound AI Salesforce Gateway"
+headline: "Every case,"
+headline_highlight: "under control."
+subtitle: "Your queue, your backlog, and the escalations that need attention now. Ask for the state of support in plain English and update cases without leaving the conversation."
+description: "Find support cases, read your queue and backlog, and safely create and update cases in Salesforce."
+icon: sliders
+highlights:
+  - text: "Find any case in seconds"
+    id: find-cases
+  - text: "Queue and backlog insights"
+    id: case-insights
+  - text: "Update cases with confirmation"
+    id: update-cases
+cta:
+  text: "Stay ahead of every escalation"
+  url: "/#get-started"
+sections:
+  - id: find-cases
+    title: "Find Cases"
+    content: |
+      <p>Browse, search, and filter support cases by status, priority, account, owner, or when they came in. The state of any client's support picture in one question.</p>
+      <p><strong>Ask it:</strong></p>
+      <ul>
+        <li>"Show me every open case on the AllSaints account."</li>
+        <li>"Which high-priority cases came in this week?"</li>
+        <li>"List the cases assigned to the platform team."</li>
+      </ul>
+  - id: case-insights
+    title: "Case Insights"
+    content: |
+      <p>Rollups of your open load by priority, owner, and status, plus the overdue and escalated cases that need attention first. Account Managers see support risk on their accounts before the client raises it.</p>
+      <p><strong>Ask it:</strong></p>
+      <ul>
+        <li>"Summarise the support backlog by priority."</li>
+        <li>"Which cases are overdue or escalated right now?"</li>
+        <li>"Is there any support risk on my top five accounts?"</li>
+      </ul>
+  - id: update-cases
+    title: "Update Cases"
+    content: |
+      <p>Create a case, change status or priority, reassign it, add a resolution, or close it. Every change is shown to you and confirmed before it happens, with a full audit trail behind it.</p>
+      <p><strong>Ask it:</strong></p>
+      <ul>
+        <li>"Raise a case for the checkout error Halfords reported this morning."</li>
+        <li>"Escalate the Boots payment case to high priority."</li>
+        <li>"Close the Zermatt case with the resolution notes I just dictated."</li>
+      </ul>
+related:
+  - title: "Accounts & Customers"
+    description: "Cases in context: the full account picture."
+    url: "/features/accounts/"
+  - title: "Tasks, Calls & Meetings"
+    description: "Follow-ups on cases, scheduled as you triage."
+    url: "/features/activities/"
+  - title: "Governance & Trust"
+    description: "Every case change confirmed and audited."
+    url: "/features/governance-and-platform/"

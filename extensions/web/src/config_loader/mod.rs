@@ -98,8 +98,8 @@ fn populate_demo_showcase(homepage_config: &mut HomepageConfig, demo_root: &std:
     }
 }
 
-pub(crate) fn load_salesforce_config(
-) -> Result<Option<Arc<systemprompt_web_admin::SalesforceConfig>>, ConfigError> {
+pub(crate) fn load_salesforce_config()
+-> Result<Option<Arc<systemprompt_web_admin::SalesforceConfig>>, ConfigError> {
     let Some(value) = load_config_section("salesforce.yaml")? else {
         return Ok(None);
     };

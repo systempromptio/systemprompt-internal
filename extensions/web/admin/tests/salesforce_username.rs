@@ -1,6 +1,7 @@
 //! The Salesforce JWT-bearer `sub` must be the Salesforce Username (userinfo
 //! `preferred_username`), not the login email — the two differ for orgs where
-//! the Username is a generated handle. These tests pin the selection + fallback.
+//! the Username is a generated handle. These tests pin the selection +
+//! fallback.
 
 use systemprompt_web_admin::test_support::select_sf_username;
 

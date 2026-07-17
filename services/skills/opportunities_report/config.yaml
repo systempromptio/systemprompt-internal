@@ -10,3 +10,5 @@ tags:
   - forecast
   - reporting
 category: salesforce
+display_category: "Salesforce"
+href: "/features/sales-pipeline/#pipeline-forecast"

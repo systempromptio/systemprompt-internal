@@ -1,0 +1,58 @@
+slug: accounts
+title: "Accounts & Customers | Astound AI Salesforce Gateway"
+headline: "Every account,"
+headline_highlight: "fully briefed."
+subtitle: "Walk into every client conversation with the full picture: what was sold, what is open, who is involved, and what happened last. One question replaces an hour of digging."
+description: "Find accounts, get client-ready 360 degree briefings, and safely update account records in Salesforce."
+icon: server
+highlights:
+  - text: "Find any account instantly"
+    id: find-accounts
+  - text: "Client-ready 360 degree briefings"
+    id: account-briefings
+  - text: "Update records with confirmation"
+    id: update-accounts
+cta:
+  text: "Never walk in cold again"
+  url: "/#get-started"
+sections:
+  - id: find-accounts
+    title: "Find Accounts"
+    content: |
+      <p>Search and filter your accounts by name, industry, region, owner, size, or revenue. Useful on its own, and the starting point for everything else you do with a client.</p>
+      <p><strong>Ask it:</strong></p>
+      <ul>
+        <li>"Show me our retail accounts in the UK."</li>
+        <li>"Which accounts over 1m in revenue does Sarah own?"</li>
+        <li>"Find every account in automotive aftermarket."</li>
+      </ul>
+  - id: account-briefings
+    title: "Account Briefings"
+    content: |
+      <p>One question produces a client-ready summary of an account and everything around it: open deals, recent activity, key contacts, and open support cases. Plus rollup views of your top accounts and the ones going stale. This is meeting prep in seconds instead of hours.</p>
+      <p><strong>Ask it:</strong></p>
+      <ul>
+        <li>"Give me a full briefing on Halfords before my call."</li>
+        <li>"Which of my accounts have had no touchpoint in 60 days?"</li>
+        <li>"Summarise the relationship history with Boots Opticians."</li>
+      </ul>
+  - id: update-accounts
+    title: "Update Accounts"
+    content: |
+      <p>Create a new account or update industry, phone, website, billing address, or owner. Every change is shown to you and confirmed before it lands in Salesforce, so records stay accurate without records becoming your job.</p>
+      <p><strong>Ask it:</strong></p>
+      <ul>
+        <li>"Add a new account for Marston Trading, retail, based in Leeds."</li>
+        <li>"Update the billing address on the Zermatt account."</li>
+        <li>"Reassign the AllSaints account to Priya."</li>
+      </ul>
+related:
+  - title: "Contacts & People"
+    description: "Who you know at every account, and who has gone quiet."
+    url: "/features/contacts/"
+  - title: "Sales Pipeline & Deals"
+    description: "The deals behind every account, with forecast rollups."
+    url: "/features/sales-pipeline/"
+  - title: "Support Cases"
+    description: "Open cases and escalations on the accounts you manage."
+    url: "/features/support-cases/"

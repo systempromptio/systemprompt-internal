@@ -10,3 +10,5 @@ tags:
   - calendar
   - reporting
 category: salesforce
+display_category: "Salesforce"
+href: "/features/activities/#activity-insights"

@@ -7,78 +7,59 @@
 
 header:
   items:
-    - id: solutions
-      label: "Solutions"
-      href: "https://astounddigital.com/solutions"
-      external: true
+    - id: product
+      label: "Product"
+      href: "/#departments"
       dropdown: true
       sections:
-        - title: "Commerce & Experience"
+        - title: "Salesforce, in plain English"
           links:
-            - label: "Commerce"
-              description: "End-to-end digital commerce strategy, implementation, and optimization for global brands."
-              href: "https://astounddigital.com/solutions/commerce"
-              external: true
-            - label: "Experience Design"
-              description: "Customer experience and design services that turn journeys into measurable growth."
-              href: "https://astounddigital.com/solutions/experience-design"
-              external: true
-            - label: "Performance Marketing"
-              description: "Data-driven demand generation and performance marketing across the funnel."
-              href: "https://astounddigital.com/solutions/performance-marketing"
-              external: true
-        - title: "AI & Modernization"
+            - label: "Getting Started"
+              description: "What the AI Salesforce Gateway is, how to ask, and the promise to confirm before every change."
+              href: "/features/getting-started/"
+            - label: "Sales Pipeline & Deals"
+              description: "Find deals, read your forecast and what is at risk, and update opportunities safely."
+              href: "/features/sales-pipeline/"
+            - label: "Accounts & Customers"
+              description: "360 degree account briefings before every call, plus safe record updates."
+              href: "/features/accounts/"
+            - label: "Contacts & People"
+              description: "Contact maps, decision-makers per account, and the relationships going quiet."
+              href: "/features/contacts/"
+            - label: "Leads & Prospects"
+              description: "Funnel insights, stale-lead alerts, and one-sentence lead capture."
+              href: "/features/leads/"
+            - label: "Tasks, Calls & Meetings"
+              description: "Your day at a glance, overdue follow-ups, and activity logged as you work."
+              href: "/features/activities/"
+            - label: "Support Cases"
+              description: "Queue and backlog insights, escalations, and safe case updates."
+              href: "/features/support-cases/"
+        - title: "Delivery, Brand & Trust"
           links:
-            - label: "AI & Agentforce"
-              description: "AI, data, and intelligent automation — agentic solutions in production for visionary brands."
-              href: "https://astounddigital.com/solutions/ai-agentforce"
-              external: true
-            - label: "Platform Modernization"
-              description: "Platform modernization and integration across the front office."
-              href: "https://astounddigital.com/solutions/modernization"
-              external: true
-            - label: "Revenue & Service Modernization"
-              description: "Sales, service, and operations transformation that endures."
-              href: "https://astounddigital.com/solutions/revenue-service-modernization"
-              external: true
-
-    - id: industries
-      label: "Industries"
-      href: "https://astounddigital.com/industries"
-      external: true
-      dropdown: true
-      sections:
-        - title: "Who We Serve"
-          links:
-            - label: "Retail & Consumer Products"
-              description: "Commerce and experience transformation for retail and consumer goods brands."
-              href: "https://astounddigital.com/industries/retail-consumer-products"
-              external: true
-            - label: "Travel & Hospitality"
-              description: "Digital experiences for travel, transport, and hospitality leaders."
-              href: "https://astounddigital.com/industries/travel-hospitality"
-              external: true
-            - label: "Manufacturing"
-              description: "Manufacturing, technology, and aerospace & defense front-office solutions."
-              href: "https://astounddigital.com/industries/manufacturing"
-              external: true
-            - label: "MedTech & Life Sciences"
-              description: "Compliant digital commerce and experience for med tech and life sciences."
-              href: "https://astounddigital.com/industries/medtech-life-sciences"
-              external: true
-            - label: "Consumer & Business Services"
-              description: "Growth and transformation for consumer and business services brands."
-              href: "https://astounddigital.com/industries/consumer-business-services"
-              external: true
-
-    - id: insights
-      label: "Insights"
-      href: "/blog"
-      dropdown: false
+            - label: "Consultancy Workflows"
+              description: "RFP responses, proposals, SOWs, work orders, and estimates in Astound's voice."
+              href: "/features/consultancy/"
+            - label: "Brand & Workspace"
+              description: "Brand voice, terminology, formatting, client emails, and one-step setup."
+              href: "/features/brand-and-workspace/"
+            - label: "Governance & Trust"
+              description: "The four-stage governance pipeline, permissions, analytics, and the full audit trail."
+              href: "/features/governance-and-platform/"
 
     - id: skills
       label: "Skills"
       href: "/skills/"
+      dropdown: false
+
+    - id: how-to-use
+      label: "How to use"
+      href: "/#get-started"
+      dropdown: false
+
+    - id: insights
+      label: "Insights"
+      href: "/blog"
       dropdown: false
 
     - id: resources
@@ -96,6 +77,10 @@ header:
               href: "/#get-started"
         - title: "Astound Digital"
           links:
+            - label: "Solutions"
+              description: "Commerce, experience design, AI & Agentforce, modernization, and performance marketing."
+              href: "https://astounddigital.com/solutions"
+              external: true
             - label: "AI Hub"
               description: "Astound's AI insights, perspectives, and agentic enterprise resources."
               href: "https://astounddigital.com/ai-hub"
@@ -111,24 +96,26 @@ header:
 
 footer:
   infrastructure:
-    - path: "https://astounddigital.com/solutions/commerce"
-      label: "Commerce"
-      external: true
-    - path: "https://astounddigital.com/solutions/ai-agentforce"
-      label: "AI & Agentforce"
-      external: true
-    - path: "https://astounddigital.com/solutions/experience-design"
-      label: "Experience Design"
-      external: true
-    - path: "https://astounddigital.com/solutions/modernization"
-      label: "Platform Modernization"
-      external: true
-    - path: "https://astounddigital.com/solutions/performance-marketing"
-      label: "Performance Marketing"
-      external: true
-    - path: "https://astounddigital.com/solutions/revenue-service-modernization"
-      label: "Revenue & Service Modernization"
-      external: true
+    - path: "/features/getting-started/"
+      label: "Getting Started"
+    - path: "/features/sales-pipeline/"
+      label: "Sales Pipeline & Deals"
+    - path: "/features/accounts/"
+      label: "Accounts & Customers"
+    - path: "/features/contacts/"
+      label: "Contacts & People"
+    - path: "/features/leads/"
+      label: "Leads & Prospects"
+    - path: "/features/activities/"
+      label: "Tasks, Calls & Meetings"
+    - path: "/features/support-cases/"
+      label: "Support Cases"
+    - path: "/features/consultancy/"
+      label: "Consultancy Workflows"
+    - path: "/features/brand-and-workspace/"
+      label: "Brand & Workspace"
+    - path: "/features/governance-and-platform/"
+      label: "Governance & Trust"
   capabilities:
     - path: "https://astounddigital.com/industries/retail-consumer-products"
       label: "Retail & Consumer Products"

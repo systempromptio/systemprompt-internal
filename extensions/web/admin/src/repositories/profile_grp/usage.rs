@@ -147,8 +147,8 @@ pub async fn fetch_top_models(
 
 /// `by_agent` is left empty when no agent label is recorded against requests.
 ///
-/// `ai_requests` has no agent column today; the existing analytics surface reads
-/// agent ids from `plugin_usage_events`, which is keyed differently.
+/// `ai_requests` has no agent column today; the existing analytics surface
+/// reads agent ids from `plugin_usage_events`, which is keyed differently.
 pub async fn fetch_conversation_summary(
     pool: &PgPool,
     user_id: &UserId,

@@ -1,18 +1,18 @@
 //! `GET /admin/auth/salesforce/start` — redirect the browser to Salesforce's
 //! authorize endpoint with PKCE and an anti-CSRF `state`.
 
-use axum::extract::Query;
-use axum::http::header::SET_COOKIE;
-use axum::http::HeaderMap;
-use axum::response::{IntoResponse, Redirect, Response};
 use axum::Extension;
-use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+use axum::extract::Query;
+use axum::http::HeaderMap;
+use axum::http::header::SET_COOKIE;
+use axum::response::{IntoResponse, Redirect, Response};
 use base64::Engine;
+use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 
 use super::{
-    login_error, random_url_safe, sanitize_redirect, secure_flag, SalesforceDeps, STATE_COOKIE,
+    STATE_COOKIE, SalesforceDeps, login_error, random_url_safe, sanitize_redirect, secure_flag,
 };
 
 #[derive(Deserialize)]

@@ -5,13 +5,13 @@
 //! `find_or_create_federated` deliberately omits.
 //!
 //! Resolution order (the first match wins):
-//! 1. **Existing mapping** — the `(issuer, external_sub)` pair already points at
-//!    a user (a returning SSO login).
+//! 1. **Existing mapping** — the `(issuer, external_sub)` pair already points
+//!    at a user (a returning SSO login).
 //! 2. **Email link** — an active local account already owns this email. We
 //!    attach the federated identity to it instead of minting a duplicate. This
-//!    is the account *merge*. The caller MUST have verified `email_verified` and
-//!    an allow-listed domain before reaching this path — linking an unverified
-//!    address would let a hostile `IdP` claim arbitrary accounts.
+//!    is the account *merge*. The caller MUST have verified `email_verified`
+//!    and an allow-listed domain before reaching this path — linking an
+//!    unverified address would let a hostile `IdP` claim arbitrary accounts.
 //! 3. **Create** — no mapping and no local account: provision a fresh user plus
 //!    the mapping in a single transaction.
 
@@ -173,10 +173,10 @@ async fn create_federated(
 /// responsible for the upstream gate (`email_verified == true` and an
 /// allow-listed domain) before invoking this.
 ///
-/// When `auto_provision` is `false` and the identity matches neither an existing
-/// mapping nor an active local account, returns `Ok(None)` — the caller should
-/// surface "this account must be created by an admin first" rather than minting
-/// a session.
+/// When `auto_provision` is `false` and the identity matches neither an
+/// existing mapping nor an active local account, returns `Ok(None)` — the
+/// caller should surface "this account must be created by an admin first"
+/// rather than minting a session.
 pub async fn resolve_federated_user(
     pool: &PgPool,
     claims: &FederatedClaims<'_>,

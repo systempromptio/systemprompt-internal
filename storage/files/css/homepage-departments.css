@@ -1,0 +1,128 @@
+/* Homepage: value pillars, department grid, integrations strip */
+
+.value-pillars {
+  padding: var(--sp-space-4xl) 0 var(--sp-space-2xl);
+}
+
+.pillars-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--sp-space-lg);
+  margin-top: var(--sp-space-xl);
+}
+
+.pillar-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-space-sm);
+  padding: var(--sp-space-xl);
+  border: 1px solid var(--sp-color-border);
+  border-radius: var(--sp-card-radius);
+  background: var(--sp-color-surface);
+}
+
+.pillar-card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--sp-color-text-primary);
+}
+
+.pillar-card-text {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: 0;
+  color: var(--sp-color-text-secondary);
+}
+
+.departments {
+  padding: var(--sp-space-2xl) 0;
+}
+
+.departments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--sp-space-lg);
+  margin-top: var(--sp-space-xl);
+}
+
+.department-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-space-sm);
+  padding: var(--sp-space-xl);
+  border: 1px solid var(--sp-color-border);
+  border-radius: var(--sp-card-radius);
+  background: var(--sp-color-surface);
+  text-decoration: none;
+  transition: border-color var(--sp-animation-fast), transform var(--sp-animation-fast);
+}
+
+.department-card:hover {
+  border-color: var(--sp-color-accent);
+  transform: translateY(-2px);
+}
+
+.department-card-question {
+  font-size: 0.85rem;
+  font-style: italic;
+  margin: 0;
+  color: var(--sp-color-accent);
+}
+
+.department-card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--sp-color-text-primary);
+}
+
+.department-card-text {
+  font-size: 0.88rem;
+  line-height: 1.6;
+  margin: 0;
+  color: var(--sp-color-text-secondary);
+  flex: 1;
+}
+
+.department-card-link {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--sp-color-text-muted);
+}
+
+.department-card:hover .department-card-link {
+  color: var(--sp-color-accent);
+}
+
+.integrations-strip {
+  padding: var(--sp-space-2xl) 0;
+}
+
+.integrations-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--sp-space-lg);
+  margin-top: var(--sp-space-xl);
+}
+
+.integration-item {
+  padding: var(--sp-space-lg);
+  border: 1px solid var(--sp-color-border-subtle);
+  border-radius: var(--sp-card-radius);
+  background: var(--sp-color-surface);
+}
+
+.integration-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0 0 var(--sp-space-xs);
+  color: var(--sp-color-text-primary);
+}
+
+.integration-text {
+  font-size: 0.85rem;
+  line-height: 1.55;
+  margin: 0;
+  color: var(--sp-color-text-secondary);
+}

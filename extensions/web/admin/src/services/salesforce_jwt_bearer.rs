@@ -16,11 +16,11 @@
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
+use jsonwebtoken::{Algorithm, EncodingKey, Header, encode};
 use serde::Serialize;
 
 use crate::handlers::salesforce_auth::{
-    post_token_request, salesforce_private_key, SalesforceConfig, SalesforceError,
+    SalesforceConfig, SalesforceError, post_token_request, salesforce_private_key,
 };
 
 pub(crate) struct FreshToken {
@@ -43,17 +43,21 @@ struct Assertion {
     exp: u64,
 }
 
-/// Mint a fresh Salesforce access token for `username` via the JWT-bearer grant.
+/// Mint a fresh Salesforce access token for `username` via the JWT-bearer
+/// grant.
 ///
 /// `username` is the Salesforce Username to act as — the userinfo
-/// `preferred_username` captured at SSO login (e.g. `ed.aa…@agentforce.com`), NOT
-/// the login email; the two differ and Salesforce matches `sub` on the Username.
-/// The External Client App must have the user admin-pre-authorized.
+/// `preferred_username` captured at SSO login (e.g. `ed.aa…@agentforce.com`),
+/// NOT the login email; the two differ and Salesforce matches `sub` on the
+/// Username. The External Client App must have the user admin-pre-authorized.
 ///
 /// # Errors
-/// - [`SalesforceError::MissingPrivateKey`] if `SALESFORCE_PRIVATE_KEY` is unset.
-/// - [`SalesforceError::Internal`] if the key is not valid PEM or signing fails.
-/// - [`SalesforceError::TokenEndpoint`] / [`SalesforceError::Http`] on a failed POST.
+/// - [`SalesforceError::MissingPrivateKey`] if `SALESFORCE_PRIVATE_KEY` is
+///   unset.
+/// - [`SalesforceError::Internal`] if the key is not valid PEM or signing
+///   fails.
+/// - [`SalesforceError::TokenEndpoint`] / [`SalesforceError::Http`] on a failed
+///   POST.
 pub(crate) async fn fetch_token(
     cfg: &SalesforceConfig,
     username: &str,

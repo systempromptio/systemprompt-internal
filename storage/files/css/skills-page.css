@@ -108,3 +108,17 @@
     grid-template-columns: 1fr;
   }
 }
+
+a.skill-card {
+  text-decoration: none;
+}
+
+.skill-card-more {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--sp-color-text-muted);
+}
+
+.skill-card:hover .skill-card-more {
+  color: var(--sp-color-accent);
+}

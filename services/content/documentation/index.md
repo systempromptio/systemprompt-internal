@@ -1,38 +1,61 @@
 ---
-title: "Astound Digital Platform Documentation"
-description: "Terminal demo walkthroughs and dashboard usage guide for the Astound Digital evaluation platform."
+title: "How to Use the AI Salesforce Gateway"
+description: "How to get started with the AI Salesforce Gateway by Astound Digital: account setup, the desktop bridge, connecting your AI tools, and asking your first questions."
 author: "Astound Digital"
 slug: ""
-keywords: "enterprise-demo, terminal demo, dashboard, authentication"
+keywords: "how to use, getting started, salesforce ai, desktop bridge, dashboard, authentication"
 kind: "guide"
 public: true
 tags: ["documentation"]
 published_at: "2026-02-18"
-updated_at: "2026-04-14"
+updated_at: "2026-07-17"
 after_reading_this:
-  - "Run the terminal demo end-to-end"
+  - "Create your account and connect your AI tools"
+  - "Know which skills to reach for and how to ask"
   - "Log in to and navigate the admin dashboard"
 ---
 
-# Astound Digital Platform Documentation
+# How to Use the AI Salesforce Gateway
 
-This site covers two things: the **terminal demo** walkthroughs and how to **log in and use the dashboard**. Everything else lives in the code.
+The AI Salesforce Gateway puts your Salesforce, your documents, and Astound Digital's working practices inside Claude. You ask in plain English. It answers from live data, confirms before it changes anything, and records everything it does.
 
-## Terminal Demos
+## Get set up in four steps
 
-*Step-by-step walkthroughs of the live terminal demo.*
+1. **Create your account.** Sign up with your work email and register a passkey. No passwords. See [Authentication & Login](/documentation/authentication).
+2. **Download the desktop bridge.** It runs in your menu bar or system tray, signs you in, and keeps your skills in sync inside Claude Code, Cowork, and Codex. Downloads are on the [homepage](/#get-started).
+3. **Connect your AI tools.** Open your [dashboard](/documentation/dashboard), click **Connect**, and follow the one-step instructions. Signing in with Salesforce connects every source behind it.
+4. **Ask your first question.** Try *"Give me a full briefing on my biggest account"* or *"What is in my pipeline this quarter?"* The skills are already installed.
 
-- [Setup & Authentication](/documentation/demo-terminal-setup) — Bring the demo up and authenticate
-- [Governance Decisions](/documentation/demo-terminal-agents) — Agents making governed tool calls
-- [Audit Trails & Costs](/documentation/demo-terminal-audit) — Inspect audit logs and cost attribution
-- [Governance API](/documentation/demo-terminal-governance) — Drive policy decisions from the CLI
-- [MCP Access Tracking](/documentation/demo-terminal-mcp) — Watch MCP tool access in real time
-- [Request Tracing & Benchmark](/documentation/demo-terminal-tracing) — Trace requests end-to-end
-- [Agent Tracing](/documentation/demo-terminal-agent-tracing) — Follow a single agent's lifecycle
+## What to ask, by area
+
+Each area of the gateway has its own plain-English guide with example questions:
+
+- [Getting Started](/features/getting-started/) — what the assistant can do and how to ask
+- [Sales Pipeline & Deals](/features/sales-pipeline/) — forecast, deal search, and safe updates
+- [Accounts & Customers](/features/accounts/) — 360 degree briefings before every call
+- [Contacts & People](/features/contacts/) — contact maps and decision-makers
+- [Leads & Prospects](/features/leads/) — funnel insights and one-sentence capture
+- [Tasks, Calls & Meetings](/features/activities/) — your day at a glance, calls logged as you work
+- [Support Cases](/features/support-cases/) — queue, backlog, and escalations
+- [Consultancy Workflows](/features/consultancy/) — RFPs, proposals, SOWs, and estimates
+- [Brand & Workspace](/features/brand-and-workspace/) — voice, formatting, and boilerplate
+- [Governance & Trust](/features/governance-and-platform/) — how every request is checked and audited
+
+Or browse the [full skills catalogue](/skills/).
 
 ## Dashboard
 
-*Log in and use the admin dashboard.*
+- [Authentication & Login](/documentation/authentication) — login, passkeys, magic links, and session management
+- [Dashboard Usage](/documentation/dashboard) — real-time metrics, activity feed, and health indicators
 
-- [Authentication & Login](/documentation/authentication) — Login, passkeys, magic links, and session management
-- [Dashboard Usage](/documentation/dashboard) — Real-time metrics, activity feed, and health indicators
+## Under the hood
+
+Step-by-step walkthroughs of the governance and tracing machinery, for technical readers:
+
+- [Setup & Authentication](/documentation/demo-terminal-setup) — bring the platform up and authenticate
+- [Governance Decisions](/documentation/demo-terminal-agents) — agents making governed tool calls
+- [Audit Trails & Costs](/documentation/demo-terminal-audit) — inspect audit logs and cost attribution
+- [Governance API](/documentation/demo-terminal-governance) — drive policy decisions from the CLI
+- [MCP Access Tracking](/documentation/demo-terminal-mcp) — watch MCP tool access in real time
+- [Request Tracing & Benchmark](/documentation/demo-terminal-tracing) — trace requests end-to-end
+- [Agent Tracing](/documentation/demo-terminal-agent-tracing) — follow a single agent's lifecycle

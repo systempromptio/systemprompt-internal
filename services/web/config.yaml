@@ -1,9 +1,10 @@
 branding:
   name: Astound Digital
-  title: "Astound Digital — AI-Powered Commerce & Experience Solutions"
-  description: Astound Digital delivers end-to-end digital commerce, data-driven
-    strategy, AI solutions, marketing & CRM services for global brands seeking
-    growth and transformation.
+  title: "The AI Salesforce Gateway by Astound Digital"
+  description: Ask your Salesforce anything in plain English, inside Claude.
+    Pipeline, accounts, contacts, and client history answered in seconds,
+    with every change confirmed and every action audited. AI for Salesforce,
+    by Astound Digital.
   copyright: 2026 Astound Digital
   themeColor: '#171717'
   display_sitename: true

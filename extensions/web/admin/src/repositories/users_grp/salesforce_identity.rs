@@ -1,11 +1,12 @@
-//! Storage for a local user's Salesforce *Username* (userinfo `preferred_username`).
+//! Storage for a local user's Salesforce *Username* (userinfo
+//! `preferred_username`).
 //!
-//! The Salesforce JWT-bearer grant matches its `sub` claim against the Salesforce
-//! Username, which is not the login email (e.g. `ed.aa…@agentforce.com` vs
-//! `ed@systemprompt.io`). The SSO callback captures the Username here so the
-//! Hosted-MCP token accessor can mint a bearer as the right user. Lives in the
-//! web-owned `salesforce_user_identities` side table (schema/15), not the
-//! vendored `federated_identities` table.
+//! The Salesforce JWT-bearer grant matches its `sub` claim against the
+//! Salesforce Username, which is not the login email (e.g.
+//! `ed.aa…@agentforce.com` vs `ed@systemprompt.io`). The SSO callback captures
+//! the Username here so the Hosted-MCP token accessor can mint a bearer as the
+//! right user. Lives in the web-owned `salesforce_user_identities` side table
+//! (schema/15), not the vendored `federated_identities` table.
 
 use sqlx::PgPool;
 use systemprompt::identifiers::UserId;
@@ -26,8 +27,9 @@ pub async fn upsert(pool: &PgPool, user_id: &UserId, sf_username: &str) -> Resul
     Ok(())
 }
 
-/// The Salesforce Username for `user_id`, or `None` if this user never completed
-/// a Salesforce SSO login (in which case the caller falls back to the email).
+/// The Salesforce Username for `user_id`, or `None` if this user never
+/// completed a Salesforce SSO login (in which case the caller falls back to the
+/// email).
 pub async fn find(pool: &PgPool, user_id: &UserId) -> Result<Option<String>, sqlx::Error> {
     let row = sqlx::query!(
         "SELECT sf_username FROM salesforce_user_identities WHERE user_id = $1",

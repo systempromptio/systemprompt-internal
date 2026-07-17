@@ -23,6 +23,7 @@
     <link rel="stylesheet" href="{{CSS_BASE_PATH}}/homepage-hero.css">
     <link rel="stylesheet" href="{{CSS_BASE_PATH}}/homepage-sections-titles.css">
     <link rel="stylesheet" href="{{CSS_BASE_PATH}}/homepage-getting-started.css">
+    <link rel="stylesheet" href="{{CSS_BASE_PATH}}/homepage-departments.css">
 </head>
 <body>
     {{{HEADER}}}
@@ -45,65 +46,159 @@
                         {{/if}}
                     </div>
                     <nav class="hero-nav-chips" aria-label="Jump to homepage section">
-                        <a href="#what-it-is" class="hero-nav-chip">What it is</a>
-                        <a href="#get-started" class="hero-nav-chip">Get started</a>
-                        <a href="/skills/" class="hero-nav-chip">Skills</a>
+                        <a href="#why" class="hero-nav-chip">Why it matters</a>
+                        <a href="#departments" class="hero-nav-chip">What it does</a>
+                        <a href="#integrations" class="hero-nav-chip">Integrations</a>
+                        <a href="#get-started" class="hero-nav-chip">How to use</a>
                     </nav>
                 </div>
             </div>
         </section>
 
-        <section id="what-it-is" class="demos-quick-start">
+        <section id="why" class="value-pillars">
             <div class="container">
                 <header class="section-header">
-                    <h2 class="section-title">One platform, your everyday AI tools</h2>
-                    <p class="section-subtitle">Astound's internal AI platform connects the tools you already use &mdash; Claude Code, Codex, Claude Desktop &mdash; to Astound's skills, governance, and identity.</p>
+                    <h2 class="section-title">Why teams switch it on</h2>
+                    <p class="section-subtitle">The context for a client conversation used to take hours to assemble. Now it takes one question. That changes how a commercial team works, and what the business keeps when people move on.</p>
                 </header>
-                <ol class="quick-start-list">
-                    <li class="quick-start-step">
-                        <div class="quick-start-number">&#10003;</div>
-                        <div class="quick-start-body">
-                            <h3 class="quick-start-label">A skills marketplace, out of the box</h3>
-                            <p class="quick-start-desc">Consultancy workflows (RFP responses, statements of work, project estimates) and brand tools (voice and tone, client emails, boilerplate) are ready the moment you sign in &mdash; no setup, no prompt engineering. <a href="/skills/">Browse the catalogue</a>.</p>
-                        </div>
-                    </li>
-                    <li class="quick-start-step">
-                        <div class="quick-start-number">&#10003;</div>
-                        <div class="quick-start-body">
-                            <h3 class="quick-start-label">Your Cowork profile, installed by the bridge</h3>
-                            <p class="quick-start-desc">The desktop bridge app signs you in, installs your personal Cowork profile, and keeps your skills, agents, and MCP servers in sync inside Claude Code and Codex.</p>
-                        </div>
-                    </li>
-                    <li class="quick-start-step">
-                        <div class="quick-start-number">&#10003;</div>
-                        <div class="quick-start-body">
-                            <h3 class="quick-start-label">Governed and audited</h3>
-                            <p class="quick-start-desc">Every AI request and tool call runs through Astound's governance pipeline &mdash; scoped, secret-scanned, and fully audited &mdash; so you can use AI on client work with confidence.</p>
-                        </div>
-                    </li>
-                </ol>
+                <div class="pillars-grid">
+                    <div class="pillar-card">
+                        <h3 class="pillar-card-title">Answers in seconds, not hours</h3>
+                        <p class="pillar-card-text">Client history, pipeline, comparable case studies, and relationship notes surface the moment you ask. Conversations happen faster, with more credibility, and with the full picture in hand.</p>
+                    </div>
+                    <div class="pillar-card">
+                        <h3 class="pillar-card-title">Knowledge that stays with the business</h3>
+                        <p class="pillar-card-text">When people leave, their account history and client context usually leave with them. Connected to your own systems, that knowledge stays searchable and usable for whoever picks up the account next.</p>
+                    </div>
+                    <div class="pillar-card">
+                        <h3 class="pillar-card-title">New joiners productive in days</h3>
+                        <p class="pillar-card-text">A new Account Manager can ask for the full history of a client and get it. Onboarding becomes a structured briefing on real data instead of weeks of piecing context together.</p>
+                    </div>
+                    <div class="pillar-card">
+                        <h3 class="pillar-card-title">Governed by design</h3>
+                        <p class="pillar-card-text">Every request passes a four-stage governance pipeline and lands in a full audit trail. Changes are confirmed with you before they happen, and your data stays in your own infrastructure.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="departments" class="departments">
+            <div class="container">
+                <header class="section-header">
+                    <h2 class="section-title">What can it do?</h2>
+                    <p class="section-subtitle">Ask in plain English. Each area below is a set of ready-made skills, with a specialist agent behind it. Click through for what each one does and how to ask.</p>
+                </header>
+                <div class="departments-grid">
+                    <a href="/features/getting-started/" class="department-card">
+                        <p class="department-card-question">"What should I know before my 3pm call?"</p>
+                        <h3 class="department-card-title">Getting Started</h3>
+                        <p class="department-card-text">One assistant across your whole Salesforce, the single login that connects everything, and the promise to confirm before every change.</p>
+                        <span class="department-card-link">Start here &rarr;</span>
+                    </a>
+                    <a href="/features/sales-pipeline/" class="department-card">
+                        <p class="department-card-question">"What is in my pipeline closing this quarter?"</p>
+                        <h3 class="department-card-title">Sales Pipeline &amp; Deals</h3>
+                        <p class="department-card-text">Find deals, read your forecast and what is at risk, and update opportunities without opening Salesforce.</p>
+                        <span class="department-card-link">Explore pipeline skills &rarr;</span>
+                    </a>
+                    <a href="/features/accounts/" class="department-card">
+                        <p class="department-card-question">"Give me a full briefing on Halfords."</p>
+                        <h3 class="department-card-title">Accounts &amp; Customers</h3>
+                        <p class="department-card-text">360 degree account briefings, top-account and stale-account views, and safe record updates.</p>
+                        <span class="department-card-link">Explore account skills &rarr;</span>
+                    </a>
+                    <a href="/features/contacts/" class="department-card">
+                        <p class="department-card-question">"Who do we know at Charles Tyrwhitt?"</p>
+                        <h3 class="department-card-title">Contacts &amp; People</h3>
+                        <p class="department-card-text">Contact maps, decision-makers per account, and the relationships going quiet.</p>
+                        <span class="department-card-link">Explore contact skills &rarr;</span>
+                    </a>
+                    <a href="/features/leads/" class="department-card">
+                        <p class="department-card-question">"Which leads need follow-up today?"</p>
+                        <h3 class="department-card-title">Leads &amp; Prospects</h3>
+                        <p class="department-card-text">Funnel insights by source and status, stale-lead alerts, and one-sentence lead capture.</p>
+                        <span class="department-card-link">Explore lead skills &rarr;</span>
+                    </a>
+                    <a href="/features/activities/" class="department-card">
+                        <p class="department-card-question">"Log that call and set a follow-up for Friday."</p>
+                        <h3 class="department-card-title">Tasks, Calls &amp; Meetings</h3>
+                        <p class="department-card-text">Your day and week at a glance, overdue follow-ups, and activity logged as you work.</p>
+                        <span class="department-card-link">Explore activity skills &rarr;</span>
+                    </a>
+                    <a href="/features/support-cases/" class="department-card">
+                        <p class="department-card-question">"Is there support risk on my top accounts?"</p>
+                        <h3 class="department-card-title">Support Cases</h3>
+                        <p class="department-card-text">Queue and backlog insights, escalations that need attention, and safe case updates.</p>
+                        <span class="department-card-link">Explore case skills &rarr;</span>
+                    </a>
+                    <a href="/features/consultancy/" class="department-card">
+                        <p class="department-card-question">"Draft an RFP response for a composable commerce build."</p>
+                        <h3 class="department-card-title">Consultancy Workflows</h3>
+                        <p class="department-card-text">RFP responses, proposals, statements of work, work orders, and estimates in Astound's voice and format.</p>
+                        <span class="department-card-link">Explore consultancy skills &rarr;</span>
+                    </a>
+                    <a href="/features/brand-and-workspace/" class="department-card">
+                        <p class="department-card-question">"Rewrite this in our voice."</p>
+                        <h3 class="department-card-title">Brand &amp; Workspace</h3>
+                        <p class="department-card-text">Brand voice, terminology, document formatting, client emails, boilerplate, and one-step workspace setup.</p>
+                        <span class="department-card-link">Explore brand skills &rarr;</span>
+                    </a>
+                    <a href="/features/governance-and-platform/" class="department-card">
+                        <p class="department-card-question">"Show me the audit trail for that decision."</p>
+                        <h3 class="department-card-title">Governance &amp; Trust</h3>
+                        <p class="department-card-text">The four-stage governance pipeline, live permission changes, usage analytics, and the full audit trail.</p>
+                        <span class="department-card-link">See how it is governed &rarr;</span>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section id="integrations" class="integrations-strip">
+            <div class="container">
+                <header class="section-header">
+                    <h2 class="section-title">Sign in once. Connected to everything.</h2>
+                    <p class="section-subtitle">Log in with your existing Salesforce account and the gateway signs you into every connected source behind it. The complexity of the connections is owned by the platform, not by you.</p>
+                </header>
+                <div class="integrations-row">
+                    <div class="integration-item">
+                        <h3 class="integration-name">Salesforce</h3>
+                        <p class="integration-text">Live pipeline, accounts, contacts, leads, cases, and activities. Read and write, with confirmation before every change.</p>
+                    </div>
+                    <div class="integration-item">
+                        <h3 class="integration-name">Google Drive</h3>
+                        <p class="integration-text">Project documents, case studies, and capability materials, searchable in the same conversation as your CRM data.</p>
+                    </div>
+                    <div class="integration-item">
+                        <h3 class="integration-name">Email</h3>
+                        <p class="integration-text">Read-only access to the conversations where relationship context lives, scoped deliberately and governed like everything else.</p>
+                    </div>
+                    <div class="integration-item">
+                        <h3 class="integration-name">Claude Cowork &amp; Claude Code</h3>
+                        <p class="integration-text">The skills arrive inside the AI tools you already use, with dashboards and artifacts pre-installed and ready on day one.</p>
+                    </div>
+                </div>
             </div>
         </section>
 
         <section id="get-started" class="demos-quick-start homepage-usage">
             <div class="container">
                 <header class="section-header">
-                    <h2 class="section-title">Get started in four steps</h2>
-                    <p class="section-subtitle">From your work email to Astound skills inside your AI tools in a few minutes.</p>
+                    <h2 class="section-title">How to use it</h2>
+                    <p class="section-subtitle">From your work email to your first answered question in a few minutes. No config files, no tokens, no training course.</p>
                 </header>
                 <ol class="quick-start-list">
                     <li class="quick-start-step">
                         <div class="quick-start-number">1</div>
                         <div class="quick-start-body">
                             <h3 class="quick-start-label">Create your account</h3>
-                            <p class="quick-start-desc">Sign up with your <strong>@astounddigital.com</strong> or <strong>@astoundcommerce.com</strong> email and register a passkey &mdash; no passwords.</p>
+                            <p class="quick-start-desc">Sign up with your <strong>@astounddigital.com</strong> or <strong>@astoundcommerce.com</strong> email and register a passkey. No passwords.</p>
                         </div>
                     </li>
                     <li class="quick-start-step">
                         <div class="quick-start-number">2</div>
                         <div class="quick-start-body">
                             <h3 class="quick-start-label">Download the desktop bridge</h3>
-                            <p class="quick-start-desc">The bridge runs in your menu bar or system tray. It handles credentials, installs your Cowork profile, and syncs Astound skills into your AI tools.</p>
+                            <p class="quick-start-desc">The bridge runs in your menu bar or system tray. It signs you in, installs your workspace, and keeps your skills in sync inside Claude Code, Cowork, and Codex.</p>
                             <div class="header-downloads">
                                 <a href="https://github.com/systempromptio/systemprompt-core/releases/latest/download/systemprompt-bridge-aarch64-apple-darwin" class="download-badge" download target="_blank" rel="noopener noreferrer">
                                     <svg class="download-badge-logo" viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
@@ -123,17 +218,18 @@
                     <li class="quick-start-step">
                         <div class="quick-start-number">3</div>
                         <div class="quick-start-body">
-                            <h3 class="quick-start-label">Connect Claude Code or Codex</h3>
-                            <p class="quick-start-desc">Open your dashboard, click <strong>Connect</strong>, and follow the one-step instructions. The bridge links your identity to your tools &mdash; no config files, no tokens to paste.</p>
+                            <h3 class="quick-start-label">Connect your AI tools</h3>
+                            <p class="quick-start-desc">Open your dashboard, click <strong>Connect</strong>, and follow the one-step instructions. Signing in with Salesforce connects every source behind it.</p>
                         </div>
                     </li>
                     <li class="quick-start-step">
                         <div class="quick-start-number">4</div>
                         <div class="quick-start-body">
-                            <h3 class="quick-start-label">Use Astound skills</h3>
-                            <p class="quick-start-desc">Ask Claude Code to draft an RFP response, build a statement of work, or apply Astound's brand voice &mdash; the skills are already there.</p>
+                            <h3 class="quick-start-label">Ask your first question</h3>
+                            <p class="quick-start-desc">Try <em>"Give me a full briefing on my biggest account"</em>, <em>"What is in my pipeline this quarter?"</em>, or <em>"Draft a proposal in our voice"</em>. The skills are already there.</p>
                             <div class="command-row">
-                                <a href="/skills/" class="hero-cta hero-cta-secondary">Browse skills</a>
+                                <a href="/skills/" class="hero-cta hero-cta-secondary">Browse all skills</a>
+                                <a href="/documentation/" class="hero-cta hero-cta-secondary">Read the how-to guide</a>
                             </div>
                         </div>
                     </li>
