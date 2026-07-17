@@ -9,11 +9,13 @@
 //!   ([`crate::services::salesforce_jwt_bearer`]) — no tokens are banked.
 //!
 //! Module layout: [`config`] (the loaded YAML), [`start`] (the authorize
-//! redirect), [`callback`] (token exchange → identity → session), [`tokens`]
-//! (token shapes, the code exchange, the accessor endpoint).
+//! redirect), [`callback`] (the handler: validate → identity → session),
+//! [`identity`] (token exchange, claim gating, federated resolution),
+//! [`tokens`] (token shapes, the code exchange, the accessor endpoint).
 
 mod callback;
 mod config;
+mod identity;
 mod start;
 mod tokens;
 
@@ -21,8 +23,8 @@ use std::sync::Arc;
 
 use axum::http::HeaderMap;
 use axum::response::{IntoResponse, Redirect, Response};
-use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine;
+use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use rand::Rng;
 use sqlx::PgPool;
 
@@ -30,12 +32,11 @@ use systemprompt::models::Config;
 use systemprompt::oauth::SessionCreationService;
 
 pub(crate) use callback::salesforce_callback;
-pub use callback::select_sf_username;
-pub(crate) use config::{client_secret, salesforce_private_key};
 pub use config::SalesforceConfig;
+pub(crate) use config::{client_secret, salesforce_private_key};
+pub use identity::select_sf_username;
 pub(crate) use start::salesforce_start;
-pub(crate) use tokens::post_token_request;
-pub(crate) use tokens::salesforce_token_handler;
+pub(crate) use tokens::{post_token_request, salesforce_token_handler};
 
 pub(super) const STATE_COOKIE: &str = "sf_oauth_state";
 const DEFAULT_REDIRECT: &str = "/admin";
@@ -87,7 +88,8 @@ pub(super) fn secure_flag() -> &'static str {
     }
 }
 
-/// Reject anything that isn't a same-site absolute path, to avoid open-redirect.
+/// Reject anything that isn't a same-site absolute path, to avoid
+/// open-redirect.
 pub(super) fn sanitize_redirect(raw: Option<String>) -> String {
     match raw {
         Some(r) if r.starts_with('/') && !r.starts_with("//") => r,
