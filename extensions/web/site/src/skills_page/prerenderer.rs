@@ -19,17 +19,40 @@ impl SkillsPagePrerenderer {
     }
 }
 
+const CATEGORY_ORDER: [&str; 5] = [
+    "Salesforce",
+    "Consultancy Workflows",
+    "Brand & Workspace",
+    "Governance & Analytics",
+    "Platform & Operations",
+];
+
+fn category_rank(name: &str) -> usize {
+    CATEGORY_ORDER
+        .iter()
+        .position(|c| *c == name)
+        .unwrap_or(CATEGORY_ORDER.len())
+}
+
 fn group_by_category(skills: &[SkillEntry]) -> Vec<serde_json::Value> {
     let mut grouped: BTreeMap<String, Vec<&SkillEntry>> = BTreeMap::new();
     for skill in skills {
         let category = skill
-            .category
+            .display_category
             .clone()
-            .unwrap_or_else(|| "general".to_owned());
+            .or_else(|| skill.category.clone())
+            .unwrap_or_else(|| "General".to_owned());
         grouped.entry(category).or_default().push(skill);
     }
 
-    grouped
+    let mut categories: Vec<(String, Vec<&SkillEntry>)> = grouped.into_iter().collect();
+    categories.sort_by(|a, b| {
+        category_rank(&a.0)
+            .cmp(&category_rank(&b.0))
+            .then_with(|| a.0.cmp(&b.0))
+    });
+
+    categories
         .into_iter()
         .map(|(category, items)| {
             serde_json::json!({

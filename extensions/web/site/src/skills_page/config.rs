@@ -16,6 +16,10 @@ pub struct SkillEntry {
     pub tags: Vec<String>,
     #[serde(default)]
     pub category: Option<String>,
+    #[serde(default)]
+    pub display_category: Option<String>,
+    #[serde(default)]
+    pub href: Option<String>,
 }
 
 const fn default_enabled() -> bool {

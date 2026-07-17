@@ -43,9 +43,9 @@ impl DocsPageDataProvider {
             }
             first = false;
 
-            // `fmt::Write` for `String` never returns `Err`; the result is
+            // Why: `fmt::Write` for `String` never returns `Err`; the result is
             // genuinely discardable.
-            write!(
+            let _ = write!(
                 result,
                 r#"<a href="{}" class="docs-card">
   <h3 class="docs-card-title">{}</h3>
@@ -54,8 +54,7 @@ impl DocsPageDataProvider {
                 html_escape(url),
                 html_escape(title),
                 html_escape(description)
-            )
-            .ok();
+            );
         }
 
         if result.is_empty() {
