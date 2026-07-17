@@ -139,8 +139,8 @@ async fn audit_decision(
         session_id: req.trace_id.as_str(),
         tool_name: entity_id_str,
         agent_id: None,
-        // Authz decisions are entity-keyed, not agent-keyed; entity_type lives
-        // in evaluated_rules above for forensic lookup.
+        // Why: authz decisions are entity-keyed, not agent-keyed; entity_type
+        // remains in evaluated_rules above for forensic lookup.
         agent_scope: None,
         decision: decision_tag,
         policy: POLICY_NAME,

@@ -28,11 +28,8 @@ pub(super) fn extract_and_validate_jwt(
         })?
         .jwt_issuer
         .clone();
-    // Must use the canonical hook-token validator: hook tokens are minted with
-    // `audience=hook` + `scope=hook:govern hook:track`, so a hand-rolled check
-    // accepting `api`/`plugin` rejects every real hook token with
-    // InvalidAudience. `None` skips the request-vs-claim plugin_id cross-check
-    // because this endpoint takes no plugin_id path/query binding.
+    // Why: `None` skips the request-vs-claim plugin_id cross-check — this
+    // endpoint takes no plugin_id path/query binding to compare against.
     let claims = HookTokenValidator::new(jwt_issuer)
         .validate_track(token, None)
         .map_err(|e| {
