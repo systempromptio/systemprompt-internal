@@ -1,0 +1,55 @@
+.hero-showreel {
+  max-width: 1100px;
+  margin: var(--sp-space-3xl) auto 0;
+  border: 1px solid var(--sp-brand-800);
+  border-radius: var(--sp-card-radius);
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(10, 10, 10, 0.04) 0%, transparent 60%);
+  box-shadow: 0 8px 32px rgba(10, 10, 10, 0.11);
+  position: relative;
+}
+
+.hero-showreel-video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
+.hero-showreel-caption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-space-xs) var(--sp-space-lg);
+  padding: var(--sp-space-lg) var(--sp-space-xl);
+  border-top: 1px solid var(--sp-brand-800);
+  text-align: left;
+}
+
+.hero-showreel-caption-title {
+  font-family: var(--sp-font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--sp-color-accent);
+  white-space: nowrap;
+}
+
+.hero-showreel-caption-text {
+  font-size: 0.9rem;
+  color: var(--sp-color-text-secondary);
+  line-height: 1.6;
+  flex: 1;
+  min-width: 260px;
+}
+
+@media (max-width: 768px) {
+  .hero-showreel {
+    margin-top: var(--sp-space-2xl);
+  }
+
+  .hero-showreel-caption {
+    padding: var(--sp-space-md) var(--sp-space-lg);
+  }
+}
