@@ -22,11 +22,6 @@ static ASTOUND_BRAND: Brand = Brand {
     working_dir_name: "astound-bridge",
     keyring_service: "astound-bridge.oauth-client",
     env_prefix: "ASTOUND_BRIDGE",
-    // WIRE-CONTRACT: this must match the managed-plugin name the Astound gateway
-    // emits in its signed manifest. Per the rebrand decision it stays as the
-    // shared systemprompt value; only change it alongside a coordinated gateway
-    // change.
-    synthetic_plugin_name: "systemprompt-managed",
     // Pre-fills the setup/settings gateway field with the local gateway so a dev
     // build talks to a `just start` server out of the box. Point at the deployed
     // Astound gateway host before cutting a release. Overridable at runtime via

@@ -69,10 +69,9 @@ no forking of the bridge source:
 2. Replace everything in `assets/` with the client's marks + `theme.css`
    (override the `--sp-*` tokens; see `assets/theme.css`).
 3. Edit the `Brand` const in `src/main.rs`: name, binary name, vendor, on-disk
-   dir names, `env_prefix`, `default_gateway_url`, and chrome strings. Leave
-   `synthetic_plugin_name` as the shared value unless the client's gateway emits
-   a matching renamed managed-plugin name (wire-contract — coordinate both
-   sides).
+   dir names, `env_prefix`, `default_gateway_url`, and chrome strings. Plugin
+   ids are carried per-plugin in the gateway's signed manifest — there is no
+   brand-level plugin-name field to set.
 4. Update `build.rs` (Windows metadata), `macos/Info.plist` (bundle id + names),
    and `scripts/make-mac-app.sh` (bundle/app name).
 5. Wire up the release workflow (`.github/workflows/release-bridge.yml`).
