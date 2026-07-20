@@ -81,11 +81,17 @@ impl std::fmt::Debug for SalesforceDeps {
 }
 
 pub(super) fn secure_flag() -> &'static str {
-    if Config::get().map_or(true, |c| c.use_https) {
-        "; Secure"
-    } else {
-        ""
-    }
+    let use_https = match Config::get() {
+        Ok(c) => c.use_https,
+        Err(e) => {
+            tracing::error!(
+                error = %e,
+                "config unavailable while setting session cookie; defaulting to Secure — the cookie will be dropped by browsers on plain http"
+            );
+            true
+        },
+    };
+    if use_https { "; Secure" } else { "" }
 }
 
 /// Reject anything that isn't a same-site absolute path, to avoid
