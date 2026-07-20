@@ -188,6 +188,15 @@ social:
 
 # Docs sidebar - rendered dynamically via site.docs_sidebar in templates
 docs_sidebar:
+  - title: "Using the Gateway"
+    links:
+      - label: "How to Use"
+        href: "/documentation/"
+      - label: "Getting Started"
+        href: "/features/getting-started/"
+      - label: "All Skills"
+        href: "/skills/"
+
   - title: "Terminal Demos"
     links:
       - label: "Setup & Authentication"
