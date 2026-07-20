@@ -1,0 +1,8 @@
+# Points core's bridge build script at this repo's web overlay so any file under
+# bridge/web/ overrides the matching core GUI asset (css/js/html/i18n) at build
+# time. `relative = true` resolves `web` against this config file's directory
+# (bridge/) and hands core's build.rs an absolute path, regardless of its cwd.
+# Cargo discovers this config from the build cwd upward, so build from bridge/
+# (the documented `cd bridge && cargo build`).
+[env]
+SYSTEMPROMPT_BRIDGE_WEB_OVERLAY = { value = "web", relative = true }

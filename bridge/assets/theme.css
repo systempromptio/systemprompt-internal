@@ -27,4 +27,9 @@
   --sp-muted-strong:  oklch(0.80 0 0);
 
   --sp-shadow-accent: 0 12px 40px oklch(0.58 0.25 28 / 0.22);
+
+  /* Core defaults --sp-info to a vivid blue for "changed/updated" chips. Astound
+   * is monochrome, so desaturate it to a faint cool grey — still distinct from
+   * the red accent and the ok/err/warn hues, without introducing a second colour. */
+  --sp-info:          oklch(0.72 0.02 240);
 }
