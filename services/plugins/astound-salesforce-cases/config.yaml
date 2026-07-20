@@ -17,6 +17,7 @@ plugin:
       - cases_report
       - cases_update
   agents:
+    source: explicit
     include:
       - case_agent
   mcp_servers:

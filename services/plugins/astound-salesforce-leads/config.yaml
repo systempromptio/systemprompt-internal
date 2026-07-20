@@ -17,6 +17,7 @@ plugin:
       - leads_report
       - leads_update
   agents:
+    source: explicit
     include:
       - lead_agent
   mcp_servers:

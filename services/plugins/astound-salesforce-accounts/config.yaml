@@ -17,6 +17,7 @@ plugin:
       - accounts_report
       - accounts_update
   agents:
+    source: explicit
     include:
       - account_agent
   mcp_servers:

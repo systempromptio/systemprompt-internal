@@ -17,6 +17,7 @@ plugin:
       - activities_report
       - activities_update
   agents:
+    source: explicit
     include:
       - activity_agent
   mcp_servers:

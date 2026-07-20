@@ -17,6 +17,7 @@ plugin:
       - contacts_report
       - contacts_update
   agents:
+    source: explicit
     include:
       - contact_agent
   mcp_servers:

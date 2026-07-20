@@ -21,6 +21,7 @@ plugin:
       - create_project_estimate
       - create_client_proposal
   agents:
+    source: explicit
     include: []
   mcp_servers:
     source: explicit

@@ -20,6 +20,7 @@ plugin:
       - company_boilerplate
       - astound_glossary
   agents:
+    source: explicit
     include: []
   mcp_servers: {}
   content_sources: {}

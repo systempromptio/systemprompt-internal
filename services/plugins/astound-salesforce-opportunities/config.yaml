@@ -17,6 +17,7 @@ plugin:
       - opportunities_report
       - opportunities_update
   agents:
+    source: explicit
     include:
       - pipeline_agent
   mcp_servers:
