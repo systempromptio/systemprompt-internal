@@ -12,6 +12,13 @@ use std::process::ExitCode;
 
 use systemprompt_bridge::brand::{Brand, BrandAssets};
 
+// Astound behaviour registered through core's `inventory` seams. The GUI
+// (hence the marketplace-source seam) is win/mac-only, so this module compiles
+// there; the `mod` reference keeps its `inventory::submit!`s linked into the
+// binary (an unreferenced module would be dropped before its initializers run).
+#[cfg(any(target_os = "windows", target_os = "macos"))]
+mod registry;
+
 static ASTOUND_BRAND: Brand = Brand {
     app_name: "Astound Bridge",
     binary_name: "astound-bridge",

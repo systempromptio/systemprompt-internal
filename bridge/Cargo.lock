@@ -126,6 +126,7 @@ checksum = "175571dd1d178ced59193a6fc02dde1b972eb0bc56c892cde9beeceac5bf0f6b"
 name = "astound-bridge"
 version = "0.1.0"
 dependencies = [
+ "inventory",
  "systemprompt-bridge",
  "winresource",
 ]
@@ -4155,7 +4156,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-bridge"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "arc-swap",
  "async-trait",
@@ -4175,6 +4176,7 @@ dependencies = [
  "hyper",
  "hyper-util",
  "image",
+ "inventory",
  "is-terminal",
  "keyring",
  "libc",
@@ -4213,7 +4215,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-extension"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "axum",
  "inventory",
@@ -4228,7 +4230,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-identifiers"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "chrono",
  "schemars",
@@ -4240,7 +4242,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-models"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "async-trait",
  "bytes",
@@ -4249,6 +4251,7 @@ dependencies = [
  "futures-util",
  "http",
  "indexmap",
+ "ipnet",
  "regex",
  "rmcp",
  "schemars",
@@ -4268,7 +4271,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-provider-contracts"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "async-trait",
  "chrono",
@@ -4283,7 +4286,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-traits"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "async-trait",
  "axum",
