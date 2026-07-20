@@ -1,0 +1,56 @@
+{{#> layout title=title page=page}}
+    {{#*inline "head_extra"}}{{/inline}}
+    {{#*inline "content"}}
+    {{> components/page-header title=title subtitle="Skills are reusable instruction sets. They are bundled into plugins and assigned to users through the access matrix. Loaded from services/skills/*."}}
+
+    <div class="toolbar" role="toolbar" aria-label="Skill filters">
+        <div class="search-group">
+            <input type="text" class="search-input" placeholder="Search skills…" id="catalog-search" aria-label="Search skills">
+        </div>
+        <span class="text-muted catalog-count">{{skills_count}} skill{{#unless (eq skills_count 1)}}s{{/unless}}</span>
+    </div>
+
+    {{#if skills_count}}
+    {{#> components/data-table}}
+        <thead><tr>
+            <th>Name</th>
+            <th>ID</th>
+            <th>Description</th>
+            <th class="col-status">Status</th>
+            <th class="numeric col-numeric">Plugins</th>
+            <th class="numeric col-numeric">Assignments</th>
+            <th class="col-actions"></th>
+        </tr></thead>
+        <tbody>
+        {{#each skills}}
+        <tr data-search="{{toLowerCase name}} {{toLowerCase id}}">
+            <td><a class="table-link" href="{{detail_url}}">{{name}}</a></td>
+            <td><code class="code-inline">{{id}}</code></td>
+            <td>{{#if description}}{{truncate description 90}}{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
+            <td class="col-status">{{#if enabled}}<span class="badge badge-success">enabled</span>{{else}}<span class="badge badge-muted">disabled</span>{{/if}}</td>
+            <td class="numeric col-numeric">{{plugin_count}}</td>
+            <td class="numeric col-numeric">{{assignment_count}}</td>
+            <td class="col-actions"><a class="btn btn-sm btn-outline" href="{{detail_url}}">View →</a></td>
+        </tr>
+        {{/each}}
+        </tbody>
+    {{/components/data-table}}
+    {{else}}
+    {{> components/empty-state message="No skills configured. Add a services/skills/<id>/config.yaml and restart."}}
+    {{/if}}
+
+    <script>
+    (function(){
+      var search = document.getElementById('catalog-search');
+      if (!search) return;
+      search.addEventListener('input', function(){
+        var q = (search.value || '').toLowerCase();
+        document.querySelectorAll('tr[data-search]').forEach(function(row){
+          var s = row.getAttribute('data-search') || '';
+          row.style.display = (!q || s.indexOf(q) !== -1) ? '' : 'none';
+        });
+      });
+    })();
+    </script>
+    {{/inline}}
+{{/layout}}

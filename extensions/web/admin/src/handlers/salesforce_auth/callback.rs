@@ -136,7 +136,7 @@ async fn mint_session(
     headers: &HeaderMap,
 ) -> Result<(String, i64), String> {
     let session_id = session_service
-        .create_authenticated_session(&resolved.user_id, headers, SessionSource::Oauth)
+        .create_authenticated_session(&resolved.user_id, headers, SessionSource::Oauth, None)
         .await
         .map_err(|e| e.to_string())?;
 

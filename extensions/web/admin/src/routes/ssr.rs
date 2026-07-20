@@ -17,7 +17,6 @@ pub fn admin_ssr_router(
     let inner = root_routes()
         .merge(access_routes())
         .merge(catalog_routes())
-        .merge(governance_routes())
         .merge(entity_routes())
         .merge(account_routes())
         .merge(api_routes())
@@ -79,10 +78,17 @@ fn public_routes() -> Router<Arc<PgPool>> {
 }
 
 fn root_routes() -> Router<Arc<PgPool>> {
-    Router::new().route(
-        "/",
-        get(|| async { axum::response::Redirect::to("/admin/profile") }),
-    )
+    Router::new().route("/", get(root_redirect))
+}
+
+async fn root_redirect(
+    Extension(user_ctx): Extension<crate::types::UserContext>,
+) -> axum::response::Redirect {
+    if user_ctx.is_admin {
+        axum::response::Redirect::to("/admin/access/users")
+    } else {
+        axum::response::Redirect::to("/admin/profile")
+    }
 }
 
 fn access_routes() -> Router<Arc<PgPool>> {
@@ -118,33 +124,26 @@ fn catalog_routes() -> Router<Arc<PgPool>> {
     Router::new()
         .route(
             "/catalog",
-            get(|| async { axum::response::Redirect::permanent("/admin/catalog/marketplace") }),
+            get(|| async { axum::response::Redirect::permanent("/admin/catalog/plugins") }),
         )
         .route(
             "/catalog/marketplace",
-            get(handlers::catalog::marketplace_page),
+            get(|| async { axum::response::Redirect::permanent("/admin/catalog/plugins") }),
         )
-        .route("/catalog/a2a", get(handlers::catalog::a2a_agents_page))
+        .route("/catalog/plugins", get(handlers::catalog::plugins_page))
         .route(
-            "/catalog/external",
-            get(handlers::catalog::external_agents_page),
+            "/catalog/plugins/{plugin_id}",
+            get(handlers::catalog::plugin_detail_page),
         )
-}
-
-fn governance_routes() -> Router<Arc<PgPool>> {
-    Router::new()
-        .route("/governance/policies", get(handlers::ssr::governance_page))
+        .route("/catalog/skills", get(handlers::catalog::skills_page))
         .route(
-            "/governance/policies/{policy_id}",
-            get(handlers::ssr::governance_policy_edit_page),
+            "/catalog/skills/{skill_id}",
+            get(handlers::catalog::skill_detail_page),
         )
+        .route("/catalog/mcp", get(handlers::catalog::mcp_servers_page))
         .route(
-            "/governance/policies/{policy_id}/toggle",
-            post(handlers::ssr::governance_policy_toggle),
-        )
-        .route(
-            "/governance/hooks",
-            get(handlers::ssr::governance_hooks_page),
+            "/catalog/mcp/{mcp_id}",
+            get(handlers::catalog::mcp_detail_page),
         )
 }
 

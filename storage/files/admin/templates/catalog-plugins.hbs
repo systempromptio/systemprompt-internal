@@ -1,0 +1,55 @@
+{{#> layout title=title page=page}}
+    {{#*inline "head_extra"}}{{/inline}}
+    {{#*inline "content"}}
+    {{> components/page-header title=title subtitle="Plugins are the installable units in the catalog. Each bundles a set of skills, MCP servers, agents, and hooks. Loaded from services/plugins/*/config.yaml — edit on disk and restart to change."}}
+
+    <div class="toolbar" role="toolbar" aria-label="Plugin filters">
+        <div class="search-group">
+            <input type="text" class="search-input" placeholder="Search plugins…" id="catalog-search" aria-label="Search plugins">
+        </div>
+        <span class="text-muted catalog-count">{{plugins_count}} plugin{{#unless (eq plugins_count 1)}}s{{/unless}}</span>
+    </div>
+
+    {{#if plugins_count}}
+    <div class="catalog-grid" id="catalog-grid">
+        {{#each plugins}}
+        <article class="catalog-card" data-search="{{toLowerCase name}} {{toLowerCase id}} {{toLowerCase category}}">
+            <a class="catalog-card__main" href="{{detail_url}}">
+                <div class="catalog-card__head">
+                    <h2 class="catalog-card__title">{{name}}</h2>
+                    {{#if enabled}}<span class="badge badge-success">enabled</span>{{else}}<span class="badge badge-muted">disabled</span>{{/if}}
+                </div>
+                <p class="catalog-card__desc">{{#if description}}{{description}}{{else}}<span class="text-tertiary">No description</span>{{/if}}</p>
+                <div class="catalog-card__meta">
+                    {{#if category}}<span class="chip chip--tag">{{category}}</span>{{/if}}
+                    <span class="chip chip--muted">v{{version}}</span>
+                </div>
+            </a>
+            <div class="catalog-card__rel">
+                <span class="rel-chip" title="Skills"><strong>{{skills_count}}</strong> skills</span>
+                <span class="rel-chip" title="MCP servers"><strong>{{mcp_count}}</strong> MCP</span>
+                <span class="rel-chip" title="Agents"><strong>{{agents_count}}</strong> agents</span>
+                <span class="rel-chip rel-chip--assign" title="Access assignments"><strong>{{assignment_count}}</strong> assigned</span>
+            </div>
+        </article>
+        {{/each}}
+    </div>
+    {{else}}
+    {{> components/empty-state message="No plugins configured. Add a services/plugins/<id>/config.yaml and restart."}}
+    {{/if}}
+
+    <script>
+    (function(){
+      var search = document.getElementById('catalog-search');
+      if (!search) return;
+      search.addEventListener('input', function(){
+        var q = (search.value || '').toLowerCase();
+        document.querySelectorAll('#catalog-grid .catalog-card').forEach(function(card){
+          var s = card.getAttribute('data-search') || '';
+          card.style.display = (!q || s.indexOf(q) !== -1) ? '' : 'none';
+        });
+      });
+    })();
+    </script>
+    {{/inline}}
+{{/layout}}

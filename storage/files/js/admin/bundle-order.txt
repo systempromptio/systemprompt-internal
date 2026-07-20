@@ -18,7 +18,5 @@ plugin-env.js
 plugins.js
 plugin-edit.js
 skills.js
-agents.js
-hooks.js
 mcp-servers.js
 access-control.js

@@ -167,6 +167,5 @@ inventory::submit! {
     PolicyRegistration {
         id: ID,
         factory: |v| Box::new(SecretScan::from_yaml(v)),
-        source_path: file!(),
     }
 }

@@ -17,6 +17,7 @@ pub(super) fn page_js_assets(storage_js: &Path) -> Vec<AssetDefinition> {
         page_js!(&pages, "admin-agent-edit.js"),
         page_js!(&pages, "admin-agents-helpers.js"),
         page_js!(&pages, "admin-contexts.js"),
+        page_js!(&pages, "admin-entities.js"),
         page_js!(&pages, "admin-entity-access.js"),
         page_js!(&pages, "admin-plugins-list.js"),
         page_js!(&pages, "admin-profile.js"),

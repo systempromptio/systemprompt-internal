@@ -17,10 +17,7 @@ mod ssr_context_detail;
 mod ssr_conversations_raw;
 mod ssr_demo_help;
 mod ssr_demo_register;
-mod ssr_governance;
 mod ssr_governance_audit_detail;
-mod ssr_governance_hooks;
-mod ssr_governance_policy_edit;
 pub(crate) mod ssr_helpers;
 mod ssr_management;
 mod ssr_perf_trace_detail;
@@ -44,12 +41,7 @@ pub(crate) use ssr_chain::chain_envelope;
 pub(crate) use ssr_context_detail::context_detail_page;
 pub(crate) use ssr_conversations_raw::conversations_raw;
 pub(crate) use ssr_demo_register::demo_register_page;
-pub(crate) use ssr_governance::governance_page;
 pub(crate) use ssr_governance_audit_detail::governance_audit_detail_page;
-pub(crate) use ssr_governance_hooks::governance_hooks_page;
-pub(crate) use ssr_governance_policy_edit::{
-    governance_policy_edit_page, governance_policy_toggle,
-};
 pub(crate) use ssr_helpers::{branding_context, render_page, render_typed_page};
 pub(crate) use ssr_management::{
     management_department_detail_page, management_departments_page, management_devices_page,

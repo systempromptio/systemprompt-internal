@@ -1,0 +1,56 @@
+{{#> layout title=title page=page}}
+    {{#*inline "head_extra"}}{{/inline}}
+    {{#*inline "content"}}
+    {{> components/page-header title=title subtitle="MCP servers expose tools to agents. They are bundled into plugins and assigned to users through the access matrix. Loaded from services/mcp/*."}}
+
+    <div class="toolbar" role="toolbar" aria-label="MCP filters">
+        <div class="search-group">
+            <input type="text" class="search-input" placeholder="Search MCP servers…" id="catalog-search" aria-label="Search MCP servers">
+        </div>
+        <span class="text-muted catalog-count">{{servers_count}} server{{#unless (eq servers_count 1)}}s{{/unless}}</span>
+    </div>
+
+    {{#if servers_count}}
+    {{#> components/data-table}}
+        <thead><tr>
+            <th>ID</th>
+            <th>Description</th>
+            <th class="col-status">Status</th>
+            <th class="col-status">Auth</th>
+            <th class="numeric col-numeric">Plugins</th>
+            <th class="numeric col-numeric">Assignments</th>
+            <th class="col-actions"></th>
+        </tr></thead>
+        <tbody>
+        {{#each servers}}
+        <tr data-search="{{toLowerCase id}} {{toLowerCase description}}">
+            <td><a class="table-link" href="{{detail_url}}"><code class="code-inline">{{id}}</code></a></td>
+            <td>{{#if description}}{{truncate description 90}}{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
+            <td class="col-status">{{#if enabled}}<span class="badge badge-success">enabled</span>{{else}}<span class="badge badge-muted">disabled</span>{{/if}}</td>
+            <td class="col-status">{{#if oauth_required}}<span class="badge badge-warning">OAuth</span>{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
+            <td class="numeric col-numeric">{{plugin_count}}</td>
+            <td class="numeric col-numeric">{{assignment_count}}</td>
+            <td class="col-actions"><a class="btn btn-sm btn-outline" href="{{detail_url}}">View →</a></td>
+        </tr>
+        {{/each}}
+        </tbody>
+    {{/components/data-table}}
+    {{else}}
+    {{> components/empty-state message="No MCP servers configured. Add a services/mcp/<id>.yaml and restart."}}
+    {{/if}}
+
+    <script>
+    (function(){
+      var search = document.getElementById('catalog-search');
+      if (!search) return;
+      search.addEventListener('input', function(){
+        var q = (search.value || '').toLowerCase();
+        document.querySelectorAll('tr[data-search]').forEach(function(row){
+          var s = row.getAttribute('data-search') || '';
+          row.style.display = (!q || s.indexOf(q) !== -1) ? '' : 'none';
+        });
+      });
+    })();
+    </script>
+    {{/inline}}
+{{/layout}}

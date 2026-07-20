@@ -26,30 +26,19 @@
             Access matrix
         </a>
 
-        {{!-- CATALOG — what's loaded from services/*.yaml --}}
+        {{!-- CATALOG — installable units from services/*.yaml --}}
         <h2 class="nav-label">Catalog</h2>
-        <a href="/admin/catalog/marketplace"{{#if (eq page "marketplace")}} class="active" aria-current="page"{{else}}{{#if (eq page "catalog")}} class="active" aria-current="page"{{/if}}{{/if}}>
+        <a href="/admin/catalog/plugins"{{#if (eq page "plugins")}} class="active" aria-current="page"{{else}}{{#if (eq page "plugin-detail")}} class="active" aria-current="page"{{else}}{{#if (eq page "catalog")}} class="active" aria-current="page"{{/if}}{{/if}}{{/if}}>
             <svg class="icon" aria-hidden="true" viewBox="0 0 16 16" fill="currentColor"><path d="M3 3h4v4H3zM9 3h4v4H9zM3 9h4v4H3zM9 9h4v4H9z"/></svg>
-            Marketplace
+            Plugins
         </a>
-        <a href="/admin/catalog/a2a"{{#if (eq page "a2a-agents")}} class="active" aria-current="page"{{/if}}>
-            <svg class="icon" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="4" cy="8" r="2"/><circle cx="12" cy="8" r="2"/><path d="M6 8h4M5.5 6.5l-1-1M5.5 9.5l-1 1M10.5 6.5l1-1M10.5 9.5l1 1" stroke-linecap="round"/></svg>
-            A2A agents
+        <a href="/admin/catalog/skills"{{#if (eq page "skills")}} class="active" aria-current="page"{{else}}{{#if (eq page "skill-detail")}} class="active" aria-current="page"{{/if}}{{/if}}>
+            <svg class="icon" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5l1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.3 4.2 13.3l.7-4.3-3.1-3 4.3-.6z" stroke-linejoin="round"/></svg>
+            Skills
         </a>
-        <a href="/admin/catalog/external"{{#if (eq page "external-agents")}} class="active" aria-current="page"{{/if}}>
-            <svg class="icon" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 2v4M11 2v4M3 6h10v4a3 3 0 01-3 3H6a3 3 0 01-3-3V6zM8 13v2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            External agents
-        </a>
-
-        {{!-- GOVERNANCE — rules, not telemetry --}}
-        <h2 class="nav-label">Governance</h2>
-        <a href="/admin/governance/policies"{{#if (eq page "governance")}} class="active" aria-current="page"{{else}}{{#if (eq page "governance-policy-edit")}} class="active" aria-current="page"{{/if}}{{/if}}>
-            <svg class="icon" aria-hidden="true" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1L2 4v4c0 3.3 2.6 6.4 6 7 3.4-.6 6-3.7 6-7V4L8 1zm0 2.2L12 5.5v2.8c0 2.4-1.7 4.6-4 5.2-2.3-.6-4-2.8-4-5.2V5.5L8 3.2z"/></svg>
-            Policies
-        </a>
-        <a href="/admin/governance/hooks"{{#if (eq page "governance-hooks")}} class="active" aria-current="page"{{/if}}>
-            <svg class="icon" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3v6a3 3 0 003 3h7M10 9l3 3-3 3"/></svg>
-            Hooks
+        <a href="/admin/catalog/mcp"{{#if (eq page "mcp")}} class="active" aria-current="page"{{else}}{{#if (eq page "mcp-detail")}} class="active" aria-current="page"{{/if}}{{/if}}>
+            <svg class="icon" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="4" rx="1"/><rect x="2" y="9" width="12" height="4" rx="1"/><path d="M5 5h.01M5 11h.01" stroke-linecap="round"/></svg>
+            MCP servers
         </a>
 
         {{!-- ENTITIES — read-only state inspection --}}

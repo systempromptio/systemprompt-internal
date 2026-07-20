@@ -1,42 +1,34 @@
-//! Read-only catalog admin pages, split into three views:
+//! Read-only catalog admin pages for the three installable entity families:
 //!
-//! - `/admin/catalog/marketplace` — install-able units (skills, plugins, MCP
-//!   servers) loaded from `services/*.yaml`. Mirrors Anthropic's plugin
-//!   marketplace mental model.
-//! - `/admin/catalog/a2a` — A2A agents from `services/agents/*.yaml`. These run
-//!   as standalone services and connect to the gateway as peers.
-//! - `/admin/catalog/external` — external host apps from
-//!   `services/external_agents/*.yaml` (Claude Desktop, Codex CLI). They
-//!   connect via `systemprompt-bridge` and the `enabled` flag here mirrors what
-//!   surfaces on `/admin/profile` under "Available agents".
+//! - `/admin/catalog/plugins` — plugins (collections) from
+//!   `services/plugins/*/config.yaml`, each referencing skills, MCP servers,
+//!   agents, and hooks.
+//! - `/admin/catalog/skills` — skills from `services/skills/*`.
+//! - `/admin/catalog/mcp` — MCP servers from `services/mcp/*`.
 //!
-//! All three pages are strictly read-only: there are no POST/PUT/DELETE
-//! companion routes. Operators edit `services/*.yaml` and restart.
+//! Each family has a list page and a detail page. Detail pages surface the
+//! plugin ↔ member relationship in both directions. All pages are strictly
+//! read-only: operators edit `services/*.yaml` and restart.
 
+mod data;
 mod view;
 
-use std::collections::HashMap;
 use std::sync::Arc;
 
-use axum::extract::{Extension, State};
+use axum::extract::{Extension, Path, State};
 use axum::response::Response;
 use sqlx::PgPool;
 
 use crate::handlers::shared;
-use crate::repositories;
 use crate::templates::AdminTemplateEngine;
 use crate::types::{
-    ENTITY_AGENT, ENTITY_MCP_SERVER, ENTITY_PLUGIN, ENTITY_SKILL, MarketplaceContext,
-    McpServerDetail, PluginDetail, SkillCatalogEntry, UserContext,
+    ENTITY_MCP_SERVER, ENTITY_PLUGIN, ENTITY_SKILL, MarketplaceContext, UserContext,
 };
 
 use super::ssr::ssr_helpers::render_typed_page;
-use view::{
-    A2aPageData, CatalogRow, CatalogRowSeed, ExternalAgentRow, ExternalPageData,
-    MarketplacePageData, assignment_counts_by_type, build_row, forbidden,
-};
+use view::{assignment_counts_by_type, forbidden, not_found};
 
-pub(crate) async fn marketplace_page(
+pub(crate) async fn plugins_page(
     Extension(user_ctx): Extension<UserContext>,
     Extension(mkt_ctx): Extension<MarketplaceContext>,
     Extension(engine): Extension<AdminTemplateEngine>,
@@ -45,110 +37,48 @@ pub(crate) async fn marketplace_page(
     if !user_ctx.is_admin {
         return forbidden();
     }
-
-    let services_path = match shared::get_services_path() {
+    let path = match shared::get_services_path() {
         Ok(p) => p,
         Err(r) => return *r,
     };
 
-    let raw_skills = repositories::list_skill_catalog(&services_path).unwrap_or_else(|e| {
-        tracing::warn!(error = %e, "Failed to load skill catalog");
-        Vec::new()
-    });
-    let raw_plugins = repositories::list_plugin_catalog(&services_path).unwrap_or_else(|e| {
-        tracing::warn!(error = %e, "Failed to load plugin catalog");
-        Vec::new()
-    });
-    let raw_mcp = repositories::mcp_servers::list_mcp_servers(&services_path).unwrap_or_else(|e| {
-        tracing::warn!(error = %e, "Failed to load MCP catalog");
-        Vec::new()
-    });
-
-    let (skill_counts, plugin_counts, mcp_counts) = tokio::join!(
-        assignment_counts_by_type(&pool, ENTITY_SKILL),
-        assignment_counts_by_type(&pool, ENTITY_PLUGIN),
-        assignment_counts_by_type(&pool, ENTITY_MCP_SERVER),
-    );
-
-    let skills = skill_rows(raw_skills, &skill_counts);
-    let plugins = plugin_rows(raw_plugins, &plugin_counts);
-    let mcp_servers = mcp_rows(raw_mcp, &mcp_counts);
-
-    let skills_count = skills.len();
-    let plugins_count = plugins.len();
-    let mcp_servers_count = mcp_servers.len();
-    let total = skills_count + plugins_count + mcp_servers_count;
-
-    let data = MarketplacePageData {
-        page: "marketplace",
-        title: "Marketplace",
-        types: vec![ENTITY_SKILL, ENTITY_PLUGIN, ENTITY_MCP_SERVER],
-        skills,
+    let catalog = data::load_catalog(&path, &user_ctx.roles);
+    let counts = assignment_counts_by_type(&pool, ENTITY_PLUGIN).await;
+    let plugins = data::plugin_rows(catalog, &counts);
+    let page = view::PluginsPageData {
+        page: "plugins",
+        title: "Plugins",
+        plugins_count: plugins.len(),
         plugins,
-        mcp_servers,
-        skills_count,
-        plugins_count,
-        mcp_servers_count,
-        total,
+    };
+    render_typed_page(&engine, "catalog-plugins", &page, &user_ctx, &mkt_ctx)
+}
+
+pub(crate) async fn plugin_detail_page(
+    Extension(user_ctx): Extension<UserContext>,
+    Extension(mkt_ctx): Extension<MarketplaceContext>,
+    Extension(engine): Extension<AdminTemplateEngine>,
+    State(pool): State<Arc<PgPool>>,
+    Path(plugin_id): Path<String>,
+) -> Response {
+    if !user_ctx.is_admin {
+        return forbidden();
+    }
+    let path = match shared::get_services_path() {
+        Ok(p) => p,
+        Err(r) => return *r,
     };
 
-    render_typed_page(&engine, "catalog-marketplace", &data, &user_ctx, &mkt_ctx)
+    let catalog = data::load_catalog(&path, &user_ctx.roles);
+    let counts = assignment_counts_by_type(&pool, ENTITY_PLUGIN).await;
+    let assignment_count = counts.get(&plugin_id).copied().unwrap_or(0);
+    data::plugin_detail(&catalog, &plugin_id, assignment_count).map_or_else(
+        || not_found("plugin"),
+        |page| render_typed_page(&engine, "catalog-plugin-detail", &page, &user_ctx, &mkt_ctx),
+    )
 }
 
-fn skill_rows(raw: Vec<SkillCatalogEntry>, counts: &HashMap<String, i64>) -> Vec<CatalogRow> {
-    raw.into_iter()
-        .map(|s| {
-            let id_str = s.id.as_str().to_owned();
-            let count = counts.get(&id_str).copied().unwrap_or(0);
-            build_row(CatalogRowSeed {
-                entity_type: ENTITY_SKILL,
-                id: id_str,
-                name: s.name,
-                description: s.description,
-                enabled: s.enabled,
-                source_path: s.source_path,
-                assignment_count: count,
-            })
-        })
-        .collect()
-}
-
-fn plugin_rows(raw: Vec<PluginDetail>, counts: &HashMap<String, i64>) -> Vec<CatalogRow> {
-    raw.into_iter()
-        .map(|p| {
-            let count = counts.get(&p.id).copied().unwrap_or(0);
-            build_row(CatalogRowSeed {
-                entity_type: ENTITY_PLUGIN,
-                id: p.id,
-                name: p.name,
-                description: p.description,
-                enabled: p.enabled,
-                source_path: p.source_path,
-                assignment_count: count,
-            })
-        })
-        .collect()
-}
-
-fn mcp_rows(raw: Vec<McpServerDetail>, counts: &HashMap<String, i64>) -> Vec<CatalogRow> {
-    raw.into_iter()
-        .map(|m| {
-            let id_str = m.id.as_str().to_owned();
-            let count = counts.get(&id_str).copied().unwrap_or(0);
-            build_row(CatalogRowSeed {
-                entity_type: ENTITY_MCP_SERVER,
-                id: id_str.clone(),
-                name: id_str,
-                description: m.description,
-                enabled: m.enabled,
-                source_path: m.source_path,
-                assignment_count: count,
-            })
-        })
-        .collect()
-}
-
-pub(crate) async fn a2a_agents_page(
+pub(crate) async fn skills_page(
     Extension(user_ctx): Extension<UserContext>,
     Extension(mkt_ctx): Extension<MarketplaceContext>,
     Extension(engine): Extension<AdminTemplateEngine>,
@@ -157,82 +87,94 @@ pub(crate) async fn a2a_agents_page(
     if !user_ctx.is_admin {
         return forbidden();
     }
-
-    let services_path = match shared::get_services_path() {
+    let path = match shared::get_services_path() {
         Ok(p) => p,
         Err(r) => return *r,
     };
 
-    let raw_agents = repositories::list_agent_catalog(&services_path).unwrap_or_else(|e| {
-        tracing::warn!(error = %e, "Failed to load agent catalog");
-        Vec::new()
-    });
-    let agent_counts = assignment_counts_by_type(&pool, ENTITY_AGENT).await;
-
-    let agents: Vec<CatalogRow> = raw_agents
-        .into_iter()
-        .map(|a| {
-            let id_str = a.id.as_str().to_owned();
-            let count = agent_counts.get(&id_str).copied().unwrap_or(0);
-            build_row(CatalogRowSeed {
-                entity_type: ENTITY_AGENT,
-                id: id_str,
-                name: a.name,
-                description: a.description,
-                enabled: a.enabled,
-                source_path: a.source_path,
-                assignment_count: count,
-            })
-        })
-        .collect();
-
-    let agents_count = agents.len();
-
-    let data = A2aPageData {
-        page: "a2a-agents",
-        title: "A2A agents",
-        agents,
-        agents_count,
+    let catalog = data::load_catalog(&path, &user_ctx.roles);
+    let counts = assignment_counts_by_type(&pool, ENTITY_SKILL).await;
+    let skills = data::skill_rows(&catalog, &counts);
+    let page = view::SkillsPageData {
+        page: "skills",
+        title: "Skills",
+        skills_count: skills.len(),
+        skills,
     };
-
-    render_typed_page(&engine, "catalog-a2a", &data, &user_ctx, &mkt_ctx)
+    render_typed_page(&engine, "catalog-skills", &page, &user_ctx, &mkt_ctx)
 }
 
-pub(crate) async fn external_agents_page(
+pub(crate) async fn skill_detail_page(
     Extension(user_ctx): Extension<UserContext>,
     Extension(mkt_ctx): Extension<MarketplaceContext>,
     Extension(engine): Extension<AdminTemplateEngine>,
-    State(_pool): State<Arc<PgPool>>,
+    State(pool): State<Arc<PgPool>>,
+    Path(skill_id): Path<String>,
 ) -> Response {
     if !user_ctx.is_admin {
         return forbidden();
     }
-
-    let raw = repositories::external_agents_grp::list_external_agents();
-
-    let agents: Vec<ExternalAgentRow> = raw
-        .into_iter()
-        .map(|e| ExternalAgentRow {
-            id: e.id,
-            display_name: e.display_name,
-            kind: e.kind,
-            enabled: e.enabled,
-            description: e.description,
-            platforms: e.platforms,
-            docs_url: e.docs_url,
-        })
-        .collect();
-
-    let agents_count = agents.len();
-    let enabled_count = agents.iter().filter(|a| a.enabled).count();
-
-    let data = ExternalPageData {
-        page: "external-agents",
-        title: "External agents",
-        agents,
-        agents_count,
-        enabled_count,
+    let path = match shared::get_services_path() {
+        Ok(p) => p,
+        Err(r) => return *r,
     };
 
-    render_typed_page(&engine, "catalog-external", &data, &user_ctx, &mkt_ctx)
+    let catalog = data::load_catalog(&path, &user_ctx.roles);
+    let counts = assignment_counts_by_type(&pool, ENTITY_SKILL).await;
+    let assignment_count = counts.get(&skill_id).copied().unwrap_or(0);
+    let skill = systemprompt::identifiers::SkillId::new(&skill_id);
+    data::skill_detail(&catalog, &skill, assignment_count).map_or_else(
+        || not_found("skill"),
+        |page| render_typed_page(&engine, "catalog-skill-detail", &page, &user_ctx, &mkt_ctx),
+    )
+}
+
+pub(crate) async fn mcp_servers_page(
+    Extension(user_ctx): Extension<UserContext>,
+    Extension(mkt_ctx): Extension<MarketplaceContext>,
+    Extension(engine): Extension<AdminTemplateEngine>,
+    State(pool): State<Arc<PgPool>>,
+) -> Response {
+    if !user_ctx.is_admin {
+        return forbidden();
+    }
+    let path = match shared::get_services_path() {
+        Ok(p) => p,
+        Err(r) => return *r,
+    };
+
+    let catalog = data::load_catalog(&path, &user_ctx.roles);
+    let counts = assignment_counts_by_type(&pool, ENTITY_MCP_SERVER).await;
+    let servers = data::mcp_rows(&catalog, &counts);
+    let page = view::McpPageData {
+        page: "mcp",
+        title: "MCP servers",
+        servers_count: servers.len(),
+        servers,
+    };
+    render_typed_page(&engine, "catalog-mcp", &page, &user_ctx, &mkt_ctx)
+}
+
+pub(crate) async fn mcp_detail_page(
+    Extension(user_ctx): Extension<UserContext>,
+    Extension(mkt_ctx): Extension<MarketplaceContext>,
+    Extension(engine): Extension<AdminTemplateEngine>,
+    State(pool): State<Arc<PgPool>>,
+    Path(mcp_id): Path<String>,
+) -> Response {
+    if !user_ctx.is_admin {
+        return forbidden();
+    }
+    let path = match shared::get_services_path() {
+        Ok(p) => p,
+        Err(r) => return *r,
+    };
+
+    let catalog = data::load_catalog(&path, &user_ctx.roles);
+    let counts = assignment_counts_by_type(&pool, ENTITY_MCP_SERVER).await;
+    let assignment_count = counts.get(&mcp_id).copied().unwrap_or(0);
+    data::mcp_detail(&catalog, &mcp_id, assignment_count).map_or_else(
+        || not_found("MCP server"),
+        |page| render_typed_page(&engine, "catalog-mcp-detail", &page, &user_ctx, &mkt_ctx),
+    )
 }

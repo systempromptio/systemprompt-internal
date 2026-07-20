@@ -9,4 +9,3 @@ mod types;
 
 pub(crate) use authz::govern_authz;
 pub(crate) use handler::govern_tool_use;
-pub(crate) use policy::{chain, reload};

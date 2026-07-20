@@ -106,6 +106,5 @@ inventory::submit! {
     PolicyRegistration {
         id: ID,
         factory: |v| Box::new(ScopeCheck::from_yaml(v)),
-        source_path: file!(),
     }
 }

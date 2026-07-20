@@ -1,0 +1,35 @@
+{{#> layout title=title page=page}}
+    {{#*inline "head_extra"}}{{/inline}}
+    {{#*inline "content"}}
+    {{> components/back-button href="/admin/catalog/skills" label="Skills"}}
+
+    <header class="page-header">
+        <div class="page-header__title-group">
+            <h1 class="page-header__title">{{name}}
+                {{#if enabled}}<span class="badge badge-success">enabled</span>{{else}}<span class="badge badge-muted">disabled</span>{{/if}}
+            </h1>
+            {{#if description}}<p class="page-header__subtitle">{{description}}</p>{{/if}}
+        </div>
+        <div class="page-header__actions">
+            <a class="btn btn-sm btn-outline" href="{{matrix_url}}">Access matrix →</a>
+        </div>
+    </header>
+
+    <div class="catalog-meta-bar">
+        <code class="code-inline">{{id}}</code>
+        <span class="chip chip--muted">{{assignment_count}} assignment{{#unless (eq assignment_count 1)}}s{{/unless}}</span>
+        <code class="code-inline">{{source_path}}</code>
+    </div>
+
+    <section class="catalog-rel-section">
+        <h2 class="catalog-rel-section__title">Included by plugins <span class="count-pill">{{included_by_count}}</span></h2>
+        {{#if included_by_count}}
+        <ul class="rel-list">
+            {{#each included_by}}
+            <li><a class="rel-link" href="{{url}}"><span class="rel-link__name">{{name}}</span><code class="code-inline">{{id}}</code></a></li>
+            {{/each}}
+        </ul>
+        {{else}}<p class="text-tertiary">Not bundled in any plugin. Assign directly through the access matrix.</p>{{/if}}
+    </section>
+    {{/inline}}
+{{/layout}}
