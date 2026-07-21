@@ -21,7 +21,7 @@ fn database_url() -> String {
     std::env::var("DATABASE_URL").expect("DATABASE_URL must be set for the integration tests")
 }
 
-/// Rebuild a connection URL against the same server but a different database.
+// Rebuild a connection URL against the same server but a different database.
 fn with_database(base: &str, db_name: &str) -> String {
     let mut url = Url::parse(base).expect("DATABASE_URL is a valid URL");
     url.set_path(&format!("/{db_name}"));
@@ -92,8 +92,8 @@ impl TempDb {
         }
     }
 
-    /// Insert a user row with the given id/email. Used to seed (or omit) the
-    /// reserved anonymous principal.
+    // Insert a user row with the given id/email. Used to seed (or omit) the
+    // reserved anonymous principal.
     pub async fn insert_user(&self, id: &str, email: &str) {
         sqlx::query("INSERT INTO users (id, email) VALUES ($1, $2)")
             .bind(id)
@@ -103,8 +103,8 @@ impl TempDb {
             .expect("seed user");
     }
 
-    /// All `mcp_access` rows recorded for a given `entity_name` (server or
-    /// tool), returned as (user_id, action, entity_type, description).
+    // All `mcp_access` rows recorded for a given `entity_name` (server or
+    // tool), returned as (user_id, action, entity_type, description).
     pub async fn mcp_rows(
         &self,
         entity_name: &str,
