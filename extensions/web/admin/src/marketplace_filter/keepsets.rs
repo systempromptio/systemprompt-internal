@@ -109,8 +109,10 @@ pub(super) fn apply_keep_sets(
             .filter(|a| {
                 candidate
                     .artifact_owners
-                    .get(a.id.as_str())
-                    .is_some_and(|owners| owners.iter().any(|p| keep.plugins.contains(p)))
+                    .get(&a.id)
+                    .is_some_and(|owners| {
+                        owners.iter().any(|p| keep.plugins.contains(p.as_str()))
+                    })
             })
             .collect(),
         artifact_owners: candidate.artifact_owners,

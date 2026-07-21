@@ -29,6 +29,7 @@ use systemprompt_security::authz::{
 
 use keepsets::{CandidateEntityIds, KeepIdsQuery, KeepSets, apply_keep_sets, entity_ref_for};
 
+use crate::authz::{dimensions, subject_attributes_for};
 use crate::repositories::users::get_user_roles_department;
 
 #[derive(Debug)]
@@ -81,6 +82,9 @@ impl TemplateMarketplaceFilter {
             .list_rules_bulk(kind, ids)
             .await
             .map_err(|e| MarketplaceFilterError::Backend(e.to_string()))?;
+        let uid = UserId::new(user_id);
+        let attributes = subject_attributes_for(self.pool.as_ref(), &uid).await;
+        let dimensions = dimensions(self.pool.as_ref());
         let mut keep = std::collections::HashSet::with_capacity(ids.len());
         for id in ids {
             let entity_rules = bulk.get(id).map_or(&[][..], Vec::as_slice);
@@ -98,7 +102,6 @@ impl TemplateMarketplaceFilter {
                 .flatten()
                 .map(|e| e.default_included);
             let entity = entity_ref_for(kind, id);
-            let uid = UserId::new(user_id);
             let decision = resolve_access(ResolveInput {
                 entity: &entity,
                 rules: entity_rules,
@@ -106,6 +109,8 @@ impl TemplateMarketplaceFilter {
                 user_roles: roles,
                 default_included,
                 parents,
+                attributes: &attributes,
+                dimensions,
             });
             if matches!(decision, Decision::Allow { .. }) {
                 keep.insert(id.clone());

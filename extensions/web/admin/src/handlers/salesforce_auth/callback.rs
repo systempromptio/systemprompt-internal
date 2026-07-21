@@ -10,6 +10,7 @@ use axum::http::header::SET_COOKIE;
 use axum::response::{IntoResponse, Redirect, Response};
 use serde::Deserialize;
 
+use systemprompt::analytics::SessionAnalyticsBuilder;
 use systemprompt::identifiers::SessionSource;
 use systemprompt::models::Config;
 use systemprompt::models::auth::{AuthenticatedUser, Permission};
@@ -136,7 +137,11 @@ async fn mint_session(
     headers: &HeaderMap,
 ) -> Result<(String, i64), String> {
     let session_id = session_service
-        .create_authenticated_session(&resolved.user_id, headers, SessionSource::Oauth, None)
+        .create_authenticated_session(
+            &resolved.user_id,
+            &SessionAnalyticsBuilder::new(headers).build(),
+            SessionSource::Oauth,
+        )
         .await
         .map_err(|e| e.to_string())?;
 

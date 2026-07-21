@@ -33,8 +33,8 @@ pub(super) fn repo(pool: &PgPool) -> AccessControlRepository {
 
 pub(super) fn parse_rule_type(s: &str) -> Option<RuleType> {
     match s {
-        "user" => Some(RuleType::User),
-        "role" => Some(RuleType::Role),
+        "user" => Some(RuleType::USER),
+        "role" => Some(RuleType::ROLE),
         _ => None,
     }
 }

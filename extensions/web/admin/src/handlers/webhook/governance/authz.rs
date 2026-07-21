@@ -23,6 +23,7 @@ use systemprompt_security::authz::{
 };
 use tokio::sync::RwLock;
 
+use crate::authz::{dimensions, subject_attributes_for};
 use crate::repositories::governance::{GovernanceDecisionRecord, insert_governance_decision};
 
 const POLICY_NAME: &str = "authz";
@@ -183,6 +184,11 @@ pub(crate) async fn govern_authz(
         })
         .collect();
 
+    // Resolved by lookup rather than read off the request, so a department
+    // change or a revocation binds on the next call instead of waiting for the
+    // caller's token to refresh.
+    let attributes = subject_attributes_for(&pool, &req.user_id).await;
+
     let decision = resolve(ResolveInput {
         entity: &req.entity,
         rules: &rules,
@@ -190,6 +196,8 @@ pub(crate) async fn govern_authz(
         user_roles: &req.roles,
         default_included: entity.as_ref().map(|e| e.default_included),
         parents: &parents,
+        attributes: &attributes,
+        dimensions: dimensions(&pool),
     });
 
     audit_decision(&pool, &req, &rules, entity.as_ref(), &decision).await;
