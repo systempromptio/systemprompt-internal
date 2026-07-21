@@ -32,7 +32,6 @@ fn compute_totals(
 }
 
 /// `id` may be a `decision_id`, `request_id`, `trace_id`, or `session_id`.
-/// Returns `Ok(None)` if the id does not resolve to any session.
 pub async fn fetch_decision_chain(
     pool: &PgPool,
     id: &str,

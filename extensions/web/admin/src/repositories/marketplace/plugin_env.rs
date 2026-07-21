@@ -57,7 +57,6 @@ pub async fn list_plugin_env_vars(
     Ok(masked)
 }
 
-/// Fields for [`upsert_plugin_env_var`] (was 6 positional args).
 #[derive(Debug)]
 pub struct PluginEnvVarInput<'a> {
     pub plugin_id: &'a str,

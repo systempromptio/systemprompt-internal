@@ -31,7 +31,7 @@ pub(super) async fn load_user_groups(
             Vec::new()
         });
 
-    let runtime = repositories::users::list_user_runtime_aggregates(pool)
+    let runtime = repositories::users::queries::list_user_runtime_aggregates(pool)
         .await
         .unwrap_or_else(|e| {
             tracing::warn!(error = %e, "Failed to fetch user runtime aggregates");

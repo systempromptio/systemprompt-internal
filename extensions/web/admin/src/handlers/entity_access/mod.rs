@@ -189,9 +189,6 @@ pub(crate) async fn list_all_entity_access_handler(
     .into_response()
 }
 
-/// Apply a department/role template across every entity of a given type.
-/// Wraps repeated [`upsert_rule`]/[`delete_rule`] calls and triggers the
-/// gateway-ACL export once at the end.
 pub(crate) async fn apply_template_handler(
     State(pool): State<Arc<PgPool>>,
     Json(body): Json<ApplyTemplateBody>,

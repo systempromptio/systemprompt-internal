@@ -1,24 +1,17 @@
-//! Catalog data loading and view-model assembly.
+//! Catalog data loading.
 //!
 //! `load_catalog` reads the plugins, skills, MCP servers, agents, and hooks
 //! from `services/` once and derives the reverse indexes that let a skill or
-//! MCP server list the plugins including it. The `*_rows` / `*_detail` builders
-//! turn that snapshot plus per-entity assignment counts into the `Serialize`
-//! page structs the templates consume. Handlers own request flow; this module
-//! owns the shaping.
+//! MCP server list the plugins including it. Shaping that snapshot into the
+//! `Serialize` page structs lives in [`super::view_models`]; handlers own
+//! request flow.
 
 use std::collections::HashMap;
-
-use systemprompt::identifiers::SkillId;
 
 use crate::repositories;
 use crate::types::{ConfiguredHook, McpServerDetail, PluginDetail, SkillCatalogEntry};
 
-use super::view::{
-    EntityRef, HookRef, McpDetailData, McpListRow, PluginDetailData, PluginListRow,
-    SkillDetailData, SkillListRow, matrix_url, mcp_url, plugin_url, skill_url,
-};
-use crate::types::{ENTITY_MCP_SERVER, ENTITY_PLUGIN, ENTITY_SKILL};
+use super::view::{EntityRef, plugin_url};
 
 pub(super) struct Catalog {
     pub(super) plugins: Vec<PluginDetail>,
@@ -92,4 +85,3 @@ pub(super) fn load_catalog(services_path: &std::path::Path, roles: &[String]) ->
         plugins_by_mcp: to_entity_refs(mcp_map),
     }
 }
-

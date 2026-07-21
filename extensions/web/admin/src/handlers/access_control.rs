@@ -229,9 +229,6 @@ fn build_matrix_sections(
     sections
 }
 
-/// Read-only YAML rendering of the current DB state of role/department rules.
-/// Used by the dashboard's "Show as YAML" button so admins can copy-paste
-/// instance-local edits into the committed baseline. Writes nothing to disk.
 pub(crate) async fn yaml_snapshot_handler(State(pool): State<Arc<PgPool>>) -> Response {
     use crate::repositories::governance::acl_yaml_snapshot;
     match acl_yaml_snapshot::render_yaml_snapshot(&pool).await {

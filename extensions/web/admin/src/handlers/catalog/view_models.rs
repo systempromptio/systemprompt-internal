@@ -7,10 +7,12 @@ use std::collections::HashMap;
 
 use systemprompt::identifiers::SkillId;
 
+use crate::types::{ConfiguredHook, ENTITY_MCP_SERVER, ENTITY_PLUGIN, ENTITY_SKILL};
+
 use super::data::Catalog;
 use super::view::{
-    EntityRef, HookRef, McpDetailData, McpListRow, PluginDetailData, PluginListRow, SkillDetailData,
-    SkillListRow, matrix_url, mcp_url, plugin_url, skill_url,
+    EntityRef, HookRef, McpDetailData, McpListRow, PluginDetailData, PluginListRow,
+    SkillDetailData, SkillListRow, matrix_url, mcp_url, plugin_url, skill_url,
 };
 
 pub(super) fn plugin_rows(catalog: Catalog, counts: &HashMap<String, i64>) -> Vec<PluginListRow> {

@@ -29,10 +29,6 @@ pub(crate) fn salesforce_private_key() -> Option<String> {
     })
 }
 
-/// Default scopes — `openid`/`email`/`profile` drive login; `api` covers direct
-/// REST calls. The Salesforce Hosted-MCP bearer is no longer banked at login;
-/// it is minted on demand via the RFC 7523 JWT-bearer grant, so the
-/// `refresh_token`/`mcp_api` login scopes are not requested here.
 pub(super) fn default_scopes() -> String {
     "openid email profile api".to_owned()
 }

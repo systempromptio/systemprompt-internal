@@ -63,7 +63,7 @@ pub(super) fn resolve_marketplaces(
 pub(super) fn enrich_users(
     users: &[crate::types::UserSummary],
     aggregates: &[repositories::departments::UserManagementAggregate],
-    runtime: &[repositories::users::UserRuntimeAggregate],
+    runtime: &[repositories::users::queries::UserRuntimeAggregate],
     overrides: &[repositories::departments::UserMarketplaceOverride],
     yaml_marketplaces: &[(String, String)],
 ) -> Vec<EnrichedUserView> {
@@ -71,8 +71,10 @@ pub(super) fn enrich_users(
         &str,
         &repositories::departments::UserManagementAggregate,
     > = aggregates.iter().map(|a| (a.user_id.as_str(), a)).collect();
-    let rt_map: std::collections::HashMap<&str, &repositories::users::UserRuntimeAggregate> =
-        runtime.iter().map(|r| (r.user_id.as_str(), r)).collect();
+    let rt_map: std::collections::HashMap<
+        &str,
+        &repositories::users::queries::UserRuntimeAggregate,
+    > = runtime.iter().map(|r| (r.user_id.as_str(), r)).collect();
     let mut ovr_map: std::collections::HashMap<
         &str,
         Vec<&repositories::departments::UserMarketplaceOverride>,

@@ -87,7 +87,6 @@ pub struct EnrolledDevice {
     pub expires_at: Option<DateTime<Utc>>,
 }
 
-/// Grouped enrollment inputs for [`enroll_device`] (was 6 positional args).
 #[derive(Debug)]
 pub struct EnrollDeviceParams<'a> {
     pub name: &'a str,

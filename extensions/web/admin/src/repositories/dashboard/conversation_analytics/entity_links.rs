@@ -19,7 +19,6 @@ pub async fn fetch_session_entity_links(
     .await
 }
 
-/// Entity fields for [`upsert_session_entity_link`] (was 6 positional args).
 #[derive(Debug)]
 pub struct EntityLinkInput<'a> {
     pub session_id: &'a str,

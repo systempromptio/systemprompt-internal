@@ -1,14 +1,8 @@
 mod calculations;
 mod queries;
-mod throughput;
 
-use crate::numeric;
-pub use calculations::{
-    calculate_daily_apm_stats, calculate_daily_concurrency, calculate_multitasking_score,
-    calculate_session_apm, calculate_tool_diversity,
-};
+pub use calculations::calculate_session_apm;
 pub use queries::update_session_apm;
-pub use throughput::calculate_daily_throughput;
 
 #[derive(Debug, Default, Clone)]
 pub struct TodayApmLive {
@@ -73,32 +67,4 @@ pub struct TodayPerformanceSummary {
     pub tool_diversity: i32,
     pub multitasking_score: f32,
     pub active_minutes: f32,
-}
-
-#[must_use]
-pub fn format_bytes_rate(bytes: i64, seconds: f64) -> String {
-    if seconds <= 0.0 {
-        return "0 B/s".to_owned();
-    }
-    let bps = numeric::to_f64(bytes) / seconds;
-    if bps < 1_024.0 {
-        format!("{bps:.0} B/s")
-    } else if bps < 1_048_576.0 {
-        format!("{:.1} KB/s", bps / 1_024.0)
-    } else if bps < 1_073_741_824.0 {
-        format!("{:.1} MB/s", bps / 1_048_576.0)
-    } else {
-        format!("{:.1} GB/s", bps / 1_073_741_824.0)
-    }
-}
-
-#[must_use]
-pub fn format_total_bytes(total_bytes: i64) -> String {
-    if total_bytes < 1024 {
-        format!("{total_bytes} B")
-    } else if total_bytes < 1_048_576 {
-        format!("{:.1} KB", numeric::to_f64(total_bytes) / 1024.0)
-    } else {
-        format!("{:.1} MB", numeric::to_f64(total_bytes) / 1_048_576.0)
-    }
 }

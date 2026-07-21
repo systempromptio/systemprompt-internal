@@ -120,7 +120,7 @@ pub(crate) async fn user_detail_handler(
     Path(user_id_raw): Path<String>,
 ) -> Response {
     let user_id = UserId::new(user_id_raw);
-    match repositories::users::find_user_detail(&pool, &user_id).await {
+    match repositories::users::queries::find_user_detail(&pool, &user_id).await {
         Ok(Some(detail)) => Json(detail).into_response(),
         Ok(None) => shared::error_response(StatusCode::NOT_FOUND, "User not found"),
         Err(e) => {
