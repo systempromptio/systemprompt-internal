@@ -14,9 +14,10 @@ tags:
   - tasks
   - meetings
 # Salesforce Hosted MCP `sobject-all` SOQL tool via the `salesforce` server
-# (services/mcp/salesforce.yaml). Grep-replace if the live toolset differs.
+# (services/mcp/salesforce.yaml). Verified live 2026-07-20: tool `soqlQuery`, arg key `q`
+  # (11-tool sobject-all set: soqlQuery/find/getObjectSchema/get*/create*/update*/delete*).
 mcp_tools:
-  - "mcp__salesforce__run_soql_query"
+  - "mcp__salesforce__soqlQuery"
 query: |
   SELECT Subject, ActivityDate, Type, Status, Priority, Who.Name, What.Name, Owner.Name
   FROM Task
