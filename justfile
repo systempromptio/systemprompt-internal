@@ -204,6 +204,7 @@ lint-gates:
     bash scripts/check-dead-repository-code.sh
     bash scripts/check-file-size.sh
     bash scripts/check-comments.sh
+    bash scripts/check-duplicate-types.sh
     bash scripts/check-file-headers.sh
     bash scripts/check-fork-drift.sh
 

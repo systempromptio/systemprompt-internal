@@ -11,7 +11,7 @@ use std::collections::HashMap;
 use crate::repositories;
 use crate::types::{ConfiguredHook, McpServerDetail, PluginDetail, SkillCatalogEntry};
 
-use super::view::{EntityRef, plugin_url};
+use super::view::{LinkedEntity, plugin_url};
 
 pub(super) struct Catalog {
     pub(super) plugins: Vec<PluginDetail>,
@@ -19,18 +19,18 @@ pub(super) struct Catalog {
     pub(super) mcp: Vec<McpServerDetail>,
     pub(super) agent_names: HashMap<String, String>,
     pub(super) hooks_by_plugin: HashMap<String, Vec<ConfiguredHook>>,
-    pub(super) plugins_by_skill: HashMap<String, Vec<EntityRef>>,
-    pub(super) plugins_by_mcp: HashMap<String, Vec<EntityRef>>,
+    pub(super) plugins_by_skill: HashMap<String, Vec<LinkedEntity>>,
+    pub(super) plugins_by_mcp: HashMap<String, Vec<LinkedEntity>>,
 }
 
 fn to_entity_refs(
     map: repositories::marketplace::plugin_maps::EntityPluginMap,
-) -> HashMap<String, Vec<EntityRef>> {
+) -> HashMap<String, Vec<LinkedEntity>> {
     map.into_iter()
         .map(|(entity_id, plugins)| {
             let refs = plugins
                 .into_iter()
-                .map(|p| EntityRef {
+                .map(|p| LinkedEntity {
                     id: p.0.clone(),
                     name: p.1.clone(),
                     url: plugin_url(&p.0),

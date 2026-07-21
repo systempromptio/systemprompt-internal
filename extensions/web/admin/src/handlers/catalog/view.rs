@@ -15,7 +15,7 @@ use serde::Serialize;
 use sqlx::PgPool;
 
 #[derive(Debug, Clone, Serialize)]
-pub(super) struct EntityRef {
+pub(super) struct LinkedEntity {
     pub(super) id: String,
     pub(super) name: String,
     pub(super) url: String,
@@ -114,9 +114,9 @@ pub(super) struct PluginDetailData {
     pub(super) source_path: String,
     pub(super) matrix_url: String,
     pub(super) assignment_count: i64,
-    pub(super) skills: Vec<EntityRef>,
-    pub(super) mcp_servers: Vec<EntityRef>,
-    pub(super) agents: Vec<EntityRef>,
+    pub(super) skills: Vec<LinkedEntity>,
+    pub(super) mcp_servers: Vec<LinkedEntity>,
+    pub(super) agents: Vec<LinkedEntity>,
     pub(super) hooks: Vec<HookRef>,
     pub(super) skills_count: usize,
     pub(super) mcp_count: usize,
@@ -135,7 +135,7 @@ pub(super) struct SkillDetailData {
     pub(super) source_path: String,
     pub(super) matrix_url: String,
     pub(super) assignment_count: i64,
-    pub(super) included_by: Vec<EntityRef>,
+    pub(super) included_by: Vec<LinkedEntity>,
     pub(super) included_by_count: usize,
 }
 
@@ -155,7 +155,7 @@ pub(super) struct McpDetailData {
     pub(super) source_path: String,
     pub(super) matrix_url: String,
     pub(super) assignment_count: i64,
-    pub(super) included_by: Vec<EntityRef>,
+    pub(super) included_by: Vec<LinkedEntity>,
     pub(super) included_by_count: usize,
 }
 

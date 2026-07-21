@@ -43,7 +43,7 @@ use sqlx::PgPool;
 
 pub use handlers::salesforce_auth::{SalesforceConfig, SalesforceDeps};
 pub use routes::{admin_ssr_router, bridge_auth_ssr_router};
-pub use types::{CreateUserRequest, MarketplaceContext, UsageEvent, UserContext, UserSummary};
+pub use types::{CreateUserRequest, MarketplaceContext, UserContext, UserSummary, UserUsageEvent};
 
 pub mod test_support {
     pub use crate::handlers::resolve_principal;

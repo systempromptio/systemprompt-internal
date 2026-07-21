@@ -11,7 +11,7 @@ use crate::types::{ConfiguredHook, ENTITY_MCP_SERVER, ENTITY_PLUGIN, ENTITY_SKIL
 
 use super::data::Catalog;
 use super::view::{
-    EntityRef, HookRef, McpDetailData, McpListRow, PluginDetailData, PluginListRow,
+    HookRef, LinkedEntity, McpDetailData, McpListRow, PluginDetailData, PluginListRow,
     SkillDetailData, SkillListRow, matrix_url, mcp_url, plugin_url, skill_url,
 };
 
@@ -54,7 +54,7 @@ pub(super) fn plugin_detail(
         .iter()
         .map(|s| {
             let id = s.as_str().to_owned();
-            EntityRef {
+            LinkedEntity {
                 name: skill_names.get(&id).cloned().unwrap_or_else(|| id.clone()),
                 url: skill_url(&id),
                 id,
@@ -66,7 +66,7 @@ pub(super) fn plugin_detail(
         .iter()
         .map(|m| {
             let id = m.as_str().to_owned();
-            EntityRef {
+            LinkedEntity {
                 name: id.clone(),
                 url: mcp_url(&id),
                 id,
@@ -78,7 +78,7 @@ pub(super) fn plugin_detail(
         .iter()
         .map(|a| {
             let id = a.as_str().to_owned();
-            EntityRef {
+            LinkedEntity {
                 name: catalog
                     .agent_names
                     .get(&id)
