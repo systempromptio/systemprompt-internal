@@ -103,6 +103,8 @@ pub(super) fn sanitize_redirect(raw: Option<String>) -> String {
     }
 }
 
+// lint-ok: http-error — this *is* the SSO failure channel: a redirect back
+// to the login page carrying the reason, not an HTTP error.
 pub(super) fn login_error(reason: &str) -> Response {
     Redirect::to(&format!("/admin/login?sso={reason}")).into_response()
 }

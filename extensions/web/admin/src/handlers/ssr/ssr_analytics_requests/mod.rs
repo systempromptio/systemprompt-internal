@@ -5,18 +5,18 @@
 //! filterable / sortable paged table. Every row carries `data-chain-id`
 //! pointing at the request id so the chain-drawer can resolve it.
 
+use crate::error::AdminError;
 use std::sync::Arc;
 
 use axum::extract::{Extension, Query, State};
-use axum::http::StatusCode;
-use axum::response::{Html, IntoResponse, Response};
+use axum::response::Response;
 use serde::Deserialize;
 use sqlx::PgPool;
 
+use crate::error::AdminHtmlResult;
 use crate::templates::AdminTemplateEngine;
 use crate::types::{MarketplaceContext, UserContext};
 
-use super::ACCESS_DENIED_HTML;
 
 mod context;
 mod data;
@@ -49,9 +49,9 @@ pub(crate) async fn analytics_requests_page(
     Extension(engine): Extension<AdminTemplateEngine>,
     State(pool): State<Arc<PgPool>>,
     Query(query): Query<RequestsQuery>,
-) -> Response {
+) -> AdminHtmlResult<Response> {
     if !user_ctx.is_admin {
-        return (StatusCode::FORBIDDEN, Html(ACCESS_DENIED_HTML)).into_response();
+        return Err(AdminError::Forbidden("Admin access required.".to_owned()).into());
     }
 
     let filter = view::filter_from_query(&query);
@@ -114,5 +114,11 @@ pub(crate) async fn analytics_requests_page(
         base_url: BASE_URL,
     };
 
-    super::render_typed_page(&engine, "analytics-requests", &ctx, &user_ctx, &mkt_ctx)
+    Ok(super::render_typed_page(
+        &engine,
+        "analytics-requests",
+        &ctx,
+        &user_ctx,
+        &mkt_ctx,
+    ))
 }

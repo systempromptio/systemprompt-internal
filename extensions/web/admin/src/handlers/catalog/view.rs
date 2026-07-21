@@ -9,8 +9,6 @@
 
 use std::collections::HashMap;
 
-use axum::http::StatusCode;
-use axum::response::{Html, IntoResponse, Response};
 use serde::Serialize;
 use sqlx::PgPool;
 
@@ -185,20 +183,4 @@ pub(super) async fn assignment_counts_by_type(
             tracing::warn!(error = %e, entity_type, "Failed to load assignment counts");
             HashMap::new()
         })
-}
-
-pub(super) fn forbidden() -> Response {
-    (
-        StatusCode::FORBIDDEN,
-        Html("<h1>Access Denied</h1><p>Admin access required.</p>"),
-    )
-        .into_response()
-}
-
-pub(super) fn not_found(kind: &str) -> Response {
-    (
-        StatusCode::NOT_FOUND,
-        Html(format!("<h1>Not found</h1><p>No such {kind}.</p>")),
-    )
-        .into_response()
 }

@@ -24,6 +24,9 @@ pub(crate) async fn salesforce_start(
     Extension(deps): Extension<SalesforceDeps>,
     Query(params): Query<StartParams>,
 ) -> Response {
+    // lint-ok: http-error — an SSO flow reports failure by redirecting back to
+    // the login page with ?sso=<reason>; an error status would strand the
+    // browser on a dead end instead of returning the user to a usable page.
     let cfg = &deps.config;
     if !cfg.is_usable() {
         return login_error("unavailable");

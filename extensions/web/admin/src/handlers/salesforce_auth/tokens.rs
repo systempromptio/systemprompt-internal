@@ -3,7 +3,8 @@
 //! calls to obtain a fresh Salesforce bearer. The accessor no longer reads a
 //! banked token — it mints one on demand via the RFC 7523 JWT-bearer grant.
 
-use axum::http::{HeaderMap, StatusCode};
+use crate::error::{AdminError, AdminResult};
+use axum::http::HeaderMap;
 use axum::response::{IntoResponse, Response};
 use axum::{Extension, Json};
 use serde::{Deserialize, Serialize};
@@ -81,12 +82,12 @@ struct TokenResponse {
 pub(crate) async fn salesforce_token_handler(
     Extension(deps): Extension<SalesforceDeps>,
     headers: HeaderMap,
-) -> Response {
-    let Ok(session) = extract_mcp_accessor_user(&headers) else {
-        return (StatusCode::UNAUTHORIZED, "authentication required").into_response();
-    };
+) -> AdminResult<Response> {
+    let session = extract_mcp_accessor_user(&headers)?;
     if !deps.config.is_usable() {
-        return (StatusCode::SERVICE_UNAVAILABLE, "Salesforce not configured").into_response();
+        return Err(AdminError::Unavailable(
+            "Salesforce not configured".to_owned(),
+        ));
     }
 
     // The JWT-bearer `sub` must be the Salesforce Username (captured at SSO login),
@@ -101,19 +102,15 @@ pub(crate) async fn salesforce_token_handler(
         },
     };
 
-    match salesforce_jwt_bearer::fetch_token(&deps.config, &username).await {
-        Ok(fresh) => Json(TokenResponse {
-            access_token: fresh.access_token,
-            instance_url: fresh.instance_url,
-        })
-        .into_response(),
-        Err(e) => {
-            tracing::error!(error = %e, user_id = %session.user_id, "Salesforce JWT-bearer token mint failed");
-            (
-                StatusCode::BAD_GATEWAY,
-                "Salesforce token acquisition failed",
-            )
-                .into_response()
-        },
-    }
+    // Why not `?`: a mint failure is an *upstream* fault. 502 tells the
+    // accessor's caller that Salesforce refused, where a 500 would blame this
+    // server for Salesforce being down.
+    let fresh = salesforce_jwt_bearer::fetch_token(&deps.config, &username)
+        .await
+        .map_err(|e| AdminError::Upstream(format!("Salesforce token mint failed: {e}")))?;
+    Ok(Json(TokenResponse {
+        access_token: fresh.access_token,
+        instance_url: fresh.instance_url,
+    })
+    .into_response())
 }

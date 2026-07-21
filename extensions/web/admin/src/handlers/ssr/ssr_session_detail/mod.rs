@@ -6,14 +6,15 @@
 
 mod context;
 
+use crate::error::AdminError;
 use std::sync::Arc;
 
 use axum::extract::{Extension, Path, State};
-use axum::http::StatusCode;
-use axum::response::{Html, IntoResponse, Response};
+use axum::response::Response;
 use sqlx::PgPool;
 use systemprompt::identifiers::SessionId;
 
+use crate::error::AdminHtmlResult;
 use crate::repositories::analytics::session_detail::{
     SessionContextRow, SessionHeader, SessionKpis, SessionRequestRow, SessionTraceRow,
     find_session_header, get_session_kpis, list_session_contexts, list_session_requests,
@@ -27,10 +28,6 @@ use context::{
     SessionRequestRowView, SessionTraceRowView,
 };
 
-use super::ACCESS_DENIED_HTML;
-
-const NOT_FOUND_HTML: &str = "<h1>Session not found</h1>\
-<p>No AI requests, contexts, or transcript rows match that session id.</p>";
 
 pub(crate) async fn session_detail_page(
     Extension(user_ctx): Extension<UserContext>,
@@ -38,23 +35,24 @@ pub(crate) async fn session_detail_page(
     Extension(engine): Extension<AdminTemplateEngine>,
     State(pool): State<Arc<PgPool>>,
     Path(session_id): Path<String>,
-) -> Response {
+) -> AdminHtmlResult<Response> {
     if !user_ctx.is_admin {
-        return (StatusCode::FORBIDDEN, Html(ACCESS_DENIED_HTML)).into_response();
+        return Err(AdminError::Forbidden("Admin access required.".to_owned()).into());
     }
 
     let session_id = SessionId::new(session_id.trim());
     if session_id.as_str().is_empty() {
-        return (StatusCode::NOT_FOUND, Html(NOT_FOUND_HTML)).into_response();
+        return Err(AdminError::NotFound(
+            "No AI requests, contexts, or transcript rows match that session id.".to_owned(),
+        )
+        .into());
     }
 
-    let header = match find_session_header(&pool, &session_id).await {
-        Ok(Some(h)) => h,
-        Ok(None) => return (StatusCode::NOT_FOUND, Html(NOT_FOUND_HTML)).into_response(),
-        Err(e) => {
-            tracing::error!(error = %e, session_id = %session_id, "find_session_header failed");
-            return (StatusCode::INTERNAL_SERVER_ERROR, Html(NOT_FOUND_HTML)).into_response();
-        },
+    let Some(header) = find_session_header(&pool, &session_id).await? else {
+        return Err(AdminError::NotFound(
+            "No AI requests, contexts, or transcript rows match that session id.".to_owned(),
+        )
+        .into());
     };
 
     let (kpis_res, contexts_res, traces_res, requests_res) = tokio::join!(
@@ -103,7 +101,13 @@ pub(crate) async fn session_detail_page(
         back_url: "/admin/entities/sessions",
     };
 
-    super::render_typed_page(&engine, "session-detail", &data, &user_ctx, &mkt_ctx)
+    Ok(super::render_typed_page(
+        &engine,
+        "session-detail",
+        &data,
+        &user_ctx,
+        &mkt_ctx,
+    ))
 }
 
 fn header_view(h: &SessionHeader) -> SessionHeaderView {

@@ -1,13 +1,13 @@
 //! Context fragments injected into every admin page render.
 
+use crate::error::AdminHtmlError;
 use crate::numeric;
 use crate::templates::AdminTemplateEngine;
 use crate::types::{MarketplaceContext, UserContext};
-use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse, Response};
 use serde::Serialize;
 use serde_json::json;
-use systemprompt_web_shared::{RankTier, UserId, html_escape};
+use systemprompt_web_shared::{RankTier, UserId};
 
 use super::ssr_demo_help::demo_help_text;
 
@@ -52,6 +52,7 @@ pub(crate) fn render_typed_page<T: Serialize>(
     user_ctx: &UserContext,
     mkt_ctx: &MarketplaceContext,
 ) -> Response {
+    // lint-ok: http-error — renders a page, and its failure arm is AdminHtmlError
     let value = serde_json::to_value(data).unwrap_or_else(|e| {
         tracing::warn!(template, error = %e, "Failed to serialize SSR page data");
         serde_json::Value::Object(serde_json::Map::new())
@@ -66,23 +67,15 @@ pub(crate) fn render_page(
     user_ctx: &UserContext,
     mkt_ctx: &MarketplaceContext,
 ) -> Response {
+    // lint-ok: http-error — renders a page, and its failure arm is AdminHtmlError
     let mut merged = data.clone();
     if let Some(obj) = merged.as_object_mut() {
         inject_user_and_marketplace(obj, engine, user_ctx, mkt_ctx);
     }
     match engine.render(template, &merged) {
         Ok(html) => Html(html).into_response(),
-        Err(e) => {
-            tracing::error!(template, error = ?e, "SSR render failed");
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Html(format!(
-                    "<h1>Template Error</h1><p>{}</p>",
-                    html_escape(&e.to_string())
-                )),
-            )
-                .into_response()
-        },
+        Err(e) => AdminHtmlError::internal(format!("SSR render failed for {template}: {e:?}"))
+            .into_response(),
     }
 }
 

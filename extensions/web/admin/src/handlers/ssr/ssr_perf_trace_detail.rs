@@ -5,24 +5,21 @@
 //! color-coded by `kind`. Each bar carries `data-chain-id` so clicks open
 //! the chain-drawer focused on that span.
 
+use crate::error::AdminError;
 use std::sync::Arc;
 
 use systemprompt::identifiers::SessionId;
 
 use axum::extract::{Extension, Path, State};
-use axum::http::StatusCode;
-use axum::response::{Html, IntoResponse, Response};
+use axum::response::Response;
 use serde::Serialize;
 use sqlx::PgPool;
 
+use crate::error::AdminHtmlResult;
 use crate::repositories::traces::{Span, SpanStatus, list_trace_spans, resolve_trace_session};
 use crate::templates::AdminTemplateEngine;
 use crate::types::{MarketplaceContext, UserContext};
 
-use super::ACCESS_DENIED_HTML;
-
-const NOT_FOUND_HTML: &str = "<h1>Trace not found</h1>\
-<p>No spans found for that session or trace id.</p>";
 
 #[derive(Debug, Serialize)]
 struct TraceDetailContext {
@@ -55,18 +52,16 @@ pub(crate) async fn perf_trace_detail_page(
     Extension(engine): Extension<AdminTemplateEngine>,
     State(pool): State<Arc<PgPool>>,
     Path(id): Path<String>,
-) -> Response {
+) -> AdminHtmlResult<Response> {
     if !user_ctx.is_admin {
-        return (StatusCode::FORBIDDEN, Html(ACCESS_DENIED_HTML)).into_response();
+        return Err(AdminError::Forbidden("Admin access required.".to_owned()).into());
     }
 
-    let session_id = match resolve_trace_session(&pool, &id).await {
-        Ok(Some(s)) => s,
-        Ok(None) => return (StatusCode::NOT_FOUND, Html(NOT_FOUND_HTML)).into_response(),
-        Err(e) => {
-            tracing::warn!(error = %e, "resolve_trace_session failed");
-            return (StatusCode::NOT_FOUND, Html(NOT_FOUND_HTML)).into_response();
-        },
+    let Some(session_id) = resolve_trace_session(&pool, &id).await? else {
+        return Err(AdminError::NotFound(
+            "No spans found for that session or trace id.".to_owned(),
+        )
+        .into());
     };
 
     let spans = list_trace_spans(&pool, &session_id)
@@ -77,7 +72,10 @@ pub(crate) async fn perf_trace_detail_page(
         });
 
     if spans.is_empty() {
-        return (StatusCode::NOT_FOUND, Html(NOT_FOUND_HTML)).into_response();
+        return Err(AdminError::NotFound(
+            "No spans found for that session or trace id.".to_owned(),
+        )
+        .into());
     }
 
     let summary = build_summary(&session_id, &spans);
@@ -92,7 +90,13 @@ pub(crate) async fn perf_trace_detail_page(
         back_url: "/admin/entities/traces",
     };
 
-    super::render_typed_page(&engine, "perf-trace-detail", &ctx, &user_ctx, &mkt_ctx)
+    Ok(super::render_typed_page(
+        &engine,
+        "perf-trace-detail",
+        &ctx,
+        &user_ctx,
+        &mkt_ctx,
+    ))
 }
 
 fn build_summary(session_id: &SessionId, spans: &[Span]) -> Summary {
