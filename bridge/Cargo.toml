@@ -28,6 +28,11 @@ systemprompt-bridge = { path = "../../systemprompt-core/bin/bridge" }
 # in this crate; the registrations in src/registry.rs use it.
 inventory = "0.3"
 
+# `inventory` is reached only through macro expansion, which cargo-machete
+# cannot see; without this it reports a false unused-dependency hit.
+[package.metadata.cargo-machete]
+ignored = ["inventory"]
+
 [build-dependencies]
 winresource = "0.1"
 

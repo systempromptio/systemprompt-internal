@@ -94,9 +94,6 @@ sha2 = "0.10"
 hex = "0.4"
 base64 = "0.22"
 
-# Markdown processing
-pulldown-cmark = "0.13"
-comrak = { version = "0.50", default-features = false }
 handlebars = "6"
 
 # Timezone
@@ -111,7 +108,7 @@ zip = { version = "2", default-features = false, features = ["deflate"] }
 async-stream = "0.3"
 
 # MCP Protocol
-rmcp = { version = "2.0", features = ["server", "client", "transport-io", "transport-streamable-http-server", "transport-streamable-http-server-session", "transport-streamable-http-client", "transport-streamable-http-client-reqwest", "macros", "auth"] }
+rmcp = { version = "2.2", features = ["server", "client", "transport-io", "transport-streamable-http-server", "transport-streamable-http-server-session", "transport-streamable-http-client", "transport-streamable-http-client-reqwest", "macros", "auth"] }
 
 [workspace.lints.clippy]
 all = { level = "deny", priority = -1 }
