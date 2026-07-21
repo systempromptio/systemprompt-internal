@@ -58,11 +58,3 @@ pub async fn list_plugin_env_vars(
 
     Ok(masked)
 }
-
-#[derive(Debug)]
-pub struct PluginEnvVarInput<'a> {
-    pub plugin_id: &'a str,
-    pub var_name: &'a str,
-    pub var_value: &'a str,
-    pub is_secret: bool,
-}

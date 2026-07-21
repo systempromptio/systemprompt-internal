@@ -59,7 +59,7 @@ pub(super) async fn collect_user_detail_extras(
     pool: &PgPool,
     d: &crate::types::UserDetail,
 ) -> UserDetailExtras {
-    let (roles, department) = repositories::users::get_user_roles_department(pool, &d.user_id)
+    let (roles, department) = repositories::users::queries::get_user_roles_department(pool, &d.user_id)
         .await
         .inspect_err(|e| tracing::warn!(error = %e, user_id = %d.user_id, "ssr_users: get_user_roles_department failed"))
         .ok()
@@ -97,9 +97,7 @@ pub(super) async fn collect_user_detail_extras(
 
     let effective = Some(
         repositories::governance::effective::compute_effective_permissions(
-            pool,
-            &d.user_id,
-            &roles,
+            pool, &d.user_id, &roles,
         )
         .await,
     );

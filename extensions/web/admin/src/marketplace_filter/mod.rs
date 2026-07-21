@@ -14,6 +14,8 @@
 
 mod keepsets;
 
+pub(crate) use keepsets::entity_ref_for;
+
 use std::sync::Arc;
 
 use sqlx::PgPool;
@@ -27,7 +29,7 @@ use systemprompt_security::authz::{
     ResolveParent, resolve as resolve_access,
 };
 
-use keepsets::{CandidateEntityIds, KeepIdsQuery, KeepSets, apply_keep_sets, entity_ref_for};
+use keepsets::{CandidateEntityIds, KeepIdsQuery, KeepSets, apply_keep_sets};
 
 use crate::authz::{dimensions, subject_attributes_for};
 use crate::repositories::users::get_user_roles_department;

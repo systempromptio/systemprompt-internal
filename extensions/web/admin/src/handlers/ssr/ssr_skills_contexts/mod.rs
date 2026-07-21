@@ -130,7 +130,7 @@ async fn fetch_page_data(
             tracing::warn!(error = %e, "fetch_distinct_models failed");
             Vec::new()
         });
-    let users_for_filter = repositories::users::list_users(pool)
+    let users_for_filter = repositories::users::queries::list_users(pool)
         .await
         .unwrap_or_else(|e| {
             tracing::warn!(error = %e, "list_users failed in contexts page");

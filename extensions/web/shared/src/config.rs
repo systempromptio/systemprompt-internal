@@ -117,6 +117,12 @@ impl BlogConfigValidated {
         Self::validate(raw, base_path)
     }
 
+    /// Load `services/config/blog.yaml` resolved via the profile-aware
+    /// [`AppPaths`].
+    ///
+    /// A missing file resolves to `Ok(None)`: "blog disabled" is a supported
+    /// state, not a degraded one. `Err` is reserved for a file that exists but
+    /// cannot be read, parsed, or validated.
     pub fn load_from_env_or_none() -> Result<Option<Arc<Self>>, ExtensionConfigErrors> {
         let config_path = resolve_blog_config_path();
         if config_path.exists() {

@@ -10,7 +10,7 @@ use systemprompt::identifiers::{
 use systemprompt::marketplace::MarketplaceCandidate;
 use systemprompt_security::authz::{EntityKind, EntityRef, ResolveParent};
 
-pub(super) fn entity_ref_for(kind: EntityKind, id: &str) -> EntityRef {
+pub(crate) fn entity_ref_for(kind: EntityKind, id: &str) -> EntityRef {
     match kind {
         EntityKind::Plugin => EntityRef::Plugin(PluginId::new(id)),
         EntityKind::Skill => EntityRef::Skill(SkillId::new(id)),

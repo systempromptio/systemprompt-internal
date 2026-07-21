@@ -13,8 +13,9 @@ pub struct AccessTreeUserRow {
     pub is_active: bool,
 }
 
-/// List human users (excluding anonymous accounts) for the access-control
-/// tree, ordered by department then display name.
+/// Ordered by department, then display name.
+///
+/// Anonymous accounts are excluded — they are never assignable principals.
 pub async fn list_users_for_access_tree(
     pool: &PgPool,
 ) -> Result<Vec<AccessTreeUserRow>, sqlx::Error> {

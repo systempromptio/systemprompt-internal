@@ -34,7 +34,8 @@ const DEPARTMENT_PRECEDENCE: u16 = 100;
 /// decision into a query.
 const DEPARTMENT_TTL: Duration = Duration::from_secs(60);
 
-/// Cached department values per user id, with the instant they were read.
+/// User id to (values, fetched-at). Values is a `Vec` because the provider
+/// contract is multi-valued, even though a user has at most one department.
 type DepartmentCache = HashMap<String, (Vec<String>, Instant)>;
 
 static DEPARTMENT_CACHE: LazyLock<RwLock<DepartmentCache>> =

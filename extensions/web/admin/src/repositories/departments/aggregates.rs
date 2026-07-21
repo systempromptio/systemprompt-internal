@@ -22,8 +22,8 @@ pub struct UserMarketplaceOverride {
     pub access: String,
 }
 
-/// A user receives overrides from `access_control_rules` matching either their
-/// own id or their department; the join carries `user_id` per row for mapping.
+/// A user receives overrides from rules matching either their own id or their
+/// department, so the same entity can appear under both scopes.
 pub async fn list_user_marketplace_overrides(
     pool: &PgPool,
 ) -> Result<Vec<UserMarketplaceOverride>, sqlx::Error> {

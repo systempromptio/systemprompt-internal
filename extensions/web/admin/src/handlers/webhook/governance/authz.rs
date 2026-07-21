@@ -7,6 +7,10 @@
 //! `governance_decisions`, and returns an [`AuthzDecision`] for core to act
 //! on. The audit row's `policy` is `authz` regardless of `entity_type`, so
 //! `infra logs audit` can correlate gateway and MCP decisions in one stream.
+//!
+//! The resolver runs over core's `user` / `role` dimensions plus every subject
+//! dimension this extension declares in [`crate::authz`] — today that means a
+//! `department` rule binds here, not just in the access matrix.
 
 use std::sync::{Arc, LazyLock};
 use std::time::{Duration, Instant};

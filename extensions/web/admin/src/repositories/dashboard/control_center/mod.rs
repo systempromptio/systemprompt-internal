@@ -27,10 +27,3 @@ pub async fn fetch_session_events(
     .fetch_all(pool)
     .await
 }
-
-#[derive(Debug, Clone, Copy)]
-pub struct TodayOutcomeStats {
-    pub completed_today: i64,
-    pub positive_count: i64,
-    pub rated_count: i64,
-}

@@ -179,12 +179,6 @@ pub struct TrackQuery {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct SkillTrackQuery {
-    pub sid: String,
-    pub pid: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
 pub struct GovernQuery {
     pub plugin_id: Option<systemprompt::identifiers::PluginId>,
 }

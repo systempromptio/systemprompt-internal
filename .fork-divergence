@@ -1,0 +1,74 @@
+# Shared `.rs` files allowed to differ from the sibling fork.
+#
+# Enforced by scripts/check-fork-drift.sh. A shared file that differs
+# without an entry here fails the check; an entry whose file no longer
+# differs also fails. The list can therefore only shrink.
+#
+# Every entry names a difference that is a *decision*. Drift that was never
+# a decision does not belong here — it belongs ported to the other repo.
+#
+# Scope is NOT recorded here. A file that exists in only one tree, and a
+# `mod.rs` whose entire diff is the declaration of such a file, are derived by
+# the script; recording them would be stating the same decision twice.
+#
+# A reason must name the difference. "brand / crate identity" was the reason
+# on 39 of these files until every one was normalised for brand tokens and
+# re-diffed: exactly one differed by branding alone. The rest were product
+# divergence and real debt hiding behind a label, including an access matrix
+# that had drifted away from the resolver it is supposed to agree with.
+# A reason that would be true of any file in the repo is not a reason.
+
+# ---------------------------------------------------------------------
+# BRAND - the file names the product or the crate. Converging it would
+# mean one product claiming to be the other.
+# ---------------------------------------------------------------------
+src/lib.rs	# brand: crate doc names the product
+src/main.rs	# brand: binary entry names the product
+extensions/web/src/lib.rs	# brand: crate doc names the product
+
+# ---------------------------------------------------------------------
+# PRODUCT - surface the two forks deliberately do not share. Each fork
+# ships admin/site features the other does not, and a mounted surface is
+# not drift. Converging these would mean shipping one product's pages
+# from the other's binary.
+# ---------------------------------------------------------------------
+extensions/web/admin/src/handlers/catalog/mod.rs	# astound serves plugins/skills/mcp; template serves marketplace/a2a/external
+extensions/web/admin/src/handlers/catalog/view.rs	# renders the catalog families above, which differ
+extensions/web/admin/src/handlers/public_register.rs	# astound limits registration to @astounddigital.com / @astoundcommerce.com; template takes a role argument
+extensions/web/admin/src/handlers/users.rs	# astound adds extract_mcp_accessor_user, accepting an Mcp-audience JWT for the Salesforce token accessor
+extensions/web/admin/src/lib.rs	# astound mounts the Salesforce token + Slack alert surface; template mounts the bridge plugin-file plane
+extensions/mcp/systemprompt/src/server/mod.rs	# astound serves artifact resources by URI (parse/read/shell template); template serves only the viewer resource
+extensions/web/src/schemas.rs	# astound ships the Salesforce identity schema
+extensions/web/jobs/src/llms_txt.rs	# template emits a blog section; astound has no blog
+extensions/web/site/src/lib.rs	# template ships blog + features sections; astound ships the skills page
+extensions/web/site/src/navigation/provider.rs	# the blog nav link exists in the template only
+extensions/web/site/src/assets/css.rs	# template ships feature-page CSS; astound ships skills-page and showreel CSS
+extensions/web/site/src/assets/mod.rs	# astound serves the homepage showreel video
+extensions/web/site/src/assets/js_pages.rs	# astound ships the admin entities page
+
+# The template ships an SSR governance policy editor that astound does not. It
+# needs every policy to declare the file it is defined in so the page can link
+# to it "as code"; in astound the field and its accessors would be dead code.
+extensions/web/admin/src/handlers/ssr/mod.rs	# template ships the SSR governance policy editor; astound does not
+extensions/web/admin/src/handlers/webhook/governance/policy.rs	# source_path field + source_path_for/reload back the editor above
+extensions/web/admin/src/handlers/webhook/governance/mod.rs	# re-exports the policy editor the template alone mounts
+extensions/web/admin/src/handlers/webhook/governance/policies/rate_limit.rs	# source_path feeds the template-only policy editor
+extensions/web/admin/src/handlers/webhook/governance/policies/scope_check.rs	# source_path feeds the template-only policy editor
+extensions/web/admin/src/handlers/webhook/governance/policies/secret_scan.rs	# source_path feeds the template-only policy editor
+extensions/web/admin/src/handlers/webhook/governance/policies/tool_blocklist.rs	# source_path feeds the template-only policy editor
+
+# ---------------------------------------------------------------------
+# DEBT - one side is simply ahead. Port it, then delete the line.
+# ---------------------------------------------------------------------
+extensions/web/src/extension.rs	# port: template surfaces config-load errors (OnceLock<Result<..>>) where astound swallows them to None
+extensions/web/src/extension_impl.rs	# port: paired with the config-load error handling above
+extensions/web/admin/src/handlers/gateway_catalog.rs	# port: template calls repositories::users::queries::* directly; astound still goes through the module facade
+extensions/web/admin/src/marketplace_filter/mod.rs	# port: the two module docs describe marketplace-parent inheritance differently — one is wrong about what a member-level rule does
+
+# Not yet triaged per file. Each needs a decision: port, or move above with a
+# reason that names the difference.
+extensions/web/admin/src/activity/constructors.rs	# triage: pre-existing drift
+extensions/web/admin/src/activity/constructors_entity/entity_crud.rs	# triage: pre-existing drift
+extensions/web/admin/src/activity/constructors_entity/session_events.rs	# triage: pre-existing drift
+extensions/web/admin/src/activity/constructors_session.rs	# triage: pre-existing drift
+extensions/web/admin/src/routes/ssr.rs	# triage: pre-existing drift

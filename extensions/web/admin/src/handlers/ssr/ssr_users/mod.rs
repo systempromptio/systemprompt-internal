@@ -31,7 +31,7 @@ pub(crate) async fn users_page(
             .into_response();
     }
 
-    let users = repositories::users::list_users(&pool)
+    let users = repositories::users::queries::list_users(&pool)
         .await
         .unwrap_or_else(|e| {
             tracing::warn!(error = %e, "Failed to list users");

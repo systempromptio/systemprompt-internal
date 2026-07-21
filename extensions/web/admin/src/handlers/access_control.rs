@@ -231,6 +231,8 @@ fn build_matrix_sections(
     sections
 }
 
+/// Renders current DB state as YAML for copying into the committed baseline.
+/// Writes nothing to disk — instances never write back to `services/`.
 pub(crate) async fn yaml_snapshot_handler(State(pool): State<Arc<PgPool>>) -> Response {
     use crate::repositories::governance::acl_yaml_snapshot;
     match acl_yaml_snapshot::render_yaml_snapshot(&pool).await {
