@@ -27,6 +27,11 @@ static ASTOUND_BRAND: Brand = Brand {
     config_file: "astound-bridge.toml",
     pat_file: "astound-bridge.pat",
     working_dir_name: "astound-bridge",
+    // User-facing default Cowork workspace folder → ~/Astound, pushed as a
+    // pre-trusted allowedWorkspaceFolders entry so the agent has a writable home
+    // without folder prompts. Brand-specific (Astound), consumed by core's MDM
+    // policy writer.
+    workspace_dir_name: "Astound",
     keyring_service: "astound-bridge.oauth-client",
     env_prefix: "ASTOUND_BRIDGE",
     // Pre-fills the setup/settings gateway field with the local gateway so a dev
@@ -46,7 +51,7 @@ static ASTOUND_BRAND: Brand = Brand {
     // Salesforce" login. The bridge never speaks to Salesforce directly — it only
     // carries the gateway credential the device-link approval returns.
     sign_in_label: "Sign in with Salesforce",
-    sign_in_hint: "Opens your browser to sign in with Salesforce on the Astound gateway; this device is linked automatically.",
+    sign_in_hint: "Opens your browser. This device is linked automatically once you approve.",
     // Embedded from OUT_DIR (copied there by build.rs) rather than directly from
     // `assets/`, so regenerating an asset reliably re-embeds it even under
     // incremental/sccache builds. See build.rs.
