@@ -3,7 +3,6 @@ pub mod access_tree;
 pub mod devices;
 pub mod federated;
 pub mod magic_links;
-pub mod profile_reports;
 pub mod registration;
 pub mod salesforce_identity;
 pub mod user_queries;
