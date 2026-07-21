@@ -8,7 +8,7 @@ cd "$(dirname "$0")/.."
 violations=$(find extensions -name '*.rs' \
     -not -path '*/target/*' \
     -not -path '*/tests/*' \
-    -exec wc -l {} + | awk '$1>300 && $2!="total"')
+    -exec awk '!/^\/\/!/ {n[FILENAME]++} END {for (f in n) if (n[f]>300) print n[f], f}' {} +)
 if [ -n "$violations" ]; then
     echo "error: extension source file(s) exceed the 300-line ceiling:"
     echo "$violations"

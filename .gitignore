@@ -199,3 +199,8 @@ tests/target/
 
 # rustc internal-compiler-error dumps
 rustc-ice-*.txt
+
+# audit-rust-standards.sh outputs: a regenerated findings ledger and the
+# last-audited SHA. Observational local state, not a source artifact.
+ISSUE.md
+.audit-state
