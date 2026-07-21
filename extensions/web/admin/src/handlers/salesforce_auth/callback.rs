@@ -20,7 +20,7 @@ use systemprompt::oauth::services::{
 
 use super::identity::resolve_identity;
 use super::{STATE_COOKIE, SalesforceDeps, login_error, read_state_cookie, secure_flag};
-use crate::repositories::users_grp::federated;
+use crate::repositories::users::federated;
 
 #[derive(Deserialize)]
 pub(crate) struct CallbackParams {

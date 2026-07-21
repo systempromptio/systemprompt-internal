@@ -120,7 +120,10 @@ fn spawn_auth_denial(params: &AuthDenialParams<'_>, reason: &str) {
         // Authentication failed before any real user was resolved. Every UserId
         // must be a real `users` row, so provision the anonymous principal for
         // this fingerprint (idempotent upsert) to carry the audit's foreign key.
-        let user_id = match session_service.ensure_anonymous_user(&headers, None, None).await {
+        let user_id = match session_service
+            .ensure_anonymous_user(&headers, None, None)
+            .await
+        {
             Ok((uid, _fingerprint)) => uid,
             Err(e) => {
                 tracing::error!(

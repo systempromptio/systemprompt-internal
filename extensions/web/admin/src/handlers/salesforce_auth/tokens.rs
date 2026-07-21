@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use super::config::SalesforceConfig;
 use super::{SalesforceDeps, SalesforceError};
 use crate::handlers::users::extract_mcp_accessor_user;
-use crate::repositories::users_grp::salesforce_identity;
+use crate::repositories::users::salesforce_identity;
 use crate::services::salesforce_jwt_bearer;
 
 /// The Salesforce `/services/oauth2/token` response. Only the fields both the

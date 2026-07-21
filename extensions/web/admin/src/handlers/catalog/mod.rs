@@ -12,6 +12,7 @@
 
 mod data;
 mod view;
+mod view_models;
 
 use std::sync::Arc;
 
@@ -44,7 +45,7 @@ pub(crate) async fn plugins_page(
 
     let catalog = data::load_catalog(&path, &user_ctx.roles);
     let counts = assignment_counts_by_type(&pool, ENTITY_PLUGIN).await;
-    let plugins = data::plugin_rows(catalog, &counts);
+    let plugins = view_models::plugin_rows(catalog, &counts);
     let page = view::PluginsPageData {
         page: "plugins",
         title: "Plugins",
@@ -72,7 +73,7 @@ pub(crate) async fn plugin_detail_page(
     let catalog = data::load_catalog(&path, &user_ctx.roles);
     let counts = assignment_counts_by_type(&pool, ENTITY_PLUGIN).await;
     let assignment_count = counts.get(&plugin_id).copied().unwrap_or(0);
-    data::plugin_detail(&catalog, &plugin_id, assignment_count).map_or_else(
+    view_models::plugin_detail(&catalog, &plugin_id, assignment_count).map_or_else(
         || not_found("plugin"),
         |page| render_typed_page(&engine, "catalog-plugin-detail", &page, &user_ctx, &mkt_ctx),
     )
@@ -94,7 +95,7 @@ pub(crate) async fn skills_page(
 
     let catalog = data::load_catalog(&path, &user_ctx.roles);
     let counts = assignment_counts_by_type(&pool, ENTITY_SKILL).await;
-    let skills = data::skill_rows(&catalog, &counts);
+    let skills = view_models::skill_rows(&catalog, &counts);
     let page = view::SkillsPageData {
         page: "skills",
         title: "Skills",
@@ -123,7 +124,7 @@ pub(crate) async fn skill_detail_page(
     let counts = assignment_counts_by_type(&pool, ENTITY_SKILL).await;
     let assignment_count = counts.get(&skill_id).copied().unwrap_or(0);
     let skill = systemprompt::identifiers::SkillId::new(&skill_id);
-    data::skill_detail(&catalog, &skill, assignment_count).map_or_else(
+    view_models::skill_detail(&catalog, &skill, assignment_count).map_or_else(
         || not_found("skill"),
         |page| render_typed_page(&engine, "catalog-skill-detail", &page, &user_ctx, &mkt_ctx),
     )
@@ -145,7 +146,7 @@ pub(crate) async fn mcp_servers_page(
 
     let catalog = data::load_catalog(&path, &user_ctx.roles);
     let counts = assignment_counts_by_type(&pool, ENTITY_MCP_SERVER).await;
-    let servers = data::mcp_rows(&catalog, &counts);
+    let servers = view_models::mcp_rows(&catalog, &counts);
     let page = view::McpPageData {
         page: "mcp",
         title: "MCP servers",
@@ -173,7 +174,7 @@ pub(crate) async fn mcp_detail_page(
     let catalog = data::load_catalog(&path, &user_ctx.roles);
     let counts = assignment_counts_by_type(&pool, ENTITY_MCP_SERVER).await;
     let assignment_count = counts.get(&mcp_id).copied().unwrap_or(0);
-    data::mcp_detail(&catalog, &mcp_id, assignment_count).map_or_else(
+    view_models::mcp_detail(&catalog, &mcp_id, assignment_count).map_or_else(
         || not_found("MCP server"),
         |page| render_typed_page(&engine, "catalog-mcp-detail", &page, &user_ctx, &mkt_ctx),
     )

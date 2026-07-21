@@ -5,8 +5,8 @@ use serde::Deserialize;
 
 /// Resolve the Salesforce Connected App secret, env var first then the
 /// encrypted secrets store, mirroring
-/// [`crate::repositories::secret_crypto::load_master_key`]. The secret is never
-/// persisted in `salesforce.yaml`.
+/// [`crate::repositories::secrets::secret_crypto::load_master_key`]. The secret
+/// is never persisted in `salesforce.yaml`.
 pub(crate) fn client_secret() -> Option<String> {
     // Why: env::var().ok() and SecretsBootstrap::get().ok() are both
     // missing-is-normal carve-outs encoding the priority chain (env var

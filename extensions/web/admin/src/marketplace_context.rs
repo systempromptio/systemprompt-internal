@@ -14,7 +14,7 @@ use axum::response::Response;
 use std::sync::LazyLock;
 use tokio::sync::RwLock;
 
-use super::repositories::plugins::MarketplaceCounts;
+use super::repositories::marketplace::plugins::MarketplaceCounts;
 use super::types::{MarketplaceContext, UserContext};
 
 struct CachedMarketplace {
@@ -107,7 +107,7 @@ async fn compute_marketplace_counts(roles: Vec<String>) -> (MarketplaceCounts, S
             })
             .ok()
             .and_then(|p| {
-                repositories::count_marketplace_items(&p, &roles)
+                repositories::marketplace::plugins::count_marketplace_items(&p, &roles)
                     .map_err(|e| {
                         tracing::warn!(error = %e, "Failed to count marketplace items");
                     })

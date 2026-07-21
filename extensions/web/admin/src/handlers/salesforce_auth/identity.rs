@@ -7,7 +7,7 @@ use serde::Deserialize;
 use super::SalesforceDeps;
 use super::config::SalesforceConfig;
 use super::tokens::exchange_code;
-use crate::repositories::users_grp::{federated, salesforce_identity};
+use crate::repositories::users::{federated, salesforce_identity};
 
 #[derive(Deserialize)]
 struct SalesforceUserInfo {

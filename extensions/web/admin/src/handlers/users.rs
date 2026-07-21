@@ -94,7 +94,9 @@ fn extract_token_from_headers(headers: &HeaderMap) -> Result<String, AdminError>
 }
 
 pub(crate) async fn dashboard_handler(State(pool): State<Arc<PgPool>>) -> Response {
-    match repositories::get_dashboard_data(&pool, "7 days", "4 hours", "today", "7d").await {
+    match repositories::dashboard::get_dashboard_data(&pool, "7 days", "4 hours", "today", "7d")
+        .await
+    {
         Ok(data) => Json(data).into_response(),
         Err(e) => {
             tracing::error!(error = %e, "Failed to load dashboard data");
@@ -104,7 +106,7 @@ pub(crate) async fn dashboard_handler(State(pool): State<Arc<PgPool>>) -> Respon
 }
 
 pub(crate) async fn list_users_handler(State(pool): State<Arc<PgPool>>) -> Response {
-    match repositories::list_users(&pool).await {
+    match repositories::users::list_users(&pool).await {
         Ok(users) => Json(UsersListResponse { users }).into_response(),
         Err(e) => {
             tracing::error!(error = %e, "Failed to list users");
@@ -118,7 +120,7 @@ pub(crate) async fn user_detail_handler(
     Path(user_id_raw): Path<String>,
 ) -> Response {
     let user_id = UserId::new(user_id_raw);
-    match repositories::find_user_detail(&pool, &user_id).await {
+    match repositories::users::find_user_detail(&pool, &user_id).await {
         Ok(Some(detail)) => Json(detail).into_response(),
         Ok(None) => shared::error_response(StatusCode::NOT_FOUND, "User not found"),
         Err(e) => {
@@ -133,7 +135,7 @@ pub(crate) async fn user_usage_handler(
     Path(user_id_raw): Path<String>,
 ) -> Response {
     let user_id = UserId::new(user_id_raw);
-    match repositories::get_user_usage(&pool, &user_id).await {
+    match repositories::users::get_user_usage(&pool, &user_id).await {
         Ok(events) => Json(EventsListResponse { events }).into_response(),
         Err(e) => {
             tracing::error!(error = %e, user_id = %user_id, "Failed to get user usage");
@@ -150,7 +152,7 @@ pub(crate) async fn create_user_handler(
     if !user_ctx.is_admin {
         return shared::error_response(StatusCode::FORBIDDEN, "Admin access required");
     }
-    match repositories::create_user(&pool, &body).await {
+    match repositories::users::mutations::create_user(&pool, &body).await {
         Ok(user) => {
             let p = Arc::clone(&pool);
             let uid = user_ctx.user_id.clone();
@@ -190,7 +192,7 @@ pub(crate) async fn update_user_handler(
     if !user_ctx.is_admin {
         return shared::error_response(StatusCode::FORBIDDEN, "Admin access required");
     }
-    match repositories::update_user(&pool, &user_id, &body).await {
+    match repositories::users::mutations::update_user(&pool, &user_id, &body).await {
         Ok(Some(user)) => {
             let p = Arc::clone(&pool);
             let uid = user_ctx.user_id.clone();
@@ -230,7 +232,7 @@ pub(crate) async fn delete_user_handler(
     if !user_ctx.is_admin {
         return shared::error_response(StatusCode::FORBIDDEN, "Admin access required");
     }
-    match repositories::delete_user(&pool, &user_id).await {
+    match repositories::users::mutations::delete_user(&pool, &user_id).await {
         Ok(true) => {
             let p = Arc::clone(&pool);
             let uid = user_ctx.user_id.clone();
@@ -261,7 +263,7 @@ pub(crate) async fn list_events_handler(
     State(pool): State<Arc<PgPool>>,
     Query(query): Query<EventsQuery>,
 ) -> Response {
-    match repositories::list_events(&pool, &query).await {
+    match repositories::dashboard::list_events(&pool, &query).await {
         Ok(response) => Json(response).into_response(),
         Err(e) => {
             tracing::error!(error = %e, "Failed to list events");
