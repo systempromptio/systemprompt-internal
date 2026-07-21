@@ -34,6 +34,7 @@ missing_errors_doc = "allow"
 systemprompt-mcp-shared = { path = "../extensions/mcp/shared" }
 systemprompt-mcp-agent = { path = "../extensions/mcp/systemprompt" }
 systemprompt-web-shared = { path = "../extensions/web/shared" }
+systemprompt-web-admin = { path = "../extensions/web/admin" }
 
 # Core facade — DbPool / Database / identifiers for the integration crate.
 systemprompt = { version = "0.22.0", default-features = false, features = ["core", "database"] }
