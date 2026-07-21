@@ -22,14 +22,13 @@ use systemprompt::identifiers::McpServerId;
 use systemprompt::mcp::repository::ToolUsageRepository;
 use systemprompt::mcp::{
     ArtifactViewerConfig, McpArtifactRepository, McpToolExecutor, WEBSITE_URL,
-    build_artifact_viewer_resource, build_extension_capabilities, read_artifact_viewer_resource,
+    artifact_shell_template, build_artifact_viewer_resource, build_extension_capabilities,
+    parse_artifact_resource_uri, read_artifact_resource, read_artifact_viewer_resource,
 };
 use systemprompt::security::authz::SharedAuthzHook;
 use systemprompt_mcp_shared::record_mcp_access;
 
 use tool::{authenticate_tool_request, dispatch_tool};
-
-const ARTIFACT_VIEWER_TEMPLATE: &str = include_str!("../../templates/artifact-viewer.html");
 
 #[derive(Clone, Debug)]
 pub struct SystempromptServer {
@@ -163,10 +162,10 @@ impl ServerHandler for SystempromptServer {
         std::future::ready(Ok(build_artifact_viewer_resource(&ArtifactViewerConfig {
             server_name: SERVER_NAME,
             title: "systemprompt.io Artifact Viewer",
-            description: "Interactive UI viewer for systemprompt.io artifacts. Renders tables, lists, \
-                         and text content with syntax highlighting. Template receives artifact data \
-                         dynamically via MCP Apps ui/notifications/tool-result protocol.",
-            template: ARTIFACT_VIEWER_TEMPLATE,
+            description: "Interactive UI viewer for systemprompt.io artifacts. Receives the tool \
+                          result via the MCP Apps ui/notifications/tool-result protocol and mounts \
+                          the server-rendered artifact HTML it carries.",
+            template: artifact_shell_template(),
             icons: Some(vec![
                 Icon::new(format!("{WEBSITE_URL}/files/images/favicon-32x32.png"))
                     .with_mime_type("image/png")
@@ -175,15 +174,20 @@ impl ServerHandler for SystempromptServer {
         })))
     }
 
-    fn read_resource(
+    /// Serves the static shell, plus any `ui://systemprompt/artifact/<id>`
+    /// the host chooses to resolve instead of using the copy embedded in the
+    /// tool result.
+    async fn read_resource(
         &self,
         request: ReadResourceRequestParams,
         _ctx: RequestContext<RoleServer>,
-    ) -> impl Future<Output = Result<ReadResourceResult, McpError>> + MaybeSendFuture + '_ {
-        std::future::ready(read_artifact_viewer_resource(
-            &request,
-            SERVER_NAME,
-            ARTIFACT_VIEWER_TEMPLATE,
-        ))
+    ) -> Result<ReadResourceResult, McpError> {
+        if parse_artifact_resource_uri(&request.uri).is_some() {
+            let repo = McpArtifactRepository::new(&self.db_pool)
+                .map_err(|e| McpError::internal_error(e.to_string(), None))?;
+            return read_artifact_resource(&request, SERVER_NAME, &repo).await;
+        }
+
+        read_artifact_viewer_resource(&request, SERVER_NAME, artifact_shell_template())
     }
 }

@@ -1,0 +1,270 @@
+/* Astound Digital setup / sign-in screen.
+ *
+ * Overrides core's centred-card layout with a full-window split panel: a
+ * branded left column and a constrained form column on the right. Shadowed over
+ * core via SYSTEMPROMPT_BRIDGE_WEB_OVERLAY, so this file must carry every
+ * selector core's setup.css defined — sp-setup-agents (step 2) still renders
+ * against __field / __status / __hint / __actions / __error. */
+
+.sp-setup {
+  flex: 1;
+  display: none;
+  min-height: 0;
+  padding: 0;
+}
+body.is-setup-mode .sp-topbar { display: none; }
+body.is-setup-mode .sp-footer { display: none; }
+body.is-setup-mode .sp-setup  { display: block; }
+
+.sp-setup__split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 44%);
+  min-height: 100%;
+}
+
+/* Left: brand panel ------------------------------------------------------- */
+
+.sp-setup__brand {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--sp-space-10);
+  padding: var(--sp-space-10) var(--sp-space-10) var(--sp-space-8);
+  background:
+    radial-gradient(120% 90% at 0% 0%, oklch(0.24 0.02 45) 0%, transparent 60%),
+    linear-gradient(180deg, var(--sp-bg-elev-1) 0%, var(--sp-bg) 100%);
+  border-right: 1px solid var(--sp-line);
+}
+.sp-setup__mark {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+}
+.sp-setup__mark svg { height: 30px; width: auto; max-width: 100%; display: block; }
+
+.sp-setup__pitch { max-width: 30ch; }
+.sp-setup__pitch-head {
+  margin: 0;
+  font-family: var(--sp-font-display);
+  font-size: clamp(1.75rem, 2.6vw, 2.75rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--sp-text);
+}
+.sp-setup__pitch-body {
+  margin: var(--sp-space-3) 0 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--sp-muted-strong);
+}
+
+.sp-setup__brand-foot { display: flex; flex-direction: column; gap: var(--sp-space-3); }
+.sp-setup__demo {
+  margin: 0;
+  max-width: 46ch;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--sp-muted);
+}
+.sp-setup__demo strong { color: var(--sp-warn); font-weight: 600; }
+
+/* Right: form panel ------------------------------------------------------- */
+
+.sp-setup__panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-space-10) var(--sp-space-8);
+  background: var(--sp-bg);
+}
+.sp-setup__panel-inner { width: 100%; max-width: 400px; }
+
+.sp-setup__steps {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-space-2-5);
+  margin: 0 0 var(--sp-space-6);
+  padding: 0;
+  list-style: none;
+}
+.sp-setup__step-dot {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-space-1-5);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--sp-muted);
+}
+.sp-setup__step-dot::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: var(--sp-corners-pill);
+  background: var(--sp-line);
+  transition: background var(--sp-dur-fast) var(--sp-ease-out);
+}
+.sp-setup__step-dot + .sp-setup__step-dot { margin-left: var(--sp-space-2); }
+.sp-setup__step-dot.is-current { color: var(--sp-accent); }
+.sp-setup__step-dot.is-current::before { background: var(--sp-accent); }
+.sp-setup__step-dot.is-done::before { background: var(--sp-muted); }
+
+.sp-setup__panel h1 {
+  margin: 0;
+  font-family: var(--sp-font-display);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+.sp-setup__lede {
+  margin: var(--sp-space-2) 0 var(--sp-space-6);
+  color: var(--sp-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+/* Shared form primitives (also consumed by sp-setup-agents) ---------------- */
+
+.sp-setup__field { margin-bottom: var(--sp-space-4-5); display: flex; flex-direction: column; gap: var(--sp-space-1-5); }
+.sp-setup__field input { width: 100%; border-radius: var(--sp-corners-sm); padding: var(--sp-space-3) var(--sp-space-3-5); }
+.sp-setup__field input:focus {
+  border-color: var(--sp-accent);
+  box-shadow: 0 0 0 3px var(--sp-accent-ring);
+}
+.sp-setup__field label {
+  font-size: 11px;
+  color: var(--sp-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* flex-start + nudge keeps the dot optically on the first line when the probe
+ * reason wraps, instead of drifting to the middle of a two-line block. */
+.sp-setup__status {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-space-1-5);
+  font-size: 12px;
+  min-height: 18px;
+  line-height: 1.45;
+}
+.sp-setup__status .sp-dot { margin-top: 0.4em; flex: none; }
+
+.sp-setup__hint {
+  margin: var(--sp-space-1) 0 0;
+  font-size: 12px;
+  color: var(--sp-muted);
+  line-height: 1.5;
+}
+.sp-setup__hint--gate { color: var(--sp-warn); }
+
+.sp-setup__keep { display: flex; align-items: center; gap: var(--sp-space-2); font-size: 13px; }
+
+.sp-setup__pat-link {
+  color: var(--sp-accent);
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--sp-accent) 50%, transparent);
+}
+.sp-setup__pat-link:hover { color: var(--sp-accent); }
+.sp-setup__pat-link[aria-disabled="true"],
+.sp-setup__pat-link.is-disabled {
+  color: var(--sp-muted);
+  border-bottom-color: transparent;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.sp-setup__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--sp-space-3);
+}
+.sp-setup__actions .sp-btn-primary,
+.sp-setup__actions .sp-btn-ghost {
+  padding: var(--sp-space-3) var(--sp-space-4-5);
+  font-size: 13px;
+}
+.sp-setup__error {
+  display: block;
+  margin-top: var(--sp-space-3);
+  font-size: 12px;
+  color: var(--sp-err);
+  line-height: 1.4;
+}
+
+.sp-setup__advanced {
+  margin-top: var(--sp-space-6);
+  border-top: 1px solid var(--sp-line-soft);
+  padding-top: var(--sp-space-4);
+}
+.sp-setup__advanced > summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--sp-muted);
+  list-style: none;
+}
+.sp-setup__advanced > summary::-webkit-details-marker { display: none; }
+.sp-setup__advanced > summary::before {
+  content: "▸ ";
+  color: var(--sp-muted);
+}
+.sp-setup__advanced[open] > summary::before { content: "▾ "; }
+.sp-setup__advanced > summary:hover { color: var(--sp-text); }
+.sp-setup__advanced > *:not(summary) { margin-top: var(--sp-space-4); }
+
+.sp-setup__warning {
+  margin: var(--sp-space-6) 0 0;
+  padding: var(--sp-space-3) var(--sp-space-3-5);
+  font-size: 13px;
+  line-height: 1.5;
+  color: oklch(0.86 0.13 80);
+  background: oklch(0.78 0.15 75 / 0.10);
+  border: 1px solid oklch(0.78 0.15 75 / 0.35);
+  border-radius: var(--sp-corners-sm);
+}
+.sp-setup__warning strong { color: oklch(0.92 0.13 80); font-weight: 700; }
+
+.sp-setup__meta {
+  margin: 0;
+  font-size: 12px;
+  color: var(--sp-muted);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-space-2);
+  line-height: 1.5;
+}
+.sp-setup__meta-sep { color: var(--sp-line); }
+.sp-setup__meta a {
+  color: var(--sp-accent);
+  text-decoration: none;
+  border-bottom: 1px solid var(--sp-accent-ring);
+  padding-bottom: var(--sp-space-px);
+  transition: color var(--sp-dur-fast), border-color var(--sp-dur-fast);
+}
+.sp-setup__meta a:hover { color: var(--sp-accent); border-bottom-color: var(--sp-accent); }
+.sp-setup__docs { font-weight: 600; }
+
+/* Narrow windows collapse to the form column; the brand panel keeps only its
+ * logo and footer so the pitch never squeezes the form off-screen. */
+@media (max-width: 900px) {
+  .sp-setup__split { grid-template-columns: minmax(0, 1fr); }
+  .sp-setup__brand {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-space-4);
+    padding: var(--sp-space-6);
+    border-right: none;
+    border-bottom: 1px solid var(--sp-line);
+  }
+  .sp-setup__pitch { display: none; }
+  .sp-setup__demo { display: none; }
+  .sp-setup__brand-foot { align-items: flex-end; }
+  .sp-setup__panel { padding: var(--sp-space-8) var(--sp-space-6); align-items: flex-start; }
+}

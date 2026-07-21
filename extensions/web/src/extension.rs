@@ -2,7 +2,6 @@ use std::sync::{Arc, OnceLock};
 
 use crate::config::BlogConfigValidated;
 use crate::config_loader::{self, ConfigError};
-use crate::features::FeaturesConfig;
 use crate::homepage::HomepageConfig;
 use crate::jobs::ContentIngestionJob;
 use crate::navigation::NavigationConfig;
@@ -12,7 +11,6 @@ use systemprompt::extension::prelude::*;
 
 static NAVIGATION_CONFIG: OnceLock<Option<Arc<NavigationConfig>>> = OnceLock::new();
 static HOMEPAGE_CONFIG: OnceLock<Option<Arc<HomepageConfig>>> = OnceLock::new();
-static FEATURES_CONFIG: OnceLock<Option<Arc<FeaturesConfig>>> = OnceLock::new();
 static SKILLS_PAGE_CONFIG: OnceLock<Option<Arc<SkillsPageConfig>>> = OnceLock::new();
 static SALESFORCE_CONFIG: OnceLock<Option<Arc<systemprompt_web_admin::SalesforceConfig>>> =
     OnceLock::new();
@@ -67,15 +65,6 @@ impl WebExtension {
             &HOMEPAGE_CONFIG,
             config_loader::load_homepage_config,
             "Homepage config error",
-        )
-    }
-
-    #[must_use]
-    pub fn features_config() -> Option<Arc<FeaturesConfig>> {
-        log_and_discard_err(
-            &FEATURES_CONFIG,
-            config_loader::load_features_config,
-            "Features config error",
         )
     }
 

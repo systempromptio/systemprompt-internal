@@ -1,0 +1,12 @@
+id: admin-usage
+name: "Usage — Spend by Model"
+description: "Where the last 24 hours of token spend went, by provider and model — requests, tokens, average latency, cost, and share. Refresh runs the admin systemprompt CLI server; admin role required."
+version: "1.0.0"
+enabled: true
+starred: true
+category: admin
+tags: [admin, usage, costs, analytics]
+mcp_tools:
+  - "mcp__systemprompt__systemprompt"
+command: "analytics requests models --json"
+file: view.html

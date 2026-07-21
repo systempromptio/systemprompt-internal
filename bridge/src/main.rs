@@ -52,6 +52,12 @@ static ASTOUND_BRAND: Brand = Brand {
     // carries the gateway credential the device-link approval returns.
     sign_in_label: "Sign in with Salesforce",
     sign_in_hint: "Opens your browser. This device is linked automatically once you approve.",
+    // Scheduler identifiers for the periodic sync job. Brand-scoped so an
+    // Astound bridge never registers (or, on uninstall, tears down) a task
+    // named after upstream systemprompt.
+    schedule_label: "com.astounddigital.bridge-sync",
+    schedule_unit: "astound-bridge-sync",
+    schedule_task_name: "AstoundBridgeSync",
     // Embedded from OUT_DIR (copied there by build.rs) rather than directly from
     // `assets/`, so regenerating an asset reliably re-embeds it even under
     // incremental/sccache builds. See build.rs.

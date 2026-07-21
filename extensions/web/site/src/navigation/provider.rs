@@ -10,7 +10,7 @@ use super::config::{
 };
 
 /// Template context injected on every page: header/footer navigation, branding,
-/// and the fixed top-level app/blog/docs links consumed by the site partials.
+/// and the fixed top-level app/docs links consumed by the site partials.
 #[derive(Debug, Serialize)]
 struct NavigationContext<'a> {
     site: NavigationSite<'a>,
@@ -35,8 +35,6 @@ struct FooterNavigation<'a> {
 struct NavLinks {
     #[serde(rename = "app_url")]
     app: &'static str,
-    #[serde(rename = "blog_url")]
-    blog: &'static str,
     #[serde(rename = "docs_url")]
     docs: &'static str,
 }
@@ -89,7 +87,6 @@ impl PageDataProvider for NavigationPageDataProvider {
             },
             nav: NavLinks {
                 app: "/app",
-                blog: "/blog",
                 docs: "/documentation",
             },
         };

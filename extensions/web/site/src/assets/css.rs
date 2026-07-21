@@ -12,10 +12,8 @@ pub(super) fn css_assets(storage_css: &Path) -> Vec<AssetDefinition> {
     v.extend(homepage_css(storage_css));
     v.extend(blog_css(storage_css));
     v.extend(docs_css(storage_css));
-    v.extend(feature_page_css(storage_css));
     v.extend(skills_page_css(storage_css));
     v.extend(syntax_css(storage_css));
-    v.extend(feature_base_css(storage_css));
     v
 }
 
@@ -36,7 +34,6 @@ fn homepage_css(p: &Path) -> Vec<AssetDefinition> {
     vec![
         css!(p, "homepage-hero.css"),
         css!(p, "homepage-showreel.css"),
-        css!(p, "homepage-departments.css"),
         css!(p, "homepage-getting-started.css"),
         css!(p, "homepage-demos.css"),
         css!(p, "homepage-demo-terminal.css"),
@@ -102,26 +99,6 @@ fn docs_css(p: &Path) -> Vec<AssetDefinition> {
         css!(p, "docs-toc.css"),
         css!(p, "docs-responsive.css"),
         css!(p, "docs-sidebar-links.css"),
-    ]
-}
-
-fn feature_page_css(p: &Path) -> Vec<AssetDefinition> {
-    vec![
-        css!(p, "feature-page-hero.css"),
-        css!(p, "feature-page-content.css"),
-        css!(p, "feature-page-responsive.css"),
-    ]
-}
-
-fn feature_base_css(p: &Path) -> Vec<AssetDefinition> {
-    vec![
-        css!(p, "feature-base-hero.css"),
-        css!(p, "feature-base-sections.css"),
-        css!(p, "feature-base-cta.css"),
-        css!(p, "feature-base-details.css"),
-        css!(p, "content-cards-base.css"),
-        css!(p, "content-cards-categories.css"),
-        css!(p, "content-cards-list.css"),
     ]
 }
 

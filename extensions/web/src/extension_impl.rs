@@ -10,10 +10,8 @@ use systemprompt::traits::Job;
 use systemprompt::users::UserService;
 
 use crate::assets::web_assets;
-use crate::blog::{BlogListPageDataProvider, BlogPostPageDataProvider};
 use crate::docs::{DocsContentDataProvider, DocsPageDataProvider};
 use crate::extenders::OrgUrlExtender;
-use crate::features::FeaturePagePrerenderer;
 use crate::homepage::{HomepagePageDataProvider, HomepagePrerenderer};
 use crate::jobs::{
     BundleAdminCssJob, BundleAdminJsJob, ContentAnalyticsAggregationJob, ContentIngestionJob,
@@ -62,12 +60,7 @@ impl Extension for WebExtension {
             providers.push(Arc::new(HomepagePageDataProvider::new(homepage_config)));
         }
 
-        let docs_provider: Arc<dyn PageDataProvider> = Arc::new(DocsPageDataProvider::new());
-        providers.extend([
-            docs_provider,
-            Arc::new(BlogListPageDataProvider::new()),
-            Arc::new(BlogPostPageDataProvider::new()),
-        ]);
+        providers.push(Arc::new(DocsPageDataProvider::new()));
         providers
     }
 
@@ -80,12 +73,6 @@ impl Extension for WebExtension {
 
         if let Some(config) = Self::homepage_config() {
             prerenderers.push(Arc::new(HomepagePrerenderer::new(config)));
-        }
-
-        if let Some(config) = Self::features_config() {
-            for page in &config.pages {
-                prerenderers.push(Arc::new(FeaturePagePrerenderer::new(page.clone())));
-            }
         }
 
         if let Some(config) = Self::skills_page_config() {
@@ -158,7 +145,6 @@ impl Extension for WebExtension {
         let webhook_api =
             admin::hooks_webhook_router(Arc::clone(&write_pool), Arc::clone(&session_service));
         let secrets_api = admin::secrets_router(Arc::clone(&write_pool));
-        let bridge_api = admin::bridge_router(Arc::clone(&pool));
         let share_api = admin::share_manifest_router(Arc::clone(&pool));
         let links_router = api::router(Arc::clone(&pool), self.validated_config.clone());
 
@@ -201,7 +187,6 @@ impl Extension for WebExtension {
         let combined = Router::new()
             .nest_service("/admin", ssr_router)
             .nest_service("/bridge-auth", bridge_auth_router)
-            .merge(bridge_api)
             .merge(share_api)
             .nest("/api/public", api_router);
 

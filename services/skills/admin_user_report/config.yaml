@@ -1,0 +1,13 @@
+id: admin_user_report
+name: User Report
+description: "Who is on the platform - list recent users, filter by role or status, read the signup and session stats, and drill into one account"
+enabled: true
+file: SKILL.md
+tags:
+  - cli
+  - users
+  - reporting
+  - accounts
+  - admin
+category: operations
+display_category: "Governance & Analytics"

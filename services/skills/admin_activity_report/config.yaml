@@ -1,0 +1,13 @@
+id: admin_activity_report
+name: Activity Report
+description: "What the platform did recently - live sessions, recent AI requests, tool traces, failures, and where spend landed - as a scannable report"
+enabled: true
+file: SKILL.md
+tags:
+  - cli
+  - activity
+  - usage
+  - reporting
+  - admin
+category: governance
+display_category: "Governance & Analytics"

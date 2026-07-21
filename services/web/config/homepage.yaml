@@ -11,5 +11,5 @@ hero:
   eyebrow: "Astound Digital · AI for Salesforce"
   cta: "Get started"
   cta_url: "#get-started"
-  cta_secondary: "Explore what it does"
-  cta_secondary_url: "#departments"
+  cta_secondary: "Explore the skills"
+  cta_secondary_url: "/skills/"

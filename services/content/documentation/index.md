@@ -26,22 +26,11 @@ The AI Salesforce Gateway puts your Salesforce, your documents, and Astound Digi
 3. **Connect your AI tools.** Open your [dashboard](/documentation/dashboard), click **Connect**, and follow the one-step instructions. Signing in with Salesforce connects every source behind it.
 4. **Ask your first question.** Try *"Give me a full briefing on my biggest account"* or *"What is in my pipeline this quarter?"* The skills are already installed.
 
-## What to ask, by area
+## What to ask
 
-Each area of the gateway has its own plain-English guide with example questions:
-
-- [Getting Started](/features/getting-started/) — what the assistant can do and how to ask
-- [Sales Pipeline & Deals](/features/sales-pipeline/) — forecast, deal search, and safe updates
-- [Accounts & Customers](/features/accounts/) — 360 degree briefings before every call
-- [Contacts & People](/features/contacts/) — contact maps and decision-makers
-- [Leads & Prospects](/features/leads/) — funnel insights and one-sentence capture
-- [Tasks, Calls & Meetings](/features/activities/) — your day at a glance, calls logged as you work
-- [Support Cases](/features/support-cases/) — queue, backlog, and escalations
-- [Consultancy Workflows](/features/consultancy/) — RFPs, proposals, SOWs, and estimates
-- [Brand & Workspace](/features/brand-and-workspace/) — voice, formatting, and boilerplate
-- [Governance & Trust](/features/governance-and-platform/) — how every request is checked and audited
-
-Or browse the [full skills catalogue](/skills/).
+Browse the [full skills catalogue](/skills/) — every skill lists what it does and example
+questions covering pipeline, accounts, contacts, leads, activities, cases, consultancy,
+brand, and governance.
 
 ## Dashboard
 

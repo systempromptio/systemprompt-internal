@@ -4,7 +4,6 @@ description: "Your open Salesforce opportunities as a live, refreshable table �
 version: "1.0.0"
 enabled: true
 # Owning plugin — artifact only syncs when this plugin is enabled/granted.
-plugin_id: astound-salesforce-opportunities
 # Seed into the global Cowork Artifacts library as a starred/global entry.
 starred: true
 # `category`, `tags` and `query` are forward-compatible metadata — the core

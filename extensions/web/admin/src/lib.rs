@@ -9,9 +9,8 @@
 //! - [`hooks_webhook_router`] — the four governance webhooks called by gateway
 //!   / MCP / Claude Code (`/hooks/track`, `/hooks/govern`, `/govern/authz`,
 //!   statusline/transcript ingest).
-//! - [`secrets_router`], [`share_manifest_router`], [`bridge_router`] —
-//!   per-plugin secret resolution, public manifest sharing, and the bridge
-//!   plugin-file plane.
+//! - [`secrets_router`], [`share_manifest_router`] — per-plugin secret
+//!   resolution and public manifest sharing.
 //!
 //! [`repositories`] owns every `sqlx` call; handlers/services never touch
 //! the DB directly. Errors normalise on `error::MarketplaceError` via the
@@ -23,8 +22,8 @@ pub mod error;
 pub mod event_hub;
 pub mod gateway_safety;
 pub(crate) mod handlers;
-pub mod marketplace_filter;
 mod marketplace_context;
+pub mod marketplace_filter;
 mod middleware;
 pub mod numeric;
 pub mod repositories;
@@ -109,15 +108,6 @@ pub fn salesforce_api_router(sf_deps: SalesforceDeps) -> Router {
             get(handlers::salesforce_auth::salesforce_token_handler),
         )
         .layer(Extension(sf_deps))
-}
-
-pub fn bridge_router(pool: Arc<PgPool>) -> Router {
-    Router::new()
-        .route(
-            "/v1/bridge/plugins/{plugin_id}/{*path}",
-            get(handlers::bridge::plugin_file::handle),
-        )
-        .with_state(pool)
 }
 
 pub fn admin_router(read_pool: Arc<PgPool>) -> Router {

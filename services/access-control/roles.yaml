@@ -92,6 +92,86 @@ rules:
     default_included: true
     roles: [user]
 
+  # Admin control plane (astound-admin plugin). These entities are members of
+  # the enterprise-demo marketplace, so without a rule of their own they would
+  # inherit its [user] grant. Declaring any rule on an entity opts it out of the
+  # marketplace cascade — the resolver falls back to a parent only when the
+  # entity declares no rules at all — and that is what makes `roles: [admin]`
+  # below restrictive rather than merely additive. Each entry therefore closes
+  # its entity to every role but admin, in the signed manifest and at runtime
+  # authz alike. The systemprompt MCP server is additionally gated by
+  # oauth.scopes in services/mcp/systemprompt.yaml.
+  - entity_type: mcp_server
+    entity_id: systemprompt
+    access: allow
+    default_included: false
+    roles: [admin]
+  - entity_type: plugin
+    entity_id: astound-admin
+    access: allow
+    default_included: false
+    roles: [admin]
+  - entity_type: skill
+    entity_id: admin_workspace_setup
+    access: allow
+    default_included: false
+    roles: [admin]
+  - entity_type: skill
+    entity_id: admin_user_report
+    access: allow
+    default_included: false
+    roles: [admin]
+  - entity_type: skill
+    entity_id: admin_activity_report
+    access: allow
+    default_included: false
+    roles: [admin]
+  - entity_type: skill
+    entity_id: analytics_dashboards
+    access: allow
+    default_included: false
+    roles: [admin]
+  - entity_type: skill
+    entity_id: inspect_ai_requests
+    access: allow
+    default_included: false
+    roles: [admin]
+  - entity_type: skill
+    entity_id: inspect_conversation
+    access: allow
+    default_included: false
+    roles: [admin]
+  - entity_type: skill
+    entity_id: manage_permissions
+    access: allow
+    default_included: false
+    roles: [admin]
+  - entity_type: skill
+    entity_id: demonstrate_governance
+    access: allow
+    default_included: false
+    roles: [admin]
+  - entity_type: skill
+    entity_id: inspect_agents
+    access: allow
+    default_included: false
+    roles: [admin]
+  - entity_type: skill
+    entity_id: manage_services
+    access: allow
+    default_included: false
+    roles: [admin]
+  - entity_type: skill
+    entity_id: inspect_mcp_and_skills
+    access: allow
+    default_included: false
+    roles: [admin]
+  - entity_type: skill
+    entity_id: systemprompt_cli
+    access: allow
+    default_included: false
+    roles: [admin]
+
   # Slack inbound surface. Wildcard grant over every Slack channel for the
   # `user` role — the role federated Slack users are minted with (see
   # services/slack/dev.yaml authz.allowed_roles). Channels inherit their

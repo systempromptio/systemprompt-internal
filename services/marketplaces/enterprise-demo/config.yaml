@@ -45,9 +45,24 @@ marketplace:
       - activities_find
       - activities_report
       - activities_update
+      # Admin control plane. Listed here so marketplace scoping keeps them in
+      # the catalogue; per-entity rules in services/access-control/roles.yaml
+      # restrict them to the admin role.
+      - admin_user_report
+      - admin_activity_report
+      - analytics_dashboards
+      - inspect_ai_requests
+      - inspect_conversation
+      - manage_permissions
+      - demonstrate_governance
+      - inspect_agents
+      - manage_services
+      - inspect_mcp_and_skills
+      - systemprompt_cli
   plugins:
     include:
       - astound-commons
+      - astound-admin
       - astound-salesforce
       - astound-salesforce-opportunities
       - astound-salesforce-accounts
@@ -59,6 +74,7 @@ marketplace:
     source: explicit
     include:
       - salesforce
+      - systemprompt
     exclude: []
   agents:
     include:

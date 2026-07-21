@@ -3,7 +3,6 @@ name: "Leads — Inbound Prospects"
 description: "Your open Salesforce leads as a live, refreshable table — company, title, status, source, rating and owner. Refresh re-runs against your own Salesforce: SELECT Name, Company, Title, Status, LeadSource, Rating, Owner.Name FROM Lead WHERE IsConverted = false ORDER BY CreatedDate DESC LIMIT 200"
 version: "1.0.0"
 enabled: true
-plugin_id: astound-salesforce-leads
 starred: true
 # `category`, `tags` and `query` are forward-compatible metadata — the core
 # loader ignores them today; the SOQL also lives in `description` and view.html.

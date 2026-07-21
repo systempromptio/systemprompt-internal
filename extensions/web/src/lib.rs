@@ -14,7 +14,7 @@
 //!   sitemap, llms.txt, secret migration, content analytics).
 //! - `shared` — config schemas, error types, branding, ID newtypes, HTML-escape
 //!   helpers.
-//! - `site` — public homepage / blog / docs / features content providers.
+//! - `site` — public homepage / docs content providers.
 
 mod config_loader;
 pub mod extension;
@@ -29,13 +29,12 @@ pub use systemprompt_web_shared::{
     BrandingConfig, config, config_errors, error, html_escape, models,
 };
 pub use systemprompt_web_site::{
-    assets, blog, docs, extenders, features, homepage, navigation, partials, skills_page,
+    assets, docs, extenders, homepage, navigation, partials, skills_page,
 };
 pub mod utils {
     pub use systemprompt_web_shared::html_escape;
 }
 
-pub use blog::{BlogListPageDataProvider, BlogPostPageDataProvider};
 pub use config::{
     BlogConfigRaw, BlogConfigValidated, ContentSourceRaw, ContentSourceValidated,
     ExtensionConfigError, ExtensionConfigErrors,
@@ -43,10 +42,6 @@ pub use config::{
 pub use docs::{ChildDoc, DocsContentDataProvider, DocsPageDataProvider};
 pub use error::BlogError;
 pub use extension::{BlogExtension, WebExtension};
-pub use features::{
-    FeatureCta, FeaturePage, FeaturePagePrerenderer, FeatureSection, FeatureSectionItem,
-    FeaturesConfig,
-};
 pub use homepage::{
     ComparisonConfig, ComparisonItem, ComparisonSide, DifferentiatorConfig, DifferentiatorItem,
     ExtensionTrait, ExtensionsConfig, FaqConfig, FaqItem, Feature, FeatureCategory, FinalCtaConfig,

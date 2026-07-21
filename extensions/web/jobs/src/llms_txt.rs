@@ -122,7 +122,6 @@ async fn build_llms_txt_content(
         .map_err(|e| JobError::other(format!("ContentRepository error: {e}")))?;
 
     write_documentation_section(&mut content, config, &repo, base_url).await?;
-    write_blog_section(&mut content, config, &repo, base_url).await?;
 
     writeln!(content, "## Resources")?;
     writeln!(content)?;
@@ -150,7 +149,6 @@ fn write_header(content: &mut String, base_url: &str) -> std::fmt::Result {
     writeln!(content)?;
     writeln!(content, "- Homepage: {base_url}")?;
     writeln!(content, "- Documentation: {base_url}/documentation")?;
-    writeln!(content, "- Blog: {base_url}/blog")?;
     writeln!(content)
 }
 
@@ -212,34 +210,5 @@ async fn write_documentation_section(
             write_section(content, "General", &other)?;
         }
     }
-    Ok(())
-}
-
-async fn write_blog_section(
-    content: &mut String,
-    config: &ContentConfigRaw,
-    repo: &systemprompt::content::ContentRepository,
-    base_url: &str,
-) -> Result<(), JobError> {
-    use systemprompt::identifiers::{LocaleCode, SourceId};
-
-    writeln!(content, "## Blog")?;
-    writeln!(content)?;
-    writeln!(content, "Articles and updates.")?;
-    writeln!(content)?;
-
-    if let Some(source) = config.content_sources.get("blog")
-        && source.enabled
-    {
-        let source_id = SourceId::new(&source.source_id);
-        let locale = LocaleCode::new("en");
-        if let Ok(posts) = repo.list_by_source(&source_id, &locale).await {
-            for post in posts.iter().take(15) {
-                let url = format!("{}/blog/{}", base_url, post.slug);
-                writeln!(content, "- [{}]({}): {}", post.title, url, post.description)?;
-            }
-        }
-    }
-    writeln!(content)?;
     Ok(())
 }

@@ -1,5 +1,4 @@
 pub(crate) mod access_control;
-pub(crate) mod bridge;
 pub(crate) mod catalog;
 pub(crate) mod demo_register;
 pub(crate) mod departments;

@@ -2,51 +2,11 @@
 # Header, footer, and documentation sidebar
 #
 # External links point to https://astounddigital.com.
-# Local routes (/blog, /documentation, /admin/login) target the running
+# Local routes (/skills, /documentation, /admin/login) target the running
 # template instance.
 
 header:
   items:
-    - id: product
-      label: "Product"
-      href: "/#departments"
-      dropdown: true
-      sections:
-        - title: "Salesforce, in plain English"
-          links:
-            - label: "Getting Started"
-              description: "What the AI Salesforce Gateway is, how to ask, and the promise to confirm before every change."
-              href: "/features/getting-started/"
-            - label: "Sales Pipeline & Deals"
-              description: "Find deals, read your forecast and what is at risk, and update opportunities safely."
-              href: "/features/sales-pipeline/"
-            - label: "Accounts & Customers"
-              description: "360 degree account briefings before every call, plus safe record updates."
-              href: "/features/accounts/"
-            - label: "Contacts & People"
-              description: "Contact maps, decision-makers per account, and the relationships going quiet."
-              href: "/features/contacts/"
-            - label: "Leads & Prospects"
-              description: "Funnel insights, stale-lead alerts, and one-sentence lead capture."
-              href: "/features/leads/"
-            - label: "Tasks, Calls & Meetings"
-              description: "Your day at a glance, overdue follow-ups, and activity logged as you work."
-              href: "/features/activities/"
-            - label: "Support Cases"
-              description: "Queue and backlog insights, escalations, and safe case updates."
-              href: "/features/support-cases/"
-        - title: "Delivery, Brand & Trust"
-          links:
-            - label: "Consultancy Workflows"
-              description: "RFP responses, proposals, SOWs, work orders, and estimates in Astound's voice."
-              href: "/features/consultancy/"
-            - label: "Brand & Workspace"
-              description: "Brand voice, terminology, formatting, client emails, and one-step setup."
-              href: "/features/brand-and-workspace/"
-            - label: "Governance & Trust"
-              description: "The four-stage governance pipeline, permissions, analytics, and the full audit trail."
-              href: "/features/governance-and-platform/"
-
     - id: skills
       label: "Skills"
       href: "/skills/"
@@ -55,11 +15,6 @@ header:
     - id: how-to-use
       label: "How to use"
       href: "/#get-started"
-      dropdown: false
-
-    - id: insights
-      label: "Insights"
-      href: "/blog"
       dropdown: false
 
     - id: resources
@@ -95,27 +50,6 @@ header:
               external: true
 
 footer:
-  infrastructure:
-    - path: "/features/getting-started/"
-      label: "Getting Started"
-    - path: "/features/sales-pipeline/"
-      label: "Sales Pipeline & Deals"
-    - path: "/features/accounts/"
-      label: "Accounts & Customers"
-    - path: "/features/contacts/"
-      label: "Contacts & People"
-    - path: "/features/leads/"
-      label: "Leads & Prospects"
-    - path: "/features/activities/"
-      label: "Tasks, Calls & Meetings"
-    - path: "/features/support-cases/"
-      label: "Support Cases"
-    - path: "/features/consultancy/"
-      label: "Consultancy Workflows"
-    - path: "/features/brand-and-workspace/"
-      label: "Brand & Workspace"
-    - path: "/features/governance-and-platform/"
-      label: "Governance & Trust"
   capabilities:
     - path: "https://astounddigital.com/industries/retail-consumer-products"
       label: "Retail & Consumer Products"
@@ -153,8 +87,6 @@ footer:
       label: "Skills"
     - path: "/documentation/"
       label: "Documentation"
-    - path: "/blog"
-      label: "Insights"
     - path: "https://astounddigital.com/ai-hub"
       label: "AI Hub"
       external: true
@@ -192,8 +124,6 @@ docs_sidebar:
     links:
       - label: "How to Use"
         href: "/documentation/"
-      - label: "Getting Started"
-        href: "/features/getting-started/"
       - label: "All Skills"
         href: "/skills/"
 
