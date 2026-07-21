@@ -1,21 +1,13 @@
 //! Activity constructors for entity create, update, and delete.
 
-use serde::Serialize;
-use systemprompt::identifiers::{SessionId, UserId};
+use systemprompt::identifiers::UserId;
 
-use super::super::constructors::truncate;
 use super::super::enums::{ActivityAction, ActivityCategory, ActivityEntity, entity_label};
 use super::super::types::{ActivityEntityRef, NewActivity};
 
 /// Metadata payload for events that carry no fields of their own.
 fn empty_meta() -> serde_json::Value {
     serde_json::Value::Object(serde_json::Map::new())
-}
-
-/// Shared shape for events that only carry the session id.
-#[derive(Debug, Serialize)]
-struct SessionMeta<'a> {
-    session_id: &'a str,
 }
 
 impl NewActivity {
@@ -66,5 +58,4 @@ impl NewActivity {
             metadata: empty_meta(),
         }
     }
-
 }

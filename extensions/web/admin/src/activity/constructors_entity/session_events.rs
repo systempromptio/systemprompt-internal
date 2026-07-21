@@ -4,8 +4,8 @@ use serde::Serialize;
 use systemprompt::identifiers::{SessionId, UserId};
 
 use super::super::constructors::truncate;
-use super::super::enums::{ActivityAction, ActivityCategory, ActivityEntity};
-use super::super::types::{ActivityEntityRef, NewActivity};
+use super::super::enums::{ActivityAction, ActivityCategory};
+use super::super::types::NewActivity;
 
 /// Shared shape for events that only carry the session id.
 #[derive(Debug, Serialize)]
@@ -42,5 +42,4 @@ impl NewActivity {
             .unwrap_or_default(),
         }
     }
-
 }
