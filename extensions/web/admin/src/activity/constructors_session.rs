@@ -1,3 +1,5 @@
+//! Activity constructors for sign-in and agent-response events.
+
 use serde::Serialize;
 use systemprompt::identifiers::{SessionId, UserId};
 

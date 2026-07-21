@@ -100,7 +100,6 @@ pub(super) async fn collect_user_detail_extras(
             pool,
             &d.user_id,
             &roles,
-            &department,
         )
         .await,
     );

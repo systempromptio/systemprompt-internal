@@ -1,3 +1,5 @@
+//! Activity constructors for entity create, update, and delete.
+
 use serde::Serialize;
 use systemprompt::identifiers::{SessionId, UserId};
 

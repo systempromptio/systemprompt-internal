@@ -1,3 +1,5 @@
+//! Request and response bodies for the content API.
+
 use serde::{Deserialize, Serialize};
 use systemprompt::identifiers::{CampaignId, CategoryId, ContentId, LinkId, SessionId};
 

@@ -1,3 +1,9 @@
+//! Fire-and-forget Slack alerting for operational events.
+//!
+//! Alerting is off unless a channel is configured, and delivery runs on a
+//! detached task so an outage in Slack never blocks the caller. Messages are
+//! truncated to stay inside Slack's payload limit.
+
 use systemprompt::config::SecretsBootstrap;
 
 const SLACK_MAX_LENGTH: usize = 39_000;

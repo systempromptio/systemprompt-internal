@@ -1,3 +1,5 @@
+//! Server-rendered admin page routes, grouped by dashboard section.
+
 use std::sync::Arc;
 
 use axum::routing::{get, post};

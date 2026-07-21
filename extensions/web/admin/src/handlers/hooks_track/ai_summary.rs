@@ -1,3 +1,5 @@
+//! Prompt and request construction for AI session analysis.
+
 use std::sync::Arc;
 
 use systemprompt::ai::{AiMessage, AiRequest, AiService, StructuredOutputOptions};

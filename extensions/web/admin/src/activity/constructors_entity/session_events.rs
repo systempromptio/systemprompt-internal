@@ -1,3 +1,5 @@
+//! Activity constructors for session-scoped notifications.
+
 use serde::Serialize;
 use systemprompt::identifiers::{SessionId, UserId};
 

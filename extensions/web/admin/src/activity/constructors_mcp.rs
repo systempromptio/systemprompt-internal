@@ -1,3 +1,5 @@
+//! Activity constructors for MCP access and tool-execution events.
+
 use serde::Serialize;
 use systemprompt::identifiers::UserId;
 

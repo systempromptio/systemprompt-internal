@@ -1,3 +1,5 @@
+//! HTTP handlers for gateway route configuration.
+
 use axum::Json;
 use axum::extract::Path;
 use axum::http::StatusCode;

@@ -1,3 +1,8 @@
+//! Loads and renders the admin `.hbs` templates.
+//!
+//! Templates are read from `storage/files/admin/templates/` at startup and
+//! rendered per request, so a template edit needs a restart but not a rebuild.
+
 use std::path::Path;
 use std::sync::Arc;
 

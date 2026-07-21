@@ -1,3 +1,5 @@
+//! Reverse index from an entity id to the plugins that reference it.
+
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;

@@ -1,3 +1,5 @@
+//! Deserialisation model for a single skill entry on the skills page.
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

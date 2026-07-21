@@ -1,3 +1,9 @@
+//! The time window every governance audit query is scoped by.
+//!
+//! Parsed from `?from=&to=&preset=` on audit pages. `count_requests_in_range`
+//! exists so a page can cheaply test a candidate window before committing to it
+//! and widen when the default returns nothing.
+
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
@@ -54,13 +60,6 @@ impl TimeRangePreset {
     }
 }
 
-/// Parse `?from=&to=&preset=` into a resolved `TimeRange`.
-///
-/// Resolution order:
-/// 1. If `preset` is one of the known windows, anchor `to` at `now()` and
-///    derive `from`.
-/// 2. Else parse RFC3339 `from`/`to` if both present.
-/// 3. Else default to last 24 hours.
 pub fn parse_time_range(query: &TimeRangeQuery) -> TimeRange {
     let now = Utc::now();
 

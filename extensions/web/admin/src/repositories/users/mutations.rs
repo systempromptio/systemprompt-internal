@@ -1,3 +1,5 @@
+//! User create, update, and delete.
+
 use sqlx::PgPool;
 use systemprompt::identifiers::UserId;
 
@@ -45,8 +47,6 @@ pub async fn create_user(
     )
     .fetch_one(pool)
     .await?;
-
-    let _ = user_id_str;
 
     Ok(summary)
 }

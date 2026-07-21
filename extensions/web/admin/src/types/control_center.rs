@@ -1,3 +1,5 @@
+//! Control centre value types.
+
 use std::fmt;
 
 use chrono::{DateTime, Utc};

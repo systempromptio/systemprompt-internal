@@ -1,3 +1,5 @@
+//! Device enrolment and personal access token lifecycle.
+
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 use systemprompt::identifiers::UserId;

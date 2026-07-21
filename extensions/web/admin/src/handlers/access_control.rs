@@ -1,3 +1,5 @@
+//! HTTP handlers for the access-control matrix and rule editing.
+
 use std::sync::Arc;
 
 use axum::Json;

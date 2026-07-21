@@ -1,3 +1,9 @@
+//! Agent definitions read from the `services/agents/` YAML tree.
+//!
+//! Skill metadata is joined in from the skill catalog by id; agents declare
+//! only flat `metadata.skills` id lists and never carry their own copy of a
+//! skill's name or description.
+
 use std::collections::HashMap;
 use std::path::Path;
 

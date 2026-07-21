@@ -10,11 +10,6 @@ use systemprompt::identifiers::UserId;
 use super::rules::list_all_rules;
 use crate::types::access_control::{AccessControlRule, AccessDecision, RuleType};
 
-/// Resolution precedence (highest first):
-///   1. user-scoped rule (deny > allow)
-///   2. department-scoped rule (deny > allow)
-///   3. role-scoped rule (deny > allow)
-///   4. entity's `default_included` flag (from `access_control_entities`)
 #[derive(Debug, Serialize)]
 pub struct UserMatrix {
     pub user: UserMatrixUser,

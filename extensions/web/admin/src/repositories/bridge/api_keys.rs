@@ -1,3 +1,5 @@
+//! Bridge API key issue, hashing, and verification.
+
 use chrono::{DateTime, Utc};
 use rand::RngCore;
 use sha2::{Digest, Sha256};

@@ -1,3 +1,5 @@
+//! Per-agent usage rollups.
+
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 use systemprompt::identifiers::{AgentId, SessionId};

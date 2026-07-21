@@ -1,3 +1,5 @@
+//! Actions-per-minute metrics derived from session event timing.
+
 mod calculations;
 mod queries;
 

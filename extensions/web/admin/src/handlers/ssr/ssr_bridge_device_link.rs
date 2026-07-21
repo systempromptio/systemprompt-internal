@@ -1,3 +1,9 @@
+//! SSR page completing the bridge device-link flow.
+//!
+//! The redirect target is restricted to loopback: the bridge runs on the user's
+//! own machine, and any non-loopback redirect would hand the link code to a
+//! third party.
+
 use std::sync::Arc;
 
 use axum::extract::{Extension, Form, Query, State};

@@ -1,3 +1,5 @@
+//! Session-to-entity link reads and upserts.
+
 use sqlx::PgPool;
 use systemprompt::identifiers::{SessionId, UserId};
 

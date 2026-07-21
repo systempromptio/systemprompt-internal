@@ -1,3 +1,8 @@
+//! Enumerates every entity an access-control rule can attach to.
+//!
+//! Sources are read from the services config tree rather than the database
+//! because the catalog is bootstrap state, not runtime state.
+
 use std::path::Path;
 
 use serde::Serialize;

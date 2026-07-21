@@ -1,3 +1,5 @@
+//! Live runtime aggregates per user, for the control centre.
+
 use sqlx::PgPool;
 use systemprompt::identifiers::UserId;
 
@@ -77,7 +79,6 @@ pub async fn get_user_runtime_detail(
     .fetch_one(pool)
     .await?;
 
-    let _ = user_id;
     let total_agents: i64 = 0;
 
     let latest = sqlx::query!(

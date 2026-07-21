@@ -1,3 +1,5 @@
+//! Loads the skills-page entries from the `services/skills/` tree.
+
 use std::sync::Arc;
 
 use crate::skills_page::{SkillEntry, SkillsPageConfig};

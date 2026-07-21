@@ -1,3 +1,5 @@
+//! Error type for the homepage demo scanner.
+
 use std::path::PathBuf;
 
 use thiserror::Error;
