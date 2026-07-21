@@ -63,7 +63,6 @@ extensions/web/admin/src/handlers/webhook/governance/policies/tool_blocklist.rs	
 extensions/web/src/extension.rs	# port: template surfaces config-load errors (OnceLock<Result<..>>) where astound swallows them to None
 extensions/web/src/extension_impl.rs	# port: paired with the config-load error handling above
 extensions/web/admin/src/handlers/gateway_catalog.rs	# port: template calls repositories::users::queries::* directly; astound still goes through the module facade
-extensions/web/admin/src/marketplace_filter/mod.rs	# port: the two module docs describe marketplace-parent inheritance differently — one is wrong about what a member-level rule does
 
 # Not yet triaged per file. Each needs a decision: port, or move above with a
 # reason that names the difference.

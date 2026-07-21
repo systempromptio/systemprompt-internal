@@ -1,7 +1,7 @@
 //! Prerenders the skills page during `publish_pipeline`.
 //!
-//! Categories render in a curated order rather than alphabetically; anything not
-//! named in that order sorts last.
+//! Categories render in a curated order rather than alphabetically; anything
+//! not named in that order sorts last.
 
 use std::collections::BTreeMap;
 use std::path::PathBuf;

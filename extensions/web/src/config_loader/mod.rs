@@ -142,6 +142,18 @@ pub(crate) fn load_branding_config() -> Result<Option<BrandingConfig>, ConfigErr
     Ok(Some(branding_config))
 }
 
+/// Branding for callers that render with or without it.
+///
+/// Branding is optional everywhere it is consumed, so a load failure degrades
+/// to the unbranded default rather than failing the page. Both call sites go
+/// through here so the failure is reported once, at one level.
+pub(crate) fn branding_config() -> Option<BrandingConfig> {
+    load_branding_config().unwrap_or_else(|e| {
+        tracing::warn!(error = %e, "Failed to load branding config");
+        None
+    })
+}
+
 fn load_config_section(filename: &str) -> Result<Option<serde_yaml::Value>, ConfigError> {
     let paths = match load_app_paths() {
         Ok(p) => p,

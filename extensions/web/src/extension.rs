@@ -14,11 +14,13 @@ use crate::skills_page::SkillsPageConfig;
 
 use systemprompt::extension::prelude::*;
 
-static NAVIGATION_CONFIG: OnceLock<Option<Arc<NavigationConfig>>> = OnceLock::new();
-static HOMEPAGE_CONFIG: OnceLock<Option<Arc<HomepageConfig>>> = OnceLock::new();
-static SKILLS_PAGE_CONFIG: OnceLock<Option<Arc<SkillsPageConfig>>> = OnceLock::new();
-static SALESFORCE_CONFIG: OnceLock<Option<Arc<systemprompt_web_admin::SalesforceConfig>>> =
+static NAVIGATION_CONFIG: OnceLock<Result<Option<Arc<NavigationConfig>>, String>> = OnceLock::new();
+static HOMEPAGE_CONFIG: OnceLock<Result<Option<Arc<HomepageConfig>>, String>> = OnceLock::new();
+static SKILLS_PAGE_CONFIG: OnceLock<Result<Option<Arc<SkillsPageConfig>>, String>> =
     OnceLock::new();
+static SALESFORCE_CONFIG: OnceLock<
+    Result<Option<Arc<systemprompt_web_admin::SalesforceConfig>>, String>,
+> = OnceLock::new();
 
 #[derive(Debug, Default, Clone)]
 pub struct WebExtension {
@@ -93,18 +95,20 @@ impl WebExtension {
 }
 
 fn log_and_discard_err<T: Clone>(
-    lock: &OnceLock<Option<T>>,
+    lock: &OnceLock<Result<Option<T>, String>>,
     init: fn() -> Result<Option<T>, ConfigError>,
     msg: &str,
 ) -> Option<T> {
-    lock.get_or_init(|| match init() {
-        Ok(val) => val,
-        Err(e) => {
-            tracing::error!(error = %e, "{msg}");
+    match lock.get_or_init(|| init().map_err(|e| e.to_string())) {
+        Ok(val) => val.clone(),
+        Err(message) => {
+            tracing::error!(
+                error = %message,
+                "{msg}: config failed to load; its pages and sections will not render"
+            );
             None
         },
-    })
-    .clone()
+    }
 }
 
 register_extension!(WebExtension);

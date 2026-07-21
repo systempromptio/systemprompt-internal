@@ -68,7 +68,7 @@ pub(crate) async fn for_user_handler(
     };
 
     let (user_roles, _department) =
-        match repositories::users::get_user_roles_department(&pool, &user_id).await {
+        match repositories::users::queries::get_user_roles_department(&pool, &user_id).await {
             Ok(Some(rd)) => rd,
             Ok(None) => return shared::error_response(StatusCode::NOT_FOUND, "User not found"),
             Err(e) => {
@@ -152,6 +152,8 @@ pub(crate) struct DetectResponse {
     pub since_minutes: i64,
 }
 
+/// Detection is admin-triggered rather than scheduled, so decisions for
+/// denied combinations only appear once someone runs it.
 pub(crate) async fn detect_handler(
     State(pool): State<Arc<PgPool>>,
     Extension(user_ctx): Extension<UserContext>,
@@ -204,7 +206,7 @@ pub(crate) async fn detect_after_the_fact(
             continue;
         };
         let Some((user_roles, _department)) =
-            repositories::users::get_user_roles_department(pool, &row.user_id).await?
+            repositories::users::queries::get_user_roles_department(pool, &row.user_id).await?
         else {
             continue;
         };

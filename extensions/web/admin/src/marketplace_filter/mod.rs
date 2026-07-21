@@ -32,7 +32,7 @@ use systemprompt_security::authz::{
 use keepsets::{CandidateEntityIds, KeepIdsQuery, KeepSets, apply_keep_sets};
 
 use crate::authz::{dimensions, subject_attributes_for};
-use crate::repositories::users::get_user_roles_department;
+use crate::repositories::users::queries::get_user_roles_department;
 
 #[derive(Debug)]
 pub struct TemplateMarketplaceFilter {

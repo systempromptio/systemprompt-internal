@@ -108,7 +108,7 @@ pub(crate) async fn dashboard_handler(State(pool): State<Arc<PgPool>>) -> Respon
 }
 
 pub(crate) async fn list_users_handler(State(pool): State<Arc<PgPool>>) -> Response {
-    match repositories::users::list_users(&pool).await {
+    match repositories::users::queries::list_users(&pool).await {
         Ok(users) => Json(UsersListResponse { users }).into_response(),
         Err(e) => {
             tracing::error!(error = %e, "Failed to list users");
@@ -137,7 +137,7 @@ pub(crate) async fn user_usage_handler(
     Path(user_id_raw): Path<String>,
 ) -> Response {
     let user_id = UserId::new(user_id_raw);
-    match repositories::users::get_user_usage(&pool, &user_id).await {
+    match repositories::users::queries::get_user_usage(&pool, &user_id).await {
         Ok(events) => Json(EventsListResponse { events }).into_response(),
         Err(e) => {
             tracing::error!(error = %e, user_id = %user_id, "Failed to get user usage");
