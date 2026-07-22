@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- The Windows bridge no longer opens to a blank window. Core's GUI asset router missed the new session service module; core now generates its routing table from the staged web tree, and this repo's overlay opts out of core's Windows resource embed (`SYSTEMPROMPT_BRIDGE_WINRES=off`) so the branded icon is the only one linked.
+- The bridge setup overlay is rebased onto core's current GUI: it gains the one-way setup latch and settled-snapshot guard (removes the splash flicker during startup probing), the preserved logo slot required by core's DOM reconciler, locale fallbacks in the gateway probe strings, and the splash-to-app fade.
+
 ## 0.14.8 — 2026-07-03
 
 ### Removed
