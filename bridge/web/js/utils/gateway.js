@@ -3,16 +3,16 @@ import { t } from "/assets/js/i18n.js";
 export function probeView(snap) {
   const status = (snap && snap.gateway_status) || { state: "unknown" };
   if (status.state === "reachable") {
-    return { dot: "sp-dot--ok", muted: false, text: t("setup-gateway-reachable", { latency: status.latency_ms }) };
+    return { dot: "sp-dot--ok", muted: false, text: t("setup-gateway-reachable", { latency: status.latency_ms }) || `reachable · ${status.latency_ms}ms` };
   }
   if (status.state === "probing") {
-    return { dot: "sp-dot--probing", muted: true, text: t("setup-gateway-probing") };
+    return { dot: "sp-dot--probing", muted: true, text: t("setup-gateway-probing") || "probing…" };
   }
   if (status.state === "unreachable") {
-    return { dot: "sp-dot--err", muted: false, text: t("setup-gateway-unreachable", { reason: status.reason || "unknown" }) };
+    return { dot: "sp-dot--err", muted: false, text: t("setup-gateway-unreachable", { reason: status.reason || "unknown" }) || `unreachable · ${status.reason || "unknown"}` };
   }
   const empty = !(snap && snap.gateway_url);
-  return { dot: "sp-dot--unknown", muted: true, text: empty ? t("setup-gateway-empty") : t("setup-gateway-not-probed") };
+  return { dot: "sp-dot--unknown", muted: true, text: empty ? (t("setup-gateway-empty") || "enter a URL to probe…") : (t("setup-gateway-not-probed") || "not probed yet") };
 }
 
 export function probeErrorMessage(snap) {
@@ -53,7 +53,7 @@ export function renderGatewayForm(state) {
   const linkDisabled = link === "#";
   const editBtn = state.patSaved ? `<button class="sp-btn-ghost" type="button" data-action="edit-pat">Edit</button>` : "";
   const errBlock = state.error ? `<span class="sp-setup__error">${escapeHtml(state.error)}</span>` : "";
-  const btnLabel = state.pending ? t("setup-connecting") : "Connect";
+  const btnLabel = state.pending ? (t("setup-connecting") || "Connecting…") : "Connect";
   const snap = state.snapshot || {};
   const signInLabel = snap.sign_in_label || "Sign in to your gateway";
   const signInHint = snap.sign_in_hint || "Opens your browser to sign in on the gateway; this device is linked automatically.";

@@ -6,3 +6,6 @@
 # (the documented `cd bridge && cargo build`).
 [env]
 SYSTEMPROMPT_BRIDGE_WEB_OVERLAY = { value = "web", relative = true }
+# This repo embeds its own branded Windows resource (build.rs); core must not
+# link a second one or the linker reports duplicate .rsrc leaves.
+SYSTEMPROMPT_BRIDGE_WINRES = "off"
