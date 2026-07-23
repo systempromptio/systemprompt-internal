@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## bridge-0.17.1 — 2026-07-23
+
+### Fixed
+
+- The Windows bridge GUI now actually renders styled. The webview served itself from `http://sp.app`; the `.app` TLD is HSTS-preloaded in Chromium, so WebView2 force-upgraded every stylesheet/script request to `https://sp.app`, bypassing wry's `http://sp.*` interception filter — the document rendered but every subresource died on the real network. Core now serves the Windows GUI over `https://sp.app` with wry's `with_https_scheme`, so the HSTS upgrade is a no-op and assets are intercepted normally.
+
 ## bridge-0.17.0 — 2026-07-23
 
 ### Fixed
