@@ -2,8 +2,11 @@
 
 ## Unreleased
 
+## bridge-0.17.0 — 2026-07-23
+
 ### Fixed
 
+- The Windows bridge splash no longer renders as raw unstyled HTML. Core's generated GUI asset manifest keyed entries with host filesystem paths, so a native Windows build produced backslash keys (`css\main.css`) that never matched the webview's forward-slash URL lookups — every stylesheet and script 404'd silently. Core now normalizes manifest keys to URL form, fails the build on a backslash key or a missing `css/main.css`, and logs asset 404s instead of serving them silently.
 - The Windows bridge no longer opens to a blank window. Core's GUI asset router missed the new session service module; core now generates its routing table from the staged web tree, and this repo's overlay opts out of core's Windows resource embed (`SYSTEMPROMPT_BRIDGE_WINRES=off`) so the branded icon is the only one linked.
 - The bridge setup overlay is rebased onto core's current GUI: it gains the one-way setup latch and settled-snapshot guard (removes the splash flicker during startup probing), the preserved logo slot required by core's DOM reconciler, locale fallbacks in the gateway probe strings, and the splash-to-app fade.
 
