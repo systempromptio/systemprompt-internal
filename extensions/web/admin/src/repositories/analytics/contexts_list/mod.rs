@@ -36,6 +36,9 @@ pub struct ContextListItem {
     pub display_name: Option<String>,
     pub session_id: Option<SessionId>,
     pub model: Option<String>,
+    /// Opening user turn, truncated — the table's at-a-glance "what was this
+    /// conversation about" column. `None` when the context has no user message.
+    pub summary: Option<String>,
     pub request_count: i64,
     pub message_count: i64,
     pub error_count: i64,

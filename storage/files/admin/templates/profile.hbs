@@ -238,7 +238,7 @@
                 </dl>
             </article>
 
-            {{#if bridge_profile}}
+            {{#if gateway_access}}
             <article class="sp-profile-card">
                 <header class="sp-profile-card__head">
                     <div class="sp-profile-card__title">
@@ -247,16 +247,16 @@
                     </div>
                 </header>
                 <dl class="sp-deflist">
-                    <dt>Auth scheme</dt><dd><code>{{bridge_profile.auth_scheme}}</code></dd>
-                    <dt>Inference gateway</dt><dd><code class="sp-deflist__break">{{bridge_profile.inference_gateway_base_url}}</code></dd>
-                    {{#if bridge_profile.organization_uuid}}<dt>Organization</dt><dd><code class="sp-deflist__break">{{bridge_profile.organization_uuid}}</code></dd>{{/if}}
-                    <dt>Allowed models</dt><dd><b>{{bridge_profile.models_count}}</b> models{{#if bridge_profile.models}} signed for this user{{/if}}</dd>
+                    <dt>Auth scheme</dt><dd><code>{{gateway_access.auth_scheme}}</code></dd>
+                    <dt>Inference gateway</dt><dd><code class="sp-deflist__break">{{gateway_access.inference_gateway_base_url}}</code></dd>
+                    {{#if gateway_access.organization_uuid}}<dt>Organization</dt><dd><code class="sp-deflist__break">{{gateway_access.organization_uuid}}</code></dd>{{/if}}
+                    <dt>Allowed models</dt><dd><b>{{gateway_access.models_count}}</b> models{{#if gateway_access.models}} signed for this user{{/if}}</dd>
                 </dl>
-                {{#if bridge_profile.models}}
+                {{#if gateway_access.models}}
                 <details class="sp-allowed-models">
-                    <summary>View {{bridge_profile.models_count}} allowed models</summary>
+                    <summary>View {{gateway_access.models_count}} allowed models</summary>
                     <ul class="sp-allowed-models__list">
-                        {{#each bridge_profile.models}}<li>{{this}}</li>{{/each}}
+                        {{#each gateway_access.models}}<li>{{this}}</li>{{/each}}
                     </ul>
                 </details>
                 {{/if}}

@@ -1,0 +1,120 @@
+{{#> layout title=title page=page}}
+    {{#*inline "content"}}
+    {{> components/page-header
+        title="Sessions"
+        subtitle="Every interactive run, grouped by session id — gateway calls and hook events side by side. Open one to see its contexts, traces, and requests."}}
+
+    {{!-- You are here: the identity this browser holds, and a way into its own session. --}}
+    <p class="text-secondary session-current">
+        Signed in as <strong>{{current.username}}</strong>.
+        {{#if current.session_url}}
+            This browser's session is
+            <a href="{{current.session_url}}"><code class="code-inline" title="{{current.session_id}}">{{current.session_id_short}}</code></a>.
+        {{else}}
+            This browser's token carries no session id.
+        {{/if}}
+    </p>
+
+    {{> components/time-range time_range}}
+    {{> components/identity-filter-ribbon filter_ribbon}}
+
+    <section class="stat-grid" aria-label="Session summary">
+      {{> components/stat-card label="Sessions" value=stats.total_sessions}}
+      {{> components/stat-card label="With errors" value=stats.error_sessions variant="danger"
+          href=error_toggle_url active=error_only
+          hint="Show only sessions with a failed request or a hook error"}}
+      {{> components/stat-card label="Requests" value=stats.total_requests}}
+      {{> components/stat-card label="Tool calls" value=stats.total_tool_uses}}
+      {{> components/stat-card label="Tokens" value=stats.tokens_display}}
+      {{> components/stat-card label="Cost" value=stats.cost_display}}
+    </section>
+
+    {{#if has_sessions}}
+      {{#> components/data-table}}
+        <thead><tr>
+          <th class="col-date">Started</th>
+          <th>Session</th>
+          <th>Identity</th>
+          <th class="col-status">Source</th>
+          <th>Model</th>
+          <th class="col-num">Reqs</th>
+          <th class="col-num">Contexts</th>
+          <th class="col-num">Traces</th>
+          <th class="col-num">Tools</th>
+          <th class="col-num">Tokens</th>
+          <th class="col-num">Cost</th>
+          <th class="col-num">Duration</th>
+          <th class="col-status">Status</th>
+          <th class="col-actions"></th>
+        </tr></thead>
+        <tbody>
+        {{#each sessions}}
+        <tr>
+          <td class="col-date" title="{{this.started_at}}">{{#if this.started_at_local}}{{this.started_at_local}}{{else}}&mdash;{{/if}}</td>
+          <td>
+            <div class="cell-stacked">
+              <div class="cell-primary">
+                <a href="{{this.detail_url}}" title="{{this.session_id}}">
+                  <code class="code-inline">{{this.session_id_short}}</code>
+                </a>
+              </div>
+              {{#if this.ai_title}}<div class="cell-secondary">{{this.ai_title}}</div>{{/if}}
+            </div>
+          </td>
+          <td>
+            <div class="cell-stacked">
+              <div class="cell-primary">
+                {{#if this.user_url}}
+                  <a href="{{this.user_url}}" title="{{this.user_id}}">{{this.user_label}}</a>
+                {{else}}{{this.user_label}}{{/if}}
+              </div>
+              {{#if this.department}}<div class="cell-secondary">{{this.department}}</div>{{/if}}
+            </div>
+          </td>
+          <td class="col-status">
+            {{> components/badge color=this.source_variant text=this.source_label}}
+          </td>
+          <td>
+            <div class="cell-stacked">
+              <div class="cell-primary">{{#if this.model}}<code class="code-inline">{{this.model}}</code>{{else}}&mdash;{{/if}}</div>
+              {{#if this.client_source}}<div class="cell-secondary">{{this.client_source}}</div>{{/if}}
+            </div>
+          </td>
+          <td class="col-num">{{this.request_count}}</td>
+          <td class="col-num">{{this.context_count}}</td>
+          <td class="col-num">{{this.trace_count}}</td>
+          <td class="col-num">{{this.tool_uses}}</td>
+          <td class="col-num">{{this.tokens_display}}</td>
+          <td class="col-num">{{this.cost_display}}</td>
+          <td class="col-num" title="First to last recorded activity">{{this.duration_display}}</td>
+          <td class="col-status">
+            {{#if this.has_error}}
+              <span class="mcp-badge mcp-badge-danger">{{this.status_label}}</span>
+            {{else}}
+              <span class="mcp-badge mcp-badge-success">{{this.status_label}}</span>
+            {{/if}}
+          </td>
+          <td class="col-actions">
+            <a href="{{this.detail_url}}" class="btn btn-sm btn-outline">Open</a>
+          </td>
+        </tr>
+        {{/each}}
+        </tbody>
+      {{/components/data-table}}
+
+      <nav class="table-paginate" aria-label="Sessions pagination">
+        {{#if pagination.has_prev}}
+          <a href="{{pagination.prev_url}}" class="btn btn-sm">&larr; Prev</a>
+        {{/if}}
+        <span class="table-paginate__info">
+          Page {{pagination.current_page}} of {{pagination.total_pages}} &middot; {{total_count}} sessions
+        </span>
+        {{#if pagination.has_next}}
+          <a href="{{pagination.next_url}}" class="btn btn-sm">Next &rarr;</a>
+        {{/if}}
+      </nav>
+    {{else}}
+      {{> components/empty-state message="No sessions in the selected window. Widen the time range or clear the filters."}}
+    {{/if}}
+    {{/inline}}
+{{/layout}}

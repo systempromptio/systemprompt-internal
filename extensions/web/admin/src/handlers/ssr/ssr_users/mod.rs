@@ -120,6 +120,14 @@ pub(crate) async fn user_detail_page(
         None => None,
     };
 
+    // Why: the department `<select>` marks an option selected by matching this
+    // value, so an empty one would leave nothing selected and let the browser
+    // pick the first department in the list.
+    let user_department = if user_department.is_empty() && !not_found {
+        crate::types::departments::DEFAULT_DEPARTMENT.to_owned()
+    } else {
+        user_department
+    };
     let departments = data::fetch_departments(&pool, &user_department).await;
 
     let has_effective_permissions = effective

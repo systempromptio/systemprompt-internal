@@ -247,6 +247,7 @@ lint-gates:
     bash scripts/check-repository-naming.sh
     bash scripts/check-admin-css-classes.sh
     bash scripts/check-admin-template-links.sh
+    bash scripts/check-admin-template-assets.sh
     bash scripts/check-fork-drift.sh
     bash scripts/check-dead-repository-code.sh
     bash scripts/check-file-headers.sh

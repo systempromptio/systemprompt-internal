@@ -144,6 +144,7 @@ individually governable gateway routes.
 | `extensions/governance.ts` | Prompt gate + tool gate; installed into `~/.pi/agent/extensions/` |
 | `themes/systemprompt.json` | Branded Pi theme |
 | `setup.sh` | Idempotent installer + token mint + smoke test (admin) |
-| `new-user.sh` | Register a demo user + issue their gateway API key |
+| `new-user.sh` | Register a demo user (prompts for email/name) + issue their gateway API key |
+| `trace.sh` | Send your own prompt through the gateway, then link its verified dashboard trace |
 | `routes.sh` | Add per-model gateway routes for per-user governance |
 | `WALKTHROUGH.md` | The end-to-end demo script |

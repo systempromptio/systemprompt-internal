@@ -4,7 +4,7 @@
 //! - [`get_request_stats`] — overall KPI strip (rate / latency percentiles /
 //!   cost / error rate / pre-flight deny rate over a [`TimeRange`]).
 //! - [`list_latency_histogram`] — bucketed at fixed bin edges.
-//! - [`list_cost_over_time`] — 24-bucket cost time series.
+//! - [`list_request_timeseries`] — 24-bucket traffic / error / cost series.
 
 use serde::Serialize;
 use sqlx::PgPool;
@@ -164,18 +164,20 @@ fn format_ms(v: f64) -> String {
 }
 
 #[derive(Debug, Clone, Copy, Serialize)]
-pub struct CostBucket {
+pub struct TimeBucket {
     pub bucket_index: i32,
     pub bucket_start: chrono::DateTime<chrono::Utc>,
+    pub requests: i64,
+    pub errors: i64,
     pub cost_microdollars: i64,
 }
 
-const COST_BUCKETS: i32 = 24;
+const TIME_BUCKETS: i32 = 24;
 
-pub async fn list_cost_over_time(
+pub async fn list_request_timeseries(
     pool: &PgPool,
     range: TimeRange,
-) -> Result<Vec<CostBucket>, sqlx::Error> {
+) -> Result<Vec<TimeBucket>, sqlx::Error> {
     let rows = sqlx::query!(
         r#"WITH params AS (
             SELECT $1::timestamptz AS lo,
@@ -199,19 +201,27 @@ pub async fn list_cost_over_time(
                   (SELECT n FROM params)
                 ),
                 (SELECT n FROM params)), 1)::int AS bucket_index,
+              status,
               cost_microdollars
             FROM ai_requests
             WHERE created_at >= (SELECT lo FROM params)
               AND created_at <  (SELECT hi FROM params)
           ),
           summed AS (
-            SELECT bucket_index, SUM(cost_microdollars)::bigint AS cost
+            SELECT
+              bucket_index,
+              COUNT(*)::bigint AS requests,
+              COUNT(*) FILTER (WHERE status NOT IN ('completed', 'pending', 'streaming'))::bigint
+                AS errors,
+              SUM(cost_microdollars)::bigint AS cost
             FROM bucketed
             GROUP BY bucket_index
           )
         SELECT
           e.i AS "bucket_index!",
           e.edge_ts AS "bucket_start!",
+          COALESCE(s.requests, 0)::bigint AS "requests!",
+          COALESCE(s.errors, 0)::bigint AS "errors!",
           COALESCE(s.cost, 0)::bigint AS "cost!"
         FROM edges e
         LEFT JOIN summed s ON s.bucket_index = e.i + 1
@@ -219,16 +229,18 @@ pub async fn list_cost_over_time(
         ORDER BY e.i"#,
         range.from,
         range.to,
-        COST_BUCKETS,
+        TIME_BUCKETS,
     )
     .fetch_all(pool)
     .await?;
 
     Ok(rows
         .into_iter()
-        .map(|r| CostBucket {
+        .map(|r| TimeBucket {
             bucket_index: r.bucket_index,
             bucket_start: r.bucket_start,
+            requests: r.requests,
+            errors: r.errors,
             cost_microdollars: r.cost,
         })
         .collect())

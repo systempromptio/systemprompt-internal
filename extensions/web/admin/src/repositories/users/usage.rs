@@ -1,8 +1,4 @@
-//! Per-user usage aggregations against `ai_requests` for the bridge profile
-//! pane.
-//!
-//! Mirrors the shape of `BridgeProfileUsage` so the SSR profile page and the
-//! `/v1/bridge/profile/usage` API endpoint render the same data.
+//! Per-user usage aggregations against `ai_requests` for the profile pane.
 
 use chrono::{DateTime, Utc};
 use serde::Serialize;

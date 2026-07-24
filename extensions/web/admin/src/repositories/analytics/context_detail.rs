@@ -1,4 +1,4 @@
-//! Context-detail repository — drives `/admin/contexts/{id}`.
+//! Context-detail repository — drives `/admin/entities/contexts/{id}`.
 //!
 //! A context is the persisted state of an AI conversation: metadata in
 //! `user_contexts`, plus every prompt + tool call carried by `ai_requests`
@@ -34,7 +34,7 @@ pub struct ContextKpis {
 
 #[derive(Debug, Clone)]
 pub struct ContextRequestRow {
-    pub id: String,
+    pub id: AiRequestId,
     pub trace_id: Option<TraceId>,
     pub model: String,
     pub status: String,
@@ -144,7 +144,7 @@ pub async fn list_context_requests(
         ContextRequestRow,
         r#"
         SELECT
-            id                                  AS "id!",
+            id                                  AS "id!: AiRequestId",
             trace_id                            AS "trace_id?: TraceId",
             model                               AS "model!",
             status                              AS "status!",

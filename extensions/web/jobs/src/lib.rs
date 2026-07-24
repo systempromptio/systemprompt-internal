@@ -11,8 +11,7 @@
 //!   [`CopyExtensionAssetsJob`], [`ContentPrerenderJob`]) — emit the static
 //!   surface under `web/dist/` consumed by the SSR layer.
 //! - **Analytics / housekeeping** ([`ContentAnalyticsAggregationJob`],
-//!   [`SecretMigrationJob`], the daily summary jobs in [`daily_summary`]) —
-//!   periodic rollups and one-shot migrations.
+//!   [`SecretMigrationJob`]) — periodic rollups and one-shot migrations.
 //!
 //! Errors normalise on [`JobError`]; the scheduler logs and surfaces them
 //! through `infra logs trace`.
@@ -23,7 +22,6 @@ mod bundle_admin_css;
 mod bundle_admin_js;
 mod content_analytics;
 mod copy_assets;
-pub mod daily_summary;
 mod governance_bootstrap;
 mod ingestion;
 mod llms_txt;

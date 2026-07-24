@@ -55,7 +55,7 @@
                     {{#if roles}}{{#each roles}}<span class="badge badge-gray">{{this}}</span> {{/each}}{{else}}<span class="text-tertiary">—</span>{{/if}}
                 </td>
                 <td>
-                    {{#if marketplaces}}{{#each marketplaces}}<a href="/admin/catalog?marketplace={{id}}" class="badge {{#if (eq source "override")}}badge-blue{{else}}badge-orange{{/if}}" title="{{#if (eq source "override")}}DB override{{else}}YAML default{{/if}}">{{name}}</a> {{/each}}{{else}}<span class="text-tertiary">None</span>{{/if}}
+                    {{#if marketplaces}}{{#each marketplaces}}<span class="badge {{#if (eq source "override")}}badge-blue{{else}}badge-orange{{/if}}" title="{{#if (eq source "override")}}DB override{{else}}YAML default{{/if}}">{{name}}</span> {{/each}}{{else}}<span class="text-tertiary">None</span>{{/if}}
                 </td>
                 <td class="col-status">
                     {{#if devices_count}}

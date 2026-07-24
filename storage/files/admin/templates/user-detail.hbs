@@ -43,7 +43,6 @@
                 <label class="form-field">
                     <span class="form-label">Department</span>
                     <select name="department">
-                        <option value=""{{#unless user_department}} selected{{/unless}}>Unassigned</option>
                         {{#each departments}}
                         <option value="{{this}}"{{#if (eq this ../user_department)}} selected{{/if}}>{{this}}</option>
                         {{/each}}
@@ -134,7 +133,7 @@
             {{#if user_department}}
             {{> components/stat-card label="Department" value=user_department}}
             {{else}}
-            {{> components/stat-card label="Department" value="Unassigned"}}
+            {{> components/stat-card label="Department" value="Default"}}
             {{/if}}
             {{> components/stat-card label="Effective skills" value=(default user_assignments.skills_count 0)}}
             {{> components/stat-card label="Marketplaces" value=(default user_assignments.marketplaces_count 0)}}
@@ -143,7 +142,7 @@
         {{#if user_assignments.marketplaces}}
         <p>
         {{#each user_assignments.marketplaces}}
-            <a href="/admin/catalog?marketplace={{id}}" class="badge {{#if (eq source "override")}}badge-blue{{else}}badge-orange{{/if}}" title="{{#if (eq source "override")}}DB override{{else}}YAML default{{/if}}">{{name}}</a>
+            <span class="badge {{#if (eq source "override")}}badge-blue{{else}}badge-orange{{/if}}" title="{{#if (eq source "override")}}DB override{{else}}YAML default{{/if}}">{{name}}</span>
         {{/each}}
         </p>
         {{/if}}

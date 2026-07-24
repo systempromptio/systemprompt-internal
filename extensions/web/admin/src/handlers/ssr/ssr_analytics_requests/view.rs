@@ -1,21 +1,22 @@
 //! View-model assembly for the Inference Requests page.
 //!
-//! Pure functions that turn repository rows + the parsed query into the serde
-//! JSON the `analytics-requests` template consumes: KPI strip, histogram /
-//! cost series, paged rows, filter options, and the URL builders that preserve
-//! query state across pagination and the time-range presets.
+//! Pure functions that turn repository rows + the parsed query into the typed
+//! context the `analytics-requests` template consumes: KPI strip, the two
+//! charts, the breakdown tables, paged rows, the tab bar, and the URL builders
+//! that preserve query state across tabs, pagination, and the time presets.
 
 use urlencoding::encode as urlencode;
 
-use crate::repositories::analytics::request_stats::{CostBucket, LatencyBucket, RequestStats};
+use crate::handlers::ssr::types::bar_pct;
+use crate::repositories::analytics::request_stats::RequestStats;
 use crate::repositories::analytics::requests::{
-    RequestFilter, RequestFilterOptions, RequestRow, RequestSortColumn, RequestSortSpec, SortDir,
+    BreakdownRow, RequestFilter, RequestRow, RequestSortColumn, RequestSortSpec, SortDir,
 };
 use crate::util::time_range::TimeRange;
 
 use super::context::{
-    CostBucketView, FiltersView, LatencyBucketView, PaginationView, RequestFilterOptionsView,
-    RequestListRowView, RequestStatsView, TimeRangeView,
+    BreakdownRowView, BreakdownView, ChipView, PaginationView, RequestListRowView, RequestStatsView,
+    RequestsTab, TabLinkView, TimeRangeView,
 };
 use super::{BASE_URL, RequestsQuery};
 
@@ -65,33 +66,163 @@ pub(super) fn stats_to_json(s: &RequestStats) -> RequestStatsView {
     }
 }
 
-pub(super) fn latency_bucket_to_json(b: &LatencyBucket, max: i64) -> LatencyBucketView {
-    LatencyBucketView {
-        label: b.label.clone(),
-        count: b.count,
-        upper_bound_ms: b.upper_bound_ms,
-        pct: bar_pct(b.count, max),
+// --- breakdown tabs ---------------------------------------------------------
+
+/// One breakdown table. `share_pct` is against the busiest row rather than the
+/// window total, so the bars use the full width even when one dimension has a
+/// long tail; the printed percentage is still share-of-total.
+pub(super) fn breakdown_view(
+    tab: RequestsTab,
+    rows: &[BreakdownRow],
+    query: &RequestsQuery,
+) -> BreakdownView {
+    let (dimension_label, caption, param) = match tab {
+        RequestsTab::Providers => (
+            "Provider",
+            "Traffic, spend, and failures rolled up to the upstream provider.",
+            "provider",
+        ),
+        RequestsTab::Status => (
+            "Status",
+            "Outcome mix for the window. Failed calls still bill for the tokens they consumed.",
+            "status",
+        ),
+        _ => (
+            "Model",
+            "Traffic, spend, and failures attributed to the model that produced them.",
+            "model",
+        ),
+    };
+
+    let max = rows.iter().map(|r| r.requests).max().unwrap_or(0);
+    let total: i64 = rows.iter().map(|r| r.requests).sum();
+
+    BreakdownView {
+        dimension_label,
+        caption,
+        has_rows: !rows.is_empty(),
+        rows: rows
+            .iter()
+            .map(|r| BreakdownRowView {
+                requests: r.requests,
+                share_pct: bar_pct(r.requests, max),
+                share_display: format!("{:.1}%", pct_of(r.requests, total)),
+                tokens_display: format!(
+                    "{} / {}",
+                    compact_int(r.input_tokens),
+                    compact_int(r.output_tokens)
+                ),
+                cost_display: format_cost(Some(r.cost_microdollars)),
+                p50_display: format_ms(r.p50_latency_ms.round() as i64),
+                p95_display: format_ms(r.p95_latency_ms.round() as i64),
+                error_count: r.error_count,
+                error_rate_display: format!("{:.1}%", pct_of(r.error_count, r.requests)),
+                has_errors: r.error_count > 0,
+                filter_url: log_filter_url(query, param, &r.key),
+                key: r.key.clone(),
+            })
+            .collect(),
     }
 }
 
-pub(super) fn cost_bucket_to_json(b: &CostBucket, max: i64) -> CostBucketView {
-    CostBucketView {
-        bucket_index: b.bucket_index,
-        bucket_start: b.bucket_start.to_rfc3339(),
-        cost_microdollars: b.cost_microdollars,
-        pct: bar_pct(b.cost_microdollars, max),
+fn pct_of(part: i64, whole: i64) -> f64 {
+    if whole <= 0 {
+        return 0.0;
+    }
+    part as f64 / whole as f64 * 100.0
+}
+
+/// Thousands as `12.3k` so a token column stays one line at any magnitude.
+fn compact_int(v: i64) -> String {
+    if v >= 1_000_000 {
+        format!("{:.1}M", v as f64 / 1_000_000.0)
+    } else if v >= 10_000 {
+        format!("{}k", v / 1000)
+    } else if v >= 1000 {
+        format!("{:.1}k", v as f64 / 1000.0)
+    } else {
+        v.to_string()
     }
 }
 
-/// Bar fill percentage (0-100) of `value` against the series `max`. Any
-/// non-zero value floors at 4% so a tiny bar still renders visibly; an empty
-/// series (`max == 0`) yields 0.
-fn bar_pct(value: i64, max: i64) -> i64 {
-    if max <= 0 || value <= 0 {
-        return 0;
+fn format_ms(ms: i64) -> String {
+    if ms >= 1000 {
+        format!("{:.1}s", ms as f64 / 1000.0)
+    } else {
+        format!("{ms} ms")
     }
-    let pct = (value as f64 / max as f64 * 100.0).round() as i64;
-    pct.max(4)
+}
+
+/// A breakdown row links to the Log tab carrying its own dimension as a filter,
+/// on top of whatever filters and window are already active.
+fn log_filter_url(query: &RequestsQuery, param: &str, value: &str) -> String {
+    let qs = preserved_query_string(query, &[param, "page", "tab"]);
+    let mut url = format!("{BASE_URL}?tab=log&{param}={}", urlencode(value));
+    if !qs.is_empty() {
+        url.push('&');
+        url.push_str(&qs);
+    }
+    url
+}
+
+// --- tabs, chips, and URLs --------------------------------------------------
+
+/// The tab bar. Every link carries the current window and the active filters so
+/// switching tabs never silently resets what the reader chose, but drops the
+/// page number, which means nothing on another tab.
+pub(super) fn tab_links(active: RequestsTab, query: &RequestsQuery, total: i64) -> Vec<TabLinkView> {
+    const TABS: [(RequestsTab, &str); 5] = [
+        (RequestsTab::Overview, "Overview"),
+        (RequestsTab::Models, "Models"),
+        (RequestsTab::Providers, "Providers"),
+        (RequestsTab::Status, "Status"),
+        (RequestsTab::Log, "Log"),
+    ];
+
+    let qs = preserved_query_string(query, &["tab", "page"]);
+    TABS.iter()
+        .map(|&(tab, label)| {
+            let mut href = format!("{BASE_URL}?tab={}", tab.as_str());
+            if !qs.is_empty() {
+                href.push('&');
+                href.push_str(&qs);
+            }
+            TabLinkView {
+                slug: tab.as_str(),
+                label,
+                href,
+                is_active: tab == active,
+                count: (tab == RequestsTab::Log).then_some(total),
+            }
+        })
+        .collect()
+}
+
+/// One removable chip per active filter. Removing a chip drops just that
+/// parameter and keeps the tab, window, and every other filter intact.
+pub(super) fn active_chips(query: &RequestsQuery) -> Vec<ChipView> {
+    let mut chips = Vec::new();
+    for (param, group_label, value) in [
+        ("model", "Model", query.model.as_deref()),
+        ("provider", "Provider", query.provider.as_deref()),
+        ("status", "Status", query.status.as_deref()),
+        ("q", "Search", query.q.as_deref()),
+    ] {
+        let Some(value) = value.filter(|s| !s.is_empty()) else {
+            continue;
+        };
+        let qs = preserved_query_string(query, &[param, "page"]);
+        chips.push(ChipView {
+            group_label,
+            label: value.to_owned(),
+            remove_url: if qs.is_empty() {
+                BASE_URL.to_owned()
+            } else {
+                format!("{BASE_URL}?{qs}")
+            },
+        });
+    }
+    chips
 }
 
 pub(super) fn request_row_to_json(r: &RequestRow) -> RequestListRowView {
@@ -175,43 +306,24 @@ pub(super) fn time_range_context(
     }
 }
 
-pub(super) fn filters_to_json(
-    filter: &RequestFilter,
-    options: &RequestFilterOptions,
-) -> FiltersView {
-    FiltersView {
-        model: filter.model.clone(),
-        provider: filter.provider.clone(),
-        status: filter.status.clone(),
-        options: RequestFilterOptionsView {
-            models: options.models.clone(),
-            providers: options.providers.clone(),
-            statuses: options.statuses.clone(),
-        },
-    }
-}
-
+/// "Clear" drops every filter but keeps the reader on the tab and window they
+/// are looking at.
 pub(super) fn clear_url(query: &RequestsQuery) -> String {
-    let mut parts: Vec<String> = Vec::new();
-    if let Some(p) = query.preset.as_deref().filter(|s| !s.is_empty()) {
-        parts.push(format!("preset={}", urlencode(p)));
-    }
-    if let Some(f) = query.from.as_deref().filter(|s| !s.is_empty()) {
-        parts.push(format!("from={}", urlencode(f)));
-    }
-    if let Some(t) = query.to.as_deref().filter(|s| !s.is_empty()) {
-        parts.push(format!("to={}", urlencode(t)));
-    }
-    if parts.is_empty() {
+    let qs = preserved_query_string(
+        query,
+        &["model", "provider", "status", "q", "user_id", "agent_id", "page"],
+    );
+    if qs.is_empty() {
         BASE_URL.to_owned()
     } else {
-        format!("{BASE_URL}?{}", parts.join("&"))
+        format!("{BASE_URL}?{qs}")
     }
 }
 
 fn preserved_query_string(query: &RequestsQuery, drop: &[&str]) -> String {
     let mut parts: Vec<String> = Vec::new();
-    let pairs_str: [(&str, Option<&str>); 11] = [
+    let pairs_str: [(&str, Option<&str>); 12] = [
+        ("tab", query.tab.as_deref()),
         ("preset", query.preset.as_deref()),
         ("from", query.from.as_deref()),
         ("to", query.to.as_deref()),
@@ -257,6 +369,9 @@ pub(super) fn build_pagination(
     query: &RequestsQuery,
     page: i64,
     total_pages: i64,
+    page_size: i64,
+    total_rows: i64,
+    shown_rows: i64,
 ) -> PaginationView {
     let qs = preserved_query_string(query, &["page"]);
     let prefix = if qs.is_empty() {
@@ -266,9 +381,14 @@ pub(super) fn build_pagination(
     };
     let prev_url = (page > 0).then(|| format!("{prefix}page={}", page - 1));
     let next_url = (page + 1 < total_pages).then(|| format!("{prefix}page={}", page + 1));
+    let first_row = if shown_rows == 0 { 0 } else { page * page_size + 1 };
     PaginationView {
         current_page: page + 1,
         total_pages,
+        first_row,
+        last_row: page * page_size + shown_rows,
+        total_rows,
+        noun: if total_rows == 1 { "request" } else { "requests" },
         has_prev: prev_url.is_some(),
         has_next: next_url.is_some(),
         prev_url,

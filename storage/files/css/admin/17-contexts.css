@@ -185,3 +185,26 @@
 }
 
 .text-xs { font-size: var(--sp-text-xs); }
+
+/* ---------- conversation preview column ---------- */
+
+/* The opening user turn, so the table says what each conversation was about
+   without opening it. Capped and ellipsised so it cannot push the numeric
+   columns off screen; the full text is in the cell's title attribute. */
+.col-conversation {
+    max-width: 28rem;
+    min-width: 12rem;
+}
+
+.conversation-preview {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--sp-text-sm);
+    color: var(--sp-text-secondary);
+}
+
+@media (max-width: 1200px) {
+    .col-conversation { max-width: 18rem; }
+}

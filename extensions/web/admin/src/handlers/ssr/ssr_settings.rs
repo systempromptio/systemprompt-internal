@@ -32,17 +32,11 @@ pub(crate) async fn settings_page(
         || SettingsView {
             display_name: None,
             avatar_url: None,
-            notify_daily_summary: true,
-            notify_achievements: true,
-            leaderboard_opt_in: true,
             timezone: "UTC".to_owned(),
         },
         |s| SettingsView {
             display_name: s.display_name.clone(),
             avatar_url: s.avatar_url.clone(),
-            notify_daily_summary: s.notify_daily_summary,
-            notify_achievements: s.notify_achievements,
-            leaderboard_opt_in: s.leaderboard_opt_in,
             timezone: s.timezone.clone(),
         },
     );

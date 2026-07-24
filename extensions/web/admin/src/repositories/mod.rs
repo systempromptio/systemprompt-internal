@@ -5,12 +5,11 @@
 //! symbol has and collisions between domains cannot arise.
 
 pub mod analytics;
-pub mod bridge;
+pub mod access_tokens;
 pub mod config;
 pub mod dashboard;
 pub mod departments;
 pub mod evals;
-pub mod external_agents;
 pub mod governance;
 pub mod jobs;
 pub mod marketplace;

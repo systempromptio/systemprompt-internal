@@ -9,6 +9,7 @@ form-utils.js
 interactions.js
 install-widget.js
 json-tree.js
+chain-drawer.js
 # Pages
 users-panel.js
 users.js

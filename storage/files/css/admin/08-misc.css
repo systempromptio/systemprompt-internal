@@ -58,6 +58,24 @@
     font-size: var(--sp-text-xs);
 }
 
+/* Preformatted payload block — JSON tool input/results, prompt bodies. Had no
+   base rule, so every `<pre class="code-block">` rendered as a bare `<pre>`;
+   page-level rules in 18/21 only add scroll caps on top of this. */
+.code-block {
+    margin: 0;
+    padding: var(--sp-space-3);
+    background: var(--sp-bg-surface-raised);
+    border: 1px solid var(--sp-border-subtle);
+    border-radius: var(--sp-radius-md);
+    font-family: var(--sp-font-mono);
+    font-size: var(--sp-text-xs);
+    line-height: 1.5;
+    color: var(--sp-text-secondary);
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow: auto;
+}
+
 .section-footer {
     text-align: center;
     margin-top: var(--sp-space-3);

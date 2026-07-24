@@ -5,6 +5,7 @@
     background: var(--sp-bg-surface);
     border: 1px solid var(--sp-border-subtle);
     border-radius: var(--sp-radius-card-brand);
+    box-shadow: var(--sp-shadow-card), var(--sp-shadow-inner-glow);
     overflow-x: auto;
     max-width: 100%;
 }

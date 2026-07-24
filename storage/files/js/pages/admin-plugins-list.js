@@ -4,7 +4,6 @@ import { on } from '../services/events.js';
 import { closeAllMenus } from '../services/dropdown.js';
 import { showConfirmDialog } from '../services/confirm.js';
 import { openPluginEnv } from '../services/plugin-env.js';
-import { openSkillFiles } from '../services/skill-files.js';
 import { handleRemoveFromPlugin, handleAddToPlugin } from '../services/plugin-resources.js';
 
 const pluginEnvValid = {};
@@ -104,7 +103,6 @@ const initPluginEventHandlers = () => {
   on('click', '[data-remove-from-plugin]', (e, btn) => { e.stopPropagation(); handleRemoveFromPlugin(btn); });
   on('click', '[data-add-to-plugin]', (e, btn) => { e.stopPropagation(); handleAddToPlugin(btn); });
   on('click', '[data-expand-section]', (e, btn) => { e.stopPropagation(); toggleDetailRow(btn.getAttribute('data-plugin-id'), btn.getAttribute('data-expand-section')); });
-  on('click', '[data-browse-skill]', (e, el) => { e.stopPropagation(); e.preventDefault(); openSkillFiles(el.getAttribute('data-browse-skill'), el.getAttribute('data-skill-name') || el.getAttribute('data-browse-skill')); });
   on('click', '[data-toggle-json]', (e, btn) => { e.stopPropagation(); handleToggleJson(btn); });
   on('click', 'tr.clickable-row', (e, row) => { if (!e.target.closest('[data-no-row-click],[data-action="toggle"],.actions-menu,.btn,a,input')) { toggleDetailRow(row.getAttribute('data-entity-id')); } });
   on('click', '[data-open-env]', (e, btn) => { e.stopPropagation(); openPluginEnv(btn.getAttribute('data-open-env'), btn.getAttribute('data-plugin-name') || btn.getAttribute('data-open-env')); });

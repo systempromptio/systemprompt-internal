@@ -11,8 +11,13 @@ routes added once (`examples/pi/routes.sh`, then restart the server).
 ## 1. Sign up a new user
 
 ```bash
-examples/pi/new-user.sh pi-demo@demo.local "Pi Demo"
+examples/pi/new-user.sh                                # prompts, defaults in brackets
+examples/pi/new-user.sh alice@demo.local "Alice Demo"  # non-interactive
 ```
+
+Run with no arguments it asks for the email and display name, so the demo
+can be someone in the room rather than `pi-demo@demo.local`. It ends by
+printing the dashboard URLs for the user it just made.
 
 This registers the user with the default `user` role, has the admin API
 issue them a personal access token (the same `sp-live-…` credential the
@@ -41,6 +46,17 @@ pi -p --provider systemprompt --model claude-opus-4-8   "Reply with exactly one 
 pi -p --provider systemprompt --model gpt-5-mini        "Reply with exactly one word: pong"
 pi -p --provider systemprompt --model gemini-2.5-flash  "Reply with exactly one word: pong"
 ```
+
+Or send a prompt of your own and get the trace link back:
+
+```bash
+examples/pi/trace.sh "summarise what this repo does"
+examples/pi/trace.sh --model gpt-oss-120b "say pong"
+```
+
+It pins one gateway session across Pi's hook events and the gateway's
+request row, checks that `/admin/demo/trace` actually renders that session,
+and prints the URL. Whatever you typed is what the timeline shows.
 
 Or interactively: `pi`, then `/model` (Ctrl+L) to hop between the four
 models mid-session. Every call goes through the governed `/v1/messages`

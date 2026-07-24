@@ -12,8 +12,10 @@ struct TraceRow {
     trace_id: Option<TraceId>,
     started_at: chrono::DateTime<chrono::Utc>,
     ended_at: chrono::DateTime<chrono::Utc>,
-    duration_ms: i64,
+    active_ms: i64,
+    window_ms: i64,
     user_id: Option<UserId>,
+    user_label: Option<String>,
     agent_id: Option<AgentId>,
     agent_scope: Option<String>,
     model: Option<String>,
@@ -146,12 +148,16 @@ pub async fn list_traces(
                 p.user_id,
                 p.agent_id,
                 p.agent_scope,
+                u.label                             AS user_label,
                 p.started_at,
                 p.ended_at,
-                GREATEST(
-                    (EXTRACT(EPOCH FROM (p.ended_at - p.started_at)) * 1000)::bigint,
-                    COALESCE(a.total_latency_ms, 0)
-                )                                                   AS duration_ms,
+                -- Two distinct clocks, never collapsed: `active_ms` is the work
+                -- actually done (summed request latency), `window_ms` the span
+                -- between first and last event on a session id that a client is
+                -- free to reuse for hours.
+                COALESCE(a.total_latency_ms, 0)     AS active_ms,
+                (EXTRACT(EPOCH FROM (p.ended_at - p.started_at)) * 1000)::bigint
+                                                    AS window_ms,
                 p.span_count,
                 COALESCE(a.request_count, 0)        AS request_count,
                 COALESCE(t.tool_call_count, 0)      AS tool_call_count,
@@ -172,6 +178,10 @@ pub async fn list_traces(
             FROM per_session p
             LEFT JOIN ai_meta   a ON a.session_id = p.session_id
             LEFT JOIN tool_meta t ON t.session_id = p.session_id
+            LEFT JOIN LATERAL (
+                SELECT COALESCE(x.display_name, x.full_name, x.name, x.email) AS label
+                FROM users x WHERE x.id = p.user_id
+            ) u ON true
         ),
         filtered AS (
             SELECT j.* FROM joined j
@@ -202,8 +212,10 @@ pub async fn list_traces(
             trace_id                AS "trace_id?: TraceId",
             started_at              AS "started_at!",
             ended_at                AS "ended_at!",
-            duration_ms             AS "duration_ms!",
+            active_ms               AS "active_ms!",
+            window_ms               AS "window_ms!",
             user_id                 AS "user_id?: UserId",
+            user_label              AS "user_label?",
             agent_id                AS "agent_id?: AgentId",
             agent_scope             AS "agent_scope?",
             model                   AS "model?",
@@ -227,8 +239,8 @@ pub async fn list_traces(
         ORDER BY
             (CASE WHEN $12 = 'started_at' AND $13 = 'asc'  THEN started_at END) ASC  NULLS LAST,
             (CASE WHEN $12 = 'started_at' AND $13 = 'desc' THEN started_at END) DESC NULLS LAST,
-            (CASE WHEN $12 = 'duration'   AND $13 = 'asc'  THEN duration_ms END) ASC  NULLS LAST,
-            (CASE WHEN $12 = 'duration'   AND $13 = 'desc' THEN duration_ms END) DESC NULLS LAST,
+            (CASE WHEN $12 = 'duration'   AND $13 = 'asc'  THEN active_ms END) ASC  NULLS LAST,
+            (CASE WHEN $12 = 'duration'   AND $13 = 'desc' THEN active_ms END) DESC NULLS LAST,
             (CASE WHEN $12 = 'span_count' AND $13 = 'asc'  THEN span_count  END) ASC  NULLS LAST,
             (CASE WHEN $12 = 'span_count' AND $13 = 'desc' THEN span_count  END) DESC NULLS LAST,
             (CASE WHEN $12 = 'cost'       AND $13 = 'asc'  THEN total_cost_microdollars END) ASC  NULLS LAST,
@@ -265,8 +277,10 @@ impl From<TraceRow> for TraceSummary {
             trace_id: r.trace_id,
             started_at: r.started_at,
             ended_at: r.ended_at,
-            duration_ms: r.duration_ms,
+            active_ms: r.active_ms,
+            window_ms: r.window_ms,
             user_id: r.user_id,
+            user_label: r.user_label,
             agent_id: r.agent_id,
             agent_scope: r.agent_scope,
             model: r.model,

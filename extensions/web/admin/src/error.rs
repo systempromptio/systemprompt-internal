@@ -11,7 +11,7 @@ use systemprompt_web_shared::html_escape;
 use thiserror::Error;
 
 use crate::handlers::shared::ErrorBody;
-use crate::repositories::bridge::BridgeRepoError;
+use crate::repositories::access_tokens::AccessTokenRepoError;
 use crate::repositories::secrets::secret_crypto::SecretCryptoError;
 use systemprompt_web_shared::error::MarketplaceError;
 
@@ -54,8 +54,8 @@ pub enum AdminError {
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),
 
-    #[error("Bridge repository error: {0}")]
-    BridgeRepo(BridgeRepoError),
+    #[error("Access token repository error: {0}")]
+    AccessTokenRepo(AccessTokenRepoError),
 
     #[error("Marketplace error: {0}")]
     Marketplace(MarketplaceError),
@@ -83,7 +83,7 @@ impl AdminError {
                 StatusCode::NOT_FOUND
             },
             Self::BadRequest(_)
-            | Self::BridgeRepo(BridgeRepoError::Validation(_))
+            | Self::AccessTokenRepo(AccessTokenRepoError::Validation(_))
             | Self::Marketplace(MarketplaceError::BadRequest(_)) => StatusCode::BAD_REQUEST,
             Self::Unauthorized(_) | Self::Unauthenticated(_) => StatusCode::UNAUTHORIZED,
             Self::Forbidden(_) => StatusCode::FORBIDDEN,
@@ -92,7 +92,7 @@ impl AdminError {
             Self::Unavailable(_) => StatusCode::SERVICE_UNAVAILABLE,
             Self::Upstream(_) => StatusCode::BAD_GATEWAY,
             Self::Database(_)
-            | Self::BridgeRepo(_)
+            | Self::AccessTokenRepo(_)
             | Self::Marketplace(_)
             | Self::Crypto(_)
             | Self::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
@@ -108,23 +108,23 @@ impl AdminError {
             | Self::Conflict(msg)
             | Self::RateLimited(msg)
             | Self::Unavailable(msg)
-            | Self::BridgeRepo(BridgeRepoError::Validation(msg))
+            | Self::AccessTokenRepo(AccessTokenRepoError::Validation(msg))
             | Self::Marketplace(
                 MarketplaceError::BadRequest(msg) | MarketplaceError::NotFound(msg),
             ) => msg.clone(),
             Self::Upstream(_) => "Upstream service error".to_owned(),
             Self::Unauthenticated(_) => "Unauthorized".to_owned(),
             Self::Crypto(_) => "Internal configuration error".to_owned(),
-            Self::Database(_) | Self::BridgeRepo(_) | Self::Marketplace(_) | Self::Internal(_) => {
+            Self::Database(_) | Self::AccessTokenRepo(_) | Self::Marketplace(_) | Self::Internal(_) => {
                 "Internal server error".to_owned()
             },
         }
     }
 }
 
-impl From<BridgeRepoError> for AdminError {
-    fn from(value: BridgeRepoError) -> Self {
-        Self::BridgeRepo(value)
+impl From<AccessTokenRepoError> for AdminError {
+    fn from(value: AccessTokenRepoError) -> Self {
+        Self::AccessTokenRepo(value)
     }
 }
 

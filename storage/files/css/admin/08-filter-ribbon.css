@@ -3,7 +3,12 @@
 
 @layer components {
 
+/* The ribbon owns a stacking context above the page content. Without it the
+   open dropdown panel competes with the stat grid and table that follow it in
+   .admin-main (position:relative; contain:layout) and paints underneath them. */
 .filter-ribbon {
+    position: relative;
+    z-index: var(--sp-z-panel);
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -20,6 +25,12 @@
 
 .filter-ribbon__group {
     position: relative;
+}
+
+/* An open group outranks its closed siblings, so two open panels overlap in
+   the order the reader opened them rather than by DOM position. */
+.filter-ribbon__group[open] {
+    z-index: 1;
 }
 
 .filter-ribbon__group-summary {
@@ -66,7 +77,8 @@
     top: calc(100% + var(--sp-space-1));
     left: 0;
     z-index: var(--sp-z-dropdown);
-    min-width: 220px;
+    min-width: 240px;
+    max-width: 320px;
     max-height: 320px;
     overflow-y: auto;
     padding: var(--sp-space-2);

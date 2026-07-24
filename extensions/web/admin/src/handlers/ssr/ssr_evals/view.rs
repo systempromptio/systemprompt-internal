@@ -9,18 +9,20 @@ use std::collections::HashMap;
 
 use urlencoding::encode as urlencode;
 
-use crate::repositories::analytics::request_stats::{CostBucket, LatencyBucket, RequestStats};
+use crate::repositories::analytics::request_stats::RequestStats;
 use crate::repositories::evals::distribution::{
     ModelDistributionRow, PromptTopicRow, UserDistributionRow,
 };
+use crate::repositories::evals::results::{EvalPairRow, ResultFilter};
 use crate::repositories::evals::scores::{EvalScoreSummary, ModelScoreRow, ModelWinRateRow};
 use crate::util::time_range::TimeRange;
 
 use super::format::{bar_pct, format_cost, local_time, score_pct, share_pct, truncate};
 
 use super::context::{
-    EvalCostBucketView, EvalLatencyBucketView, EvalTimeRangeView, ModelMixRowView, ModelOptionView,
-    ScoreSummaryView, TopicRowView, TrafficStatsView, UserRowView, WinRateView,
+    EvalsTab, EvalTimeRangeView, FilterOptionView,
+    ModelMixRowView, ModelOptionView, PairRowView, ResultFilterView, ScoreSummaryView, TabLinkView,
+    TopicRowView, TrafficStatsView, UserRowView, WinRateView,
 };
 use super::{BASE_URL, EvalsQuery};
 
@@ -65,32 +67,6 @@ pub(super) fn score_summary(s: &EvalScoreSummary, traffic_total: i64) -> ScoreSu
     }
 }
 
-
-pub(super) fn latency_buckets(hist: &[LatencyBucket]) -> (Vec<EvalLatencyBucketView>, i64) {
-    let max = hist.iter().map(|b| b.count).max().unwrap_or(0);
-    let views = hist
-        .iter()
-        .map(|b| EvalLatencyBucketView {
-            label: b.label.clone(),
-            count: b.count,
-            pct: bar_pct(b.count, max),
-        })
-        .collect();
-    (views, max)
-}
-
-pub(super) fn cost_buckets(cost: &[CostBucket]) -> (Vec<EvalCostBucketView>, i64) {
-    let max = cost.iter().map(|b| b.cost_microdollars).max().unwrap_or(0);
-    let views = cost
-        .iter()
-        .map(|b| EvalCostBucketView {
-            bucket_start: b.bucket_start.to_rfc3339(),
-            cost_microdollars: b.cost_microdollars,
-            pct: bar_pct(b.cost_microdollars, max),
-        })
-        .collect();
-    (views, max)
-}
 
 pub(super) fn model_rows(
     models: &[ModelDistributionRow],
@@ -197,10 +173,119 @@ pub(super) fn model_options(models: &[ModelDistributionRow]) -> Vec<ModelOptionV
         .collect()
 }
 
+/// The tab bar. Every link carries the current window so switching tabs never
+/// silently resets the range the reader chose, but drops the Judge tab's
+/// verdict/model filters, which mean nothing anywhere else.
+pub(super) fn tab_links(active: EvalsTab, range: &TimeRange, query: &EvalsQuery) -> Vec<TabLinkView> {
+    const TABS: [(EvalsTab, &str); 5] = [
+        (EvalsTab::Overview, "Overview"),
+        (EvalsTab::Traffic, "Traffic"),
+        (EvalsTab::Judge, "Scored answers"),
+        (EvalsTab::HeadToHead, "Head-to-head"),
+        (EvalsTab::GoldenSet, "Golden set"),
+    ];
+
+    TABS.iter()
+        .map(|&(tab, label)| TabLinkView {
+            slug: tab.as_str(),
+            label,
+            href: format!("{BASE_URL}?tab={}{}", tab.as_str(), range_query(range, query)),
+            is_active: tab == active,
+        })
+        .collect()
+}
+
+/// The current window as a query-string suffix. A named preset round-trips as
+/// the preset so the picker stays highlighted; a custom window round-trips as
+/// its resolved bounds.
+fn range_query(range: &TimeRange, query: &EvalsQuery) -> String {
+    match query.preset.as_deref() {
+        Some(preset) if preset != "custom" => format!("&preset={}", urlencode(preset)),
+        _ => format!(
+            "&preset=custom&from={}&to={}",
+            urlencode(&range.from.to_rfc3339()),
+            urlencode(&range.to.to_rfc3339()),
+        ),
+    }
+}
+
+pub(super) fn pair_rows(pairs: &[EvalPairRow]) -> Vec<PairRowView> {
+    pairs
+        .iter()
+        .map(|p| PairRowView {
+            model_a: p.model_a.clone(),
+            model_b: p.model_b.clone(),
+            winner_label: match p.winner.as_str() {
+                "a" => p.model_a.clone(),
+                "b" => p.model_b.clone(),
+                _ => "tie".to_owned(),
+            },
+            is_tie: p.winner == "tie",
+            order_swapped: p.order_swapped,
+            rationale: p
+                .rationale
+                .clone()
+                .unwrap_or_else(|| "No rationale recorded.".to_owned()),
+            created_at_local: local_time(p.created_at),
+        })
+        .collect()
+}
+
+/// The Judge tab's filter selects, with the active choice pre-selected so the
+/// controls still describe what is on screen after the round trip.
+pub(super) fn result_filter_view(
+    filter: &ResultFilter,
+    models: &[ModelOptionView],
+) -> ResultFilterView {
+    const VERDICTS: [(&str, &str); 4] = [
+        ("", "Any verdict"),
+        ("fail", "Fail"),
+        ("partial", "Partial"),
+        ("pass", "Pass"),
+    ];
+
+    let verdict = filter.verdict.clone().unwrap_or_default();
+    let model = filter.model.clone().unwrap_or_default();
+
+    let verdict_options = VERDICTS
+        .iter()
+        .map(|&(value, label)| FilterOptionView {
+            value: value.to_owned(),
+            label: label.to_owned(),
+            is_selected: verdict == value,
+        })
+        .collect();
+
+    // The filter matches on the bare model name, while the run forms' options
+    // are `provider/model` — so the value here is the model half only.
+    let mut model_options = vec![FilterOptionView {
+        value: String::new(),
+        label: "Any model".to_owned(),
+        is_selected: model.is_empty(),
+    }];
+    model_options.extend(models.iter().map(|m| {
+        let bare = m.value.split_once('/').map_or(m.value.as_str(), |(_, m)| m);
+        FilterOptionView {
+            value: bare.to_owned(),
+            label: m.label.clone(),
+            is_selected: model == bare,
+        }
+    }));
+
+    ResultFilterView {
+        is_filtered: !verdict.is_empty() || !model.is_empty(),
+        verdict,
+        model,
+        verdict_options,
+        model_options,
+    }
+}
+
 pub(super) fn time_range_context(
     query: &EvalsQuery,
     range: &TimeRange,
     auto_widened: Option<&'static str>,
+    tab: EvalsTab,
 ) -> EvalTimeRangeView {
     let preset = query.preset.clone().unwrap_or_else(|| {
         if query.from.is_some() && query.to.is_some() {
@@ -214,14 +299,19 @@ pub(super) fn time_range_context(
         from: range.from.to_rfc3339(),
         to: range.to.to_rfc3339(),
         base_url: BASE_URL,
-        query: String::new(),
+        // Preserves the tab across the time-range picker's own links, which
+        // would otherwise drop the reader back on Overview.
+        query: format!("&tab={}", tab.as_str()),
         auto_widened,
     }
 }
 
-pub(super) fn redirect_url(range: &TimeRange, notice: &str, is_error: bool) -> String {
+/// Where a POST action sends the browser back to. `tab` is the tab the form was
+/// fired from, so a run's notice appears above the table that run filled.
+pub(super) fn redirect_url(range: &TimeRange, tab: &str, notice: &str, is_error: bool) -> String {
     format!(
-        "{BASE_URL}?from={}&to={}&notice={}&notice_error={}",
+        "{BASE_URL}?tab={}&preset=custom&from={}&to={}&notice={}&notice_error={}",
+        urlencode(tab),
         urlencode(&range.from.to_rfc3339()),
         urlencode(&range.to.to_rfc3339()),
         urlencode(notice),

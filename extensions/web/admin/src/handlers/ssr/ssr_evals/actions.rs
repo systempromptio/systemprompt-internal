@@ -20,11 +20,14 @@ use crate::services::evals::gateway_client::GatewayCredential;
 use crate::services::evals::{self, EvalError, EvalRunOutcome, EvalRunRequest, ModelRef};
 use crate::types::UserContext;
 
+use super::context::EvalsTab;
 use super::{DEFAULT_SAMPLE_SIZE, data, view};
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct RunEvalForm {
     pub kind: String,
+    /// The tab the form was fired from, so the redirect lands back on it.
+    pub tab: Option<String>,
     pub from: Option<String>,
     pub to: Option<String>,
     pub sample_size: Option<i64>,
@@ -43,10 +46,15 @@ pub(crate) async fn eval_run_action(
     require_admin(&user_ctx)?;
 
     let range = data::range_from_strings(form.from.as_deref(), form.to.as_deref());
+    let tab = EvalsTab::from_query(form.tab.as_deref()).as_str();
 
     let credential = match credential_from_request(&headers) {
         Ok(c) => c,
-        Err(message) => return Ok(Redirect::to(&view::redirect_url(&range, &message, true))),
+        Err(message) => {
+            return Ok(Redirect::to(&view::redirect_url(
+                &range, tab, &message, true,
+            )));
+        },
     };
 
     let kind = EvalRunKind::from_str_opt(&form.kind).unwrap_or(EvalRunKind::Judge);
@@ -63,6 +71,7 @@ pub(crate) async fn eval_run_action(
     let Some(judge) = form.judge_model.as_deref().and_then(ModelRef::parse) else {
         return Ok(Redirect::to(&view::redirect_url(
             &range,
+            tab,
             "Pick a judge model before running an evaluation.",
             true,
         )));
@@ -85,7 +94,7 @@ pub(crate) async fn eval_run_action(
         EvalRunKind::Pairwise => evals::run_pairwise_eval(&pool, &request).await,
     };
 
-    Ok(Redirect::to(&run_redirect(&range, kind, outcome)))
+    Ok(Redirect::to(&run_redirect(&range, tab, kind, outcome)))
 }
 
 /// Rebuild the operator's gateway credential from the request that launched
@@ -108,12 +117,14 @@ fn credential_from_request(headers: &HeaderMap) -> Result<GatewayCredential, Str
 
 fn run_redirect(
     range: &crate::util::time_range::TimeRange,
+    tab: &str,
     kind: EvalRunKind,
     outcome: Result<EvalRunOutcome, EvalError>,
 ) -> String {
     match outcome {
         Ok(o) => view::redirect_url(
             range,
+            tab,
             &format!(
                 "{} run {} finished: {} scored, {} failed, judge cost ${:.4}.",
                 kind.as_str(),
@@ -126,7 +137,7 @@ fn run_redirect(
         ),
         Err(e) => {
             tracing::warn!(error = %e, kind = kind.as_str(), "eval run failed");
-            view::redirect_url(range, &format!("Eval run failed: {e}"), true)
+            view::redirect_url(range, tab, &format!("Eval run failed: {e}"), true)
         },
     }
 }
@@ -136,6 +147,7 @@ pub(crate) struct PromoteCaseForm {
     pub ai_request_id: String,
     pub name: Option<String>,
     pub expectation: Option<String>,
+    pub tab: Option<String>,
     pub from: Option<String>,
     pub to: Option<String>,
 }
@@ -148,6 +160,7 @@ pub(crate) async fn eval_promote_case_action(
     require_admin(&user_ctx)?;
 
     let range = data::range_from_strings(form.from.as_deref(), form.to.as_deref());
+    let tab = EvalsTab::from_query(form.tab.as_deref()).as_str();
     let outcome = evals::promote_case(
         &pool,
         &form.ai_request_id,
@@ -158,11 +171,12 @@ pub(crate) async fn eval_promote_case_action(
     .await;
 
     let url = match outcome {
-        Ok(_) => view::redirect_url(&range, "Added to the golden set.", false),
+        Ok(_) => view::redirect_url(&range, tab, "Added to the golden set.", false),
         Err(e) => {
             tracing::warn!(error = %e, "promoting eval case failed");
             view::redirect_url(
                 &range,
+                tab,
                 &format!("Could not add to the golden set: {e}"),
                 true,
             )

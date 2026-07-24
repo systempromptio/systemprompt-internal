@@ -16,6 +16,7 @@ struct ContextListRow {
     display_name: Option<String>,
     session_id: Option<SessionId>,
     model: Option<String>,
+    summary: Option<String>,
     request_count: i64,
     message_count: i64,
     error_count: i64,
@@ -37,6 +38,7 @@ impl From<ContextListRow> for ContextListItem {
             display_name: r.display_name,
             session_id: r.session_id,
             model: r.model,
+            summary: r.summary,
             request_count: r.request_count,
             message_count: r.message_count,
             error_count: r.error_count,
@@ -77,6 +79,15 @@ pub async fn list_context_list(
             WHERE context_id IS NOT NULL
             GROUP BY context_id
         ),
+        preview AS (
+            SELECT DISTINCT ON (r.context_id)
+                r.context_id,
+                LEFT(m.content, 160) AS summary
+            FROM ai_request_messages m
+            JOIN ai_requests r ON r.id = m.request_id
+            WHERE r.context_id IS NOT NULL AND m.role = 'user'
+            ORDER BY r.context_id, r.created_at ASC, m.sequence_number ASC
+        ),
         msgs AS (
             SELECT r.context_id, COUNT(*)::bigint AS message_count
             FROM ai_request_messages m
@@ -92,6 +103,7 @@ pub async fn list_context_list(
             u.display_name                                AS "display_name?",
             COALESCE(c.session_id, req.session_id)        AS "session_id?: SessionId",
             req.model                                     AS "model?",
+            preview.summary                               AS "summary?",
             COALESCE(req.request_count, 0)::bigint        AS "request_count!",
             COALESCE(msgs.message_count, 0)::bigint       AS "message_count!",
             COALESCE(req.error_count, 0)::bigint          AS "error_count!",
@@ -104,6 +116,7 @@ pub async fn list_context_list(
         FROM user_contexts c
         FULL OUTER JOIN req ON req.context_id = c.context_id
         LEFT JOIN msgs ON msgs.context_id = COALESCE(c.context_id, req.context_id)
+        LEFT JOIN preview ON preview.context_id = COALESCE(c.context_id, req.context_id)
         LEFT JOIN users u ON u.id = COALESCE(c.user_id, req.user_id)
         WHERE ($1::text IS NULL OR COALESCE(c.user_id, req.user_id) = $1)
           AND ($2::text IS NULL OR req.model = $2)

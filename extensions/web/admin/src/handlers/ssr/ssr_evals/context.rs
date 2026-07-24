@@ -3,40 +3,79 @@
 //! `storage/files/admin/templates/evals.hbs` and `eval-run-detail.hbs`.
 
 use serde::Serialize;
+
+use crate::handlers::ssr::types::{ChartView, HistogramView};
 use systemprompt::identifiers::UserId;
 
-#[derive(Debug, Serialize)]
-pub(super) struct EvalLatencyBucketView {
-    pub label: String,
-    pub count: i64,
-    pub pct: i64,
+/// Which section of the page is being looked at. The page is split by *kind of
+/// eval* rather than by data source, so the form that launches a run and the
+/// table that shows its output live on the same tab.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum EvalsTab {
+    /// Health of the window: KPIs, charts, and every run regardless of kind.
+    Overview,
+    /// What actually went through the gateway, by model, user, and prompt shape.
+    Traffic,
+    /// Judge runs over live traffic, and the answers they scored.
+    Judge,
+    /// Pairwise runs: win rates and the individual comparisons behind them.
+    HeadToHead,
+    /// The golden set, and the replay runs that exercise it.
+    GoldenSet,
 }
 
-#[derive(Debug, Serialize)]
-pub(super) struct EvalCostBucketView {
-    pub bucket_start: String,
-    pub cost_microdollars: i64,
-    pub pct: i64,
+impl EvalsTab {
+    /// Anything unrecognised lands on Overview. A mistyped tab in a shared link
+    /// should still show the page rather than a 400.
+    pub(super) fn from_query(raw: Option<&str>) -> Self {
+        match raw {
+            Some("traffic") => Self::Traffic,
+            Some("judge") => Self::Judge,
+            Some("head-to-head") => Self::HeadToHead,
+            Some("golden-set") => Self::GoldenSet,
+            _ => Self::Overview,
+        }
+    }
+
+    pub(super) const fn as_str(self) -> &'static str {
+        match self {
+            Self::Overview => "overview",
+            Self::Traffic => "traffic",
+            Self::Judge => "judge",
+            Self::HeadToHead => "head-to-head",
+            Self::GoldenSet => "golden-set",
+        }
+    }
 }
 
 #[derive(Debug, Serialize)]
 pub(super) struct EvalsPageContext {
     pub page: &'static str,
     pub title: &'static str,
+    pub tab: &'static str,
+    pub is_overview: bool,
+    pub is_traffic: bool,
+    pub is_judge: bool,
+    pub is_head_to_head: bool,
+    pub is_golden_set: bool,
+    /// True on the tabs whose KPI strip is about traffic, not judged quality.
+    pub show_traffic_kpis: bool,
+    pub show_quality_kpis: bool,
+    pub tabs: Vec<TabLinkView>,
     pub time_range: EvalTimeRangeView,
     pub traffic: TrafficStatsView,
     pub scores: ScoreSummaryView,
-    pub histogram: Vec<EvalLatencyBucketView>,
-    pub histogram_max: i64,
-    pub cost_series: Vec<EvalCostBucketView>,
-    pub cost_max: i64,
+    pub histogram: HistogramView,
+    pub cost_chart: ChartView,
     pub models: Vec<ModelMixRowView>,
     pub users: Vec<UserRowView>,
     pub topics: Vec<TopicRowView>,
     pub win_rates: Vec<WinRateView>,
+    pub pairs: Vec<PairRowView>,
     pub runs: Vec<RunRowView>,
     pub results: Vec<ResultRowView>,
     pub cases: Vec<CaseRowView>,
+    pub filter: ResultFilterView,
     pub model_options: Vec<ModelOptionView>,
     pub judge_model: String,
     pub default_sample_size: i64,
@@ -44,6 +83,43 @@ pub(super) struct EvalsPageContext {
     pub base_url: &'static str,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub notice: Option<NoticeView>,
+}
+
+#[derive(Debug, Serialize)]
+pub(super) struct TabLinkView {
+    pub slug: &'static str,
+    pub label: &'static str,
+    pub href: String,
+    pub is_active: bool,
+}
+
+/// State of the Judge tab's verdict and model filters, echoed back so the
+/// selects stay on what was picked after the round trip.
+#[derive(Debug, Serialize)]
+pub(super) struct ResultFilterView {
+    pub verdict: String,
+    pub model: String,
+    pub is_filtered: bool,
+    pub verdict_options: Vec<FilterOptionView>,
+    pub model_options: Vec<FilterOptionView>,
+}
+
+#[derive(Debug, Serialize)]
+pub(super) struct FilterOptionView {
+    pub value: String,
+    pub label: String,
+    pub is_selected: bool,
+}
+
+#[derive(Debug, Serialize)]
+pub(super) struct PairRowView {
+    pub model_a: String,
+    pub model_b: String,
+    pub winner_label: String,
+    pub is_tie: bool,
+    pub order_swapped: bool,
+    pub rationale: String,
+    pub created_at_local: String,
 }
 
 #[derive(Debug, Serialize)]

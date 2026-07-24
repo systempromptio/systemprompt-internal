@@ -125,7 +125,7 @@
         {{/each}}
       </ol>
       {{else}}
-      <p class="text-tertiary">No messages or tool calls recorded for this context.</p>
+      {{> components/empty-state message="No messages or tool calls recorded for this context."}}
       {{/if}}
     </section>
 
@@ -151,7 +151,7 @@
         </tbody>
       </table>
       {{else}}
-      <p class="text-tertiary">No requests recorded for this context.</p>
+      {{> components/empty-state message="No requests recorded for this context."}}
       {{/if}}
     </section>
 

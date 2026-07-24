@@ -7,6 +7,7 @@
 use sqlx::PgPool;
 
 use crate::repositories;
+use crate::types::departments::DEFAULT_DEPARTMENT;
 use crate::services::marketplaces::load_marketplaces;
 
 use super::super::types::{DepartmentGroup, UserAssignmentSummary, UserDeviceView};
@@ -73,8 +74,9 @@ pub(super) async fn collect_user_detail_extras(
 ) -> crate::error::AdminHtmlResult<UserDetailExtras> {
     // Why: neither half of this tolerates a default. `department` is bound to a
     // <select> that the save handler reads straight back, so an empty value
-    // does not merely display wrongly — it reassigns the user to Unassigned on
-    // the next save, dropping every access rule their real department carried.
+    // does not merely display wrongly — it reassigns the user to the Default
+    // department on the next save, dropping every access rule their real
+    // department carried.
     // `roles` is fed to `compute_effective_permissions`, so an empty value
     // renders ALLOW/DENY rows under a caption promising they were computed
     // against this user's actual roles.
@@ -171,8 +173,8 @@ async fn collect_user_devices(pool: &PgPool, d: &crate::types::UserDetail) -> Ve
 // Why: the user's own department is always present in the returned list.
 //
 // The list populates a bound `<select>`: an option that is missing cannot be
-// selected, so the browser silently falls back to the first one (Unassigned)
-// and the next save moves the user out of a department they were never
+// selected, so the browser silently falls back to whichever option happens to
+// be first and the next save moves the user out of a department they were never
 // deliberately removed from. Degrading to a short list is survivable;
 // degrading to one that cannot represent the current value is not.
 pub(super) async fn fetch_departments(pool: &PgPool, current: &str) -> Vec<String> {
@@ -180,7 +182,12 @@ pub(super) async fn fetch_departments(pool: &PgPool, current: &str) -> Vec<Strin
         .await
         .inspect_err(|e| tracing::warn!(error = %e, "ssr_users: load departments failed"))
         .unwrap_or_default();
-    if !current.is_empty() && !names.iter().any(|n| n == current) {
+    let current = if current.is_empty() {
+        DEFAULT_DEPARTMENT
+    } else {
+        current
+    };
+    if !names.iter().any(|n| n == current) {
         names.push(current.to_owned());
     }
     names

@@ -11,6 +11,11 @@
 
 const API = '/api/public/admin';
 
+// Mirrors DEFAULT_DEPARTMENT in extensions/web/admin/src/types/departments.rs:
+// the department a user sits in when nobody has assigned them one. It is a real
+// row, not a placeholder, so the assign control always has it to select.
+const DEFAULT_DEPARTMENT = 'Default';
+
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
@@ -111,11 +116,11 @@ function renderDeptEditor(deptName) {
 
     editor.innerHTML = `
       <div class="ac-user-header">
-        <h2>${safe || '<em>Unassigned</em>'}</h2>
+        <h2>${safe || '<em>No department selected</em>'}</h2>
         <div class="ac-user-meta">Department editor · changes save to this instance's database</div>
       </div>
       <p>Toggle access for the whole department here. To make a rule permanent across deployments, copy it into <code>services/access-control/departments.yaml</code> in the source repo.</p>
-      ${deptName ? sections : '<p><em>The "Unassigned" pseudo-bucket is for users without a department. Assign them to a department to manage their access.</em></p>'}
+      ${deptName ? sections : '<p><em>Pick a department from the tree to manage its access.</em></p>'}
     `;
     editor.hidden = false;
     $('#ac-welcome').hidden = true;
@@ -252,13 +257,11 @@ async function renderUserMatrix(userId, displayName) {
         })
         .join('');
 
-    const currentDept = u.department || '';
-    const deptOptions = ['<option value="">Unassigned</option>']
-        .concat(
-            departmentNames.map(
-                (n) =>
-                    `<option value="${escapeHtml(n)}"${n === currentDept ? ' selected' : ''}>${escapeHtml(n)}</option>`,
-            ),
+    const currentDept = u.department || DEFAULT_DEPARTMENT;
+    const deptOptions = departmentNames
+        .map(
+            (n) =>
+                `<option value="${escapeHtml(n)}"${n === currentDept ? ' selected' : ''}>${escapeHtml(n)}</option>`,
         )
         .join('');
     matrix.innerHTML = `
@@ -415,10 +418,6 @@ async function saveNewDepartment() {
     showDeptError('');
     if (!name) {
         showDeptError('Name is required');
-        return;
-    }
-    if (name.toLowerCase() === 'unassigned') {
-        showDeptError('"Unassigned" is reserved for users without a department.');
         return;
     }
     if (departmentNames.some((n) => n.toLowerCase() === name.toLowerCase())) {

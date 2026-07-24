@@ -1,18 +1,9 @@
 @layer components {
 
-.table-container {
-    border-radius: var(--sp-radius-card-brand);
-    overflow-x: auto;
-    overflow-y: auto;
-    max-height: calc(100vh - 230px);
-    box-shadow: var(--sp-shadow-card), var(--sp-shadow-inner-glow);
-    background: var(--sp-bg-surface);
-    border: 1px solid var(--sp-border-subtle);
-}
-
-.table-scroll {
-    overflow-x: auto;
-}
+/* `.table-container` and `.table-scroll` belong to 04-tables-core.css. This
+   file used to redeclare both, and since `08-` bundles after `04-` its
+   `max-height` won, clipping every admin table behind an unmarked inner
+   scrollbar. */
 
 .card {
     background: var(--sp-bg-surface-gradient);

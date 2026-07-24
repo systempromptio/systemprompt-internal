@@ -1,9 +1,10 @@
-//! Persistence for users: identity, access, activity, devices, and usage.
+//! Persistence for users: identity, access, activity, access tokens, and usage.
 
 pub mod access_control;
+pub mod access_tokens;
 pub mod access_tree;
 pub mod activity;
-pub mod devices;
+pub mod identity;
 pub mod magic_links;
 pub mod mutations;
 pub mod queries;

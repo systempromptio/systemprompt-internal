@@ -1,0 +1,44 @@
+{{!--
+  Latency distribution — horizontal bars, one per fixed bin.
+
+  Invoke as: {{> components/latency-histogram histogram}}
+  The partial's root context is the histogram object itself.
+
+  Markup order is load-bearing: label, bar, count, each explicitly placed in
+  its own grid column on row 1. Emitting them out of order lets sparse
+  auto-placement push the label onto an implicit second row, which is what made
+  every label line up with the wrong bar.
+
+  Inputs (fields on the passed context):
+    bars          [{label, count, pct, is_peak}]
+    max_display   busiest bin's count, printed on the axis
+    has_data      false when no request in the window carried a latency
+    p50_display   optional caption
+    p95_display   optional caption
+--}}
+{{#if has_data}}
+<div class="latency-histogram" role="img"
+     aria-label="Latency distribution, busiest bin {{max_display}} requests">
+    {{#each bars}}
+    <div class="latency-histogram__row{{#if this.is_peak}} latency-histogram__row--peak{{/if}}"
+         style="--v:{{this.pct}}%"
+         title="{{this.label}}: {{this.count}} requests">
+        <span class="latency-histogram__label">{{this.label}}</span>
+        <span class="latency-histogram__track"><span class="latency-histogram__fill"></span></span>
+        <span class="latency-histogram__count">{{this.count}}</span>
+    </div>
+    {{/each}}
+    <div class="latency-histogram__axis">
+        <span class="latency-histogram__axis-min">0</span>
+        <span class="latency-histogram__axis-max">{{max_display}} requests</span>
+    </div>
+</div>
+{{#if p50_display}}
+<p class="chart-caption">
+    Half of all calls finish inside <strong>{{p50_display}}</strong>;
+    95% finish inside <strong>{{p95_display}}</strong>.
+</p>
+{{/if}}
+{{else}}
+<p class="chart-empty">No timed requests in this window.</p>
+{{/if}}

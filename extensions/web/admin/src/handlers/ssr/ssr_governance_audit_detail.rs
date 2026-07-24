@@ -16,6 +16,7 @@ use serde::Serialize;
 use sqlx::PgPool;
 
 use crate::error::AdminHtmlResult;
+use crate::handlers::ssr::entity_urls::{session_detail_url, trace_detail_url};
 use crate::repositories::governance::chain::{
     AiRequestSummary, ChainEnvelope, DecisionStage, TranscriptEnvelope, find_decision_chain,
 };
@@ -166,11 +167,8 @@ fn build_summary(env: &ChainEnvelope) -> Summary {
         trace_url: env
             .trace_id
             .as_ref()
-            .map(|tid| format!("/admin/traces/{}", urlencoding::encode(tid.as_str()))),
-        session_url: format!(
-            "/admin/sessions/{}",
-            urlencoding::encode(env.session_id.as_str())
-        ),
+            .map(trace_detail_url),
+        session_url: session_detail_url(&env.session_id),
         user_id: env.identity.user_id.clone(),
         agent_id: env.identity.agent_id.clone(),
         agent_scope: env.identity.agent_scope.clone(),

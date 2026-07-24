@@ -18,6 +18,7 @@ pub(super) struct PerfTracesPageContext {
     pub(super) page_index: i64,
     pub(super) page_count: i64,
     pub(super) pagination: Pagination,
+    pub(super) sort_headers: SortHeaders,
     pub(super) sort: &'static str,
     pub(super) dir: &'static str,
     pub(super) error_only: bool,
@@ -77,15 +78,49 @@ pub(super) struct StatsView {
     pub(super) total_traces: i64,
     pub(super) error_count: i64,
     pub(super) deny_count: i64,
+    pub(super) deny_url: String,
+    pub(super) error_url: String,
+    pub(super) deny_active: bool,
+    pub(super) error_active: bool,
+    pub(super) cost_display: String,
+    pub(super) tokens_display: String,
     pub(super) p50_display: String,
     pub(super) p95_display: String,
     pub(super) p99_display: String,
+}
+
+/// The five sortable headers, named so the template reads as a table layout
+/// rather than an indexed list.
+#[derive(Debug, Serialize)]
+pub(super) struct SortHeaders {
+    pub(super) started: SortHeader,
+    pub(super) activity: SortHeader,
+    pub(super) tokens: SortHeader,
+    pub(super) cost: SortHeader,
+    pub(super) duration: SortHeader,
+}
+
+/// One clickable column header: where it links, and how it reads to a screen
+/// reader when it is the active sort.
+#[derive(Debug, Serialize)]
+pub(super) struct SortHeader {
+    pub(super) label: &'static str,
+    pub(super) class: &'static str,
+    pub(super) url: String,
+    pub(super) active: bool,
+    pub(super) aria_sort: &'static str,
+    pub(super) indicator: &'static str,
 }
 
 #[derive(Debug, Serialize)]
 pub(super) struct Pagination {
     pub(super) current_page: i64,
     pub(super) total_pages: i64,
+    /// 1-based row range shown on this page, for "Showing 1–50 of 54".
+    pub(super) first_row: i64,
+    pub(super) last_row: i64,
+    pub(super) total_rows: i64,
+    pub(super) noun: &'static str,
     pub(super) has_prev: bool,
     pub(super) has_next: bool,
     pub(super) prev_url: Option<String>,

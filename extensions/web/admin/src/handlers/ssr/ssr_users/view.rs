@@ -123,7 +123,7 @@ pub(super) fn group_by_department(users: Vec<EnrichedUserView>) -> Vec<Departmen
         std::collections::BTreeMap::new();
     for u in users {
         let key = if u.department.is_empty() {
-            "Unassigned".to_owned()
+            crate::types::departments::DEFAULT_DEPARTMENT.to_owned()
         } else {
             u.department.clone()
         };
@@ -152,11 +152,7 @@ pub(super) fn group_by_department(users: Vec<EnrichedUserView>) -> Vec<Departmen
 
     groups.sort_by(|a, b| {
         fn rank(name: &str) -> u8 {
-            match name {
-                "Default" => 0,
-                "Unassigned" => 2,
-                _ => 1,
-            }
+            u8::from(name != crate::types::departments::DEFAULT_DEPARTMENT)
         }
         rank(&a.department).cmp(&rank(&b.department)).then_with(|| {
             a.department

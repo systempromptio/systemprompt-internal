@@ -89,9 +89,6 @@ const updateAvatarPreview = (container, url) => {
 const collectFormData = () => ({
   display_name: document.getElementById('settings-display-name')?.value?.trim() || null,
   avatar_url: document.getElementById('settings-avatar-url')?.value?.trim() || null,
-  notify_daily_summary: document.getElementById('settings-notify-daily-summary')?.checked ?? true,
-  notify_achievements: document.getElementById('settings-notify-achievements')?.checked ?? true,
-  leaderboard_opt_in: document.getElementById('settings-leaderboard-opt-in')?.checked ?? true,
   timezone: document.getElementById('settings-timezone')?.value || 'UTC',
 });
 

@@ -1,0 +1,26 @@
+{{!--
+  What the gateway did in this window. Kept separate from the quality strip so
+  a tab never mixes "how much traffic" with "how good were the answers".
+--}}
+<section class="kpi-strip" aria-label="Traffic KPIs">
+    <div class="kpi-card">
+        <span class="kpi-card__label">Requests</span>
+        <span class="kpi-card__value">{{traffic.total}}</span>
+        <span class="kpi-card__sub">{{traffic.user_count}} users · {{traffic.model_count}} models</span>
+    </div>
+    <div class="kpi-card">
+        <span class="kpi-card__label">p50 latency</span>
+        <span class="kpi-card__value">{{traffic.p50_latency_ms}} ms</span>
+        <span class="kpi-card__sub">p95 {{traffic.p95_latency_ms}} ms</span>
+    </div>
+    <div class="kpi-card">
+        <span class="kpi-card__label">Traffic cost</span>
+        <span class="kpi-card__value">{{traffic.total_cost_display}}</span>
+        <span class="kpi-card__sub">judging {{scores.judge_cost_display}}</span>
+    </div>
+    <div class="kpi-card{{#if traffic.error_count}} kpi-card--danger{{/if}}">
+        <span class="kpi-card__label">Errors</span>
+        <span class="kpi-card__value">{{traffic.error_count}}</span>
+        <span class="kpi-card__sub">{{traffic.error_rate_pct}}%</span>
+    </div>
+</section>

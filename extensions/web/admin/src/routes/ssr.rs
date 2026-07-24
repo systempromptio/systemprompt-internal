@@ -13,7 +13,6 @@ use super::super::{handlers, middleware};
 pub fn admin_ssr_router(pool: Arc<PgPool>, engine: AdminTemplateEngine) -> Router {
     let inner = root_routes()
         .merge(access_routes())
-        .merge(catalog_routes())
         .merge(governance_routes())
         .merge(entity_routes())
         .merge(account_routes())
@@ -102,23 +101,6 @@ fn access_routes() -> Router<Arc<PgPool>> {
         )
 }
 
-fn catalog_routes() -> Router<Arc<PgPool>> {
-    Router::new()
-        .route(
-            "/catalog",
-            get(|| async { axum::response::Redirect::permanent("/admin/catalog/marketplace") }),
-        )
-        .route(
-            "/catalog/marketplace",
-            get(handlers::catalog::marketplace_page),
-        )
-        .route("/catalog/a2a", get(handlers::catalog::a2a_agents_page))
-        .route(
-            "/catalog/external",
-            get(handlers::catalog::external_agents_page),
-        )
-}
-
 fn governance_routes() -> Router<Arc<PgPool>> {
     Router::new()
         .route("/governance/policies", get(handlers::ssr::governance_page))
@@ -154,7 +136,7 @@ fn entity_routes() -> Router<Arc<PgPool>> {
         )
         .route(
             "/entities/sessions",
-            get(handlers::ssr::users_sessions_page),
+            get(handlers::ssr::sessions_list_page),
         )
         .route(
             "/entities/sessions/{session_id}",

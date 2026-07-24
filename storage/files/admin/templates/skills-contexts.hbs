@@ -129,6 +129,7 @@
                     <table class="data-table data-table--nested">
                         <thead><tr>
                             <th>Context</th>
+                            <th class="col-conversation">Conversation</th>
                             <th>Model</th>
                             <th class="numeric">Requests</th>
                             <th class="numeric">Messages</th>
@@ -143,6 +144,10 @@
                                 <a href="/admin/entities/contexts/{{context_id}}" class="link-strong">
                                     {{default name context_id}}
                                 </a>
+                            </td>
+                            <td class="col-conversation">
+                                {{#if summary}}<span class="conversation-preview" title="{{summary}}">{{summary}}</span>
+                                {{else}}<span class="text-tertiary">&mdash;</span>{{/if}}
                             </td>
                             <td>{{#if model}}<span class="badge badge-blue">{{model}}</span>{{else}}<span class="text-tertiary">&mdash;</span>{{/if}}</td>
                             <td class="numeric" style="font-variant-numeric: tabular-nums;">{{formatNumber request_count}}</td>
@@ -176,6 +181,7 @@
             <thead><tr>
                 <th>User</th>
                 <th>Context</th>
+                <th class="col-conversation">Conversation</th>
                 <th>Model</th>
                 <th class="numeric col-numeric">Requests</th>
                 <th class="numeric col-numeric">Messages</th>
@@ -188,7 +194,7 @@
             {{#each contexts}}
             <tr data-context-id="{{context_id}}"
                 data-user-id="{{user_id}}"
-                data-search-blob="{{toLowerCase (default display_name user_id)}} {{toLowerCase (default name context_id)}}">
+                data-search-blob="{{toLowerCase (default display_name user_id)}} {{toLowerCase (default name context_id)}} {{toLowerCase summary}}">
                 <td>
                     {{#if user_id}}
                     <a href="/admin/user/?id={{user_id}}" class="user-cell">
@@ -203,6 +209,10 @@
                     </a>
                     {{#unless name}}<div class="text-tertiary text-xs">{{context_id}}</div>{{/unless}}
                     {{#if is_cli_session}}<span class="badge badge-gray">CLI session</span>{{/if}}
+                </td>
+                <td class="col-conversation">
+                    {{#if summary}}<span class="conversation-preview" title="{{summary}}">{{summary}}</span>
+                    {{else}}<span class="text-tertiary">&mdash;</span>{{/if}}
                 </td>
                 <td>{{#if model}}<span class="badge badge-blue">{{model}}</span>{{else}}<span class="text-tertiary">&mdash;</span>{{/if}}</td>
                 <td class="numeric" style="font-variant-numeric: tabular-nums;">{{formatNumber request_count}}</td>

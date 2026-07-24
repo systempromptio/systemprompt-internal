@@ -1,17 +1,20 @@
 //! Gateway-request read models for the analytics requests page.
 //!
 //! [`list_requests_paged`] (in `paged`) pages `ai_requests` with optional
-//! filters and per-row governance / tool-call counts; the dropdown option
-//! lists live in `options`.
+//! filters and per-row governance / tool-call counts; the per-model /
+//! per-provider / per-status rollups behind the breakdown tabs live in
+//! `breakdown`.
 
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 use systemprompt::identifiers::{AgentId, AiRequestId, SessionId, TraceId, UserId};
 
-mod options;
+mod breakdown;
 mod paged;
 
-pub use options::{RequestFilterOptions, get_request_filter_options};
+pub use breakdown::{
+    BreakdownRow, list_requests_by_model, list_requests_by_provider, list_requests_by_status,
+};
 pub use paged::{RequestPage, list_requests_paged};
 
 #[derive(Debug, Clone, Default)]

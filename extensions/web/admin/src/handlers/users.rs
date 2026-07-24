@@ -35,6 +35,7 @@ pub(crate) fn extract_user_from_cookie(
         user_id: UserId::new(claims.sub),
         username: claims.username,
         email,
+        session_id: claims.session_id,
     })
 }
 

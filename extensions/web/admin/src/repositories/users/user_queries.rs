@@ -9,7 +9,7 @@ pub async fn list_department_stats(
         crate::types::DepartmentStats,
         r#"
         SELECT
-            COALESCE(NULLIF(upe.department, ''), 'Unassigned') AS "department!",
+            COALESCE(NULLIF(upe.department, ''), 'Default') AS "department!",
             COUNT(DISTINCT u.id)::BIGINT AS "user_count!",
             COUNT(DISTINCT u.id) FILTER (WHERE u.status = 'active')::BIGINT AS "active_count!",
             COALESCE(SUM(ev.event_count), 0)::BIGINT AS "total_events!",
@@ -43,7 +43,7 @@ pub async fn list_department_stats(
         LEFT JOIN user_profile_ext upe ON upe.user_id = u.id
         WHERE NOT ('anonymous' = ANY(u.roles))
           AND u.email NOT LIKE '%@anonymous.local'
-        GROUP BY COALESCE(NULLIF(upe.department, ''), 'Unassigned')
+        GROUP BY COALESCE(NULLIF(upe.department, ''), 'Default')
         ORDER BY 2 DESC
         "#,
     )

@@ -79,6 +79,7 @@ pub(crate) async fn user_context_middleware(
         department,
         is_admin,
         email_verified: false,
+        session_id: session.session_id,
     };
 
     request.extensions_mut().insert(ctx);

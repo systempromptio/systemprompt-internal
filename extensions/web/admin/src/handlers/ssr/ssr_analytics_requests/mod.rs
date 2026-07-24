@@ -1,9 +1,11 @@
 //! `/admin/entities/requests` — Inference Requests gateway log.
 //!
 //! Reads the `/v1/messages` gateway spine from `ai_requests` (NOT
-//! `plugin_usage_events`). KPI strip + latency histogram + cost-over-time +
-//! filterable / sortable paged table. Every row carries `data-chain-id`
-//! pointing at the request id so the chain-drawer can resolve it.
+//! `plugin_usage_events`). Five URL-driven tabs over one window: Overview
+//! (KPIs + traffic / cost / latency charts), Models / Providers / Status
+//! (rollups that double as the filter picker), and Log (the paged call table).
+//! Every log row carries `data-chain-id` pointing at the request id so the
+//! chain-drawer can resolve it.
 
 use crate::error::AdminError;
 use std::sync::Arc;
@@ -14,6 +16,7 @@ use serde::Deserialize;
 use sqlx::PgPool;
 
 use crate::error::AdminHtmlResult;
+use crate::handlers::ssr::types as charts;
 use crate::templates::AdminTemplateEngine;
 use crate::types::{MarketplaceContext, UserContext};
 
@@ -22,13 +25,14 @@ mod context;
 mod data;
 mod view;
 
-use context::AnalyticsRequestsPageContext;
+use context::{AnalyticsRequestsPageContext, RequestsTab};
 
 const BASE_URL: &str = "/admin/entities/requests";
 const PAGE_SIZE: i64 = 50;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct RequestsQuery {
+    pub tab: Option<String>,
     pub from: Option<String>,
     pub to: Option<String>,
     pub preset: Option<String>,
@@ -54,6 +58,7 @@ pub(crate) async fn analytics_requests_page(
         return Err(AdminError::Forbidden("Admin access required.".to_owned()).into());
     }
 
+    let tab = RequestsTab::from_query(query.tab.as_deref());
     let filter = view::filter_from_query(&query);
     let sort = view::sort_from_query(&query);
     let page = query.page.unwrap_or(0).max(0);
@@ -64,6 +69,7 @@ pub(crate) async fn analytics_requests_page(
     let fetched = data::fetch_requests_data(
         &pool,
         data::RequestsPageQuery {
+            tab,
             filter: &filter,
             range,
             sort,
@@ -78,44 +84,42 @@ pub(crate) async fn analytics_requests_page(
     } else {
         (fetched.total_count + PAGE_SIZE - 1) / PAGE_SIZE
     };
-    let pagination = view::build_pagination(&query, page, total_pages);
+    let pagination = view::build_pagination(
+        &query,
+        page,
+        total_pages,
+        PAGE_SIZE,
+        fetched.total_count,
+        i64::try_from(fetched.rows.len()).unwrap_or(PAGE_SIZE),
+    );
     let search_query = query.q.clone().unwrap_or_default();
     let has_active_filters = filter.model.is_some()
         || filter.provider.is_some()
         || filter.status.is_some()
         || !search_query.is_empty();
 
-    let histogram_max = fetched.hist.iter().map(|b| b.count).max().unwrap_or(0);
-    let cost_max = fetched
-        .cost
-        .iter()
-        .map(|b| b.cost_microdollars)
-        .max()
-        .unwrap_or(0);
-
     let ctx = AnalyticsRequestsPageContext {
         page: "requests",
         title: "Inference Requests",
         time_range: view::time_range_context(&query, &range, auto_widened),
+        tabs: view::tab_links(tab, &query, fetched.total_count),
+        is_overview: tab == RequestsTab::Overview,
+        is_breakdown: matches!(
+            tab,
+            RequestsTab::Models | RequestsTab::Providers | RequestsTab::Status
+        ),
+        is_log: tab == RequestsTab::Log,
         stats: view::stats_to_json(&fetched.stats),
-        histogram: fetched
-            .hist
-            .iter()
-            .map(|b| view::latency_bucket_to_json(b, histogram_max))
-            .collect(),
-        histogram_max,
-        cost_series: fetched
-            .cost
-            .iter()
-            .map(|b| view::cost_bucket_to_json(b, cost_max))
-            .collect(),
-        cost_max,
+        histogram: charts::histogram_view(&fetched.hist, &fetched.stats),
+        traffic_chart: charts::traffic_chart(&fetched.series, &range),
+        cost_chart: charts::cost_chart(&fetched.series, &range),
+        breakdown: view::breakdown_view(tab, &fetched.breakdown, &query),
         rows: fetched.rows.iter().map(view::request_row_to_json).collect(),
         has_rows: !fetched.rows.is_empty(),
         total_count: fetched.total_count,
         pagination,
         search_query,
-        filters: view::filters_to_json(&filter, &fetched.options),
+        chips: view::active_chips(&query),
         has_active_filters,
         clear_url: view::clear_url(&query),
         base_url: BASE_URL,

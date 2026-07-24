@@ -158,12 +158,22 @@ pub async fn list_results_for_run(
     Ok(rows)
 }
 
+/// Optional narrowing for [`list_recent_results`]. `None` on a field means "any",
+/// so the unfiltered Judge tab passes `ResultFilter::default()` and gets the
+/// whole window back.
+#[derive(Debug, Clone, Default)]
+pub struct ResultFilter {
+    pub verdict: Option<String>,
+    pub model: Option<String>,
+}
+
 /// Most recent scored items across all runs in the window — the "worst first"
 /// list the page leads with, since a passing answer needs no attention.
 pub async fn list_recent_results(
     pool: &PgPool,
     range: TimeRange,
     limit: i64,
+    filter: &ResultFilter,
 ) -> Result<Vec<EvalResultRow>, sqlx::Error> {
     let rows = sqlx::query_as!(
         EvalResultRow,
@@ -189,6 +199,8 @@ pub async fn list_recent_results(
             created_at AS "created_at!"
           FROM eval_results
           WHERE created_at >= $1 AND created_at < $2
+            AND ($4::text IS NULL OR verdict = $4)
+            AND ($5::text IS NULL OR model = $5)
           ORDER BY
             CASE verdict WHEN 'fail' THEN 0 WHEN 'partial' THEN 1 ELSE 2 END,
             created_at DESC
@@ -196,6 +208,8 @@ pub async fn list_recent_results(
         range.from,
         range.to,
         limit,
+        filter.verdict.as_deref(),
+        filter.model.as_deref(),
     )
     .fetch_all(pool)
     .await?;
@@ -231,4 +245,50 @@ pub async fn insert_pair(pool: &PgPool, params: InsertPairParams<'_>) -> Result<
     .execute(pool)
     .await?;
     Ok(())
+}
+
+/// One judged comparison. Every pair is judged in both orders, so a model
+/// appears as `model_a` in one row and `model_b` in its mirror; `order_swapped`
+/// says which of the two this row is.
+#[derive(Debug, Clone, Serialize)]
+pub struct EvalPairRow {
+    pub id: String,
+    pub run_id: String,
+    pub model_a: String,
+    pub model_b: String,
+    pub winner: String,
+    pub order_swapped: bool,
+    pub rationale: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+/// The individual verdicts behind the win-rate table, newest first. The
+/// aggregate says which model won; these say why.
+pub async fn list_recent_pairs(
+    pool: &PgPool,
+    range: TimeRange,
+    limit: i64,
+) -> Result<Vec<EvalPairRow>, sqlx::Error> {
+    let rows = sqlx::query_as!(
+        EvalPairRow,
+        r#"SELECT
+            id AS "id!",
+            run_id AS "run_id!",
+            model_a AS "model_a!",
+            model_b AS "model_b!",
+            winner AS "winner!",
+            order_swapped AS "order_swapped!",
+            rationale,
+            created_at AS "created_at!"
+          FROM eval_pairs
+          WHERE created_at >= $1 AND created_at < $2
+          ORDER BY created_at DESC
+          LIMIT $3"#,
+        range.from,
+        range.to,
+        limit,
+    )
+    .fetch_all(pool)
+    .await?;
+    Ok(rows)
 }

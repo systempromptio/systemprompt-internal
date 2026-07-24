@@ -1,4 +1,4 @@
-//! Session-detail repository — drives `/admin/sessions/{id}`.
+//! Session-detail repository — drives `/admin/entities/sessions/{id}`.
 //!
 //! A session groups every AI request, context, and trace produced by a single
 //! interactive run. This module assembles the header row from
@@ -7,7 +7,7 @@
 
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
-use systemprompt::identifiers::{ContextId, PluginId, SessionId, TraceId, UserId};
+use systemprompt::identifiers::{AiRequestId, ContextId, PluginId, SessionId, TraceId, UserId};
 
 #[derive(Debug, Clone)]
 pub struct SessionHeader {
@@ -54,7 +54,7 @@ pub struct SessionTraceRow {
 
 #[derive(Debug, Clone)]
 pub struct SessionRequestRow {
-    pub id: String,
+    pub id: AiRequestId,
     pub context_id: Option<ContextId>,
     pub trace_id: Option<TraceId>,
     pub model: String,
@@ -197,7 +197,7 @@ pub async fn list_session_requests(
         SessionRequestRow,
         r#"
         SELECT
-            id                                  AS "id!",
+            id                                  AS "id!: AiRequestId",
             context_id                          AS "context_id?: ContextId",
             trace_id                            AS "trace_id?: TraceId",
             model                               AS "model!",

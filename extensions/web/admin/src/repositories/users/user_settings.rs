@@ -1,6 +1,6 @@
 //! Per-user settings records.
 
-use chrono::{DateTime, NaiveDate, Utc};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use systemprompt::identifiers::UserId;
@@ -10,12 +10,7 @@ pub struct UserSettingsRow {
     pub user_id: UserId,
     pub display_name: Option<String>,
     pub avatar_url: Option<String>,
-    pub notify_daily_summary: bool,
-    pub notify_achievements: bool,
-    pub leaderboard_opt_in: bool,
     pub timezone: String,
-    pub achievement_email_sent_date: Option<NaiveDate>,
-    pub daily_report_email_sent_date: Option<NaiveDate>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -31,12 +26,7 @@ pub async fn find_user_settings(
              user_id AS "user_id!: UserId",
              display_name,
              avatar_url,
-             notify_daily_summary,
-             notify_achievements,
-             leaderboard_opt_in,
              timezone,
-             achievement_email_sent_date,
-             daily_report_email_sent_date,
              created_at,
              updated_at
            FROM user_settings WHERE user_id = $1"#,

@@ -1,0 +1,4 @@
+# Asset URLs that intentionally are not manifest-published sources under
+# storage/files/: assets served by another mechanism entirely. One served path
+# per line (no leading slash), `#` comments. Never list an asset that genuinely
+# 404s — register it in extensions/web/site/src/assets/ instead.

@@ -1,0 +1,31 @@
+{{!--
+  Table footer pagination — rendered inside .table-container, after the table,
+  so it reads as the table's own footer rather than a stray pair of links.
+
+  Invoke as: {{> components/pagination pagination}}
+  The partial's root context is the pagination object itself.
+
+  Inputs (fields on the passed context):
+    current_page / total_pages   1-based page position
+    first_row / last_row / total_rows / noun   "Showing 1–50 of 54 traces"
+    has_prev / has_next          whether each control is live
+    prev_url / next_url          hrefs for the live controls
+--}}
+<nav class="pagination" aria-label="Pagination">
+  <div class="pagination-info">
+    <span>Showing {{first_row}}&ndash;{{last_row}} of {{total_rows}} {{noun}}</span>
+  </div>
+  <div class="pagination-controls">
+    {{#if has_prev}}
+      <a class="btn btn-sm btn-outline" href="{{prev_url}}" rel="prev">&larr; Prev</a>
+    {{else}}
+      <span class="btn btn-sm btn-outline is-disabled" aria-disabled="true">&larr; Prev</span>
+    {{/if}}
+    <span class="current-page">Page {{current_page}} of {{total_pages}}</span>
+    {{#if has_next}}
+      <a class="btn btn-sm btn-outline" href="{{next_url}}" rel="next">Next &rarr;</a>
+    {{else}}
+      <span class="btn btn-sm btn-outline is-disabled" aria-disabled="true">Next &rarr;</span>
+    {{/if}}
+  </div>
+</nav>

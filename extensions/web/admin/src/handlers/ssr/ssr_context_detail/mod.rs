@@ -1,4 +1,4 @@
-//! `/admin/contexts/{context_id}` — single-context detail page.
+//! `/admin/entities/contexts/{context_id}` — single-context detail page.
 //!
 //! Renders header, KPIs, the chronological conversation transcript (every
 //! user/assistant message + tool call interleaved by request and sequence),

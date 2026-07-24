@@ -16,7 +16,11 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
 use crate::error::{AdminError, AdminResult};
+use crate::handlers::ssr::entity_urls::{
+    context_detail_url, request_detail_url, session_detail_url, trace_detail_url,
+};
 use crate::repositories::governance::resolve::{ResolvedKind, resolve_id};
+use systemprompt::identifiers::{AiRequestId, ContextId, SessionId, TraceId};
 use crate::types::UserContext;
 
 #[derive(Debug, Deserialize)]
@@ -49,12 +53,13 @@ pub(crate) async fn search_resolve(
         return Ok(unresolved());
     };
 
-    let encoded = urlencoding::encode(&r.id);
     let (kind, url) = match r.kind {
-        ResolvedKind::Request => ("request", format!("/admin/requests/{encoded}")),
-        ResolvedKind::Trace => ("trace", format!("/admin/traces/{encoded}")),
-        ResolvedKind::Session => ("session", format!("/admin/sessions/{encoded}")),
-        ResolvedKind::Context => ("context", format!("/admin/contexts/{encoded}")),
+        // The resolver picks the entity kind at runtime from an opaque id, so
+        // the typed newtype is only known here, in the arm that matched.
+        ResolvedKind::Request => ("request", request_detail_url(&AiRequestId::new(&r.id))),
+        ResolvedKind::Trace => ("trace", trace_detail_url(&TraceId::new(&r.id))),
+        ResolvedKind::Session => ("session", session_detail_url(&SessionId::new(&r.id))),
+        ResolvedKind::Context => ("context", context_detail_url(&ContextId::new(&r.id))),
     };
     Ok(Json(SearchResponse {
         kind,

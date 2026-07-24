@@ -14,6 +14,7 @@ use crate::repositories::analytics::context_detail::{
 use super::context::{
     ContextDetailPageContext, ContextRequestRowView, HeaderView, KpisView, TranscriptEntryView,
 };
+use crate::handlers::ssr::entity_urls::{request_detail_url, session_detail_url, trace_detail_url};
 
 const TRANSCRIPT_PREVIEW_CHARS: usize = 4000;
 
@@ -41,7 +42,7 @@ pub(super) fn build_detail_data(
     let transcript = build_transcript(messages, tool_calls);
     let back_url = header.session_id.as_ref().map_or_else(
         || "/admin/overview/pulse".to_owned(),
-        |s| format!("/admin/sessions/{}", urlencoding::encode(s.as_str())),
+        session_detail_url,
     );
     let back_label = header
         .session_id
@@ -75,7 +76,7 @@ fn header_view(h: &ContextHeader) -> HeaderView {
         session_url: h
             .session_id
             .as_ref()
-            .map(|s| format!("/admin/sessions/{}", urlencoding::encode(s.as_str()))),
+            .map(session_detail_url),
         name: h.name.clone(),
         created_at: h.created_at.map(|t| t.to_rfc3339()),
         created_at_local: h.created_at.map(|t| {
@@ -119,13 +120,13 @@ fn request_view(r: &ContextRequestRow) -> ContextRequestRowView {
     ContextRequestRowView {
         id: r.id.clone(),
         id_short: short_id(&r.id),
-        request_url: format!("/admin/requests/{}", urlencoding::encode(&r.id)),
+        request_url: request_detail_url(&r.id),
         trace_id: r.trace_id.clone(),
         trace_id_short: r.trace_id.as_ref().map(|t| short_id(t.as_str())),
         trace_url: r
             .trace_id
             .as_ref()
-            .map(|t| format!("/admin/traces/{}", urlencoding::encode(t.as_str()))),
+            .map(trace_detail_url),
         model: r.model.clone(),
         status: r.status.clone(),
         is_error: r.status == "failed",
@@ -200,7 +201,7 @@ fn build_transcript(
         for e in entries {
             out.push(TranscriptEntryView {
                 request_id: request_id.clone(),
-                request_url: format!("/admin/requests/{}", urlencoding::encode(&request_id)),
+                request_url: request_detail_url(&request_id),
                 ts_local: e
                     .ts
                     .with_timezone(&chrono::Local)

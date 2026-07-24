@@ -5,6 +5,7 @@
 
 use crate::repositories::evals::cases::EvalCaseRow;
 use crate::repositories::evals::results::{DimensionScores, EvalResultRow};
+use crate::repositories::evals::EvalRunKind;
 use crate::repositories::evals::runs::EvalRunRow;
 
 use super::BASE_URL;
@@ -13,6 +14,14 @@ use super::format::{format_cost, local_time, score_pct, short_id};
 
 pub(super) fn run_rows(runs: &[EvalRunRow]) -> Vec<RunRowView> {
     runs.iter().map(run_row).collect()
+}
+
+/// Runs of one kind only, for the tabs that show a single eval type.
+pub(super) fn run_rows_of_kind(runs: &[EvalRunRow], kind: EvalRunKind) -> Vec<RunRowView> {
+    runs.iter()
+        .filter(|r| r.kind == kind.as_str())
+        .map(run_row)
+        .collect()
 }
 
 pub(super) fn run_row(r: &EvalRunRow) -> RunRowView {

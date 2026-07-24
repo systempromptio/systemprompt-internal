@@ -23,12 +23,28 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$HERE/../.." && pwd)"
 CRED_DIR="$HOME/.config/systemprompt-pi"
-EMAIL="${1:-pi-demo@demo.local}"
-NAME="${2:-Pi Demo}"
 
 say()  { printf '\033[36m==>\033[0m %s\n' "$*"; }
 pass() { printf '\033[32m ok\033[0m %s\n' "$*"; }
 die()  { printf '\033[31mERROR:\033[0m %s\n' "$*" >&2; exit 1; }
+
+# Args win; otherwise prompt with the default in brackets. A non-interactive
+# caller (CI, a piped run) has no tty, so the defaults apply silently there
+# rather than blocking on a read that will never be answered.
+ask() { # $1=prompt $2=default
+  local reply=""
+  if [[ -t 0 ]]; then
+    printf '\033[36m??\033[0m %s [%s]: ' "$1" "$2" >&2
+    read -r reply || true
+  fi
+  printf '%s' "${reply:-$2}"
+}
+
+EMAIL="${1:-}"
+NAME="${2:-}"
+[[ -n "$EMAIL" ]] || EMAIL=$(ask "Email for the demo user" "pi-demo@demo.local")
+[[ -n "$NAME"  ]] || NAME=$(ask "Display name" "Pi Demo")
+case "$EMAIL" in *@*.*) ;; *) die "'$EMAIL' does not look like an email address" ;; esac
 
 CLI="$PROJECT_DIR/target/debug/systemprompt"
 if [[ -x "$PROJECT_DIR/target/release/systemprompt" && "$PROJECT_DIR/target/release/systemprompt" -nt "$CLI" ]]; then
@@ -102,6 +118,9 @@ say "Minting a gateway session for the PAT"
 SESSION_ID=$(curl -fsS -X POST "$BASE_URL/api/public/gateway/sessions" \
   -H "x-api-key: $PAT" | sed -n 's/.*"session_id":"\([^"]*\)".*/\1/p')
 [[ -n "$SESSION_ID" ]] || die "session mint failed at POST $BASE_URL/api/public/gateway/sessions"
+# Recorded so trace.sh and the walkthrough can point at the same timeline the
+# smoke test below lands in, rather than minting a second unrelated session.
+printf '%s' "$SESSION_ID" > "$CRED_DIR/session"
 pass "Session $SESSION_ID issued"
 
 say "Smoke test: POST $BASE_URL/v1/messages as $EMAIL"
@@ -115,5 +134,14 @@ pass "Gateway accepted the request as $EMAIL"
 
 echo
 say "Done. Pi now acts as $EMAIL. Start it with:  pi"
-echo "    Manage this user's models at $BASE_URL/admin/models?user_id=$NEW_USER_ID"
 echo "    (run examples/pi/setup.sh first if Pi itself is not installed yet)"
+echo
+say "Evidence — open these as an admin:"
+echo "    user + role       $BASE_URL/admin/user?user_id=$NEW_USER_ID"
+echo "    model access      $BASE_URL/admin/models?user_id=$NEW_USER_ID"
+echo "    this session      $BASE_URL/admin/entities/sessions/$SESSION_ID"
+echo "    governed timeline $BASE_URL/admin/demo/trace?session=$SESSION_ID"
+echo "    all requests      $BASE_URL/admin/entities/requests"
+echo
+echo "    Send a prompt of your own and watch it land:"
+echo "      examples/pi/trace.sh \"your prompt here\""

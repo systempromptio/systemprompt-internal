@@ -48,11 +48,22 @@
     margin-block: var(--sp-space-6);
 }
 
+/* Panels are flex columns so the chart inside fills the height the grid gives
+   the row. Without this a short chart strands itself at the top of a panel
+   stretched to match its taller neighbour. */
 .requests-charts__panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-space-3);
     background: var(--sp-bg-surface);
     border: 1px solid var(--sp-border-subtle);
     border-radius: var(--sp-radius-card-brand);
     padding: var(--sp-space-5);
+    min-width: 0;
+}
+
+.requests-charts__panel--wide {
+    margin-block: var(--sp-space-6);
 }
 
 .requests-charts__title {
@@ -77,8 +88,14 @@
     min-height: 1.25rem;
 }
 
+/* Every cell is pinned to row 1. The bar is generated content and so comes
+   first in grid order, ahead of the count (column 3) and the label (column 1);
+   without an explicit row, auto-placement refuses to step back to column 1 in a
+   row it has already passed and drops the label onto a second row, under its
+   own bar. */
 .latency-histogram__label {
     grid-column: 1;
+    grid-row: 1;
     font-size: var(--sp-text-xs);
     color: var(--sp-text-secondary);
     white-space: nowrap;
@@ -89,6 +106,7 @@
 .latency-histogram__bar::before {
     content: "";
     grid-column: 2;
+    grid-row: 1;
     height: 0.75rem;
     border-radius: var(--sp-radius-sm);
     background: linear-gradient(
@@ -100,6 +118,7 @@
 
 .latency-histogram__count {
     grid-column: 3;
+    grid-row: 1;
     text-align: right;
     font-size: var(--sp-text-xs);
     font-variant-numeric: tabular-nums;

@@ -1,0 +1,115 @@
+{{!--
+  Head-to-head tab: run a comparison, then the win-rate aggregate and the
+  individual verdicts behind it.
+--}}
+<h2 class="eval-section-title">Compare two models</h2>
+<p class="text-muted text-xs eval-hint">
+    Both models answer the same golden-set case, and the judge picks a winner.
+    Every comparison is judged in both orders: only an agreeing pair counts as a
+    win, and order-dependent verdicts are recorded as ties.
+</p>
+
+<form method="post" action="{{base_url}}/run" class="toolbar eval-run-form">
+    <input type="hidden" name="kind" value="pairwise">
+    <input type="hidden" name="tab" value="{{tab}}">
+    <input type="hidden" name="from" value="{{time_range.from}}">
+    <input type="hidden" name="to" value="{{time_range.to}}">
+    <label class="filter-field">
+        <span class="filter-field__label">Model A</span>
+        <select name="model_a" class="filter-select">
+            {{#each model_options}}
+            <option value="{{this.value}}">{{this.label}}</option>
+            {{/each}}
+        </select>
+    </label>
+    <label class="filter-field">
+        <span class="filter-field__label">Model B</span>
+        <select name="model_b" class="filter-select">
+            {{#each model_options}}
+            <option value="{{this.value}}">{{this.label}}</option>
+            {{/each}}
+        </select>
+    </label>
+    <label class="filter-field">
+        <span class="filter-field__label">Judge model</span>
+        <select name="judge_model" class="filter-select">
+            {{#each model_options}}
+            <option value="{{this.value}}">{{this.label}}</option>
+            {{/each}}
+        </select>
+    </label>
+    <button type="submit" class="btn btn-sm"{{#unless cases}} disabled{{/unless}}>
+        Run comparison
+    </button>
+</form>
+
+{{#unless cases}}
+<p class="text-muted text-xs eval-hint">
+    A comparison needs a golden set to compare on. Add a case from a judged
+    answer on the Scored answers tab.
+</p>
+{{/unless}}
+
+<h2 class="eval-section-title">Win rates</h2>
+{{#if win_rates}}
+{{#> components/data-table}}
+    <thead><tr>
+        <th>Model</th>
+        <th class="col-num">Comparisons</th>
+        <th class="col-num">Wins</th>
+        <th class="col-num">Losses</th>
+        <th class="col-num">Ties</th>
+        <th class="col-num">Win rate</th>
+    </tr></thead>
+    <tbody>
+    {{#each win_rates}}
+    <tr>
+        <td><code class="code-inline">{{this.model}}</code></td>
+        <td class="col-num">{{this.comparisons}}</td>
+        <td class="col-num">{{this.wins}}</td>
+        <td class="col-num">{{this.losses}}</td>
+        <td class="col-num">{{this.ties}}</td>
+        <td class="col-num">{{this.win_rate_pct}}%</td>
+    </tr>
+    {{/each}}
+    </tbody>
+{{/components/data-table}}
+{{else}}
+{{> components/empty-state message="No comparisons run in this window."}}
+{{/if}}
+
+{{#if pairs}}
+<h2 class="eval-section-title">Individual verdicts</h2>
+<p class="text-muted text-xs eval-hint">
+    The rows the win rates are built from. Each case appears twice, once in each
+    presentation order.
+</p>
+{{#> components/data-table}}
+    <thead><tr>
+        <th>Comparison</th>
+        <th>Winner</th>
+        <th>Rationale</th>
+        <th class="col-date">Judged</th>
+    </tr></thead>
+    <tbody>
+    {{#each pairs}}
+    <tr>
+        <td>
+            <code class="code-inline">{{this.model_a}}</code>
+            vs <code class="code-inline">{{this.model_b}}</code>
+            {{#if this.order_swapped}}<span class="text-muted text-xs">order swapped</span>{{/if}}
+        </td>
+        <td>
+            {{#if this.is_tie}}
+              <span class="mcp-badge mcp-badge-warning">tie</span>
+            {{else}}
+              <code class="code-inline">{{this.winner_label}}</code>
+            {{/if}}
+        </td>
+        <td class="text-muted text-xs">{{truncate this.rationale 180}}</td>
+        <td class="col-date">{{this.created_at_local}}</td>
+    </tr>
+    {{/each}}
+    </tbody>
+{{/components/data-table}}
+{{/if}}

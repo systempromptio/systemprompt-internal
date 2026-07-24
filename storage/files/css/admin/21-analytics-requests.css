@@ -35,18 +35,4 @@
     outline-offset: -2px;
 }
 
-.audit-pagination {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--sp-space-3);
-    margin-top: var(--sp-space-4);
-}
-
-.audit-pagination__pos {
-    font-size: var(--sp-text-sm);
-    color: var(--sp-text-tertiary);
-    font-variant-numeric: tabular-nums;
-}
-
 }

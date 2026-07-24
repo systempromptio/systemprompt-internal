@@ -1,0 +1,20 @@
+{{!--
+  What the judge made of the traffic. Shown on the tabs that are about scores.
+--}}
+<section class="kpi-strip" aria-label="Judged quality KPIs">
+    <div class="kpi-card">
+        <span class="kpi-card__label">Mean score</span>
+        <span class="kpi-card__value">{{scores.mean_score_display}}</span>
+        <span class="kpi-card__sub">{{scores.scored_count}} answers judged</span>
+    </div>
+    <div class="kpi-card{{#if scores.fail_count}} kpi-card--danger{{/if}}">
+        <span class="kpi-card__label">Verdicts</span>
+        <span class="kpi-card__value">{{scores.pass_count}} / {{scores.partial_count}} / {{scores.fail_count}}</span>
+        <span class="kpi-card__sub">pass / partial / fail</span>
+    </div>
+    <div class="kpi-card">
+        <span class="kpi-card__label">Coverage</span>
+        <span class="kpi-card__value">{{scores.coverage_pct}}%</span>
+        <span class="kpi-card__sub">of {{traffic.total}} requests · judging {{scores.judge_cost_display}}</span>
+    </div>
+</section>

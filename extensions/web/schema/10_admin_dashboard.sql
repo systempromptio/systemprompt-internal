@@ -164,12 +164,7 @@ CREATE TABLE IF NOT EXISTS user_settings (
     user_id TEXT PRIMARY KEY,
     display_name TEXT,
     avatar_url TEXT,
-    notify_daily_summary BOOLEAN NOT NULL DEFAULT true,
-    notify_achievements BOOLEAN NOT NULL DEFAULT true,
-    leaderboard_opt_in BOOLEAN NOT NULL DEFAULT false,
     timezone TEXT NOT NULL DEFAULT 'UTC',
-    achievement_email_sent_date DATE,
-    daily_report_email_sent_date DATE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

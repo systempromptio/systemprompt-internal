@@ -15,6 +15,7 @@ use crate::error::AdminHtmlResult;
 use crate::repositories;
 use crate::repositories::users::access_tree::{AccessTreeUserRow, list_users_for_access_tree};
 use crate::templates::AdminTemplateEngine;
+use crate::types::departments::DEFAULT_DEPARTMENT;
 use crate::types::{MarketplaceContext, UserContext};
 use axum::extract::{Extension, State};
 use axum::response::Response;
@@ -76,6 +77,15 @@ pub(crate) async fn access_control_page(
 
     let services_path = super::get_services_path()?;
 
+    // Why: the `departments` table is the registry — it decides which
+    // departments exist. Membership only decides who is in one. Deriving the
+    // list from membership hid every department nobody had joined yet, which
+    // left the assign-department control with nothing to offer and made the
+    // department write path unreachable.
+    let department_names = repositories::departments::list_department_names(&pool)
+        .await
+        .inspect_err(|e| tracing::warn!(error = %e, "access-control: load departments failed"))
+        .unwrap_or_default();
     let dept_stats = repositories::users::user_queries::list_department_stats(&pool)
         .await
         .unwrap_or_default();
@@ -88,35 +98,28 @@ pub(crate) async fn access_control_page(
         std::collections::BTreeMap::new();
     for u in &users {
         let key = if u.department.is_empty() {
-            "Unassigned".to_owned()
+            DEFAULT_DEPARTMENT.to_owned()
         } else {
             u.department.clone()
         };
         buckets.entry(key).or_default().push(u);
     }
-    let dept_groups: Vec<DeptGroup> = dept_stats
+    let dept_groups: Vec<DeptGroup> = department_names
         .iter()
-        .map(|d| {
-            let users_in: &[&AccessTreeUserRow] =
-                buckets.get(&d.department).map_or(&[][..], Vec::as_slice);
+        .map(|name| {
+            let users_in: &[&AccessTreeUserRow] = buckets.get(name).map_or(&[][..], Vec::as_slice);
+            let stats = dept_stats.iter().find(|d| &d.department == name);
             DeptGroup {
-                name: d.department.clone(),
-                user_count: d.user_count,
-                active_count: d.active_count,
+                name: name.clone(),
+                user_count: stats.map_or(0, |d| d.user_count),
+                active_count: stats.map_or(0, |d| d.active_count),
                 users: users_in.iter().map(serialize_user).collect(),
             }
         })
         .collect();
 
-    let department_names: Vec<String> = dept_stats
-        .iter()
-        .map(|d| d.department.as_str())
-        .filter(|n| *n != "Unassigned")
-        .map(str::to_owned)
-        .collect();
-
     let stats = Stats {
-        department_count: dept_stats.len(),
+        department_count: department_names.len(),
         user_count: users.len(),
     };
 

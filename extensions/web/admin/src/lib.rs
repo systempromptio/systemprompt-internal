@@ -1,8 +1,7 @@
 //! Admin extension for the Enterprise Demo template.
 //!
-//! Wires the admin dashboard, governance webhooks, bridge plane, and
-//! supporting services onto a shared `PgPool`. Public surface is grouped by
-//! concern:
+//! Wires the admin dashboard, governance webhooks, and supporting services
+//! onto a shared `PgPool`. Public surface is grouped by concern:
 //!
 //! - [`admin_router`] — the SSR dashboard (auth-gated; admin-only and
 //!   authenticated-read routes are layered together).
@@ -39,7 +38,7 @@ use axum::routing::{get, post};
 use axum::{Extension, Router, middleware as axum_middleware};
 use sqlx::PgPool;
 
-pub use routes::{admin_ssr_router, bridge_auth_ssr_router};
+pub use routes::admin_ssr_router;
 pub use types::{CreateUserRequest, MarketplaceContext, UserContext, UserSummary, UserUsageEvent};
 
 pub mod test_support {

@@ -91,6 +91,9 @@ pub struct CookieSession {
     pub user_id: UserId,
     pub username: String,
     pub email: Email,
+    /// The `session_id` claim, when the token carries one. Lets a page link the
+    /// caller to their own session's observability detail.
+    pub session_id: Option<SessionId>,
 }
 
 #[derive(Debug, Clone, Copy)]

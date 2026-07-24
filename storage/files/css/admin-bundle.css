@@ -1655,6 +1655,7 @@ h2.nav-label {
     background: var(--sp-bg-surface);
     border: 1px solid var(--sp-border-subtle);
     border-radius: var(--sp-radius-card-brand);
+    box-shadow: var(--sp-shadow-card), var(--sp-shadow-inner-glow);
     overflow-x: auto;
     max-width: 100%;
 }
@@ -2470,19 +2471,10 @@ h2.nav-label {
 
 @layer components {
 
-.table-container {
-    border-radius: var(--sp-radius-card-brand);
-    overflow-x: auto;
-    overflow-y: auto;
-    max-height: calc(100vh - 230px);
-    box-shadow: var(--sp-shadow-card), var(--sp-shadow-inner-glow);
-    background: var(--sp-bg-surface);
-    border: 1px solid var(--sp-border-subtle);
-}
-
-.table-scroll {
-    overflow-x: auto;
-}
+/* `.table-container` and `.table-scroll` belong to 04-tables-core.css. This
+   file used to redeclare both, and since `08-` bundles after `04-` its
+   `max-height` won, clipping every admin table behind an unmarked inner
+   scrollbar. */
 
 .card {
     background: var(--sp-bg-surface-gradient);
@@ -4881,6 +4873,24 @@ a.sparkline-card:hover { border-color: var(--sp-border-strong); }
     font-size: var(--sp-text-xs);
 }
 
+/* Preformatted payload block — JSON tool input/results, prompt bodies. Had no
+   base rule, so every `<pre class="code-block">` rendered as a bare `<pre>`;
+   page-level rules in 18/21 only add scroll caps on top of this. */
+.code-block {
+    margin: 0;
+    padding: var(--sp-space-3);
+    background: var(--sp-bg-surface-raised);
+    border: 1px solid var(--sp-border-subtle);
+    border-radius: var(--sp-radius-md);
+    font-family: var(--sp-font-mono);
+    font-size: var(--sp-text-xs);
+    line-height: 1.5;
+    color: var(--sp-text-secondary);
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow: auto;
+}
+
 .section-footer {
     text-align: center;
     margin-top: var(--sp-space-3);
@@ -6048,8 +6058,14 @@ a.sparkline-card:hover { border-color: var(--sp-border-strong); }
     min-height: 1.25rem;
 }
 
+/* Every cell is pinned to row 1. The bar is generated content and so comes
+   first in grid order, ahead of the count (column 3) and the label (column 1);
+   without an explicit row, auto-placement refuses to step back to column 1 in a
+   row it has already passed and drops the label onto a second row, under its
+   own bar. */
 .latency-histogram__label {
     grid-column: 1;
+    grid-row: 1;
     font-size: var(--sp-text-xs);
     color: var(--sp-text-secondary);
     white-space: nowrap;
@@ -6060,6 +6076,7 @@ a.sparkline-card:hover { border-color: var(--sp-border-strong); }
 .latency-histogram__bar::before {
     content: "";
     grid-column: 2;
+    grid-row: 1;
     height: 0.75rem;
     border-radius: var(--sp-radius-sm);
     background: linear-gradient(
@@ -6071,6 +6088,7 @@ a.sparkline-card:hover { border-color: var(--sp-border-strong); }
 
 .latency-histogram__count {
     grid-column: 3;
+    grid-row: 1;
     text-align: right;
     font-size: var(--sp-text-xs);
     font-variant-numeric: tabular-nums;
@@ -9108,10 +9126,38 @@ html, body {
 
 .text-xs { font-size: var(--sp-text-xs); }
 
-/* /admin/entities/contexts/{id} — detail page styles.
-   Targets: header chrome, trace summary chips, transcript message stream. */
+/* ---------- conversation preview column ---------- */
 
-@layer base {
+/* The opening user turn, so the table says what each conversation was about
+   without opening it. Capped and ellipsised so it cannot push the numeric
+   columns off screen; the full text is in the cell's title attribute. */
+.col-conversation {
+    max-width: 28rem;
+    min-width: 12rem;
+}
+
+.conversation-preview {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--sp-text-sm);
+    color: var(--sp-text-secondary);
+}
+
+@media (max-width: 1200px) {
+    .col-conversation { max-width: 18rem; }
+}
+
+/* /admin/entities/contexts/{id} — conversation detail page.
+   Targets: back link, summary chips, and the transcript message stream.
+
+   The transcript is the point of this page, so it is styled as a real
+   conversation surface: a bordered panel ground with role-differentiated
+   message blocks, rather than body text separated by hairlines. Rules live in
+   @layer components so they sit above the shared table/card defaults. */
+
+@layer components {
 
 /* ---------- back link + summary chips ---------- */
 
@@ -9120,6 +9166,7 @@ html, body {
     align-items: center;
     gap: var(--sp-space-1);
     font-size: var(--sp-text-sm);
+    font-weight: 500;
     color: var(--sp-text-tertiary);
     margin-bottom: var(--sp-space-3);
     transition: color var(--sp-duration-fast);
@@ -9136,7 +9183,8 @@ html, body {
     margin: var(--sp-space-4) 0 var(--sp-space-5);
     background: var(--sp-bg-surface);
     border: 1px solid var(--sp-border-subtle);
-    border-radius: 0 0.375rem 1.125rem 0;
+    border-radius: var(--sp-corners-md);
+    box-shadow: var(--sp-shadow-card);
 }
 
 .trace-detail__field {
@@ -9159,65 +9207,101 @@ html, body {
 
 .trace-detail__field a {
     color: var(--sp-text-primary);
+    text-decoration: none;
 }
 .trace-detail__field a:hover {
     color: var(--sp-accent);
+    text-decoration: underline;
 }
 
-/* ---------- overview pane wrapper ---------- */
+/* ---------- conversation panel ---------- */
 
 .overview-pane {
     margin: 0 0 var(--sp-space-6);
+    background: var(--sp-bg-surface);
+    border: 1px solid var(--sp-border-subtle);
+    border-radius: var(--sp-corners-md);
+    box-shadow: var(--sp-shadow-card);
+    overflow: hidden;
 }
 
-/* ---------- transcript: vertical message stream ---------- */
+/* Panel header: sits on the raised tone so the message stream below reads as
+   the recessed content area. */
+.overview-pane > .section-title {
+    margin: 0;
+    padding: var(--sp-space-3) var(--sp-space-5);
+    background: var(--sp-bg-surface-alt);
+    border-bottom: 1px solid var(--sp-border-subtle);
+    font-size: var(--sp-text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--sp-text-tertiary);
+}
+
+.overview-pane > .transcript,
+.overview-pane > .empty-state {
+    padding: var(--sp-space-5);
+}
+
+/* The requests table shares the panel, but runs full-bleed to its edges so its
+   own row borders line up with the panel border. */
+.overview-pane > .data-table {
+    margin: 0;
+    width: 100%;
+}
+
+/* ---------- transcript: message stream ---------- */
 
 .transcript {
     list-style: none;
-    padding: 0;
     margin: 0 auto;
-    max-width: 880px;
+    max-width: 62rem;
     display: flex;
     flex-direction: column;
+    gap: var(--sp-space-3);
 }
 
 .transcript__entry {
-    display: grid;
-    grid-template-columns: 3px 1fr;
-    column-gap: var(--sp-space-4);
-    padding: var(--sp-space-3) 0;
-    border-bottom: 1px dashed var(--sp-border-subtle);
-    position: relative;
+    display: block;
+    padding: 0;
+    border: none;
 }
 
-.transcript__entry:last-child {
-    border-bottom: none;
+/* Message block. Role tinting carries the speaker, so no rails or dividers. */
+.transcript__entry--user,
+.transcript__entry--assistant {
+    padding: var(--sp-space-3) var(--sp-space-4);
+    border: 1px solid var(--sp-border-subtle);
+    border-radius: var(--sp-radius-card-inner);
 }
 
-/* role rail (3px coloured strip) */
-.transcript__entry::before {
-    content: "";
-    grid-column: 1;
-    grid-row: 1 / -1;
-    width: 3px;
-    background: var(--sp-text-tertiary);
-    border-radius: 2px;
-    align-self: stretch;
+.transcript__entry--user {
+    background: var(--sp-accent-surface);
+    border-color: color-mix(in oklch, var(--sp-accent) 24%, transparent);
+    margin-inline-start: var(--sp-space-6);
 }
 
-.transcript__entry--user::before        { background: var(--sp-accent); }
-.transcript__entry--assistant::before   { background: var(--sp-section-users); }
-.transcript__entry--tool::before        { background: var(--sp-warning, var(--sp-section-export)); }
-.transcript__entry--system::before      { display: none; }
+.transcript__entry--assistant {
+    background: var(--sp-bg-surface-alt);
+    margin-inline-end: var(--sp-space-6);
+}
 
-/* collapse the role header on consecutive same-role turns */
+/* Consecutive same-role turns are one continued utterance: tighten the gap and
+   drop the repeated role label rather than fading it out. */
+.transcript__entry--user + .transcript__entry--user,
+.transcript__entry--assistant + .transcript__entry--assistant {
+    margin-top: calc(var(--sp-space-3) * -1 + var(--sp-space-1));
+}
+
 .transcript__entry--user + .transcript__entry--user > .transcript__head .transcript__role,
 .transcript__entry--assistant + .transcript__entry--assistant > .transcript__head .transcript__role {
-    opacity: 0.35;
+    display: none;
 }
 
+/* ---------- message meta line ---------- */
+
 .transcript__head {
-    grid-column: 2;
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
@@ -9231,51 +9315,71 @@ html, body {
     font-size: var(--sp-text-xs);
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--sp-text-secondary);
 }
 
 .transcript__entry--user .transcript__role      { color: var(--sp-accent); }
 .transcript__entry--assistant .transcript__role { color: var(--sp-section-users); }
-.transcript__entry--tool .transcript__role      { color: var(--sp-warning, var(--sp-section-export)); }
+.transcript__entry--tool .transcript__role      { color: var(--sp-warning); }
 
 .transcript__time {
     color: var(--sp-text-tertiary);
     font-variant-numeric: tabular-nums;
 }
 
+/* Pushed to the end of the meta line and given a real affordance — it was
+   indistinguishable from the surrounding tertiary text. */
 .transcript__req {
+    margin-inline-start: auto;
     color: var(--sp-text-tertiary);
+    border: 1px solid var(--sp-border-subtle);
+    text-decoration: none;
+    transition: color var(--sp-duration-fast), border-color var(--sp-duration-fast);
+}
+
+.transcript__req:hover {
+    color: var(--sp-accent);
+    border-color: var(--sp-accent);
 }
 
 .transcript__body {
-    grid-column: 2;
     margin: var(--sp-space-2) 0 0;
     font-size: var(--sp-text-sm);
-    line-height: 1.55;
+    line-height: 1.6;
     color: var(--sp-text-primary);
     white-space: pre-wrap;
     word-break: break-word;
-    font-family: var(--sp-font-body, inherit);
 }
 
 /* ---------- transcript: tool entries ---------- */
 
+/* Tool calls are machine turns, not speech: full width, monospaced accent, and
+   collapsed by default so they never bury the conversation. */
 .transcript__tool {
-    grid-column: 2;
     margin: 0;
+    background: var(--sp-bg-surface-raised);
+    border: 1px solid var(--sp-border-subtle);
+    border-inline-start: 3px solid var(--sp-warning);
+    border-radius: var(--sp-radius-card-inner);
+    overflow: hidden;
 }
 
 .transcript__tool-summary {
     display: flex;
     flex-wrap: wrap;
-    align-items: baseline;
+    align-items: center;
     gap: var(--sp-space-2);
     cursor: pointer;
     list-style: none;
     font-size: var(--sp-text-xs);
     color: var(--sp-text-tertiary);
-    padding: var(--sp-space-1) 0;
+    padding: var(--sp-space-2) var(--sp-space-3);
+    transition: background var(--sp-duration-fast);
+}
+
+.transcript__tool-summary:hover {
+    background: var(--sp-bg-surface-overlay);
 }
 
 .transcript__tool-summary::-webkit-details-marker { display: none; }
@@ -9283,7 +9387,7 @@ html, body {
 .transcript__tool-chevron {
     display: inline-block;
     transition: transform var(--sp-duration-fast);
-    color: var(--sp-text-tertiary);
+    color: var(--sp-warning);
     font-size: var(--sp-text-sm);
     line-height: 1;
 }
@@ -9292,22 +9396,25 @@ html, body {
     transform: rotate(90deg);
 }
 
+.transcript__tool[open] .transcript__tool-summary {
+    border-bottom: 1px solid var(--sp-border-subtle);
+}
+
 .transcript__tool-name {
     color: var(--sp-text-primary);
-    font-weight: 500;
+    font-family: var(--sp-font-mono);
+    font-weight: 600;
 }
 
 .transcript__tool-detail {
-    margin-top: var(--sp-space-2);
+    padding: var(--sp-space-3);
     display: flex;
     flex-direction: column;
-    gap: var(--sp-space-2);
+    gap: var(--sp-space-3);
 }
 
 .transcript__tool-detail .code-block {
-    max-height: 320px;
-    overflow: auto;
-    margin: var(--sp-space-1) 0 0;
+    max-height: 20rem;
 }
 
 .transcript__tool-detail details > summary {
@@ -9317,6 +9424,7 @@ html, body {
     letter-spacing: 0.04em;
     color: var(--sp-text-tertiary);
     font-weight: 600;
+    margin-bottom: var(--sp-space-2);
 }
 
 /* ---------- transcript: system divider ---------- */
@@ -9325,18 +9433,17 @@ html, body {
     display: flex;
     align-items: center;
     gap: var(--sp-space-3);
-    grid-template-columns: none;
-    padding: var(--sp-space-2) 0;
-    border-bottom: none;
+    padding: var(--sp-space-1) 0;
+    background: none;
+    border: none;
+    margin-inline: 0;
 }
-
-.transcript__system::before { display: none; }
 
 .transcript__system-rule {
     flex: 1;
     height: 0;
     border: none;
-    border-top: 1px dashed var(--sp-border-subtle);
+    border-top: 1px dashed var(--sp-border-default);
     margin: 0;
 }
 
@@ -9345,31 +9452,37 @@ html, body {
     align-items: baseline;
     gap: var(--sp-space-2);
     font-size: var(--sp-text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
     color: var(--sp-text-tertiary);
     flex-shrink: 0;
 }
 
 /* ---------- compact variant ---------- */
 
-.transcript--compact .transcript__entry {
-    padding: var(--sp-space-2) 0;
+.transcript--compact {
+    gap: var(--sp-space-2);
 }
 
 .transcript--compact .transcript__body {
     margin-top: var(--sp-space-1);
-    font-size: var(--sp-text-sm);
-    line-height: 1.45;
+    line-height: 1.5;
 }
 
 /* ---------- responsive ---------- */
 
 @media (max-width: 700px) {
-    .transcript__entry {
-        grid-template-columns: 2px 1fr;
-        column-gap: var(--sp-space-3);
-        padding: var(--sp-space-2) 0;
+    .overview-pane > .transcript,
+    .overview-pane > .empty-state {
+        padding: var(--sp-space-3);
     }
-    .transcript__entry::before { width: 2px; }
+    .overview-pane > .section-title {
+        padding: var(--sp-space-2) var(--sp-space-3);
+    }
+    /* Reclaim the indent that signalled speaker direction — at this width the
+       role label and tint carry it on their own. */
+    .transcript__entry--user    { margin-inline-start: 0; }
+    .transcript__entry--assistant { margin-inline-end: 0; }
     .trace-detail__summary {
         gap: var(--sp-space-2);
         padding: var(--sp-space-2) var(--sp-space-3);
@@ -9379,6 +9492,7 @@ html, body {
 /* ---------- print ---------- */
 
 @media print {
+    .overview-pane { box-shadow: none; }
     .transcript { max-width: none; }
     .transcript__entry { break-inside: avoid; }
     .transcript__tool[open] .code-block { max-height: none; overflow: visible; }
@@ -10571,15 +10685,6 @@ html, body {
     font-weight: 600;
 }
 
-.eval-subsection-title {
-    margin: var(--sp-space-5) 0 var(--sp-space-2);
-    font-size: var(--sp-text-sm);
-    font-weight: 600;
-    color: var(--sp-text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-}
-
 .eval-hint {
     margin: 0 0 var(--sp-space-2);
 }
@@ -10644,21 +10749,12 @@ html, body {
 }
 
 /* run launchers sit side by side and wrap on narrow viewports */
-.eval-run-forms {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--sp-space-3);
-}
-
-.eval-run-form {
+/* Each tab carries the one form that launches its own kind of run, under the
+   heading that names it — so the form no longer needs a label of its own. */
+.eval-run-form,
+.eval-filter-form {
     align-items: flex-end;
-    flex: 1 1 22rem;
-}
-
-.eval-run-form__label {
-    font-size: var(--sp-text-sm);
-    font-weight: 600;
-    align-self: center;
+    flex-wrap: wrap;
 }
 
 .eval-run-form__number {

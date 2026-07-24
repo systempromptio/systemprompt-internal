@@ -1,4 +1,4 @@
-//! `/admin/sessions/{session_id}` — single-session detail page.
+//! `/admin/entities/sessions/{session_id}` — single-session detail page.
 //!
 //! Renders the header, KPI strip, and three linked tables (contexts, traces,
 //! requests) for one `session_id`, mirroring `analytics sessions stats` plus
@@ -20,6 +20,7 @@ use crate::repositories::analytics::session_detail::{
     find_session_header, get_session_kpis, list_session_contexts, list_session_requests,
     list_session_traces,
 };
+use crate::handlers::ssr::entity_urls::{context_detail_url, request_detail_url, trace_detail_url};
 use crate::templates::AdminTemplateEngine;
 use crate::types::{MarketplaceContext, UserContext};
 
@@ -159,10 +160,7 @@ fn context_view(c: &SessionContextRow) -> SessionContextRowView {
     SessionContextRowView {
         context_id: c.context_id.clone(),
         context_id_short: short_id(c.context_id.as_str()),
-        context_url: format!(
-            "/admin/contexts/{}",
-            urlencoding::encode(c.context_id.as_str())
-        ),
+        context_url: context_detail_url(&c.context_id),
         name: c.name.clone().unwrap_or_else(|| "—".into()),
         request_count: c.request_count,
         last_request_at: c.last_request_at.map(|t| t.to_rfc3339()),
@@ -183,7 +181,7 @@ fn trace_view(t: &SessionTraceRow) -> SessionTraceRowView {
     SessionTraceRowView {
         trace_id: t.trace_id.clone(),
         trace_id_short: short_id(t.trace_id.as_str()),
-        trace_url: format!("/admin/traces/{}", urlencoding::encode(t.trace_id.as_str())),
+        trace_url: trace_detail_url(&t.trace_id),
         request_count: t.request_count,
         error_count: t.error_count,
         started_at_local: t.started_at.map(|x| {
@@ -199,19 +197,19 @@ fn request_view(r: &SessionRequestRow) -> SessionRequestRowView {
     SessionRequestRowView {
         id: r.id.clone(),
         id_short: short_id(&r.id),
-        request_url: format!("/admin/requests/{}", urlencoding::encode(&r.id)),
+        request_url: request_detail_url(&r.id),
         context_id: r.context_id.clone(),
         context_id_short: r.context_id.as_ref().map(|c| short_id(c.as_str())),
         context_url: r
             .context_id
             .as_ref()
-            .map(|c| format!("/admin/contexts/{}", urlencoding::encode(c.as_str()))),
+            .map(context_detail_url),
         trace_id: r.trace_id.clone(),
         trace_id_short: r.trace_id.as_ref().map(|t| short_id(t.as_str())),
         trace_url: r
             .trace_id
             .as_ref()
-            .map(|t| format!("/admin/traces/{}", urlencoding::encode(t.as_str()))),
+            .map(trace_detail_url),
         model: r.model.clone(),
         status: r.status.clone(),
         is_error: r.status == "failed",

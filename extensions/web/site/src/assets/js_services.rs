@@ -24,7 +24,6 @@ pub(super) fn service_js_assets(storage_js: &Path) -> Vec<AssetDefinition> {
     let p = storage_js.join("services");
     let mut v = service_core_js(&p);
     v.extend(service_plugin_js(&p));
-    v.extend(service_skill_js(&p));
     v.extend(service_webauthn_js(&p));
     v.extend(service_utils_js(storage_js));
     v
@@ -60,10 +59,6 @@ fn service_plugin_js(p: &Path) -> Vec<AssetDefinition> {
         svc_js!(p, "plugin-resources-helpers.js"),
         svc_js!(p, "plugin-resources.js"),
     ]
-}
-
-fn service_skill_js(p: &Path) -> Vec<AssetDefinition> {
-    vec![svc_js!(p, "skill-files.js")]
 }
 
 fn service_webauthn_js(p: &Path) -> Vec<AssetDefinition> {

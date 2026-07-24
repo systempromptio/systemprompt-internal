@@ -8,7 +8,7 @@ use sqlx::PgPool;
 
 use crate::error::AdminHtmlResult;
 use crate::handlers::ssr::ssr_helpers::render_typed_page;
-use crate::services::bridge_profile;
+use crate::services::user_profile;
 use crate::templates::AdminTemplateEngine;
 use crate::types::{MarketplaceContext, UserContext};
 
@@ -18,7 +18,7 @@ pub(crate) async fn profile_page(
     Extension(engine): Extension<AdminTemplateEngine>,
     State(pool): State<Arc<PgPool>>,
 ) -> AdminHtmlResult<Response> {
-    let data = bridge_profile::build_bridge_profile_data(pool, &user_ctx).await;
+    let data = user_profile::build_profile_data(pool, &user_ctx).await;
     Ok(render_typed_page(
         &engine, "profile", &data, &user_ctx, &mkt_ctx,
     ))

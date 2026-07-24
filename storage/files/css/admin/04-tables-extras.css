@@ -45,6 +45,12 @@
     cursor: default;
 }
 
+/* Ends of the range render as spans, not links: same shape, no target. */
+.pagination-controls .is-disabled {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
 .pagination-controls .current-page {
     padding: var(--sp-space-1) var(--sp-space-3);
     color: var(--sp-accent);
@@ -208,6 +214,27 @@
     font-size: 0.78em;
     color: var(--sp-text-tertiary);
     margin-top: 0.1rem;
+}
+
+/* ── list-page pagination footer ─────────────────────────────── */
+
+.table-paginate {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--sp-space-2);
+    margin-top: var(--sp-space-4);
+}
+
+.table-paginate__info {
+    font-size: var(--sp-text-sm);
+    color: var(--sp-text-tertiary);
+    font-variant-numeric: tabular-nums;
+}
+
+/* The "you are here" line above a list: present, but never the headline. */
+.session-current {
+    margin-bottom: var(--sp-space-4);
 }
 
 }
