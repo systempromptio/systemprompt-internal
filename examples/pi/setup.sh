@@ -83,7 +83,14 @@ SESSION_ID=$(_jwt_payload_b64 "$TOKEN" | tr '_-' '/+' | base64 -d 2>/dev/null \
 mkdir -p "$CRED_DIR"
 printf '%s' "$TOKEN" > "$CRED_DIR/token"
 printf '%s' "$SESSION_ID" > "$CRED_DIR/session-id"
-chmod 600 "$CRED_DIR/token" "$CRED_DIR/session-id"
+# The governance extension resolves the gateway from here rather than guessing
+# a port, so a profile on a non-default port needs no extension edit.
+printf '%s' "$BASE_URL" > "$CRED_DIR/base-url"
+# An admin session JWT is already accepted by /hooks/govern (aud=api), so admin
+# setup needs no separate credential. new-user.sh overwrites this with a
+# user-scope plugin token, which is the one that actually gets denied.
+printf '%s' "$TOKEN" > "$CRED_DIR/hook-token"
+chmod 600 "$CRED_DIR/token" "$CRED_DIR/session-id" "$CRED_DIR/hook-token"
 pass "Credentials written to $CRED_DIR (session $SESSION_ID)"
 
 # ── 3. Install models.json + theme ──
@@ -103,6 +110,11 @@ if ! $REFRESH_ONLY; then
     jq --argjson p "$PROVIDER" -n '{providers: {systemprompt: $p}}' > "$PI_AGENT_DIR/models.json"
     pass "Created models.json"
   fi
+
+  say "Installing the governance extension"
+  mkdir -p "$PI_AGENT_DIR/extensions"
+  cp "$HERE/extensions/governance.ts" "$PI_AGENT_DIR/extensions/systemprompt-governance.ts"
+  pass "Tool + prompt gate installed (reload inside Pi with /reload)"
 
   say "Installing the branded theme"
   cp "$HERE/themes/systemprompt.json" "$PI_AGENT_DIR/themes/systemprompt.json"

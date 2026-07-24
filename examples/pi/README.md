@@ -70,6 +70,49 @@ false`). Add a fifth model id that is not registered to `models.json` and the
 gateway denies it with a 403 before any upstream call — governance working as
 intended.
 
+## Tool-level governance
+
+The gateway governs what Pi *sends*. The governance extension governs what Pi
+is *about to do*, using the same `POST /api/public/hooks/govern` endpoint and
+the same four policies (scope check, secret scan, blocklist, rate limit) that
+Claude Code's `PreToolUse` hook hits.
+
+Pi has no hook by that name. It has the equivalents:
+
+| Pi event | Claude Code analogue | What the extension does |
+|---|---|---|
+| `input` | `UserPromptSubmit` | governs the raw prompt; a denial stops the turn, so a pasted credential never reaches a provider |
+| `tool_call` | `PreToolUse` | governs the tool call; a denial blocks execution and the reason goes back to the model |
+| `tool_result` | `PostToolUse` | records the fire to `plugin_usage_events` |
+
+`setup.sh` installs it to `~/.pi/agent/extensions/systemprompt-governance.ts`
+(reload inside a running Pi with `/reload`). A tool call whose verdict cannot be
+obtained is blocked, not allowed — the `FAIL_OPEN` constant at the top of the
+file is where that choice lives.
+
+The extension registers two tools that exist only to be blocked —
+`mcp__systemprompt__list_agents` (denied by `scope_check`) and `delete_records`
+(denied by `tool_blocklist`) — because no stock Pi tool name matches either
+policy's patterns.
+
+**Two credentials, two endpoints.** `/v1/messages` accepts the `sp-live-…`
+personal access token. `/hooks/govern` validates a JWT and rejects a PAT, so
+`new-user.sh` also mints a user-scope plugin token to
+`~/.config/systemprompt-pi/hook-token`. It has to be *user* scope: admins are
+exempt from `scope_check` and `tool_blocklist`, so an admin token would be
+allowed by both and the denial would be theatre.
+
+See it end to end:
+
+```bash
+./demo/governance/09-pi-agent.sh          # free, deterministic, self-asserting
+./demo/governance/09-pi-agent.sh --live   # drives the real pi binary
+```
+
+Then open **`/admin/demo/trace`** (sidebar: Governance → Demo Trace) for the
+session as one timeline: prompt gate, tool gate, model calls, and tool fires in
+the order they happened. A blocked prompt has no model call after it.
+
 ## Branding
 
 `themes/systemprompt.json` is a Pi theme built from the systemprompt.io
@@ -91,6 +134,7 @@ individually governable gateway routes.
 | File | Purpose |
 |------|---------|
 | `models.json` | Provider template installed into `~/.pi/agent/models.json` |
+| `extensions/governance.ts` | Prompt gate + tool gate; installed into `~/.pi/agent/extensions/` |
 | `themes/systemprompt.json` | Branded Pi theme |
 | `setup.sh` | Idempotent installer + token mint + smoke test (admin) |
 | `new-user.sh` | Register a demo user + issue their gateway API key |

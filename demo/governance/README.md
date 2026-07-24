@@ -28,10 +28,18 @@ Run `../00-preflight.sh` first to start services and acquire a token.
 | 06 | secret-breach.sh | Secret detection blocks leaked credentials in tool inputs | Free |
 | 07 | rate-limiting.sh | Rate limit, security, and server configuration | Free |
 | 08 | hooks.sh | Hook listing and validation across all plugins | Free |
+| 09 | pi-agent.sh | Same pipeline governs Pi, a third-party coding agent: prompt gate + tool gate | Free (`--live` costs tokens) |
 
 ## How it works
 
 Demos 01-06 call the governance API directly with `curl`, simulating Claude Code's PreToolUse hook workflow. No AI calls, deterministic, instant.
+
+Demo 09 does the same for Pi, which has no hook named `PreToolUse` — its
+`input`, `tool_call`, and `tool_result` events fill the same three roles, and
+`examples/pi/extensions/governance.ts` maps them onto the identical endpoint.
+The `input` gate is the one Claude Code's tool-level hook cannot reach: a
+credential pasted into a prompt is blocked before it is serialized into a
+provider request at all.
 
 The governance pipeline:
 1. JWT validation (token authentication)

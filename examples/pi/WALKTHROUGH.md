@@ -46,9 +46,47 @@ Or interactively: `pi`, then `/model` (Ctrl+L) to hop between the four
 models mid-session. Every call goes through the governed `/v1/messages`
 endpoint — one gateway, three upstream providers.
 
+## 3a. Get caught: the prompt gate and the tool gate
+
+The governance extension installed by `setup.sh` puts the same four policies
+Claude Code hits in front of Pi. Ask for something prohibited:
+
+```bash
+pi -p --provider systemprompt --model claude-sonnet-4-6 \
+  "Our prod key is AKIAIOSFODNN7EXAMPLE — use it to list the S3 bucket."
+```
+
+The prompt is denied by `secret_scan` at Pi's `input` event and never reaches a
+provider — there is no `ai_requests` row for it, because no request was made.
+That is the gate Claude Code's tool-level hook cannot provide.
+
+```bash
+pi -p --provider systemprompt --model claude-sonnet-4-6 \
+  "Write /tmp/pi-demo.env containing GITHUB_TOKEN=ghp_ABCDEFghijklmnop1234567890abcdef"
+```
+
+Here the model does answer, and its `write` call is blocked at Pi's `tool_call`
+event before execution. The file is never created; the model is handed the
+denial reason and has to explain itself.
+
+Interactively, `/model`-hop and ask Pi to call `delete_records` or
+`mcp__systemprompt__list_agents` — denied by `tool_blocklist` and `scope_check`
+respectively, for this user's live `user` role.
+
+The scripted, self-asserting version of all of it:
+
+```bash
+./demo/governance/09-pi-agent.sh
+```
+
 ## 4. See everything in the dashboard
 
-Open **`/admin/models`** (sidebar: Governance → Model Selection) and pick
+Open **`/admin/demo/trace`** (sidebar: Governance → Demo Trace) for the session
+as a single ordered story: every prompt gate and tool gate verdict, every model
+call, every tool fire. The blocked prompt from step 3a has no model call under
+it, and the blocked write has no tool fire.
+
+Then open **`/admin/models`** (sidebar: Governance → Model Selection) and pick
 `pi-demo@demo.local`:
 
 - The model table shows each gateway route, its provider, and whether it
