@@ -166,7 +166,7 @@ link to an empty profile.
 Then check the user's own pages:
 
 ```
-http://localhost:8099/admin/user?user_id=<id>            profile, events, costs
+http://localhost:8099/admin/user?id=<id>            profile, events, costs
 http://localhost:8099/admin/models?user_id=<id>          per-user model access
 http://localhost:8099/admin/demo/trace?session=<session> the governed timeline
 ```

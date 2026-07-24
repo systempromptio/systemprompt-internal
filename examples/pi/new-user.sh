@@ -161,7 +161,7 @@ say "Done. Pi now acts as $EMAIL. Start it with:  pi"
 echo "    (run examples/pi/setup.sh first if Pi itself is not installed yet)"
 echo
 say "Evidence — open these as an admin:"
-echo "    profile + usage   $DASHBOARD_URL/admin/user?user_id=$NEW_USER_ID"
+echo "    profile + usage   $DASHBOARD_URL/admin/user?id=$NEW_USER_ID"
 echo "    model access      $DASHBOARD_URL/admin/models?user_id=$NEW_USER_ID"
 echo "    this session      $DASHBOARD_URL/admin/entities/sessions/$SESSION_ID"
 echo "    governed timeline $DASHBOARD_URL/admin/demo/trace?session=$SESSION_ID"

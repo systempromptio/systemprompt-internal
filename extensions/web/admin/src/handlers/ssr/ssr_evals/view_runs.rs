@@ -9,7 +9,7 @@ use crate::repositories::evals::results::{DimensionScores, EvalResultRow};
 use crate::repositories::evals::runs::EvalRunRow;
 
 use super::BASE_URL;
-use super::context::{CaseRowView, DimensionView, ResultRowView, RunRowView};
+use super::context_runs::{CaseRowView, DimensionView, ResultRowView, RunRowView};
 use super::format::{format_cost, local_time, score_pct, short_id};
 
 pub(super) fn run_rows(runs: &[EvalRunRow]) -> Vec<RunRowView> {

@@ -12,8 +12,8 @@ use crate::handlers::ssr::list_view::{PageWindow, Pagination};
 use super::context::{ChipView, RequestsTab, TabLinkView};
 use super::{BASE_URL, RequestsQuery};
 
-/// A breakdown row links to the Log tab carrying its own dimension as a filter,
-/// on top of whatever filters and window are already active.
+// Why: a breakdown row drills into the Log tab carrying its own dimension as a
+// filter, on top of whatever filters and window are already active.
 pub(super) fn log_filter_url(query: &RequestsQuery, param: &str, value: &str) -> String {
     let qs = preserved_query_string(query, &[param, "page", "tab"]);
     let mut url = format!("{BASE_URL}?tab=log&{param}={}", urlencode(value));

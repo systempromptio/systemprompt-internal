@@ -230,7 +230,7 @@
         <div class="live-feed">
             {{#each user.recent_activity}}
             <div class="feed-item">
-                <div class="feed-icon {{#if (eq category "login")}}feed-blue{{else if (eq category "skill_usage")}}feed-orange{{else if (eq category "marketplace_edit")}}feed-green{{else if (eq category "marketplace_connect")}}feed-purple{{else if (eq category "claude_code")}}feed-cyan{{else if (eq category "session")}}feed-cyan{{else}}feed-blue{{/if}}"></div>
+                <div class="feed-icon {{#if (eq category "login")}}feed-blue{{else if (eq category "skill_usage")}}feed-orange{{else if (eq category "marketplace_edit")}}feed-green{{else if (eq category "marketplace_connect")}}feed-purple{{else if (eq category "claude_code")}}feed-cyan{{else if (eq category "session")}}feed-cyan{{else if (eq category "prompt")}}feed-cyan{{else}}feed-blue{{/if}}"></div>
                 <div class="feed-content">
                     <span class="feed-text">{{description}}</span>
                     <span class="feed-time" title="{{formatDate created_at}}">{{relativeTime created_at}}</span>

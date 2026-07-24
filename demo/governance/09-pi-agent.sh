@@ -333,7 +333,7 @@ if [[ -n "$CALLER_USER_ID" ]]; then
   echo ""
   echo "  Same view from the CLI:"
   echo "    $CLI infra logs request list --user $CALLER_USER_ID"
-  echo "    $BASE_URL/admin/user?user_id=$CALLER_USER_ID"
+  echo "    $BASE_URL/admin/user?id=$CALLER_USER_ID"
 fi
 
 echo ""
