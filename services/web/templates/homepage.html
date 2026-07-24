@@ -189,10 +189,21 @@
                         <div class="quick-start-number">3</div>
                         <div class="quick-start-body">
                             <h3 class="quick-start-label">Drive models, then govern them live</h3>
-                            <p class="quick-start-desc">Run <code>pi</code> and hop between models with <code>/model</code>. Then open <strong>Model Selection</strong> in the dashboard: the user&rsquo;s requests, tokens, and cost are all there &mdash; and disabling a model denies their next call with a 403, no restart, no new token. The full script lives in <code>examples/pi/WALKTHROUGH.md</code>.</p>
+                            <p class="quick-start-desc">Run <code>pi</code> and hop between Claude, GPT, Gemini, and Cerebras with <code>/model</code>. Then disable a model for the user on <strong>Model Selection</strong> &mdash; their next call to it is denied with a 403, no restart, no new token. Re-enable and it works again. The full script lives in <code>examples/pi/WALKTHROUGH.md</code>.</p>
                             <div class="command-row">
-                                <a href="/admin/models" class="hero-cta hero-cta-primary">Open Model Selection</a>
-                                <a href="/admin/register" class="hero-cta hero-cta-secondary">Sign up</a>
+                                <pre class="command-block"><code>pi -p --provider systemprompt --model gpt-oss-120b "hello"</code></pre>
+                                <button type="button" class="copy-btn" data-code="pi -p --provider systemprompt --model gpt-oss-120b &quot;hello&quot;" aria-label="Copy command">Copy</button>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="quick-start-step">
+                        <div class="quick-start-number">4</div>
+                        <div class="quick-start-body">
+                            <h3 class="quick-start-label">Inspect the evidence</h3>
+                            <p class="quick-start-desc">Everything the agent did is in the governance spine: <strong>Model Selection</strong> shows the per-user toggles beside that user&rsquo;s requests, tokens, and cost; <strong>Requests</strong> holds the full audit trail &mdash; identity, model, provider, policy decisions, denials, latency, and spend for every single call.</p>
+                            <div class="command-row">
+                                <a href="/admin/models" class="hero-cta hero-cta-primary">Model Selection</a>
+                                <a href="/admin/entities/requests" class="hero-cta hero-cta-secondary">Request audit trail</a>
                             </div>
                         </div>
                     </li>
