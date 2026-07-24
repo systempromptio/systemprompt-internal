@@ -135,11 +135,6 @@
 .search-narrow {
     width: 260px;
 }
-
-.self-center {
-    align-self: center;
-}
-
 .cell-no-pad {
     padding: 0;
 }

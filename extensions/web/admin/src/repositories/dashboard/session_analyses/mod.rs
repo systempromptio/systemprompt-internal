@@ -1,9 +1,13 @@
 //! Stored AI analyses of completed sessions.
 
 use sqlx::PgPool;
+use sqlx::types::Json;
 use systemprompt::identifiers::{SessionId, UserId};
 
 use crate::handlers::hooks_track::ai_summary::SessionAnalysis;
+use crate::types::session_analysis::{
+    BestPracticeItem, EfficiencyMetrics, GoalOutcomeMapping, SkillScores,
+};
 
 pub type SessionAnalysisDetail = SessionAnalysisRow;
 
@@ -20,11 +24,11 @@ pub struct SessionAnalysisRow {
     pub error_analysis: Option<String>,
     pub skill_assessment: Option<String>,
     pub recommendations: Option<String>,
-    pub skill_scores: Option<serde_json::Value>,
+    pub skill_scores: Option<Json<SkillScores>>,
     pub category: String,
-    pub goal_outcome_map: Option<serde_json::Value>,
-    pub efficiency_metrics: Option<serde_json::Value>,
-    pub best_practices_checklist: Option<serde_json::Value>,
+    pub goal_outcome_map: Option<Json<Vec<GoalOutcomeMapping>>>,
+    pub efficiency_metrics: Option<Json<EfficiencyMetrics>>,
+    pub best_practices_checklist: Option<Json<Vec<BestPracticeItem>>>,
     pub improvement_hints: Option<String>,
     pub corrections_count: i32,
     pub session_duration_minutes: Option<i32>,
@@ -42,11 +46,11 @@ struct UpsertParams {
     error_analysis: Option<String>,
     skill_assessment: Option<String>,
     recommendations: Option<String>,
-    skill_scores_json: Option<serde_json::Value>,
+    skill_scores_json: Option<Json<SkillScores>>,
     category: String,
-    goal_outcome_map_json: Option<serde_json::Value>,
-    efficiency_metrics_json: Option<serde_json::Value>,
-    best_practices_json: Option<serde_json::Value>,
+    goal_outcome_map_json: Option<Json<Vec<GoalOutcomeMapping>>>,
+    efficiency_metrics_json: Option<Json<EfficiencyMetrics>>,
+    best_practices_json: Option<Json<Vec<BestPracticeItem>>>,
     improvement_hints: Option<String>,
     corrections_count: i32,
     duration_minutes: Option<i32>,
@@ -68,23 +72,17 @@ fn prepare_upsert_params(analysis: &SessionAnalysis) -> UpsertParams {
         error_analysis: analysis.error_analysis.clone(),
         skill_assessment: analysis.skill_assessment.clone(),
         recommendations: analysis.recommendations.clone(),
-        skill_scores_json: analysis
-            .skill_scores
-            .as_ref()
-            .and_then(|s| serde_json::to_value(s).ok()),
+        skill_scores_json: analysis.skill_scores.clone().map(Json),
         category: analysis.category.as_deref().unwrap_or("other").to_owned(),
         goal_outcome_map_json: analysis
             .goal_outcome_map
             .as_ref()
-            .and_then(|v| serde_json::to_value(v).ok()),
-        efficiency_metrics_json: analysis
-            .efficiency_metrics
-            .as_ref()
-            .and_then(|v| serde_json::to_value(v).ok()),
+            .map(|v| Json(v.iter().cloned().collect())),
+        efficiency_metrics_json: analysis.efficiency_metrics.map(Json),
         best_practices_json: analysis
             .best_practices_checklist
             .as_ref()
-            .and_then(|v| serde_json::to_value(v).ok()),
+            .map(|v| Json(v.iter().cloned().collect())),
         improvement_hints: analysis.improvement_hints.clone(),
         corrections_count: analysis
             .efficiency_metrics
@@ -182,11 +180,11 @@ async fn run_upsert_query(
         p.error_analysis,
         p.skill_assessment,
         p.recommendations,
-        p.skill_scores_json,
+        p.skill_scores_json as _,
         p.category,
-        p.goal_outcome_map_json,
-        p.efficiency_metrics_json,
-        p.best_practices_json,
+        p.goal_outcome_map_json as _,
+        p.efficiency_metrics_json as _,
+        p.best_practices_json as _,
         p.improvement_hints,
         p.corrections_count,
         p.duration_minutes,

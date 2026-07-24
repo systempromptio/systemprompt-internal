@@ -1,8 +1,9 @@
 //! `eval_runs` writes and reads.
 
 use chrono::{DateTime, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
+use sqlx::types::Json;
 
 use super::{EvalRunKind, EvalRunStatus};
 use crate::util::time_range::TimeRange;
@@ -25,13 +26,29 @@ pub struct EvalRunRow {
     pub mean_score: Option<f64>,
 }
 
+/// Snapshot of what a run covered, frozen onto `eval_runs.filter` so the run
+/// can be read back later without guessing.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EvalRunFilterSnapshot {
+    pub from: DateTime<Utc>,
+    pub to: DateTime<Utc>,
+    #[serde(default)]
+    pub user_id: Option<String>,
+    #[serde(default)]
+    pub model: Option<String>,
+    #[serde(default)]
+    pub provider: Option<String>,
+    #[serde(default)]
+    pub compare_models: Vec<String>,
+}
+
 #[derive(Debug)]
 pub struct InsertRunParams<'a> {
     pub id: &'a str,
     pub kind: EvalRunKind,
     pub judge_provider: &'a str,
     pub judge_model: &'a str,
-    pub filter: serde_json::Value,
+    pub filter: Json<EvalRunFilterSnapshot>,
     pub sample_size: i32,
     pub created_by: &'a str,
 }
@@ -45,7 +62,7 @@ pub async fn insert_run(pool: &PgPool, params: InsertRunParams<'_>) -> Result<()
         params.kind.as_str(),
         params.judge_provider,
         params.judge_model,
-        params.filter,
+        params.filter as _,
         params.sample_size,
         params.created_by,
     )

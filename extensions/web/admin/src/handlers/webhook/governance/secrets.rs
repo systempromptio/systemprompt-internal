@@ -194,10 +194,10 @@ fn collect_strings(value: &serde_json::Value, out: &mut Vec<String>) {
     }
 }
 
-/// Scan a flat string for the first matching secret pattern, returning a
-/// redacted excerpt. Shares [`SECRET_PATTERNS`] with the governance webhook so
-/// the gateway safety scanner and the tool-use governor flag the same
-/// credentials.
+// Why: scan a flat string for the first matching secret pattern, returning a
+// redacted excerpt. Shares [`SECRET_PATTERNS`] with the governance webhook so
+// the gateway safety scanner and the tool-use governor flag the same
+// credentials.
 pub(crate) fn scan_str_for_secret(text: &str) -> Option<String> {
     for pattern in SECRET_PATTERNS {
         if let Some(match_start) = text.find(pattern.prefix) {

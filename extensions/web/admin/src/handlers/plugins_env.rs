@@ -37,7 +37,7 @@ pub(crate) async fn list_plugin_env_handler(
         return Err(AdminError::Unauthorized("missing principal".to_owned()));
     };
 
-    // Why this must not degrade to an empty list: `definitions` decides
+    // Why: this must not degrade to an empty list — `definitions` decides
     // `missing_required`, which decides `valid`, which is the flag the UI uses
     // to enable "Generate/Export". A `config.yaml` that fails to parse would
     // otherwise read as "this plugin needs no configuration" and unlock the
@@ -120,10 +120,6 @@ struct PluginSection {
     variables: Vec<PluginVariableDef>,
 }
 
-/// One environment variable a plugin declares it needs.
-///
-/// Serialized straight to the plugin-env screen, which reads exactly these
-/// fields — so the type is the contract with that screen, not just a parse.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub(crate) struct PluginVariableDef {
     pub name: String,

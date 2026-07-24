@@ -9,22 +9,31 @@ use crate::repositories::evals::{EvalRunKind, EvalRunStatus, EvalVerdict, runs};
 use super::judge::JudgeConfig;
 use super::{EvalRunRequest, ModelRef};
 
-/// Per-run tallies shared by the replay and pairwise executors.
 #[derive(Debug, Clone, Copy, Default)]
-pub struct RunTally {
+pub(crate) struct RunTally {
     pub scored: i32,
     pub failed: i32,
     pub cost: i64,
 }
 
-pub(crate) async fn open_run(
-    pool: &PgPool,
-    run_id: &str,
-    kind: EvalRunKind,
-    config: &JudgeConfig,
-    request: &EvalRunRequest,
-    sample_size: usize,
-) -> Result<(), sqlx::Error> {
+pub(crate) struct OpenRunParams<'a> {
+    pub pool: &'a PgPool,
+    pub run_id: &'a str,
+    pub kind: EvalRunKind,
+    pub config: &'a JudgeConfig,
+    pub request: &'a EvalRunRequest,
+    pub sample_size: usize,
+}
+
+pub(crate) async fn open_run(params: OpenRunParams<'_>) -> Result<(), sqlx::Error> {
+    let OpenRunParams {
+        pool,
+        run_id,
+        kind,
+        config,
+        request,
+        sample_size,
+    } = params;
     runs::insert_run(
         pool,
         runs::InsertRunParams {
@@ -32,16 +41,21 @@ pub(crate) async fn open_run(
             kind,
             judge_provider: &config.provider,
             judge_model: &config.model,
-            filter: serde_json::json!({
-                "from": request.range.from,
-                "to": request.range.to,
-                "user_id": request.filter.user_id.as_ref().map(UserId::as_str),
-                "model": request.filter.model,
-                "provider": request.filter.provider,
-                "compare_models": request.compare_models
+            filter: sqlx::types::Json(runs::EvalRunFilterSnapshot {
+                from: request.range.from,
+                to: request.range.to,
+                user_id: request
+                    .filter
+                    .user_id
+                    .as_ref()
+                    .map(|u| UserId::as_str(u).to_owned()),
+                model: request.filter.model.clone(),
+                provider: request.filter.provider.clone(),
+                compare_models: request
+                    .compare_models
                     .iter()
                     .map(ModelRef::as_value)
-                    .collect::<Vec<_>>(),
+                    .collect(),
             }),
             sample_size: i32::try_from(sample_size).unwrap_or(i32::MAX),
             created_by: request.actor.as_str(),

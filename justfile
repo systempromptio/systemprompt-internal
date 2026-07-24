@@ -242,6 +242,7 @@ lint-gates:
     bash scripts/lint-raw-ids.sh
     bash scripts/check-glob-reexports.sh
     bash scripts/check-comments.sh
+    bash scripts/lint-inline-comments.sh
     bash scripts/check-duplicate-types.sh
     bash scripts/check-repository-naming.sh
     bash scripts/check-admin-css-classes.sh
@@ -267,6 +268,10 @@ audit-standards:
 # 300-line ceiling on extension sources (same script CI runs)
 file-size:
     bash scripts/check-file-size.sh
+
+# Detect unused dependencies (same check the CI machete job runs)
+machete:
+    cargo machete
 
 # Supply-chain gates: cargo-deny (licenses/bans/advisories) and cargo-audit
 deny:

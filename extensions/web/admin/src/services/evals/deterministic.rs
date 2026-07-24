@@ -28,7 +28,7 @@ const REFUSAL_MARKERS: [&str; 6] = [
 const VERBOSE_CHARS: usize = 12_000;
 
 #[derive(Debug, Clone)]
-pub struct PrePass {
+pub(crate) struct PrePass {
     pub flags: Vec<String>,
     /// Set when the item is decided without a judge call.
     pub short_circuit: Option<(EvalVerdict, String)>,
@@ -37,7 +37,7 @@ pub struct PrePass {
 }
 
 #[must_use]
-pub fn run_pre_pass(candidate: &EvalCandidate) -> PrePass {
+pub(crate) fn run_pre_pass(candidate: &EvalCandidate) -> PrePass {
     let prompt = extract::final_user_prompt(candidate.request_body.as_ref())
         .or_else(|| candidate.request_excerpt.clone());
     let answer = extract::assistant_answer(candidate.response_body.as_ref())

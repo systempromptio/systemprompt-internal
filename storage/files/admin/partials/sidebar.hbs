@@ -78,6 +78,10 @@
             <svg class="icon" aria-hidden="true" viewBox="0 0 16 16" fill="currentColor"><path d="M2 3h12v1H2zm0 3h10v1H2zm0 3h12v1H2zm0 3h8v1H2z"/></svg>
             Contexts
         </a>
+        <a href="/admin/evals"{{#if (eq page "evals")}} class="active" aria-current="page"{{else}}{{#if (eq page "eval-run-detail")}} class="active" aria-current="page"{{/if}}{{/if}}>
+            <svg class="icon" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 13V9M8 13V4M13 13v-6M2 13h12" stroke-linecap="round"/><path d="M11.5 3.5l1.5 1.5 2.5-2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Evals
+        </a>
         {{/if}}
 
         {{!-- ACCOUNT — small footer group --}}

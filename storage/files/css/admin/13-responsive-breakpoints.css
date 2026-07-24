@@ -1,6 +1,5 @@
 @layer responsive {
 
-
 @media (max-width: 768px) {
     .dashboard-two-col {
         grid-template-columns: 1fr;
@@ -30,7 +29,6 @@
         width: 100vw;
     }
 
-
     .card, .stat-card, .health-card {
         --sp-shadow-card: var(--sp-shadow-sm);
         --sp-shadow-card-hover: var(--sp-shadow-md);
@@ -38,22 +36,10 @@
     .plugin-card {
         --sp-shadow-card: var(--sp-shadow-sm);
         --sp-shadow-card-hover: var(--sp-shadow-md);
-    }
-
-    .sf-session-title {
-        white-space: normal;
-        word-break: break-word;
-    }
-
-    .sf-session-header {
-        padding-right: var(--sp-space-8);
-    }
-
-    .dashboard-two-col {
+    }    .dashboard-two-col {
         grid-template-columns: 1fr;
     }
 }
-
 
 @media (hover: none) {
     .data-table tr:hover td {
@@ -74,7 +60,6 @@
         box-shadow: none;
     }
 }
-
 
 @media print {
     .admin-layout .admin-sidebar,

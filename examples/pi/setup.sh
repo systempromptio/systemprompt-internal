@@ -5,7 +5,9 @@
 #   1. Installs the Pi coding agent if missing (npm).
 #   2. Mints a gateway JWT via `systemprompt admin session login` and extracts
 #      the session_id claim (the gateway enforces x-session-id == token.session_id).
-#   3. Writes token + session id to ~/.config/systemprompt-pi/ (chmod 600).
+#   3. Writes the token to ~/.config/systemprompt-pi/ (chmod 600). The session
+#      is not written: the governance extension reads the JWT's own session_id
+#      claim, and a PAT caller mints one at POST /api/public/gateway/sessions.
 #   4. Installs the `systemprompt` provider into ~/.pi/agent/models.json and
 #      the branded theme into ~/.pi/agent/themes/.
 #   5. Smoke-tests POST /v1/messages through the gateway.
@@ -82,7 +84,6 @@ SESSION_ID=$(_jwt_payload_b64 "$TOKEN" | tr '_-' '/+' | base64 -d 2>/dev/null \
 
 mkdir -p "$CRED_DIR"
 printf '%s' "$TOKEN" > "$CRED_DIR/token"
-printf '%s' "$SESSION_ID" > "$CRED_DIR/session-id"
 # The governance extension resolves the gateway from here rather than guessing
 # a port, so a profile on a non-default port needs no extension edit.
 printf '%s' "$BASE_URL" > "$CRED_DIR/base-url"
@@ -90,7 +91,7 @@ printf '%s' "$BASE_URL" > "$CRED_DIR/base-url"
 # setup needs no separate credential. new-user.sh overwrites this with a
 # user-scope plugin token, which is the one that actually gets denied.
 printf '%s' "$TOKEN" > "$CRED_DIR/hook-token"
-chmod 600 "$CRED_DIR/token" "$CRED_DIR/session-id" "$CRED_DIR/hook-token"
+chmod 600 "$CRED_DIR/token" "$CRED_DIR/hook-token"
 pass "Credentials written to $CRED_DIR (session $SESSION_ID)"
 
 # ── 3. Install models.json + theme ──

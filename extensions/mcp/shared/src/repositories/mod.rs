@@ -32,11 +32,9 @@ pub(crate) async fn insert_mcp_access(
     Ok(())
 }
 
-/// Resolve the id of the dedicated anonymous principal, if one exists.
-///
-/// Rejections must never be attributed to an arbitrary user, so this looks up
-/// only the reserved `*@anonymous.local` account and returns `None` when it is
-/// absent rather than falling back to whatever user happens to be first.
+// Why: rejections must never be attributed to an arbitrary user, so this looks
+// up only the reserved `*@anonymous.local` account and returns `None` when it
+// is absent rather than falling back to whatever user happens to be first.
 pub(crate) async fn find_anonymous_user_id(pool: &PgPool) -> Result<Option<UserId>, sqlx::Error> {
     let row = sqlx::query!(
         r#"SELECT id as "id: UserId" FROM users WHERE email LIKE '%@anonymous.local' ORDER BY created_at LIMIT 1"#

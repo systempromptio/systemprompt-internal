@@ -38,7 +38,7 @@ pub(crate) fn extract_user_from_cookie(
     })
 }
 
-fn extract_token_from_headers(headers: &HeaderMap) -> Result<String, AdminError> {
+pub(crate) fn extract_token_from_headers(headers: &HeaderMap) -> Result<String, AdminError> {
     if let Some(auth) = headers.get("authorization").and_then(|v| v.to_str().ok())
         && let Some(token) = auth
             .strip_prefix("Bearer ")

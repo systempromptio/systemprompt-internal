@@ -1,6 +1,6 @@
 //! Pulling readable text out of stored gateway payloads.
 //!
-//! `ai_request_payloads.request_body` is whatever the client POSTed to
+//! `ai_request_payloads.request_body` is whatever the client sent to
 //! `/v1/messages` and `response_body` is what came back, so both are
 //! Anthropic-shaped: `content` is either a bare string or a list of typed
 //! blocks. Everything here degrades to the stored excerpt rather than failing,
@@ -8,9 +8,8 @@
 
 use serde_json::Value;
 
-/// The final user turn — what the assistant was actually answering.
 #[must_use]
-pub fn final_user_prompt(request_body: Option<&Value>) -> Option<String> {
+pub(crate) fn final_user_prompt(request_body: Option<&Value>) -> Option<String> {
     let messages = request_body?.get("messages")?.as_array()?;
     messages
         .iter()
@@ -21,28 +20,17 @@ pub fn final_user_prompt(request_body: Option<&Value>) -> Option<String> {
         .filter(|s| !s.trim().is_empty())
 }
 
-/// The system prompt the client sent, if any. Included in the judge's view so
-/// it can tell an instruction the user gave from one the harness gave.
 #[must_use]
-pub fn system_prompt(request_body: Option<&Value>) -> Option<String> {
-    let system = request_body?.get("system")?;
-    let text = flatten_content(system);
-    (!text.trim().is_empty()).then_some(text)
-}
-
-/// The assistant's answer text, tool calls flattened into a readable form.
-#[must_use]
-pub fn assistant_answer(response_body: Option<&Value>) -> Option<String> {
+pub(crate) fn assistant_answer(response_body: Option<&Value>) -> Option<String> {
     let body = response_body?;
     let content = body.get("content").or_else(|| body.get("completion"))?;
     let text = flatten_content(content);
     (!text.trim().is_empty()).then_some(text)
 }
 
-/// How many tool-use blocks the answer contains. A non-zero count with no text
-/// is a normal agentic turn, not an empty answer.
+// Why: a non-zero count with no text is a normal agentic turn, not an empty answer.
 #[must_use]
-pub fn tool_use_count(response_body: Option<&Value>) -> usize {
+pub(crate) fn tool_use_count(response_body: Option<&Value>) -> usize {
     response_body
         .and_then(|b| b.get("content"))
         .and_then(Value::as_array)
@@ -54,9 +42,8 @@ pub fn tool_use_count(response_body: Option<&Value>) -> usize {
         })
 }
 
-/// The provider's own stop reason, when it recorded one.
 #[must_use]
-pub fn stop_reason(response_body: Option<&Value>) -> Option<String> {
+pub(crate) fn stop_reason(response_body: Option<&Value>) -> Option<String> {
     response_body?
         .get("stop_reason")?
         .as_str()
@@ -109,10 +96,10 @@ fn flatten_block(block: &Value) -> Option<String> {
     }
 }
 
-/// Cap text handed to the judge. Long transcripts cost judge tokens without
-/// improving the verdict, and the tail is where the answer actually is.
+// Why: long transcripts cost judge tokens without improving the verdict, and the
+// tail is where the answer actually is, so keep head and tail rather than a prefix.
 #[must_use]
-pub fn truncate_for_judge(text: &str, max_chars: usize) -> String {
+pub(crate) fn truncate_for_judge(text: &str, max_chars: usize) -> String {
     if text.chars().count() <= max_chars {
         return text.to_owned();
     }
@@ -126,9 +113,8 @@ pub fn truncate_for_judge(text: &str, max_chars: usize) -> String {
     })
 }
 
-/// Short single-line excerpt for the results table.
 #[must_use]
-pub fn excerpt(text: &str, max_chars: usize) -> String {
+pub(crate) fn excerpt(text: &str, max_chars: usize) -> String {
     let collapsed = text.split_whitespace().collect::<Vec<_>>().join(" ");
     if collapsed.chars().count() <= max_chars {
         collapsed

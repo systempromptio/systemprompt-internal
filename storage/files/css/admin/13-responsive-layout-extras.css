@@ -93,10 +93,5 @@
     .toast {
         max-width: none;
     }
-    .platform-info-bar { flex-wrap: wrap; }
-    .section-header { flex-wrap: wrap; }
-    .selection-save-bar { flex-direction: column; gap: var(--sp-space-2); }
-
-    html .hide-mobile { display: none; }
 }
 }

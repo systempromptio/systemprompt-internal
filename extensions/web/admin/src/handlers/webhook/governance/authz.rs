@@ -99,14 +99,14 @@ async fn load_rules(
         .await
         .map_err(|e| {
             tracing::error!(error = %e, entity_type = %kind, entity_id = %id, "list_rules_for_entity failed");
-            // lint-ok: http-error — the authz hook's own wire contract: core
+            // Why: lint-ok: http-error — the authz hook's own wire contract: core
             // reads a non-decision status as "hook unavailable", so this must
             // stay distinguishable from a deny body rather than become one.
             (StatusCode::INTERNAL_SERVER_ERROR, "list_rules failed").into_response()
         })?;
     let entity = repo.get_entity(kind, id).await.map_err(|e| {
         tracing::error!(error = %e, entity_type = %kind, entity_id = %id, "get_entity failed");
-        // lint-ok: http-error — same wire contract as above.
+        // Why: lint-ok: http-error — same wire contract as above.
         (StatusCode::INTERNAL_SERVER_ERROR, "get_entity failed").into_response()
     })?;
     Ok((rules, entity))
@@ -127,7 +127,7 @@ async fn audit_decision(
     let id = uuid::Uuid::new_v4().to_string();
     let entity_type_str = req.entity.kind().as_str();
     let entity_id_str = req.entity.id_str();
-    // variable-shape: governance audit `evaluated_rules` JSONB payload embedding
+    // JSON: variable-shape: governance audit `evaluated_rules` JSONB payload embedding
     // caller-supplied roles/attributes/context maps, not a template/response
     // body
     let evaluated = serde_json::json!({
@@ -175,7 +175,7 @@ pub(crate) async fn govern_authz(
     State(pool): State<Arc<PgPool>>,
     Json(req): Json<AuthzRequest>,
 ) -> Response {
-    // lint-ok: http-error — a hook answers 200 with a decision; an error status
+    // Why: lint-ok: http-error — a hook answers 200 with a decision; an error status
     // reads as "hook unavailable" and lets the call through
     let repo = AccessControlRepository::from_pool(Arc::clone(&pool));
 
@@ -194,7 +194,7 @@ pub(crate) async fn govern_authz(
         })
         .collect();
 
-    // Resolved by lookup rather than read off the request, so a department
+    // Why: resolved by lookup rather than read off the request, so a department
     // change or a revocation binds on the next call instead of waiting for the
     // caller's token to refresh.
     let attributes = subject_attributes_for(&pool, &req.user_id).await;

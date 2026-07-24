@@ -165,6 +165,13 @@ fn entity_routes() -> Router<Arc<PgPool>> {
             "/entities/traces/{trace_id}",
             get(handlers::ssr::perf_trace_detail_page),
         )
+        .route("/evals", get(handlers::ssr::evals_page))
+        .route("/evals/run", post(handlers::ssr::eval_run_action))
+        .route(
+            "/evals/cases",
+            post(handlers::ssr::eval_promote_case_action),
+        )
+        .route("/evals/runs/{run_id}", get(handlers::ssr::eval_run_detail_page))
         .route(
             "/entities/contexts",
             get(handlers::ssr::skills_contexts_page),

@@ -18,7 +18,7 @@ pub(crate) async fn settings_page(
     Extension(engine): Extension<AdminTemplateEngine>,
     State(pool): State<Arc<PgPool>>,
 ) -> AdminHtmlResult<Response> {
-    // Why this one propagates rather than degrading: the form below is bound to
+    // Why: this one propagates rather than degrading: the form below is bound to
     // these values and `collectFormData()` reads every field back out and PUTs
     // the whole object. Rendering the struct defaults would tell the user their
     // settings had been reset, and the natural response — setting them again —

@@ -71,7 +71,7 @@ pub(crate) async fn context_detail_page(
         tracing::warn!(error = %e, "list_context_messages failed");
         Vec::new()
     });
-    // The transcript interleaves messages and tool calls under one empty state,
+    // Why: the transcript interleaves messages and tool calls under one empty state,
     // and no KPI counts tool calls — so losing these renders a complete-looking
     // conversation with every tool invocation silently removed and nothing
     // anywhere on the page indicating an omission. On a surface whose purpose

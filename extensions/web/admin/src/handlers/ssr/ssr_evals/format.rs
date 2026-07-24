@@ -1,7 +1,7 @@
 //! Shared display formatting for the Evals page views.
 
-/// A 1-5 score as a 0-100 bar fill. 1 is the floor of the scale, not zero, so
-/// the bar reflects the band rather than the raw number.
+// Why: 1 is the floor of the 1-5 scale, not zero, so the bar fill reflects
+// the band rather than the raw number.
 pub(super) fn score_pct(score: f64) -> i64 {
     if score <= 0.0 {
         return 0;

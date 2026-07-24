@@ -28,6 +28,7 @@ pub struct GatewayAclDecision<'a> {
     pub agent_scope: &'a str,
     pub decision: &'a str,
     pub reason: &'a str,
+    // JSON: governance audit payload; each policy stage writes its own shape.
     pub evaluated_rules: &'a Value,
 }
 

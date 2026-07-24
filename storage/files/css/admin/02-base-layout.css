@@ -47,9 +47,15 @@ body {
     border: 0;
 }
 
+/* One source of truth for the page gutter: full-bleed elements cancel it with
+   calc(-1 * var(--sp-gutter)), so the two can never drift apart per breakpoint. */
+.admin-main {
+    --sp-gutter: var(--sp-space-10);
+}
+
 .admin-main > *:not(.admin-footer) {
-    padding-left: var(--sp-space-10);
-    padding-right: var(--sp-space-10);
+    padding-left: var(--sp-gutter);
+    padding-right: var(--sp-gutter);
 }
 
 header.admin-header,

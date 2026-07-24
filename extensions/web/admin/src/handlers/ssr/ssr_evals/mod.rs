@@ -15,14 +15,16 @@ use std::sync::Arc;
 
 use axum::Form;
 use axum::extract::{Extension, Path, Query, State};
+use axum::http::HeaderMap;
 use axum::response::{Redirect, Response};
 use serde::Deserialize;
 use sqlx::PgPool;
-use systemprompt::ai::AiService;
+use systemprompt::models::Config;
 
 use crate::error::{AdminError, AdminHtmlResult};
 use crate::repositories::evals::sampling::CandidateFilter;
 use crate::repositories::evals::{EvalRunKind, results, runs};
+use crate::services::evals::gateway_client::GatewayCredential;
 use crate::services::evals::{
     self, EvalError, EvalRunOutcome, EvalRunRequest, MAX_SAMPLE_SIZE, ModelRef,
 };
@@ -37,7 +39,7 @@ mod view_runs;
 
 use context::{EvalsPageContext, NoticeView, RunDetailContext};
 
-pub(self) const BASE_URL: &str = "/admin/evals";
+const BASE_URL: &str = "/admin/evals";
 const DEFAULT_SAMPLE_SIZE: i64 = 20;
 const RUN_DETAIL_RESULT_LIMIT: i64 = 200;
 
@@ -54,7 +56,6 @@ pub(crate) async fn evals_page(
     Extension(user_ctx): Extension<UserContext>,
     Extension(mkt_ctx): Extension<MarketplaceContext>,
     Extension(engine): Extension<AdminTemplateEngine>,
-    Extension(ai_service): Extension<Option<Arc<AiService>>>,
     State(pool): State<Arc<PgPool>>,
     Query(query): Query<EvalsQuery>,
 ) -> AdminHtmlResult<Response> {
@@ -87,24 +88,15 @@ pub(crate) async fn evals_page(
         histogram_max,
         cost_series,
         cost_max,
-        has_models: !models.is_empty(),
         models,
-        has_users: !users.is_empty(),
         users,
-        has_topics: !topics.is_empty(),
         topics,
-        has_win_rates: !win_rates.is_empty(),
         win_rates,
-        has_runs: !run_views.is_empty(),
         runs: run_views,
-        has_results: !result_views.is_empty(),
         results: result_views,
-        has_cases: !case_views.is_empty(),
         cases: case_views,
         model_options,
-        judge_model: ai_service
-            .as_ref()
-            .map_or_else(|| "unavailable".to_owned(), |ai| ai.default_model().to_owned()),
+        judge_model: default_judge_label(&fetched.models),
         default_sample_size: DEFAULT_SAMPLE_SIZE,
         max_sample_size: MAX_SAMPLE_SIZE,
         base_url: BASE_URL,
@@ -140,9 +132,8 @@ pub(crate) async fn eval_run_detail_page(
 
     let ctx = RunDetailContext {
         page: "eval-run-detail",
-        title: format!("Eval run · {}", &run_id.chars().take(14).collect::<String>()),
+        title: format!("Eval run · {}", run_id.chars().take(14).collect::<String>()),
         run: view_runs::run_row(&run),
-        has_results: !result_views.is_empty(),
         results: result_views,
         back_url: BASE_URL,
     };
@@ -165,33 +156,42 @@ pub(crate) struct RunEvalForm {
     pub model: Option<String>,
     pub model_a: Option<String>,
     pub model_b: Option<String>,
+    pub judge_model: Option<String>,
 }
 
 pub(crate) async fn eval_run_action(
     Extension(user_ctx): Extension<UserContext>,
-    Extension(ai_service): Extension<Option<Arc<AiService>>>,
     State(pool): State<Arc<PgPool>>,
+    headers: HeaderMap,
     Form(form): Form<RunEvalForm>,
 ) -> AdminHtmlResult<Redirect> {
     require_admin(&user_ctx)?;
 
     let range = data::range_from_strings(form.from.as_deref(), form.to.as_deref());
 
-    let Some(ai) = ai_service else {
-        return Ok(Redirect::to(&view::redirect_url(
-            &range,
-            "AI service is not available, so no judge could be run.",
-            true,
-        )));
+    let credential = match credential_from_request(&headers) {
+        Ok(c) => c,
+        Err(message) => return Ok(Redirect::to(&view::redirect_url(&range, &message, true))),
     };
 
     let kind = EvalRunKind::from_str_opt(&form.kind).unwrap_or(EvalRunKind::Judge);
-    let compare_models = [form.model_a.as_deref(), form.model_b.as_deref()]
-        .into_iter()
-        .chain(std::iter::once(form.model.as_deref()))
-        .flatten()
-        .filter_map(ModelRef::parse)
-        .collect::<Vec<_>>();
+    let compare_models = [
+        form.model_a.as_deref(),
+        form.model_b.as_deref(),
+        form.model.as_deref(),
+    ]
+    .into_iter()
+    .flatten()
+    .filter_map(ModelRef::parse)
+    .collect::<Vec<_>>();
+
+    let Some(judge) = form.judge_model.as_deref().and_then(ModelRef::parse) else {
+        return Ok(Redirect::to(&view::redirect_url(
+            &range,
+            "Pick a judge model before running an evaluation.",
+            true,
+        )));
+    };
 
     let request = EvalRunRequest {
         kind,
@@ -200,15 +200,35 @@ pub(crate) async fn eval_run_action(
         sample_size: form.sample_size.unwrap_or(DEFAULT_SAMPLE_SIZE),
         actor: user_ctx.user_id.clone(),
         compare_models,
+        credential,
+        judge,
     };
 
-    let outcome = match kind {
-        EvalRunKind::Judge => evals::run_judge_eval(&pool, &ai, &request).await,
-        EvalRunKind::Replay => evals::run_replay_eval(&pool, &ai, &request).await,
-        EvalRunKind::Pairwise => evals::run_pairwise_eval(&pool, &ai, &request).await,
+    let outcome = match request.kind {
+        EvalRunKind::Judge => evals::run_judge_eval(&pool, &request).await,
+        EvalRunKind::Replay => evals::run_replay_eval(&pool, &request).await,
+        EvalRunKind::Pairwise => evals::run_pairwise_eval(&pool, &request).await,
     };
 
     Ok(Redirect::to(&run_redirect(&range, kind, outcome)))
+}
+
+/// Rebuild the operator's gateway credential from the request that launched
+/// the run. The `x-session-id` the gateway demands must equal the JWT's own
+/// `session_id` claim, so both come from the same token rather than from
+/// anything the form could set.
+fn credential_from_request(headers: &HeaderMap) -> Result<GatewayCredential, String> {
+    let token = crate::handlers::extract_token_from_headers(headers)
+        .map_err(|e| format!("Could not read your session token: {e}"))?;
+    let claims = systemprompt::security::extract_user_context(&token)
+        .map_err(|e| format!("Your session token could not be validated: {e}"))?;
+    let config = Config::get().map_err(|e| format!("Configuration unavailable: {e}"))?;
+
+    Ok(GatewayCredential {
+        base_url: config.api_internal_url.clone(),
+        token,
+        session_id: claims.session_id.as_str().to_owned(),
+    })
 }
 
 fn run_redirect(
@@ -220,8 +240,9 @@ fn run_redirect(
         Ok(o) => view::redirect_url(
             range,
             &format!(
-                "{} run finished: {} scored, {} failed, judge cost ${:.4}.",
+                "{} run {} finished: {} scored, {} failed, judge cost ${:.4}.",
                 kind.as_str(),
+                o.run_id,
                 o.scored,
                 o.failed,
                 o.cost_microdollars as f64 / 1_000_000.0,
@@ -285,4 +306,16 @@ fn notice_from_query(query: &EvalsQuery) -> Option<NoticeView> {
         is_error: query.notice_error.as_deref() == Some("1"),
         message,
     })
+}
+
+/// Judge selection defaults to the least-used model in the window: the one
+/// least likely to be grading its own output, which is the bias the default
+/// most needs to avoid.
+fn default_judge_label(
+    models: &[crate::repositories::evals::distribution::ModelDistributionRow],
+) -> String {
+    models
+        .iter()
+        .min_by_key(|m| m.request_count)
+        .map_or_else(|| "none available".to_owned(), |m| m.model.clone())
 }

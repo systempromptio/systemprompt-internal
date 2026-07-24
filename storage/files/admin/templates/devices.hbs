@@ -107,7 +107,7 @@
             }
             const json = await resp.json();
             issuedBox.hidden = false;
-            issuedBox.textContent = 'Save this secret NOW — it will not be shown again:\n\n' + json.secret;
+            issuedBox.textContent = 'Save this secret now. It will not be shown again:\n\n' + json.secret;
         });
 
         document.querySelectorAll('[data-revoke-pat]').forEach(btn => {

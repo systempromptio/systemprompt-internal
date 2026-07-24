@@ -11,7 +11,7 @@ use crate::repositories::traces::{TraceFilter, TraceSortColumn, TraceSortDir, Tr
 use crate::util::time_range::TimeRange;
 
 use super::context::{
-    AnnotatedOption, Chip, EntityViewTab, Pagination, Preserved, StatsView, TimeRangeContext,
+    AnnotatedOption, Chip, Pagination, Preserved, StatsView, TimeRangeContext,
     TraceFilterOptionsView,
 };
 use super::{BASE_URL, TraceListQuery, empty_to_none};
@@ -31,32 +31,6 @@ pub(super) const fn sort_dir_to_str(d: TraceSortDir) -> &'static str {
         TraceSortDir::Asc => "asc",
         TraceSortDir::Desc => "desc",
     }
-}
-
-pub(super) fn view_tabs_qs(range: TimeRange, preset: &str) -> String {
-    format!(
-        "preset={}&from={}&to={}",
-        urlencode(preset),
-        urlencode(&range.from.to_rfc3339()),
-        urlencode(&range.to.to_rfc3339()),
-    )
-}
-
-pub(super) fn entity_view_tabs(active: &str, qs: &str) -> Vec<EntityViewTab> {
-    const TABS: &[(&str, &str, &str)] = &[
-        ("sessions", "Sessions", "/admin/entities/sessions"),
-        ("traces", "Traces", "/admin/entities/traces"),
-        ("requests", "Requests", "/admin/entities/requests"),
-        ("contexts", "Contexts", "/admin/entities/contexts"),
-    ];
-    TABS.iter()
-        .map(|(key, label, url)| EntityViewTab {
-            key,
-            label,
-            url: format!("{url}?{qs}"),
-            active: *key == active,
-        })
-        .collect()
 }
 
 pub(super) fn time_range_context(range: TimeRange, preset: &str) -> TimeRangeContext {
@@ -231,13 +205,13 @@ pub(super) fn build_pagination(query: &TraceListQuery, page: i64, total_pages: i
     }
 }
 
-pub(super) const fn serde_stats(s: &TraceStats) -> StatsView {
+pub(super) fn serde_stats(s: &TraceStats) -> StatsView {
     StatsView {
         total_traces: s.total_traces,
         error_count: s.error_count,
         deny_count: s.deny_count,
-        p50_ms: s.p50_duration_ms,
-        p95_ms: s.p95_duration_ms,
-        p99_ms: s.p99_duration_ms,
+        p50_display: super::rows::format_duration(s.p50_duration_ms),
+        p95_display: super::rows::format_duration(s.p95_duration_ms),
+        p99_display: super::rows::format_duration(s.p99_duration_ms),
     }
 }

@@ -22,6 +22,7 @@ mod ssr_conversations_raw;
 mod ssr_demo_help;
 mod ssr_demo_register;
 mod ssr_demo_trace;
+mod ssr_evals;
 mod ssr_governance;
 mod ssr_governance_audit_detail;
 mod ssr_governance_decisions;
@@ -52,6 +53,9 @@ pub(crate) use ssr_context_detail::context_detail_page;
 pub(crate) use ssr_conversations_raw::conversations_raw;
 pub(crate) use ssr_demo_register::demo_register_page;
 pub(crate) use ssr_demo_trace::demo_trace_page;
+pub(crate) use ssr_evals::{
+    eval_promote_case_action, eval_run_action, eval_run_detail_page, evals_page,
+};
 pub(crate) use ssr_governance::governance_page;
 pub(crate) use ssr_governance_audit_detail::governance_audit_detail_page;
 pub(crate) use ssr_governance_decisions::governance_decisions_page;

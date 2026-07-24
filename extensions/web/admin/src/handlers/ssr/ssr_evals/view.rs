@@ -188,8 +188,6 @@ pub(super) fn win_rate_rows(rows: &[ModelWinRateRow]) -> Vec<WinRateView> {
 }
 
 
-/// Every model seen in the window becomes a run target, carrying its provider
-/// so the engine never has to infer one.
 pub(super) fn model_options(models: &[ModelDistributionRow]) -> Vec<ModelOptionView> {
     models
         .iter()
@@ -222,7 +220,6 @@ pub(super) fn time_range_context(
     }
 }
 
-/// Where a completed action sends the user back to, preserving the window.
 pub(super) fn redirect_url(range: &TimeRange, notice: &str, is_error: bool) -> String {
     format!(
         "{BASE_URL}?from={}&to={}&notice={}&notice_error={}",

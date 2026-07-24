@@ -7,10 +7,7 @@
 //! position rather than content. Storing both rows keeps that measurable
 //! instead of averaging it away.
 
-use std::sync::Arc;
-
 use sqlx::PgPool;
-use systemprompt::ai::AiService;
 
 use crate::repositories::evals::cases::EvalCaseRow;
 use crate::repositories::evals::{PairWinner, results};
@@ -19,9 +16,8 @@ use super::judge::JudgeConfig;
 use super::replay::parse_winner;
 use super::{MAX_JUDGE_CHARS, ModelRef, RunTally, extract, judge, new_id, replay};
 
-pub struct PairwiseParams<'a> {
+pub(crate) struct PairwiseParams<'a> {
     pub pool: &'a PgPool,
-    pub ai: &'a Arc<AiService>,
     pub config: &'a JudgeConfig,
     pub run_id: &'a str,
     pub cases: &'a [EvalCaseRow],
@@ -29,7 +25,7 @@ pub struct PairwiseParams<'a> {
     pub model_b: &'a ModelRef,
 }
 
-pub async fn execute_pairwise(params: PairwiseParams<'_>) -> Result<RunTally, sqlx::Error> {
+pub(crate) async fn execute_pairwise(params: PairwiseParams<'_>) -> Result<RunTally, sqlx::Error> {
     let mut tally = RunTally::default();
 
     for case in params.cases {
@@ -40,8 +36,8 @@ pub async fn execute_pairwise(params: PairwiseParams<'_>) -> Result<RunTally, sq
         let prompt = extract::truncate_for_judge(&prompt, MAX_JUDGE_CHARS);
 
         let (answer_a, answer_b) = tokio::join!(
-            replay::answer_for(params.ai, params.config, params.model_a, &prompt),
-            replay::answer_for(params.ai, params.config, params.model_b, &prompt),
+            replay::answer_for(params.config, params.model_a, &prompt),
+            replay::answer_for(params.config, params.model_b, &prompt),
         );
 
         let (Some(answer_a), Some(answer_b)) = (answer_a, answer_b) else {
@@ -51,25 +47,22 @@ pub async fn execute_pairwise(params: PairwiseParams<'_>) -> Result<RunTally, sq
         let answer_a = extract::truncate_for_judge(&answer_a, MAX_JUDGE_CHARS);
         let answer_b = extract::truncate_for_judge(&answer_b, MAX_JUDGE_CHARS);
 
-        // Forward order: A first.
-        let forward = judge::judge_pair(
-            params.ai,
-            params.pool,
-            params.config,
-            &prompt,
-            &answer_a,
-            &answer_b,
-        )
+        let forward = judge::judge_pair(judge::PairParams {
+            pool: params.pool,
+            config: params.config,
+            prompt: &prompt,
+            answer_a: &answer_a,
+            answer_b: &answer_b,
+        })
         .await;
-        // Swapped order: B first, so a position-biased judge contradicts itself.
-        let reverse = judge::judge_pair(
-            params.ai,
-            params.pool,
-            params.config,
-            &prompt,
-            &answer_b,
-            &answer_a,
-        )
+        // Why: swapped order (B first) so a position-biased judge contradicts itself.
+        let reverse = judge::judge_pair(judge::PairParams {
+            pool: params.pool,
+            config: params.config,
+            prompt: &prompt,
+            answer_a: &answer_b,
+            answer_b: &answer_a,
+        })
         .await;
 
         let (Some(forward), Some(reverse)) = (forward, reverse) else {
@@ -79,7 +72,7 @@ pub async fn execute_pairwise(params: PairwiseParams<'_>) -> Result<RunTally, sq
         tally.cost += forward.cost_microdollars + reverse.cost_microdollars;
 
         let forward_winner = parse_winner(&forward.verdict.winner);
-        // In the swapped run the labels mean the opposite models.
+        // Why: in the swapped run the labels mean the opposite models.
         let reverse_winner = flip(parse_winner(&reverse.verdict.winner));
         let agreed = forward_winner == reverse_winner;
 

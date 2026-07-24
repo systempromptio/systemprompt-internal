@@ -19,10 +19,10 @@
  * Credentials come from ~/.config/systemprompt-pi/, written by
  * examples/pi/setup.sh and examples/pi/new-user.sh:
  *
- *   token       sp-live-… PAT — used by models.json for /v1/messages
+ *   token       sp-live-… PAT or session JWT — used by models.json for
+ *                                /v1/messages, and here to resolve the session
  *   hook-token  plugin JWT     — used HERE; /hooks/govern validates a JWT
  *                                (aud = hook|plugin|api) and rejects a PAT
- *   session-id  audit label shared by both
  *   base-url    gateway origin for this deployment's profile
  */
 
@@ -62,17 +62,82 @@ const BASE_URL = (
 ).replace(/\/$/, "");
 
 /**
- * Audit label for this run. The demo script pins it so its assertions can
- * select exactly the rows one run produced; interactively it falls back to the
- * label new-user.sh wrote, then to Pi's own session id.
+ * The one session id this Pi run reports, on both spines: the `session_id` in
+ * every hook payload and the `x-session-id` header on every provider request.
+ * Resolved once, at session start, by resolveSession().
  */
-function sessionId(ctx: { sessionManager?: { getSessionId?: () => string } }): string {
-  return (
-    process.env.SYSTEMPROMPT_PI_SESSION ||
-    readCred("session-id") ||
-    ctx.sessionManager?.getSessionId?.() ||
-    "pi-ungoverned"
-  );
+let SESSION_ID = "";
+let SESSION_RESOLUTION: Promise<string> | undefined;
+let SESSION_ERROR = "";
+
+/** The `session_id` claim of a JWT, or "" for anything that is not one. */
+function jwtSessionClaim(credential: string): string {
+  const payload = credential.split(".")[1];
+  if (!payload || credential.split(".").length !== 3) return "";
+  try {
+    const json = Buffer.from(payload, "base64url").toString("utf8");
+    const claims = JSON.parse(json) as { session_id?: unknown };
+    return typeof claims.session_id === "string" ? claims.session_id : "";
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Resolve the session this run is audited under.
+ *
+ * The gateway attests `x-session-id` against a session row it issued, so there
+ * is nothing to invent here — only two ways to obtain one:
+ *
+ *   JWT credential  it already carries a session_id claim, and the gateway
+ *                   requires the header to equal it.
+ *   PAT credential  mint a row at POST /api/public/gateway/sessions.
+ *
+ * SYSTEMPROMPT_PI_SESSION means "use this already-minted session" — the demo
+ * script mints one up front so its Part A curl calls and this Pi run share a
+ * timeline. It is not a free-form label: an id the server did not issue is
+ * rejected on the first provider call.
+ */
+async function resolveSession(): Promise<string> {
+  const pinned = process.env.SYSTEMPROMPT_PI_SESSION;
+  if (pinned) return pinned;
+
+  const credential = readCred("token");
+  const claimed = jwtSessionClaim(credential);
+  if (claimed) return claimed;
+
+  if (!credential) return "";
+
+  const res = await fetch(`${BASE_URL}/api/public/gateway/sessions`, {
+    method: "POST",
+    headers: { "x-api-key": credential, "content-type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(
+      `could not mint a gateway session (HTTP ${res.status}) — check ${CRED_DIR}/token`,
+    );
+  }
+  const { session_id: minted } = (await res.json()) as { session_id?: string };
+  if (!minted) throw new Error("gateway returned no session_id");
+  return minted;
+}
+
+/**
+ * Resolve once; every hook awaits the same promise. Never rejects: a failure
+ * here must not take a turn down, and it surfaces loudly anyway — without a
+ * session the gateway refuses the next provider call outright.
+ */
+function ensureSession(): Promise<string> {
+  SESSION_RESOLUTION ??= resolveSession()
+    .catch((err: unknown) => {
+      SESSION_ERROR = err instanceof Error ? err.message : String(err);
+      return "";
+    })
+    .then((id) => {
+      SESSION_ID = id;
+      return id;
+    });
+  return SESSION_RESOLUTION;
 }
 
 type Verdict = { allowed: boolean; reason?: string };
@@ -142,6 +207,29 @@ function track(body: Record<string, unknown>): void {
 }
 
 export default function (pi: ExtensionAPI) {
+  // ── One session, resolved once ─────────────────────────────────────────
+  // One Pi conversation is one audited session: governance decisions and
+  // `ai_requests` rows share this id, so /admin/demo/trace can show a blocked
+  // prompt and the model call it prevented in the same timeline.
+  pi.on("session_start", async (_event, ctx) => {
+    const id = await ensureSession();
+    if (!id) {
+      ctx.ui.notify(
+        SESSION_ERROR ||
+          `no gateway credential — run examples/pi/new-user.sh to write ${CRED_DIR}/token`,
+        "error",
+      );
+    }
+  });
+
+  // ── The header the gateway attests ─────────────────────────────────────
+  // Unconditional: both credential kinds resolve to a server-issued session,
+  // a JWT from its own claim and a PAT from the mint endpoint, so there is no
+  // credential shape left to sniff for.
+  pi.on("before_provider_headers", (event) => {
+    if (SESSION_ID) event.headers["x-session-id"] = SESSION_ID;
+  });
+
   // ── Prompt gate ────────────────────────────────────────────────────────
   // Fires before skill/template expansion and before any provider request, so
   // a credential pasted into the prompt is caught while it is still local.
@@ -149,7 +237,7 @@ export default function (pi: ExtensionAPI) {
     const verdict = await govern(
       {
         hook_event_name: "UserPromptSubmit",
-        session_id: sessionId(ctx),
+        session_id: await ensureSession(),
         cwd: process.cwd(),
         agent_id: AGENT_ID,
         prompt: event.text,
@@ -168,7 +256,7 @@ export default function (pi: ExtensionAPI) {
     const verdict = await govern(
       {
         hook_event_name: "PreToolUse",
-        session_id: sessionId(ctx),
+        session_id: await ensureSession(),
         cwd: process.cwd(),
         agent_id: AGENT_ID,
         tool_name: event.toolName,
@@ -187,10 +275,10 @@ export default function (pi: ExtensionAPI) {
   });
 
   // ── Post-execution tracking (Pi's PostToolUse) ─────────────────────────
-  pi.on("tool_result", (event, ctx) => {
+  pi.on("tool_result", (event) => {
     track({
       hook_event_name: "PostToolUse",
-      session_id: sessionId(ctx),
+      session_id: SESSION_ID,
       cwd: process.cwd(),
       transcript_path: "",
       permission_mode: "default",

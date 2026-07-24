@@ -50,11 +50,9 @@ pub(crate) async fn issue_pat(
     .into_response())
 }
 
-/// Admin-only: issue a PAT on behalf of another user.
-///
-/// The self-service `issue_pat` above keys on the session's own user id; this
-/// variant lets an operator provision a gateway credential for a freshly
-/// registered user (the Pi demo walkthrough) without logging in as them.
+// Why: unlike the self-service `issue_pat`, this issues for the body's target
+// user rather than the session's own id — the admin check below is the only
+// thing standing between any caller and another user's credential.
 pub(crate) async fn issue_user_pat(
     Extension(user_ctx): Extension<UserContext>,
     State(pool): State<Arc<PgPool>>,

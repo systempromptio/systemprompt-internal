@@ -84,20 +84,7 @@
 
 .data-table tfoot td.col-actions {
     background: inherit;
-}
-
-.invoice-link {
-    color: var(--sp-accent);
-    text-decoration: none;
-    font-weight: 600;
-}
-
-.invoice-link:hover {
-    text-decoration: underline;
-    opacity: 0.85;
-}
-
-.data-table .thumbnail-cell {
+}.data-table .thumbnail-cell {
     width: 56px;
     padding: var(--sp-space-1);
     text-align: center;

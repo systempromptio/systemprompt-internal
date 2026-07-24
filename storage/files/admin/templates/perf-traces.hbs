@@ -4,7 +4,6 @@
         title="Trace Explorer"
         subtitle="Every gateway call, governance decision, and tool invocation grouped into a trace. Click any row to see the full waterfall."}}
 
-    {{> components/entity-view-tabs entity_view_tabs}}
 
     {{> components/time-range time_range}}
     {{> components/identity-filter-ribbon filter_ribbon}}
@@ -13,9 +12,9 @@
       {{> components/stat-card label="Traces" value=stats.total_traces}}
       {{> components/stat-card label="With errors" value=stats.error_count variant="danger"}}
       {{> components/stat-card label="With denies" value=stats.deny_count variant="danger"}}
-      {{> components/stat-card label="p50" value=(concat stats.p50_ms " ms")}}
-      {{> components/stat-card label="p95" value=(concat stats.p95_ms " ms")}}
-      {{> components/stat-card label="p99" value=(concat stats.p99_ms " ms")}}
+      {{> components/stat-card label="p50" value=stats.p50_display}}
+      {{> components/stat-card label="p95" value=stats.p95_display}}
+      {{> components/stat-card label="p99" value=stats.p99_display}}
     </section>
 
     {{#if has_traces}}

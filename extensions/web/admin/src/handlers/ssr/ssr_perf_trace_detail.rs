@@ -81,7 +81,7 @@ pub(crate) async fn perf_trace_detail_page(
         .into());
     };
 
-    // `resolve_trace_session` just succeeded, which proves rows exist for this
+    // Why: `resolve_trace_session` just succeeded, which proves rows exist for this
     // id. Degrading a failed span fetch to an empty vec would fall into the
     // not-found arm below and answer "No spans found for that session or trace
     // id" — asserting as fact something this handler disproved one statement

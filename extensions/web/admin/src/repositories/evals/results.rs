@@ -1,12 +1,42 @@
 //! `eval_results` and `eval_pairs` writes and reads.
 
 use chrono::{DateTime, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
+use sqlx::types::Json;
 use systemprompt::identifiers::{SessionId, UserId};
 
 use super::{EvalVerdict, PairWinner};
 use crate::util::time_range::TimeRange;
+
+/// The five rubric dimensions a judge scores. A dimension the judge omitted
+/// stays `None` rather than collapsing to zero.
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
+pub struct DimensionScores {
+    #[serde(default)]
+    pub instruction_following: Option<i32>,
+    #[serde(default)]
+    pub correctness: Option<i32>,
+    #[serde(default)]
+    pub completeness: Option<i32>,
+    #[serde(default)]
+    pub format: Option<i32>,
+    #[serde(default)]
+    pub safety: Option<i32>,
+}
+
+impl DimensionScores {
+    #[must_use]
+    pub const fn labelled(&self) -> [(&'static str, Option<i32>); 5] {
+        [
+            ("Instructions", self.instruction_following),
+            ("Correctness", self.correctness),
+            ("Completeness", self.completeness),
+            ("Format", self.format),
+            ("Safety", self.safety),
+        ]
+    }
+}
 
 #[derive(Debug, Clone, Serialize)]
 pub struct EvalResultRow {
@@ -19,7 +49,7 @@ pub struct EvalResultRow {
     pub provider: String,
     pub model: String,
     pub overall_score: Option<i32>,
-    pub dimension_scores: serde_json::Value,
+    pub dimension_scores: Json<DimensionScores>,
     pub verdict: String,
     pub rationale: Option<String>,
     pub flags: Vec<String>,
@@ -42,7 +72,7 @@ pub struct InsertResultParams<'a> {
     pub provider: &'a str,
     pub model: &'a str,
     pub overall_score: Option<i32>,
-    pub dimension_scores: serde_json::Value,
+    pub dimension_scores: Json<DimensionScores>,
     pub verdict: EvalVerdict,
     pub rationale: Option<&'a str>,
     pub flags: &'a [String],
@@ -74,7 +104,7 @@ pub async fn insert_result(
         params.provider,
         params.model,
         params.overall_score,
-        params.dimension_scores,
+        serde_json::to_value(&params.dimension_scores.0).unwrap_or(serde_json::Value::Null),
         params.verdict.as_str(),
         params.rationale,
         params.flags,
@@ -106,7 +136,7 @@ pub async fn list_results_for_run(
             provider AS "provider!",
             model AS "model!",
             overall_score,
-            dimension_scores AS "dimension_scores!",
+            dimension_scores AS "dimension_scores!: Json<DimensionScores>",
             verdict AS "verdict!",
             rationale,
             flags AS "flags!",
@@ -147,7 +177,7 @@ pub async fn list_recent_results(
             provider AS "provider!",
             model AS "model!",
             overall_score,
-            dimension_scores AS "dimension_scores!",
+            dimension_scores AS "dimension_scores!: Json<DimensionScores>",
             verdict AS "verdict!",
             rationale,
             flags AS "flags!",

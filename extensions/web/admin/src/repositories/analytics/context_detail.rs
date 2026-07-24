@@ -57,7 +57,9 @@ pub struct ContextToolCallRow {
     pub request_id: AiRequestId,
     pub tool_name: String,
     pub sequence_number: i32,
+    // JSON: arbitrary MCP tool arguments, shaped by each tool's own schema.
     pub tool_input: serde_json::Value,
+    // JSON: arbitrary MCP tool result payload, shaped by each tool's own schema.
     pub tool_result_payload: Option<serde_json::Value>,
     pub created_at: DateTime<Utc>,
 }

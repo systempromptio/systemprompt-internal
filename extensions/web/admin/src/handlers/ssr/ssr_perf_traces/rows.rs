@@ -121,7 +121,7 @@ fn format_cost(micros: i64) -> String {
     }
 }
 
-fn format_duration(ms: i64) -> String {
+pub(super) fn format_duration(ms: i64) -> String {
     if ms < 1000 {
         format!("{ms} ms")
     } else if ms < 60_000 {

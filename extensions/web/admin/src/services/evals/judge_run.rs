@@ -3,32 +3,33 @@
 //! Split from `mod.rs` so the module stays under the size ceiling; the run
 //! lifecycle (open/close, ids, verdict parsing) lives in [`super::lifecycle`].
 
-use std::sync::Arc;
-
 use sqlx::PgPool;
-use systemprompt::ai::AiService;
 
+use crate::repositories::evals::sampling::EvalCandidate;
 use crate::repositories::evals::{EvalRunKind, EvalVerdict, results, sampling};
 
-use super::lifecycle::{close_run, new_id, open_run, parse_verdict};
-use super::{EXCERPT_CHARS, EvalError, EvalRunOutcome, EvalRunRequest, MAX_JUDGE_CHARS, MAX_SAMPLE_SIZE};
+use super::deterministic::PrePass;
+use super::lifecycle::{OpenRunParams, RunTally, close_run, new_id, open_run, parse_verdict};
+use super::{
+    EXCERPT_CHARS, EvalError, EvalRunOutcome, EvalRunRequest, MAX_JUDGE_CHARS, MAX_SAMPLE_SIZE,
+};
 use super::{deterministic, extract, judge};
 use judge::JudgeConfig;
+use sqlx::types::Json;
 
-/// Score a slice of live gateway traffic.
-// lint-ok: unused-pub — consumed by the evals dashboard page currently in development
-pub async fn run_judge_eval(
+use crate::repositories::evals::results::DimensionScores;
+
+pub(crate) async fn run_judge_eval(
     pool: &PgPool,
-    ai: &Arc<AiService>,
     request: &EvalRunRequest,
 ) -> Result<EvalRunOutcome, EvalError> {
     let run_id = new_id("evrun");
-    let config = JudgeConfig::from_defaults(ai, request.actor.clone(), run_id.clone());
+    let config = request.judge_config(&run_id);
     let sample_size = request.sample_size.clamp(1, MAX_SAMPLE_SIZE);
 
     let mut filter = request.filter.clone();
-    // Never re-score what this judge model has already scored: a second run
-    // over the same window should extend coverage, not duplicate it.
+    // Why: never re-score what this judge model has already scored — a second
+    // run over the same window should extend coverage, not duplicate it.
     filter.skip_judged_by = Some(config.model.clone());
 
     let candidates =
@@ -37,120 +38,181 @@ pub async fn run_judge_eval(
         return Err(EvalError::NoCandidates);
     }
 
-    open_run(
+    open_run(OpenRunParams {
         pool,
-        &run_id,
-        EvalRunKind::Judge,
-        &config,
+        run_id: &run_id,
+        kind: EvalRunKind::Judge,
+        config: &config,
         request,
-        candidates.len(),
-    )
+        sample_size: candidates.len(),
+    })
     .await?;
 
-    let mut scored = 0i32;
-    let mut failed = 0i32;
-    let mut cost = 0i64;
-
+    let mut tally = RunTally::default();
     for candidate in candidates {
-        let pre = deterministic::run_pre_pass(&candidate);
-        let prompt_excerpt = pre
-            .prompt
-            .as_deref()
-            .map(|p| extract::excerpt(p, EXCERPT_CHARS));
-        let response_excerpt = pre
-            .answer
-            .as_deref()
-            .map(|a| extract::excerpt(a, EXCERPT_CHARS));
-
-        if let Some((verdict, rationale)) = pre.short_circuit {
-            results::insert_result(
-                pool,
-                results::InsertResultParams {
-                    id: &new_id("evres"),
-                    run_id: &run_id,
-                    ai_request_id: Some(candidate.ai_request_id.as_str()),
-                    case_id: None,
-                    user_id: Some(&candidate.user_id),
-                    session_id: candidate.session_id.as_ref(),
-                    provider: &candidate.provider,
-                    model: &candidate.model,
-                    overall_score: matches!(verdict, EvalVerdict::Fail).then_some(1),
-                    dimension_scores: serde_json::json!({}),
-                    verdict,
-                    rationale: Some(&rationale),
-                    flags: &pre.flags,
-                    prompt_excerpt: prompt_excerpt.as_deref(),
-                    response_excerpt: response_excerpt.as_deref(),
-                    latency_ms: candidate.latency_ms,
-                    cost_microdollars: candidate.cost_microdollars,
-                    judge_cost_microdollars: 0,
-                },
-            )
-            .await?;
-            scored += 1;
-            continue;
-        }
-
-        let (Some(prompt), Some(answer)) = (pre.prompt.as_deref(), pre.answer.as_deref()) else {
-            failed += 1;
-            continue;
-        };
-
-        let judged = judge::judge_answer(
-            ai,
+        score_one(ScoreParams {
             pool,
-            &config,
-            &extract::truncate_for_judge(prompt, MAX_JUDGE_CHARS),
-            &extract::truncate_for_judge(answer, MAX_JUDGE_CHARS),
-        )
-        .await;
-
-        let Some(judged) = judged else {
-            failed += 1;
-            continue;
-        };
-
-        cost += judged.cost_microdollars;
-        let mut flags = pre.flags.clone();
-        for f in &judged.verdict.flags {
-            if !flags.contains(f) {
-                flags.push(f.clone());
-            }
-        }
-
-        results::insert_result(
-            pool,
-            results::InsertResultParams {
-                id: &new_id("evres"),
-                run_id: &run_id,
-                ai_request_id: Some(candidate.ai_request_id.as_str()),
-                case_id: None,
-                user_id: Some(&candidate.user_id),
-                session_id: candidate.session_id.as_ref(),
-                provider: &candidate.provider,
-                model: &candidate.model,
-                overall_score: Some(i32::from(judged.verdict.overall_score)),
-                dimension_scores: judged.verdict.dimension_scores(),
-                verdict: parse_verdict(&judged.verdict.verdict),
-                rationale: Some(&judged.verdict.rationale),
-                flags: &flags,
-                prompt_excerpt: prompt_excerpt.as_deref(),
-                response_excerpt: response_excerpt.as_deref(),
-                latency_ms: candidate.latency_ms,
-                cost_microdollars: candidate.cost_microdollars,
-                judge_cost_microdollars: judged.cost_microdollars,
-            },
-        )
+            config: &config,
+            run_id: &run_id,
+            candidate: &candidate,
+            tally: &mut tally,
+        })
         .await?;
-        scored += 1;
     }
 
-    close_run(pool, &run_id, scored, failed, cost).await?;
+    close_run(pool, &run_id, tally.scored, tally.failed, tally.cost).await?;
 
     Ok(EvalRunOutcome {
         run_id,
-        scored,
-        failed,
-        cost_microdollars: cost,
+        scored: tally.scored,
+        failed: tally.failed,
+        cost_microdollars: tally.cost,
     })
+}
+
+struct ScoreParams<'a> {
+    pool: &'a PgPool,
+    config: &'a JudgeConfig,
+    run_id: &'a str,
+    candidate: &'a EvalCandidate,
+    tally: &'a mut RunTally,
+}
+
+/// Run the pre-pass, then the judge unless the pre-pass already decided it,
+/// and record exactly one row either way.
+async fn score_one(params: ScoreParams<'_>) -> Result<(), sqlx::Error> {
+    let candidate = params.candidate;
+    let pre = deterministic::run_pre_pass(candidate);
+    let excerpts = Excerpts::from_pre_pass(&pre);
+
+    if let Some((verdict, rationale)) = pre.short_circuit {
+        insert_row(
+            params.pool,
+            RowParams {
+                run_id: params.run_id,
+                candidate,
+                excerpts: &excerpts,
+                verdict,
+                overall_score: matches!(verdict, EvalVerdict::Fail).then_some(1),
+                dimension_scores: Json(DimensionScores::default()),
+                rationale: &rationale,
+                flags: &pre.flags,
+                judge_cost: 0,
+            },
+        )
+        .await?;
+        params.tally.scored += 1;
+        return Ok(());
+    }
+
+    let (Some(prompt), Some(answer)) = (pre.prompt.as_deref(), pre.answer.as_deref()) else {
+        params.tally.failed += 1;
+        return Ok(());
+    };
+
+    let judged = judge::judge_answer(
+        params.pool,
+        params.config,
+        &extract::truncate_for_judge(prompt, MAX_JUDGE_CHARS),
+        &extract::truncate_for_judge(answer, MAX_JUDGE_CHARS),
+    )
+    .await;
+
+    let Some(judged) = judged else {
+        params.tally.failed += 1;
+        return Ok(());
+    };
+
+    params.tally.cost += judged.cost_microdollars;
+
+    insert_row(
+        params.pool,
+        RowParams {
+            run_id: params.run_id,
+            candidate,
+            excerpts: &excerpts,
+            verdict: parse_verdict(&judged.verdict.verdict),
+            overall_score: Some(i32::from(judged.verdict.overall_score)),
+            dimension_scores: judged.verdict.dimension_scores(),
+            rationale: &judged.verdict.rationale,
+            flags: &merge_flags(&pre.flags, &judged.verdict.flags),
+            judge_cost: judged.cost_microdollars,
+        },
+    )
+    .await?;
+    params.tally.scored += 1;
+    Ok(())
+}
+
+/// Deterministic flags and judge flags describe the same answer, so they share
+/// one list. Deterministic ones come first because they are observations
+/// rather than opinions.
+fn merge_flags(pre: &[String], judged: &[String]) -> Vec<String> {
+    let mut flags = pre.to_vec();
+    for f in judged {
+        if !flags.contains(f) {
+            flags.push(f.clone());
+        }
+    }
+    flags
+}
+
+struct Excerpts {
+    prompt: Option<String>,
+    response: Option<String>,
+}
+
+impl Excerpts {
+    fn from_pre_pass(pre: &PrePass) -> Self {
+        Self {
+            prompt: pre
+                .prompt
+                .as_deref()
+                .map(|p| extract::excerpt(p, EXCERPT_CHARS)),
+            response: pre
+                .answer
+                .as_deref()
+                .map(|a| extract::excerpt(a, EXCERPT_CHARS)),
+        }
+    }
+}
+
+struct RowParams<'a> {
+    run_id: &'a str,
+    candidate: &'a EvalCandidate,
+    excerpts: &'a Excerpts,
+    verdict: EvalVerdict,
+    overall_score: Option<i32>,
+    dimension_scores: Json<DimensionScores>,
+    rationale: &'a str,
+    flags: &'a [String],
+    judge_cost: i64,
+}
+
+async fn insert_row(pool: &PgPool, params: RowParams<'_>) -> Result<(), sqlx::Error> {
+    let candidate = params.candidate;
+    results::insert_result(
+        pool,
+        results::InsertResultParams {
+            id: &new_id("evres"),
+            run_id: params.run_id,
+            ai_request_id: Some(candidate.ai_request_id.as_str()),
+            case_id: None,
+            user_id: Some(&candidate.user_id),
+            session_id: candidate.session_id.as_ref(),
+            provider: &candidate.provider,
+            model: &candidate.model,
+            overall_score: params.overall_score,
+            dimension_scores: params.dimension_scores,
+            verdict: params.verdict,
+            rationale: Some(params.rationale),
+            flags: params.flags,
+            prompt_excerpt: params.excerpts.prompt.as_deref(),
+            response_excerpt: params.excerpts.response.as_deref(),
+            latency_ms: candidate.latency_ms,
+            cost_microdollars: candidate.cost_microdollars,
+            judge_cost_microdollars: params.judge_cost,
+        },
+    )
+    .await
 }

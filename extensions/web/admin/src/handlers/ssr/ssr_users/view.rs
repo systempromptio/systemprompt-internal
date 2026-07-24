@@ -24,9 +24,6 @@ fn freshness_for(ts: Option<chrono::DateTime<chrono::Utc>>) -> &'static str {
     })
 }
 
-/// Resolve effective marketplaces for a user: every YAML-defined marketplace is
-/// granted by default, then `access_control_rules` rows (matching the user's id
-/// or department) are applied as allow/deny overrides.
 pub(super) fn resolve_marketplaces(
     yaml_defaults: &[(String, String)],
     overrides: &[&repositories::departments::UserMarketplaceOverride],
@@ -121,8 +118,6 @@ pub(super) fn enrich_users(
         .collect()
 }
 
-/// Group enriched users by department. "Default" first, then alphabetical;
-/// users with no department go last as "Unassigned".
 pub(super) fn group_by_department(users: Vec<EnrichedUserView>) -> Vec<DepartmentGroup> {
     let mut buckets: std::collections::BTreeMap<String, Vec<EnrichedUserView>> =
         std::collections::BTreeMap::new();

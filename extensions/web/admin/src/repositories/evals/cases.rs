@@ -12,9 +12,11 @@ use sqlx::PgPool;
 pub struct EvalCaseRow {
     pub id: String,
     pub name: String,
+    // JSON: frozen provider `/v1/messages` request body, replayed verbatim; its shape is the upstream wire contract, not ours.
     pub prompt_body: serde_json::Value,
     pub source_ai_request_id: Option<String>,
     pub expectation: Option<String>,
+    // JSON: frozen provider response body kept byte-for-byte as the replay baseline.
     pub baseline_response: Option<serde_json::Value>,
     pub baseline_model: Option<String>,
     pub tags: Vec<String>,
@@ -27,9 +29,11 @@ pub struct EvalCaseRow {
 pub struct InsertCaseParams<'a> {
     pub id: &'a str,
     pub name: &'a str,
+    // JSON: frozen provider `/v1/messages` request body, replayed verbatim; its shape is the upstream wire contract, not ours.
     pub prompt_body: serde_json::Value,
     pub source_ai_request_id: Option<&'a str>,
     pub expectation: Option<&'a str>,
+    // JSON: frozen provider response body kept byte-for-byte as the replay baseline.
     pub baseline_response: Option<serde_json::Value>,
     pub baseline_model: Option<&'a str>,
     pub tags: &'a [String],

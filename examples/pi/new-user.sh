@@ -13,7 +13,9 @@
 #      works on /v1/messages but /hooks/govern validates a JWT and rejects it.
 #   4. Writes both credentials to ~/.config/systemprompt-pi/ so the Pi provider
 #      and the governance extension installed by setup.sh pick them up unchanged.
-#   5. Smoke-tests POST /v1/messages as the new user.
+#   5. Mints a gateway session for the PAT and smoke-tests POST /v1/messages.
+#      The gateway attests x-session-id against a session row it issued, so a
+#      PAT caller mints one rather than inventing a label.
 #
 # Portable across macOS and Linux: no grep -P, no head -n -1, no sed -i.
 set -euo pipefail
@@ -92,16 +94,19 @@ mkdir -p "$CRED_DIR"
 printf '%s' "$PAT" > "$CRED_DIR/token"
 printf '%s' "$HOOK_TOKEN" > "$CRED_DIR/hook-token"
 printf '%s' "$BASE_URL" > "$CRED_DIR/base-url"
-# PATs are not session-bound; the gateway still requires the header, and this
-# label groups the demo's audit rows in the dashboard.
-printf 'pi-demo-%s' "$NEW_USER_ID" > "$CRED_DIR/session-id"
-chmod 600 "$CRED_DIR/token" "$CRED_DIR/session-id" "$CRED_DIR/hook-token"
+chmod 600 "$CRED_DIR/token" "$CRED_DIR/hook-token"
 pass "Pi credentials written to $CRED_DIR"
 
-# ── 5. Smoke test as the new user ──
+# ── 5. Mint a session, then smoke test as the new user ──
+say "Minting a gateway session for the PAT"
+SESSION_ID=$(curl -fsS -X POST "$BASE_URL/api/public/gateway/sessions" \
+  -H "x-api-key: $PAT" | sed -n 's/.*"session_id":"\([^"]*\)".*/\1/p')
+[[ -n "$SESSION_ID" ]] || die "session mint failed at POST $BASE_URL/api/public/gateway/sessions"
+pass "Session $SESSION_ID issued"
+
 say "Smoke test: POST $BASE_URL/v1/messages as $EMAIL"
 RESP=$(curl -fsS -m 40 -X POST "$BASE_URL/v1/messages" \
-  -H "x-api-key: $PAT" -H "x-session-id: pi-demo-$NEW_USER_ID" \
+  -H "x-api-key: $PAT" -H "x-session-id: $SESSION_ID" \
   -H "anthropic-version: 2023-06-01" -H "content-type: application/json" \
   -d '{"model":"claude-sonnet-4-6","max_tokens":32,"messages":[{"role":"user","content":"reply with exactly: pong"}]}') \
   || die "gateway smoke test failed — check: systemprompt infra logs view --level error --since 5m"

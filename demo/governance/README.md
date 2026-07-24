@@ -41,6 +41,18 @@ The `input` gate is the one Claude Code's tool-level hook cannot reach: a
 credential pasted into a prompt is blocked before it is serialized into a
 provider request at all.
 
+Calling `/v1/messages` with a personal access token needs one extra step: the
+gateway attests the `x-session-id` header against a session row it issued, so a
+PAT caller mints one first.
+
+```bash
+SESSION=$(curl -fsS -X POST "$BASE_URL/api/public/gateway/sessions" \
+  -H "x-api-key: $PAT" | jq -r .session_id)
+```
+
+An invented session id is rejected with a 401. JWT callers need nothing extra:
+the header is the token's own `session_id` claim.
+
 The governance pipeline:
 1. JWT validation (token authentication)
 2. Scope resolution (admin vs user agent)

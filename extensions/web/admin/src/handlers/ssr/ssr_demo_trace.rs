@@ -130,8 +130,6 @@ pub(crate) async fn demo_trace_page(
         .await
         .map_err(AdminError::from)?;
 
-    // Default to the most recent session so the page is useful with no query
-    // string — the demo run you just finished is the one you want to see.
     let selected = params
         .session
         .filter(|s| !s.is_empty())

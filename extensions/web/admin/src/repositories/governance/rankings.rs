@@ -5,10 +5,8 @@ use sqlx::PgPool;
 
 use crate::types::{TopActor, TopPolicy};
 
-// Live upstream in systemprompt-template via the ssr_governance
-// handlers, which this fork does not ship. Kept so the shared
-// repository files stay identical across both trees.
-// lint-ok: unused-pub
+// Why: lint-ok: unused-pub — live upstream via the ssr_governance handlers,
+// which this fork does not ship; kept so shared repository files stay identical.
 pub async fn list_top_actors(
     pool: &PgPool,
     window_seconds: i64,
@@ -39,10 +37,8 @@ pub async fn list_top_actors(
     .await
 }
 
-// Live upstream in systemprompt-template via the ssr_governance
-// handlers, which this fork does not ship. Kept so the shared
-// repository files stay identical across both trees.
-// lint-ok: unused-pub
+// Why: lint-ok: unused-pub — live upstream via the ssr_governance handlers,
+// which this fork does not ship; kept so shared repository files stay identical.
 pub async fn list_top_policies(
     pool: &PgPool,
     window_seconds: i64,

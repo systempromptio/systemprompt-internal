@@ -123,14 +123,12 @@ async fn load_traces_data(
         (total + PAGE_SIZE - 1) / PAGE_SIZE
     };
     let pagination = view::build_pagination(query, page, total_pages);
-    let view_qs = view::view_tabs_qs(range, &preset);
     let trace_rows: Vec<rows::TraceRow> = rows.iter().map(rows::trace_to_json).collect();
     let has_traces = !trace_rows.is_empty();
 
     PerfTracesPageContext {
         page: "traces",
         title: "Trace Explorer",
-        entity_view_tabs: view::entity_view_tabs("traces", &view_qs),
         time_range: view::time_range_context(range, &preset),
         filter_ribbon: context::FilterRibbon {
             base_url: BASE_URL,

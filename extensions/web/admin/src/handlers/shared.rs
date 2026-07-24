@@ -7,9 +7,8 @@ use systemprompt::config::ProfileBootstrap;
 
 use crate::error::AdminResult;
 
-/// The one shape an admin API failure takes on the wire. Built only by
-/// `AdminError::into_response`, so a status and its body cannot be chosen
-/// independently of each other.
+// Why: built only by `AdminError::into_response`, so a status and its body
+// cannot be chosen independently of each other.
 #[derive(Debug, Serialize)]
 pub(crate) struct ErrorBody {
     pub error: String,

@@ -107,21 +107,7 @@
     transition: opacity var(--sp-duration-fast) var(--sp-ease-out);
 }
 .settings-save-status--success { color: var(--sp-success); }
-.settings-save-status--error { color: var(--sp-danger); }
-
-.secret-value-input {
-    font-family: var(--sp-font-mono);
-    font-size: var(--sp-text-sm);
-    padding: var(--sp-space-2) var(--sp-space-3);
-    background: var(--sp-bg-surface);
-    border: 1px solid var(--sp-border-default);
-    border-radius: var(--sp-radius-button);
-    color: var(--sp-text-primary);
-    width: 100%;
-}
-.secret-value-input:focus { outline: none; border-color: var(--sp-accent); }
-
-.save-secret-btn,
+.settings-save-status--error { color: var(--sp-danger); }.save-secret-btn,
 .toggle-hook-btn {
     padding: var(--sp-space-1) var(--sp-space-3);
     font-size: var(--sp-text-xs);

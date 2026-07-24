@@ -13,16 +13,20 @@ an Anthropic-compatible `POST /v1/messages`, so one provider entry with
 
 - **Auth** — `Authorization: Bearer <jwt>` minted by
   `systemprompt admin session login --token-only`.
-- **Session binding** — the gateway requires an `x-session-id` header equal to
-  the JWT's own `session_id` claim; every request is tied to an auditable
-  session.
+- **Session binding** — the gateway requires an `x-session-id` header naming a
+  session it issued: for a JWT caller, the token's own `session_id` claim; for a
+  personal access token, a session minted at `POST /api/public/gateway/sessions`.
+  A session id the server never issued is rejected with a 401, so every request
+  is tied to an auditable session rather than a label the client picked.
 - **Model routing** — the gateway routes by model id glob (`claude-*` →
   Anthropic, `gpt-*` → OpenAI, `gemini-*` → Google). Pi's `/model` picker
   (Ctrl+L) switches between them mid-session; the gateway does the rest.
 
-Secrets never live in Pi config: `models.json` reads the token and session id
-from `~/.config/systemprompt-pi/` at request time via Pi's `!command` value
-resolution.
+Secrets never live in Pi config: `models.json` reads the token from
+`~/.config/systemprompt-pi/` at request time via Pi's `!command` value
+resolution. The session header is set by the governance extension, which
+resolves one session per Pi conversation — the JWT's claim, or a freshly minted
+one for a PAT.
 
 ## Setup
 
@@ -96,8 +100,10 @@ The extension registers two tools that exist only to be blocked —
 policy's patterns.
 
 **Two credentials, two endpoints.** `/v1/messages` accepts the `sp-live-…`
-personal access token. `/hooks/govern` validates a JWT and rejects a PAT, so
-`new-user.sh` also mints a user-scope plugin token to
+personal access token, alongside an `x-session-id` minted for it at
+`POST /api/public/gateway/sessions` (`new-user.sh` does this for its smoke test;
+the extension does it once per Pi conversation). `/hooks/govern` validates a JWT
+and rejects a PAT, so `new-user.sh` also mints a user-scope plugin token to
 `~/.config/systemprompt-pi/hook-token`. It has to be *user* scope: admins are
 exempt from `scope_check` and `tool_blocklist`, so an admin token would be
 allowed by both and the denial would be theatre.
@@ -109,8 +115,9 @@ See it end to end:
 ./demo/governance/09-pi-agent.sh --live   # drives the real pi binary
 ```
 
-Then open **`/admin/demo/trace`** (sidebar: Governance → Demo Trace) for the
-session as one timeline: prompt gate, tool gate, model calls, and tool fires in
+Then open **`/admin/demo/trace`** (sidebar: Governance → Demo Trace) and pick
+your session — one Pi conversation is one session row — to see it as one
+timeline: prompt gate, tool gate, model calls, and tool fires in
 the order they happened. A blocked prompt has no model call after it.
 
 ## Branding

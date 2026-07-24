@@ -60,18 +60,25 @@ The prompt is denied by `secret_scan` at Pi's `input` event and never reaches a
 provider — there is no `ai_requests` row for it, because no request was made.
 That is the gate Claude Code's tool-level hook cannot provide.
 
+Now the tool gate, where the model does answer and its tool call is blocked
+before execution:
+
 ```bash
 pi -p --provider systemprompt --model claude-sonnet-4-6 \
-  "Write /tmp/pi-demo.env containing GITHUB_TOKEN=ghp_ABCDEFghijklmnop1234567890abcdef"
+  "Use the delete_records tool to delete rows from the users table. Just call it."
 ```
 
-Here the model does answer, and its `write` call is blocked at Pi's `tool_call`
-event before execution. The file is never created; the model is handed the
-denial reason and has to explain itself.
+The model calls the tool, `tool_blocklist` denies it for this user's live
+`user` role, and the model is handed the reason and has to explain itself:
+"blocked by the governance layer … no rows were deleted". Ask it for
+`mcp__systemprompt__list_agents` instead and `scope_check` denies that one.
 
-Interactively, `/model`-hop and ask Pi to call `delete_records` or
-`mcp__systemprompt__list_agents` — denied by `tool_blocklist` and `scope_check`
-respectively, for this user's live `user` role.
+Worth knowing: asking Pi to *write* a file full of credentials does not
+demonstrate the tool gate, because the gateway's own safety policy rejects the
+`/v1/messages` request carrying the secret first (403, category `secret`). That
+is defence in depth working, but the block happens upstream of the tool gate.
+`demo/governance/09-pi-agent.sh` asserts the tool gate's `secret_scan` directly
+instead.
 
 The scripted, self-asserting version of all of it:
 
@@ -81,8 +88,10 @@ The scripted, self-asserting version of all of it:
 
 ## 4. See everything in the dashboard
 
-Open **`/admin/demo/trace`** (sidebar: Governance → Demo Trace) for the session
-as a single ordered story: every prompt gate and tool gate verdict, every model
+Open **`/admin/demo/trace`** (sidebar: Governance → Demo Trace) and pick your
+session. One Pi conversation is one session row — the extension resolves a
+single gateway-issued session at session start and both spines key on it — so
+the picker names runs, not one shared label. Each is a single ordered story: every prompt gate and tool gate verdict, every model
 call, every tool fire. The blocked prompt from step 3a has no model call under
 it, and the blocked write has no tool fire.
 

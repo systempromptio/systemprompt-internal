@@ -38,7 +38,7 @@ pub(super) async fn load_user_groups(
             Vec::new()
         });
 
-    // Why an empty list is not a safe default here: `resolve_marketplaces`
+    // Why: an empty list is not a safe default here: `resolve_marketplaces`
     // seeds from every YAML marketplace and *subtracts* the deny rows, so
     // losing the overrides does not lose grants — it loses the denials, and
     // every explicitly denied marketplace renders as granted. That is the one
@@ -71,7 +71,7 @@ pub(super) async fn collect_user_detail_extras(
     pool: &PgPool,
     d: &crate::types::UserDetail,
 ) -> crate::error::AdminHtmlResult<UserDetailExtras> {
-    // Neither half of this tolerates a default. `department` is bound to a
+    // Why: neither half of this tolerates a default. `department` is bound to a
     // <select> that the save handler reads straight back, so an empty value
     // does not merely display wrongly — it reassigns the user to Unassigned on
     // the next save, dropping every access rule their real department carried.
@@ -94,7 +94,7 @@ pub(super) async fn collect_user_detail_extras(
         0i64
     };
 
-    // Same fail-closed reasoning as the roster: losing the overrides loses the
+    // Why: same fail-closed reasoning as the roster: losing the overrides loses the
     // *denials*, so an explicitly denied marketplace would render as granted.
     // Show none rather than all.
     let (user_overrides, overrides_failed): (
@@ -168,13 +168,13 @@ async fn collect_user_devices(pool: &PgPool, d: &crate::types::UserDetail) -> Ve
         .collect()
 }
 
-/// The user's own department is always present in the returned list.
-///
-/// The list populates a bound `<select>`: an option that is missing cannot be
-/// selected, so the browser silently falls back to the first one (Unassigned)
-/// and the next save moves the user out of a department they were never
-/// deliberately removed from. Degrading to a short list is survivable;
-/// degrading to one that cannot represent the current value is not.
+// Why: the user's own department is always present in the returned list.
+//
+// The list populates a bound `<select>`: an option that is missing cannot be
+// selected, so the browser silently falls back to the first one (Unassigned)
+// and the next save moves the user out of a department they were never
+// deliberately removed from. Degrading to a short list is survivable;
+// degrading to one that cannot represent the current value is not.
 pub(super) async fn fetch_departments(pool: &PgPool, current: &str) -> Vec<String> {
     let mut names = repositories::departments::list_department_names(pool)
         .await

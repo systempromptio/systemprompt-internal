@@ -60,6 +60,8 @@ jobs:
       - run: bash scripts/check-glob-reexports.sh
       - name: No archaeology, caller-reference, or paraphrase comments
         run: bash scripts/check-comments.sh
+      - name: Inline comments limited to Why/JSON justifications
+        run: bash scripts/lint-inline-comments.sh
       # Downstream forks share these files but not their callers; a symbol is
       # only reported when it is dead here AND in the fork.
       - name: No dead repository code

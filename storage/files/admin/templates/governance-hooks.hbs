@@ -11,7 +11,7 @@
     </section>
 
     <h2 class="section-title">Configured hooks</h2>
-    <p class="text-secondary">Declared under <code class="code-inline">plugins.&lt;id&gt;.hooks</code> in <code class="code-inline">services/plugins/*/config.yaml</code>.</p>
+    <p class="text-secondary">Hooks fire around every tool call. Each one is declared by the plugin that owns it.</p>
 
     {{#if has_configured}}
     {{#> components/data-table}}

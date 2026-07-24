@@ -57,7 +57,7 @@ fn governed_input(payload: &HookEventPayload) -> Option<serde_json::Value> {
 }
 
 fn build_response(decision: &Decision, hook_event_name: &'static str) -> Response {
-    // lint-ok: http-error — builds the decision body itself
+    // Why: lint-ok: http-error — builds the decision body itself
     let permission_decision = GovernanceDecision::from_decision(decision);
     let permission_decision_reason = match decision {
         Decision::Allow { .. } => None,
@@ -80,7 +80,7 @@ pub(crate) async fn govern_tool_use(
     Query(query): Query<GovernQuery>,
     Json(raw): Json<serde_json::Value>,
 ) -> Response {
-    // lint-ok: http-error — a hook answers 200 with a decision; an error status
+    // Why: lint-ok: http-error — a hook answers 200 with a decision; an error status
     // reads as "hook unavailable" and lets the call through
     let (payload, _warnings) = HookEventPayload::from_value(raw);
 
@@ -88,7 +88,7 @@ pub(crate) async fn govern_tool_use(
     let tool_name = payload
         .tool_name()
         .unwrap_or(if is_prompt { PROMPT_TOOL_NAME } else { "unknown" });
-    // Echo the caller's event back so a `UserPromptSubmit` gate is not handed a
+    // Why: echo the caller's event back so a `UserPromptSubmit` gate is not handed a
     // `PreToolUse` envelope it would have to ignore.
     let response_event = if is_prompt {
         "UserPromptSubmit"
@@ -161,7 +161,7 @@ fn spawn_auth_denial(params: &AuthDenialParams<'_>, reason: &str) {
     let headers = params.headers.clone();
 
     tokio::spawn(async move {
-        // Authentication failed before any real user was resolved. Every UserId
+        // Why: authentication failed before any real user was resolved. Every UserId
         // must be a real `users` row, so provision the anonymous principal for
         // this fingerprint (idempotent upsert) to carry the audit's foreign key.
         // Core now takes the extracted analytics rather than raw headers. The

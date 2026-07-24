@@ -69,15 +69,11 @@ pub(crate) async fn require_admin_middleware(request: Request, next: Next) -> Re
     }
 }
 
-/// Restrict non-admin users to the profile page, settings page, and a few
-/// account-management endpoints. Other admin routes redirect to /admin/profile.
-///
-/// Admins pass through unchanged. Anonymous users are handled by
-/// `require_user_middleware` which runs after this layer.
-///
-/// The path comes from `OriginalUri`, as it does in `require_user_middleware`:
-/// this layer sits inside a `nest_service("/admin", …)`, which strips the
-/// prefix, and every arm of `is_non_admin_allowed_path` matches on it.
+// Why: anonymous users are deliberately not handled here —
+// `require_user_middleware` runs after this layer and owns that case. The path
+// must come from `OriginalUri`: this layer sits inside a
+// `nest_service("/admin", …)`, which strips the prefix, and every arm of
+// `is_non_admin_allowed_path` matches on the full path.
 pub(crate) async fn non_admin_gate_middleware(request: Request, next: Next) -> Response {
     let path = original_path(&request);
     let path = path.as_str();

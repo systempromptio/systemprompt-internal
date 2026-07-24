@@ -8,7 +8,6 @@ use serde::Serialize;
 pub(super) struct PerfTracesPageContext {
     pub(super) page: &'static str,
     pub(super) title: &'static str,
-    pub(super) entity_view_tabs: Vec<EntityViewTab>,
     pub(super) time_range: TimeRangeContext,
     pub(super) filter_ribbon: FilterRibbon,
     pub(super) stats: StatsView,
@@ -23,14 +22,6 @@ pub(super) struct PerfTracesPageContext {
     pub(super) dir: &'static str,
     pub(super) error_only: bool,
     pub(super) deny_only: bool,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct EntityViewTab {
-    pub(super) key: &'static str,
-    pub(super) label: &'static str,
-    pub(super) url: String,
-    pub(super) active: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -86,9 +77,9 @@ pub(super) struct StatsView {
     pub(super) total_traces: i64,
     pub(super) error_count: i64,
     pub(super) deny_count: i64,
-    pub(super) p50_ms: i64,
-    pub(super) p95_ms: i64,
-    pub(super) p99_ms: i64,
+    pub(super) p50_display: String,
+    pub(super) p95_display: String,
+    pub(super) p99_display: String,
 }
 
 #[derive(Debug, Serialize)]

@@ -52,7 +52,7 @@ pub(crate) fn render_typed_page<T: Serialize>(
     user_ctx: &UserContext,
     mkt_ctx: &MarketplaceContext,
 ) -> Response {
-    // lint-ok: http-error — renders a page, and its failure arm is AdminHtmlError
+    // Why: lint-ok: http-error — renders a page, and its failure arm is AdminHtmlError
     let value = serde_json::to_value(data).unwrap_or_else(|e| {
         tracing::warn!(template, error = %e, "Failed to serialize SSR page data");
         serde_json::Value::Object(serde_json::Map::new())
@@ -67,7 +67,7 @@ pub(crate) fn render_page(
     user_ctx: &UserContext,
     mkt_ctx: &MarketplaceContext,
 ) -> Response {
-    // lint-ok: http-error — renders a page, and its failure arm is AdminHtmlError
+    // Why: lint-ok: http-error — renders a page, and its failure arm is AdminHtmlError
     let mut merged = data.clone();
     if let Some(obj) = merged.as_object_mut() {
         inject_user_and_marketplace(obj, engine, user_ctx, mkt_ctx);

@@ -14,29 +14,6 @@
     background: var(--sp-warning-dim);
     color: var(--sp-warning);
 }
-
-.evolution-card {
-    background: var(--sp-bg-surface);
-    border: 1px solid var(--sp-border-subtle);
-    border-radius: var(--sp-radius-card-brand);
-    padding: var(--sp-space-5);
-    margin-bottom: var(--sp-space-5);
-}
-
-.evolution-card h4 {
-    color: var(--sp-text-primary);
-}
-
-.evolution-table {
-    font-size: var(--sp-text-sm);
-}
-
-.insurance-badge {
-    font-size: var(--sp-text-xs);
-    margin-left: var(--sp-space-1);
-    vertical-align: middle;
-}
-
 .table-preview {
     max-height: 200px;
     overflow: auto;

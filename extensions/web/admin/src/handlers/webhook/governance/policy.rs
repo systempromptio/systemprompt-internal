@@ -29,8 +29,6 @@ pub(crate) use systemprompt_security::policy::GovernancePolicy;
 
 type PolicyFactory = fn(&YamlValue) -> Box<dyn GovernancePolicy>;
 
-/// Compile-time registration. Each built-in lives in its own file and submits
-/// one of these.
 pub(crate) struct PolicyRegistration {
     pub id: &'static str,
     pub factory: PolicyFactory,

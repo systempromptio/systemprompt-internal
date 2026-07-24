@@ -1,7 +1,7 @@
 {{#> layout title=title page=page}}
     {{#*inline "head_extra"}}{{/inline}}
     {{#*inline "content"}}
-    {{> components/page-header title=title subtitle="Agent-to-agent (A2A) agents loaded from services/agents/*.yaml. These run as standalone services and connect to the gateway as peers. Edit YAML on disk and restart to change."}}
+    {{> components/page-header title=title subtitle="Agents that run as standalone services and connect to the gateway as peers."}}
 
     <div class="toolbar" role="toolbar" aria-label="A2A agent filters">
         <div class="search-group">
@@ -40,7 +40,7 @@
     {{else}}
     <div class="empty-state" style="padding:3rem;text-align:center;">
         <h3>No A2A agents configured</h3>
-        <p class="text-muted">Add agent YAML under <code>services/agents/</code> and restart.</p>
+        <p class="text-muted">A2A agents appear here once they are configured for this workspace.</p>
     </div>
     {{/if}}
 

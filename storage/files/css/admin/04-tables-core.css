@@ -13,6 +13,22 @@
     overflow-x: auto;
 }
 
+/* Classic CSS scroll shadow: the `local` layers mask the `scroll` shadows
+   until the content actually overflows, so the cue only appears when there
+   is something more to see sideways. */
+.table-container,
+.table-scroll {
+    background-image:
+        linear-gradient(to right, var(--sp-bg-surface), transparent),
+        linear-gradient(to left, var(--sp-bg-surface), transparent),
+        linear-gradient(to right, color-mix(in oklch, var(--sp-warm-900) 12%, transparent), transparent),
+        linear-gradient(to left, color-mix(in oklch, var(--sp-warm-900) 12%, transparent), transparent);
+    background-position: left center, right center, left center, right center;
+    background-repeat: no-repeat;
+    background-size: 2.5rem 100%, 2.5rem 100%, 1rem 100%, 1rem 100%;
+    background-attachment: local, local, scroll, scroll;
+}
+
 .admin-main > .table-container {
     flex: 1 1 0;
     min-height: 200px;

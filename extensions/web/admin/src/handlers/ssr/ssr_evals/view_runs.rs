@@ -4,7 +4,7 @@
 //! numeric and string formatting lives in [`super::format`].
 
 use crate::repositories::evals::cases::EvalCaseRow;
-use crate::repositories::evals::results::EvalResultRow;
+use crate::repositories::evals::results::{DimensionScores, EvalResultRow};
 use crate::repositories::evals::runs::EvalRunRow;
 
 use super::context::{CaseRowView, DimensionView, ResultRowView, RunRowView};
@@ -72,19 +72,12 @@ pub(super) fn result_row(r: &EvalResultRow) -> ResultRowView {
 
 /// Fixed dimension order so the bars read the same on every row. A dimension
 /// the judge omitted is dropped rather than shown as zero.
-const DIMENSIONS: [(&str, &str); 5] = [
-    ("instruction_following", "Instructions"),
-    ("correctness", "Correctness"),
-    ("completeness", "Completeness"),
-    ("format", "Format"),
-    ("safety", "Safety"),
-];
-
-fn dimension_views(scores: &serde_json::Value) -> Vec<DimensionView> {
-    DIMENSIONS
-        .iter()
-        .filter_map(|(key, label)| {
-            let score = scores.get(*key)?.as_i64()?;
+fn dimension_views(scores: &DimensionScores) -> Vec<DimensionView> {
+    scores
+        .labelled()
+        .into_iter()
+        .filter_map(|(label, score)| {
+            let score = i64::from(score?);
             Some(DimensionView {
                 label,
                 score,

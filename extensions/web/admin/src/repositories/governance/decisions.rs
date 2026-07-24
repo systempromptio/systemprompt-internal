@@ -35,10 +35,8 @@ pub async fn list_decisions_filtered(
     .await
 }
 
-// Live upstream in systemprompt-template via the ssr_governance
-// handlers, which this fork does not ship. Kept so the shared
-// repository files stay identical across both trees.
-// lint-ok: unused-pub
+// Why: lint-ok: unused-pub — live upstream via the ssr_governance handlers,
+// which this fork does not ship; kept so shared repository files stay identical.
 pub async fn list_decisions_for_policy(
     pool: &PgPool,
     policy_id: &str,

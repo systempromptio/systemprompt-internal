@@ -59,7 +59,7 @@ pub(crate) async fn governance_hooks_page(
                 Vec::new()
             });
 
-    // These degrade to zero on purpose: the configured-hooks list beside them
+    // Why: these degrade to zero on purpose: the configured-hooks list beside them
     // is read from YAML, not the database, so a failure here shows real hooks
     // above empty counts and the contradiction is visible. They are logged
     // because otherwise the failure would leave no trace in the page *or* the

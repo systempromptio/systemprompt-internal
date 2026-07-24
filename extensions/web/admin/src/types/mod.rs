@@ -13,6 +13,7 @@ mod jobs;
 mod plugins;
 mod plugins_config;
 mod plugins_requests;
+pub mod session_analysis;
 mod traffic;
 mod user_context;
 pub use departments::{Department, DepartmentInput, DepartmentMember, DepartmentSummary};

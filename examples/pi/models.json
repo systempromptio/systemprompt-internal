@@ -4,9 +4,6 @@
       "baseUrl": "http://127.0.0.1:8099",
       "api": "anthropic-messages",
       "apiKey": "!cat ~/.config/systemprompt-pi/token",
-      "headers": {
-        "x-session-id": "!cat ~/.config/systemprompt-pi/session-id"
-      },
       "models": [
         {
           "id": "claude-sonnet-4-6",

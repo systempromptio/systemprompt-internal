@@ -67,8 +67,6 @@ pub(super) async fn resolve_range(
     (chosen, widened)
 }
 
-/// The window a POSTed action carried on its hidden fields. Falls back to the
-/// same default window the page uses when the fields are missing.
 pub(super) fn range_from_strings(from: Option<&str>, to: Option<&str>) -> TimeRange {
     parse_time_range(&TimeRangeQuery {
         from: from.map(str::to_owned),

@@ -37,13 +37,19 @@ pub struct EvalCandidate {
     pub error_message: Option<String>,
     pub latency_ms: Option<i32>,
     pub cost_microdollars: i64,
+    // JSON: stored upstream request body, verbatim provider wire format.
     pub request_body: Option<serde_json::Value>,
+    // JSON: stored upstream response body, verbatim provider wire format.
     pub response_body: Option<serde_json::Value>,
     pub request_excerpt: Option<String>,
     pub response_excerpt: Option<String>,
     pub response_truncated: bool,
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "body is one irreducible compile-time-checked query! SQL literal"
+)]
 pub async fn list_eval_candidates(
     pool: &PgPool,
     filter: &CandidateFilter,
@@ -133,18 +139,20 @@ pub async fn list_eval_candidates(
         .collect())
 }
 
-/// Cost of one gateway request, by `request_id`. Used to charge a judge call
-/// back to its run from the row the AI service itself wrote.
-pub async fn find_request_cost(
+/// Cost of one gateway call, found by the conversation id the eval run tagged
+/// it with. That tag is why a judge call can be charged back to its run
+/// exactly, instead of being inferred from timing.
+pub async fn find_conversation_cost(
     pool: &PgPool,
-    request_id: &str,
+    conversation_id: &str,
 ) -> Result<Option<i64>, sqlx::Error> {
     let row = sqlx::query!(
         r#"SELECT COALESCE(cost_microdollars, 0)::bigint AS "cost!"
            FROM ai_requests
-           WHERE request_id = $1 OR id = $1
+           WHERE gateway_conversation_id = $1
+           ORDER BY created_at DESC
            LIMIT 1"#,
-        request_id,
+        conversation_id,
     )
     .fetch_optional(pool)
     .await?;

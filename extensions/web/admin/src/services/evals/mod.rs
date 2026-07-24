@@ -12,53 +12,49 @@
 //! themselves governed, audited, and costed — and are excluded from future
 //! candidate pools by [`crate::repositories::evals::sampling`].
 
-use std::sync::Arc;
-
 use sqlx::PgPool;
-use systemprompt::ai::AiService;
 use systemprompt::identifiers::UserId;
 
-pub mod deterministic;
-pub mod judge_run;
+pub(crate) mod deterministic;
+pub(crate) mod gateway_client;
+pub(crate) mod judge_run;
 mod lifecycle;
-pub mod extract;
-pub mod judge;
-pub mod pairwise;
-pub mod replay;
-pub mod rubric;
+pub(crate) mod extract;
+pub(crate) mod judge;
+pub(crate) mod pairwise;
+pub(crate) mod replay;
+pub(crate) mod rubric;
 
 use crate::repositories::evals::sampling::CandidateFilter;
 use crate::repositories::evals::{EvalRunKind, cases, sampling};
 use crate::util::time_range::TimeRange;
 
-pub use judge_run::run_judge_eval;
-pub use lifecycle::RunTally;
-pub(crate) use lifecycle::{close_run, new_id, open_run, parse_verdict};
+pub(crate) use judge_run::run_judge_eval;
+pub(crate) use lifecycle::RunTally;
+pub(crate) use lifecycle::{OpenRunParams, close_run, new_id, open_run, parse_verdict};
 
+use gateway_client::GatewayCredential;
 use judge::JudgeConfig;
 
-/// Longest prompt/answer text handed to a judge call.
 pub(crate) const MAX_JUDGE_CHARS: usize = 8_000;
-/// Length of the excerpts stored on each result row for the table.
 pub(crate) const EXCERPT_CHARS: usize = 240;
-/// Ceiling on how many items one run may score, whatever the caller asks for.
-pub const MAX_SAMPLE_SIZE: i64 = 200;
+// Why: hard ceiling on judge spend — a caller-supplied sample size is clamped
+// to this, whatever the form asked for.
+pub(crate) const MAX_SAMPLE_SIZE: i64 = 200;
 
-/// A model and the provider that serves it. A bare model id is not enough to
-/// place a call, so replay and pairwise carry both rather than re-deriving the
-/// provider from a naming convention.
+// Why: a bare model id is not enough to place a call, so both halves are carried
+// rather than re-deriving the provider from a naming convention.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ModelRef {
+pub(crate) struct ModelRef {
     pub provider: String,
     pub model: String,
 }
 
 impl ModelRef {
-    /// Parse the `provider/model` form used by the page's select controls.
-    /// A slashless input is rejected outright: silently attributing a bare
-    /// model id to some default provider would bill the wrong upstream.
+    // Why: a slashless input is rejected outright — silently attributing a bare
+    // model id to some default provider would bill the wrong upstream.
     #[must_use]
-    pub fn parse(s: &str) -> Option<Self> {
+    pub(crate) fn parse(s: &str) -> Option<Self> {
         let (provider, model) = s.split_once('/')?;
         (!provider.is_empty() && !model.is_empty()).then(|| Self {
             provider: provider.to_owned(),
@@ -67,27 +63,43 @@ impl ModelRef {
     }
 
     #[must_use]
-    pub fn as_value(&self) -> String {
+    pub(crate) fn as_value(&self) -> String {
         format!("{}/{}", self.provider, self.model)
     }
 }
 
-/// What the caller asked for. Serialised onto `eval_runs.filter` so a run can
-/// be read back later without guessing what it covered.
+// Why: serialised onto `eval_runs.filter` so a run can be read back later
+// without guessing what it covered.
 #[derive(Debug, Clone)]
-pub struct EvalRunRequest {
+pub(crate) struct EvalRunRequest {
     pub kind: EvalRunKind,
     pub range: TimeRange,
     pub filter: CandidateFilter,
     pub sample_size: i64,
     pub actor: UserId,
-    /// Models under test. Replay uses the first; pairwise needs two.
+    // Why: replay uses the first entry; pairwise requires two distinct entries.
     pub compare_models: Vec<ModelRef>,
+    // Why: every model call an eval makes travels under the operator's own
+    // gateway credential, so a run can never exceed what its operator could
+    // have asked for directly.
+    pub credential: GatewayCredential,
+    pub judge: ModelRef,
 }
 
-/// Outcome summary handed back to the caller for the redirect.
+impl EvalRunRequest {
+    pub(crate) fn judge_config(&self, run_id: &str) -> JudgeConfig {
+        JudgeConfig {
+            provider: self.judge.provider.clone(),
+            model: self.judge.model.clone(),
+            actor_user_id: self.actor.clone(),
+            run_id: run_id.to_owned(),
+            credential: self.credential.clone(),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
-pub struct EvalRunOutcome {
+pub(crate) struct EvalRunOutcome {
     pub run_id: String,
     pub scored: i32,
     pub failed: i32,
@@ -95,7 +107,7 @@ pub struct EvalRunOutcome {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum EvalError {
+pub(crate) enum EvalError {
     #[error("database error: {0}")]
     Database(#[from] sqlx::Error),
     #[error("no candidates matched the requested window and filters")]
@@ -106,38 +118,36 @@ pub enum EvalError {
     NeedTwoModels,
 }
 
-/// Re-run the golden set and score the fresh answers.
-pub async fn run_replay_eval(
+pub(crate) async fn run_replay_eval(
     pool: &PgPool,
-    ai: &Arc<AiService>,
     request: &EvalRunRequest,
 ) -> Result<EvalRunOutcome, EvalError> {
     let run_id = new_id("evrun");
-    let config = JudgeConfig::from_defaults(ai, request.actor.clone(), run_id.clone());
+    let config = request.judge_config(&run_id);
 
     let case_rows = cases::list_cases(pool, true).await?;
     if case_rows.is_empty() {
         return Err(EvalError::NoCases);
     }
 
-    let target = request.compare_models.first().cloned().unwrap_or(ModelRef {
-        provider: ai.default_provider().to_owned(),
-        model: ai.default_model().to_owned(),
-    });
+    let target = request
+        .compare_models
+        .first()
+        .cloned()
+        .unwrap_or_else(|| request.judge.clone());
 
-    open_run(
+    open_run(OpenRunParams {
         pool,
-        &run_id,
-        EvalRunKind::Replay,
-        &config,
+        run_id: &run_id,
+        kind: EvalRunKind::Replay,
+        config: &config,
         request,
-        case_rows.len(),
-    )
+        sample_size: case_rows.len(),
+    })
     .await?;
 
     let outcome = replay::execute_replay(replay::ReplayParams {
         pool,
-        ai,
         config: &config,
         run_id: &run_id,
         cases: &case_rows,
@@ -155,10 +165,8 @@ pub async fn run_replay_eval(
     })
 }
 
-/// Put two models on every golden-set case and record who wins.
-pub async fn run_pairwise_eval(
+pub(crate) async fn run_pairwise_eval(
     pool: &PgPool,
-    ai: &Arc<AiService>,
     request: &EvalRunRequest,
 ) -> Result<EvalRunOutcome, EvalError> {
     if request.compare_models.len() < 2 || request.compare_models[0] == request.compare_models[1] {
@@ -166,26 +174,25 @@ pub async fn run_pairwise_eval(
     }
 
     let run_id = new_id("evrun");
-    let config = JudgeConfig::from_defaults(ai, request.actor.clone(), run_id.clone());
+    let config = request.judge_config(&run_id);
 
     let case_rows = cases::list_cases(pool, true).await?;
     if case_rows.is_empty() {
         return Err(EvalError::NoCases);
     }
 
-    open_run(
+    open_run(OpenRunParams {
         pool,
-        &run_id,
-        EvalRunKind::Pairwise,
-        &config,
+        run_id: &run_id,
+        kind: EvalRunKind::Pairwise,
+        config: &config,
         request,
-        case_rows.len(),
-    )
+        sample_size: case_rows.len(),
+    })
     .await?;
 
     let outcome = pairwise::execute_pairwise(pairwise::PairwiseParams {
         pool,
-        ai,
         config: &config,
         run_id: &run_id,
         cases: &case_rows,
@@ -204,8 +211,7 @@ pub async fn run_pairwise_eval(
     })
 }
 
-/// Freeze one live request into the golden set.
-pub async fn promote_case(
+pub(crate) async fn promote_case(
     pool: &PgPool,
     ai_request_id: &str,
     name: Option<&str>,

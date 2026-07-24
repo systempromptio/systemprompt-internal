@@ -29,8 +29,6 @@ pub(super) struct GovernancePageContext {
     pub(super) config_path: &'static str,
 }
 
-/// One policy card / enforcement-table row. The `enforcement` list reuses the
-/// same shape as `policies`, just re-sorted by `window_denied` DESC.
 #[derive(Debug, Clone, Serialize)]
 pub(super) struct PolicyRow {
     pub(super) id: String,
