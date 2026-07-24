@@ -23,6 +23,7 @@ pub struct EvalCaseRow {
     pub created_at: DateTime<Utc>,
 }
 
+#[derive(Debug)]
 pub struct InsertCaseParams<'a> {
     pub id: &'a str,
     pub name: &'a str,
@@ -81,6 +82,7 @@ pub async fn list_cases(pool: &PgPool, enabled_only: bool) -> Result<Vec<EvalCas
     Ok(rows)
 }
 
+// Why: lint-ok: unused-pub — consumed by the evals dashboard page currently in development.
 pub async fn delete_case(pool: &PgPool, case_id: &str) -> Result<(), sqlx::Error> {
     sqlx::query!("DELETE FROM eval_cases WHERE id = $1", case_id)
         .execute(pool)

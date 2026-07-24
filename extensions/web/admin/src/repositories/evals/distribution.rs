@@ -7,6 +7,7 @@
 
 use serde::Serialize;
 use sqlx::PgPool;
+use systemprompt::identifiers::UserId;
 
 use crate::util::time_range::TimeRange;
 
@@ -72,7 +73,7 @@ pub async fn list_model_distribution(
 /// One user's share of traffic over the window.
 #[derive(Debug, Clone, Serialize)]
 pub struct UserDistributionRow {
-    pub user_id: String,
+    pub user_id: UserId,
     pub user_label: Option<String>,
     pub request_count: i64,
     pub session_count: i64,
@@ -89,7 +90,7 @@ pub async fn list_user_distribution(
 ) -> Result<Vec<UserDistributionRow>, sqlx::Error> {
     let rows = sqlx::query!(
         r#"SELECT
-            ar.user_id AS "user_id!",
+            ar.user_id AS "user_id!: UserId",
             COALESCE(u.display_name, u.full_name, u.name, u.email) AS user_label,
             COUNT(*)::bigint AS "request_count!",
             COUNT(DISTINCT ar.session_id)::bigint AS "session_count!",

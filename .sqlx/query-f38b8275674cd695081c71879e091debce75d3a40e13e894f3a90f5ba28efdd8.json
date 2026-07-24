@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n            id AS \"id!\",\n            run_id AS \"run_id!\",\n            ai_request_id,\n            case_id,\n            user_id,\n            session_id,\n            provider AS \"provider!\",\n            model AS \"model!\",\n            overall_score,\n            dimension_scores AS \"dimension_scores!\",\n            verdict AS \"verdict!\",\n            rationale,\n            flags AS \"flags!\",\n            prompt_excerpt,\n            response_excerpt,\n            latency_ms,\n            cost_microdollars AS \"cost_microdollars!\",\n            judge_cost_microdollars AS \"judge_cost_microdollars!\",\n            created_at AS \"created_at!\"\n          FROM eval_results\n          WHERE run_id = $1\n          ORDER BY overall_score ASC NULLS FIRST, created_at DESC\n          LIMIT $2",
+  "query": "SELECT\n            id AS \"id!\",\n            run_id AS \"run_id!\",\n            ai_request_id,\n            case_id,\n            user_id AS \"user_id?: UserId\",\n            session_id AS \"session_id?: SessionId\",\n            provider AS \"provider!\",\n            model AS \"model!\",\n            overall_score,\n            dimension_scores AS \"dimension_scores!\",\n            verdict AS \"verdict!\",\n            rationale,\n            flags AS \"flags!\",\n            prompt_excerpt,\n            response_excerpt,\n            latency_ms,\n            cost_microdollars AS \"cost_microdollars!\",\n            judge_cost_microdollars AS \"judge_cost_microdollars!\",\n            created_at AS \"created_at!\"\n          FROM eval_results\n          WHERE created_at >= $1 AND created_at < $2\n          ORDER BY\n            CASE verdict WHEN 'fail' THEN 0 WHEN 'partial' THEN 1 ELSE 2 END,\n            created_at DESC\n          LIMIT $3",
   "describe": {
     "columns": [
       {
@@ -49,7 +49,7 @@
       },
       {
         "ordinal": 4,
-        "name": "user_id",
+        "name": "user_id?: UserId",
         "type_info": "Text",
         "origin": {
           "Table": {
@@ -60,7 +60,7 @@
       },
       {
         "ordinal": 5,
-        "name": "session_id",
+        "name": "session_id?: SessionId",
         "type_info": "Text",
         "origin": {
           "Table": {
@@ -215,7 +215,8 @@
     ],
     "parameters": {
       "Left": [
-        "Text",
+        "Timestamptz",
+        "Timestamptz",
         "Int8"
       ]
     },
@@ -241,5 +242,5 @@
       false
     ]
   },
-  "hash": "11a0687ca9ca71259a2c6d17f23973f1dfb25eff99c7008a0f0497a91479fe26"
+  "hash": "f38b8275674cd695081c71879e091debce75d3a40e13e894f3a90f5ba28efdd8"
 }

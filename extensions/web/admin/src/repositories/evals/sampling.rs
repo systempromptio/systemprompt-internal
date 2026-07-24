@@ -133,6 +133,24 @@ pub async fn list_eval_candidates(
         .collect())
 }
 
+/// Cost of one gateway request, by `request_id`. Used to charge a judge call
+/// back to its run from the row the AI service itself wrote.
+pub async fn find_request_cost(
+    pool: &PgPool,
+    request_id: &str,
+) -> Result<Option<i64>, sqlx::Error> {
+    let row = sqlx::query!(
+        r#"SELECT COALESCE(cost_microdollars, 0)::bigint AS "cost!"
+           FROM ai_requests
+           WHERE request_id = $1 OR id = $1
+           LIMIT 1"#,
+        request_id,
+    )
+    .fetch_optional(pool)
+    .await?;
+    Ok(row.map(|r| r.cost))
+}
+
 /// Everything needed to freeze one request into the golden set.
 pub async fn find_candidate_by_id(
     pool: &PgPool,

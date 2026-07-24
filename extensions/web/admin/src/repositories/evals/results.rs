@@ -3,6 +3,7 @@
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 use sqlx::PgPool;
+use systemprompt::identifiers::{SessionId, UserId};
 
 use super::{EvalVerdict, PairWinner};
 use crate::util::time_range::TimeRange;
@@ -13,8 +14,8 @@ pub struct EvalResultRow {
     pub run_id: String,
     pub ai_request_id: Option<String>,
     pub case_id: Option<String>,
-    pub user_id: Option<String>,
-    pub session_id: Option<String>,
+    pub user_id: Option<UserId>,
+    pub session_id: Option<SessionId>,
     pub provider: String,
     pub model: String,
     pub overall_score: Option<i32>,
@@ -30,13 +31,14 @@ pub struct EvalResultRow {
     pub created_at: DateTime<Utc>,
 }
 
+#[derive(Debug)]
 pub struct InsertResultParams<'a> {
     pub id: &'a str,
     pub run_id: &'a str,
     pub ai_request_id: Option<&'a str>,
     pub case_id: Option<&'a str>,
-    pub user_id: Option<&'a str>,
-    pub session_id: Option<&'a str>,
+    pub user_id: Option<&'a UserId>,
+    pub session_id: Option<&'a SessionId>,
     pub provider: &'a str,
     pub model: &'a str,
     pub overall_score: Option<i32>,
@@ -67,8 +69,8 @@ pub async fn insert_result(
         params.run_id,
         params.ai_request_id,
         params.case_id,
-        params.user_id,
-        params.session_id,
+        params.user_id.map(UserId::as_str),
+        params.session_id.map(SessionId::as_str),
         params.provider,
         params.model,
         params.overall_score,
@@ -99,8 +101,8 @@ pub async fn list_results_for_run(
             run_id AS "run_id!",
             ai_request_id,
             case_id,
-            user_id,
-            session_id,
+            user_id AS "user_id?: UserId",
+            session_id AS "session_id?: SessionId",
             provider AS "provider!",
             model AS "model!",
             overall_score,
@@ -140,8 +142,8 @@ pub async fn list_recent_results(
             run_id AS "run_id!",
             ai_request_id,
             case_id,
-            user_id,
-            session_id,
+            user_id AS "user_id?: UserId",
+            session_id AS "session_id?: SessionId",
             provider AS "provider!",
             model AS "model!",
             overall_score,
@@ -170,6 +172,7 @@ pub async fn list_recent_results(
     Ok(rows)
 }
 
+#[derive(Debug)]
 pub struct InsertPairParams<'a> {
     pub id: &'a str,
     pub run_id: &'a str,

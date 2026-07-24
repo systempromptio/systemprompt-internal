@@ -4,11 +4,9 @@ use serde::Serialize;
 
 use super::config::HomepageConfig;
 
-/// Template context for the homepage (`homepage.html`), shared by the runtime
-/// [`super::provider::HomepagePageDataProvider`] and the build-time
-/// [`super::prerenderer::HomepagePrerenderer`].
-///
-/// The template reads the homepage configuration under `site.homepage.*`.
+// Why: one context type feeds both the runtime provider and the build-time
+// prerenderer, so the two render paths cannot drift apart; the template reads
+// it under `site.homepage.*`.
 #[derive(Debug, Serialize)]
 pub(super) struct HomepageContext<'a> {
     site: HomepageSite<'a>,

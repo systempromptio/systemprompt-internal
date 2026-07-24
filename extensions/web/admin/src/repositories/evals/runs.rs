@@ -25,6 +25,7 @@ pub struct EvalRunRow {
     pub mean_score: Option<f64>,
 }
 
+#[derive(Debug)]
 pub struct InsertRunParams<'a> {
     pub id: &'a str,
     pub kind: EvalRunKind,
@@ -53,6 +54,7 @@ pub async fn insert_run(pool: &PgPool, params: InsertRunParams<'_>) -> Result<()
     Ok(())
 }
 
+#[derive(Debug)]
 pub struct CompleteRunParams<'a> {
     pub id: &'a str,
     pub status: EvalRunStatus,
