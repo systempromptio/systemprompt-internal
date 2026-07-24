@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Changed
+
+- Upgraded to systemprompt-core 0.23.0. All `systemprompt`/`systemprompt-security`/`systemprompt-extension` pins move from 0.22.0 to 0.23.0 across the root workspace, `extensions/web`, and the `tests/` workspace. Core dropped the `systemprompt-sync` crate, so it is gone from both `[patch.crates-io]` blocks. The `.sqlx` offline caches are regenerated against the 0.23 schema (7 new core migrations, mostly analytics-view drops).
+- Core 0.23.0 is not published to crates.io yet, so both `[patch.crates-io]` blocks are uncommented and the build requires a sibling `../systemprompt-core` checkout at 0.23.0. Re-comment them in lockstep once the release lands.
+
 ## bridge-0.17.1 — 2026-07-23
 
 ### Fixed
