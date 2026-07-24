@@ -4,6 +4,35 @@ use sqlx::PgPool;
 
 use crate::types::GovernanceDecisionRow;
 
+/// Recent decisions with optional policy / outcome / user filters — backs the
+/// decisions ledger page linked from every policy card.
+pub async fn list_decisions_filtered(
+    pool: &PgPool,
+    policy: Option<&str>,
+    outcome: Option<&str>,
+    user_id: Option<&str>,
+    limit: i64,
+) -> Result<Vec<GovernanceDecisionRow>, sqlx::Error> {
+    sqlx::query_as!(
+        GovernanceDecisionRow,
+        r#"SELECT id, user_id as "user_id!: _", tool_name,
+                  agent_id as "agent_id: _", agent_scope,
+                  decision, policy, reason, created_at
+           FROM governance_decisions
+           WHERE ($1::text IS NULL OR policy = $1)
+             AND ($2::text IS NULL OR decision = $2)
+             AND ($3::text IS NULL OR user_id = $3)
+           ORDER BY created_at DESC
+           LIMIT $4"#,
+        policy,
+        outcome,
+        user_id,
+        limit,
+    )
+    .fetch_all(pool)
+    .await
+}
+
 // Live upstream in systemprompt-template via the ssr_governance
 // handlers, which this fork does not ship. Kept so the shared
 // repository files stay identical across both trees.

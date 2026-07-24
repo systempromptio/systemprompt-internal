@@ -37,7 +37,26 @@ fn header_str(headers: &HeaderMap, name: header::HeaderName) -> Option<String> {
         .map(ToOwned::to_owned)
 }
 
-fn build_response(decision: &Decision) -> Response {
+/// Tool name recorded for a governed `UserPromptSubmit`. The chain wants a
+/// tool referent for every decision; a prompt has none, so it gets an explicit
+/// one rather than falling through to `"unknown"` and making the audit row
+/// unreadable.
+const PROMPT_TOOL_NAME: &str = "user_prompt";
+
+/// The evaluated payload for one hook event.
+///
+/// `PreToolUse` carries a `tool_input` object; `UserPromptSubmit` carries a
+/// bare string, which is wrapped so the same value-walking policies
+/// (`secret_scan`) apply to both without a second code path.
+fn governed_input(payload: &HookEventPayload) -> Option<serde_json::Value> {
+    payload.tool_input().cloned().or_else(|| {
+        payload
+            .prompt()
+            .map(|prompt| serde_json::json!({ "prompt": prompt }))
+    })
+}
+
+fn build_response(decision: &Decision, hook_event_name: &'static str) -> Response {
     // lint-ok: http-error — builds the decision body itself
     let permission_decision = GovernanceDecision::from_decision(decision);
     let permission_decision_reason = match decision {
@@ -46,7 +65,7 @@ fn build_response(decision: &Decision) -> Response {
     };
     let response = GovernanceResponse {
         hook_specific_output: HookSpecificOutput {
-            hook_event_name: "PreToolUse",
+            hook_event_name,
             permission_decision,
             permission_decision_reason,
         },
@@ -65,7 +84,17 @@ pub(crate) async fn govern_tool_use(
     // reads as "hook unavailable" and lets the call through
     let (payload, _warnings) = HookEventPayload::from_value(raw);
 
-    let tool_name = payload.tool_name().unwrap_or("unknown");
+    let is_prompt = payload.prompt().is_some();
+    let tool_name = payload
+        .tool_name()
+        .unwrap_or(if is_prompt { PROMPT_TOOL_NAME } else { "unknown" });
+    // Echo the caller's event back so a `UserPromptSubmit` gate is not handed a
+    // `PreToolUse` envelope it would have to ignore.
+    let response_event = if is_prompt {
+        "UserPromptSubmit"
+    } else {
+        "PreToolUse"
+    };
     let session_id = SessionId::new(payload.session_id());
     let agent_id = payload.common.agent_id.as_ref();
     let plugin_id = query.plugin_id.as_ref();
@@ -74,6 +103,7 @@ pub(crate) async fn govern_tool_use(
         pool: &pool,
         session_id: &session_id,
         tool_name,
+        hook_event_name: response_event,
         agent_id,
         plugin_id,
         session_service: &session_service,
@@ -92,12 +122,13 @@ pub(crate) async fn govern_tool_use(
         scope::higher_privilege(principal_scope, scope::resolve_agent_scope(id))
     });
 
+    let evaluated_input = governed_input(&payload);
     let (decision, chain) = evaluate(&EvaluateInput {
         tool_name,
         session_id: &session_id,
         user_id: &user_id,
         access_scope,
-        tool_input: payload.tool_input(),
+        tool_input: evaluated_input.as_ref(),
     });
 
     let audit = DecisionAudit {
@@ -116,7 +147,7 @@ pub(crate) async fn govern_tool_use(
     };
     spawn_audit_recording(&pool, audit);
 
-    build_response(&decision)
+    build_response(&decision, response_event)
 }
 
 fn spawn_auth_denial(params: &AuthDenialParams<'_>, reason: &str) {

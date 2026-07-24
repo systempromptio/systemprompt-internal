@@ -1,21 +1,28 @@
 {{#> layout title=title page=page}}
     {{#*inline "head_extra"}}{{/inline}}
     {{#*inline "content"}}
-    {{> components/page-header title=title}}
+    {{> components/page-header title="My Session"
+        subtitle="The identity this browser is signed in as. Traces and contexts record activity for every session."}}
 
     <section aria-label="Current session">
-        <h2 class="section-heading">Current Session</h2>
         {{#if current_session}}
         {{#> components/data-table}}
-            <thead><tr><th>Field</th><th>Value</th></tr></thead>
             <tbody>
                 <tr><td>User ID</td><td><code class="code-inline">{{current_session.user_id}}</code></td></tr>
                 <tr><td>Username</td><td>{{current_session.username}}</td></tr>
+                {{#unless (eq current_session.email current_session.username)}}
                 <tr><td>Email</td><td>{{current_session.email}}</td></tr>
+                {{/unless}}
                 <tr><td>Admin</td><td>{{#if current_session.is_admin}}<span class="badge badge-success">Yes</span>{{else}}<span class="badge badge-secondary">No</span>{{/if}}</td></tr>
                 <tr><td>Roles</td><td>{{#each current_session.roles}}<span class="badge badge-info">{{this}}</span> {{/each}}</td></tr>
             </tbody>
         {{/components/data-table}}
+        <p class="text-secondary">
+            Looking for activity? See this session's
+            <a href="/admin/entities/traces">tool-call traces</a>,
+            <a href="/admin/entities/contexts">conversations</a>, or
+            <a href="/admin/entities/requests">inference requests</a>.
+        </p>
         {{else}}
         {{> components/empty-state message="No active session."}}
         {{/if}}
@@ -33,7 +40,7 @@
             </tbody>
         {{/components/data-table}}
         {{else}}
-        {{> components/empty-state message="No profiles available."}}
+        {{> components/empty-state message="No other profiles are connected. Profiles appear here when you link additional systemprompt environments."}}
         {{/if}}
     </section>
     {{/inline}}

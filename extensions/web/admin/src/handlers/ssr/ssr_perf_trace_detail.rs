@@ -26,9 +26,26 @@ struct TraceDetailContext {
     page: &'static str,
     title: String,
     summary: Summary,
-    spans: Vec<Span>,
-    spans_payload: String,
+    spans: Vec<SpanView>,
     back_url: &'static str,
+}
+
+/// One rendered waterfall row: the raw span plus its position on the shared
+/// timeline (`offset_pct`/`width_pct`, both percentages of the trace duration)
+/// and timestamps pre-formatted in the viewer's local zone so the page never
+/// mixes UTC and local time.
+#[derive(Debug, Serialize)]
+struct SpanView {
+    id: String,
+    kind: &'static str,
+    name: String,
+    started_at_local: String,
+    duration_ms: i64,
+    status: &'static str,
+    offset_ms: i64,
+    offset_label: String,
+    offset_pct: f64,
+    width_pct: f64,
 }
 
 #[derive(Debug, Serialize)]
@@ -79,14 +96,13 @@ pub(crate) async fn perf_trace_detail_page(
     }
 
     let summary = build_summary(&session_id, &spans);
-    let spans_payload = serde_json::to_string(&spans).unwrap_or_else(|_| "[]".to_owned());
+    let span_views = build_span_views(&spans);
 
     let ctx = TraceDetailContext {
         page: "trace-detail",
         title: format!("Trace · {}", short_id(session_id.as_str())),
         summary,
-        spans,
-        spans_payload,
+        spans: span_views,
         back_url: "/admin/entities/traces",
     };
 
@@ -136,6 +152,50 @@ fn build_summary(session_id: &SessionId, spans: &[Span]) -> Summary {
         deny_count,
         error_count,
     }
+}
+
+fn build_span_views(spans: &[Span]) -> Vec<SpanView> {
+    let start = spans.iter().map(|s| s.started_at).min();
+    let ended = spans.iter().map(|s| s.ended_at).max();
+    let total_ms = match (start, ended) {
+        (Some(a), Some(b)) => (b - a).num_milliseconds().max(0),
+        _ => 0,
+    };
+    spans
+        .iter()
+        .map(|s| {
+            let offset_ms = start
+                .map(|a| (s.started_at - a).num_milliseconds().max(0))
+                .unwrap_or(0);
+            let (offset_pct, width_pct) = if total_ms > 0 {
+                let offset = round2(offset_ms as f64 / total_ms as f64 * 100.0);
+                let width = round2(s.duration_ms as f64 / total_ms as f64 * 100.0).max(0.5);
+                (offset, width)
+            } else {
+                (0.0, 0.5)
+            };
+            SpanView {
+                id: s.id.clone(),
+                kind: s.kind.as_str(),
+                name: s.name.clone(),
+                started_at_local: s
+                    .started_at
+                    .with_timezone(&chrono::Local)
+                    .format("%Y-%m-%d %H:%M:%S")
+                    .to_string(),
+                duration_ms: s.duration_ms,
+                status: s.status.as_str(),
+                offset_ms,
+                offset_label: format!("+{offset_ms} ms"),
+                offset_pct,
+                width_pct,
+            }
+        })
+        .collect()
+}
+
+fn round2(v: f64) -> f64 {
+    (v * 100.0).round() / 100.0
 }
 
 fn short_id(id: &str) -> String {

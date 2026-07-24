@@ -77,10 +77,22 @@ palette (deep navy background, cyan/blue accents). `setup.sh` installs and
 activates it; switch themes any time with `/settings`. Pi themes control
 colors only — the Pi name and logo are not themeable.
 
+## The full demo loop
+
+[`WALKTHROUGH.md`](WALKTHROUGH.md) walks the complete story: register a new
+user (`new-user.sh`), drive Pi as them, then govern them live from the
+dashboard's **Model Selection** page (`/admin/models`) — per-user model
+enable/disable with immediate 403s, plus full usage and audit visibility.
+Run `routes.sh` once (plus a server restart) to split the demo models into
+individually governable gateway routes.
+
 ## Files
 
 | File | Purpose |
 |------|---------|
 | `models.json` | Provider template installed into `~/.pi/agent/models.json` |
 | `themes/systemprompt.json` | Branded Pi theme |
-| `setup.sh` | Idempotent installer + token mint + smoke test |
+| `setup.sh` | Idempotent installer + token mint + smoke test (admin) |
+| `new-user.sh` | Register a demo user + issue their gateway API key |
+| `routes.sh` | Add per-model gateway routes for per-user governance |
+| `WALKTHROUGH.md` | The end-to-end demo script |

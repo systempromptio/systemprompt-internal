@@ -2,6 +2,11 @@
     {{#*inline "content"}}
     <a href="{{back_url}}" class="back-link">&larr; All decisions</a>
 
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <a href="/admin/entities/requests">Requests</a>
+        <span class="breadcrumbs__sep" aria-hidden="true">›</span>
+        <span aria-current="page">Request audit</span>
+    </nav>
     {{> components/page-header
         title=title
         subtitle="Single-request audit chain — identity, policy evaluations, model traffic, and linked trace."}}

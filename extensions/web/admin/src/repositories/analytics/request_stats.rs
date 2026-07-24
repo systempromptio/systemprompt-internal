@@ -139,7 +139,7 @@ pub async fn list_latency_histogram(
     for (i, &edge) in edges.iter().enumerate() {
         let bucket = (i + 1) as i32;
         let prev = if i == 0 { 0.0 } else { edges[i - 1] };
-        let label = format!("{}–{} ms", format_ms(prev), format_ms(edge));
+        let label = format!("{}–{}", format_ms(prev), format_ms(edge));
         out.push(LatencyBucket {
             label,
             upper_bound_ms: Some(edge),
@@ -148,7 +148,7 @@ pub async fn list_latency_histogram(
     }
     let last_bucket = (edges.len() + 1) as i32;
     out.push(LatencyBucket {
-        label: format!("{}+ ms", format_ms(edges[edges.len() - 1])),
+        label: format!("{}+", format_ms(edges[edges.len() - 1])),
         upper_bound_ms: None,
         count: by_bucket.get(&last_bucket).copied().unwrap_or(0),
     });
@@ -159,7 +159,7 @@ fn format_ms(v: f64) -> String {
     if v >= 1000.0 {
         format!("{}s", v as i64 / 1000)
     } else {
-        format!("{}", v as i64)
+        format!("{}ms", v as i64)
     }
 }
 

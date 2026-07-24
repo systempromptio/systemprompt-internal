@@ -104,6 +104,10 @@ fn build_admin_write_routes(write_pool: &Arc<PgPool>) -> Router {
             post(handlers::share::issue_share_token_handler),
         )
         .route(
+            "/users/{user_id}/pats",
+            post(handlers::devices::issue_user_pat),
+        )
+        .route(
             "/demo-register",
             post(handlers::demo_register::create_demo_user_handler),
         )

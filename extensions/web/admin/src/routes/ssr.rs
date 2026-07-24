@@ -131,9 +131,14 @@ fn governance_routes() -> Router<Arc<PgPool>> {
             post(handlers::ssr::governance_policy_toggle),
         )
         .route(
+            "/governance/decisions",
+            get(handlers::ssr::governance_decisions_page),
+        )
+        .route(
             "/governance/hooks",
             get(handlers::ssr::governance_hooks_page),
         )
+        .route("/models", get(handlers::ssr::models_page))
 }
 
 fn entity_routes() -> Router<Arc<PgPool>> {

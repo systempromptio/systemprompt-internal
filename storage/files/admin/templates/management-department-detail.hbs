@@ -16,7 +16,7 @@
             <div><div class="text-muted" style="font-size:.8rem;">Requests (30d)</div><div style="font-size:1.5rem;font-weight:600;">{{total_requests}}</div></div>
             <div><div class="text-muted" style="font-size:.8rem;">Tokens in (30d)</div><div style="font-size:1.5rem;font-weight:600;">{{total_input_tokens}}</div></div>
             <div><div class="text-muted" style="font-size:.8rem;">Tokens out (30d)</div><div style="font-size:1.5rem;font-weight:600;">{{total_output_tokens}}</div></div>
-            <div><div class="text-muted" style="font-size:.8rem;">Cost (30d)</div><div style="font-size:1.5rem;font-weight:600;">{{total_cost_microdollars}} µ$</div></div>
+            <div><div class="text-muted" style="font-size:.8rem;">Cost (30d)</div><div style="font-size:1.5rem;font-weight:600;">{{formatUsd total_cost_microdollars}}</div></div>
         </div>
     </section>
 
@@ -27,7 +27,7 @@
             <a class="btn btn-primary" href="{{assignments_url}}">Open access matrix filtered to this department →</a>
         </p>
         <p class="text-muted" style="font-size:.875rem;">
-            Stored in <code>access_control_rules</code> with <code>rule_type='department'</code> and <code>rule_value='{{department.name}}'</code>. Renaming this department updates those rules automatically.
+            Renaming this department updates its access rules automatically.
         </p>
     </section>
 
@@ -69,7 +69,7 @@
                 <td><span class="badge {{#if (eq status "active")}}badge-green{{else}}badge-gray{{/if}}">{{status}}</span></td>
                 <td class="numeric col-numeric">{{requests}}</td>
                 <td class="numeric col-numeric">{{add input_tokens output_tokens}}</td>
-                <td class="numeric col-numeric">{{cost_microdollars}} µ$</td>
+                <td class="numeric col-numeric">{{formatUsd cost_microdollars}}</td>
                 <td>{{#if last_active}}{{relativeTime last_active}}{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
                 <td class="col-actions">
                     <button type="button" class="btn btn-sm btn-outline" data-unassign-user="{{id}}">Move to Default</button>
@@ -90,7 +90,7 @@
         <form id="member-add-form" class="dialog-form">
             <h3>Add member to {{department.name}}</h3>
             <label>User ID<input type="text" name="user_id" required placeholder="usr_…"></label>
-            <p class="text-muted" style="font-size:.875rem;">The user's <code>users.department</code> field will be set to <code>{{department.name}}</code>.</p>
+            <p class="text-muted" style="font-size:.875rem;">The user will be moved into <strong>{{department.name}}</strong>.</p>
             <menu>
                 <button type="button" class="btn btn-sm btn-outline" id="member-add-cancel">Cancel</button>
                 <button type="submit" class="btn btn-sm btn-primary">Add</button>

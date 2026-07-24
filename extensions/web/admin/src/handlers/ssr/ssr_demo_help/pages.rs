@@ -26,6 +26,10 @@ pub(super) fn demo_help_governance_pages(page: &str) -> Option<(&'static str, &'
             "<strong>Governance Rate Limits</strong> defines and monitors usage quotas per user, role, department, tool, and time window. Rate limits protect budgets, enforce fair-use across teams, and prevent runaway automation. This page shows current consumption against configured ceilings and lets you adjust limits as usage patterns evolve.",
             "tool-governance",
         )),
+        "models" => Some((
+            "<strong>Model Selection</strong> controls which gateway models each user may call. Pick a user, then enable or disable individual models &mdash; a disable writes a per-user deny rule that the gateway evaluates live, so the user's very next request to that model is refused with a 403 while every other model keeps working. The usage panel below shows the same user's governed traffic: every request, its provider, tokens, cost, and any denials. Drive traffic with the Pi coding agent (<code>examples/pi/</code>) to see the loop end to end.",
+            "tool-governance",
+        )),
         _ => None,
     }
 }

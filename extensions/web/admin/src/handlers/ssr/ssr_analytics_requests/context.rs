@@ -45,6 +45,7 @@ pub(super) struct LatencyBucketView {
     pub label: String,
     pub count: i64,
     pub upper_bound_ms: Option<f64>,
+    pub pct: i64,
 }
 
 #[derive(Debug, Serialize)]
@@ -52,6 +53,7 @@ pub(super) struct CostBucketView {
     pub bucket_index: i32,
     pub bucket_start: String,
     pub cost_microdollars: i64,
+    pub pct: i64,
 }
 
 #[derive(Debug, Serialize)]

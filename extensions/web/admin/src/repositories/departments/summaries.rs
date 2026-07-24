@@ -30,10 +30,13 @@ pub async fn list_departments(pool: &PgPool) -> Result<Vec<DepartmentSummary>, s
             d.updated_at
         FROM departments d
         LEFT JOIN (
-            SELECT department, COUNT(*)::BIGINT AS member_count
-            FROM user_profile_ext
-            WHERE department IS NOT NULL AND department <> ''
-            GROUP BY department
+            SELECT COALESCE(NULLIF(upe.department, ''), 'Default') AS department,
+                   COUNT(*)::BIGINT AS member_count
+            FROM user_profile_ext upe
+            JOIN users u ON u.id = upe.user_id
+            WHERE NOT ('anonymous' = ANY(u.roles))
+              AND u.email NOT LIKE '%@anonymous.local'
+            GROUP BY 1
         ) mc ON mc.department = d.name
         LEFT JOIN (
             SELECT rule_value, COUNT(*)::BIGINT AS assignment_count
@@ -43,7 +46,7 @@ pub async fn list_departments(pool: &PgPool) -> Result<Vec<DepartmentSummary>, s
         ) ac ON ac.rule_value = d.name
         LEFT JOIN (
             SELECT
-                upe.department AS dept,
+                COALESCE(NULLIF(upe.department, ''), 'Default') AS dept,
                 COALESCE(SUM(ar.input_tokens), 0)::BIGINT  AS input_tokens,
                 COALESCE(SUM(ar.output_tokens), 0)::BIGINT AS output_tokens,
                 COUNT(ar.id)::BIGINT                       AS requests,
@@ -51,7 +54,7 @@ pub async fn list_departments(pool: &PgPool) -> Result<Vec<DepartmentSummary>, s
             FROM ai_requests ar
             JOIN user_profile_ext upe ON upe.user_id = ar.user_id
             WHERE ar.created_at >= NOW() - INTERVAL '30 days'
-            GROUP BY upe.department
+            GROUP BY 1
         ) usg ON usg.dept = d.name
         ORDER BY d.name
         "#,
@@ -92,7 +95,7 @@ pub async fn list_department_members(
             GROUP BY user_id
         ) ar ON ar.user_id = u.id
         JOIN user_profile_ext upe ON upe.user_id = u.id
-        WHERE upe.department = $1
+        WHERE COALESCE(NULLIF(upe.department, ''), 'Default') = $1
           AND NOT ('anonymous' = ANY(u.roles))
           AND u.email NOT LIKE '%@anonymous.local'
         ORDER BY (COALESCE(ar.input_tokens, 0) + COALESCE(ar.output_tokens, 0)) DESC, u.email
@@ -116,7 +119,7 @@ pub async fn list_department_top_tools(
             COALESCE(SUM(p.event_count), 0)::BIGINT AS "invocations!"
         FROM plugin_usage_daily p
         JOIN user_profile_ext upe ON upe.user_id = p.user_id
-        WHERE upe.department = $1
+        WHERE COALESCE(NULLIF(upe.department, ''), 'Default') = $1
           AND p.tool_name IS NOT NULL
           AND p.date >= CURRENT_DATE - INTERVAL '30 days'
         GROUP BY p.tool_name

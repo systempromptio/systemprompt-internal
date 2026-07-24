@@ -43,7 +43,7 @@ pub(super) fn authenticate_request(
     let Some(token) = extract_bearer_token(headers) else {
         let reason = "Missing Authorization header — tool call blocked";
         spawn_auth_denial(denial_params, reason);
-        return Err(Box::new(build_response(&deny_for_auth_failure(reason))));
+        return Err(Box::new(build_response(&deny_for_auth_failure(reason), denial_params.hook_event_name)));
     };
 
     let jwt_issuer = match get_jwt_issuer() {
@@ -52,7 +52,7 @@ pub(super) fn authenticate_request(
             tracing::error!(error = %e, "Failed to load JWT config");
             let reason = "Internal configuration error — tool call blocked";
             spawn_auth_denial(denial_params, reason);
-            return Err(Box::new(build_response(&deny_for_auth_failure(reason))));
+            return Err(Box::new(build_response(&deny_for_auth_failure(reason), denial_params.hook_event_name)));
         },
     };
 
@@ -70,7 +70,7 @@ pub(super) fn authenticate_request(
         log_jwt_failure(&e, expected_aud, &jwt_issuer);
         let reason = "Invalid or expired token — tool call blocked";
         spawn_auth_denial(denial_params, reason);
-        Box::new(build_response(&deny_for_auth_failure(reason)))
+        Box::new(build_response(&deny_for_auth_failure(reason), denial_params.hook_event_name))
     })?;
 
     Ok(Principal {

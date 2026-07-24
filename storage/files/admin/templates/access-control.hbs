@@ -23,7 +23,7 @@
     </div>
 
     <div class="ac-stats">
-        <span><strong>{{stats.department_count}}</strong> departments</span>
+        <span><strong>{{stats.department_count}}</strong> department{{#unless (eq stats.department_count 1)}}s{{/unless}}</span>
         <span>·</span>
         <span><strong>{{stats.user_count}}</strong> users</span>
     </div>
@@ -62,13 +62,15 @@
         <!-- Center pane: switches between welcome / dept editor / user matrix -->
         <section class="ac-detail" id="ac-detail" aria-live="polite">
             <div class="ac-welcome" id="ac-welcome">
-                <h2>Access Control</h2>
+                <h3 class="ac-welcome-title">Nothing selected yet</h3>
                 <p>Pick a department to assign access at the group level, or pick a user to see their full permission matrix.</p>
-                <ul class="ac-welcome-tips">
-                    <li><strong>YAML is bootstrap config.</strong> Hand-edit <code>services/access-control/*.yaml</code> in the source repo and redeploy to apply changes everywhere.</li>
-                    <li><strong>The dashboard writes to the database</strong> on this instance only — useful for one-off operational overrides.</li>
-                    <li>Use <em>Show as YAML</em> to copy the current DB state as a YAML snippet you can paste back into the source repo.</li>
-                </ul>
+                <details class="ac-welcome-tips-wrap">
+                    <summary>How changes are stored</summary>
+                    <ul class="ac-welcome-tips">
+                        <li><strong>Bootstrap config comes from YAML.</strong> Edits made here apply to this instance only.</li>
+                        <li>Use <em>Show as YAML</em> to copy the current state as a snippet you can commit back to the source repo.</li>
+                    </ul>
+                </details>
             </div>
 
             <!-- Department editor (rendered by JS) -->

@@ -50,6 +50,33 @@ pub(crate) async fn issue_pat(
     .into_response())
 }
 
+/// Admin-only: issue a PAT on behalf of another user.
+///
+/// The self-service `issue_pat` above keys on the session's own user id; this
+/// variant lets an operator provision a gateway credential for a freshly
+/// registered user (the Pi demo walkthrough) without logging in as them.
+pub(crate) async fn issue_user_pat(
+    Extension(user_ctx): Extension<UserContext>,
+    State(pool): State<Arc<PgPool>>,
+    Path(user_id): Path<String>,
+    Json(body): Json<IssueApiKeyRequest>,
+) -> AdminResult<Response> {
+    if !user_ctx.is_admin {
+        return Err(AdminError::Forbidden("Admin access required.".to_owned()));
+    }
+    let target = UserId::new(user_id);
+    let issued = device_service::issue_pat(&pool, &target, &body.name, body.expires_at).await?;
+    Ok(Json(IssueApiKeyResponse {
+        id: issued.id,
+        name: issued.name,
+        key_prefix: issued.key_prefix,
+        secret: issued.secret,
+        created_at: issued.created_at,
+        expires_at: issued.expires_at,
+    })
+    .into_response())
+}
+
 pub(crate) async fn revoke_pat(
     Extension(user_ctx): Extension<UserContext>,
     State(pool): State<Arc<PgPool>>,

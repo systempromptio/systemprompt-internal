@@ -45,6 +45,7 @@
             <div class="latency-histogram" data-histogram-max="{{histogram_max}}">
                 {{#each histogram}}
                 <div class="latency-histogram__bar" data-count="{{this.count}}"
+                     style="--v:{{this.pct}}%"
                      title="{{this.label}}: {{this.count}} requests">
                     <span class="latency-histogram__count">{{this.count}}</span>
                     <span class="latency-histogram__label">{{this.label}}</span>
@@ -59,7 +60,8 @@
                  aria-label="Cost time series, 24 buckets">
                 {{#each cost_series}}
                 <div class="cost-spark__bar" data-cost="{{this.cost_microdollars}}"
-                     title="{{this.bucket_start}}: {{this.cost_microdollars}} μ$"></div>
+                     style="--v:{{this.pct}}%"
+                     title="{{this.bucket_start}}: {{formatUsd this.cost_microdollars}}"></div>
                 {{/each}}
             </div>
         </section>
@@ -175,6 +177,7 @@
         </tbody>
     {{/components/data-table}}
 
+    {{#if (gt pagination.total_pages 1)}}
     <nav class="audit-pagination" aria-label="Requests pagination">
         {{#if pagination.has_prev}}
             <a href="{{pagination.prev_url}}" class="btn btn-sm btn-outline">&larr; Previous</a>
@@ -190,6 +193,7 @@
             <span class="btn btn-sm btn-outline is-disabled">Next &rarr;</span>
         {{/if}}
     </nav>
+    {{/if}}
     {{else}}
     {{> components/empty-state
         message="No inference requests in the current time range. Widen the window or run a demo to populate data."}}

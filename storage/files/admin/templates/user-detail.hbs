@@ -1,6 +1,11 @@
 {{#> layout title=title page=page}}
     {{#*inline "head_extra"}}{{/inline}}
     {{#*inline "content"}}
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <a href="/admin/access/users">Users</a>
+        <span class="breadcrumbs__sep" aria-hidden="true">›</span>
+        <span aria-current="page">User detail</span>
+    </nav>
     {{> components/page-header title=title}}
     {{#if not_found}}
     {{> components/empty-state message="User not found."}}

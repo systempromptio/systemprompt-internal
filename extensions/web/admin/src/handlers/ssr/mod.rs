@@ -23,10 +23,12 @@ mod ssr_demo_help;
 mod ssr_demo_register;
 mod ssr_governance;
 mod ssr_governance_audit_detail;
+mod ssr_governance_decisions;
 mod ssr_governance_hooks;
 mod ssr_governance_policy_edit;
 pub(crate) mod ssr_helpers;
 mod ssr_management;
+mod ssr_models;
 mod ssr_perf_trace_detail;
 mod ssr_perf_traces;
 mod ssr_profile;
@@ -50,6 +52,7 @@ pub(crate) use ssr_conversations_raw::conversations_raw;
 pub(crate) use ssr_demo_register::demo_register_page;
 pub(crate) use ssr_governance::governance_page;
 pub(crate) use ssr_governance_audit_detail::governance_audit_detail_page;
+pub(crate) use ssr_governance_decisions::governance_decisions_page;
 pub(crate) use ssr_governance_hooks::governance_hooks_page;
 pub(crate) use ssr_governance_policy_edit::{
     governance_policy_edit_page, governance_policy_toggle,
@@ -58,6 +61,7 @@ pub(crate) use ssr_helpers::{branding_context, render_page, render_typed_page};
 pub(crate) use ssr_management::{
     management_department_detail_page, management_departments_page, management_devices_page,
 };
+pub(crate) use ssr_models::models_page;
 pub(crate) use ssr_perf_trace_detail::perf_trace_detail_page;
 pub(crate) use ssr_perf_traces::perf_traces_page;
 pub(crate) use ssr_profile::profile_page;

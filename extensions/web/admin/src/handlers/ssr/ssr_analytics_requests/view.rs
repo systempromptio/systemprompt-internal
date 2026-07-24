@@ -65,20 +65,33 @@ pub(super) fn stats_to_json(s: &RequestStats) -> RequestStatsView {
     }
 }
 
-pub(super) fn latency_bucket_to_json(b: &LatencyBucket) -> LatencyBucketView {
+pub(super) fn latency_bucket_to_json(b: &LatencyBucket, max: i64) -> LatencyBucketView {
     LatencyBucketView {
         label: b.label.clone(),
         count: b.count,
         upper_bound_ms: b.upper_bound_ms,
+        pct: bar_pct(b.count, max),
     }
 }
 
-pub(super) fn cost_bucket_to_json(b: &CostBucket) -> CostBucketView {
+pub(super) fn cost_bucket_to_json(b: &CostBucket, max: i64) -> CostBucketView {
     CostBucketView {
         bucket_index: b.bucket_index,
         bucket_start: b.bucket_start.to_rfc3339(),
         cost_microdollars: b.cost_microdollars,
+        pct: bar_pct(b.cost_microdollars, max),
     }
+}
+
+/// Bar fill percentage (0-100) of `value` against the series `max`. Any
+/// non-zero value floors at 4% so a tiny bar still renders visibly; an empty
+/// series (`max == 0`) yields 0.
+fn bar_pct(value: i64, max: i64) -> i64 {
+    if max <= 0 || value <= 0 {
+        return 0;
+    }
+    let pct = (value as f64 / max as f64 * 100.0).round() as i64;
+    pct.max(4)
 }
 
 pub(super) fn request_row_to_json(r: &RequestRow) -> RequestListRowView {

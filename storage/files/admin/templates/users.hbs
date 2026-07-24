@@ -21,7 +21,6 @@
             <th class="col-status" title="Active PATs / enrolled devices, coloured by last-seen">Devices</th>
             <th class="numeric col-numeric" title="Lifetime tokens consumed via bridge sessions">Tokens</th>
             <th class="numeric col-numeric">Sessions</th>
-            <th>Client</th>
             <th class="col-status">Status</th>
             <th class="col-date">Joined</th>
             <th class="col-date">Last Active</th>
@@ -30,7 +29,7 @@
         {{#each groups}}
         <tbody class="table-group" data-department="{{department}}">
             <tr class="table-group-header">
-                <th colspan="11">
+                <th colspan="10">
                     <a href="/admin/access-control?department={{department}}" class="table-group-title">
                         <span class="table-group-name">{{department}}</span>
                         <span class="table-group-count">{{user_count}} user{{#unless (eq user_count 1)}}s{{/unless}}</span>
@@ -69,7 +68,6 @@
                 </td>
                 <td class="numeric" style="font-variant-numeric: tabular-nums;" title="{{lifetime_tokens}} tokens">{{#if lifetime_tokens}}{{formatNumber lifetime_tokens}}{{else}}<span class="text-tertiary">0</span>{{/if}}</td>
                 <td class="numeric" style="font-variant-numeric: tabular-nums;">{{sessions}}</td>
-                <td>{{#if preferred_client}}<span class="badge badge-gray">{{preferred_client}}</span>{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
                 <td class="col-status">{{#if is_active}}<span class="badge badge-success">Active</span>{{else}}<span class="badge badge-secondary">Inactive</span>{{/if}}</td>
                 <td class="col-date">{{#if created_at}}<span title="{{formatDate created_at}}">{{relativeTime created_at}}</span>{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
                 <td class="col-date">{{#if last_active}}<span title="{{formatDate last_active}}">{{relativeTime last_active}}</span>{{else}}Never{{/if}}</td>

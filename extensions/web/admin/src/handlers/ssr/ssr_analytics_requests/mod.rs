@@ -85,6 +85,14 @@ pub(crate) async fn analytics_requests_page(
         || filter.status.is_some()
         || !search_query.is_empty();
 
+    let histogram_max = fetched.hist.iter().map(|b| b.count).max().unwrap_or(0);
+    let cost_max = fetched
+        .cost
+        .iter()
+        .map(|b| b.cost_microdollars)
+        .max()
+        .unwrap_or(0);
+
     let ctx = AnalyticsRequestsPageContext {
         page: "requests",
         title: "Inference Requests",
@@ -93,16 +101,15 @@ pub(crate) async fn analytics_requests_page(
         histogram: fetched
             .hist
             .iter()
-            .map(view::latency_bucket_to_json)
+            .map(|b| view::latency_bucket_to_json(b, histogram_max))
             .collect(),
-        histogram_max: fetched.hist.iter().map(|b| b.count).max().unwrap_or(0),
-        cost_series: fetched.cost.iter().map(view::cost_bucket_to_json).collect(),
-        cost_max: fetched
+        histogram_max,
+        cost_series: fetched
             .cost
             .iter()
-            .map(|b| b.cost_microdollars)
-            .max()
-            .unwrap_or(0),
+            .map(|b| view::cost_bucket_to_json(b, cost_max))
+            .collect(),
+        cost_max,
         rows: fetched.rows.iter().map(view::request_row_to_json).collect(),
         has_rows: !fetched.rows.is_empty(),
         total_count: fetched.total_count,

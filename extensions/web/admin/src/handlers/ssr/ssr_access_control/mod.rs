@@ -122,7 +122,7 @@ pub(crate) async fn access_control_page(
 
     let ctx = AccessControlPageContext {
         page: "access-control",
-        title: "Access Control",
+        title: "Access matrix",
         known_roles,
         departments: dept_groups,
         department_names,
