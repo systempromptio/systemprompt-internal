@@ -35,7 +35,7 @@ pub(super) struct ContextItemView {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) session_id: Option<SessionId>,
     pub(super) model: Option<String>,
-    /// Opening user turn, truncated — rendered as the table's Conversation column.
+    // Why: Opening user turn, truncated — rendered as the table's Conversation column.
     pub(super) summary: Option<String>,
     pub(super) request_count: i64,
     pub(super) message_count: i64,

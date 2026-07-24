@@ -65,8 +65,8 @@ impl From<SessionRow> for SessionListItem {
     }
 }
 
-/// Returns the requested page plus the total row count for the same filter, so
-/// the caller can render "page N of M" without a second round trip.
+/// The count ignores `page` and covers every row the filter matches, so a
+/// caller can render "page N of M" without a second round trip.
 #[expect(
     clippy::too_many_lines,
     reason = "body is one irreducible compile-time-checked query_as! SQL literal"

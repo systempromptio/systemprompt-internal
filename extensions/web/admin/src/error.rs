@@ -115,9 +115,10 @@ impl AdminError {
             Self::Upstream(_) => "Upstream service error".to_owned(),
             Self::Unauthenticated(_) => "Unauthorized".to_owned(),
             Self::Crypto(_) => "Internal configuration error".to_owned(),
-            Self::Database(_) | Self::AccessTokenRepo(_) | Self::Marketplace(_) | Self::Internal(_) => {
-                "Internal server error".to_owned()
-            },
+            Self::Database(_)
+            | Self::AccessTokenRepo(_)
+            | Self::Marketplace(_)
+            | Self::Internal(_) => "Internal server error".to_owned(),
         }
     }
 }

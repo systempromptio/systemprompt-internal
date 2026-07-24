@@ -14,7 +14,7 @@ use systemprompt::identifiers::{TenantId, UserId};
 use systemprompt::models::Config;
 use uuid::Uuid;
 
-use crate::repositories::users::identity::{UserIdentityRow, find_user_identity};
+use crate::repositories::users::identity::{SignedInUserRow, find_user_identity};
 use crate::repositories::users::usage as usage_repo;
 
 use super::{AgentItem, AgentsBlock, GatewayAccessBlock, ProfileUsage};
@@ -25,7 +25,7 @@ pub(super) struct UsageSections {
     pub(super) d30: usage_repo::UsageWindow,
     pub(super) top_models: Vec<usage_repo::ModelShare>,
     pub(super) conversations: usage_repo::ConversationSummary,
-    pub(super) identity: Option<UserIdentityRow>,
+    pub(super) identity: Option<SignedInUserRow>,
 }
 
 pub(super) async fn fetch_usage_sections(pool: &Arc<PgPool>, user_id: &UserId) -> UsageSections {

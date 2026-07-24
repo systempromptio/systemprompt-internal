@@ -164,10 +164,7 @@ fn build_summary(env: &ChainEnvelope) -> Summary {
         session_id: env.session_id.clone(),
         session_id_short: short_id(env.session_id.as_str()),
         trace_id: env.trace_id.clone(),
-        trace_url: env
-            .trace_id
-            .as_ref()
-            .map(trace_detail_url),
+        trace_url: env.trace_id.as_ref().map(trace_detail_url),
         session_url: session_detail_url(&env.session_id),
         user_id: env.identity.user_id.clone(),
         agent_id: env.identity.agent_id.clone(),

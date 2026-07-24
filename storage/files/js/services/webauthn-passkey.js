@@ -4,7 +4,7 @@ import {
   preparePublicKeyCredentialCreationOptions,
   preparePublicKeyCredentialRequestOptions, makeRequest,
   assertRpIdMatchesOrigin
-} from '/js/services/webauthn-utils.js';
+} from '/js/services/webauthn-utils.js?v=3';
 
 import {
   buildAuthCredentialPayload, buildCreationCredentialPayload,
@@ -103,6 +103,7 @@ const createPasskey = async () => {
         WEBAUTHN_BASE + '/link/start?username=' + encodeURIComponent(username) +
         '&email=' + encodeURIComponent(validatedEmail), 'POST'
       );
+      assertRpIdMatchesOrigin(startResponse.data.publicKey.rp && startResponse.data.publicKey.rp.id);
       const publicKeyOptions = preparePublicKeyCredentialCreationOptions(startResponse.data.publicKey);
       const credential = await navigator.credentials.create({ publicKey: publicKeyOptions });
       if (!credential) throw new Error('Passkey creation was cancelled');
@@ -119,6 +120,13 @@ const createPasskey = async () => {
       if (error.name === 'NotAllowedError') errorDiv.textContent = 'Passkey creation was cancelled or not allowed.';
       else if (error.name === 'NotSupportedError') errorDiv.textContent = 'Passkeys are not supported on this device.';
       else errorDiv.textContent = error.message || 'Failed to create passkey. Please try again.';
+      if (error.correctUrl) {
+        errorDiv.append(' ');
+        const link = document.createElement('a');
+        link.href = error.correctUrl;
+        link.textContent = 'Continue on ' + new URL(error.correctUrl).hostname;
+        errorDiv.append(link);
+      }
       errorDiv.hidden = false;
     }
   }

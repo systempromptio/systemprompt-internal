@@ -7,14 +7,15 @@ use serde::Serialize;
 use crate::handlers::ssr::types::{ChartView, HistogramView};
 use systemprompt::identifiers::UserId;
 
-/// Which section of the page is being looked at. The page is split by *kind of
-/// eval* rather than by data source, so the form that launches a run and the
-/// table that shows its output live on the same tab.
+// Why: Which section of the page is being looked at. The page is split by *kind
+// of eval* rather than by data source, so the form that launches a run and the
+// table that shows its output live on the same tab.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum EvalsTab {
     /// Health of the window: KPIs, charts, and every run regardless of kind.
     Overview,
-    /// What actually went through the gateway, by model, user, and prompt shape.
+    /// What actually went through the gateway, by model, user, and prompt
+    /// shape.
     Traffic,
     /// Judge runs over live traffic, and the answers they scored.
     Judge,
@@ -25,8 +26,8 @@ pub(super) enum EvalsTab {
 }
 
 impl EvalsTab {
-    /// Anything unrecognised lands on Overview. A mistyped tab in a shared link
-    /// should still show the page rather than a 400.
+    // Why: Anything unrecognised lands on Overview. A mistyped tab in a shared link
+    // should still show the page rather than a 400.
     pub(super) fn from_query(raw: Option<&str>) -> Self {
         match raw {
             Some("traffic") => Self::Traffic,
@@ -48,6 +49,10 @@ impl EvalsTab {
     }
 }
 
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "one bool per Handlebars branch; nesting them only moves the count"
+)]
 #[derive(Debug, Serialize)]
 pub(super) struct EvalsPageContext {
     pub page: &'static str,
@@ -61,7 +66,7 @@ pub(super) struct EvalsPageContext {
     /// True on the tabs whose KPI strip is about traffic, not judged quality.
     pub show_traffic_kpis: bool,
     pub show_quality_kpis: bool,
-    pub tabs: Vec<TabLinkView>,
+    pub tabs: Vec<EvalTabLinkView>,
     pub time_range: EvalTimeRangeView,
     pub traffic: TrafficStatsView,
     pub scores: ScoreSummaryView,
@@ -86,15 +91,15 @@ pub(super) struct EvalsPageContext {
 }
 
 #[derive(Debug, Serialize)]
-pub(super) struct TabLinkView {
+pub(super) struct EvalTabLinkView {
     pub slug: &'static str,
     pub label: &'static str,
     pub href: String,
     pub is_active: bool,
 }
 
-/// State of the Judge tab's verdict and model filters, echoed back so the
-/// selects stay on what was picked after the round trip.
+// Why: State of the Judge tab's verdict and model filters, echoed back so the
+// selects stay on what was picked after the round trip.
 #[derive(Debug, Serialize)]
 pub(super) struct ResultFilterView {
     pub verdict: String,

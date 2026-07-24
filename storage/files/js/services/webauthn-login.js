@@ -4,8 +4,8 @@ import {
   getEmailInput, clearAccessToken, showError, showLoginForm,
   showLoading, showPasskeyError, showEmailError,
   hasValidAdminToken, initMagicLinkUI
-} from '/js/services/webauthn-login-ui.js';
-import { startPasskeyAuth, finishPasskeyAuth, redirectWithPkce } from '/js/services/webauthn-helpers.js?v=2';
+} from '/js/services/webauthn-login-ui.js?v=3';
+import { startPasskeyAuth, finishPasskeyAuth, redirectWithPkce } from '/js/services/webauthn-helpers.js?v=3';
 import { showToast } from '/js/services/toast.js';
 
 const CLIENT_ID = 'marketplace-admin';

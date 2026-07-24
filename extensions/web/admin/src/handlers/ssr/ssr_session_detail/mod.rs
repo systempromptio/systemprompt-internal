@@ -15,12 +15,12 @@ use sqlx::PgPool;
 use systemprompt::identifiers::SessionId;
 
 use crate::error::AdminHtmlResult;
+use crate::handlers::ssr::entity_urls::{context_detail_url, request_detail_url, trace_detail_url};
 use crate::repositories::analytics::session_detail::{
     SessionContextRow, SessionHeader, SessionKpis, SessionRequestRow, SessionTraceRow,
     find_session_header, get_session_kpis, list_session_contexts, list_session_requests,
     list_session_traces,
 };
-use crate::handlers::ssr::entity_urls::{context_detail_url, request_detail_url, trace_detail_url};
 use crate::templates::AdminTemplateEngine;
 use crate::types::{MarketplaceContext, UserContext};
 
@@ -170,6 +170,13 @@ fn context_view(c: &SessionContextRow) -> SessionContextRowView {
                 .to_string()
         }),
         model: c.model.clone(),
+        total_tokens: c.total_input_tokens + c.total_output_tokens,
+        token_display: format!(
+            "{} in / {} out",
+            c.total_input_tokens, c.total_output_tokens
+        ),
+        cost_display: format_cost(c.cost_microdollars),
+        error_count: c.error_count,
     }
 }
 
@@ -200,16 +207,10 @@ fn request_view(r: &SessionRequestRow) -> SessionRequestRowView {
         request_url: request_detail_url(&r.id),
         context_id: r.context_id.clone(),
         context_id_short: r.context_id.as_ref().map(|c| short_id(c.as_str())),
-        context_url: r
-            .context_id
-            .as_ref()
-            .map(context_detail_url),
+        context_url: r.context_id.as_ref().map(context_detail_url),
         trace_id: r.trace_id.clone(),
         trace_id_short: r.trace_id.as_ref().map(|t| short_id(t.as_str())),
-        trace_url: r
-            .trace_id
-            .as_ref()
-            .map(trace_detail_url),
+        trace_url: r.trace_id.as_ref().map(trace_detail_url),
         model: r.model.clone(),
         status: r.status.clone(),
         is_error: r.status == "failed",

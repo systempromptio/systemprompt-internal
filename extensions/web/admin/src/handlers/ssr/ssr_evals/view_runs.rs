@@ -3,9 +3,9 @@
 //! Split from `view.rs` to keep both under the module size ceiling; shared
 //! numeric and string formatting lives in [`super::format`].
 
+use crate::repositories::evals::EvalRunKind;
 use crate::repositories::evals::cases::EvalCaseRow;
 use crate::repositories::evals::results::{DimensionScores, EvalResultRow};
-use crate::repositories::evals::EvalRunKind;
 use crate::repositories::evals::runs::EvalRunRow;
 
 use super::BASE_URL;
@@ -16,7 +16,7 @@ pub(super) fn run_rows(runs: &[EvalRunRow]) -> Vec<RunRowView> {
     runs.iter().map(run_row).collect()
 }
 
-/// Runs of one kind only, for the tabs that show a single eval type.
+// Why: Runs of one kind only, for the tabs that show a single eval type.
 pub(super) fn run_rows_of_kind(runs: &[EvalRunRow], kind: EvalRunKind) -> Vec<RunRowView> {
     runs.iter()
         .filter(|r| r.kind == kind.as_str())

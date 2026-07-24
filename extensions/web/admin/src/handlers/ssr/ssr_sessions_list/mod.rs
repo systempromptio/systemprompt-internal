@@ -69,11 +69,7 @@ pub(crate) async fn sessions_list_page(
 
     let ctx = load_sessions_data(&pool, &query, &user_ctx, range, page).await;
     Ok(super::render_typed_page(
-        &engine,
-        "sessions",
-        &ctx,
-        &user_ctx,
-        &mkt_ctx,
+        &engine, "sessions", &ctx, &user_ctx, &mkt_ctx,
     ))
 }
 
@@ -86,10 +82,7 @@ async fn load_sessions_data(
 ) -> SessionsListPageContext {
     let error_only = query.error_only.as_deref() == Some("true");
     let filter = SessionListFilter {
-        user_id: query
-            .user_id
-            .clone()
-            .filter(|u| !u.as_str().is_empty()),
+        user_id: query.user_id.clone().filter(|u| !u.as_str().is_empty()),
         error_only,
     };
     let session_page = SessionPage {
@@ -132,13 +125,9 @@ async fn load_sessions_data(
         ("page", None),
     ];
 
-    let total_pages = if total == 0 {
-        1
-    } else {
-        (total + PAGE_SIZE - 1) / PAGE_SIZE
-    };
     let session_rows: Vec<_> = items.iter().map(rows::session_row).collect();
     let has_sessions = !session_rows.is_empty();
+    let shown_rows = i64::try_from(session_rows.len()).unwrap_or(i64::MAX);
 
     SessionsListPageContext {
         page: "sessions",
@@ -147,30 +136,34 @@ async fn load_sessions_data(
         time_range: list_view::time_range_context(BASE_URL, range, &preset),
         filter_ribbon: FilterRibbon {
             base_url: BASE_URL,
-            preserved: list_view::build_preserved(
-                range,
-                &preset,
-                &[("error_only", error_flag)],
-            ),
+            preserved: list_view::build_preserved(range, &preset, &[("error_only", error_flag)]),
             options: SessionFilterOptionsView {
                 users: list_view::annotate_group(&options.users, selected_user),
             },
             chips: list_view::build_chips(BASE_URL, &pairs, &[("user_id", "User")]),
         },
-        stats: StatsView {
-            total_sessions: kpis.total_sessions,
-            error_sessions: kpis.error_sessions,
-            total_requests: kpis.total_requests,
-            total_tool_uses: kpis.total_tool_uses,
-            tokens_display: format_token_total(kpis.total_tokens),
-            cost_display: format_cost(kpis.total_cost_microdollars),
-        },
+        stats: stats_view(&kpis),
         sessions: session_rows,
         has_sessions,
         total_count: total,
-        pagination: list_view::build_pagination(BASE_URL, &pairs, page, total_pages),
+        pagination: list_view::build_pagination(
+            BASE_URL,
+            &pairs,
+            list_view::PageWindow::new(page, PAGE_SIZE, total, shown_rows, "sessions"),
+        ),
         error_only,
         error_toggle_url: error_toggle_url(&pairs, error_only),
+    }
+}
+
+fn stats_view(kpis: &SessionListKpis) -> StatsView {
+    StatsView {
+        total_sessions: kpis.total_sessions,
+        error_sessions: kpis.error_sessions,
+        total_requests: kpis.total_requests,
+        total_tool_uses: kpis.total_tool_uses,
+        tokens_display: format_token_total(kpis.total_tokens),
+        cost_display: format_cost(kpis.total_cost_microdollars),
     }
 }
 
@@ -194,10 +187,10 @@ fn error_toggle_url(pairs: &list_view::QueryPairs<'_>, active: bool) -> String {
 
 fn current_session_view(user_ctx: &UserContext) -> CurrentSessionView {
     let session_url = user_ctx.session_id.as_ref().map(session_detail_url);
-    let session_id = user_ctx.session_id.as_ref().map(|s| s.as_str().to_owned());
+    let session_id = user_ctx.session_id.clone();
     CurrentSessionView {
         username: user_ctx.username.clone(),
-        session_id_short: session_id.as_deref().map(short_id),
+        session_id_short: session_id.as_ref().map(|s| short_id(s.as_str())),
         session_url,
         session_id,
     }

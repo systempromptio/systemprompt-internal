@@ -32,10 +32,15 @@
     {{#if has_sessions}}
       {{#> components/data-table}}
         <thead><tr>
+          {{!-- Status earns an early column: it is the reason an operator scans
+                this table, and parking it past the fold hid it behind a
+                horizontal scroll. Duration rides along with Started, which is
+                the only other thing it means anything next to. --}}
           <th class="col-date">Started</th>
           <th>Session</th>
           <th>Identity</th>
           <th class="col-status">Source</th>
+          <th class="col-status">Status</th>
           <th>Model</th>
           <th class="col-num">Reqs</th>
           <th class="col-num">Contexts</th>
@@ -43,8 +48,6 @@
           <th class="col-num">Tools</th>
           <th class="col-num">Tokens</th>
           <th class="col-num">Cost</th>
-          <th class="col-num">Duration</th>
-          <th class="col-status">Status</th>
           <th class="col-actions"></th>
         </tr></thead>
         <tbody>
@@ -52,7 +55,12 @@
         <tr>
           {{!-- Guarded: strict mode rejects a null inside an attribute, and a
                 hook session can arrive with no timestamp at all. --}}
-          <td class="col-date" {{#if this.started_at}}title="{{this.started_at}}"{{/if}}>{{#if this.started_at_local}}{{this.started_at_local}}{{else}}&mdash;{{/if}}</td>
+          <td class="col-date" {{#if this.started_at}}title="{{this.started_at}}"{{/if}}>
+            <div class="cell-stacked">
+              <div class="cell-primary">{{#if this.started_at_local}}{{this.started_at_local}}{{else}}&mdash;{{/if}}</div>
+              <div class="cell-secondary" title="First to last recorded activity">{{this.duration_display}}</div>
+            </div>
+          </td>
           <td>
             <div class="cell-stacked">
               <div class="cell-primary">
@@ -76,6 +84,13 @@
           <td class="col-status">
             {{> components/badge color=this.source_variant text=this.source_label}}
           </td>
+          <td class="col-status">
+            {{#if this.has_error}}
+              <span class="mcp-badge mcp-badge-danger">{{this.status_label}}</span>
+            {{else}}
+              <span class="mcp-badge mcp-badge-success">{{this.status_label}}</span>
+            {{/if}}
+          </td>
           <td class="col-model">
             <div class="cell-stacked">
               <div class="cell-primary">{{#if this.model}}<code class="code-inline">{{this.model}}</code>{{else}}&mdash;{{/if}}</div>
@@ -88,14 +103,6 @@
           <td class="col-num">{{this.tool_uses}}</td>
           <td class="col-num">{{this.tokens_display}}</td>
           <td class="col-num">{{this.cost_display}}</td>
-          <td class="col-num" title="First to last recorded activity">{{this.duration_display}}</td>
-          <td class="col-status">
-            {{#if this.has_error}}
-              <span class="mcp-badge mcp-badge-danger">{{this.status_label}}</span>
-            {{else}}
-              <span class="mcp-badge mcp-badge-success">{{this.status_label}}</span>
-            {{/if}}
-          </td>
           <td class="col-actions">
             <a href="{{this.detail_url}}" class="btn btn-sm btn-outline">Open</a>
           </td>

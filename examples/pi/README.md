@@ -149,4 +149,5 @@ individually governable gateway routes.
 | `new-user.sh` | Pick the user Pi acts as from the database (or create one) + issue their gateway API key, governance token, and `user.json` identity file |
 | `trace.sh` | Send your own prompt through the gateway, then link its verified dashboard trace |
 | `routes.sh` | Add per-model gateway routes for per-user governance |
+| `RUNNING-AS-A-USER.md` | Setup manual: acting as a named database user, in the TUI as well as the scripts |
 | `WALKTHROUGH.md` | The end-to-end demo script |

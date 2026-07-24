@@ -20,7 +20,7 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use sqlx::PgPool;
-use systemprompt::identifiers::{Actor, MarketplaceId};
+use systemprompt::identifiers::{Actor, MarketplaceId, SessionId};
 use systemprompt_security::authz::{
     AccessControlRepository, AccessRule, AuthzDecision, AuthzRequest, Decision, DecisionTag,
     EntityKind, EntityRef, EntityRow, ResolveInput, ResolveParent, resolve,
@@ -145,7 +145,14 @@ async fn audit_decision(
     let record = GovernanceDecisionRecord {
         id: &id,
         actor: &actor,
-        session_id: req.trace_id.as_str(),
+        // Why: the attested session, so a gateway decision keys to the same
+        // session row as the prompt gate and the `ai_requests` row it belongs
+        // to. Enforcement sites without a session (server-attach RBAC, MCP)
+        // send none, and the trace id keeps the row correlatable.
+        session_id: req
+            .session_id
+            .as_ref()
+            .map_or_else(|| req.trace_id.as_str(), SessionId::as_str),
         tool_name: entity_id_str,
         agent_id: None,
         // Why: authz decisions are entity-keyed, not agent-keyed; entity_type
@@ -156,7 +163,7 @@ async fn audit_decision(
         reason: &reason_str,
         evaluated_rules: &evaluated,
         plugin_id: None,
-        act_chain: &[],
+        act_chain: &req.act_chain,
         context_id: req
             .context_id
             .as_ref()

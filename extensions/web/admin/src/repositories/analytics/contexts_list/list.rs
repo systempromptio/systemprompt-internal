@@ -52,6 +52,10 @@ impl From<ContextListRow> for ContextListItem {
     }
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "body is one irreducible compile-time-checked query_as! SQL literal"
+)]
 pub async fn list_context_list(
     pool: &PgPool,
     filter: &ContextListFilter,

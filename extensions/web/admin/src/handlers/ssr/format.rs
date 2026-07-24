@@ -7,8 +7,8 @@
 //! Several older page modules still carry private copies of these; they should
 //! migrate here rather than the copies being extended.
 
-/// Ids are long and the leading segment is the distinguishing part, so a table
-/// cell shows the head and puts the full value in a `title`.
+// Why: Ids are long and the leading segment is the distinguishing part, so a
+// table cell shows the head and puts the full value in a `title`.
 pub(crate) fn short_id(id: &str) -> String {
     const KEEP: usize = 12;
     if id.chars().count() > KEEP {
@@ -19,8 +19,8 @@ pub(crate) fn short_id(id: &str) -> String {
     }
 }
 
-/// `—` rather than `$0`: a session with no billed traffic has no cost to show,
-/// which is different from one that cost nothing.
+// Why: `—` rather than `$0`: a session with no billed traffic has no cost to
+// show, which is different from one that cost nothing.
 pub(crate) fn format_cost(microdollars: i64) -> String {
     if microdollars <= 0 {
         return "—".to_owned();
@@ -65,7 +65,7 @@ pub(crate) fn format_duration_ms(ms: i64) -> String {
     }
 }
 
-/// Wall-clock span between two optional timestamps.
+// Why: Wall-clock span between two optional timestamps.
 pub(crate) fn format_span(
     start: Option<chrono::DateTime<chrono::Utc>>,
     end: Option<chrono::DateTime<chrono::Utc>>,
@@ -76,8 +76,8 @@ pub(crate) fn format_span(
     }
 }
 
-/// Timestamps render in the operator's local zone, with the RFC 3339 value
-/// kept alongside for the cell's `title`.
+// Why: Timestamps render in the operator's local zone, with the RFC 3339 value
+// kept alongside for the cell's `title`.
 pub(crate) fn local_time(t: chrono::DateTime<chrono::Utc>) -> String {
     t.with_timezone(&chrono::Local)
         .format("%Y-%m-%d %H:%M:%S")

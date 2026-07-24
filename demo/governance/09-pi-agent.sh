@@ -20,8 +20,9 @@
 #       1. benign prompt                    -> ALLOW
 #       2. prompt containing an AWS key     -> DENY  (secret_scan, prompt gate)
 #       3. write an .env with a GitHub PAT  -> DENY  (secret_scan, tool gate)
-#       4. delete_records                   -> DENY  (tool_blocklist)
-#       5. mcp__systemprompt__list_agents   -> DENY  (scope_check)
+#       4. delete_records                   -> DENY  (tool_blocklist)*
+#       5. mcp__systemprompt__list_agents   -> DENY  (scope_check)*
+#     *ALLOW when the acting user is an admin — see "Identity" below.
 #       6. read a source file               -> ALLOW
 #
 #   PART B (only with --live) — drives the real `pi` binary through the same
@@ -338,7 +339,7 @@ fi
 echo ""
 echo "=========================================="
 echo "  See the whole session as one timeline:"
-echo "    $BASE_URL/admin/demo/trace?session=$SESSION"
+echo "    $ADMIN_URL/admin/demo/trace?session=$SESSION"
 echo ""
 echo "  Prompt gate, tool gate, model calls, and tool fires in order."
 echo "=========================================="

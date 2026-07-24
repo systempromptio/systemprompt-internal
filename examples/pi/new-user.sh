@@ -54,8 +54,15 @@ if [[ -z "$BASE_URL" && -f "$PROFILE_YAML" ]]; then
     | sed -E 's/.*api_server_url:[[:space:]]*//; s/[[:space:]]*$//; s/^"//; s/"$//')
 fi
 BASE_URL="${BASE_URL:-http://127.0.0.1:8080}"
-BASE_URL="${BASE_URL/localhost/127.0.0.1}"
 BASE_URL="${BASE_URL%/}"
+# Two URLs, deliberately. curl gets 127.0.0.1 because `server.host: localhost`
+# resolves to [::1] on some restarts and the connection is refused. The browser
+# gets the configured host untouched: the dashboard session cookie is set
+# without a Domain attribute (callback.rs:126), so it is host-only — a link to
+# 127.0.0.1 is a different cookie jar from a login at localhost and bounces the
+# operator to the login page.
+DASHBOARD_URL="$BASE_URL"
+BASE_URL="${BASE_URL/localhost/127.0.0.1}"
 
 # ── 1. Resolve the user ──
 # shellcheck source=../../scripts/select-user.sh
@@ -154,11 +161,11 @@ say "Done. Pi now acts as $EMAIL. Start it with:  pi"
 echo "    (run examples/pi/setup.sh first if Pi itself is not installed yet)"
 echo
 say "Evidence — open these as an admin:"
-echo "    profile + usage   $BASE_URL/admin/user?user_id=$NEW_USER_ID"
-echo "    model access      $BASE_URL/admin/models?user_id=$NEW_USER_ID"
-echo "    this session      $BASE_URL/admin/entities/sessions/$SESSION_ID"
-echo "    governed timeline $BASE_URL/admin/demo/trace?session=$SESSION_ID"
-echo "    all requests      $BASE_URL/admin/entities/requests"
+echo "    profile + usage   $DASHBOARD_URL/admin/user?user_id=$NEW_USER_ID"
+echo "    model access      $DASHBOARD_URL/admin/models?user_id=$NEW_USER_ID"
+echo "    this session      $DASHBOARD_URL/admin/entities/sessions/$SESSION_ID"
+echo "    governed timeline $DASHBOARD_URL/admin/demo/trace?session=$SESSION_ID"
+echo "    all requests      $DASHBOARD_URL/admin/entities/requests"
 echo
 echo "    Send a prompt of your own and watch it land:"
 echo "      examples/pi/trace.sh \"your prompt here\""

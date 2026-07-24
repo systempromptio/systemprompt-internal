@@ -1,8 +1,11 @@
 //! Trace list query: one aggregated summary row per session in the window.
 
 use sqlx::PgPool;
+// Why: the `query_as!` column overrides below name these types, so they must be
+// in scope here even though the row struct itself lives in `list_row`.
+use systemprompt::identifiers::{AgentId, SessionId, TraceId, UserId};
 
-use super::list_row::TraceRow;
+use super::list_row::TraceListRow;
 use super::{TraceFilter, TraceSort, TraceSummary};
 use crate::util::time_range::TimeRange;
 
@@ -37,7 +40,7 @@ pub async fn list_traces(
     let sort_dir = sort.dir.sql_key();
 
     let rows = sqlx::query_as!(
-        TraceRow,
+        TraceListRow,
         r#"WITH trace_to_session AS (
             SELECT DISTINCT trace_id, session_id
             FROM ai_requests

@@ -6,12 +6,12 @@
 
 use crate::repositories::traces::TraceStats;
 
-use super::context::{SortHeader, SortHeaders, StatsView};
+use super::context::{SortHeader, SortHeaders, TraceStatsView};
 use super::view::preserved_query_string;
 use super::{BASE_URL, TraceListQuery};
 
-pub(super) fn serde_stats(query: &TraceListQuery, s: &TraceStats) -> StatsView {
-    StatsView {
+pub(super) fn serde_stats(query: &TraceListQuery, s: &TraceStats) -> TraceStatsView {
+    TraceStatsView {
         total_traces: s.total_traces,
         error_count: s.error_count,
         deny_count: s.deny_count,
@@ -49,15 +49,15 @@ fn toggle_flag_url(query: &TraceListQuery, flag: &str) -> String {
     }
 }
 
-/// The five columns the list query can actually order by. Each header renders
-/// as a link that flips direction when it is already active, so the
-/// `cursor:pointer` the table CSS has always shown finally does something.
+// Why: The five columns the list query can actually order by. Each header
+// renders as a link that flips direction when it is already active, so the
+// `cursor:pointer` the table CSS has always shown finally does something.
 pub(super) fn build_sort_headers(
     query: &TraceListQuery,
     active_col: &str,
     active_dir: &str,
 ) -> SortHeaders {
-    // Every sort link carries the current filters and time range, minus the
+    // Why: Every sort link carries the current filters and time range, minus the
     // sort state it is replacing and the page it would invalidate.
     let qs = preserved_query_string(query, &["sort", "dir", "page"]);
     let prefix = if qs.is_empty() {
@@ -67,7 +67,7 @@ pub(super) fn build_sort_headers(
     };
     let header = |key: &str, label: &'static str, class: &'static str, hint: &'static str| {
         let active = key == active_col;
-        // An active column toggles; an inactive one opens largest-first (and
+        // Why: An active column toggles; an inactive one opens largest-first (and
         // newest-first for time), which is what an operator scans for.
         let next_dir = if active && active_dir == "desc" {
             "asc"
@@ -109,7 +109,12 @@ pub(super) fn build_sort_headers(
             "col-spans",
             "Gateway requests, then governance decisions and tool calls",
         ),
-        tokens: header("tokens", "Tokens", "col-tokens", "Total tokens, split input / output"),
+        tokens: header(
+            "tokens",
+            "Tokens",
+            "col-tokens",
+            "Total tokens, split input / output",
+        ),
         cost: header("cost", "Cost", "col-cost", "Billed cost across the trace"),
         duration: header(
             "duration",

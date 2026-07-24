@@ -21,7 +21,7 @@ use crate::services::evals::{self, EvalError, EvalRunOutcome, EvalRunRequest, Mo
 use crate::types::UserContext;
 
 use super::context::EvalsTab;
-use super::{DEFAULT_SAMPLE_SIZE, data, view};
+use super::{DEFAULT_SAMPLE_SIZE, data, urls};
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct RunEvalForm {
@@ -51,7 +51,7 @@ pub(crate) async fn eval_run_action(
     let credential = match credential_from_request(&headers) {
         Ok(c) => c,
         Err(message) => {
-            return Ok(Redirect::to(&view::redirect_url(
+            return Ok(Redirect::to(&urls::redirect_url(
                 &range, tab, &message, true,
             )));
         },
@@ -69,7 +69,7 @@ pub(crate) async fn eval_run_action(
     .collect::<Vec<_>>();
 
     let Some(judge) = form.judge_model.as_deref().and_then(ModelRef::parse) else {
-        return Ok(Redirect::to(&view::redirect_url(
+        return Ok(Redirect::to(&urls::redirect_url(
             &range,
             tab,
             "Pick a judge model before running an evaluation.",
@@ -122,7 +122,7 @@ fn run_redirect(
     outcome: Result<EvalRunOutcome, EvalError>,
 ) -> String {
     match outcome {
-        Ok(o) => view::redirect_url(
+        Ok(o) => urls::redirect_url(
             range,
             tab,
             &format!(
@@ -137,7 +137,7 @@ fn run_redirect(
         ),
         Err(e) => {
             tracing::warn!(error = %e, kind = kind.as_str(), "eval run failed");
-            view::redirect_url(range, tab, &format!("Eval run failed: {e}"), true)
+            urls::redirect_url(range, tab, &format!("Eval run failed: {e}"), true)
         },
     }
 }
@@ -171,10 +171,10 @@ pub(crate) async fn eval_promote_case_action(
     .await;
 
     let url = match outcome {
-        Ok(_) => view::redirect_url(&range, tab, "Added to the golden set.", false),
+        Ok(_) => urls::redirect_url(&range, tab, "Added to the golden set.", false),
         Err(e) => {
             tracing::warn!(error = %e, "promoting eval case failed");
-            view::redirect_url(
+            urls::redirect_url(
                 &range,
                 tab,
                 &format!("Could not add to the golden set: {e}"),

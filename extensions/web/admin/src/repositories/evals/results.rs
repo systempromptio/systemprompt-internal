@@ -158,9 +158,9 @@ pub async fn list_results_for_run(
     Ok(rows)
 }
 
-/// Optional narrowing for [`list_recent_results`]. `None` on a field means "any",
-/// so the unfiltered Judge tab passes `ResultFilter::default()` and gets the
-/// whole window back.
+/// Optional narrowing for [`list_recent_results`]. `None` on a field means
+/// "any", so the unfiltered Judge tab passes `ResultFilter::default()` and gets
+/// the whole window back.
 #[derive(Debug, Clone, Default)]
 pub struct ResultFilter {
     pub verdict: Option<String>,

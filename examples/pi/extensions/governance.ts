@@ -84,6 +84,18 @@ function jwtSessionClaim(credential: string): string {
 }
 
 /**
+ * A server-issued session available without a network call: the governance
+ * JWT's own claim, else the id new-user.sh recorded when it minted one.
+ *
+ * Both are real rows, so the gateway's attestation passes. The cost is that
+ * runs sharing a credential share a timeline, which is why this is a fallback
+ * and not the first choice.
+ */
+function fallbackSession(): string {
+  return jwtSessionClaim(readCred("hook-token")) || readCred("session");
+}
+
+/**
  * Resolve the session this run is audited under.
  *
  * The gateway attests `x-session-id` against a session row it issued, so there
@@ -97,6 +109,11 @@ function jwtSessionClaim(credential: string): string {
  * script mints one up front so its Part A curl calls and this Pi run share a
  * timeline. It is not a free-form label: an id the server did not issue is
  * rejected on the first provider call.
+ *
+ * The mint is the one startup step that needs the network. When it fails the
+ * extension used to leave SESSION_ID empty, drop the `x-session-id` header, and
+ * turn every later provider call into a 400; it now falls back to an
+ * already-issued session so the run keeps working.
  */
 async function resolveSession(): Promise<string> {
   const pinned = process.env.SYSTEMPROMPT_PI_SESSION;
@@ -106,12 +123,31 @@ async function resolveSession(): Promise<string> {
   const claimed = jwtSessionClaim(credential);
   if (claimed) return claimed;
 
-  if (!credential) return "";
+  if (!credential) return fallbackSession();
 
-  const res = await fetch(`${BASE_URL}/api/public/gateway/sessions`, {
-    method: "POST",
-    headers: { "x-api-key": credential, "content-type": "application/json" },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}/api/public/gateway/sessions`, {
+      method: "POST",
+      headers: { "x-api-key": credential, "content-type": "application/json" },
+    });
+  } catch (err: unknown) {
+    // A transport failure here (the TUI has been seen to report a bare
+    // "fetch failed" where the same call succeeds from curl and from a
+    // headless `pi -p`) must not cost the run its session header.
+    const reused = fallbackSession();
+    if (reused) {
+      SESSION_ERROR =
+        `could not reach ${BASE_URL} to mint a session; reusing an already-issued one. ` +
+        `Governance still applies, but this run shares a timeline with the last one.`;
+      return reused;
+    }
+    throw new Error(
+      `could not reach ${BASE_URL} to mint a gateway session (${
+        err instanceof Error ? err.message : String(err)
+      }) — is the server running? (just start)`,
+    );
+  }
   if (!res.ok) {
     throw new Error(
       `could not mint a gateway session (HTTP ${res.status}) — check ${CRED_DIR}/token`,
@@ -219,6 +255,10 @@ export default function (pi: ExtensionAPI) {
           `no gateway credential — run examples/pi/new-user.sh to write ${CRED_DIR}/token`,
         "error",
       );
+    } else if (SESSION_ERROR) {
+      // Degraded but working: say so as a warning rather than an error, so the
+      // operator knows why two runs share one timeline.
+      ctx.ui.notify(SESSION_ERROR, "warning");
     }
   });
 

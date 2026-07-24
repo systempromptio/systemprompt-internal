@@ -5,6 +5,7 @@
 use serde::Serialize;
 use systemprompt::identifiers::{AiRequestId, SessionId, TraceId, UserId};
 
+use crate::handlers::ssr::list_view::Pagination;
 use crate::handlers::ssr::types::{ChartView, HistogramView};
 
 // Why: each tab is its own GET so it can be bookmarked, and so only the
@@ -64,7 +65,7 @@ pub(super) struct AnalyticsRequestsPageContext {
     pub rows: Vec<RequestListRowView>,
     pub has_rows: bool,
     pub total_count: i64,
-    pub pagination: PaginationView,
+    pub pagination: Pagination,
     pub search_query: String,
     pub chips: Vec<ChipView>,
     pub has_active_filters: bool,
@@ -171,19 +172,4 @@ pub(super) struct TimeRangeView {
     /// so an *absent* key (not `null`) must mean "not widened".
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auto_widened: Option<&'static str>,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct PaginationView {
-    pub current_page: i64,
-    pub total_pages: i64,
-    /// 1-based row range shown on this page, for "Showing 1-50 of 54".
-    pub first_row: i64,
-    pub last_row: i64,
-    pub total_rows: i64,
-    pub noun: &'static str,
-    pub has_prev: bool,
-    pub has_next: bool,
-    pub prev_url: Option<String>,
-    pub next_url: Option<String>,
 }

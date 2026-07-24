@@ -4,13 +4,17 @@
 
 use serde::Serialize;
 
+use crate::handlers::ssr::list_view::{
+    AnnotatedOption, Chip, Pagination, Preserved, TimeRangeContext,
+};
+
 #[derive(Debug, Serialize)]
 pub(super) struct PerfTracesPageContext {
     pub(super) page: &'static str,
     pub(super) title: &'static str,
     pub(super) time_range: TimeRangeContext,
-    pub(super) filter_ribbon: FilterRibbon,
-    pub(super) stats: StatsView,
+    pub(super) filter_ribbon: TraceFilterRibbon,
+    pub(super) stats: TraceStatsView,
     pub(super) traces: Vec<super::rows::TraceRow>,
     pub(super) has_traces: bool,
     pub(super) total_count: i64,
@@ -26,26 +30,11 @@ pub(super) struct PerfTracesPageContext {
 }
 
 #[derive(Debug, Serialize)]
-pub(super) struct TimeRangeContext {
-    pub(super) preset: String,
-    pub(super) from: String,
-    pub(super) to: String,
-    pub(super) base_url: &'static str,
-    pub(super) query: &'static str,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct FilterRibbon {
+pub(super) struct TraceFilterRibbon {
     pub(super) base_url: &'static str,
     pub(super) preserved: Vec<Preserved>,
     pub(super) options: TraceFilterOptionsView,
     pub(super) chips: Vec<Chip>,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct Preserved {
-    pub(super) name: &'static str,
-    pub(super) value: String,
 }
 
 #[derive(Debug, Default, Serialize)]
@@ -58,23 +47,7 @@ pub(super) struct TraceFilterOptionsView {
 }
 
 #[derive(Debug, Serialize)]
-pub(super) struct AnnotatedOption {
-    pub(super) id: String,
-    pub(super) label: String,
-    pub(super) count: i64,
-    pub(super) selected: bool,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct Chip {
-    pub(super) group_label: &'static str,
-    pub(super) label: String,
-    pub(super) value: String,
-    pub(super) remove_url: String,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct StatsView {
+pub(super) struct TraceStatsView {
     pub(super) total_traces: i64,
     pub(super) error_count: i64,
     pub(super) deny_count: i64,
@@ -111,20 +84,4 @@ pub(super) struct SortHeader {
     pub(super) active: bool,
     pub(super) aria_sort: &'static str,
     pub(super) indicator: &'static str,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct Pagination {
-    pub(super) current_page: i64,
-    pub(super) total_pages: i64,
-    // Why: 1-based row range for "Showing 1-50 of 54"; `first_row` is 0 only
-    // when the page is empty.
-    pub(super) first_row: i64,
-    pub(super) last_row: i64,
-    pub(super) total_rows: i64,
-    pub(super) noun: &'static str,
-    pub(super) has_prev: bool,
-    pub(super) has_next: bool,
-    pub(super) prev_url: Option<String>,
-    pub(super) next_url: Option<String>,
 }

@@ -7,8 +7,8 @@
 use sqlx::PgPool;
 
 use crate::repositories;
-use crate::types::departments::DEFAULT_DEPARTMENT;
 use crate::services::marketplaces::load_marketplaces;
+use crate::types::departments::DEFAULT_DEPARTMENT;
 
 use super::super::types::{DepartmentGroup, UserAssignmentSummary, UserTokenView};
 use super::view;

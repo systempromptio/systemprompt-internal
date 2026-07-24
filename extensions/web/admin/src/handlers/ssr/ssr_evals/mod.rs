@@ -34,6 +34,7 @@ mod actions;
 mod context;
 mod data;
 mod format;
+mod urls;
 mod view;
 mod view_runs;
 
@@ -93,7 +94,7 @@ pub(crate) async fn evals_page(
     let traffic = view::traffic_stats(&fetched.stats, &fetched.models, &fetched.users);
     let total = fetched.stats.total;
 
-    // The Golden set tab lists only the runs that exercise it; every other run
+    // Why: The Golden set tab lists only the runs that exercise it; every other run
     // kind belongs to the tab that launched it.
     let run_views = match tab {
         EvalsTab::GoldenSet => view_runs::run_rows_of_kind(&fetched.runs, EvalRunKind::Replay),
@@ -112,8 +113,8 @@ pub(crate) async fn evals_page(
         is_golden_set: tab == EvalsTab::GoldenSet,
         show_traffic_kpis: matches!(tab, EvalsTab::Overview | EvalsTab::Traffic),
         show_quality_kpis: matches!(tab, EvalsTab::Judge | EvalsTab::HeadToHead),
-        tabs: view::tab_links(tab, &range, &query),
-        time_range: view::time_range_context(&query, &range, auto_widened, tab),
+        tabs: urls::tab_links(tab, &range, &query),
+        time_range: urls::time_range_context(&query, &range, auto_widened, tab),
         traffic,
         scores: view::score_summary(&fetched.scores, total),
         histogram: charts::histogram_view(&fetched.hist, &fetched.stats),

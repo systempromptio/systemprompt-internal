@@ -7,9 +7,6 @@
 //! the functions build them from a page's own query parameters expressed as a
 //! `(name, value)` slice, so a list page supplies its parameter list and
 //! inherits the behaviour rather than copying it.
-//!
-//! `ssr_perf_traces` still carries its own copies; it should move onto these
-//! once its in-flight sort/stat-card work settles.
 
 use serde::Serialize;
 use urlencoding::encode as urlencode;
@@ -17,7 +14,8 @@ use urlencoding::encode as urlencode;
 use crate::repositories::governance::filter_options::FilterOption;
 use crate::util::time_range::{TimeRange, TimeRangePreset, TimeRangeQuery};
 
-/// A page's query parameters, in the order they should appear in a rebuilt URL.
+// Why: A page's query parameters, in the order they should appear in a rebuilt
+// URL.
 pub(crate) type QueryPairs<'a> = [(&'a str, Option<&'a str>)];
 
 #[derive(Debug, Serialize)]
@@ -51,25 +49,81 @@ pub(crate) struct Chip {
     pub(crate) remove_url: String,
 }
 
+// Why: one bundle for the five numbers a footer needs, so each page's
+// `build_pagination` takes a window rather than a row of bare integers.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct PageWindow {
+    // Why: Zero-based page index.
+    pub(crate) index: i64,
+    pub(crate) size: i64,
+    pub(crate) total_pages: i64,
+    pub(crate) total_rows: i64,
+    // Why: Rows actually rendered on this page — the last page is short.
+    pub(crate) shown_rows: i64,
+    // Why: What the rows are called: "Showing 1-50 of 54 <noun>".
+    pub(crate) noun: &'static str,
+}
+
+impl PageWindow {
+    // Why: an empty result still renders as "page 1 of 1" rather than "of 0",
+    // which is the one case the ceiling division cannot produce on its own.
+    pub(crate) const fn new(
+        index: i64,
+        size: i64,
+        total_rows: i64,
+        shown_rows: i64,
+        noun: &'static str,
+    ) -> Self {
+        let total_pages = if total_rows == 0 {
+            1
+        } else {
+            (total_rows + size - 1) / size
+        };
+        Self {
+            index,
+            size,
+            total_pages,
+            total_rows,
+            shown_rows,
+            noun,
+        }
+    }
+
+    // Why: The 1-based inclusive row range this page covers, `(0, 0)` when empty.
+    pub(crate) const fn bounds(self) -> (i64, i64) {
+        if self.shown_rows == 0 {
+            return (0, 0);
+        }
+        let first = self.index * self.size + 1;
+        (first, self.index * self.size + self.shown_rows)
+    }
+}
+
 #[derive(Debug, Serialize)]
 pub(crate) struct Pagination {
     pub(crate) current_page: i64,
     pub(crate) total_pages: i64,
+    // Why: 1-based row range for "Showing 1-50 of 54"; `first_row` is 0 only
+    // when the page is empty.
+    pub(crate) first_row: i64,
+    pub(crate) last_row: i64,
+    pub(crate) total_rows: i64,
+    pub(crate) noun: &'static str,
     pub(crate) has_prev: bool,
     pub(crate) has_next: bool,
     pub(crate) prev_url: Option<String>,
     pub(crate) next_url: Option<String>,
 }
 
-/// Drops empty values so a rebuilt URL never carries `&user_id=`.
+// Why: Drops empty values so a rebuilt URL never carries `&user_id=`.
 pub(crate) fn empty_to_none(v: Option<&str>) -> Option<&str> {
     v.filter(|s| !s.is_empty())
 }
 
-/// The preset name to echo back into the URL.
-///
-/// An explicit `?preset=` wins, then an explicit `from`+`to` pair means
-/// `custom`; otherwise the parsed range's own preset is authoritative.
+// Why: The preset name to echo back into the URL.
+//
+// An explicit `?preset=` wins, then an explicit `from`+`to` pair means
+// `custom`; otherwise the parsed range's own preset is authoritative.
 pub(crate) fn preset_str(query: &TimeRangeQuery, range: TimeRange) -> String {
     if let Some(p) = empty_to_none(query.preset.as_deref()) {
         return p.to_owned();
@@ -102,8 +156,8 @@ pub(crate) fn time_range_context(
     }
 }
 
-/// Hidden inputs the filter-ribbon form must resubmit so that choosing a facet
-/// does not silently reset the time window.
+// Why: Hidden inputs the filter-ribbon form must resubmit so that choosing a
+// facet does not silently reset the time window.
 pub(crate) fn build_preserved(
     range: TimeRange,
     preset: &str,
@@ -136,9 +190,7 @@ pub(crate) fn query_string(pairs: &QueryPairs<'_>, drop: &[&str]) -> String {
     pairs
         .iter()
         .filter(|(name, _)| !drop.contains(name))
-        .filter_map(|(name, val)| {
-            empty_to_none(*val).map(|v| format!("{}={}", name, urlencode(v)))
-        })
+        .filter_map(|(name, val)| empty_to_none(*val).map(|v| format!("{}={}", name, urlencode(v))))
         .collect::<Vec<_>>()
         .join("&")
 }
@@ -152,7 +204,7 @@ fn url_without(base_url: &str, pairs: &QueryPairs<'_>, drop: &[&str]) -> String 
     }
 }
 
-/// One removable chip per active facet, in the order the groups are listed.
+// Why: One removable chip per active facet, in the order the groups are listed.
 pub(crate) fn build_chips(
     base_url: &str,
     pairs: &QueryPairs<'_>,
@@ -175,7 +227,10 @@ pub(crate) fn build_chips(
         .collect()
 }
 
-pub(crate) fn annotate_group(items: &[FilterOption], selected: Option<&str>) -> Vec<AnnotatedOption> {
+pub(crate) fn annotate_group(
+    items: &[FilterOption],
+    selected: Option<&str>,
+) -> Vec<AnnotatedOption> {
     items
         .iter()
         .map(|o| AnnotatedOption {
@@ -187,13 +242,13 @@ pub(crate) fn annotate_group(items: &[FilterOption], selected: Option<&str>) -> 
         .collect()
 }
 
-/// `page` is the zero-based index; the rendered `current_page` is 1-based.
+// Why: `page` is the zero-based index; the rendered `current_page` is 1-based.
 pub(crate) fn build_pagination(
     base_url: &str,
     pairs: &QueryPairs<'_>,
-    page: i64,
-    total_pages: i64,
+    window: PageWindow,
 ) -> Pagination {
+    let page = window.index;
     let qs = query_string(pairs, &["page"]);
     let prefix = if qs.is_empty() {
         format!("{base_url}?")
@@ -201,10 +256,15 @@ pub(crate) fn build_pagination(
         format!("{base_url}?{qs}&")
     };
     let prev_url = (page > 0).then(|| format!("{prefix}page={}", page - 1));
-    let next_url = (page + 1 < total_pages).then(|| format!("{prefix}page={}", page + 1));
+    let next_url = (page + 1 < window.total_pages).then(|| format!("{prefix}page={}", page + 1));
+    let (first_row, last_row) = window.bounds();
     Pagination {
         current_page: page + 1,
-        total_pages,
+        total_pages: window.total_pages,
+        first_row,
+        last_row,
+        total_rows: window.total_rows,
+        noun: window.noun,
         has_prev: prev_url.is_some(),
         has_next: next_url.is_some(),
         prev_url,

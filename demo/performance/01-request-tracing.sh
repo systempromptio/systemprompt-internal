@@ -50,7 +50,7 @@ source "$(cd "$(dirname "$0")/.." && pwd)/_common.sh"
 TOKEN="${1:-}"
 PROFILE="${2:-$PROFILE}"  # positional override; default comes from _common.sh
 SESSION_ID="demo-trace-$(date +%s)"
-DASHBOARD_URL="$BASE_URL/admin/"
+DASHBOARD_URL="$ADMIN_URL/admin/"
 
 if [[ -z "$TOKEN" && -f "$TOKEN_FILE" ]]; then
   TOKEN=$(cat "$TOKEN_FILE")

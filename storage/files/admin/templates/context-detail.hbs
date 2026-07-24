@@ -81,7 +81,7 @@
     <section class="overview-pane">
       <h3 class="section-title">Conversation</h3>
       {{#if has_transcript}}
-      <ol class="transcript transcript--compact">
+      <ol class="transcript">
         {{#each transcript}}
           {{#if is_system}}
           <li class="transcript__entry transcript__entry--system transcript__system">
@@ -100,7 +100,16 @@
                 <span class="transcript__role">tool</span>
                 <code class="transcript__tool-name code-inline">{{tool_name}}</code>
                 <span class="transcript__time" title="{{ts_full}}">{{ts_local}}</span>
-                <a href="{{request_url}}" class="transcript__req code-inline" title="{{request_id}}">req</a>
+                {{#if meta}}
+                <span class="transcript__meta">
+                  <span class="transcript__meta-item transcript__meta-model">{{meta.model}}</span>
+                  <span class="transcript__meta-sep" aria-hidden="true">·</span>
+                  <span class="transcript__meta-item">{{meta.latency_display}}</span>
+                  <span class="transcript__meta-sep" aria-hidden="true">·</span>
+                  <span class="transcript__meta-item{{#if meta.is_error}} transcript__meta-status--error{{/if}}">{{meta.status}}</span>
+                </span>
+                {{/if}}
+                <a href="{{request_url}}" class="transcript__req code-inline" title="{{request_id}}">{{request_id_short}}</a>
               </summary>
               <div class="transcript__tool-detail">
                 {{#if tool_input_pretty}}
@@ -117,7 +126,22 @@
             <header class="transcript__head">
               <span class="transcript__role">{{role}}</span>
               <span class="transcript__time" title="{{ts_full}}">{{ts_local}}</span>
-              <a href="{{request_url}}" class="transcript__req code-inline" title="{{request_id}}">req</a>
+              {{#if meta}}
+              <span class="transcript__meta">
+                <span class="transcript__meta-item transcript__meta-model">{{meta.model}}</span>
+                <span class="transcript__meta-sep" aria-hidden="true">·</span>
+                <span class="transcript__meta-item">{{meta.latency_display}}</span>
+                {{#if meta.token_display}}
+                <span class="transcript__meta-sep" aria-hidden="true">·</span>
+                <span class="transcript__meta-item">{{meta.token_display}}</span>
+                {{/if}}
+                <span class="transcript__meta-sep" aria-hidden="true">·</span>
+                <span class="transcript__meta-item">{{meta.cost_display}}</span>
+                <span class="transcript__meta-sep" aria-hidden="true">·</span>
+                <span class="transcript__meta-item{{#if meta.is_error}} transcript__meta-status--error{{/if}}">{{meta.status}}</span>
+              </span>
+              {{/if}}
+              <a href="{{request_url}}" class="transcript__req code-inline" title="{{request_id}}">{{request_id_short}}</a>
             </header>
             <div class="transcript__body">{{content_preview}}</div>
           </li>
@@ -132,6 +156,7 @@
     <section class="overview-pane">
       <h3 class="section-title">Requests in this context ({{kpis.request_count}})</h3>
       {{#if has_requests}}
+      <div class="table-container"><div class="table-scroll">
       <table class="data-table">
         <thead><tr>
           <th>Request</th><th>Created</th><th>Trace</th><th>Model</th><th>Status</th><th>Latency</th><th>Cost</th>
@@ -150,6 +175,7 @@
         {{/each}}
         </tbody>
       </table>
+      </div></div>
       {{else}}
       {{> components/empty-state message="No requests recorded for this context."}}
       {{/if}}

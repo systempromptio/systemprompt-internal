@@ -21,7 +21,8 @@ pub async fn find_user_detail(
             GREATEST(
                 COALESCE(MAX(a.created_at), u.created_at),
                 COALESCE(pe.last_pe, u.created_at),
-                COALESCE(mcp.last_mcp, u.created_at)
+                COALESCE(mcp.last_mcp, u.created_at),
+                COALESCE(air.last_request, u.created_at)
             ) AS "last_active!",
             COALESCE(COUNT(DISTINCT a.id), 0)::BIGINT AS "total_events!",
             (SELECT a2.entity_name FROM user_activity a2
@@ -52,10 +53,14 @@ pub async fn find_user_detail(
             FROM mcp_tool_executions WHERE user_id IS NOT NULL
             GROUP BY user_id
         ) mcp ON mcp.user_id = u.id
+        LEFT JOIN (
+            SELECT user_id, MAX(created_at) AS last_request
+            FROM ai_requests GROUP BY user_id
+        ) air ON air.user_id = u.id
         WHERE u.id = $1
         GROUP BY u.id, u.created_at, u.name, u.display_name, u.full_name, u.email,
                  u.roles, u.status, pe.prompt_count, pe.session_count,
-                 bytes.total_bytes, pe.last_pe, mcp.last_mcp"#,
+                 bytes.total_bytes, pe.last_pe, mcp.last_mcp, air.last_request"#,
         user_id.as_str(),
     )
     .fetch_optional(pool)

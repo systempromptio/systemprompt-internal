@@ -13,7 +13,7 @@ pub(super) fn session_row(s: &SessionListItem) -> SessionRowView {
         (true, true) => ("Both", "success"),
         (true, false) => ("Gateway", "info"),
         (false, true) => ("Hooks", "secondary"),
-        // Unreachable: a row exists only because one side of the join matched.
+        // Why: Unreachable: a row exists only because one side of the join matched.
         (false, false) => ("—", "secondary"),
     };
 
@@ -24,11 +24,11 @@ pub(super) fn session_row(s: &SessionListItem) -> SessionRowView {
         .unwrap_or_else(|| "—".to_owned());
 
     SessionRowView {
-        session_id: s.session_id.to_string(),
+        session_id: s.session_id.clone(),
         session_id_short: short_id(s.session_id.as_str()),
         detail_url: session_detail_url(&s.session_id),
         ai_title: s.ai_title.clone(),
-        user_id: s.user_id.as_ref().map(ToString::to_string),
+        user_id: s.user_id.clone(),
         user_label,
         user_url: s
             .user_id
@@ -58,7 +58,11 @@ pub(super) fn session_row(s: &SessionListItem) -> SessionRowView {
 /// the error count is the only status signal they have.
 fn status_label(s: &SessionListItem) -> String {
     if s.error_count > 0 {
-        let noun = if s.error_count == 1 { "error" } else { "errors" };
+        let noun = if s.error_count == 1 {
+            "error"
+        } else {
+            "errors"
+        };
         return format!("{} {noun}", s.error_count);
     }
     s.status

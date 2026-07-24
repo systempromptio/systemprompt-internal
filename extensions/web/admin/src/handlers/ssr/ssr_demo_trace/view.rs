@@ -84,7 +84,10 @@ fn kind_label(kind: &str) -> &'static str {
 }
 
 fn to_stage_views(rules: Option<&serde_json::Value>) -> Vec<StageView> {
-    let Some(chain) = rules.and_then(|r| r.get("chain")).and_then(|c| c.as_array()) else {
+    let Some(chain) = rules
+        .and_then(|r| r.get("chain"))
+        .and_then(|c| c.as_array())
+    else {
         return Vec::new();
     };
     chain
@@ -209,11 +212,12 @@ pub(super) fn to_turn_views(rows: Vec<DemoTraceRow>) -> Vec<TurnView> {
     let mut current: Option<TurnView> = None;
 
     for row in rows {
-        if row.kind == "prompt" && current.as_ref().is_some_and(|t| !t.rows.is_empty()) {
-            if let Some(mut done) = current.take() {
-                close_turn(&mut done);
-                turns.push(done);
-            }
+        if row.kind == "prompt"
+            && current.as_ref().is_some_and(|t| !t.rows.is_empty())
+            && let Some(mut done) = current.take()
+        {
+            close_turn(&mut done);
+            turns.push(done);
         }
         let ordinal = turns.len() + 1;
         let turn = current.get_or_insert_with(|| {

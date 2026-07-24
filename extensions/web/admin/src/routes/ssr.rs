@@ -136,10 +136,7 @@ fn entity_routes() -> Router<Arc<PgPool>> {
             "/entities/requests/{request_id}",
             get(handlers::ssr::governance_audit_detail_page),
         )
-        .route(
-            "/entities/sessions",
-            get(handlers::ssr::sessions_list_page),
-        )
+        .route("/entities/sessions", get(handlers::ssr::sessions_list_page))
         .route(
             "/entities/sessions/{session_id}",
             get(handlers::ssr::session_detail_page),

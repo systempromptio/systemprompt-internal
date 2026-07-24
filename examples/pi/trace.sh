@@ -66,6 +66,11 @@ if [[ -z "$BASE_URL" && -f "$PROFILE_YAML" ]]; then
     | sed -E 's/.*api_server_url:[[:space:]]*//; s/[[:space:]]*$//; s/^"//; s/"$//')
 fi
 BASE_URL="${BASE_URL:-http://127.0.0.1:8080}"
+# curl gets 127.0.0.1 (localhost can resolve to a [::1] the server is not bound
+# to); the browser gets the configured host, because the dashboard session
+# cookie is host-only and a 127.0.0.1 link is a different cookie jar from a
+# login at localhost.
+DASHBOARD_URL="$BASE_URL"
 BASE_URL="${BASE_URL/localhost/127.0.0.1}"
 BASE_URL="${BASE_URL%/}"
 
@@ -117,14 +122,17 @@ else
 fi
 
 # ── 3. Verify the trace renders, then link it ──
-TRACE_URL="$BASE_URL/admin/demo/trace?session=$SESSION_ID"
+TRACE_URL="$DASHBOARD_URL/admin/demo/trace?session=$SESSION_ID"
+# The render check is curl, so it uses the 127.0.0.1 form; TRACE_URL above is
+# the one printed for a browser.
+TRACE_CHECK_URL="$BASE_URL/admin/demo/trace?session=$SESSION_ID"
 say "Checking the trace rendered at /admin/demo/trace"
 ADMIN_TOKEN=$("$CLI" admin session login --token-only 2>/dev/null \
   | grep -oE '[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+' | head -1 || true)
 if [[ -z "$ADMIN_TOKEN" ]]; then
   warn "could not mint an admin token — skipping the render check"
 else
-  PAGE=$(curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" "$TRACE_URL" || true)
+  PAGE=$(curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" "$TRACE_CHECK_URL" || true)
   if printf '%s' "$PAGE" | grep -q "$SESSION_ID"; then
     # One timeline row per `<td class="col-date">` in demo-trace.hbs.
     ROWS=$(printf '%s' "$PAGE" | grep -c '<td class="col-date">' || true)
@@ -137,9 +145,9 @@ fi
 echo
 say "Evidence — open these as an admin:"
 echo "    governed timeline $TRACE_URL"
-echo "    this session      $BASE_URL/admin/entities/sessions/$SESSION_ID"
-echo "    all requests      $BASE_URL/admin/entities/requests"
-echo "    policy decisions  $BASE_URL/admin/governance/decisions"
+echo "    this session      $DASHBOARD_URL/admin/entities/sessions/$SESSION_ID"
+echo "    all requests      $DASHBOARD_URL/admin/entities/requests"
+echo "    policy decisions  $DASHBOARD_URL/admin/governance/decisions"
 echo
 echo "    Same view from the CLI:"
 echo "      $(basename "$CLI") infra logs request list --limit 5"

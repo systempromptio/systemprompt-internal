@@ -73,6 +73,10 @@ pub(super) struct SessionContextRowView {
     pub(super) last_request_at_local: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) model: Option<String>,
+    pub(super) total_tokens: i64,
+    pub(super) token_display: String,
+    pub(super) cost_display: String,
+    pub(super) error_count: i64,
 }
 
 #[derive(Debug, Serialize)]

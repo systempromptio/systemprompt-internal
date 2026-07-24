@@ -1,6 +1,7 @@
 //! Typed template context for the sessions list (`sessions.hbs`).
 
 use serde::Serialize;
+use systemprompt::identifiers::{SessionId, UserId};
 
 use crate::handlers::ssr::list_view::{
     AnnotatedOption, Chip, Pagination, Preserved, TimeRangeContext,
@@ -19,16 +20,16 @@ pub(super) struct SessionsListPageContext {
     pub(super) total_count: i64,
     pub(super) pagination: Pagination,
     pub(super) error_only: bool,
-    /// Link that toggles the errors-only filter on or off.
+    // Why: Link that toggles the errors-only filter on or off.
     pub(super) error_toggle_url: String,
 }
 
-/// The "you are here" strip: who this browser is signed in as, and a way into
-/// that session's own detail page.
+// Why: The "you are here" strip: who this browser is signed in as, and a way
+// into that session's own detail page.
 #[derive(Debug, Serialize)]
 pub(super) struct CurrentSessionView {
     pub(super) username: String,
-    pub(super) session_id: Option<String>,
+    pub(super) session_id: Option<SessionId>,
     pub(super) session_id_short: Option<String>,
     pub(super) session_url: Option<String>,
 }
@@ -41,8 +42,8 @@ pub(super) struct FilterRibbon {
     pub(super) chips: Vec<Chip>,
 }
 
-/// Only the user facet is offered — agent, policy and decision are properties
-/// of a trace, not of the session that contains it.
+// Why: Only the user facet is offered — agent, policy and decision are
+// properties of a trace, not of the session that contains it.
 #[derive(Debug, Default, Serialize)]
 pub(super) struct SessionFilterOptionsView {
     pub(super) users: Vec<AnnotatedOption>,
@@ -60,15 +61,15 @@ pub(super) struct StatsView {
 
 #[derive(Debug, Serialize)]
 pub(super) struct SessionRowView {
-    pub(super) session_id: String,
+    pub(super) session_id: SessionId,
     pub(super) session_id_short: String,
     pub(super) detail_url: String,
     pub(super) ai_title: Option<String>,
-    pub(super) user_id: Option<String>,
+    pub(super) user_id: Option<UserId>,
     pub(super) user_label: String,
     pub(super) user_url: Option<String>,
     pub(super) department: Option<String>,
-    /// `Gateway`, `Hooks`, or `Both` — which producer wrote this session id.
+    // Why: `Gateway`, `Hooks`, or `Both` — which producer wrote this session id.
     pub(super) source_label: &'static str,
     pub(super) source_variant: &'static str,
     pub(super) model: Option<String>,

@@ -41,6 +41,10 @@ pub struct SessionContextRow {
     pub request_count: i64,
     pub last_request_at: Option<DateTime<Utc>>,
     pub model: Option<String>,
+    pub total_input_tokens: i64,
+    pub total_output_tokens: i64,
+    pub cost_microdollars: i64,
+    pub error_count: i64,
 }
 
 #[derive(Debug, Clone)]
@@ -154,7 +158,11 @@ pub async fn list_session_contexts(
             c.name                               AS "name?",
             COUNT(*)::bigint                     AS "request_count!",
             MAX(r.created_at)                    AS "last_request_at?",
-            MAX(r.model)                         AS "model?"
+            MAX(r.model)                         AS "model?",
+            COALESCE(SUM(r.input_tokens), 0)::bigint     AS "total_input_tokens!",
+            COALESCE(SUM(r.output_tokens), 0)::bigint    AS "total_output_tokens!",
+            COALESCE(SUM(r.cost_microdollars), 0)::bigint AS "cost_microdollars!",
+            COUNT(*) FILTER (WHERE r.status = 'failed')::bigint AS "error_count!"
         FROM ai_requests r
         LEFT JOIN user_contexts c ON c.context_id = r.context_id
         WHERE r.session_id = $1 AND r.context_id IS NOT NULL

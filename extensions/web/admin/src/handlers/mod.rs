@@ -12,7 +12,10 @@ pub(crate) mod gateway;
 pub(crate) mod gateway_access;
 pub(crate) mod gateway_catalog;
 pub(crate) mod hooks_track;
+mod jobs;
 pub(crate) mod magic_link;
+mod plugins;
+mod plugins_env;
 pub(crate) mod public_register;
 pub(crate) mod resources;
 pub(crate) mod responses;
@@ -20,11 +23,8 @@ pub(crate) mod secrets;
 pub(crate) mod share;
 pub(crate) mod shared;
 pub(crate) mod ssr;
-pub(crate) mod webhook;
-mod jobs;
-mod plugins;
-mod plugins_env;
 mod users;
+pub(crate) mod webhook;
 
 pub(crate) use webhook::{
     govern_authz, govern_tool_use, track_statusline_event, track_transcript_event,

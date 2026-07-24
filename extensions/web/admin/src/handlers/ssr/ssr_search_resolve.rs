@@ -20,8 +20,8 @@ use crate::handlers::ssr::entity_urls::{
     context_detail_url, request_detail_url, session_detail_url, trace_detail_url,
 };
 use crate::repositories::governance::resolve::{ResolvedKind, resolve_id};
-use systemprompt::identifiers::{AiRequestId, ContextId, SessionId, TraceId};
 use crate::types::UserContext;
+use systemprompt::identifiers::{AiRequestId, ContextId, SessionId, TraceId};
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct SearchQuery {
@@ -54,7 +54,7 @@ pub(crate) async fn search_resolve(
     };
 
     let (kind, url) = match r.kind {
-        // The resolver picks the entity kind at runtime from an opaque id, so
+        // Why: The resolver picks the entity kind at runtime from an opaque id, so
         // the typed newtype is only known here, in the arm that matched.
         ResolvedKind::Request => ("request", request_detail_url(&AiRequestId::new(&r.id))),
         ResolvedKind::Trace => ("trace", trace_detail_url(&TraceId::new(&r.id))),

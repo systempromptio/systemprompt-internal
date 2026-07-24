@@ -19,10 +19,12 @@ use crate::error::AdminHtmlResult;
 use crate::handlers::ssr::types as charts;
 use crate::templates::AdminTemplateEngine;
 use crate::types::{MarketplaceContext, UserContext};
+use crate::util::time_range::TimeRange;
 
 
 mod context;
 mod data;
+mod urls;
 mod view;
 
 use context::{AnalyticsRequestsPageContext, RequestsTab};
@@ -79,18 +81,57 @@ pub(crate) async fn analytics_requests_page(
     )
     .await;
 
-    let total_pages = if fetched.total_count == 0 {
-        1
-    } else {
-        (fetched.total_count + PAGE_SIZE - 1) / PAGE_SIZE
-    };
-    let pagination = view::build_pagination(
-        &query,
+    let ctx = page_context(PageInput {
+        query: &query,
+        tab,
+        filter: &filter,
+        range,
+        auto_widened,
         page,
-        total_pages,
-        PAGE_SIZE,
-        fetched.total_count,
-        i64::try_from(fetched.rows.len()).unwrap_or(PAGE_SIZE),
+        fetched: &fetched,
+    });
+
+    Ok(super::render_typed_page(
+        &engine,
+        "analytics-requests",
+        &ctx,
+        &user_ctx,
+        &mkt_ctx,
+    ))
+}
+
+// Why: the handler owns auth and I/O; assembling the template context is a pure
+// function of what came back, and keeps either half readable on its own.
+#[derive(Clone, Copy)]
+struct PageInput<'a> {
+    query: &'a RequestsQuery,
+    tab: RequestsTab,
+    filter: &'a crate::repositories::analytics::requests::RequestFilter,
+    range: TimeRange,
+    auto_widened: Option<&'static str>,
+    page: i64,
+    fetched: &'a data::RequestsData,
+}
+
+fn page_context(input: PageInput<'_>) -> AnalyticsRequestsPageContext {
+    let PageInput {
+        query,
+        tab,
+        filter,
+        range,
+        auto_widened,
+        page,
+        fetched,
+    } = input;
+    let pagination = urls::build_pagination(
+        query,
+        crate::handlers::ssr::list_view::PageWindow::new(
+            page,
+            PAGE_SIZE,
+            fetched.total_count,
+            i64::try_from(fetched.rows.len()).unwrap_or(PAGE_SIZE),
+            "requests",
+        ),
     );
     let search_query = query.q.clone().unwrap_or_default();
     let has_active_filters = filter.model.is_some()
@@ -98,11 +139,11 @@ pub(crate) async fn analytics_requests_page(
         || filter.status.is_some()
         || !search_query.is_empty();
 
-    let ctx = AnalyticsRequestsPageContext {
+    AnalyticsRequestsPageContext {
         page: "requests",
         title: "Inference Requests",
-        time_range: view::time_range_context(&query, &range, auto_widened),
-        tabs: view::tab_links(tab, &query, fetched.total_count),
+        time_range: view::time_range_context(query, &range, auto_widened),
+        tabs: urls::tab_links(tab, query, fetched.total_count),
         is_overview: tab == RequestsTab::Overview,
         is_breakdown: matches!(
             tab,
@@ -113,23 +154,15 @@ pub(crate) async fn analytics_requests_page(
         histogram: charts::histogram_view(&fetched.hist, &fetched.stats),
         traffic_chart: charts::traffic_chart(&fetched.series, &range),
         cost_chart: charts::cost_chart(&fetched.series, &range),
-        breakdown: view::breakdown_view(tab, &fetched.breakdown, &query),
+        breakdown: view::breakdown_view(tab, &fetched.breakdown, query),
         rows: fetched.rows.iter().map(view::request_row_to_json).collect(),
         has_rows: !fetched.rows.is_empty(),
         total_count: fetched.total_count,
         pagination,
         search_query,
-        chips: view::active_chips(&query),
+        chips: urls::active_chips(query),
         has_active_filters,
-        clear_url: view::clear_url(&query),
+        clear_url: urls::clear_url(query),
         base_url: BASE_URL,
-    };
-
-    Ok(super::render_typed_page(
-        &engine,
-        "analytics-requests",
-        &ctx,
-        &user_ctx,
-        &mkt_ctx,
-    ))
+    }
 }

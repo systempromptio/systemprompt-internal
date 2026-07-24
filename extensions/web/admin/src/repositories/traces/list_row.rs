@@ -7,38 +7,38 @@ use systemprompt::identifiers::{AgentId, SessionId, TraceId, UserId};
 use super::TraceSummary;
 
 #[derive(Debug)]
-pub(super) struct TraceRow {
-    session_id: SessionId,
-    trace_id: Option<TraceId>,
-    started_at: chrono::DateTime<chrono::Utc>,
-    ended_at: chrono::DateTime<chrono::Utc>,
-    active_ms: i64,
-    window_ms: i64,
-    user_id: Option<UserId>,
-    user_label: Option<String>,
-    agent_id: Option<AgentId>,
-    agent_scope: Option<String>,
-    model: Option<String>,
-    provider: Option<String>,
-    span_count: i64,
-    request_count: i64,
-    tool_call_count: i64,
-    governance_count: i64,
-    deny_count: i64,
-    total_tokens: i64,
-    input_tokens: i64,
-    output_tokens: i64,
-    total_cost_microdollars: i64,
-    total_latency_ms: i64,
-    cache_hit_any: bool,
-    top_tool: Option<String>,
-    has_error: bool,
-    has_deny: bool,
-    total_count: i64,
+pub(super) struct TraceListRow {
+    pub(super) session_id: SessionId,
+    pub(super) trace_id: Option<TraceId>,
+    pub(super) started_at: chrono::DateTime<chrono::Utc>,
+    pub(super) ended_at: chrono::DateTime<chrono::Utc>,
+    pub(super) active_ms: i64,
+    pub(super) window_ms: i64,
+    pub(super) user_id: Option<UserId>,
+    pub(super) user_label: Option<String>,
+    pub(super) agent_id: Option<AgentId>,
+    pub(super) agent_scope: Option<String>,
+    pub(super) model: Option<String>,
+    pub(super) provider: Option<String>,
+    pub(super) span_count: i64,
+    pub(super) request_count: i64,
+    pub(super) tool_call_count: i64,
+    pub(super) governance_count: i64,
+    pub(super) deny_count: i64,
+    pub(super) total_tokens: i64,
+    pub(super) input_tokens: i64,
+    pub(super) output_tokens: i64,
+    pub(super) total_cost_microdollars: i64,
+    pub(super) total_latency_ms: i64,
+    pub(super) cache_hit_any: bool,
+    pub(super) top_tool: Option<String>,
+    pub(super) has_error: bool,
+    pub(super) has_deny: bool,
+    pub(super) total_count: i64,
 }
 
-impl From<TraceRow> for TraceSummary {
-    fn from(r: TraceRow) -> Self {
+impl From<TraceListRow> for TraceSummary {
+    fn from(r: TraceListRow) -> Self {
         Self {
             session_id: r.session_id,
             trace_id: r.trace_id,

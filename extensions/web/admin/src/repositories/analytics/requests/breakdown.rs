@@ -1,10 +1,11 @@
-//! Per-dimension `ai_requests` rollups for the Models / Providers / Status tabs.
+//! Per-dimension `ai_requests` rollups for the Models / Providers / Status
+//! tabs.
 //!
 //! One row per distinct model, provider, or status in the window, carrying the
-//! same measures the KPI strip reports so a reader can attribute traffic, spend,
-//! latency, and failures without leaving the tab. The error predicate matches
-//! `view::is_error_status`, so a status row's `error_count` and the table's
-//! danger badge can never disagree.
+//! same measures the KPI strip reports so a reader can attribute traffic,
+//! spend, latency, and failures without leaving the tab. The error predicate
+//! matches `view::is_error_status`, so a status row's `error_count` and the
+//! table's danger badge can never disagree.
 //!
 //! `sqlx::query_as!` needs static SQL, so the grouping column cannot be a bind
 //! parameter — hence three functions over one shared shape rather than a

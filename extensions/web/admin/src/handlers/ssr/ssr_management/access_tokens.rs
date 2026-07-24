@@ -36,7 +36,7 @@ pub(super) struct TokenUserOption {
     label: String,
 }
 
-/// Headline counts for the stat cards: total, active, and expiring soon.
+// Why: Headline counts for the stat cards: total, active, and expiring soon.
 #[derive(Debug, Default)]
 pub(super) struct TokenCounts {
     pub total: usize,

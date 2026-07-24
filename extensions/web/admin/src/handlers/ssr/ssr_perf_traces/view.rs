@@ -6,13 +6,14 @@
 
 use urlencoding::encode as urlencode;
 
+use crate::handlers::ssr::list_view::{
+    AnnotatedOption, Chip, PageWindow, Pagination, Preserved, TimeRangeContext,
+};
 use crate::repositories::governance::filter_options::{FilterOption, FilterOptions};
 use crate::repositories::traces::{TraceFilter, TraceSortColumn, TraceSortDir};
 use crate::util::time_range::TimeRange;
 
-use super::context::{
-    AnnotatedOption, Chip, Pagination, Preserved, TimeRangeContext, TraceFilterOptionsView,
-};
+use super::context::TraceFilterOptionsView;
 use super::{BASE_URL, TraceListQuery, empty_to_none};
 
 pub(super) const fn sort_col_to_str(c: TraceSortColumn) -> &'static str {
@@ -185,14 +186,8 @@ fn annotate_group(items: &[FilterOption], selected: Option<&str>) -> Vec<Annotat
         .collect()
 }
 
-pub(super) fn build_pagination(
-    query: &TraceListQuery,
-    page: i64,
-    total_pages: i64,
-    page_size: i64,
-    total_rows: i64,
-    shown_rows: i64,
-) -> Pagination {
+pub(super) fn build_pagination(query: &TraceListQuery, window: PageWindow) -> Pagination {
+    let page = window.index;
     let qs = preserved_query_string(query, &["page"]);
     let prefix = if qs.is_empty() {
         format!("{BASE_URL}?")
@@ -200,15 +195,15 @@ pub(super) fn build_pagination(
         format!("{BASE_URL}?{qs}&")
     };
     let prev_url = (page > 0).then(|| format!("{prefix}page={}", page - 1));
-    let next_url = (page + 1 < total_pages).then(|| format!("{prefix}page={}", page + 1));
-    let first_row = if shown_rows == 0 { 0 } else { page * page_size + 1 };
+    let next_url = (page + 1 < window.total_pages).then(|| format!("{prefix}page={}", page + 1));
+    let (first_row, last_row) = window.bounds();
     Pagination {
         current_page: page + 1,
-        total_pages,
+        total_pages: window.total_pages,
         first_row,
-        last_row: page * page_size + shown_rows,
-        total_rows,
-        noun: "traces",
+        last_row,
+        total_rows: window.total_rows,
+        noun: window.noun,
         has_prev: prev_url.is_some(),
         has_next: next_url.is_some(),
         prev_url,

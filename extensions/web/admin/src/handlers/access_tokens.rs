@@ -38,7 +38,8 @@ pub(crate) async fn issue_pat(
     Json(body): Json<IssueApiKeyRequest>,
 ) -> AdminResult<Response> {
     let issued =
-        access_token_service::issue_pat(&pool, &user_ctx.user_id, &body.name, body.expires_at).await?;
+        access_token_service::issue_pat(&pool, &user_ctx.user_id, &body.name, body.expires_at)
+            .await?;
     Ok(Json(IssueApiKeyResponse {
         id: issued.id,
         name: issued.name,
@@ -63,7 +64,8 @@ pub(crate) async fn issue_user_pat(
         return Err(AdminError::Forbidden("Admin access required.".to_owned()));
     }
     let target = UserId::new(user_id);
-    let issued = access_token_service::issue_pat(&pool, &target, &body.name, body.expires_at).await?;
+    let issued =
+        access_token_service::issue_pat(&pool, &target, &body.name, body.expires_at).await?;
     Ok(Json(IssueApiKeyResponse {
         id: issued.id,
         name: issued.name,

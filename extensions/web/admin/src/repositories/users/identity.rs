@@ -4,7 +4,7 @@ use sqlx::PgPool;
 use systemprompt::identifiers::UserId;
 
 #[derive(Debug, Clone)]
-pub struct UserIdentityRow {
+pub struct SignedInUserRow {
     pub id: String,
     pub name: String,
     pub email: String,
@@ -15,7 +15,7 @@ pub struct UserIdentityRow {
 pub async fn find_user_identity(
     pool: &PgPool,
     user_id: &UserId,
-) -> Result<Option<UserIdentityRow>, sqlx::Error> {
+) -> Result<Option<SignedInUserRow>, sqlx::Error> {
     let row = sqlx::query!(
         r#"SELECT id, name, email, display_name,
                   COALESCE(roles, '{}') as "roles!: Vec<String>"
@@ -24,7 +24,7 @@ pub async fn find_user_identity(
     )
     .fetch_optional(pool)
     .await?;
-    Ok(row.map(|r| UserIdentityRow {
+    Ok(row.map(|r| SignedInUserRow {
         id: r.id,
         name: r.name,
         email: r.email,

@@ -8,6 +8,10 @@ Prerequisites: server built and running (`just build`, `just start`), Pi
 installed and wired (`examples/pi/setup.sh`), and the per-model gateway
 routes added once (`examples/pi/routes.sh`, then restart the server).
 
+For setup as a manual rather than a demo script, including driving the TUI
+interactively, switching users, and what each credential file does, see
+[`RUNNING-AS-A-USER.md`](RUNNING-AS-A-USER.md).
+
 ## 1. Choose the user Pi acts as
 
 ```bash

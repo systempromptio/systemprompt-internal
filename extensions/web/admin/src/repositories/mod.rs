@@ -4,8 +4,8 @@
 //! this module re-exports nothing, so the module path is the only name a
 //! symbol has and collisions between domains cannot arise.
 
-pub mod analytics;
 pub mod access_tokens;
+pub mod analytics;
 pub mod config;
 pub mod dashboard;
 pub mod departments;

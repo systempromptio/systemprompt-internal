@@ -85,8 +85,7 @@ pub(super) fn enrich_users(
         .map(|u| {
             let agg = agg_map.get(u.user_id.as_str());
             let rt = rt_map.get(u.user_id.as_str());
-            let token_freshness =
-                freshness_for(rt.and_then(|r| r.newest_token_used_at)).to_owned();
+            let token_freshness = freshness_for(rt.and_then(|r| r.newest_token_used_at)).to_owned();
             let user_overrides = ovr_map.get(u.user_id.as_str()).cloned().unwrap_or_default();
             let marketplaces = resolve_marketplaces(yaml_marketplaces, &user_overrides);
             EnrichedUserView {

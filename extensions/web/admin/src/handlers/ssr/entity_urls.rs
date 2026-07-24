@@ -31,7 +31,8 @@ pub(crate) fn request_detail_url(request: &AiRequestId) -> String {
     )
 }
 
-// Why: `/admin/entities/traces/{trace_id}` — single performance-trace detail page.
+// Why: `/admin/entities/traces/{trace_id}` — single performance-trace detail
+// page.
 pub(crate) fn trace_detail_url(trace: &TraceId) -> String {
     format!(
         "/admin/entities/traces/{}",

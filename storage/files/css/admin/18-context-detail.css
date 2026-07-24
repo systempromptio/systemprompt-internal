@@ -349,16 +349,9 @@
     flex-shrink: 0;
 }
 
-/* ---------- compact variant ---------- */
-
-.transcript--compact {
-    gap: var(--sp-space-2);
-}
-
-.transcript--compact .transcript__body {
-    margin-top: var(--sp-space-1);
-    line-height: 1.5;
-}
+/* The .transcript--compact variant is gone: its only caller was this page's
+   transcript, and all it did was undo the line-height the messages are legible
+   at. Density is not worth an unreadable conversation. */
 
 /* ---------- responsive ---------- */
 
