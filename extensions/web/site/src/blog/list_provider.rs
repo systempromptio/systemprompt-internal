@@ -58,6 +58,7 @@ impl PageDataProvider for BlogListPageDataProvider {
     async fn provide_page_data(
         &self,
         ctx: &PageContext<'_>,
+        // JSON: required by trait contract
     ) -> Result<Value, systemprompt::traits::ProviderError> {
         let Some(db) = ctx.db_pool::<Arc<Database>>() else {
             tracing::warn!("BlogListPageDataProvider: No database in context");

@@ -105,7 +105,9 @@ async fn call_judge(
         system: Some(system),
         user,
         max_tokens: JUDGE_MAX_TOKENS,
-        conversation_id: &super::new_id("evjudge"),
+        // Why: the run id rides along so a run's judge calls can be found in
+        // `ai_requests` by conversation id alone.
+        conversation_id: &format!("{}-{}", config.run_id, super::new_id("judge")),
     })
     .await
 }

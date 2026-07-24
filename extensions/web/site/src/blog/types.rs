@@ -1,6 +1,7 @@
 //! Row and template types shared by the blog providers.
 
 use chrono::{DateTime, Utc};
+use serde::Deserialize;
 
 #[derive(Debug)]
 pub(crate) struct BlogPost {
@@ -16,4 +17,10 @@ pub(crate) struct BlogPost {
 pub(crate) struct RelatedPost {
     pub slug: String,
     pub title: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub(crate) struct ReferenceLink {
+    pub title: String,
+    pub url: String,
 }

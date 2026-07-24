@@ -79,6 +79,7 @@ impl PageDataProvider for NavigationPageDataProvider {
     async fn provide_page_data(
         &self,
         _ctx: &PageContext<'_>,
+        // JSON: required by trait contract
     ) -> Result<Value, systemprompt::traits::ProviderError> {
         let context = NavigationContext {
             site: NavigationSite {

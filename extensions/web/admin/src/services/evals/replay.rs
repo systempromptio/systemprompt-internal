@@ -159,7 +159,7 @@ pub(super) async fn answer_for(
         system: None,
         user: prompt,
         max_tokens: REPLAY_MAX_TOKENS,
-        conversation_id: &new_id("evreplay"),
+        conversation_id: &format!("{}-{}", config.run_id, new_id("replay")),
     })
     .await
     .map(|a| a.text)

@@ -104,7 +104,7 @@ pub async fn insert_result(
         params.provider,
         params.model,
         params.overall_score,
-        serde_json::to_value(&params.dimension_scores.0).unwrap_or(serde_json::Value::Null),
+        params.dimension_scores as _,
         params.verdict.as_str(),
         params.rationale,
         params.flags,

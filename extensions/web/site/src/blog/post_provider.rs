@@ -11,6 +11,7 @@ use systemprompt::extension::prelude::*;
 use systemprompt::models::Config;
 
 use super::renderers::{render_references, render_related_posts, render_social_action_bar};
+use super::types::ReferenceLink;
 use crate::repositories::blog::list_related_posts;
 use systemprompt_web_shared::error::BlogError;
 
@@ -93,9 +94,13 @@ impl BlogPostContext {
         let org_url = Config::get().map_or_else(|_| String::new(), |c| c.api_external_url.clone());
         self.social_action_bar = Some(render_social_action_bar(slug, title, &org_url));
 
-        if let Some(links) = item.get("links") {
-            self.references = render_references(links);
-        }
+        let links = item.get("links").map_or_else(Vec::new, |value| {
+            serde_json::from_value::<Vec<ReferenceLink>>(value.clone()).unwrap_or_else(|e| {
+                tracing::warn!(error = %e, "Failed to parse blog post reference links");
+                Vec::new()
+            })
+        });
+        self.references = render_references(&links);
     }
 }
 
@@ -142,6 +147,7 @@ impl PageDataProvider for BlogPostPageDataProvider {
     async fn provide_page_data(
         &self,
         ctx: &PageContext<'_>,
+        // JSON: required by trait contract
     ) -> Result<Value, systemprompt::traits::ProviderError> {
         let item = ctx
             .content_item()

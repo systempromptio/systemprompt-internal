@@ -1,10 +1,8 @@
 //! Markdown-to-HTML rendering for blog bodies.
 
-use serde_json::Value;
-
 use systemprompt_web_shared::html_escape;
 
-use super::types::{BlogPost, RelatedPost};
+use super::types::{BlogPost, ReferenceLink, RelatedPost};
 
 pub(super) fn social_icon(platform_type: &str) -> &'static str {
     match platform_type {
@@ -71,18 +69,17 @@ pub(super) fn render_social_action_bar(_slug: &str, _title: &str, _org_url: &str
     )
 }
 
-pub(super) fn render_references(links: &Value) -> Option<String> {
-    let arr = links.as_array()?;
-    if arr.is_empty() {
+pub(super) fn render_references(links: &[ReferenceLink]) -> Option<String> {
+    if links.is_empty() {
         return None;
     }
 
-    let cards: Vec<String> = arr
+    let cards: Vec<String> = links
         .iter()
         .enumerate()
         .filter_map(|(i, link)| {
-            let title = link.get("title")?.as_str()?;
-            let url_str = link.get("url")?.as_str()?;
+            let title = link.title.as_str();
+            let url_str = link.url.as_str();
             let domain = url::Url::parse(url_str).ok()?.host_str()?.to_owned();
 
             Some(format!(

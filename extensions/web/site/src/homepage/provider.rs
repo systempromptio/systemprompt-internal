@@ -34,6 +34,7 @@ impl PageDataProvider for HomepagePageDataProvider {
     async fn provide_page_data(
         &self,
         _ctx: &PageContext<'_>,
+        // JSON: required by trait contract
     ) -> Result<Value, systemprompt::traits::ProviderError> {
         Ok(serde_json::to_value(HomepageContext::new(&self.config))?)
     }

@@ -25,11 +25,13 @@ pub struct CliOutput {
 }
 
 #[must_use]
+// JSON: protocol boundary
 pub fn input_schema() -> serde_json::Value {
     schemars::schema_for!(CliInput).to_value()
 }
 
 #[must_use]
+// JSON: protocol boundary
 pub fn output_schema() -> serde_json::Value {
     ToolResponse::<CliArtifact>::schema()
 }
@@ -39,7 +41,9 @@ struct ToolDef<'a> {
     name: &'a str,
     title: &'a str,
     description: &'a str,
+    // JSON: protocol boundary
     input_schema: &'a serde_json::Value,
+    // JSON: protocol boundary
     output_schema: &'a serde_json::Value,
 }
 

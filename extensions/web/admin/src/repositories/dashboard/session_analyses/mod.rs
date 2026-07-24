@@ -77,12 +77,12 @@ fn prepare_upsert_params(analysis: &SessionAnalysis) -> UpsertParams {
         goal_outcome_map_json: analysis
             .goal_outcome_map
             .as_ref()
-            .map(|v| Json(v.iter().cloned().collect())),
+            .map(|v| Json(v.clone())),
         efficiency_metrics_json: analysis.efficiency_metrics.map(Json),
         best_practices_json: analysis
             .best_practices_checklist
             .as_ref()
-            .map(|v| Json(v.iter().cloned().collect())),
+            .map(|v| Json(v.clone())),
         improvement_hints: analysis.improvement_hints.clone(),
         corrections_count: analysis
             .efficiency_metrics
