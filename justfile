@@ -647,6 +647,10 @@ publish:
     fi
     {{CLI}} infra jobs run publish_pipeline
 
+# Stage setup-skill dashboard assets (skill assets ride into the Cowork VM)
+cowork-setup-assets *ARGS:
+    scripts/generate-cowork-setup-assets.py {{ARGS}}
+
 # Build web assets only (templates + CSS + JS + copy to dist)
 web-build:
     {{CLI}} infra jobs run bundle_admin_css

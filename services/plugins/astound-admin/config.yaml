@@ -43,8 +43,8 @@ plugin:
   artifacts:
     source: explicit
     include:
-      - admin-users
-      - admin-activity
-      - admin-usage
+      - admin-users-directory
+      - admin-activity-requests
+      - admin-usage-costs
   # No hooks: astound-commons owns the session-global governance hooks, and
   # each extra owner is another govern call per tool.

@@ -31,4 +31,4 @@ plugin:
   artifacts:
     source: explicit
     include:
-      - salesforce-activities
+      - activities-tasks-and-meetings

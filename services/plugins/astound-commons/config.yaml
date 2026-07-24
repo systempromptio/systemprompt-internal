@@ -24,20 +24,21 @@ plugin:
     include: []
   mcp_servers: {}
   content_sources: {}
-  # The client-facing dashboards cowork_setup installs. They ride into the
-  # Cowork VM as artifacts/<id>.json in this plugin's bundle — the host staging
-  # dir is Cowork's own storage and is not mounted inside the VM, so a bundled
-  # copy is the only channel the setup skill can actually read. The admin-*
-  # dashboards belong to astound-admin, which selects them itself.
+  # The client-facing dashboards cowork_setup installs. The skill's primary
+  # channel is skills/cowork-setup/assets/artifacts/ (staged by
+  # scripts/generate-cowork-setup-assets.py, VM-mounted, bash-copyable); the
+  # artifacts/<id>.json records this selection emits into the bundle are the
+  # fallback. The admin-* dashboards belong to astound-admin, which selects
+  # them itself.
   artifacts:
     source: explicit
     include:
-      - salesforce-accounts
-      - salesforce-activities
-      - salesforce-cases
-      - salesforce-contacts
-      - salesforce-leads
-      - salesforce-opportunities
+      - accounts-book-of-business
+      - activities-tasks-and-meetings
+      - cases-support-queue
+      - contacts-people
+      - leads-inbound-prospects
+      - pipeline-open-deals
   # Claude Code runs plugin hooks session-globally, so the governance hooks are
   # declared once here and cover every tool call in the session. No other
   # plugin should set this — each extra owner is another govern call per tool.
