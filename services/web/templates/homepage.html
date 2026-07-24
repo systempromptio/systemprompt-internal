@@ -159,36 +159,41 @@
         <section id="usage" class="demos-quick-start homepage-usage">
             <div class="container">
                 <header class="section-header">
-                    <h2 class="section-title">Connect it to your local Claude Code</h2>
-                    <p class="section-subtitle">Three clicks, no config files, no tokens to paste. Your user identity is baked into the marketplace URL.</p>
+                    <h2 class="section-title">Run the Pi demo: one agent, every provider, fully governed</h2>
+                    <p class="section-subtitle">Point the <a href="https://pi.dev">Pi coding agent</a> at the gateway and drive Claude, GPT, Gemini, and Cerebras models through one governed endpoint &mdash; then flip a model off for a user and watch the very next request get denied.</p>
                 </header>
                 <ol class="quick-start-list">
                     <li class="quick-start-step">
                         <div class="quick-start-number">1</div>
                         <div class="quick-start-body">
-                            <h3 class="quick-start-label">Create your account</h3>
-                            <p class="quick-start-desc">Sign up with an email &mdash; magic-link login, no passwords. You land on the dashboard straight after.</p>
+                            <h3 class="quick-start-label">Install and wire Pi</h3>
+                            <p class="quick-start-desc">One script installs Pi, adds the gateway as a provider in <code>~/.pi/agent/models.json</code>, applies the branded theme, and smoke-tests the governed endpoint.</p>
                             <div class="command-row">
-                                <a href="/admin/register" class="hero-cta hero-cta-primary">Sign up</a>
-                                <a href="/admin/login" class="hero-cta hero-cta-secondary">Log in</a>
+                                <pre class="command-block"><code>examples/pi/setup.sh &amp;&amp; examples/pi/routes.sh</code></pre>
+                                <button type="button" class="copy-btn" data-code="examples/pi/setup.sh &amp;&amp; examples/pi/routes.sh" aria-label="Copy command">Copy</button>
                             </div>
                         </div>
                     </li>
                     <li class="quick-start-step">
                         <div class="quick-start-number">2</div>
                         <div class="quick-start-body">
-                            <h3 class="quick-start-label">Click <strong>Connect to Claude Code</strong></h3>
-                            <p class="quick-start-desc">The connect button lives in the top-right of every dashboard page. It opens a panel with one command that installs your personal marketplace &mdash; plugins, skills, agents, and MCP servers, all scoped to your user.</p>
+                            <h3 class="quick-start-label">Register a demo user</h3>
+                            <p class="quick-start-desc">Creates a fresh non-admin user, issues them a gateway API key from the admin API, and re-points Pi at that identity. Every request Pi makes is now attributed, audited, and priced against that user.</p>
                             <div class="command-row">
-                                <a href="/admin/dashboard" class="hero-cta hero-cta-secondary">Open dashboard</a>
+                                <pre class="command-block"><code>examples/pi/new-user.sh</code></pre>
+                                <button type="button" class="copy-btn" data-code="examples/pi/new-user.sh" aria-label="Copy command">Copy</button>
                             </div>
                         </div>
                     </li>
                     <li class="quick-start-step">
                         <div class="quick-start-number">3</div>
                         <div class="quick-start-body">
-                            <h3 class="quick-start-label">Paste it into Claude Code</h3>
-                            <p class="quick-start-desc">Click <em>Copy command</em>, drop it into any Claude Code conversation, and your marketplace loads. That&rsquo;s the whole install &mdash; no <code>settings.json</code> edit, no token setup, no second step.</p>
+                            <h3 class="quick-start-label">Drive models, then govern them live</h3>
+                            <p class="quick-start-desc">Run <code>pi</code> and hop between models with <code>/model</code>. Then open <strong>Model Selection</strong> in the dashboard: the user&rsquo;s requests, tokens, and cost are all there &mdash; and disabling a model denies their next call with a 403, no restart, no new token. The full script lives in <code>examples/pi/WALKTHROUGH.md</code>.</p>
+                            <div class="command-row">
+                                <a href="/admin/models" class="hero-cta hero-cta-primary">Open Model Selection</a>
+                                <a href="/admin/register" class="hero-cta hero-cta-secondary">Sign up</a>
+                            </div>
                         </div>
                     </li>
                 </ol>

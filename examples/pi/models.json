@@ -32,6 +32,13 @@
           "maxTokens": 16384
         },
         {
+          "id": "gpt-oss-120b",
+          "name": "GPT-OSS 120B on Cerebras (Enterprise Demo gateway)",
+          "input": ["text"],
+          "contextWindow": 128000,
+          "maxTokens": 65536
+        },
+        {
           "id": "gemini-2.5-flash",
           "name": "Gemini 2.5 Flash (Enterprise Demo gateway)",
           "input": ["text"],

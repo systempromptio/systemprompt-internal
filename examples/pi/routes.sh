@@ -20,7 +20,8 @@ PROFILE_YAML="$PROJECT_DIR/.systemprompt/profiles/$PROFILE/profile.yaml"
 ROUTES="pi-claude-sonnet-4-6 claude-sonnet-4-6 anthropic
 pi-claude-opus-4-8 claude-opus-4-8 anthropic
 pi-gpt-5-mini gpt-5-mini openai
-pi-gemini-2-5-flash gemini-2.5-flash gemini"
+pi-gemini-2-5-flash gemini-2.5-flash gemini
+pi-gpt-oss-120b gpt-oss-120b cerebras"
 
 BLOCK_FILE="$(mktemp)"
 trap 'rm -f "$BLOCK_FILE"' EXIT
