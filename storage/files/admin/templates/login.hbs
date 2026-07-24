@@ -10,23 +10,6 @@
     <script>(function(){document.documentElement.style.colorScheme='light';})();</script>
     <style>
         html,body{margin:0;background:var(--sp-bg-base);color:var(--sp-text-primary);font-family:"OpenSans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
-        .auth-page{display:flex;min-height:100vh;background:radial-gradient(ellipse at 30% 20%,color-mix(in oklch,var(--sp-accent) 6%,transparent) 0%,transparent 50%),radial-gradient(ellipse at 70% 80%,color-mix(in oklch,var(--sp-section-plugins) 4%,transparent) 0%,transparent 50%),linear-gradient(180deg,var(--sp-bg-canvas) 0%,var(--sp-bg-base) 100%)}
-        .auth-info{flex:1;padding:3rem 3rem 3rem 4rem;display:flex;flex-direction:column;justify-content:center;max-width:640px}
-        .auth-form-col{display:flex;align-items:center;justify-content:center;padding:2rem;min-width:420px}
-        .auth-info h2{font-size:1.1rem;font-weight:700;color:var(--sp-text-primary);margin:1.5rem 0 0.5rem}
-        .auth-info h3{font-size:0.85rem;font-weight:600;color:var(--sp-text-primary);margin:0.75rem 0 0.25rem}
-        .auth-info p{font-size:0.82rem;color:var(--sp-text-secondary);line-height:1.6;margin:0 0 0.5rem}
-        .auth-info .text-muted{color:var(--sp-text-tertiary)}
-        .auth-badge{display:inline-flex;align-items:center;gap:0.4rem;background:var(--sp-accent-dim);color:var(--sp-accent-hover);font-size:0.75rem;font-weight:600;padding:0.3rem 0.75rem;border-radius:999px;margin-bottom:1rem}
-        .auth-divider{border:none;border-top:1px solid var(--sp-border-default);margin:1.25rem 0}
-        .auth-flow-steps{display:flex;flex-direction:column;gap:0.4rem;margin:0.5rem 0}
-        .auth-flow-step{display:flex;align-items:flex-start;gap:0.5rem;font-size:0.78rem;color:var(--sp-text-secondary);line-height:1.5}
-        .auth-flow-step .step-num{display:inline-flex;align-items:center;justify-content:center;min-width:1.4rem;height:1.4rem;border-radius:50%;background:var(--sp-accent);color:#fff;font-size:0.65rem;font-weight:700;flex-shrink:0;margin-top:0.1rem}
-        @media (max-width: 900px){
-            .auth-page{flex-direction:column}
-            .auth-info{max-width:100%;padding:2rem 1.5rem 1rem}
-            .auth-form-col{min-width:0;padding:1rem 1.5rem 2rem}
-        }
         /* Force light mode regardless of OS dark-mode preference */
         .login-logo .logo-light{display:block !important}
         .login-logo .logo-dark{display:none !important}
@@ -47,6 +30,8 @@
                     <strong>Emails are not enabled in this demo environment.</strong>
                 </p>
 
+                <details class="auth-more">
+                <summary>How passkey login works, recovery, and enterprise options</summary>
                 <hr class="auth-divider">
 
                 <h2>How Passkey Login Works</h2>
@@ -85,6 +70,7 @@
                     tool endpoints for databases, APIs, and internal services &mdash; governed by per-user
                     permissions and audit logging.
                 </p>
+                </details>
             </div>
         </div>
 
@@ -107,8 +93,9 @@
                         <div class="form-actions">
                             <button type="button" id="sign-in-btn" class="btn btn-primary w-full">Sign in with Passkey</button>
                         </div>
-                        <p class="text-center mt-3 text-sm">
-                            <a href="#" id="magic-link-trigger" class="text-tertiary">Don't have a passkey?</a>
+                        <p class="text-center mt-3 text-sm text-tertiary">
+                            Lost your passkey? Email recovery is disabled in this demo —
+                            <a href="/admin/register" class="text-accent">register a new account</a> instead.
                         </p>
                     </div>
 

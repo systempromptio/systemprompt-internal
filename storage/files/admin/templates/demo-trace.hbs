@@ -1,0 +1,74 @@
+{{#> layout title=title page=page}}
+    {{#*inline "head_extra"}}{{/inline}}
+    {{#*inline "content"}}
+
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <a href="/admin/governance/policies">Policies</a>
+        <span aria-hidden="true">›</span>
+        <span aria-current="page">Demo Trace</span>
+    </nav>
+
+    {{> components/page-header title=hero_title subtitle=hero_subtitle}}
+
+    <section class="stats-grid-3col">
+        {{> components/stat-card label="Prompts blocked" value=prompts_blocked variant="danger"}}
+        {{> components/stat-card label="Tool calls blocked" value=tools_blocked variant="danger"}}
+        {{> components/stat-card label="Model calls made" value=model_calls}}
+    </section>
+
+    {{#if has_sessions}}
+    <div class="filter-ribbon__chips" role="list" aria-label="Agent sessions">
+        {{#each sessions}}
+        <span class="filter-ribbon__chip" role="listitem">
+            <a href="{{url}}" title="{{started_at}} → {{last_at}}">
+                {{#if is_active}}<strong>{{session_id}}</strong>{{else}}{{session_id}}{{/if}}
+            </a>
+            <span class="filter-ribbon__chip-value">{{allowed}} allow / {{denied}} deny</span>
+        </span>
+        {{/each}}
+    </div>
+    {{/if}}
+
+    {{#if has_rows}}
+    {{#> components/data-table}}
+        <thead><tr>
+            <th class="col-date">Time</th>
+            <th class="col-status">Stage</th>
+            <th>Subject</th>
+            <th class="col-status">Outcome</th>
+            <th class="col-status">Policy</th>
+            <th>Detail</th>
+        </tr></thead>
+        <tbody>
+        {{#each rows}}
+        <tr>
+            <td class="col-date"><code class="code-inline">{{at}}</code></td>
+            <td class="col-status"><span class="badge badge-blue">{{kind_label}}</span></td>
+            <td><code class="code-inline">{{subject}}</code></td>
+            <td class="col-status">
+                {{#if is_deny}}
+                <span class="badge badge-red">BLOCKED</span>
+                {{else if is_request}}
+                <span class="badge badge-blue">{{outcome}}</span>
+                {{else}}
+                <span class="badge badge-green">{{outcome}}</span>
+                {{/if}}
+            </td>
+            <td class="col-status">{{#if has_policy}}<span class="badge badge-blue">{{policy}}</span>{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
+            <td>{{#if detail}}{{detail}}{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
+        </tr>
+        {{/each}}
+        </tbody>
+    {{/components/data-table}}
+    <p class="text-secondary">
+        Read top to bottom. A blocked prompt has no <em>Model call</em> row after it —
+        the credential never left the machine. A blocked tool call has no <em>Tool fire</em>
+        row — it never executed.
+    </p>
+    {{else}}
+    {{> components/empty-state message="No governed agent session yet. Run examples/pi/setup.sh and examples/pi/new-user.sh, drive Pi, and the trace appears here."}}
+    {{/if}}
+
+    {{/inline}}
+    {{#*inline "scripts"}}{{/inline}}
+{{/layout}}

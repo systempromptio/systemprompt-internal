@@ -742,3 +742,26 @@
     margin: 0;
     font-style: italic;
 }
+
+/* ── CARD VARIANTS ────────────────────────────────────────── */
+.sp-profile-card--usage,
+.sp-profile-card--conv {
+    min-width: 0;
+}
+
+/* inline stat in a card header's __stats row */
+.sp-stat {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    white-space: nowrap;
+}
+.sp-stat b {
+    color: var(--sp-text-primary);
+    font-weight: 700;
+}
+
+/* one column of the conversations grid */
+.sp-conv-section {
+    min-width: 0;
+}

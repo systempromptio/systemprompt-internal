@@ -1,18 +1,16 @@
 @layer components {
+/* Tables grow with their content and the page scrolls; an internal
+   max-height silently hides rows behind an unmarked inner scrollbar. */
 .table-container {
     background: var(--sp-bg-surface);
     border: 1px solid var(--sp-border-subtle);
     border-radius: var(--sp-radius-card-brand);
     overflow-x: auto;
-    overflow-y: auto;
-    max-height: calc(100vh - 230px);
     max-width: 100%;
 }
 
 .table-scroll {
     overflow-x: auto;
-    overflow-y: auto;
-    max-height: calc(100vh - 230px);
 }
 
 .admin-main > .table-container {
@@ -180,6 +178,21 @@
 
 .clickable-row:hover td {
     background: var(--sp-accent-dim);
+}
+
+/* Right-aligned numeric columns (header + cell). */
+.data-table th.col-num,
+.data-table td.col-num,
+.data-table th.col-numeric,
+.data-table td.col-numeric {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.row-expandable {
+    cursor: pointer;
+    transition: background var(--sp-duration-fast);
 }
 
 }

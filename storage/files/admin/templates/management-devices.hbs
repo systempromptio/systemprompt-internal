@@ -3,9 +3,9 @@
     {{#*inline "content"}}
     {{> components/page-header title=title subtitle="Every PAT and desktop app linked to a user, with live online status."}}
 
-    <div class="kpi-grid" role="list" style="margin-bottom:1.5rem;">
-        <div class="kpi-card" role="listitem"><span class="kpi-label">Total devices</span><span class="kpi-value">{{total}}</span></div>
-        <div class="kpi-card" role="listitem"><span class="kpi-label">Online (≤5m)</span><span class="kpi-value">{{online}}</span></div>
+    <div class="stat-grid">
+        {{> components/stat-card label="Total devices" value=total}}
+        {{> components/stat-card label="Online (≤5m)" value=online}}
     </div>
 
     <div class="toolbar" role="toolbar" aria-label="Actions">

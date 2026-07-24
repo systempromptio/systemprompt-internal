@@ -126,4 +126,44 @@
     margin: -0.5rem 0 0.5rem;
 }
 
+/* Chip filter strip — segmented pill buttons (catalog, marketplace).
+   Mirrors the time-range preset pills; .active is the selected state. */
+.filter-chips {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sp-space-2);
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-space-1);
+    padding: var(--sp-space-1) var(--sp-space-3);
+    border-radius: var(--sp-radius-full);
+    border: 1px solid var(--sp-border-default);
+    background: var(--sp-bg-surface-raised);
+    color: var(--sp-text-secondary);
+    font-size: var(--sp-text-sm);
+    font-family: inherit;
+    font-weight: 500;
+    line-height: 1.4;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background var(--sp-duration-fast), color var(--sp-duration-fast),
+                border-color var(--sp-duration-fast);
+}
+
+.chip:hover {
+    color: var(--sp-text-primary);
+    border-color: var(--sp-border-strong);
+}
+
+.chip.active {
+    background: var(--sp-accent);
+    border-color: var(--sp-accent);
+    color: var(--sp-text-on-accent, #fff);
+    font-weight: 600;
+}
+
 }

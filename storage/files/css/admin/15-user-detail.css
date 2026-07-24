@@ -120,3 +120,50 @@
 }
 
 .card-header h3 { margin: 0; }
+
+/* Recent-activity feed (user-detail "Recent Activity" card) */
+.feed-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-space-3);
+  padding: var(--sp-space-3) 0;
+  border-bottom: 1px solid var(--sp-border-subtle);
+}
+.feed-item:last-child { border-bottom: none; }
+
+.feed-icon {
+  flex-shrink: 0;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-top: 0.4rem;
+  border-radius: var(--sp-radius-full);
+  background: var(--sp-text-tertiary);
+}
+.feed-icon.feed-blue   { background: var(--sp-section-plugins); }
+.feed-icon.feed-orange { background: var(--sp-section-export); }
+.feed-icon.feed-green  { background: var(--sp-section-skills); }
+.feed-icon.feed-purple { background: var(--sp-section-users); }
+.feed-icon.feed-cyan   { background: var(--sp-chart-indigo); }
+
+.feed-content {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-space-1) var(--sp-space-3);
+  min-width: 0;
+}
+
+.feed-text {
+  font-size: var(--sp-text-sm);
+  color: var(--sp-text-primary);
+  min-width: 0;
+}
+
+.feed-time {
+  font-size: var(--sp-text-xs);
+  color: var(--sp-text-tertiary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

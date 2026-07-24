@@ -130,6 +130,38 @@
     border-color: var(--sp-danger);
 }
 
+.btn-ghost {
+    background: transparent;
+    color: var(--sp-text-secondary);
+    border-color: transparent;
+}
+.btn-ghost:hover {
+    background: color-mix(in oklch, var(--sp-warm-900) 4%, transparent);
+    color: var(--sp-text-primary);
+}
+
+/* borderless tertiary — like btn-ghost but tuned for inline install actions */
+.btn-tertiary {
+    background: transparent;
+    color: var(--sp-accent);
+    border-color: transparent;
+    box-shadow: none;
+}
+.btn-tertiary:hover {
+    background: var(--sp-accent-dim);
+    color: var(--sp-accent-hover);
+}
+
+/* size modifiers used by plugin/version cards and detail tabs */
+.btn--xs {
+    padding: 0.0625rem var(--sp-space-2);
+    font-size: var(--sp-text-xs);
+}
+.btn--files {
+    flex-shrink: 0;
+    align-self: flex-start;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .btn {
         transition: none;

@@ -131,10 +131,129 @@ main.login-container {
     display: flex;
 }
 
+/* ── Split auth layout (login / register) ─────────────────────
+   Two columns: an explanatory info panel + the sign-in card. */
+.auth-page {
+    display: flex;
+    min-height: 100vh;
+    background:
+        radial-gradient(ellipse at 30% 20%, color-mix(in oklch, var(--sp-accent) 6%, transparent) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 80%, color-mix(in oklch, var(--sp-section-plugins) 4%, transparent) 0%, transparent 50%),
+        linear-gradient(180deg, var(--sp-bg-canvas) 0%, var(--sp-bg-base) 100%);
+}
+
+.auth-info {
+    flex: 1;
+    max-width: 640px;
+    padding: 3rem 3rem 3rem 4rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.auth-form-col {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    min-width: 420px;
+}
+
+.auth-info h2 {
+    font-size: var(--sp-text-md);
+    font-weight: 700;
+    color: var(--sp-text-primary);
+    margin: 1.5rem 0 0.5rem;
+}
+.auth-info h3 {
+    font-size: var(--sp-text-sm);
+    font-weight: 600;
+    color: var(--sp-text-primary);
+    margin: 0.75rem 0 0.25rem;
+}
+.auth-info p {
+    font-size: var(--sp-text-sm);
+    color: var(--sp-text-secondary);
+    line-height: 1.6;
+    margin: 0 0 0.5rem;
+}
+.auth-info .text-muted { color: var(--sp-text-tertiary); }
+
+.auth-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--sp-accent-dim);
+    color: var(--sp-accent-hover);
+    font-size: var(--sp-text-xs);
+    font-weight: 600;
+    padding: 0.3rem 0.75rem;
+    border-radius: var(--sp-radius-full);
+    margin-bottom: 1rem;
+}
+
+.auth-divider {
+    border: none;
+    border-top: 1px solid var(--sp-border-default);
+    margin: 1.25rem 0;
+}
+
+.auth-flow-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin: 0.5rem 0;
+}
+
+.auth-flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    font-size: var(--sp-text-sm);
+    color: var(--sp-text-secondary);
+    line-height: 1.5;
+}
+
+.auth-flow-step .step-num,
+.auth-page .step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.4rem;
+    height: 1.4rem;
+    border-radius: var(--sp-radius-full);
+    background: var(--sp-accent);
+    color: var(--sp-text-on-accent);
+    font-size: var(--sp-text-xs);
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+}
+
+@media (max-width: 900px) {
+    .auth-page { flex-direction: column; }
+    .auth-info { max-width: 100%; padding: 2rem 1.5rem 1rem; }
+    .auth-form-col { min-width: 0; padding: 1rem 1.5rem 2rem; }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .login-spinner {
         animation: none;
     }
+}
+
+
+.auth-more > summary {
+    cursor: pointer;
+    font-size: var(--sp-text-sm);
+    font-weight: 600;
+    color: var(--sp-text-secondary);
+    padding: var(--sp-space-2) 0;
+    user-select: none;
+}
+
+.auth-more > summary:hover {
+    color: var(--sp-accent);
 }
 
 }

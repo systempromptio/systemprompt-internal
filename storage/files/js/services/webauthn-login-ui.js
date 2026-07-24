@@ -76,7 +76,7 @@ export function hasValidAdminToken() {
 }
 
 export function initMagicLinkUI() {
-  document.getElementById('magic-link-trigger').addEventListener('click', (e) => {
+  document.getElementById('magic-link-trigger')?.addEventListener('click', (e) => {
     e.preventDefault();
     loginForm.hidden = true;
     magicLinkForm.hidden = false;

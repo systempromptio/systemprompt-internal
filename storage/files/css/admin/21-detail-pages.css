@@ -1,0 +1,91 @@
+/* Shared chrome for the trace + governance audit detail pages
+   (perf-traces, governance-audit-detail). Section headers, alert banner,
+   secondary table sublines, and collapsible code blocks. */
+
+@layer components {
+
+/* ── section header (portfolio-section) ─────────────────────── */
+.portfolio-section__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--sp-space-2);
+    margin: var(--sp-space-6) 0 var(--sp-space-3);
+}
+
+.portfolio-section__title {
+    margin: 0;
+    font-size: var(--sp-text-md);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--sp-text-primary);
+}
+
+/* ── alert banner ───────────────────────────────────────────── */
+.alert {
+    padding: var(--sp-space-3) var(--sp-space-4);
+    margin-bottom: var(--sp-space-5);
+    background: var(--sp-bg-surface);
+    border: 1px solid var(--sp-border-subtle);
+    border-left: 4px solid var(--sp-text-tertiary);
+    border-radius: 0 var(--sp-radius-sm) var(--sp-radius-sm) 0;
+    color: var(--sp-text-secondary);
+}
+.alert p { margin: var(--sp-space-1) 0 0; }
+
+.alert--danger {
+    border-left-color: var(--sp-danger);
+    background: var(--sp-danger-dim);
+}
+.alert--warning {
+    border-left-color: var(--sp-warning);
+    background: color-mix(in oklch, var(--sp-warning) 10%, var(--sp-bg-surface));
+}
+
+.alert__title {
+    margin: 0;
+    font-size: var(--sp-text-base);
+    font-weight: 600;
+    color: var(--sp-text-primary);
+}
+.alert--danger .alert__title { color: var(--sp-danger); }
+
+/* ── trace table sublines (perf-traces) ─────────────────────── */
+.trace-row__id {
+    text-decoration: none;
+    color: var(--sp-text-primary);
+}
+.trace-row__id:hover { color: var(--sp-accent); }
+
+.trace-row__trace,
+.trace-row__agent {
+    margin-top: 2px;
+    font-size: var(--sp-text-xs);
+    color: var(--sp-text-tertiary);
+    white-space: nowrap;
+}
+
+.trace-paginate__info {
+    display: inline-block;
+    margin: 0 var(--sp-space-2);
+    font-size: var(--sp-text-sm);
+    color: var(--sp-text-tertiary);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── collapsible code block (transcript / chain dumps) ──────── */
+.code-collapsible summary {
+    cursor: pointer;
+    font-size: var(--sp-text-sm);
+    font-weight: 600;
+    color: var(--sp-accent);
+    padding: var(--sp-space-1) 0;
+}
+.code-collapsible .code-block {
+    margin-top: var(--sp-space-2);
+    max-height: 480px;
+    overflow: auto;
+}
+
+}

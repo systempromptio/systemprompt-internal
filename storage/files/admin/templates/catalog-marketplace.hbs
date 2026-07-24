@@ -16,60 +16,57 @@
     </div>
 
     {{#if total}}
-    {{#> components/data-table}}
-        <thead><tr>
-            <th>Type</th>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Description</th>
-            <th>Enabled</th>
-            <th>Source</th>
-            <th class="numeric col-numeric">Assignments</th>
-            <th class="col-actions"></th>
-        </tr></thead>
-        <tbody>
+    <div class="catalog-grid" id="catalog-grid">
         {{#each skills}}
-        <tr data-type="skill" data-search="skill {{toLowerCase name}} {{toLowerCase id}} {{toLowerCase source_path}}">
-            <td><span class="badge">skill</span></td>
-            <td><code class="code-inline">{{id}}</code></td>
-            <td>{{name}}</td>
-            <td>{{#if description}}{{description}}{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
-            <td>{{#if enabled}}<span class="badge badge-success">enabled</span>{{else}}<span class="badge badge-muted">disabled</span>{{/if}}</td>
-            <td><code class="code-inline">{{source_path}}</code></td>
-            <td class="numeric col-numeric">{{assignment_count}}</td>
-            <td class="col-actions"><a class="btn btn-sm btn-outline" href="{{matrix_url}}">Access →</a></td>
-        </tr>
+        <article class="catalog-card" data-type="skill" data-search="skill {{toLowerCase name}} {{toLowerCase id}} {{toLowerCase source_path}}">
+            <header class="catalog-card__head">
+                <span class="badge">skill</span>
+                {{#if enabled}}<span class="badge badge-success">enabled</span>{{else}}<span class="badge badge-muted">disabled</span>{{/if}}
+            </header>
+            <h3 class="catalog-card__name" title="{{id}} · {{source_path}}">{{name}}</h3>
+            <code class="catalog-card__id">{{id}}</code>
+            {{#if description}}<p class="catalog-card__desc">{{description}}</p>{{/if}}
+            <footer class="catalog-card__foot">
+                <a class="catalog-card__assignments" href="{{matrix_url}}" title="Departments and users with access">{{assignment_count}} assignment{{#unless (eq assignment_count 1)}}s{{/unless}}</a>
+                <a class="btn btn-sm btn-outline" href="{{matrix_url}}">Access →</a>
+            </footer>
+        </article>
         {{/each}}
         {{#each plugins}}
-        <tr data-type="plugin" data-search="plugin {{toLowerCase name}} {{toLowerCase id}} {{toLowerCase source_path}}">
-            <td><span class="badge">plugin</span></td>
-            <td><code class="code-inline">{{id}}</code></td>
-            <td>{{name}}</td>
-            <td>{{#if description}}{{description}}{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
-            <td>{{#if enabled}}<span class="badge badge-success">enabled</span>{{else}}<span class="badge badge-muted">disabled</span>{{/if}}</td>
-            <td><code class="code-inline">{{source_path}}</code></td>
-            <td class="numeric col-numeric">{{assignment_count}}</td>
-            <td class="col-actions"><a class="btn btn-sm btn-outline" href="{{matrix_url}}">Access →</a></td>
-        </tr>
+        <article class="catalog-card" data-type="plugin" data-search="plugin {{toLowerCase name}} {{toLowerCase id}} {{toLowerCase source_path}}">
+            <header class="catalog-card__head">
+                <span class="badge">plugin</span>
+                {{#if enabled}}<span class="badge badge-success">enabled</span>{{else}}<span class="badge badge-muted">disabled</span>{{/if}}
+            </header>
+            <h3 class="catalog-card__name" title="{{id}} · {{source_path}}">{{name}}</h3>
+            <code class="catalog-card__id">{{id}}</code>
+            {{#if description}}<p class="catalog-card__desc">{{description}}</p>{{/if}}
+            <footer class="catalog-card__foot">
+                <a class="catalog-card__assignments" href="{{matrix_url}}" title="Departments and users with access">{{assignment_count}} assignment{{#unless (eq assignment_count 1)}}s{{/unless}}</a>
+                <a class="btn btn-sm btn-outline" href="{{matrix_url}}">Access →</a>
+            </footer>
+        </article>
         {{/each}}
         {{#each mcp_servers}}
-        <tr data-type="mcp_server" data-search="mcp_server {{toLowerCase name}} {{toLowerCase id}} {{toLowerCase source_path}}">
-            <td><span class="badge">mcp server</span></td>
-            <td><code class="code-inline">{{id}}</code></td>
-            <td>{{name}}</td>
-            <td>{{#if description}}{{description}}{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
-            <td>{{#if enabled}}<span class="badge badge-success">enabled</span>{{else}}<span class="badge badge-muted">disabled</span>{{/if}}</td>
-            <td><code class="code-inline">{{source_path}}</code></td>
-            <td class="numeric col-numeric">{{assignment_count}}</td>
-            <td class="col-actions"><a class="btn btn-sm btn-outline" href="{{matrix_url}}">Access →</a></td>
-        </tr>
+        <article class="catalog-card" data-type="mcp_server" data-search="mcp_server {{toLowerCase name}} {{toLowerCase id}} {{toLowerCase source_path}}">
+            <header class="catalog-card__head">
+                <span class="badge">mcp server</span>
+                {{#if enabled}}<span class="badge badge-success">enabled</span>{{else}}<span class="badge badge-muted">disabled</span>{{/if}}
+            </header>
+            <h3 class="catalog-card__name" title="{{id}} · {{source_path}}">{{name}}</h3>
+            <code class="catalog-card__id">{{id}}</code>
+            {{#if description}}<p class="catalog-card__desc">{{description}}</p>{{/if}}
+            <footer class="catalog-card__foot">
+                <a class="catalog-card__assignments" href="{{matrix_url}}" title="Departments and users with access">{{assignment_count}} assignment{{#unless (eq assignment_count 1)}}s{{/unless}}</a>
+                <a class="btn btn-sm btn-outline" href="{{matrix_url}}">Access →</a>
+            </footer>
+        </article>
         {{/each}}
-        </tbody>
-    {{/components/data-table}}
+    </div>
     {{else}}
     <div class="empty-state" style="padding:3rem;text-align:center;">
         <h3>Marketplace is empty</h3>
-        <p class="text-muted">No skills, plugins, or MCP servers configured. Add YAML under <code>services/</code> and restart.</p>
+        <p class="text-muted">No skills, plugins, or MCP servers configured yet.</p>
     </div>
     {{/if}}
 
@@ -80,12 +77,12 @@
       let currentFilter = 'all';
       function apply(){
         const q = (search?.value || '').toLowerCase();
-        document.querySelectorAll('tr[data-type]').forEach(function(row){
-          const t = row.getAttribute('data-type');
-          const s = row.getAttribute('data-search') || '';
+        document.querySelectorAll('#catalog-grid [data-type]').forEach(function(card){
+          const t = card.getAttribute('data-type');
+          const s = card.getAttribute('data-search') || '';
           const okType = currentFilter === 'all' || currentFilter === t;
           const okSearch = !q || s.includes(q);
-          row.style.display = okType && okSearch ? '' : 'none';
+          card.style.display = okType && okSearch ? '' : 'none';
         });
       }
       search?.addEventListener('input', apply);

@@ -65,4 +65,20 @@
     border-bottom: 1px solid var(--sp-border-subtle);
 }
 
+/* Body region beneath a .card-header. The header uses negative margins to
+   bleed to the card edges, so the body just needs its natural flow; the
+   colour + spacing come from the card. */
+.card-body {
+    color: var(--sp-text-secondary);
+}
+
+.card-body > :first-child { margin-top: 0; }
+.card-body > :last-child { margin-bottom: 0; }
+
+.card-subtitle {
+    margin: var(--sp-space-1) 0 0;
+    font-size: var(--sp-text-sm);
+    color: var(--sp-text-tertiary);
+}
+
 }

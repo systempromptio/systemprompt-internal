@@ -473,3 +473,33 @@
 .panel-close:hover {
     color: var(--sp-text-primary);
 }
+
+.ac-dept-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+    flex: 1;
+}
+
+.ac-user-matrix {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-space-3);
+    min-width: 0;
+}
+
+.ac-welcome-title {
+    margin: 0 0 var(--sp-space-2);
+    font-size: var(--sp-text-lg);
+    font-weight: 600;
+    color: var(--sp-text-primary);
+}
+
+.ac-welcome-tips-wrap > summary {
+    cursor: pointer;
+    font-size: var(--sp-text-sm);
+    color: var(--sp-text-secondary);
+    user-select: none;
+    margin-top: var(--sp-space-3);
+}

@@ -4,34 +4,21 @@
     {{> components/page-header title="Governance Policies" subtitle="Code-defined policies. Runtime-enforced. Inspect the chain, see what each policy is doing in production."}}
 
     <nav class="sp-tabs" role="tablist" aria-label="Governance sections">
-        <a href="/admin/governance" class="sp-tab sp-tab--active" role="tab">Policies</a>
+        <a href="/admin/governance/policies" class="sp-tab sp-tab--active" role="tab">Policies</a>
         <a href="/admin/governance/decisions" class="sp-tab" role="tab">Decisions</a>
-        <a href="/admin/governance/identity" class="sp-tab" role="tab">Identity</a>
-        <a href="/admin/governance/users" class="sp-tab" role="tab">Users</a>
         <a href="/admin/governance/hooks" class="sp-tab" role="tab">Hooks</a>
     </nav>
 
-    <div class="metric-ribbon">
-        <div class="metric-ribbon-item">
-            <span class="metric-ribbon-value">{{window_total}}</span>
-            <span class="metric-ribbon-label">Decisions · 24h</span>
-        </div>
-        <div class="metric-ribbon-item metric-ribbon-success">
-            <span class="metric-ribbon-value">{{window_allowed}}</span>
-            <span class="metric-ribbon-label">Allowed · 24h</span>
-        </div>
-        <div class="metric-ribbon-item metric-ribbon-danger">
-            <span class="metric-ribbon-value">{{window_denied}}</span>
-            <span class="metric-ribbon-label">Denied · 24h</span>
-        </div>
-        <div class="metric-ribbon-item{{#if window_breaches}} metric-ribbon-danger{{/if}}">
-            <span class="metric-ribbon-value">{{window_breaches}}</span>
-            <span class="metric-ribbon-label">Secret breaches · 24h</span>
-        </div>
-        <div class="metric-ribbon-item">
-            <span class="metric-ribbon-value">{{lifetime_total}}</span>
-            <span class="metric-ribbon-label">Decisions · all time</span>
-        </div>
+    <div class="stat-grid">
+        {{> components/stat-card label="Decisions · 24h" value=window_total}}
+        {{> components/stat-card label="Allowed · 24h" value=window_allowed variant="success"}}
+        {{> components/stat-card label="Denied · 24h" value=window_denied variant="danger"}}
+        {{#if window_breaches}}
+        {{> components/stat-card label="Secret breaches · 24h" value=window_breaches variant="danger"}}
+        {{else}}
+        {{> components/stat-card label="Secret breaches · 24h" value=window_breaches}}
+        {{/if}}
+        {{> components/stat-card label="Decisions · all time" value=lifetime_total}}
     </div>
 
     <section class="policy-chain-intro">

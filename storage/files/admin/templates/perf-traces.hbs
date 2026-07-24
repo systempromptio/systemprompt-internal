@@ -9,33 +9,13 @@
     {{> components/time-range time_range}}
     {{> components/identity-filter-ribbon filter_ribbon}}
 
-    <section class="trace-stats" aria-label="Trace summary">
-      <div class="trace-stats__row">
-        <div class="trace-stats__cell">
-          <span class="trace-stats__label">Traces</span>
-          <span class="trace-stats__value">{{stats.total_traces}}</span>
-        </div>
-        <div class="trace-stats__cell">
-          <span class="trace-stats__label">With errors</span>
-          <span class="trace-stats__value trace-stats__value--bad">{{stats.error_count}}</span>
-        </div>
-        <div class="trace-stats__cell">
-          <span class="trace-stats__label">With denies</span>
-          <span class="trace-stats__value trace-stats__value--bad">{{stats.deny_count}}</span>
-        </div>
-        <div class="trace-stats__cell">
-          <span class="trace-stats__label">p50</span>
-          <span class="trace-stats__value">{{stats.p50_ms}} ms</span>
-        </div>
-        <div class="trace-stats__cell">
-          <span class="trace-stats__label">p95</span>
-          <span class="trace-stats__value">{{stats.p95_ms}} ms</span>
-        </div>
-        <div class="trace-stats__cell">
-          <span class="trace-stats__label">p99</span>
-          <span class="trace-stats__value">{{stats.p99_ms}} ms</span>
-        </div>
-      </div>
+    <section class="stat-grid" aria-label="Trace summary">
+      {{> components/stat-card label="Traces" value=stats.total_traces}}
+      {{> components/stat-card label="With errors" value=stats.error_count variant="danger"}}
+      {{> components/stat-card label="With denies" value=stats.deny_count variant="danger"}}
+      {{> components/stat-card label="p50" value=(concat stats.p50_ms " ms")}}
+      {{> components/stat-card label="p95" value=(concat stats.p95_ms " ms")}}
+      {{> components/stat-card label="p99" value=(concat stats.p99_ms " ms")}}
     </section>
 
     {{#if has_traces}}

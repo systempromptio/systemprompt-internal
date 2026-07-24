@@ -1,33 +1,4 @@
 {{#> layout title="Connect your workstation" page="bridge-setup"}}
-    {{#*inline "head_extra"}}
-    <style>
-      .setup-step { display: grid; grid-template-columns: 3rem 1fr; gap: 1rem; align-items: start; padding: 1.25rem 0; border-bottom: 1px solid var(--border, #e5e7eb); }
-      .setup-step:last-child { border-bottom: none; }
-      .setup-step .step-num { display: flex; align-items: center; justify-content: center; width: 2.5rem; height: 2.5rem; border-radius: 999px; background: var(--brand-accent, #2a75f3); color: #fff; font-weight: 700; font-size: 1.125rem; }
-      .setup-step h2 { margin: 0 0 0.5rem; font-size: 1.125rem; }
-      .setup-step p { margin: 0.25rem 0; }
-      .download-cta { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.625rem 1rem; border-radius: 6px; background: var(--brand-accent, #2a75f3); color: #fff; font-weight: 600; text-decoration: none; }
-      .download-cta:hover { filter: brightness(1.05); }
-      .download-other { margin-top: 0.5rem; font-size: 0.875rem; }
-      .download-other summary { cursor: pointer; color: var(--text-secondary, #555); }
-      .download-other ul { margin: 0.5rem 0 0; padding-left: 1.25rem; }
-      .pill { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.125rem 0.625rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
-      .pill.ok { background: #d4f5e0; color: #0f5132; }
-      .pill.err { background: #f5d4d4; color: #5a1f1f; }
-      .pill.pending { background: #f0f0f0; color: #555; }
-      .tabs { display: flex; gap: 0.25rem; margin: 0.75rem 0 0; border-bottom: 1px solid var(--border, #e5e7eb); }
-      .tabs button { background: none; border: none; padding: 0.5rem 0.875rem; cursor: pointer; font: inherit; color: var(--text-secondary, #555); border-bottom: 2px solid transparent; margin-bottom: -1px; }
-      .tabs button.active { color: var(--brand-accent, #2a75f3); border-bottom-color: var(--brand-accent, #2a75f3); }
-      .tab-panel { padding: 0.75rem 0; }
-      .tab-panel[hidden] { display: none; }
-      .snippet { position: relative; }
-      .snippet pre { margin: 0; }
-      .snippet .copy-btn { position: absolute; top: 0.5rem; right: 0.5rem; }
-      .advanced { margin-top: 2rem; }
-      .advanced summary { cursor: pointer; font-weight: 600; padding: 0.5rem 0; }
-      .advanced > div { padding: 0.75rem 0; }
-    </style>
-    {{/inline}}
     {{#*inline "content"}}
     {{> components/page-header title="Connect your workstation"}}
 
@@ -60,7 +31,7 @@
                 <div class="step-num">2</div>
                 <div>
                     <h2>Get your access token</h2>
-                    <p>Open <a href="/admin/devices" class="download-cta" style="background:var(--surface-2,#f5f7ff);color:var(--brand-accent,#2a75f3);">/admin/devices &rarr;</a></p>
+                    <p>Open <a href="/admin/access/devices" class="download-cta" style="background:var(--surface-2,#f5f7ff);color:var(--brand-accent,#2a75f3);">/admin/access/devices &rarr;</a></p>
                     <p class="text-tertiary">Click <strong>Issue PAT</strong>, copy the <code>sp-live-&hellip;</code> token. It is shown once.</p>
                 </div>
             </div>
@@ -96,7 +67,7 @@
         <summary class="card-header">Advanced &mdash; manual config, session &amp; mTLS modes, revoke</summary>
         <div class="card-body">
             <h3>Revoke a token</h3>
-            <p>On <a href="/admin/devices">/admin/devices</a> click <strong>Revoke</strong> on the device row. Locally, run <code>systemprompt-bridge logout</code> to wipe the on-disk credential.</p>
+            <p>On <a href="/admin/access/devices">/admin/access/devices</a> click <strong>Revoke</strong> on the device row. Locally, run <code>systemprompt-bridge logout</code> to wipe the on-disk credential.</p>
 
             <h3>Hand-edit the config</h3>
             <p>The bridge writes its own config; only edit by hand if you need session or mTLS mode.</p>

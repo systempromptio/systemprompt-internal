@@ -154,6 +154,40 @@
 .danger-zone-item p {
     margin-top: var(--sp-space-1);
 }
+.settings-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-space-4);
+}
+
+.text-error { color: var(--sp-danger); }
+
+.cert-fp {
+    font-family: var(--sp-font-mono);
+    font-size: var(--sp-text-xs);
+    word-break: break-all;
+    color: var(--sp-text-secondary);
+}
+
+.form-input--readonly {
+    background: var(--sp-bg-surface-raised);
+    color: var(--sp-text-tertiary);
+    border-style: dashed;
+    cursor: not-allowed;
+}
+
+.settings-actions {
+    position: sticky;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--sp-space-3);
+    margin-top: var(--sp-space-5);
+    padding: var(--sp-space-3) 0;
+    background: var(--sp-bg-surface);
+    border-top: 1px solid var(--sp-border-subtle);
+}
+
 @media (max-width: 768px) {
     .settings-form-grid { grid-template-columns: 1fr; }
     .danger-zone-item { flex-direction: column; align-items: flex-start; }

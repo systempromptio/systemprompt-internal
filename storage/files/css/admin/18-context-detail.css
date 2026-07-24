@@ -239,6 +239,18 @@
     flex-shrink: 0;
 }
 
+/* ---------- compact variant ---------- */
+
+.transcript--compact .transcript__entry {
+    padding: var(--sp-space-2) 0;
+}
+
+.transcript--compact .transcript__body {
+    margin-top: var(--sp-space-1);
+    font-size: var(--sp-text-sm);
+    line-height: 1.45;
+}
+
 /* ---------- responsive ---------- */
 
 @media (max-width: 700px) {

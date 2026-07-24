@@ -28,8 +28,9 @@
     --sp-primitive-white: oklch(1.00 0 0);
     --sp-primitive-black: oklch(0 0 0);
 
-    --sp-font-family: "Roboto", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    --sp-font-heading: "Dosis", system-ui, sans-serif;
+    /* Must match the @font-face families actually shipped in core/fonts.css. */
+    --sp-font-family: "OpenSans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --sp-font-heading: "Inter", system-ui, sans-serif;
     --sp-text-xs: 0.6875rem;
     --sp-text-sm: 0.8125rem;
     --sp-text-base: 0.9375rem;

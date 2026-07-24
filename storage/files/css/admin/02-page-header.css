@@ -1,5 +1,35 @@
 @layer components {
 
+.breadcrumbs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sp-space-1);
+    margin-bottom: var(--sp-space-2);
+    font-size: var(--sp-text-sm);
+    color: var(--sp-text-tertiary);
+}
+
+.breadcrumbs a {
+    color: var(--sp-text-secondary);
+    text-decoration: none;
+}
+
+.breadcrumbs a:hover {
+    color: var(--sp-accent);
+    text-decoration: underline;
+}
+
+.breadcrumbs__sep {
+    color: var(--sp-text-tertiary);
+    user-select: none;
+}
+
+.breadcrumbs [aria-current="page"] {
+    color: var(--sp-text-primary);
+    font-weight: 500;
+}
+
 .page-header {
     display: flex;
     align-items: flex-start;

@@ -29,7 +29,7 @@
             <td><code class="code-inline">{{id}}</code></td>
             <td>{{display_name}}</td>
             <td><span class="badge">{{kind}}</span></td>
-            <td>{{#if description}}{{description}}{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
+            <td class="truncate" title="{{description}}">{{#if description}}{{description}}{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
             <td>
                 {{#each platforms}}<span class="badge badge-muted">{{this}}</span> {{/each}}
             </td>

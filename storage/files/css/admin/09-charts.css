@@ -1,0 +1,223 @@
+@layer components {
+
+/* KPI strip ---------------------------------------------------------------- */
+.kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--sp-space-4);
+    margin-block: var(--sp-space-6);
+}
+
+.kpi-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-space-1);
+    background: var(--sp-bg-surface);
+    border: 1px solid var(--sp-border-subtle);
+    border-radius: var(--sp-radius-card-brand);
+    padding: var(--sp-space-5);
+}
+
+.kpi-card__label {
+    font-size: var(--sp-text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--sp-text-tertiary);
+}
+
+.kpi-card__value {
+    font-size: var(--sp-text-xl);
+    font-weight: 600;
+    color: var(--sp-text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.kpi-card__sub {
+    font-size: var(--sp-text-xs);
+    color: var(--sp-text-secondary);
+}
+
+.kpi-card--danger .kpi-card__value { color: var(--sp-danger); }
+.kpi-card--warning .kpi-card__value { color: var(--sp-warning); }
+
+/* Chart panels ------------------------------------------------------------- */
+.requests-charts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: var(--sp-space-4);
+    margin-block: var(--sp-space-6);
+}
+
+.requests-charts__panel {
+    background: var(--sp-bg-surface);
+    border: 1px solid var(--sp-border-subtle);
+    border-radius: var(--sp-radius-card-brand);
+    padding: var(--sp-space-5);
+}
+
+.requests-charts__title {
+    font-size: var(--sp-text-sm);
+    font-weight: 600;
+    color: var(--sp-text-secondary);
+    margin: 0 0 var(--sp-space-3);
+}
+
+/* Latency histogram — horizontal bars -------------------------------------- */
+.latency-histogram {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-space-1);
+}
+
+.latency-histogram__bar {
+    display: grid;
+    grid-template-columns: 4rem 1fr 2.75rem;
+    align-items: center;
+    gap: var(--sp-space-2);
+    min-height: 1.25rem;
+}
+
+.latency-histogram__label {
+    grid-column: 1;
+    font-size: var(--sp-text-xs);
+    color: var(--sp-text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.latency-histogram__bar::before {
+    content: "";
+    grid-column: 2;
+    height: 0.75rem;
+    border-radius: var(--sp-radius-sm);
+    background: linear-gradient(
+        to right,
+        var(--sp-chart-blue) var(--v, 0%),
+        color-mix(in oklch, var(--sp-warm-900) 6%, transparent) var(--v, 0%)
+    );
+}
+
+.latency-histogram__count {
+    grid-column: 3;
+    text-align: right;
+    font-size: var(--sp-text-xs);
+    font-variant-numeric: tabular-nums;
+    color: var(--sp-text-tertiary);
+}
+
+/* Cost sparkline — vertical bars -------------------------------------------- */
+.cost-spark {
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+    height: 72px;
+}
+
+.cost-spark__bar {
+    flex: 1 1 0;
+    min-width: 0;
+    border-radius: var(--sp-radius-sm) var(--sp-radius-sm) 0 0;
+    background: linear-gradient(
+        to top,
+        var(--sp-chart-green) var(--v, 0%),
+        transparent var(--v, 0%)
+    );
+    box-shadow: inset 0 -2px 0 0 color-mix(in oklch, var(--sp-warm-900) 12%, transparent);
+    transition: filter var(--sp-duration-fast);
+}
+
+.cost-spark__bar:hover {
+    filter: brightness(1.12);
+}
+
+/* Trace waterfall ---------------------------------------------------------- */
+.waterfall {
+    margin: var(--sp-space-6) 0 0;
+}
+
+.waterfall__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-space-2);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.waterfall__legend li {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-space-1);
+    font-size: var(--sp-text-xs);
+    color: var(--sp-text-secondary);
+}
+
+.waterfall__swatch {
+    display: inline-block;
+    width: 0.625rem;
+    height: 0.625rem;
+    border-radius: var(--sp-radius-sm);
+    background: var(--sp-warm-500);
+}
+
+.waterfall__swatch--gateway    { background: var(--sp-chart-blue); }
+.waterfall__swatch--governance { background: var(--sp-chart-amber); }
+.waterfall__swatch--tool       { background: var(--sp-chart-green); }
+.waterfall__swatch--model      { background: var(--sp-chart-purple); }
+.waterfall__swatch--spawn      { background: var(--sp-chart-indigo); }
+
+.waterfall__root {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-space-1);
+    margin-top: var(--sp-space-4);
+}
+
+.waterfall__row {
+    display: grid;
+    grid-template-columns: minmax(8rem, 14rem) 1fr auto;
+    align-items: center;
+    gap: var(--sp-space-3);
+    min-height: 1.5rem;
+}
+
+.waterfall__name {
+    font-size: var(--sp-text-xs);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.waterfall__track {
+    position: relative;
+    height: 0.75rem;
+    background: color-mix(in oklch, var(--sp-warm-900) 5%, transparent);
+    border-radius: var(--sp-radius-sm);
+}
+
+.waterfall__bar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: var(--start, 0%);
+    width: var(--w, 0.5%);
+    min-width: 2px;
+    border-radius: var(--sp-radius-sm);
+    background: var(--sp-warm-500);
+}
+
+.waterfall__bar--gateway    { background: var(--sp-chart-blue); }
+.waterfall__bar--governance { background: var(--sp-chart-amber); }
+.waterfall__bar--tool       { background: var(--sp-chart-green); }
+.waterfall__bar--model      { background: var(--sp-chart-purple); }
+.waterfall__bar--spawn      { background: var(--sp-chart-indigo); }
+
+.waterfall__dur {
+    font-size: var(--sp-text-xs);
+    color: var(--sp-text-tertiary);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+}

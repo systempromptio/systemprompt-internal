@@ -206,4 +206,10 @@ h2.nav-label {
     color: var(--sp-sidebar-text-muted) !important;
 }
 
+.nav-external {
+    margin-left: auto;
+    font-size: var(--sp-text-xs);
+    color: var(--sp-text-tertiary);
+}
+
 }

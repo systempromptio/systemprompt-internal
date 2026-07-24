@@ -7,19 +7,19 @@
     <section aria-label="Profile settings">
     <div class="card mb-6">
         <div class="card-header">
-            <h2 class="card-title">Profile</h2>
+            <h2 class="card-title">Identity</h2>
         </div>
         <div class="card-body">
             <form id="settings-form" class="settings-form">
                 <div class="settings-form-grid">
                     <div class="settings-field">
                         <label class="settings-label" for="settings-username">Username</label>
-                        <input type="text" id="settings-username" class="form-input" value="{{username}}" readonly disabled />
+                        <input type="text" id="settings-username" class="form-input form-input--readonly" value="{{username}}" readonly disabled />
                         <span class="settings-hint">Username cannot be changed</span>
                     </div>
                     <div class="settings-field">
                         <label class="settings-label" for="settings-email">Email</label>
-                        <input type="email" id="settings-email" class="form-input" value="{{user_email}}" readonly disabled />
+                        <input type="email" id="settings-email" class="form-input form-input--readonly" value="{{user_email}}" readonly disabled />
                         <span class="settings-hint">Contact support to change email</span>
                     </div>
                     <div class="settings-field">
@@ -62,7 +62,7 @@
                         </span>
                     </label>
                 </div>
-                <p class="text-secondary text-sm" style="margin-top: 8px;">Turn off both to stop all email notifications.</p>
+                
 
                 <div class="settings-divider"></div>
 
