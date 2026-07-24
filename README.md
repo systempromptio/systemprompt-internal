@@ -20,13 +20,9 @@
 
 [**systemprompt.io**](https://systemprompt.io) · [**Documentation**](https://systemprompt.io/documentation/) · [**Guides**](https://systemprompt.io/guides) · [**Enterprise factsheet (PDF)**](https://systemprompt.io/files/documents/systemprompt-io-enterprise-factsheet.pdf) · [**Discord**](https://discord.gg/wkAbSuPWpr)
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="demo/recording/svg/output/dark/cap-secrets.svg">
-  <source media="(prefers-color-scheme: light)" srcset="demo/recording/svg/output/light/cap-secrets.svg">
-  <img src="demo/recording/svg/output/dark/cap-secrets.svg" alt="An AI agent attempts to exfiltrate a GitHub PAT through a tool call. The secret-detection layer denies the call before the tool process spawns. One row is written to the audit table." width="820">
-</picture>
+<img src="evidence-1-model-selection-denied.png" alt="The Model Selection dashboard page: gateway models from four providers listed per user, gemini-2.5-flash toggled to Disabled for the demo user, with that user's live request, token, and cost totals below." width="900">
 
-<sub>Not a diagram. A live capture of <code>./demo/governance/06-secret-breach.sh</code>: an agent tries to exfiltrate a GitHub PAT through a tool argument. Denied in under 5 ms, before the tool process spawns. One audit row. The model never saw the key.</sub>
+<sub>Not a mockup. A live capture of the dashboard mid-demo: a third-party coding agent (<a href="https://pi.dev">Pi</a>) is driving Claude, GPT, Gemini, and Cerebras models through the governed gateway as user <code>pi-demo@demo.local</code>. An operator has just disabled Gemini for that user. The agent's next Gemini call was refused with a 403 before any provider was contacted. One audit row, one deny reason, zero restarts.</sub>
 
 </div>
 
@@ -44,6 +40,45 @@ just start                  # serves governance + agents + MCP + admin on :8080
 ```
 
 `setup-local` prompts for a provider key, or takes keys non-interactively (`just setup-local <anthropic_key> [openai_key] [gemini_key]`; the first becomes the default provider). Discover the CLI with `systemprompt --help`. All other install paths, including running a second clone on different ports, are in [docs/README.md](docs/README.md).
+
+---
+
+## Bring an agent we have never seen. Watch it get governed.
+
+Every AI gateway vendor shows you their own client talking to their own dashboard. That proves nothing. The honest test is a third-party agent, unmodified, pointed at your infrastructure, and the screenshot above is that test running.
+
+[Pi](https://pi.dev) is an open-source coding agent from a different company. We did not fork it, patch it, or wrap it. We gave it one provider entry in `~/.pi/agent/models.json` pointing at the gateway's Anthropic-compatible `/v1/messages` endpoint. From that single config block, everything below works out of the box.
+
+**One endpoint, four upstream providers.** The gateway routes by model id: `claude-*` to Anthropic, `gpt-*` to OpenAI, `gemini-*` to Google, `gpt-oss-120b` to Cerebras. Pi's `/model` picker hops between them mid-session. The agent speaks one protocol; the gateway owns the provider sprawl, the keys, and the bill.
+
+**Every request is somebody's.** The demo registers a fresh non-admin user, issues them an API key from the admin API, and hands that identity to Pi. From then on every call the agent makes is attributed: user, session, model, provider, tokens in and out, cost in microdollars, latency, and the policy decisions that ran before dispatch. One 18-column Postgres table. One query answers "what did the agent do."
+
+**Models are permissions, not config.** Open **Model Selection** in the dashboard, pick the user, click Disable on a model. That writes a user-scoped deny rule which the gateway evaluates live on the next request. The agent's next call to that model gets a 403 with a structured reason. No restart, no token rotation, no redeploy. Click Enable and it works again. This is the difference between a router and a control plane: a router forwards what it is given, a control plane decides.
+
+**The prompt and the tools are governed too.** A Pi extension wires the same four-policy pipeline (scope check, secret scan, blocklist, rate limit) into the agent's `input` and `tool_call` events. Paste a live AWS key into a prompt and the turn is denied before any provider sees it. Ask the agent to write a credential to disk and the tool call is blocked before execution, with the reason handed back to the model.
+
+**The evidence is not a claim, it is a page.** Everything above lands in the dashboard while it happens: **Model Selection** (`/admin/models`) shows the per-user toggles next to that user's usage; the request audit trail (`/admin/entities/requests`) holds the full chain of custody for every call, including the denied ones.
+
+<div align="center">
+<img src="evidence-2-request-audit-trail.png" alt="The Inference Requests dashboard: KPI cards for request count, p50 latency, total cost, errors, and pre-flight denies, with a latency distribution histogram, captured immediately after the Pi demo run." width="900">
+
+<sub>The same demo run from the audit side: 27 requests across four providers, $0.0341 total spend, and 5 errors, which are the deliberate governance denials. Captured from <code>/admin/entities/requests</code> seconds after the run.</sub>
+</div>
+
+Run it yourself, from a fresh clone, in about ten minutes:
+
+```bash
+examples/pi/setup.sh          # install Pi, wire the gateway provider, branded theme
+examples/pi/routes.sh         # split demo models into individually governable routes
+examples/pi/new-user.sh       # register a demo user, issue their key, hand Pi the identity
+
+pi -p --provider systemprompt --model gpt-oss-120b "hello"    # Cerebras, governed
+pi -p --provider systemprompt --model claude-sonnet-4-6 "hi"  # Anthropic, same endpoint
+```
+
+Then open `/admin/models`, disable a model for the user, and run the prompt again. The full scripted walkthrough, including the deny-and-recover loop and the tool-gate demos, is in [examples/pi/WALKTHROUGH.md](examples/pi/WALKTHROUGH.md).
+
+The point is not Pi. The point is that Pi needed nothing special. Any client that speaks the Anthropic Messages protocol (Claude Code included, see [docker/claude-code-clean-room](docker/claude-code-clean-room)) inherits the same identity binding, the same per-user model permissions, and the same audit spine, because governance lives at the transport layer instead of inside any one tool.
 
 ---
 
