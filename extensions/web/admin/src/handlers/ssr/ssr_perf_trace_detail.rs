@@ -164,9 +164,8 @@ fn build_span_views(spans: &[Span]) -> Vec<SpanView> {
     spans
         .iter()
         .map(|s| {
-            let offset_ms = start
-                .map(|a| (s.started_at - a).num_milliseconds().max(0))
-                .unwrap_or(0);
+            let offset_ms =
+                start.map_or(0, |a| (s.started_at - a).num_milliseconds().max(0));
             let (offset_pct, width_pct) = if total_ms > 0 {
                 let offset = round2(offset_ms as f64 / total_ms as f64 * 100.0);
                 let width = round2(s.duration_ms as f64 / total_ms as f64 * 100.0).max(0.5);

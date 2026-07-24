@@ -1,6 +1,7 @@
 //! Raw decision-row queries: search, per-policy detail, and the recent feed.
 
 use sqlx::PgPool;
+use systemprompt::identifiers::UserId;
 
 use crate::types::GovernanceDecisionRow;
 
@@ -10,9 +11,10 @@ pub async fn list_decisions_filtered(
     pool: &PgPool,
     policy: Option<&str>,
     outcome: Option<&str>,
-    user_id: Option<&str>,
+    user_id: Option<&UserId>,
     limit: i64,
 ) -> Result<Vec<GovernanceDecisionRow>, sqlx::Error> {
+    let user_id = user_id.map(ToString::to_string);
     sqlx::query_as!(
         GovernanceDecisionRow,
         r#"SELECT id, user_id as "user_id!: _", tool_name,

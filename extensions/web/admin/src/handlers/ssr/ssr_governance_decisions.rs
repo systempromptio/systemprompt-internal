@@ -7,6 +7,7 @@ use axum::extract::{Extension, Query, State};
 use axum::response::Response;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
+use systemprompt::identifiers::UserId;
 
 use crate::error::{AdminError, AdminHtmlResult};
 use crate::repositories;
@@ -19,7 +20,7 @@ const DECISIONS_LIMIT: i64 = 200;
 pub(crate) struct DecisionsQuery {
     policy: Option<String>,
     outcome: Option<String>,
-    user_id: Option<String>,
+    user_id: Option<UserId>,
 }
 
 #[derive(Debug, Serialize)]
@@ -29,7 +30,7 @@ struct DecisionRowView {
     decision: String,
     is_deny: bool,
     tool_name: String,
-    user_id: String,
+    user_id: UserId,
     user_url: String,
     agent_scope: String,
     reason: String,
@@ -63,7 +64,7 @@ fn normalize(param: Option<&String>) -> Option<&str> {
     param.map(String::as_str).filter(|s| !s.is_empty())
 }
 
-fn build_url(policy: Option<&str>, outcome: Option<&str>, user_id: Option<&str>) -> String {
+fn build_url(policy: Option<&str>, outcome: Option<&str>, user_id: Option<&UserId>) -> String {
     let mut parts = Vec::new();
     if let Some(p) = policy {
         parts.push(format!("policy={p}"));
@@ -81,31 +82,11 @@ fn build_url(policy: Option<&str>, outcome: Option<&str>, user_id: Option<&str>)
     }
 }
 
-pub(crate) async fn governance_decisions_page(
-    Extension(user_ctx): Extension<UserContext>,
-    Extension(mkt_ctx): Extension<MarketplaceContext>,
-    Extension(engine): Extension<AdminTemplateEngine>,
-    State(pool): State<Arc<PgPool>>,
-    Query(params): Query<DecisionsQuery>,
-) -> AdminHtmlResult<Response> {
-    if !user_ctx.is_admin {
-        return Err(AdminError::Forbidden("Admin access required.".to_owned()).into());
-    }
-
-    let policy = normalize(params.policy.as_ref());
-    let outcome = normalize(params.outcome.as_ref());
-    let user_id = normalize(params.user_id.as_ref());
-
-    let decisions = repositories::governance::decisions::list_decisions_filtered(
-        &pool,
-        policy,
-        outcome,
-        user_id,
-        DECISIONS_LIMIT,
-    )
-    .await
-    .map_err(AdminError::from)?;
-
+fn build_chips(
+    policy: Option<&str>,
+    outcome: Option<&str>,
+    user_id: Option<&UserId>,
+) -> Vec<FilterChip> {
     let mut chips = Vec::new();
     if let Some(p) = policy {
         chips.push(FilterChip {
@@ -124,10 +105,39 @@ pub(crate) async fn governance_decisions_page(
     if let Some(u) = user_id {
         chips.push(FilterChip {
             label: "User".to_owned(),
-            value: u.to_owned(),
+            value: u.to_string(),
             remove_url: build_url(policy, outcome, None),
         });
     }
+    chips
+}
+
+pub(crate) async fn governance_decisions_page(
+    Extension(user_ctx): Extension<UserContext>,
+    Extension(mkt_ctx): Extension<MarketplaceContext>,
+    Extension(engine): Extension<AdminTemplateEngine>,
+    State(pool): State<Arc<PgPool>>,
+    Query(params): Query<DecisionsQuery>,
+) -> AdminHtmlResult<Response> {
+    if !user_ctx.is_admin {
+        return Err(AdminError::Forbidden("Admin access required.".to_owned()).into());
+    }
+
+    let policy = normalize(params.policy.as_ref());
+    let outcome = normalize(params.outcome.as_ref());
+    let user_id = params.user_id.as_ref();
+
+    let decisions = repositories::governance::decisions::list_decisions_filtered(
+        &pool,
+        policy,
+        outcome,
+        user_id,
+        DECISIONS_LIMIT,
+    )
+    .await
+    .map_err(AdminError::from)?;
+
+    let chips = build_chips(policy, outcome, user_id);
 
     let total = decisions.len();
     let denied = decisions.iter().filter(|d| d.decision == "deny").count();
@@ -137,7 +147,7 @@ pub(crate) async fn governance_decisions_page(
             created_at: d.created_at.format("%Y-%m-%d %H:%M:%S").to_string(),
             is_deny: d.decision == "deny",
             user_url: format!("/admin/user?id={}", d.user_id),
-            user_id: d.user_id.to_string(),
+            user_id: d.user_id,
             policy: d.policy,
             decision: d.decision,
             tool_name: d.tool_name,

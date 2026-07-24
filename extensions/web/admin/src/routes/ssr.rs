@@ -139,6 +139,7 @@ fn governance_routes() -> Router<Arc<PgPool>> {
             get(handlers::ssr::governance_hooks_page),
         )
         .route("/models", get(handlers::ssr::models_page))
+        .route("/demo/trace", get(handlers::ssr::demo_trace_page))
 }
 
 fn entity_routes() -> Router<Arc<PgPool>> {
