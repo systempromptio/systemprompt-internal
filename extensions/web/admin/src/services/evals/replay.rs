@@ -12,9 +12,10 @@ use sqlx::PgPool;
 use crate::repositories::evals::cases::EvalCaseRow;
 use crate::repositories::evals::{PairWinner, results};
 
-use super::gateway_client;
 use super::judge::JudgeConfig;
-use super::{EXCERPT_CHARS, MAX_JUDGE_CHARS, ModelRef, RunTally, extract, judge, new_id};
+use super::{
+    EXCERPT_CHARS, MAX_JUDGE_CHARS, ModelRef, RunTally, extract, gateway_client, judge, new_id,
+};
 
 /// Output-token budget for a replayed answer. Generous enough for a real
 /// coding answer, bounded enough that a runaway case cannot dominate the bill.
@@ -48,7 +49,7 @@ async fn replay_one(
         return Ok(());
     };
 
-    let Some(answer) = answer_for(params.config, params.target, &prompt).await else {
+    let Some(answer) = answer_for(params.pool, params.config, params.target, &prompt).await else {
         tally.failed += 1;
         return Ok(());
     };
@@ -149,17 +150,21 @@ async fn regress_against_baseline(
 }
 
 pub(super) async fn answer_for(
+    pool: &PgPool,
     config: &JudgeConfig,
     target: &ModelRef,
     prompt: &str,
 ) -> Option<String> {
+    let conversation_id = gateway_client::new_conversation_id();
+    judge::record_call(pool, &conversation_id, &config.run_id).await;
+
     gateway_client::call_messages(gateway_client::CallParams {
         credential: &config.credential,
         model: &target.model,
         system: None,
         user: prompt,
         max_tokens: REPLAY_MAX_TOKENS,
-        conversation_id: &format!("{}-{}", config.run_id, new_id("replay")),
+        conversation_id: &conversation_id,
     })
     .await
     .map(|a| a.text)

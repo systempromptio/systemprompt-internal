@@ -4,6 +4,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use sqlx::types::Json;
+use systemprompt::identifiers::UserId;
 
 use super::{EvalRunKind, EvalRunStatus};
 use crate::util::time_range::TimeRange;
@@ -26,14 +27,12 @@ pub struct EvalRunRow {
     pub mean_score: Option<f64>,
 }
 
-/// Snapshot of what a run covered, frozen onto `eval_runs.filter` so the run
-/// can be read back later without guessing.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EvalRunFilterSnapshot {
     pub from: DateTime<Utc>,
     pub to: DateTime<Utc>,
     #[serde(default)]
-    pub user_id: Option<String>,
+    pub user_id: Option<UserId>,
     #[serde(default)]
     pub model: Option<String>,
     #[serde(default)]

@@ -18,6 +18,7 @@ pub(super) struct EvaluateInput<'a> {
     pub(super) session_id: &'a SessionId,
     pub(super) user_id: &'a UserId,
     pub(super) access_scope: AccessScope,
+    // JSON: protocol boundary — arbitrary third-party tool payload
     pub(super) tool_input: Option<&'a serde_json::Value>,
 }
 

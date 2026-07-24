@@ -7,7 +7,7 @@
 //! than an estimate.
 
 use sqlx::PgPool;
-use systemprompt::identifiers::UserId;
+use systemprompt::identifiers::{GatewayConversationId, UserId};
 
 use super::gateway_client::{self, CallParams, GatewayCredential};
 use super::rubric::{
@@ -19,7 +19,7 @@ use super::rubric::{
 /// larger budget only pays for rambling rationales.
 const JUDGE_MAX_TOKENS: u32 = 2048;
 
-/// Which model grades, under whose credential, for which run.
+// Why: pairs the grading model with the credential its calls travel under.
 #[derive(Debug, Clone)]
 pub(crate) struct JudgeConfig {
     pub provider: String,
@@ -29,14 +29,14 @@ pub(crate) struct JudgeConfig {
     pub credential: GatewayCredential,
 }
 
-/// A verdict plus what it cost to obtain.
+// Why: the cost travels with the verdict so a run can total its own spend.
 #[derive(Debug, Clone)]
 pub(crate) struct JudgedItem {
     pub verdict: JudgeVerdict,
     pub cost_microdollars: i64,
 }
 
-/// Score one prompt/answer pair.
+// Why: one prompt/answer pair, one verdict.
 pub(crate) async fn judge_answer(
     pool: &PgPool,
     config: &JudgeConfig,
@@ -44,13 +44,14 @@ pub(crate) async fn judge_answer(
     answer: &str,
 ) -> Option<JudgedItem> {
     let raw = call_judge(
+        pool,
         config,
         JUDGE_SYSTEM_PROMPT,
         &judge_user_prompt(prompt, answer),
     )
     .await?;
 
-    let verdict = parse_reply::<JudgeVerdict>(&raw.text, "judge")?.normalised();
+    let verdict = parse_reply::<JudgeVerdict>(&raw.text, "judge", &config.run_id)?.normalised();
     let cost = lookup_cost(pool, &raw.conversation_id).await;
 
     Some(JudgedItem {
@@ -59,7 +60,7 @@ pub(crate) async fn judge_answer(
     })
 }
 
-/// A pairwise decision plus what it cost.
+// Why: the cost travels with the decision so a run can total its own spend.
 #[derive(Debug, Clone)]
 pub(crate) struct JudgedPair {
     pub verdict: PairwiseVerdict,
@@ -75,17 +76,17 @@ pub(crate) struct PairParams<'a> {
     pub answer_b: &'a str,
 }
 
-/// Compare two answers to the same prompt. Callers run this twice with the
-/// answers swapped; see [`super::pairwise`].
+// Why: callers run this twice with the answers swapped; see `super::pairwise`.
 pub(crate) async fn judge_pair(params: PairParams<'_>) -> Option<JudgedPair> {
     let raw = call_judge(
+        params.pool,
         params.config,
         PAIRWISE_SYSTEM_PROMPT,
         &pairwise_user_prompt(params.prompt, params.answer_a, params.answer_b),
     )
     .await?;
 
-    let verdict = parse_reply::<PairwiseVerdict>(&raw.text, "pairwise")?;
+    let verdict = parse_reply::<PairwiseVerdict>(&raw.text, "pairwise", &params.config.run_id)?;
     let cost = lookup_cost(params.pool, &raw.conversation_id).await;
 
     Some(JudgedPair {
@@ -95,32 +96,53 @@ pub(crate) async fn judge_pair(params: PairParams<'_>) -> Option<JudgedPair> {
 }
 
 async fn call_judge(
+    pool: &PgPool,
     config: &JudgeConfig,
     system: &str,
     user: &str,
 ) -> Option<gateway_client::GatewayAnswer> {
+    let conversation_id = gateway_client::new_conversation_id();
+    // Why: recorded before the call, so a call that fails mid-flight is still
+    // excluded from later candidate pools.
+    record_call(pool, &conversation_id, &config.run_id).await;
+
     gateway_client::call_messages(CallParams {
         credential: &config.credential,
         model: &config.model,
         system: Some(system),
         user,
         max_tokens: JUDGE_MAX_TOKENS,
-        // Why: the run id rides along so a run's judge calls can be found in
-        // `ai_requests` by conversation id alone.
-        conversation_id: &format!("{}-{}", config.run_id, super::new_id("judge")),
+        conversation_id: &conversation_id,
     })
     .await
 }
 
+pub(super) async fn record_call(
+    pool: &PgPool,
+    conversation_id: &GatewayConversationId,
+    run_id: &str,
+) {
+    if let Err(e) = crate::repositories::evals::sampling::insert_judge_call(
+        pool,
+        conversation_id.as_str(),
+        run_id,
+    )
+    .await
+    {
+        tracing::warn!(error = %e, "could not record an eval call for later exclusion");
+    }
+}
+
 /// The gateway is a passthrough, so a reply can arrive fenced or prefaced; the
 /// object is carved out before parsing rather than trusting the shape.
-fn parse_reply<T: serde::de::DeserializeOwned>(text: &str, what: &str) -> Option<T> {
+fn parse_reply<T: serde::de::DeserializeOwned>(text: &str, what: &str, run_id: &str) -> Option<T> {
     let json = gateway_client::extract_json_object(text).unwrap_or(text);
     serde_json::from_str::<T>(json)
         .inspect_err(|e| {
             tracing::warn!(
                 error = %e,
                 kind = what,
+                run_id,
                 reply = %text.chars().take(300).collect::<String>(),
                 "eval judge returned an unparseable verdict"
             );
@@ -131,8 +153,8 @@ fn parse_reply<T: serde::de::DeserializeOwned>(text: &str, what: &str) -> Option
 /// The judge's own request row carries the authoritative cost, found by the
 /// conversation id the call was tagged with. No row means the gateway has not
 /// written it yet; report zero rather than guessing.
-async fn lookup_cost(pool: &PgPool, conversation_id: &str) -> i64 {
-    crate::repositories::evals::sampling::find_conversation_cost(pool, conversation_id)
+async fn lookup_cost(pool: &PgPool, conversation_id: &GatewayConversationId) -> i64 {
+    crate::repositories::evals::sampling::find_conversation_cost(pool, conversation_id.as_str())
         .await
         .unwrap_or_else(|e| {
             tracing::debug!(error = %e, "could not read judge request cost");

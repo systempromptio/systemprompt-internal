@@ -42,7 +42,8 @@ struct DiskFile {
 }
 
 // Why: lint-ok: unused-pub — live upstream via the ssr_governance handlers,
-// which this fork does not ship; kept so shared repository files stay identical.
+// which this fork does not ship; kept so shared repository files stay
+// identical.
 pub fn list_external_agents() -> Vec<ExternalAgentRow> {
     let dir = resolve_dir();
     let Ok(entries) = std::fs::read_dir(&dir) else {

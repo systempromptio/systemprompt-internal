@@ -90,3 +90,16 @@ CREATE TABLE IF NOT EXISTS eval_pairs (
 
 CREATE INDEX IF NOT EXISTS idx_eval_pairs_run ON eval_pairs(run_id);
 CREATE INDEX IF NOT EXISTS idx_eval_pairs_case ON eval_pairs(case_id);
+
+-- Every model call an eval run places, by the conversation id it was tagged
+-- with. Judge calls travel through the gateway under the operator's own
+-- session, so they look exactly like ordinary user traffic in `ai_requests` --
+-- without this ledger the next run would sample the previous run's judge
+-- prompts and grade our own output.
+CREATE TABLE IF NOT EXISTS eval_judge_calls (
+    conversation_id TEXT PRIMARY KEY,
+    run_id TEXT REFERENCES eval_runs(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_eval_judge_calls_run ON eval_judge_calls(run_id);

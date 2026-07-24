@@ -7,6 +7,8 @@ use super::constructors::truncate;
 use super::enums::{ActivityAction, ActivityCategory};
 use super::types::NewActivity;
 
+// JSON: JSONB column — the empty `user_activity.metadata` object for events
+// that carry no fields of their own
 fn empty_meta() -> serde_json::Value {
     serde_json::Value::Object(serde_json::Map::new())
 }

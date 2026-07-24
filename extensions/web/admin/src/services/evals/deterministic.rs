@@ -40,10 +40,25 @@ pub(crate) struct PrePass {
 pub(crate) fn run_pre_pass(candidate: &EvalCandidate) -> PrePass {
     let prompt = extract::final_user_prompt(candidate.request_body.as_ref())
         .or_else(|| candidate.request_excerpt.clone());
+    let streamed = candidate
+        .response_body
+        .is_none()
+        .then_some(candidate.response_excerpt.as_deref())
+        .flatten()
+        .and_then(extract::assistant_answer_from_sse);
+
     let answer = extract::assistant_answer(candidate.response_body.as_ref())
+        .or_else(|| streamed.as_ref().map(|s| s.text.clone()))
         .or_else(|| candidate.response_excerpt.clone());
 
     let mut flags = Vec::new();
+
+    // Why: a stream cut off before `message_stop` means our stored excerpt ran
+    // out, not that the model stopped — flag it so a short answer is not read
+    // as an incomplete one.
+    if streamed.as_ref().is_some_and(|s| !s.complete) {
+        flags.push("truncated".to_owned());
+    }
 
     let request_failed = !matches!(
         candidate.status.as_str(),

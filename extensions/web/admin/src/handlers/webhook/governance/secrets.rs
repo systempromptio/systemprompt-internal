@@ -177,7 +177,13 @@ pub(super) const SECRET_PATTERNS: &[SecretPattern] = &[
     },
 ];
 
-fn collect_strings(value: &serde_json::Value, out: &mut Vec<String>) {
+// Why: the single string-harvesting walk shared by the built-in pattern scan
+// below and the operator-defined `extra_patterns` scan in
+// `policies::secret_scan`. One implementation means both see exactly the same
+// set of strings. JSON: protocol boundary — arbitrary third-party tool payload,
+// scanned exhaustively because a credential can be nested at any depth under
+// any key.
+pub(super) fn collect_strings(value: &serde_json::Value, out: &mut Vec<String>) {
     match value {
         serde_json::Value::String(s) => out.push(s.clone()),
         serde_json::Value::Array(arr) => {
@@ -208,6 +214,7 @@ pub(crate) fn scan_str_for_secret(text: &str) -> Option<String> {
     None
 }
 
+// JSON: protocol boundary — arbitrary third-party tool payload
 pub(super) fn detect_secrets(
     tool_input: Option<&serde_json::Value>,
 ) -> Option<(&'static SecretPattern, String)> {

@@ -11,7 +11,7 @@ use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse, Redirect, Response};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
-use systemprompt_web_shared::html_escape;
+use systemprompt_web_shared::{BrandingConfig, html_escape};
 
 use crate::error::{AdminHtmlError, AdminHtmlResult};
 use crate::repositories::bridge;
@@ -30,13 +30,12 @@ pub(crate) struct DeviceLinkApproveForm {
     pub redirect: String,
 }
 
-/// `branding` stays an untyped `Value` because the branding config shape is
-/// not fixed at compile time. Unconfigured branding must stay a *missing* key,
-/// not a null, so the template's `{{#if}}` guard behaves.
+/// Unconfigured branding must stay a *missing* key, not a null, so the
+/// template's `{{#if}}` guard behaves.
 #[derive(Debug, Serialize)]
-struct DeviceLinkContext {
+struct DeviceLinkContext<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
-    branding: Option<serde_json::Value>,
+    branding: Option<&'a BrandingConfig>,
     user_email: String,
     redirect: String,
     redirect_host: String,
@@ -51,22 +50,12 @@ pub(crate) async fn device_link_page(
         return Ok(bad_redirect_response(&query.redirect));
     };
 
-    let branding = branding_context(&engine)
-        .as_object_mut()
-        .and_then(|obj| obj.remove("branding"));
-
     let data = DeviceLinkContext {
-        branding,
+        branding: branding_context(&engine).branding,
         user_email: user_ctx.email.to_string(),
         redirect: query.redirect,
         redirect_host: host,
     };
-    let data = serde_json::to_value(&data).map_err(|e| {
-        AdminHtmlError::internal(format!(
-            "Failed to serialize bridge device-link context: {e}"
-        ))
-    })?;
-
     let html = engine.render("bridge-device-link", &data).map_err(|e| {
         AdminHtmlError::internal(format!("Bridge device-link page render failed: {e:?}"))
     })?;
@@ -121,8 +110,8 @@ fn validate_loopback_redirect(redirect: &str) -> Option<String> {
 }
 
 fn bad_redirect_response(redirect: &str) -> Response {
-    // Why: lint-ok: http-error — names the accepted redirect forms, which the generic
-    // page cannot
+    // Why: lint-ok: http-error — names the accepted redirect forms, which the
+    // generic page cannot
     tracing::warn!(
         redirect,
         "Rejected bridge device-link redirect (non-loopback)"

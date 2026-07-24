@@ -11,6 +11,7 @@ use axum::http::HeaderMap;
 use axum::response::{Html, IntoResponse, Redirect, Response};
 
 
+mod context;
 mod ssr_access_control;
 mod ssr_add_passkey;
 pub(crate) mod ssr_analytics_requests;
@@ -63,7 +64,7 @@ pub(crate) use ssr_governance_hooks::governance_hooks_page;
 pub(crate) use ssr_governance_policy_edit::{
     governance_policy_edit_page, governance_policy_toggle,
 };
-pub(crate) use ssr_helpers::{branding_context, render_page, render_typed_page};
+pub(crate) use ssr_helpers::{branding_context, render_typed_page};
 pub(crate) use ssr_management::{
     management_department_detail_page, management_departments_page, management_devices_page,
 };
@@ -101,8 +102,6 @@ pub(crate) async fn register_page(
     render_unauthenticated(&engine, "register")
 }
 
-/// The pages reachable before sign-in, which therefore have no user or
-/// marketplace context to inject and cannot go through `render_page`.
 fn render_unauthenticated(
     engine: &AdminTemplateEngine,
     template: &str,

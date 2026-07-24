@@ -1,9 +1,9 @@
 //! Read/write models for the Evals page.
 //!
 //! The gateway spine (`ai_requests` + `ai_request_payloads`) is the input:
-//! [`sampling`] draws candidates from it, [`distribution`] summarises it. The
-//! eval tables themselves are written through [`runs`], [`results`], and
-//! [`cases`].
+//! [`sampling`] draws candidates from it, [`distribution`] summarises it, and
+//! [`scores`] reports what the judge made of it. The eval tables themselves are
+//! written through [`runs`], [`results`], and [`cases`].
 
 use serde::{Deserialize, Serialize};
 
@@ -12,6 +12,7 @@ pub mod distribution;
 pub mod results;
 pub mod runs;
 pub mod sampling;
+pub mod scores;
 
 /// What an eval run does. Stored in `eval_runs.kind`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

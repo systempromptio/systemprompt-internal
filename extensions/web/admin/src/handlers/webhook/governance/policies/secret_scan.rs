@@ -12,7 +12,7 @@ use systemprompt_security::authz::{Decision, DenyReason, MatchedBy};
 use systemprompt_security::policy::{GovernancePolicy, PolicyContext, SecretLocation};
 
 use super::super::policy::PolicyRegistration;
-use super::super::secrets::detect_secrets;
+use super::super::secrets::{collect_strings, detect_secrets};
 
 const ID: &str = "secret_scan";
 
@@ -114,23 +114,6 @@ impl GovernancePolicy for SecretScan {
                 detail: Cow::Borrowed("No plaintext secrets detected in tool input"),
             },
         }
-    }
-}
-
-fn collect_strings(value: &serde_json::Value, out: &mut Vec<String>) {
-    match value {
-        serde_json::Value::String(s) => out.push(s.clone()),
-        serde_json::Value::Array(arr) => {
-            for v in arr {
-                collect_strings(v, out);
-            }
-        },
-        serde_json::Value::Object(map) => {
-            for v in map.values() {
-                collect_strings(v, out);
-            }
-        },
-        _ => {},
     }
 }
 

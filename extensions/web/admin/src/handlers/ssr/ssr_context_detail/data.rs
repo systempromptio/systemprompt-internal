@@ -155,6 +155,8 @@ fn build_transcript(
         role: String,
         content: String,
         tool_name: Option<String>,
+        // JSON: MCP tool arguments and results are per-tool shaped and only ever
+        // JSON: pretty-printed for display
         tool_input: Option<Value>,
         tool_result: Option<Value>,
     }
@@ -221,6 +223,7 @@ fn build_transcript(
     out
 }
 
+// JSON: pretty-prints the per-tool payloads above for the transcript view
 fn pretty_json(v: &Value) -> String {
     serde_json::to_string_pretty(v).unwrap_or_else(|_| v.to_string())
 }

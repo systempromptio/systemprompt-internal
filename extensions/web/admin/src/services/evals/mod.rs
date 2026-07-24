@@ -16,11 +16,11 @@ use sqlx::PgPool;
 use systemprompt::identifiers::UserId;
 
 pub(crate) mod deterministic;
+pub(crate) mod extract;
 pub(crate) mod gateway_client;
+pub(crate) mod judge;
 pub(crate) mod judge_run;
 mod lifecycle;
-pub(crate) mod extract;
-pub(crate) mod judge;
 pub(crate) mod pairwise;
 pub(crate) mod replay;
 pub(crate) mod rubric;
@@ -30,8 +30,7 @@ use crate::repositories::evals::{EvalRunKind, cases, sampling};
 use crate::util::time_range::TimeRange;
 
 pub(crate) use judge_run::run_judge_eval;
-pub(crate) use lifecycle::RunTally;
-pub(crate) use lifecycle::{OpenRunParams, close_run, new_id, open_run, parse_verdict};
+pub(crate) use lifecycle::{OpenRunParams, RunTally, close_run, new_id, open_run, parse_verdict};
 
 use gateway_client::GatewayCredential;
 use judge::JudgeConfig;
@@ -42,8 +41,8 @@ pub(crate) const EXCERPT_CHARS: usize = 240;
 // to this, whatever the form asked for.
 pub(crate) const MAX_SAMPLE_SIZE: i64 = 200;
 
-// Why: a bare model id is not enough to place a call, so both halves are carried
-// rather than re-deriving the provider from a naming convention.
+// Why: a bare model id is not enough to place a call, so both halves are
+// carried rather than re-deriving the provider from a naming convention.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ModelRef {
     pub provider: String,
@@ -254,4 +253,3 @@ pub(crate) async fn promote_case(
 
     Ok(case_id)
 }
-

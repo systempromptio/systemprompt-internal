@@ -21,6 +21,8 @@ pub struct NewActivity {
     pub action: ActivityAction,
     pub entity: Option<ActivityEntityRef>,
     pub description: String,
+    // JSON: JSONB column — `user_activity.metadata`, whose per-category shape
+    // differs by constructor; each constructor serializes a typed struct into it
     pub metadata: serde_json::Value,
 }
 

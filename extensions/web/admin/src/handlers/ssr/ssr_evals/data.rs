@@ -15,12 +15,15 @@ use crate::repositories::analytics::request_stats::{
 };
 use crate::repositories::evals::cases::{EvalCaseRow, list_cases};
 use crate::repositories::evals::distribution::{
-    EvalScoreSummary, ModelDistributionRow, ModelScoreRow, ModelWinRateRow, PromptTopicRow,
-    UserDistributionRow, get_eval_score_summary, list_model_distribution, list_model_scores,
-    list_model_win_rates, list_prompt_topics, list_user_distribution,
+    ModelDistributionRow, PromptTopicRow, UserDistributionRow, list_model_distribution,
+    list_prompt_topics, list_user_distribution,
 };
 use crate::repositories::evals::results::{EvalResultRow, list_recent_results};
 use crate::repositories::evals::runs::{EvalRunRow, list_recent_runs};
+use crate::repositories::evals::scores::{
+    EvalScoreSummary, ModelScoreRow, ModelWinRateRow, get_eval_score_summary, list_model_scores,
+    list_model_win_rates,
+};
 use crate::util::time_range::{
     TimeRange, TimeRangePreset, TimeRangeQuery, count_requests_in_range, parse_time_range,
     preset_to_range,

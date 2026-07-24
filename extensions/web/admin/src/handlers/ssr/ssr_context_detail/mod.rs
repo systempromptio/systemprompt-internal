@@ -71,11 +71,12 @@ pub(crate) async fn context_detail_page(
         tracing::warn!(error = %e, "list_context_messages failed");
         Vec::new()
     });
-    // Why: the transcript interleaves messages and tool calls under one empty state,
-    // and no KPI counts tool calls — so losing these renders a complete-looking
-    // conversation with every tool invocation silently removed and nothing
-    // anywhere on the page indicating an omission. On a surface whose purpose
-    // is evidencing what an agent did, that is redaction, not degradation.
+    // Why: the transcript interleaves messages and tool calls under one empty
+    // state, and no KPI counts tool calls — so losing these renders a
+    // complete-looking conversation with every tool invocation silently removed
+    // and nothing anywhere on the page indicating an omission. On a surface
+    // whose purpose is evidencing what an agent did, that is redaction, not
+    // degradation.
     let tool_calls = tool_calls_res?;
 
     let data = build_detail_data(&header, &kpis, &requests, &messages, &tool_calls);

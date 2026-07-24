@@ -39,9 +39,7 @@ pub(super) async fn load_model_rows(
                 })
                 .into_iter()
                 .find(|r| {
-                    r.rule_type == RuleType::USER
-                        && r.rule_value == uid
-                        && r.access == Access::Deny
+                    r.rule_type == RuleType::USER && r.rule_value == uid && r.access == Access::Deny
                 }),
         };
         let denied = deny_rule.is_some();

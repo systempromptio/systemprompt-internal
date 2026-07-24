@@ -30,12 +30,13 @@ pub(super) fn deny_for_auth_failure(reason: &str) -> Decision {
     }
 }
 
-// Why: why: the `Err` arm is deliberately **not** an [`crate::error::AdminError`].
-// A `PreToolUse` hook blocks a tool call by answering `200 OK` with a deny
-// decision; a `401` is a transport failure, which the client is free to treat
-// as the hook being unavailable and carry on. Converting this channel to the
-// admin error type would silently turn every rejected token into an allowed
-// tool call, so it stays a pre-built [`Response`].
+// Why: why: the `Err` arm is deliberately **not** an
+// [`crate::error::AdminError`]. A `PreToolUse` hook blocks a tool call by
+// answering `200 OK` with a deny decision; a `401` is a transport failure,
+// which the client is free to treat as the hook being unavailable and carry on.
+// Converting this channel to the admin error type would silently turn every
+// rejected token into an allowed tool call, so it stays a pre-built
+// [`Response`].
 pub(super) fn authenticate_request(
     headers: &HeaderMap,
     denial_params: &AuthDenialParams<'_>,
@@ -43,7 +44,10 @@ pub(super) fn authenticate_request(
     let Some(token) = extract_bearer_token(headers) else {
         let reason = "Missing Authorization header — tool call blocked";
         spawn_auth_denial(denial_params, reason);
-        return Err(Box::new(build_response(&deny_for_auth_failure(reason), denial_params.hook_event_name)));
+        return Err(Box::new(build_response(
+            &deny_for_auth_failure(reason),
+            denial_params.hook_event_name,
+        )));
     };
 
     let jwt_issuer = match get_jwt_issuer() {
@@ -52,7 +56,10 @@ pub(super) fn authenticate_request(
             tracing::error!(error = %e, "Failed to load JWT config");
             let reason = "Internal configuration error — tool call blocked";
             spawn_auth_denial(denial_params, reason);
-            return Err(Box::new(build_response(&deny_for_auth_failure(reason), denial_params.hook_event_name)));
+            return Err(Box::new(build_response(
+                &deny_for_auth_failure(reason),
+                denial_params.hook_event_name,
+            )));
         },
     };
 
@@ -70,7 +77,10 @@ pub(super) fn authenticate_request(
         log_jwt_failure(&e, expected_aud, &jwt_issuer);
         let reason = "Invalid or expired token — tool call blocked";
         spawn_auth_denial(denial_params, reason);
-        Box::new(build_response(&deny_for_auth_failure(reason), denial_params.hook_event_name))
+        Box::new(build_response(
+            &deny_for_auth_failure(reason),
+            denial_params.hook_event_name,
+        ))
     })?;
 
     Ok(Principal {

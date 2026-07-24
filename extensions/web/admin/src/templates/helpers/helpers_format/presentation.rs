@@ -16,6 +16,7 @@ impl HelperDef for JsonHelper {
     ) -> HelperResult {
         let val = h
             .param(0)
+            // JSON: required by the handlebars HelperDef trait contract
             .map_or(serde_json::Value::Null, |v| v.value().clone());
         let json_str = serde_json::to_string_pretty(&val).unwrap_or_else(|e| {
             tracing::warn!(error = %e, "Failed to serialize value to JSON for template helper");
@@ -55,6 +56,7 @@ impl HelperDef for CssVersionHelper {
             // halt rendering. Errors are absorbed deliberately.
             std::fs::read_to_string(&path)
                 .ok()
+                // JSON: required by the handlebars HelperDef trait contract
                 .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok())
                 .and_then(|j| j.get("version")?.as_str().map(String::from))
                 .unwrap_or_else(|| "0".to_owned())
@@ -104,6 +106,7 @@ impl HelperDef for DefaultHelper {
     ) -> HelperResult {
         let val = h.param(0).map(handlebars::PathAndJson::value);
         let fallback = h.param(1).and_then(|v| v.value().as_str()).unwrap_or("");
+        // JSON: required by the handlebars HelperDef trait contract
         let is_truthy = match val {
             Some(serde_json::Value::Null) | None => false,
             Some(serde_json::Value::String(s)) => !s.is_empty(),

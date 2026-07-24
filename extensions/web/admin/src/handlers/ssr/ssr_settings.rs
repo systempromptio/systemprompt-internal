@@ -56,11 +56,7 @@ pub(crate) async fn settings_page(
         username: user_ctx.username.clone(),
     };
 
-    let value = serde_json::to_value(&data).unwrap_or_else(|e| {
-        tracing::warn!(error = %e, "Failed to serialize settings page data");
-        serde_json::Value::Null
-    });
-    Ok(super::render_page(
-        &engine, "settings", &value, &user_ctx, &mkt_ctx,
+    Ok(super::render_typed_page(
+        &engine, "settings", &data, &user_ctx, &mkt_ctx,
     ))
 }

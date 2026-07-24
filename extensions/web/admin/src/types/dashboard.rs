@@ -196,6 +196,7 @@ pub struct EventFeedRow {
     pub event_type: String,
     pub tool_name: Option<String>,
     pub plugin_id: Option<PluginId>,
+    // JSON: the usage_events.metadata jsonb column is caller-defined per event type
     pub metadata: serde_json::Value,
     pub created_at: DateTime<Utc>,
 }

@@ -28,7 +28,8 @@ pub(crate) fn assistant_answer(response_body: Option<&Value>) -> Option<String> 
     (!text.trim().is_empty()).then_some(text)
 }
 
-// Why: a non-zero count with no text is a normal agentic turn, not an empty answer.
+// Why: a non-zero count with no text is a normal agentic turn, not an empty
+// answer.
 #[must_use]
 pub(crate) fn tool_use_count(response_body: Option<&Value>) -> usize {
     response_body
@@ -84,7 +85,10 @@ fn flatten_block(block: &Value) -> Option<String> {
             Some(format!("[tool_use {name}] {input}"))
         },
         Some("tool_result") => {
-            let inner = block.get("content").map(flatten_content).unwrap_or_default();
+            let inner = block
+                .get("content")
+                .map(flatten_content)
+                .unwrap_or_default();
             Some(format!("[tool_result] {inner}"))
         },
         Some("thinking") => None,
@@ -96,8 +100,9 @@ fn flatten_block(block: &Value) -> Option<String> {
     }
 }
 
-// Why: long transcripts cost judge tokens without improving the verdict, and the
-// tail is where the answer actually is, so keep head and tail rather than a prefix.
+// Why: long transcripts cost judge tokens without improving the verdict, and
+// the tail is where the answer actually is, so keep head and tail rather than a
+// prefix.
 #[must_use]
 pub(crate) fn truncate_for_judge(text: &str, max_chars: usize) -> String {
     if text.chars().count() <= max_chars {
@@ -122,4 +127,60 @@ pub(crate) fn excerpt(text: &str, max_chars: usize) -> String {
         let head: String = collapsed.chars().take(max_chars).collect();
         format!("{head}…")
     }
+}
+
+// Why: a streamed turn stores no `response_body` at all — only the raw SSE
+// wire text in `response_excerpt` — so without reassembly the judge would be
+// shown protocol frames and would (correctly, but uselessly) fail every
+// streamed answer for "wrong format".
+#[must_use]
+pub(crate) fn assistant_answer_from_sse(sse: &str) -> Option<StreamedAnswer> {
+    let mut text = String::new();
+    let mut saw_stream = false;
+    let mut complete = false;
+
+    for line in sse.lines() {
+        let Some(payload) = line.trim_start().strip_prefix("data:") else {
+            continue;
+        };
+        let Ok(event) = serde_json::from_str::<Value>(payload.trim()) else {
+            continue;
+        };
+        match event.get("type").and_then(Value::as_str) {
+            Some("content_block_delta") => {
+                saw_stream = true;
+                if let Some(delta) = event
+                    .get("delta")
+                    .and_then(|d| d.get("text"))
+                    .and_then(Value::as_str)
+                {
+                    text.push_str(delta);
+                }
+            },
+            Some("content_block_start") => {
+                saw_stream = true;
+                if let Some(initial) = event
+                    .get("content_block")
+                    .and_then(|b| b.get("text"))
+                    .and_then(Value::as_str)
+                {
+                    text.push_str(initial);
+                }
+            },
+            Some("message_start") => saw_stream = true,
+            Some("message_stop") => complete = true,
+            _ => {},
+        }
+    }
+
+    saw_stream.then_some(StreamedAnswer { text, complete })
+}
+
+// Why: `complete` is false when the stored excerpt was cut off before
+// `message_stop` — a property of our excerpt, not of the model's answer, so
+// the caller flags it rather than scoring it down.
+#[derive(Debug, Clone)]
+pub(crate) struct StreamedAnswer {
+    pub text: String,
+    pub complete: bool,
 }

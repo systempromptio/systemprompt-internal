@@ -43,16 +43,23 @@ fn header_str(headers: &HeaderMap, name: header::HeaderName) -> Option<String> {
 /// unreadable.
 const PROMPT_TOOL_NAME: &str = "user_prompt";
 
+#[derive(serde::Serialize)]
+struct GovernedPrompt<'a> {
+    prompt: &'a str,
+}
+
 /// The evaluated payload for one hook event.
 ///
 /// `PreToolUse` carries a `tool_input` object; `UserPromptSubmit` carries a
 /// bare string, which is wrapped so the same value-walking policies
 /// (`secret_scan`) apply to both without a second code path.
+// JSON: protocol boundary — arbitrary third-party tool payload handed to the
+// policy chain, which walks it for credentials at any depth
 fn governed_input(payload: &HookEventPayload) -> Option<serde_json::Value> {
     payload.tool_input().cloned().or_else(|| {
         payload
             .prompt()
-            .map(|prompt| serde_json::json!({ "prompt": prompt }))
+            .and_then(|prompt| serde_json::to_value(GovernedPrompt { prompt }).ok())
     })
 }
 
@@ -78,18 +85,22 @@ pub(crate) async fn govern_tool_use(
     Extension(session_service): Extension<Arc<SessionCreationService>>,
     headers: HeaderMap,
     Query(query): Query<GovernQuery>,
+    // JSON: protocol boundary — the third-party hook envelope, parsed into typed
+    // events by `HookEventPayload::from_value` after the raw copy is retained
     Json(raw): Json<serde_json::Value>,
 ) -> Response {
-    // Why: lint-ok: http-error — a hook answers 200 with a decision; an error status
-    // reads as "hook unavailable" and lets the call through
+    // Why: lint-ok: http-error — a hook answers 200 with a decision; an error
+    // status reads as "hook unavailable" and lets the call through
     let (payload, _warnings) = HookEventPayload::from_value(raw);
 
     let is_prompt = payload.prompt().is_some();
-    let tool_name = payload
-        .tool_name()
-        .unwrap_or(if is_prompt { PROMPT_TOOL_NAME } else { "unknown" });
-    // Why: echo the caller's event back so a `UserPromptSubmit` gate is not handed a
-    // `PreToolUse` envelope it would have to ignore.
+    let tool_name = payload.tool_name().unwrap_or(if is_prompt {
+        PROMPT_TOOL_NAME
+    } else {
+        "unknown"
+    });
+    // Why: echo the caller's event back so a `UserPromptSubmit` gate is not handed
+    // a `PreToolUse` envelope it would have to ignore.
     let response_event = if is_prompt {
         "UserPromptSubmit"
     } else {

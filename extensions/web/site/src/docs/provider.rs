@@ -45,9 +45,7 @@ struct DocsPageContext {
 }
 
 fn str_field(item: &Value, field: &str) -> Option<String> {
-    item.get(field)
-        .and_then(|v| v.as_str())
-        .map(str::to_owned)
+    item.get(field).and_then(|v| v.as_str()).map(str::to_owned)
 }
 
 fn format_date(raw: &str) -> Option<String> {

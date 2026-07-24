@@ -15,15 +15,15 @@
 use serde::Serialize;
 use serde_json::Value;
 use systemprompt::identifiers::headers::GATEWAY_CONVERSATION_ID;
+use systemprompt::identifiers::{GatewayConversationId, SessionId};
 
-/// The credential an eval run acts under: the operator's own session, not a
-/// service identity. A run can therefore never reach a model the operator
-/// could not have called themselves.
+// Why: the operator's own session, not a service identity — a run can never
+// reach a model the operator could not have called themselves.
 #[derive(Debug, Clone)]
 pub(crate) struct GatewayCredential {
     pub base_url: String,
     pub token: String,
-    pub session_id: String,
+    pub session_id: SessionId,
 }
 
 #[derive(Debug, Serialize)]
@@ -42,12 +42,21 @@ struct Message<'a> {
     content: &'a str,
 }
 
-/// A completed gateway call: the text, and the conversation id its cost is
-/// recorded under.
+// Why: carries the conversation id so the call's recorded cost can be found.
 #[derive(Debug, Clone)]
 pub(crate) struct GatewayAnswer {
     pub text: String,
-    pub conversation_id: String,
+    pub conversation_id: GatewayConversationId,
+}
+
+// Why: the gateway accepts only `ctx_` + 16 hex, so the tag cannot carry a run
+// id; the returned value is what ties a call back to its cost row.
+pub(crate) fn new_conversation_id() -> GatewayConversationId {
+    GatewayConversationId::from_prefix_hash(u64::from_be_bytes(
+        uuid::Uuid::new_v4().as_bytes()[..8]
+            .try_into()
+            .unwrap_or([0u8; 8]),
+    ))
 }
 
 #[derive(Debug)]
@@ -57,12 +66,12 @@ pub(crate) struct CallParams<'a> {
     pub system: Option<&'a str>,
     pub user: &'a str,
     pub max_tokens: u32,
-    pub conversation_id: &'a str,
+    pub conversation_id: &'a GatewayConversationId,
 }
 
-/// Place one `/v1/messages` call. Every failure mode — transport, non-2xx,
-/// unparseable body, empty content — collapses to `None`; the caller counts it
-/// as a failed item rather than inventing a score.
+// Why: every failure mode — transport, non-2xx, unparseable body, empty
+// content — collapses to `None`, so the caller counts a failed item rather
+// than inventing a score.
 pub(crate) async fn call_messages(params: CallParams<'_>) -> Option<GatewayAnswer> {
     let body = MessagesRequest {
         model: params.model,
@@ -76,12 +85,15 @@ pub(crate) async fn call_messages(params: CallParams<'_>) -> Option<GatewayAnswe
         temperature: 0.0,
     };
 
-    let url = format!("{}/v1/messages", params.credential.base_url.trim_end_matches('/'));
+    let url = format!(
+        "{}/v1/messages",
+        params.credential.base_url.trim_end_matches('/')
+    );
     let response = reqwest::Client::new()
         .post(&url)
         .bearer_auth(&params.credential.token)
-        .header("x-session-id", &params.credential.session_id)
-        .header(GATEWAY_CONVERSATION_ID, params.conversation_id)
+        .header("x-session-id", params.credential.session_id.as_str())
+        .header(GATEWAY_CONVERSATION_ID, params.conversation_id.as_str())
         .header("anthropic-version", "2023-06-01")
         .json(&body)
         .send()
@@ -112,13 +124,12 @@ pub(crate) async fn call_messages(params: CallParams<'_>) -> Option<GatewayAnswe
     let text = super::extract::assistant_answer(Some(&json))?;
     Some(GatewayAnswer {
         text,
-        conversation_id: params.conversation_id.to_owned(),
+        conversation_id: params.conversation_id.clone(),
     })
 }
 
-/// Pull a JSON object out of a model reply that may be fenced or prefaced.
-/// The gateway is a passthrough, so there is no structured-output enforcement
-/// to lean on and the reply has to be read defensively.
+// Why: the gateway is a passthrough, so there is no structured-output
+// enforcement to lean on and a fenced or prefaced reply must still parse.
 pub(crate) fn extract_json_object(text: &str) -> Option<&str> {
     let start = text.find('{')?;
     let mut depth = 0usize;

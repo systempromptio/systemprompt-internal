@@ -129,7 +129,8 @@ pub struct Span {
     pub duration_ms: i64,
     pub status: SpanStatus,
     pub identity_label: Option<String>,
-    // JSON: source row rendered for the span inspector; the four span sources have no common shape.
+    // JSON: source row rendered for the span inspector; the four span sources have no common
+    // shape.
     pub raw: serde_json::Value,
 }
 

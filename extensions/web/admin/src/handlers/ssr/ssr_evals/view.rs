@@ -11,17 +11,16 @@ use urlencoding::encode as urlencode;
 
 use crate::repositories::analytics::request_stats::{CostBucket, LatencyBucket, RequestStats};
 use crate::repositories::evals::distribution::{
-    EvalScoreSummary, ModelDistributionRow, ModelScoreRow, ModelWinRateRow, PromptTopicRow,
-    UserDistributionRow,
+    ModelDistributionRow, PromptTopicRow, UserDistributionRow,
 };
+use crate::repositories::evals::scores::{EvalScoreSummary, ModelScoreRow, ModelWinRateRow};
 use crate::util::time_range::TimeRange;
 
 use super::format::{bar_pct, format_cost, local_time, score_pct, share_pct, truncate};
 
 use super::context::{
-    EvalCostBucketView, EvalLatencyBucketView, ModelOptionView, ModelMixRowView,
-    ScoreSummaryView, EvalTimeRangeView, TopicRowView, TrafficStatsView,
-    UserRowView, WinRateView,
+    EvalCostBucketView, EvalLatencyBucketView, EvalTimeRangeView, ModelMixRowView, ModelOptionView,
+    ScoreSummaryView, TopicRowView, TrafficStatsView, UserRowView, WinRateView,
 };
 use super::{BASE_URL, EvalsQuery};
 
@@ -229,4 +228,3 @@ pub(super) fn redirect_url(range: &TimeRange, notice: &str, is_error: bool) -> S
         if is_error { "1" } else { "0" },
     )
 }
-

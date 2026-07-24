@@ -12,7 +12,8 @@ use sqlx::PgPool;
 pub struct EvalCaseRow {
     pub id: String,
     pub name: String,
-    // JSON: frozen provider `/v1/messages` request body, replayed verbatim; its shape is the upstream wire contract, not ours.
+    // JSON: frozen provider `/v1/messages` request body, replayed verbatim; its shape is the
+    // upstream wire contract, not ours.
     pub prompt_body: serde_json::Value,
     pub source_ai_request_id: Option<String>,
     pub expectation: Option<String>,
@@ -29,7 +30,8 @@ pub struct EvalCaseRow {
 pub struct InsertCaseParams<'a> {
     pub id: &'a str,
     pub name: &'a str,
-    // JSON: frozen provider `/v1/messages` request body, replayed verbatim; its shape is the upstream wire contract, not ours.
+    // JSON: frozen provider `/v1/messages` request body, replayed verbatim; its shape is the
+    // upstream wire contract, not ours.
     pub prompt_body: serde_json::Value,
     pub source_ai_request_id: Option<&'a str>,
     pub expectation: Option<&'a str>,
@@ -61,7 +63,10 @@ pub async fn insert_case(pool: &PgPool, params: InsertCaseParams<'_>) -> Result<
     Ok(())
 }
 
-pub async fn list_cases(pool: &PgPool, enabled_only: bool) -> Result<Vec<EvalCaseRow>, sqlx::Error> {
+pub async fn list_cases(
+    pool: &PgPool,
+    enabled_only: bool,
+) -> Result<Vec<EvalCaseRow>, sqlx::Error> {
     let rows = sqlx::query_as!(
         EvalCaseRow,
         r#"SELECT
@@ -86,7 +91,8 @@ pub async fn list_cases(pool: &PgPool, enabled_only: bool) -> Result<Vec<EvalCas
     Ok(rows)
 }
 
-// Why: lint-ok: unused-pub — consumed by the evals dashboard page currently in development.
+// Why: lint-ok: unused-pub — consumed by the evals dashboard page currently in
+// development.
 pub async fn delete_case(pool: &PgPool, case_id: &str) -> Result<(), sqlx::Error> {
     sqlx::query!("DELETE FROM eval_cases WHERE id = $1", case_id)
         .execute(pool)

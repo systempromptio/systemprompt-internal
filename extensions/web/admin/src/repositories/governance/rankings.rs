@@ -6,7 +6,8 @@ use sqlx::PgPool;
 use crate::types::{TopActor, TopPolicy};
 
 // Why: lint-ok: unused-pub — live upstream via the ssr_governance handlers,
-// which this fork does not ship; kept so shared repository files stay identical.
+// which this fork does not ship; kept so shared repository files stay
+// identical.
 pub async fn list_top_actors(
     pool: &PgPool,
     window_seconds: i64,
@@ -38,7 +39,8 @@ pub async fn list_top_actors(
 }
 
 // Why: lint-ok: unused-pub — live upstream via the ssr_governance handlers,
-// which this fork does not ship; kept so shared repository files stay identical.
+// which this fork does not ship; kept so shared repository files stay
+// identical.
 pub async fn list_top_policies(
     pool: &PgPool,
     window_seconds: i64,

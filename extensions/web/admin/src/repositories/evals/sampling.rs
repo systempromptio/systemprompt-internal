@@ -6,8 +6,8 @@
 //!    without this the next run would grade the previous run's judgements and
 //!    the population would drift towards our own output.
 //! 2. Round-robin over models — a run that sampled purely by recency would be
-//!    dominated by whichever model the user happened to be using that hour,
-//!    and per-model scores would not be comparable.
+//!    dominated by whichever model the user happened to be using that hour, and
+//!    per-model scores would not be comparable.
 
 use serde::Serialize;
 use sqlx::PgPool;
@@ -79,6 +79,10 @@ pub async fn list_eval_candidates(
             JOIN ai_request_payloads p ON p.ai_request_id = ar.id
             WHERE ar.created_at >= $1 AND ar.created_at < $2
               AND ar.actor_kind <> 'job'
+              AND NOT EXISTS (
+                  SELECT 1 FROM eval_judge_calls jc
+                  WHERE jc.conversation_id = ar.gateway_conversation_id
+              )
               AND ($3::text IS NULL OR ar.user_id = $3)
               AND ($4::text IS NULL OR ar.model = $4)
               AND ($5::text IS NULL OR ar.provider = $5)
@@ -137,6 +141,26 @@ pub async fn list_eval_candidates(
             response_truncated: r.response_truncated,
         })
         .collect())
+}
+
+/// Record a call an eval run is about to place, so later runs can exclude it
+/// from their candidate pool. Written before the call, not after, so a call
+/// that fails mid-flight is still excluded.
+pub async fn insert_judge_call(
+    pool: &PgPool,
+    conversation_id: &str,
+    run_id: &str,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        r#"INSERT INTO eval_judge_calls (conversation_id, run_id)
+           VALUES ($1, $2)
+           ON CONFLICT (conversation_id) DO NOTHING"#,
+        conversation_id,
+        run_id,
+    )
+    .execute(pool)
+    .await?;
+    Ok(())
 }
 
 /// Cost of one gateway call, found by the conversation id the eval run tagged

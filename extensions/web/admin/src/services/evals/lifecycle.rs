@@ -2,7 +2,6 @@
 //! row, mint ids, and parse judge verdict strings.
 
 use sqlx::PgPool;
-use systemprompt::identifiers::UserId;
 
 use crate::repositories::evals::{EvalRunKind, EvalRunStatus, EvalVerdict, runs};
 
@@ -44,11 +43,7 @@ pub(crate) async fn open_run(params: OpenRunParams<'_>) -> Result<(), sqlx::Erro
             filter: sqlx::types::Json(runs::EvalRunFilterSnapshot {
                 from: request.range.from,
                 to: request.range.to,
-                user_id: request
-                    .filter
-                    .user_id
-                    .as_ref()
-                    .map(|u| UserId::as_str(u).to_owned()),
+                user_id: request.filter.user_id.clone(),
                 model: request.filter.model.clone(),
                 provider: request.filter.provider.clone(),
                 compare_models: request

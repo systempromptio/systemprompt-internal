@@ -120,7 +120,8 @@ async fn get_traffic_section(
     )
 }
 
-// Why: lint-ok: repository-naming — EventsResponse is a page of rows plus its total.
+// Why: lint-ok: repository-naming — EventsResponse is a page of rows plus its
+// total.
 pub async fn list_events(
     pool: &PgPool,
     query: &EventsQuery,

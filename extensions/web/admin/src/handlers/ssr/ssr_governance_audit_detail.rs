@@ -89,6 +89,8 @@ struct Denial {
     reason: String,
     tool_name: String,
     decision_id: String,
+    // JSON: rule-evaluation detail is policy-shaped and rendered by the template's
+    // JSON: `{{json}}` helper, so no fixed struct exists to decode it into
     evaluated_rules: serde_json::Value,
 }
 

@@ -12,8 +12,8 @@ use super::deterministic::PrePass;
 use super::lifecycle::{OpenRunParams, RunTally, close_run, new_id, open_run, parse_verdict};
 use super::{
     EXCERPT_CHARS, EvalError, EvalRunOutcome, EvalRunRequest, MAX_JUDGE_CHARS, MAX_SAMPLE_SIZE,
+    deterministic, extract, judge,
 };
-use super::{deterministic, extract, judge};
 use judge::JudgeConfig;
 use sqlx::types::Json;
 

@@ -34,6 +34,8 @@ pub(crate) async fn handle_hook_track(
     Extension(ai_service): Extension<Option<Arc<AiService>>>,
     State(pool): State<Arc<PgPool>>,
     headers: HeaderMap,
+    // JSON: protocol boundary — the third-party hook envelope, parsed into typed
+    // events by `HookEventPayload::from_value` after the raw copy is retained
     Json(raw): Json<serde_json::Value>,
 ) -> AdminResult<Response> {
     let (user_id, plugin_id, jwt_token) = extract_and_validate_jwt(&headers)?;

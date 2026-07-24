@@ -1,6 +1,6 @@
 //! Payload trimming shared by the hook ingestion path.
 
-use crate::types::webhook::{HookEvent, HookEventPayload};
+use crate::types::webhook::{HookEvent, HookEventPayload, ToolInputSummary};
 
 pub(super) fn truncate(s: &str, max: usize) -> String {
     if s.len() <= max {
@@ -9,10 +9,6 @@ pub(super) fn truncate(s: &str, max: usize) -> String {
         let end = s.char_indices().nth(max).map_or(s.len(), |(i, _)| i);
         format!("{}…", &s[..end])
     }
-}
-
-pub(super) fn value_field(value: &serde_json::Value, field: &str) -> Option<String> {
-    value.as_object()?.get(field)?.as_str().map(str::to_owned)
 }
 
 pub(super) fn generate_prompt_preview(payload: &HookEventPayload) -> Option<String> {
@@ -78,12 +74,15 @@ pub(super) fn derive_title(message: &str) -> String {
 
 pub(super) fn extract_file_path(payload: &HookEventPayload) -> Option<String> {
     match &payload.event {
-        HookEvent::PostToolUse(d) => value_field(&d.input, "file_path"),
-        HookEvent::PostToolUseFailure(d) => value_field(&d.tool_input, "file_path"),
+        HookEvent::PostToolUse(d) => ToolInputSummary::of(&d.input).file_path,
+        HookEvent::PostToolUseFailure(d) => ToolInputSummary::of(&d.tool_input).file_path,
         _ => None,
     }
 }
 
+// JSON: protocol boundary — trims the raw third-party hook envelope in place;
+// the payload has no fixed shape to deserialize into, and the trimming must
+// survive keys this build has never seen.
 pub(super) fn sanitize_metadata(raw: &serde_json::Value) -> serde_json::Value {
     let mut obj = match raw.as_object() {
         Some(map) => map.clone(),
@@ -105,6 +104,8 @@ pub(super) fn sanitize_metadata(raw: &serde_json::Value) -> serde_json::Value {
     serde_json::Value::Object(obj)
 }
 
+// JSON: protocol boundary — walks an arbitrary third-party tool payload to cap
+// its stored size without knowing its shape.
 fn truncate_json_value(value: &serde_json::Value, max_chars: usize) -> serde_json::Value {
     match value {
         serde_json::Value::Object(map) => {

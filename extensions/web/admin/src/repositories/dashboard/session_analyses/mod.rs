@@ -74,10 +74,7 @@ fn prepare_upsert_params(analysis: &SessionAnalysis) -> UpsertParams {
         recommendations: analysis.recommendations.clone(),
         skill_scores_json: analysis.skill_scores.clone().map(Json),
         category: analysis.category.as_deref().unwrap_or("other").to_owned(),
-        goal_outcome_map_json: analysis
-            .goal_outcome_map
-            .as_ref()
-            .map(|v| Json(v.clone())),
+        goal_outcome_map_json: analysis.goal_outcome_map.as_ref().map(|v| Json(v.clone())),
         efficiency_metrics_json: analysis.efficiency_metrics.map(Json),
         best_practices_json: analysis
             .best_practices_checklist

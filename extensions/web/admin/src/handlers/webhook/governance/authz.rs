@@ -127,9 +127,9 @@ async fn audit_decision(
     let id = uuid::Uuid::new_v4().to_string();
     let entity_type_str = req.entity.kind().as_str();
     let entity_id_str = req.entity.id_str();
-    // JSON: variable-shape: governance audit `evaluated_rules` JSONB payload embedding
-    // caller-supplied roles/attributes/context maps, not a template/response
-    // body
+    // JSON: variable-shape: governance audit `evaluated_rules` JSONB payload
+    // embedding caller-supplied roles/attributes/context maps, not a
+    // template/response body
     let evaluated = serde_json::json!({
         "entity_type": entity_type_str,
         "entity_id": entity_id_str,
@@ -175,8 +175,8 @@ pub(crate) async fn govern_authz(
     State(pool): State<Arc<PgPool>>,
     Json(req): Json<AuthzRequest>,
 ) -> Response {
-    // Why: lint-ok: http-error — a hook answers 200 with a decision; an error status
-    // reads as "hook unavailable" and lets the call through
+    // Why: lint-ok: http-error — a hook answers 200 with a decision; an error
+    // status reads as "hook unavailable" and lets the call through
     let repo = AccessControlRepository::from_pool(Arc::clone(&pool));
 
     let (rules, entity) = match load_rules(&repo, &req).await {

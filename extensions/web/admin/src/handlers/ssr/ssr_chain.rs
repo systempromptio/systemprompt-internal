@@ -15,8 +15,8 @@ use crate::error::{AdminError, AdminResult};
 use crate::repositories::governance::chain::find_decision_chain;
 use crate::types::UserContext;
 
-// Why: the drawer is a JSON consumer, so this returns [`AdminResult`] rather than
-// the HTML face the surrounding page handlers use.
+// Why: the drawer is a JSON consumer, so this returns [`AdminResult`] rather
+// than the HTML face the surrounding page handlers use.
 pub(crate) async fn chain_envelope(
     Extension(user_ctx): Extension<UserContext>,
     State(pool): State<Arc<PgPool>>,
