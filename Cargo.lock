@@ -5536,7 +5536,6 @@ dependencies = [
  "tower",
  "tower-http 0.6.11",
  "tracing",
- "url",
  "urlencoding",
  "uuid",
 ]
@@ -5583,7 +5582,6 @@ name = "systemprompt-web-jobs"
 version = "0.23.0"
 dependencies = [
  "async-trait",
- "chrono",
  "inventory",
  "serde_json",
  "serde_yaml",
