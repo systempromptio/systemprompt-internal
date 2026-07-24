@@ -57,7 +57,6 @@ tempfile = { workspace = true }
 # HTTP client
 
 # Utilities
-url = { workspace = true }
 urlencoding = { workspace = true }
 inventory = { workspace = true }
 async-trait = { workspace = true }

@@ -11,10 +11,25 @@ import { showToast } from '/js/services/toast.js';
 const CLIENT_ID = 'marketplace-admin';
 const OAUTH_BASE = '/api/v1/core/oauth';
 const LOGIN_PATH = '/admin/login';
-const DEFAULT_REDIRECT = '/admin/access/users';
+const DEFAULT_REDIRECT = '/admin/profile';
 const signInBtn = document.getElementById('sign-in-btn');
 const emailInput = getEmailInput();
 let isAuthenticating = false;
+
+// A redirect target can outlive the route it names: `login_redirect` persists
+// in localStorage, and `?redirect=` is whatever the last link said. Landing a
+// fresh login on a 404 reads as a broken sign-in, so an unroutable target
+// falls back to the default rather than being followed.
+const resolveRedirect = async (target) => {
+  if (!target || !target.startsWith('/admin/')) return DEFAULT_REDIRECT;
+  try {
+    const probe = await fetch(target, { method: 'HEAD' });
+    if (probe.status === 404) return DEFAULT_REDIRECT;
+  } catch (_err) {
+    // A failed probe says nothing about the route; trust the stored target.
+  }
+  return target;
+};
 
 const exchangeToken = async (code, codeVerifier) => {
   const tokenResponse = await fetch(OAUTH_BASE + '/token', {
@@ -82,7 +97,7 @@ const processCallback = async (code) => {
       localStorage.removeItem('pkce_code_verifier');
       localStorage.removeItem('pkce_csrf_state');
       localStorage.removeItem('login_redirect');
-      window.location.href = redirectAfterLogin;
+      window.location.href = await resolveRedirect(redirectAfterLogin);
     } catch (err) {
       showError(err.message);
       window.history.replaceState({}, '', LOGIN_PATH);
@@ -137,7 +152,7 @@ initMagicLinkUI();
   if (!wasCallback) {
     if (hasValidAdminToken()) {
       const params = new URLSearchParams(window.location.search);
-      window.location.href = params.get('redirect') || DEFAULT_REDIRECT;
+      window.location.href = await resolveRedirect(params.get('redirect'));
     } else {
       await clearAccessToken();
       if (!window.PublicKeyCredential) {
