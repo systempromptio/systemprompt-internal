@@ -11,6 +11,12 @@
 //! client's traffic, and the cost we report per run is the gateway's own
 //! recorded number rather than an estimate. Each call carries a unique
 //! `x-gateway-conversation-id` so its `ai_requests` row can be found again.
+//!
+//! No sampling parameters are sent. Pinning `temperature: 0` would be the
+//! obvious way to keep judging repeatable, but several models reject any
+//! explicit temperature outright (gpt-5-mini: "does not support 0.0"), and a
+//! judge that cannot call half the registry is worse than one that varies a
+//! little. Repeatability comes from the rubric instead.
 
 use serde::Serialize;
 use serde_json::Value;
@@ -33,7 +39,6 @@ struct MessagesRequest<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     system: Option<&'a str>,
     messages: Vec<Message<'a>>,
-    temperature: f32,
 }
 
 #[derive(Debug, Serialize)]
@@ -81,8 +86,6 @@ pub(crate) async fn call_messages(params: CallParams<'_>) -> Option<GatewayAnswe
             role: "user",
             content: params.user,
         }],
-        // Why: judging is a measurement, so it must not wander between runs.
-        temperature: 0.0,
     };
 
     let url = format!(
@@ -117,6 +120,9 @@ pub(crate) async fn call_messages(params: CallParams<'_>) -> Option<GatewayAnswe
         return None;
     }
 
+    // JSON: protocol boundary — the provider's own `/v1/messages` response body,
+    // whose shape varies by upstream and is read through
+    // `extract::assistant_answer`.
     let json: Value = serde_json::from_str(&payload)
         .inspect_err(|e| tracing::warn!(error = %e, "eval gateway response was not JSON"))
         .ok()?;

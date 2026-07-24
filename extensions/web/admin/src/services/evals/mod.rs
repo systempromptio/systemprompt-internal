@@ -243,7 +243,7 @@ pub(crate) async fn promote_case(
             prompt_body: body,
             source_ai_request_id: Some(candidate.ai_request_id.as_str()),
             expectation,
-            baseline_response: candidate.response_body.clone(),
+            baseline_response: baseline_body(&candidate),
             baseline_model: Some(&candidate.model),
             tags: &[],
             created_by: actor.as_str(),
@@ -252,4 +252,21 @@ pub(crate) async fn promote_case(
     .await?;
 
     Ok(case_id)
+}
+
+/// The answer a case is frozen with. A streamed source stores no
+/// `response_body` at all, so the SSE excerpt is reassembled into the same
+/// shape rather than leaving the case with nothing to regress against —
+/// which, since most gateway traffic streams, would otherwise be most cases.
+fn baseline_body(candidate: &sampling::EvalCandidate) -> Option<serde_json::Value> {
+    if let Some(body) = candidate.response_body.clone() {
+        return Some(body);
+    }
+    let streamed = extract::assistant_answer_from_sse(candidate.response_excerpt.as_deref()?)?;
+    Some(serde_json::json!({
+        "type": "message",
+        "role": "assistant",
+        "model": candidate.model,
+        "content": [{ "type": "text", "text": streamed.text }],
+    }))
 }
