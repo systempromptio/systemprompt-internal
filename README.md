@@ -20,7 +20,7 @@
 
 [**systemprompt.io**](https://systemprompt.io) · [**Documentation**](https://systemprompt.io/documentation/) · [**Guides**](https://systemprompt.io/guides) · [**Enterprise factsheet (PDF)**](https://systemprompt.io/files/documents/systemprompt-io-enterprise-factsheet.pdf) · [**Discord**](https://discord.gg/wkAbSuPWpr)
 
-<img src="evidence-1-model-selection-denied.png" alt="The Model Selection dashboard page: gateway models from four providers listed per user, gemini-2.5-flash toggled to Disabled for the demo user, with that user's live request, token, and cost totals below." width="900">
+<img src="docs/images/pi-demo-model-selection.png" alt="The Model Selection dashboard page: gateway models from four providers listed per user, gemini-2.5-flash toggled to Disabled for the demo user, with that user's live request, token, and cost totals below." width="900">
 
 <sub>Not a mockup. A live capture of the dashboard mid-demo: a third-party coding agent (<a href="https://pi.dev">Pi</a>) is driving Claude, GPT, Gemini, and Cerebras models through the governed gateway as user <code>pi-demo@demo.local</code>. An operator has just disabled Gemini for that user. The agent's next Gemini call was refused with a 403 before any provider was contacted. One audit row, one deny reason, zero restarts.</sub>
 
@@ -60,7 +60,7 @@ Every AI gateway vendor shows you their own client talking to their own dashboar
 **The evidence is not a claim, it is a page.** Everything above lands in the dashboard while it happens: **Model Selection** (`/admin/models`) shows the per-user toggles next to that user's usage; the request audit trail (`/admin/entities/requests`) holds the full chain of custody for every call, including the denied ones.
 
 <div align="center">
-<img src="evidence-2-request-audit-trail.png" alt="The Inference Requests dashboard: KPI cards for request count, p50 latency, total cost, errors, and pre-flight denies, with a latency distribution histogram, captured immediately after the Pi demo run." width="900">
+<img src="docs/images/pi-demo-request-audit.png" alt="The Inference Requests dashboard: KPI cards for request count, p50 latency, total cost, errors, and pre-flight denies, with a latency distribution histogram, captured immediately after the Pi demo run." width="900">
 
 <sub>The same demo run from the audit side: 27 requests across four providers, $0.0341 total spend, and 5 errors, which are the deliberate governance denials. Captured from <code>/admin/entities/requests</code> seconds after the run.</sub>
 </div>
