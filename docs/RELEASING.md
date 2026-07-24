@@ -41,10 +41,18 @@ everything is automatic:
 | Workflow | Trigger | Produces |
 |---|---|---|
 | `release-gateway.yml` | tag push | binary tarballs + SHA256SUMS + cosign sig on a GH Release; Homebrew formula bump |
-| `docker.yml` | release published (not tag push — a paths-filtered push trigger never matches tags) | multi-arch (amd64+arm64) image, tags `X.Y.Z`/`X.Y`/`X`/`latest`, cosign-signed |
-| `helm.yml` | release published | chart packaged and pushed to charts.systemprompt.io |
-| `smoke-tests.yml` | release published | install-channel smokes + `release-tags` (all tags one digest, both arches, signature verifies) + `helm-release` (chart serves the new appVersion) |
+| `docker.yml` | called by `release-gateway.yml` | multi-arch (amd64+arm64) image, tags `X.Y.Z`/`X.Y`/`X`/`latest`, cosign-signed |
+| `smoke-tests.yml` | called by `release-gateway.yml`, after the image | install-channel smokes + `release-tags` (all tags one digest, both arches, signature verifies) + `helm-release` (chart serves the new appVersion) |
+| `helm.yml` | push to main touching `helm/**` — every release commit bumps Chart.yaml | chart packaged and pushed to charts.systemprompt.io |
 | `ghcr-prune.yml` | after Docker succeeds on a tag + weekly | retention (below) |
+
+Image and smoke tests are `workflow_call` jobs inside the `release-gateway.yml`
+run, not separate event-triggered workflows. They used to listen for
+`release: published`, which never fired: `gh release create` runs as the
+default `GITHUB_TOKEN`, and events raised by that token do not start workflow
+runs. v0.23.0 was tagged, the release published, and no image was built at all
+until `docker.yml` was dispatched by hand. If you split them back out, use a
+PAT, not `github.token`.
 
 **A release is done when `smoke-tests` is fully green.** Until then, don't
 advertise it or update marketplace listings.

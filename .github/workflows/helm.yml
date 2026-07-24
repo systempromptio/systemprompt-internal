@@ -1,5 +1,12 @@
 name: Helm — lint, test, release
 
+# The chart publishes off the push to main, not off the release: every release
+# commit bumps helm/gateway/Chart.yaml (sync-release-version.sh moves both
+# `version` and `appVersion`), so the paths filter below always matches. There
+# used to be a `release: published` trigger as well; it never fired, because
+# release-gateway.yml creates the release with the default GITHUB_TOKEN and
+# events from that token do not start workflow runs.
+
 on:
   push:
     branches: [main]
@@ -9,8 +16,6 @@ on:
   pull_request:
     paths:
       - "helm/**"
-  release:
-    types: [published]
   workflow_dispatch:
 
 permissions:
@@ -35,10 +40,8 @@ jobs:
         run: ct lint --charts helm/gateway --validate-maintainers=false
 
       - uses: helm/kind-action@v1.10.0
-        if: github.event_name != 'release'
 
       - name: Install chart into kind
-        if: github.event_name != 'release'
         # continue-on-error: the install step pulls the gateway image; if
         # that image doesn't exist yet (chicken-and-egg on a fresh release
         # before Docker finishes its multi-arch buildx), we want chart-releaser
@@ -58,10 +61,10 @@ jobs:
           helm test gateway
 
   release:
-    # Publish the chart whenever main moves helm/ OR a release is published.
-    # Don't gate on install-test — that's soft-failing above because image
-    # publication lags release-tag creation by up to 3h.
-    if: github.event_name == 'release' || github.event_name == 'push'
+    # Publish on any push to main that touches helm/ — which every release
+    # commit does. Don't gate on install-test: that soft-fails above when the
+    # release image is not published yet.
+    if: github.event_name == 'push'
     needs: lint-test
     runs-on: ubuntu-latest
     steps:
