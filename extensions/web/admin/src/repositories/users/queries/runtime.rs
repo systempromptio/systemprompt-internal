@@ -40,7 +40,7 @@ pub async fn list_user_runtime_aggregates(
     .await
 }
 
-#[derive(sqlx::FromRow, Debug, Clone)]
+#[derive(sqlx::FromRow, Debug, Clone, Copy)]
 pub struct UserRuntimeDetail {
     pub requests: i64,
     pub tokens_in: i64,

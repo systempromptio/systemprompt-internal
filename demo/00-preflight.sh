@@ -193,24 +193,41 @@ echo "------------------------------------------"
 echo "  STEP 2: Create local admin session"
 echo ""
 echo "  How it works:"
-echo "    1. CLI reads cloud identity from"
-echo "       .systemprompt/credentials.json"
-echo "    2. Looks up user in local PostgreSQL"
-echo "    3. Generates JWT signed with local jwt_secret from"
+echo "    1. Lists the admins in local PostgreSQL and asks which to act as"
+echo "       (ADMIN_EMAIL selects one non-interactively)"
+echo "    2. Generates JWT signed with local jwt_secret from"
 echo "       .systemprompt/profiles/local/secrets.json"
-echo "    4. Returns admin session token"
+echo "    3. Returns admin session token"
+echo ""
+echo "  Everything the demos do is attributed to the selected user, so it"
+echo "  lands on their profile page rather than a synthetic account."
 echo ""
 echo "  In production, this step is Google/GitHub OAuth."
-echo "  For local dev, the CLI shortcut uses your cloud identity."
 echo "------------------------------------------"
 echo ""
 
-# Resolve admin email: ADMIN_EMAIL env > credentials.json user_email > default
-CLOUD_EMAIL="${ADMIN_EMAIL:-}"
-if [[ -z "$CLOUD_EMAIL" && -f "$PROJECT_DIR/.systemprompt/credentials.json" ]]; then
-  CLOUD_EMAIL=$(python3 -c "import json; print(json.load(open('$PROJECT_DIR/.systemprompt/credentials.json')).get('user_email',''))" 2>/dev/null || true)
+# Pick the admin to act as from the users already in the database, so the
+# demos' sessions, requests, and costs land on a real profile page. ADMIN_EMAIL
+# still selects one non-interactively; a database with no admin at all falls
+# back to the cloud identity and bootstraps it below.
+# shellcheck source=../scripts/select-user.sh
+source "$PROJECT_DIR/scripts/select-user.sh"
+
+select_db_user --admins-only || true
+CLOUD_EMAIL="$SEL_USER_EMAIL"
+
+if [[ -z "$CLOUD_EMAIL" ]]; then
+  CLOUD_EMAIL="${ADMIN_EMAIL:-}"
+  if [[ -z "$CLOUD_EMAIL" && -f "$PROJECT_DIR/.systemprompt/credentials.json" ]]; then
+    CLOUD_EMAIL=$(python3 -c "import json; print(json.load(open('$PROJECT_DIR/.systemprompt/credentials.json')).get('user_email',''))" 2>/dev/null || true)
+  fi
+  CLOUD_EMAIL="${CLOUD_EMAIL:-admin@localhost.dev}"
+  echo "  No admin in the $PROFILE database — bootstrapping $CLOUD_EMAIL."
+  echo ""
+else
+  echo "  Acting as $CLOUD_EMAIL ($SEL_USER_ID), roles: $SEL_USER_ROLES"
+  echo ""
 fi
-CLOUD_EMAIL="${CLOUD_EMAIL:-admin@localhost.dev}"
 
 # Extract a bare JWT from CLI output. `--token-only` still emits a
 # `[profile: …]` banner line, so a blind `tail -1` can capture the banner
@@ -405,12 +422,11 @@ echo "  denial instead of narrating one."
 echo "------------------------------------------"
 echo ""
 
-"$CLI" admin users create --name "demo_user" --email "$USER_EMAIL" --if-not-exists --profile "$PROFILE" 2>&1 \
-  | grep -viE '^\[profile|already exists' || true
-# The search output is a rendered card (id on its own line), not JSON, so match
-# the UUID shape directly — works regardless of the human/JSON output layer.
-DEMO_USER_ID=$("$CLI" admin users search "$USER_EMAIL" --profile "$PROFILE" 2>/dev/null \
-  | grep -oiE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | head -1 || true)
+# _sel_create_user is idempotent and sets the SEL_USER_* variables (including
+# SEL_USER_CREATED_THIS_RUN=1) that ensure_plugin_token reads below. demo_user
+# is preflight's own account, which is what licenses the promote/demote dance.
+_sel_create_user "$USER_EMAIL" "demo_user" || true
+DEMO_USER_ID="${SEL_USER_ID:-}"
 
 if [[ -z "$DEMO_USER_ID" ]]; then
   echo "  WARNING: could not locate $USER_EMAIL; skipping user-scope token." >&2
@@ -420,11 +436,9 @@ if [[ -z "$DEMO_USER_ID" ]]; then
 else
   # Promote so a plugin token can be minted, capture the token, then demote so the
   # live DB role is `user`. The token's authority follows the DB role, not the
-  # role at mint time.
-  "$CLI" admin users role promote "$DEMO_USER_ID" --profile "$PROFILE" >/dev/null 2>&1 || true
-  USER_TOKEN=$("$CLI" admin keys issue-plugin-token --token-only \
-    --email "$USER_EMAIL" --profile "$PROFILE" 2>/dev/null | _extract_jwt)
-  "$CLI" admin users role demote "$DEMO_USER_ID" --profile "$PROFILE" >/dev/null 2>&1 || true
+  # role at mint time. ensure_plugin_token only does this for a user the run
+  # created — it refuses to touch the roles of anyone else.
+  USER_TOKEN=$(ensure_plugin_token "$DEMO_USER_ID" "$USER_EMAIL" || true)
 
   if [[ -z "$USER_TOKEN" ]]; then
     echo "  WARNING: could not mint a plugin token for $USER_EMAIL." >&2

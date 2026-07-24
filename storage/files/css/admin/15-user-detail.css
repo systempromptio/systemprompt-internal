@@ -1,7 +1,7 @@
 /* User detail + users-table runtime visualisations */
 
 .agent-pill,
-.device-pill {
+.token-pill {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -28,11 +28,11 @@
 .agent-pill--live .agent-dot { opacity: 1; animation: agent-pulse 1.6s ease-out infinite; }
 .agent-pill--idle { color: var(--color-muted, #6b7280); }
 
-.device-pill--fresh { color: var(--color-success, #15803d); border-color: rgba(21, 128, 61, 0.3); }
-.device-pill--fresh .agent-dot { opacity: 1; animation: agent-pulse 1.6s ease-out infinite; }
-.device-pill--idle  { color: #b45309; border-color: rgba(180, 83, 9, 0.3); }
-.device-pill--stale { color: var(--color-muted, #6b7280); }
-.device-pill--never { color: var(--color-muted, #9ca3af); }
+.token-pill--fresh { color: var(--color-success, #15803d); border-color: rgba(21, 128, 61, 0.3); }
+.token-pill--fresh .agent-dot { opacity: 1; animation: agent-pulse 1.6s ease-out infinite; }
+.token-pill--idle  { color: #b45309; border-color: rgba(180, 83, 9, 0.3); }
+.token-pill--stale { color: var(--color-muted, #6b7280); }
+.token-pill--never { color: var(--color-muted, #9ca3af); }
 
 @keyframes agent-pulse {
   0%   { box-shadow: 0 0 0 0 currentColor; }

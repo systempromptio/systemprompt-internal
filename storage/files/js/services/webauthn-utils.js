@@ -49,6 +49,33 @@ export function preparePublicKeyCredentialCreationOptions(options) {
   };
 }
 
+// A passkey is bound to the relying-party id the server derives from
+// api_external_url. The browser rejects the ceremony outright when that id is
+// not the page's own domain — 127.0.0.1 and localhost are different domains to
+// WebAuthn — so check it ourselves and say which host to use.
+export function rpOriginUrl(rpId) {
+  const host = window.location.hostname;
+  if (!rpId || host === rpId || host.endsWith('.' + rpId)) {
+    return null;
+  }
+  const url = new URL(window.location.href);
+  url.hostname = rpId;
+  return url.toString();
+}
+
+export function assertRpIdMatchesOrigin(rpId) {
+  const correctUrl = rpOriginUrl(rpId);
+  if (correctUrl) {
+    const error = new Error(
+      'Passkeys here are registered to "' + rpId + '", but this page is on "' +
+      window.location.hostname + '". Open it on ' + rpId + ' to sign in.'
+    );
+    error.name = 'RpIdMismatchError';
+    error.correctUrl = correctUrl;
+    throw error;
+  }
+}
+
 export async function makeRequest(url, method, body) {
   const options = {
     method,

@@ -181,12 +181,10 @@ impl Extension for WebExtension {
                 return Some(ExtensionRouter::public(api_router, "/api/public"));
             },
         };
-        let bridge_auth_router = admin::bridge_auth_ssr_router(Arc::clone(&pool), engine.clone());
         let ssr_router = admin::admin_ssr_router(pool, engine);
 
         let combined = Router::new()
             .nest_service("/admin", ssr_router)
-            .nest_service("/bridge-auth", bridge_auth_router)
             .merge(share_api)
             .nest("/api/public", api_router);
 
@@ -196,7 +194,7 @@ impl Extension for WebExtension {
     fn site_auth(&self) -> Option<SiteAuthConfig> {
         Some(SiteAuthConfig {
             login_path: "/admin/login",
-            protected_prefixes: &["/admin", "/bridge-auth"],
+            protected_prefixes: &["/admin"],
             public_prefixes: &["/admin/login", "/admin/add-passkey"],
             required_scope: "user",
         })

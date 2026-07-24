@@ -63,9 +63,24 @@ _db-url:
 build *FLAGS:
     $env:SQLX_OFFLINE="true"; cargo build --workspace {{FLAGS}}
 
-# Build (Unix) - tries database, falls back to offline
+# Build (Unix) - single-flight: dedupes concurrent identical builds across agents
 [unix]
 build *FLAGS:
+    @scripts/build-coordinator.sh run build "{{FLAGS}}" -- {{just_executable()}} _build-uncoordinated {{FLAGS}}
+
+# What is the build/lint/test state right now? Read this before running anything.
+[unix]
+build-status *RECIPE:
+    @scripts/build-coordinator.sh status {{RECIPE}}
+
+# Re-run even if the coordinator considers this source tree already green
+[unix]
+build-force *FLAGS:
+    @BUILD_FORCE=1 scripts/build-coordinator.sh run build "{{FLAGS}}" -- {{just_executable()}} _build-uncoordinated {{FLAGS}}
+
+# The real build. Call `just build` instead - this one skips coordination.
+[unix]
+_build-uncoordinated *FLAGS:
     #!/usr/bin/env bash
     set -euo pipefail
     # Default to the `local` profile when one is set up but no SYSTEMPROMPT_PROFILE
@@ -146,9 +161,14 @@ build *FLAGS:
 clippy *FLAGS: lint-no-synthesis lint-gates
     $env:SQLX_OFFLINE="true"; cargo clippy --workspace {{FLAGS}} -- -D warnings
 
-# Clippy (Unix) - tries database, falls back to offline
+# Clippy (Unix) - single-flight, same coordinator as `just build`
 [unix]
-clippy *FLAGS: lint-no-synthesis lint-gates
+clippy *FLAGS:
+    @scripts/build-coordinator.sh run clippy "{{FLAGS}}" -- {{just_executable()}} _clippy-uncoordinated {{FLAGS}}
+
+# The real clippy. Call `just clippy` instead - this one skips coordination.
+[unix]
+_clippy-uncoordinated *FLAGS: lint-no-synthesis lint-gates
     #!/usr/bin/env bash
     set -euo pipefail
     SECRETS_FILE="{{justfile_directory()}}/.systemprompt/profiles/local/secrets.json"
@@ -191,6 +211,9 @@ clippy *FLAGS: lint-no-synthesis lint-gates
 # Unit tests: extensions/web/admin (main workspace) + the tests/ workspace.
 # If sqlx offline errors appear, run `just prepare` first to refresh .sqlx.
 test-unit:
+    @scripts/build-coordinator.sh run test-unit "" -- {{just_executable()}} _test-unit-uncoordinated
+
+_test-unit-uncoordinated:
     cargo test -p systemprompt-web-admin --tests
     cargo test --manifest-path tests/Cargo.toml -p mcp-unit-tests -p web-unit-tests
 
@@ -199,6 +222,9 @@ test-unit:
 # name that is not 'test', 'postgres', or '*_test'. Falls back to the local
 # profile's server with the database swapped to 'postgres'.
 test-integration:
+    @scripts/build-coordinator.sh run test-integration "" -- {{just_executable()}} _test-integration-uncoordinated
+
+_test-integration-uncoordinated:
     #!/usr/bin/env bash
     set -euo pipefail
     if [ -z "${SYSTEMPROMPT_TEST_DATABASE_URL:-}" ] && [ -f .systemprompt/profiles/local/secrets.json ]; then
@@ -216,6 +242,9 @@ test-integration:
 # it is deliberate, re-record with UPDATE_CONTRACT_BASELINE=1 and list it in
 # the PR.
 test-contract:
+    @scripts/build-coordinator.sh run test-contract "" -- {{just_executable()}} _test-contract-uncoordinated
+
+_test-contract-uncoordinated:
     #!/usr/bin/env bash
     set -euo pipefail
     if [ -z "${SYSTEMPROMPT_TEST_DATABASE_URL:-}" ] && [ -f .systemprompt/profiles/local/secrets.json ]; then
@@ -232,6 +261,9 @@ test: test-unit test-integration test-contract
 
 # Source gates ported from systemprompt-core (scripts/*.sh)
 lint-gates:
+    @scripts/build-coordinator.sh run lint-gates "" -- {{just_executable()}} _lint-gates-uncoordinated
+
+_lint-gates-uncoordinated:
     #!/usr/bin/env bash
     set -euo pipefail
     bash scripts/lint-schema.sh
@@ -377,6 +409,11 @@ prepare:
 # Start server (always uses local profile)
 start:
     {{CLI}} infra services start --profile local
+
+# Optional: running server + binary provenance + recent build/lint/test results
+[unix]
+server-status:
+    @scripts/server-state.sh report
 
 # Start server with release binary
 start-release:

@@ -25,7 +25,7 @@ systemprompt plugins mcp logs systemprompt              # server logs for debugg
 > `systemprompt` MCP passthrough (i.e. `plugins mcp call systemprompt systemprompt --args
 > '{"command":"plugins mcp tools"}'`), the nested CLI has no admin MCP session and the enumeration comes
 > back empty with `auth_required` — the nested process cannot authenticate to the live server. This is a
-> known limitation of the passthrough (a loopback bridge/admin token for the nested CLI is tracked as core
+> known limitation of the passthrough (a loopback admin token for the nested CLI is tracked as core
 > tech debt); enumerate tools with the direct CLI.
 
 ### Calling the systemprompt tool
@@ -37,7 +37,7 @@ systemprompt plugins mcp call systemprompt systemprompt --args '{"command":"core
 systemprompt plugins mcp call systemprompt systemprompt --args '{"command":"infra services status"}'
 ```
 
-The tool is admin-only: it is namespaced `mcp__systemprompt__*` and the governance `scope_check` policy denies it unless the caller has `admin` scope. Authentication is handled automatically by the bridge loopback proxy once an admin is signed in - no manual token step. If `plugins mcp status` shows `systemprompt` running and a `call` returns CLI output (rather than a JWT/auth error), the admin is authenticated end to end.
+The tool is admin-only: it is namespaced `mcp__systemprompt__*` and the governance `scope_check` policy denies it unless the caller has `admin` scope. Authentication is handled automatically for the signed-in admin - no manual token step. If `plugins mcp status` shows `systemprompt` running and a `call` returns CLI output (rather than a JWT/auth error), the admin is authenticated end to end.
 
 ### Skills catalogue
 

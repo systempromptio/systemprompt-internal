@@ -58,6 +58,25 @@ body {
     padding-right: var(--sp-gutter);
 }
 
+/* A page section is sized by its content and the page scrolls. As shrinkable
+   items of the 100vh .admin-main column they were squeezed to the space left
+   over instead, and any section with a non-visible overflow (a bordered panel,
+   a table card) has an automatic minimum size of zero — so it silently cropped
+   its own content, and since nothing overflowed .admin-main there was nothing
+   to scroll. */
+.admin-main > *:not(.admin-footer) {
+    flex: 0 0 auto;
+}
+
+/* Sections that are their own surface take the gutter as margin, not padding:
+   given padding, the card's background runs edge to edge and its borders and
+   corners sit off canvas while its content is inset twice over. */
+.admin-main > .overview-pane,
+.admin-main > .trace-detail__summary {
+    padding-inline: 0;
+    margin-inline: var(--sp-gutter);
+}
+
 header.admin-header,
 .admin-main > .admin-header {
     padding-top: var(--sp-space-8);

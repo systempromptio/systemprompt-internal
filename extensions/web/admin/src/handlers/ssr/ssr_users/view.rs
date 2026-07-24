@@ -85,8 +85,8 @@ pub(super) fn enrich_users(
         .map(|u| {
             let agg = agg_map.get(u.user_id.as_str());
             let rt = rt_map.get(u.user_id.as_str());
-            let device_freshness =
-                freshness_for(rt.and_then(|r| r.newest_device_seen_at)).to_owned();
+            let token_freshness =
+                freshness_for(rt.and_then(|r| r.newest_token_used_at)).to_owned();
             let user_overrides = ovr_map.get(u.user_id.as_str()).cloned().unwrap_or_default();
             let marketplaces = resolve_marketplaces(yaml_marketplaces, &user_overrides);
             EnrichedUserView {
@@ -108,11 +108,9 @@ pub(super) fn enrich_users(
                 created_at: agg.map(|a| a.created_at.to_rfc3339()).unwrap_or_default(),
                 marketplaces,
                 assigned_skills_count: agg.map_or(0, |a| a.assigned_skills_count),
-                devices_count: agg.map_or(0, |a| a.devices_count),
-                connected_agents: rt.map_or(0, |r| r.connected_agents),
-                total_agents: rt.map_or(0, |r| r.total_agents),
+                tokens_count: agg.map_or(0, |a| a.tokens_count),
                 lifetime_tokens: rt.map_or(0, |r| r.lifetime_tokens),
-                device_freshness,
+                token_freshness,
             }
         })
         .collect()

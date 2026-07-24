@@ -26,6 +26,7 @@ use crate::util::time_range::{TimeRange, TimeRangePreset, TimeRangeQuery, parse_
 
 mod context;
 mod rows;
+mod summary;
 mod view;
 
 use context::PerfTracesPageContext;
@@ -145,7 +146,7 @@ async fn load_traces_data(
             options: view::annotate_options(&options, &filter),
             chips: view::build_chips(query),
         },
-        stats: view::serde_stats(query, &stats),
+        stats: summary::serde_stats(query, &stats),
         traces: trace_rows,
         has_traces,
         total_count: total,
@@ -153,7 +154,7 @@ async fn load_traces_data(
         page_index: page,
         page_count: total_pages,
         pagination,
-        sort_headers: view::build_sort_headers(query, sort_col, sort_dir),
+        sort_headers: summary::build_sort_headers(query, sort_col, sort_dir),
         sort: sort_col,
         dir: sort_dir,
         error_only: filter.error_only,

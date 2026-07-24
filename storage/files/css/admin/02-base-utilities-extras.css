@@ -7,12 +7,22 @@
     border-radius: var(--sp-radius-sm);
 }
 
+/* Full-bleed on the left only. Bleeding right as well ran the card — and, on a
+   wide table, its scrollbar — under the window edge, so the content read as
+   cut off rather than as a deliberate edge-to-edge treatment. The left bleed
+   is what gives the brand asymmetric corner something to sit against. */
 .admin-main .table-container,
 .admin-main .toolbar {
     margin-left: calc(-1 * var(--sp-gutter));
-    margin-right: calc(-1 * var(--sp-gutter));
+    margin-right: 0;
     border-radius: 0 0.375rem 1.125rem 0;
     border-left: none;
+}
+
+/* The bleed moves the box, not its contents: a toolbar's own controls stay on
+   the page gutter so their labels line up with the heading above them. */
+.admin-main .toolbar {
+    padding-left: var(--sp-gutter);
 }
 
 .admin-main .toolbar .search-input,

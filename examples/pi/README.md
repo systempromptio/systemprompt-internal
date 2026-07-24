@@ -103,10 +103,12 @@ policy's patterns.
 personal access token, alongside an `x-session-id` minted for it at
 `POST /api/public/gateway/sessions` (`new-user.sh` does this for its smoke test;
 the extension does it once per Pi conversation). `/hooks/govern` validates a JWT
-and rejects a PAT, so `new-user.sh` also mints a user-scope plugin token to
-`~/.config/systemprompt-pi/hook-token`. It has to be *user* scope: admins are
-exempt from `scope_check` and `tool_blocklist`, so an admin token would be
-allowed by both and the denial would be theatre.
+and rejects a PAT, so `new-user.sh` also mints a plugin token to
+`~/.config/systemprompt-pi/hook-token`. Which user you select changes what the
+demo proves: admins are exempt from `scope_check` and `tool_blocklist`, so
+those two cases come back allowed, and `09-pi-agent.sh` asserts that exemption
+rather than narrating a denial that did not happen. Select a non-admin to see
+the denial path. `secret_scan` has no exemption and denies either way.
 
 See it end to end:
 
@@ -129,8 +131,8 @@ colors only — the Pi name and logo are not themeable.
 
 ## The full demo loop
 
-[`WALKTHROUGH.md`](WALKTHROUGH.md) walks the complete story: register a new
-user (`new-user.sh`), drive Pi as them, then govern them live from the
+[`WALKTHROUGH.md`](WALKTHROUGH.md) walks the complete story: pick the user Pi
+acts as (`new-user.sh`), drive Pi as them, then govern them live from the
 dashboard's **Model Selection** page (`/admin/models`) — per-user model
 enable/disable with immediate 403s, plus full usage and audit visibility.
 Run `routes.sh` once (plus a server restart) to split the demo models into
@@ -144,7 +146,7 @@ individually governable gateway routes.
 | `extensions/governance.ts` | Prompt gate + tool gate; installed into `~/.pi/agent/extensions/` |
 | `themes/systemprompt.json` | Branded Pi theme |
 | `setup.sh` | Idempotent installer + token mint + smoke test (admin) |
-| `new-user.sh` | Register a demo user (prompts for email/name) + issue their gateway API key |
+| `new-user.sh` | Pick the user Pi acts as from the database (or create one) + issue their gateway API key, governance token, and `user.json` identity file |
 | `trace.sh` | Send your own prompt through the gateway, then link its verified dashboard trace |
 | `routes.sh` | Add per-model gateway routes for per-user governance |
 | `WALKTHROUGH.md` | The end-to-end demo script |

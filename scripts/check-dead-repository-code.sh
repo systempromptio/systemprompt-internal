@@ -31,7 +31,7 @@ SIBLING_REPO="${SIBLING_REPO:-}"
 
 roots_for() {
     local base="$1"
-    for d in extensions src tests bridge/src; do
+    for d in extensions src tests; do
         [ -d "$base/$d" ] && printf '%s\n' "$base/$d"
     done
 }

@@ -10,7 +10,7 @@
 //!   (ingestion from the filesystem, search ranking, link-generation,
 //!   validation). Handlers and jobs call services, not the repository directly.
 //! - [`api`] — handler-shaped helpers that adapt service output to the
-//!   admin/bridge HTTP layer.
+//!   admin HTTP layer.
 
 pub mod api;
 pub mod repository;

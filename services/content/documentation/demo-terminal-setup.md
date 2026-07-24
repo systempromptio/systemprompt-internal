@@ -29,7 +29,7 @@ related_docs:
 
 ## Overview
 
-These terminal demos let you exercise every governance feature using only a terminal. No Cowork session or Claude Code required. Each demo produces data that is immediately visible on the admin dashboard.
+These terminal demos let you exercise every governance feature using only a terminal. No Claude Code session required. Each demo produces data that is immediately visible on the admin dashboard.
 
 All commands assume the platform is built and running. Dashboard links below use relative paths — prepend your platform URL (e.g. `http://localhost:8080` for local dev).
 
@@ -89,7 +89,7 @@ The governance and MCP demos require a bearer token. To get it:
 
 1. Open [/admin/](/admin/)
 2. Click the **Share & Install** icon (connected dots) in the top-right corner
-3. Select the **Cowork** tab
+3. Select the **Claude Code** tab
 4. Click the **eye icon** to reveal the token, then click **Copy**
 
 Save it as an environment variable:

@@ -48,13 +48,33 @@ export function showLoading(msg) {
   if (magicLinkForm) magicLinkForm.hidden = true;
 }
 
+// Render `msg`, optionally followed by a link that takes the user straight to
+// the host their passkey is registered against.
+function setErrorMessage(msg, correctUrl) {
+  errorDiv.textContent = msg;
+  if (correctUrl) {
+    errorDiv.append(' ');
+    const link = document.createElement('a');
+    link.href = correctUrl;
+    link.textContent = 'Continue on ' + new URL(correctUrl).hostname;
+    errorDiv.append(link);
+  }
+  errorDiv.hidden = false;
+}
+
 export function showPasskeyError(error) {
   loadingSection.hidden = true;
   loginForm.hidden = false;
-  if (error.name === 'NotAllowedError') errorDiv.textContent = 'Authentication was cancelled or not allowed.';
-  else if (error.name === 'NotSupportedError') errorDiv.textContent = 'Passkeys are not supported on this device.';
-  else errorDiv.textContent = error.message || 'Authentication failed. Please try again.';
-  errorDiv.hidden = false;
+  if (error.name === 'RpIdMismatchError') setErrorMessage(error.message, error.correctUrl);
+  else if (error.name === 'NotAllowedError') setErrorMessage('Authentication was cancelled or not allowed.');
+  else if (error.name === 'NotSupportedError') setErrorMessage('Passkeys are not supported on this device.');
+  else if (error.name === 'SecurityError') {
+    setErrorMessage(
+      'This page\'s address does not match the domain these passkeys are registered to, ' +
+      'so the browser refused the sign in.',
+      error.correctUrl
+    );
+  } else setErrorMessage(error.message || 'Authentication failed. Please try again.', error.correctUrl);
 }
 
 export function showEmailError(msg) {

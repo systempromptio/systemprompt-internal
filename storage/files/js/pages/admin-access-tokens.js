@@ -2,51 +2,23 @@ import { apiFetch } from '../services/api.js';
 import { showToast } from '../services/toast.js';
 import { on } from '../services/events.js';
 
-const INSTALL_TEMPLATES = {
-  macos: {
-    title: 'Install on macOS',
-    intro: 'Run the following on the target Mac. The Homebrew tap installs the Systemprompt Bridge app and the systemprompt-bridge CLI; the login command registers this device against the gateway using the PAT above.',
-    downloadLabel: 'Download .dmg from GitHub Releases',
-    downloadHref: 'https://github.com/systempromptio/systemprompt-template/releases/latest',
-    guideHref: '/docs/bridge/install-macos',
-    snippet: ({ pat, origin }) => [
-      'brew tap systempromptio/tap',
-      'brew install --cask bridge',
-      `systemprompt-bridge login ${pat} --gateway ${origin}`,
-      'open -a "Systemprompt Bridge"'
-    ].join('\n'),
-  },
-  windows: {
-    title: 'Install on Windows',
-    intro: 'Run the following in PowerShell on the target Windows machine. Scoop installs the systemprompt-bridge CLI; the login command registers this device against the gateway using the PAT above.',
-    downloadLabel: 'Download .msi from GitHub Releases',
-    downloadHref: 'https://github.com/systempromptio/systemprompt-template/releases/latest',
-    guideHref: '/docs/bridge/install-windows',
-    snippet: ({ pat, origin }) => [
-      'scoop bucket add systemprompt https://github.com/systempromptio/scoop-bucket',
-      'scoop install systemprompt-bridge',
-      `systemprompt-bridge login ${pat} --gateway ${origin}`
-    ].join('\n'),
-  },
-  linux: {
-    title: 'Install on Linux',
-    intro: 'Download the prebuilt systemprompt-bridge binary, install it onto your PATH, then register the device with the gateway using the PAT above.',
-    downloadLabel: 'Download Linux binary from GitHub Releases',
-    downloadHref: 'https://github.com/systempromptio/systemprompt-template/releases/latest',
-    guideHref: '/docs/bridge/device-auth',
-    snippet: ({ pat, origin }) => [
-      'curl -sSL -o systemprompt-bridge \\',
-      '  https://github.com/systempromptio/systemprompt-template/releases/latest/download/systemprompt-bridge-x86_64-unknown-linux-gnu',
-      'chmod +x systemprompt-bridge',
-      'sudo install -m 0755 systemprompt-bridge /usr/local/bin/systemprompt-bridge',
-      `systemprompt-bridge login ${pat} --gateway ${origin}`
-    ].join('\n'),
-  },
-};
+const setupSnippet = ({ pat, origin }) => [
+  '# 1. Install Pi and the gateway provider config on the target machine:',
+  'examples/pi/setup.sh',
+  '',
+  '# 2. Point Pi at this token instead of a locally minted one:',
+  'mkdir -p ~/.config/systemprompt-pi',
+  `printf '%s' '${pat}' > ~/.config/systemprompt-pi/token`,
+  `printf '%s' '${origin}' > ~/.config/systemprompt-pi/base-url`,
+  'chmod 600 ~/.config/systemprompt-pi/token',
+  '',
+  '# 3. Verify the token reaches the gateway:',
+  `curl -fsS -X POST '${origin}/api/public/gateway/sessions' -H 'x-api-key: ${pat}'`
+].join('\n');
 
 const openCreatePanel = () => {
-  const overlay = document.getElementById('create-device-overlay');
-  const panel = document.getElementById('create-device-panel');
+  const overlay = document.getElementById('create-token-overlay');
+  const panel = document.getElementById('create-token-panel');
   if (overlay && panel) {
     overlay.classList.add('open');
     panel.classList.add('open');
@@ -56,15 +28,15 @@ const openCreatePanel = () => {
 };
 
 const closeCreatePanel = () => {
-  const overlay = document.getElementById('create-device-overlay');
-  const panel = document.getElementById('create-device-panel');
+  const overlay = document.getElementById('create-token-overlay');
+  const panel = document.getElementById('create-token-panel');
   if (panel) panel.classList.remove('open');
   if (overlay) overlay.classList.remove('open');
 };
 
 const setPanelState = (state, ctx = {}) => {
-  const formState = document.getElementById('new-device-form-state');
-  const successState = document.getElementById('new-device-success-state');
+  const formState = document.getElementById('new-token-form-state');
+  const successState = document.getElementById('new-token-success-state');
   if (formState) formState.hidden = state !== 'form';
   if (successState) successState.hidden = state !== 'success';
   document.querySelectorAll('.panel-footer-state').forEach((el) => {
@@ -72,118 +44,102 @@ const setPanelState = (state, ctx = {}) => {
   });
 
   if (state === 'success') {
-    const tpl = INSTALL_TEMPLATES[ctx.platform] || INSTALL_TEMPLATES.macos;
-    const origin = window.location.origin;
-    const snippet = tpl.snippet({ pat: ctx.secret || '', origin });
-    const secretEl = document.getElementById('new-device-secret');
+    const secretEl = document.getElementById('new-token-secret');
     if (secretEl) secretEl.value = ctx.secret || '';
-    const titleEl = document.getElementById('new-device-install-title');
-    if (titleEl) titleEl.textContent = tpl.title;
-    const introEl = document.getElementById('new-device-install-intro');
-    if (introEl) introEl.textContent = tpl.intro;
-    const dlEl = document.getElementById('new-device-download-link');
-    if (dlEl) {
-      dlEl.textContent = `${tpl.downloadLabel} →`;
-      dlEl.href = tpl.downloadHref;
+    const snippetEl = document.getElementById('new-token-setup-snippet');
+    if (snippetEl) {
+      snippetEl.textContent = setupSnippet({
+        pat: ctx.secret || '',
+        origin: window.location.origin
+      });
     }
-    const guideEl = document.getElementById('new-device-install-guide');
-    if (guideEl) guideEl.href = tpl.guideHref;
-    const snippetEl = document.getElementById('new-device-install-snippet');
-    if (snippetEl) snippetEl.textContent = snippet;
   }
 };
 
 const resetForm = () => {
-  for (const id of ['new-device-name', 'new-device-hostname', 'new-device-secret']) {
+  for (const id of ['new-token-name', 'new-token-expires', 'new-token-secret']) {
     const el = document.getElementById(id);
     if (el) el.value = '';
   }
-  const userSel = document.getElementById('new-device-user');
+  const userSel = document.getElementById('new-token-user');
   if (userSel) userSel.value = '';
-  const platformSel = document.getElementById('new-device-platform');
-  if (platformSel) platformSel.value = 'macos';
-  const snippetEl = document.getElementById('new-device-install-snippet');
+  const snippetEl = document.getElementById('new-token-setup-snippet');
   if (snippetEl) snippetEl.textContent = '';
   setPanelState('form');
 };
 
 const copyCurrentSnippet = async () => {
-  const snippetEl = document.getElementById('new-device-install-snippet');
+  const snippetEl = document.getElementById('new-token-setup-snippet');
   const text = snippetEl ? snippetEl.textContent : '';
   if (!text) { showToast('Nothing to copy yet', 'error'); return; }
   try {
     await navigator.clipboard.writeText(text);
-    showToast('Install snippet copied', 'success');
+    showToast('Setup snippet copied', 'success');
   } catch {
     showToast('Copy failed', 'error');
   }
 };
 
 const bindCreatePanel = () => {
-  on('click', '#create-device-overlay', () => { closeCreatePanel(); });
-  on('click', '#create-device-panel .panel-close', () => { closeCreatePanel(); });
-  on('click', '#create-device-panel [data-action="cancel"]', () => {
+  on('click', '#create-token-overlay', () => { closeCreatePanel(); });
+  on('click', '#create-token-panel .panel-close', () => { closeCreatePanel(); });
+  on('click', '#create-token-panel [data-action="cancel"]', () => {
     closeCreatePanel();
     resetForm();
   });
-  on('click', '#create-device-panel [data-action="done"]', () => {
+  on('click', '#create-token-panel [data-action="done"]', () => {
     closeCreatePanel();
     resetForm();
     window.location.reload();
   });
-  on('click', '#create-device-panel [data-action="copy-snippet"]', () => {
+  on('click', '#create-token-panel [data-action="copy-snippet"]', () => {
     copyCurrentSnippet();
   });
-  on('click', '#create-device-panel [data-action="save"]', async () => {
-    const name = document.getElementById('new-device-name').value.trim();
-    const userId = document.getElementById('new-device-user').value;
-    const platform = document.getElementById('new-device-platform').value;
-    const hostname = document.getElementById('new-device-hostname').value.trim();
-    if (!name) { showToast('Device name is required', 'error'); return; }
+  on('click', '#create-token-panel [data-action="save"]', async () => {
+    const name = document.getElementById('new-token-name').value.trim();
+    const userId = document.getElementById('new-token-user').value;
+    const expiresAt = document.getElementById('new-token-expires').value.trim();
+    if (!name) { showToast('Token name is required', 'error'); return; }
     if (!userId) { showToast('Owner is required', 'error'); return; }
+    const body = expiresAt ? { name, expires_at: expiresAt } : { name };
     try {
-      const result = await apiFetch('/management/devices', {
+      const result = await apiFetch(`/users/${encodeURIComponent(userId)}/pats`, {
         method: 'POST',
-        body: JSON.stringify({ user_id: userId, name, platform, hostname })
+        body: JSON.stringify(body)
       });
-      showToast('Device enrolled', 'success');
+      showToast('Access token issued', 'success');
       if (result && result.secret) {
-        setPanelState('success', { platform, secret: result.secret });
+        setPanelState('success', { secret: result.secret });
       } else {
         closeCreatePanel();
         resetForm();
         window.location.reload();
       }
     } catch (err) {
-      showToast(err.message || 'Failed to enroll device', 'error');
+      showToast(err.message || 'Failed to issue token', 'error');
     }
   });
 };
 
-const bindFilters = () => {
-  const search = document.getElementById('device-search');
-  const platform = document.getElementById('device-platform-filter');
+const bindSearch = () => {
+  const search = document.getElementById('token-search');
   const apply = () => {
     const q = (search?.value || '').toLowerCase();
-    const pf = platform?.value || '';
     document.querySelectorAll('tr[data-search]').forEach((r) => {
-      const matchQ = !q || r.getAttribute('data-search').includes(q);
-      const matchP = !pf || r.getAttribute('data-platform') === pf;
-      r.style.display = matchQ && matchP ? '' : 'none';
+      r.style.display = !q || r.getAttribute('data-search').includes(q) ? '' : 'none';
     });
   };
   search?.addEventListener('input', apply);
-  platform?.addEventListener('change', apply);
 };
 
-export const initDevicesPage = () => {
-  const page = document.querySelector('[data-page="devices"]');
+export const initAccessTokensPage = () => {
+  const page = document.querySelector('[data-page="tokens"]');
   if (page) {
     bindCreatePanel();
-    bindFilters();
-    const createBtn = document.querySelector('[data-action="create-device"]');
+    bindSearch();
+    const createBtn = document.querySelector('[data-action="create-token"]');
     if (createBtn) createBtn.addEventListener('click', openCreatePanel);
   }
 };
 
-initDevicesPage();
+initAccessTokensPage();

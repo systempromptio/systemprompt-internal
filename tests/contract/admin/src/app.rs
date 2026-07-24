@@ -23,7 +23,6 @@ use crate::principal::{Credentials, Principal};
 // exhaustiveness check agree on where each route module lands.
 pub const ADMIN_API_PREFIX: &str = "/api/public/admin";
 pub const SSR_PREFIX: &str = "/admin";
-pub const BRIDGE_PREFIX: &str = "/bridge-auth";
 
 pub struct App {
     router: Router,
@@ -42,12 +41,10 @@ impl App {
             .with_branding(branding);
 
         let api = Router::new().nest("/admin", admin::admin_router(Arc::clone(pool)));
-        let ssr = admin::admin_ssr_router(Arc::clone(pool), engine.clone());
-        let bridge = admin::bridge_auth_ssr_router(Arc::clone(pool), engine);
+        let ssr = admin::admin_ssr_router(Arc::clone(pool), engine);
 
         let router = Router::new()
             .nest_service(SSR_PREFIX, ssr)
-            .nest_service(BRIDGE_PREFIX, bridge)
             .nest("/api/public", api);
 
         Self {

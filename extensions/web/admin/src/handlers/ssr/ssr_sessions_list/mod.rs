@@ -135,7 +135,7 @@ async fn load_sessions_data(
     let total_pages = if total == 0 {
         1
     } else {
-        total.div_ceil(PAGE_SIZE)
+        (total + PAGE_SIZE - 1) / PAGE_SIZE
     };
     let session_rows: Vec<_> = items.iter().map(rows::session_row).collect();
     let has_sessions = !session_rows.is_empty();
@@ -193,11 +193,12 @@ fn error_toggle_url(pairs: &list_view::QueryPairs<'_>, active: bool) -> String {
 }
 
 fn current_session_view(user_ctx: &UserContext) -> CurrentSessionView {
+    let session_url = user_ctx.session_id.as_ref().map(session_detail_url);
     let session_id = user_ctx.session_id.as_ref().map(|s| s.as_str().to_owned());
     CurrentSessionView {
         username: user_ctx.username.clone(),
         session_id_short: session_id.as_deref().map(short_id),
-        session_url: session_id.as_deref().map(session_detail_url),
+        session_url,
         session_id,
     }
 }

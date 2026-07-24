@@ -1,8 +1,15 @@
 @layer components {
 
+/* `flex-shrink: 0` is load-bearing wherever the bar is a direct child of a
+   column flex container, as it is on the admin pages: `overflow-x` other than
+   `visible` resolves this element's automatic minimum size to zero, so the
+   flex algorithm is free to crush it to its 1px border and clip every tab out
+   of sight. The bar renders, reads, and links correctly while being invisible,
+   which is why it has to be prevented here rather than noticed later. */
 .sp-tabs {
     display: flex;
     align-items: center;
+    flex-shrink: 0;
     gap: var(--sp-space-1);
     border-bottom: 1px solid var(--sp-border-subtle);
     margin-bottom: var(--sp-space-5);

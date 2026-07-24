@@ -10,7 +10,7 @@ tags: ["demo", "governance", "denied", "hooks", "secrets"]
 published_at: "2026-03-20"
 updated_at: "2026-03-26"
 after_reading_this:
-  - "Run the blocked path demo end-to-end using Cowork"
+  - "Run the blocked path demo end-to-end in Claude Code"
   - "Understand what governance checks fail and why"
   - "Read the audit trail proving the tool call was denied"
 related_docs:
@@ -26,7 +26,7 @@ related_docs:
 
 ## Overview
 
-This demo uses Cowork (Claude Code) with the **enterprise-demo** plugin installed. The `use-dangerous-secret` skill instructs Claude to write a file containing a plaintext API key (shown here as `<ANTHROPIC_API_KEY>`; the live test value lives only in the out-of-band demo script, never in page or chat text). The PreToolUse governance hook detects the secret pattern and **blocks the tool call before it executes**. The denial is fully logged.
+This demo uses Claude Code with the **enterprise-demo** plugin installed. The `use-dangerous-secret` skill instructs Claude to write a file containing a plaintext API key (shown here as `<ANTHROPIC_API_KEY>`; the live test value lives only in the out-of-band demo script, never in page or chat text). The PreToolUse governance hook detects the secret pattern and **blocks the tool call before it executes**. The denial is fully logged.
 
 > **Terminal alternative:** [Agent Messaging](/documentation/demo-terminal-agents) covers this same path using CLI commands.
 
@@ -48,7 +48,7 @@ Ensure the platform is healthy and the enterprise-demo plugin appears in Claude 
 
 ---
 
-## Step 1: Invoke the skill in Cowork
+## Step 1: Invoke the skill in Claude Code
 
 Open Claude Code with the enterprise-demo plugin and ask:
 

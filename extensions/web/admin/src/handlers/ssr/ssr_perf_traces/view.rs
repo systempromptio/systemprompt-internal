@@ -7,12 +7,11 @@
 use urlencoding::encode as urlencode;
 
 use crate::repositories::governance::filter_options::{FilterOption, FilterOptions};
-use crate::repositories::traces::{TraceFilter, TraceSortColumn, TraceSortDir, TraceStats};
+use crate::repositories::traces::{TraceFilter, TraceSortColumn, TraceSortDir};
 use crate::util::time_range::TimeRange;
 
 use super::context::{
-    AnnotatedOption, Chip, Pagination, Preserved, SortHeader, SortHeaders, StatsView,
-    TimeRangeContext, TraceFilterOptionsView,
+    AnnotatedOption, Chip, Pagination, Preserved, TimeRangeContext, TraceFilterOptionsView,
 };
 use super::{BASE_URL, TraceListQuery, empty_to_none};
 
@@ -123,7 +122,7 @@ fn chip_remove_url(query: &TraceListQuery, drop: &str) -> String {
     }
 }
 
-fn preserved_query_string(query: &TraceListQuery, drop: &[&str]) -> String {
+pub(super) fn preserved_query_string(query: &TraceListQuery, drop: &[&str]) -> String {
     let pairs: [(&str, Option<&str>); 12] = [
         ("preset", query.preset.as_deref()),
         ("from", query.from.as_deref()),
@@ -214,99 +213,5 @@ pub(super) fn build_pagination(
         has_next: next_url.is_some(),
         prev_url,
         next_url,
-    }
-}
-
-pub(super) fn serde_stats(query: &TraceListQuery, s: &TraceStats) -> StatsView {
-    StatsView {
-        total_traces: s.total_traces,
-        error_count: s.error_count,
-        deny_count: s.deny_count,
-        deny_url: toggle_flag_url(query, "deny_only"),
-        error_url: toggle_flag_url(query, "error_only"),
-        deny_active: query.deny_only.as_deref() == Some("true"),
-        error_active: query.error_only.as_deref() == Some("true"),
-        cost_display: super::rows::format_cost(s.total_cost_microdollars),
-        tokens_display: super::rows::format_token_total(s.total_tokens),
-        p50_display: super::rows::format_duration(s.p50_active_ms),
-        p95_display: super::rows::format_duration(s.p95_active_ms),
-        p99_display: super::rows::format_duration(s.p99_active_ms),
-    }
-}
-
-/// The deny / error stat cards double as filters: clicking one narrows the list
-/// to exactly the traces it counts, clicking it again clears the flag.
-fn toggle_flag_url(query: &TraceListQuery, flag: &str) -> String {
-    let already_on = match flag {
-        "deny_only" => query.deny_only.as_deref() == Some("true"),
-        _ => query.error_only.as_deref() == Some("true"),
-    };
-    let qs = preserved_query_string(query, &[flag, "page"]);
-    if already_on {
-        return if qs.is_empty() {
-            BASE_URL.to_owned()
-        } else {
-            format!("{BASE_URL}?{qs}")
-        };
-    }
-    if qs.is_empty() {
-        format!("{BASE_URL}?{flag}=true")
-    } else {
-        format!("{BASE_URL}?{qs}&{flag}=true")
-    }
-}
-
-/// The five columns the list query can actually order by. Each header renders
-/// as a link that flips direction when it is already active, so the
-/// `cursor:pointer` the table CSS has always shown finally does something.
-pub(super) fn build_sort_headers(
-    query: &TraceListQuery,
-    active_col: &str,
-    active_dir: &str,
-) -> SortHeaders {
-    // Every sort link carries the current filters and time range, minus the
-    // sort state it is replacing and the page it would invalidate.
-    let qs = preserved_query_string(query, &["sort", "dir", "page"]);
-    let prefix = if qs.is_empty() {
-        format!("{BASE_URL}?")
-    } else {
-        format!("{BASE_URL}?{qs}&")
-    };
-    let header = |key: &str, label: &'static str, class: &'static str| {
-        let active = key == active_col;
-        // An active column toggles; an inactive one opens largest-first (and
-        // newest-first for time), which is what an operator scans for.
-        let next_dir = if active && active_dir == "desc" {
-            "asc"
-        } else {
-            "desc"
-        };
-        SortHeader {
-            label,
-            class,
-            url: format!("{prefix}sort={key}&dir={next_dir}"),
-            active,
-            aria_sort: if active {
-                if active_dir == "asc" {
-                    "ascending"
-                } else {
-                    "descending"
-                }
-            } else {
-                "none"
-            },
-            indicator: if active {
-                if active_dir == "asc" { "▲" } else { "▼" }
-            } else {
-                "↕"
-            },
-        }
-    };
-    SortHeaders {
-        started: header("started_at", "Started", "col-started"),
-        activity: header("spans", "Activity", "col-spans"),
-        tokens: header("tokens", "Tokens", "col-tokens"),
-        cost: header("cost", "Cost", "col-cost"),
-        duration: header("duration", "Duration", "col-duration"),
     }
 }

@@ -16,14 +16,6 @@ pub(super) fn share_pct(value: i64, total: i64) -> i64 {
     ((value as f64 / total as f64) * 100.0).round() as i64
 }
 
-pub(super) fn bar_pct(value: i64, max: i64) -> i64 {
-    if max <= 0 || value <= 0 {
-        return 0;
-    }
-    let pct = (value as f64 / max as f64 * 100.0).round() as i64;
-    pct.max(4)
-}
-
 pub(super) fn format_cost(microdollars: i64) -> String {
     let dollars = microdollars as f64 / 1_000_000.0;
     if dollars == 0.0 {

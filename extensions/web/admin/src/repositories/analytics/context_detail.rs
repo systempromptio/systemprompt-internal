@@ -39,6 +39,8 @@ pub struct ContextRequestRow {
     pub model: String,
     pub status: String,
     pub latency_ms: Option<i32>,
+    pub input_tokens: Option<i32>,
+    pub output_tokens: Option<i32>,
     pub cost_microdollars: i64,
     pub created_at: DateTime<Utc>,
 }
@@ -149,6 +151,8 @@ pub async fn list_context_requests(
             model                               AS "model!",
             status                              AS "status!",
             latency_ms                          AS "latency_ms?",
+            input_tokens                        AS "input_tokens?",
+            output_tokens                       AS "output_tokens?",
             cost_microdollars                   AS "cost_microdollars!",
             created_at                          AS "created_at!"
         FROM ai_requests

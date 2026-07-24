@@ -39,7 +39,7 @@
 @/admin/access/users
 @/admin/access/user?user_id=efda627f-e738-499a-8af1-94f5406d2021
 @/admin/access/matrix
-@/admin/access/devices
+@/admin/access/tokens
 @/admin/access/departments
 @/admin/access/departments/eb7c731d-fab9-4e84-98f1-10aeece98943
 @/admin/catalog/marketplace

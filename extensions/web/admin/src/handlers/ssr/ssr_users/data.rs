@@ -2,7 +2,7 @@
 //!
 //! Fans out the repository / runtime queries each page needs and shapes the raw
 //! rows just enough for the view layer: roster aggregates, per-user assignment
-//! and device extras, and the department list.
+//! and access-token extras, and the department list.
 
 use sqlx::PgPool;
 
@@ -10,13 +10,13 @@ use crate::repositories;
 use crate::types::departments::DEFAULT_DEPARTMENT;
 use crate::services::marketplaces::load_marketplaces;
 
-use super::super::types::{DepartmentGroup, UserAssignmentSummary, UserDeviceView};
+use super::super::types::{DepartmentGroup, UserAssignmentSummary, UserTokenView};
 use super::view;
 
 type UserDetailExtras = (
     String,
     UserAssignmentSummary,
-    Vec<UserDeviceView>,
+    Vec<UserTokenView>,
     i64,
     Option<repositories::governance::effective::EffectivePermissions>,
 );
@@ -86,12 +86,12 @@ pub(super) async fn collect_user_detail_extras(
             .unwrap_or_else(|| (Vec::new(), String::new()));
 
     let mut assignments = UserAssignmentSummary::default();
-    let devices_count = if let Ok(rows) =
+    let tokens_count = if let Ok(rows) =
         repositories::departments::list_user_management_aggregates(pool).await
         && let Some(row) = rows.into_iter().find(|r| r.user_id == d.user_id.as_str())
     {
         assignments.skills_count = row.assigned_skills_count;
-        row.devices_count
+        row.tokens_count
     } else {
         0i64
     };
@@ -127,7 +127,7 @@ pub(super) async fn collect_user_detail_extras(
     assignments.marketplaces = view::resolve_marketplaces(&yaml_marketplaces, &override_refs);
     assignments.marketplaces_count = assignments.marketplaces.len() as i64;
 
-    let devices = collect_user_devices(pool, d).await;
+    let tokens = collect_user_tokens(pool, d).await;
 
     let effective = Some(
         repositories::governance::effective::compute_effective_permissions(
@@ -136,36 +136,22 @@ pub(super) async fn collect_user_detail_extras(
         .await,
     );
 
-    Ok((department, assignments, devices, devices_count, effective))
+    Ok((department, assignments, tokens, tokens_count, effective))
 }
 
-async fn collect_user_devices(pool: &PgPool, d: &crate::types::UserDetail) -> Vec<UserDeviceView> {
-    let Ok(pats) = repositories::bridge::list_api_keys_for_user(pool, &d.user_id).await else {
+async fn collect_user_tokens(pool: &PgPool, d: &crate::types::UserDetail) -> Vec<UserTokenView> {
+    let Ok(pats) = repositories::access_tokens::list_api_keys_for_user(pool, &d.user_id).await
+    else {
         return Vec::new();
     };
-    let app_links: std::collections::HashMap<
-        String,
-        (String, String, Option<chrono::DateTime<chrono::Utc>>),
-    > = repositories::users::devices::list_device_app_links(pool, &d.user_id)
-        .await
-        .inspect_err(|e| tracing::warn!(error = %e, "ssr_users: load device app_links failed"))
-        .unwrap_or_default()
-        .into_iter()
-        .map(|r| (r.device_id, (r.app_platform, r.app_version, r.last_seen_at)))
-        .collect();
 
     pats.into_iter()
-        .map(|row| {
-            let link = app_links.get(&row.id);
-            UserDeviceView {
-                id: row.id,
-                name: row.name,
-                key_prefix: row.key_prefix,
-                platform: link.map(|(p, _, _)| p.clone()),
-                app_version: link.map(|(_, v, _)| v.clone()).filter(|v| !v.is_empty()),
-                last_seen_at: link.and_then(|(_, _, ts)| *ts).or(row.last_used_at),
-                revoked: row.revoked_at.is_some(),
-            }
+        .map(|row| UserTokenView {
+            id: row.id,
+            name: row.name,
+            key_prefix: row.key_prefix,
+            last_used_at: row.last_used_at,
+            revoked: row.revoked_at.is_some(),
         })
         .collect()
 }

@@ -216,6 +216,12 @@
     margin-top: 0.1rem;
 }
 
+/* A model id is one token — wrapping it mid-name triples the row height and
+   makes it harder to read, so the column scrolls with the table instead. */
+.data-table td.col-model {
+    white-space: nowrap;
+}
+
 /* ── list-page pagination footer ─────────────────────────────── */
 
 .table-paginate {

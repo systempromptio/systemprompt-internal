@@ -3,8 +3,7 @@ name: Release (gateway server)
 # Publishes the systemprompt-gateway — the server-side AI governance gateway.
 # Ported from systempromptio/systemprompt-deploy (which built from a stale copy
 # of this tree); this workflow builds from the tag being released, so assets
-# always match the source. Triggered by `v*` tags; `bridge-v*` releases (the
-# client) are handled by release.yml and never collide with this series.
+# always match the source. Triggered by `v*` tags.
 #
 # deb/rpm packaging stays deferred (see systemprompt-deploy history).
 
@@ -205,10 +204,6 @@ jobs:
           one binary plus your database. It is a library you own and extend, not
           a SaaS you rent.
 
-          > Looking for the **bridge** client (macOS / Windows / Linux developer
-          > workstations)? It ships under the separate `bridge-v*` tag series:
-          > [latest bridge release](https://github.com/systempromptio/systemprompt-template/releases?q=%22systemprompt-bridge%22).
-
           ## Deploy anywhere
 
           Quickest start:
@@ -273,8 +268,7 @@ jobs:
 
           [systemprompt.io](https://systemprompt.io) ·
           [Documentation](https://github.com/systempromptio/systemprompt-template/blob/main/docs/README.md) ·
-          [Discord](https://discord.gg/wkAbSuPWpr) ·
-          [Bridge releases](https://github.com/systempromptio/systemprompt-template/releases?q=%22systemprompt-bridge%22)
+          [Discord](https://discord.gg/wkAbSuPWpr)
           EOF
 
       - name: Create or update release

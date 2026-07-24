@@ -2,7 +2,7 @@
 //! (`context-detail.hbs`).
 
 use serde::Serialize;
-use systemprompt::identifiers::{ContextId, SessionId, TraceId, UserId};
+use systemprompt::identifiers::{AiRequestId, ContextId, SessionId, TraceId, UserId};
 
 #[derive(Debug, Serialize)]
 pub(super) struct ContextDetailPageContext {
@@ -59,7 +59,7 @@ pub(super) struct KpisView {
 #[derive(Debug, Serialize)]
 pub(super) struct TranscriptEntryView {
     // Why: display DTO; request id carried as string from the transcript grouping key
-    pub(super) request_id: String,
+    pub(super) request_id: AiRequestId,
     pub(super) request_url: String,
     pub(super) ts_local: String,
     pub(super) ts_full: String,
@@ -80,7 +80,7 @@ pub(super) struct TranscriptEntryView {
 
 #[derive(Debug, Serialize)]
 pub(super) struct ContextRequestRowView {
-    pub(super) id: String,
+    pub(super) id: AiRequestId,
     pub(super) id_short: String,
     pub(super) request_url: String,
     pub(super) trace_id: Option<TraceId>,

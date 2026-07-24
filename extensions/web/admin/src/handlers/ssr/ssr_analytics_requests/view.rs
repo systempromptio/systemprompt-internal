@@ -66,11 +66,9 @@ pub(super) fn stats_to_json(s: &RequestStats) -> RequestStatsView {
     }
 }
 
-// --- breakdown tabs ---------------------------------------------------------
-
-/// One breakdown table. `share_pct` is against the busiest row rather than the
-/// window total, so the bars use the full width even when one dimension has a
-/// long tail; the printed percentage is still share-of-total.
+// Why: share_pct is against the busiest row rather than the window total, so
+// the bars use the full width even when one dimension has a long tail. The
+// printed percentage is still share-of-total.
 pub(super) fn breakdown_view(
     tab: RequestsTab,
     rows: &[BreakdownRow],
@@ -165,11 +163,9 @@ fn log_filter_url(query: &RequestsQuery, param: &str, value: &str) -> String {
     url
 }
 
-// --- tabs, chips, and URLs --------------------------------------------------
-
-/// The tab bar. Every link carries the current window and the active filters so
-/// switching tabs never silently resets what the reader chose, but drops the
-/// page number, which means nothing on another tab.
+// Why: every tab link carries the current window and the active filters so
+// switching tabs never silently resets what the reader chose, but drops the
+// page number, which means nothing on another tab.
 pub(super) fn tab_links(active: RequestsTab, query: &RequestsQuery, total: i64) -> Vec<TabLinkView> {
     const TABS: [(RequestsTab, &str); 5] = [
         (RequestsTab::Overview, "Overview"),
@@ -198,8 +194,8 @@ pub(super) fn tab_links(active: RequestsTab, query: &RequestsQuery, total: i64) 
         .collect()
 }
 
-/// One removable chip per active filter. Removing a chip drops just that
-/// parameter and keeps the tab, window, and every other filter intact.
+// Why: removing a chip drops just that parameter and keeps the tab, window,
+// and every other filter intact.
 pub(super) fn active_chips(query: &RequestsQuery) -> Vec<ChipView> {
     let mut chips = Vec::new();
     for (param, group_label, value) in [
@@ -306,8 +302,8 @@ pub(super) fn time_range_context(
     }
 }
 
-/// "Clear" drops every filter but keeps the reader on the tab and window they
-/// are looking at.
+// Why: Clear drops every filter but keeps the reader on the tab and window
+// they are looking at.
 pub(super) fn clear_url(query: &RequestsQuery) -> String {
     let qs = preserved_query_string(
         query,

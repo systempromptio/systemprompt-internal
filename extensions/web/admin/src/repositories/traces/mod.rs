@@ -11,6 +11,7 @@ use serde::Serialize;
 use systemprompt::identifiers::{AgentId, SessionId, TraceId, UserId};
 
 mod list;
+mod list_row;
 mod spans;
 mod stats;
 

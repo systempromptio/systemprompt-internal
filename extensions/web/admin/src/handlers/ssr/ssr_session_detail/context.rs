@@ -2,7 +2,7 @@
 //! (`session-detail.hbs`).
 
 use serde::Serialize;
-use systemprompt::identifiers::{ContextId, PluginId, SessionId, TraceId, UserId};
+use systemprompt::identifiers::{AiRequestId, ContextId, PluginId, SessionId, TraceId, UserId};
 
 #[derive(Debug, Serialize)]
 pub(super) struct SessionDetailPageContext {
@@ -89,7 +89,7 @@ pub(super) struct SessionTraceRowView {
 
 #[derive(Debug, Serialize)]
 pub(super) struct SessionRequestRowView {
-    pub(super) id: String,
+    pub(super) id: AiRequestId,
     pub(super) id_short: String,
     pub(super) request_url: String,
     pub(super) context_id: Option<ContextId>,

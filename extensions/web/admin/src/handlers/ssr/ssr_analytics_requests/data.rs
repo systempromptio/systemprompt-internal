@@ -77,9 +77,9 @@ pub(super) struct RequestsPageQuery<'a> {
     pub offset: i64,
 }
 
-/// The KPI strip and the Log tab's count render on every tab, so the paged list
-/// and the stats always run; the charts and the rollups only run for the tab
-/// that shows them.
+// Why: the KPI strip and the Log tab's count render on every tab, so the paged
+// list and the stats always run; the charts and the rollups only run for the
+// tab that shows them.
 pub(super) async fn fetch_requests_data(
     pool: &Arc<PgPool>,
     query: RequestsPageQuery<'_>,

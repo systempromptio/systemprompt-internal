@@ -9,7 +9,7 @@ pub struct UserManagementAggregate {
     pub user_id: UserId,
     pub department: String,
     pub assigned_skills_count: i64,
-    pub devices_count: i64,
+    pub tokens_count: i64,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
@@ -68,7 +68,7 @@ pub async fn list_user_management_aggregates(
             COALESCE((
                 SELECT COUNT(*) FROM user_api_keys
                 WHERE user_id = u.id AND revoked_at IS NULL
-            ), 0)::BIGINT AS "devices_count!",
+            ), 0)::BIGINT AS "tokens_count!",
             u.created_at AS "created_at!"
         FROM users u
         LEFT JOIN user_profile_ext upe ON upe.user_id = u.id

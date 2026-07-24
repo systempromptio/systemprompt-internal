@@ -51,8 +51,16 @@
     color: var(--sp-text-tertiary);
 }
 
+.trace-session__allow {
+    color: var(--sp-success);
+}
+
 .trace-session__deny {
     color: var(--sp-danger);
+}
+
+.trace-session__calls {
+    color: var(--sp-text-tertiary);
 }
 
 .trace-legend {
@@ -142,6 +150,10 @@
     font-size: 0.6875rem;
     border: 1px solid transparent;
     white-space: nowrap;
+}
+
+.trace-stage__name {
+    font-size: inherit;
 }
 
 .trace-stage--pass {

@@ -174,16 +174,8 @@ pub(super) fn demo_help_user_pages(page: &str) -> Option<(&'static str, &'static
             "<strong>IP Bans</strong> manages the platform's IP-level blocklist. Add, remove, and inspect banned addresses with reason and ban timestamp. Bans are enforced at the HTTP edge before any auth logic runs.",
             "users",
         )),
-        "devices" => Some((
-            "<strong>Devices</strong> manages the credentials that the <code>sp-bridge-auth</code> helper uses on your workstation. Issue personal access tokens (PATs) for the PAT flow, view and revoke enrolled device certificates for the mTLS flow, and audit last-used timestamps. The browser-based session flow is handled separately via the per-device consent page.",
-            "settings",
-        )),
-        "bridge-device-link" => Some((
-            "<strong>Bridge device consent</strong> is the page the <code>sp-bridge-auth</code> helper opens in your browser when you run the session flow. It shows which local loopback port is requesting credentials, validates the redirect target, and &mdash; on Allow &mdash; mints a 120-second one-shot exchange code the helper trades for a short-lived JWT.",
-            "settings",
-        )),
-        "bridge-setup" => Some((
-            "<strong>Connect Claude</strong> walks you through installing the <code>sp-bridge-auth</code> helper and picking one of the three authentication modes (PAT, session, mTLS). The gateway URL is pre-filled, capabilities are queried live, and a one-click copy gives you the exact <code>bridge-auth.toml</code> for this server. You must be signed in to the dashboard before any flow works &mdash; that is the single source of identity.",
+        "tokens" => Some((
+            "<strong>Access tokens</strong> manages the personal access tokens clients present to the gateway. Issue a token for a user, audit when it was last used, and revoke it when the machine holding it is retired. Pi authenticates with exactly these tokens, and every call one makes lands in the governance spine under its owner's identity.",
             "settings",
         )),
         _ => None,

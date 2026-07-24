@@ -7,8 +7,8 @@ use systemprompt::identifiers::{AiRequestId, SessionId, TraceId, UserId};
 
 use crate::handlers::ssr::types::{ChartView, HistogramView};
 
-/// Which tab the reader is on. Each is its own GET so it can be bookmarked and
-/// only its own queries run.
+// Why: each tab is its own GET so it can be bookmarked, and so only the
+// queries that tab renders ever run.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum RequestsTab {
     /// Health of the window: KPIs, traffic, spend, and latency shape.
@@ -24,8 +24,8 @@ pub(super) enum RequestsTab {
 }
 
 impl RequestsTab {
-    /// Anything unrecognised lands on Overview. A mistyped tab in a shared link
-    /// should still show the page rather than a 400.
+    // Why: anything unrecognised lands on Overview — a mistyped tab in a
+    // shared link should still show the page rather than a 400.
     pub(super) fn from_query(raw: Option<&str>) -> Self {
         match raw {
             Some("models") => Self::Models,
@@ -84,7 +84,8 @@ pub(super) struct TabLinkView {
     pub count: Option<i64>,
 }
 
-/// One breakdown tab's table: the dimension it groups by, and its rows.
+// Why: one shape for all three breakdown tabs, so Models, Providers, and
+// Status cannot drift apart.
 #[derive(Debug, Serialize)]
 pub(super) struct BreakdownView {
     pub dimension_label: &'static str,

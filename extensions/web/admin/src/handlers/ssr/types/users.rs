@@ -46,16 +46,12 @@ pub(crate) struct EnrichedUserView {
     #[serde(default)]
     pub assigned_skills_count: i64,
     #[serde(default)]
-    pub devices_count: i64,
-    #[serde(default)]
-    pub connected_agents: i64,
-    #[serde(default)]
-    pub total_agents: i64,
+    pub tokens_count: i64,
     #[serde(default)]
     pub lifetime_tokens: i64,
     /// "fresh" | "idle" | "stale" | "never"
     #[serde(default)]
-    pub device_freshness: String,
+    pub token_freshness: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -88,9 +84,9 @@ pub(crate) struct UserDetailPageData {
     #[serde(default)]
     pub user_assignments: UserAssignmentSummary,
     #[serde(default)]
-    pub user_devices: Vec<UserDeviceView>,
+    pub user_tokens: Vec<UserTokenView>,
     #[serde(default)]
-    pub user_devices_count: i64,
+    pub user_tokens_count: i64,
     #[serde(default)]
     pub departments: Vec<String>,
     pub runtime: Option<UserRuntimeView>,
@@ -103,14 +99,10 @@ pub(crate) struct UserDetailPageData {
 
 #[derive(Debug, Clone, Serialize, Default)]
 pub(crate) struct UserRuntimeView {
-    pub connected_agents: i64,
-    pub total_agents: i64,
+    pub requests: i64,
     pub tokens_in: i64,
     pub tokens_out: i64,
-    pub last_bridge_version: Option<String>,
-    pub last_os: Option<String>,
-    pub last_hostname: Option<String>,
-    pub last_heartbeat_at: Option<String>,
+    pub last_request_at: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Serialize)]
@@ -122,12 +114,10 @@ pub(crate) struct UserAssignmentSummary {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub(crate) struct UserDeviceView {
+pub(crate) struct UserTokenView {
     pub id: String,
     pub name: String,
     pub key_prefix: String,
-    pub platform: Option<String>,
-    pub app_version: Option<String>,
-    pub last_seen_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub last_used_at: Option<chrono::DateTime<chrono::Utc>>,
     pub revoked: bool,
 }

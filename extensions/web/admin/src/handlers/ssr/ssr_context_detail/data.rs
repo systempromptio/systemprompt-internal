@@ -6,6 +6,7 @@ use std::collections::BTreeMap;
 
 use chrono::{DateTime, Utc};
 use serde_json::Value;
+use systemprompt::identifiers::AiRequestId;
 
 use crate::repositories::analytics::context_detail::{
     ContextHeader, ContextKpis, ContextMessageRow, ContextRequestRow, ContextToolCallRow,
@@ -119,7 +120,7 @@ fn kpis_view(k: &ContextKpis) -> KpisView {
 fn request_view(r: &ContextRequestRow) -> ContextRequestRowView {
     ContextRequestRowView {
         id: r.id.clone(),
-        id_short: short_id(&r.id),
+        id_short: short_id(r.id.as_str()),
         request_url: request_detail_url(&r.id),
         trace_id: r.trace_id.clone(),
         trace_id_short: r.trace_id.as_ref().map(|t| short_id(t.as_str())),
@@ -197,6 +198,7 @@ fn build_transcript(
 
     let mut out = Vec::new();
     for ((ts, request_id), mut entries) in by_request {
+        let request_id = AiRequestId::new(&request_id);
         entries.sort_by_key(|e| e.seq);
         for e in entries {
             out.push(TranscriptEntryView {

@@ -1,33 +1,28 @@
 {{#> layout title=title page=page}}
     {{#*inline "head_extra"}}{{/inline}}
     {{#*inline "content"}}
-    {{> components/page-header title=title subtitle="Every PAT and desktop app linked to a user, with live online status."}}
+    {{> components/page-header title=title subtitle="Personal access tokens issued to users. A token authenticates Pi and any other client calling the gateway."}}
 
     <div class="stat-grid">
-        {{> components/stat-card label="Total devices" value=total}}
-        {{> components/stat-card label="Online (≤5m)" value=online}}
+        {{> components/stat-card label="Total tokens" value=total}}
+        {{> components/stat-card label="Active" value=active}}
+        {{> components/stat-card label="Expiring ≤30d" value=expiring_soon}}
     </div>
 
     <div class="toolbar" role="toolbar" aria-label="Actions">
-        <div class="search-group"><input type="text" class="search-input" placeholder="Search by user, device, prefix..." id="device-search"></div>
-        <select class="filter-select" id="device-platform-filter">
-            <option value="">All platforms</option>
-            <option value="macos">macOS</option>
-            <option value="windows">Windows</option>
-            <option value="linux">Linux</option>
-        </select>
-        <button type="button" class="btn btn-primary" id="btn-add-device" data-action="create-device">+ Add device</button>
+        <div class="search-group"><input type="text" class="search-input" placeholder="Search by user, token, prefix..." id="token-search"></div>
+        <button type="button" class="btn btn-primary" id="btn-add-token" data-action="create-token">+ Issue token</button>
     </div>
-    {{> components/create-device-panel user_options=user_options}}
+    {{> components/create-token-panel user_options=user_options}}
 
-    <section aria-label="Devices list" data-page="devices">
-    {{#if devices}}
-    <div class="devices-grouped">
+    <section aria-label="Access tokens list" data-page="tokens">
+    {{#if tokens}}
+    <div class="tokens-grouped">
     {{#> components/data-table}}
-        <thead><tr><th>Owner</th><th>Device</th><th>Department</th><th>Platform</th><th>Hostname</th><th>Enrolled</th><th>Key created</th><th>Expires</th><th>Last seen</th><th class="col-status">Status</th></tr></thead>
+        <thead><tr><th>Owner</th><th>Token</th><th>Department</th><th>Created</th><th>Expires</th><th>Last used</th><th class="col-status">Status</th></tr></thead>
         <tbody>
-        {{#each devices}}
-        <tr data-platform="{{platform}}" data-search="{{toLowerCase name}} {{toLowerCase (default user_email user_id)}} {{toLowerCase (default hostname "")}} {{toLowerCase key_prefix}}"{{#if group_start}} class="group-start"{{/if}}>
+        {{#each tokens}}
+        <tr data-search="{{toLowerCase name}} {{toLowerCase (default user_email user_id)}} {{toLowerCase key_prefix}}"{{#if group_start}} class="group-start"{{/if}}>
             {{#if owner_rowspan}}
             <td class="owner-cell" rowspan="{{owner_rowspan}}">
                 {{#if user_email}}<a href="/admin/access/user?id={{user_id}}">{{user_email}}</a>{{else}}<a href="/admin/access/user?id={{user_id}}"><code>{{user_id}}</code></a>{{/if}}
@@ -38,12 +33,9 @@
                 <code class="code-inline">{{key_prefix}}</code>
             </td>
             <td>{{#if department}}<a href="/admin/access/matrix?department={{department}}" class="badge badge-blue">{{department}}</a>{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
-            <td>{{#if platform}}<span class="badge">{{platform}}{{#if app_version}} <span class="text-muted">{{app_version}}</span>{{/if}}</span>{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
-            <td>{{#if hostname}}<code class="code-inline">{{hostname}}</code>{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
-            <td>{{#if enrolled_at}}<span title="{{formatDate enrolled_at}}">{{relativeTime enrolled_at}}</span>{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
             <td>{{#if created_at}}<span title="{{formatDate created_at}}">{{relativeTime created_at}}</span>{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
             <td>{{#if expires_at}}<span title="{{formatDate expires_at}}">{{relativeTime expires_at}}</span>{{else}}<span class="text-tertiary">Never</span>{{/if}}</td>
-            <td>{{#if last_seen_at}}<span title="{{formatDate last_seen_at}}">{{relativeTime last_seen_at}}</span>{{else}}<span class="text-tertiary">Never</span>{{/if}}</td>
+            <td>{{#if last_used_at}}<span title="{{formatDate last_used_at}}">{{relativeTime last_used_at}}</span>{{else}}<span class="text-tertiary">Never</span>{{/if}}</td>
             <td class="col-status">{{#if revoked}}<span class="badge badge-gray">Revoked</span>{{else}}<span class="badge badge-green">Active</span>{{/if}}</td>
         </tr>
         {{/each}}
@@ -52,31 +44,13 @@
     </div>
     {{else}}
     <div class="empty-state" style="padding:3rem;text-align:center;">
-        <h3>No devices linked yet</h3>
-        <p class="text-muted">Click <strong>+ Add device</strong> to enroll one, or have users issue PATs from their device settings.</p>
+        <h3>No access tokens issued yet</h3>
+        <p class="text-muted">Click <strong>+ Issue token</strong> to mint one for a user, then point Pi at the gateway with it.</p>
     </div>
     {{/if}}
     </section>
-
-    <script>
-    (function(){
-        const search = document.getElementById('device-search');
-        const platform = document.getElementById('device-platform-filter');
-        const apply = () => {
-            const q = (search.value || '').toLowerCase();
-            const pf = platform.value;
-            document.querySelectorAll('tr[data-search]').forEach(r => {
-                const matchQ = !q || r.getAttribute('data-search').includes(q);
-                const matchP = !pf || r.getAttribute('data-platform') === pf;
-                r.style.display = matchQ && matchP ? '' : 'none';
-            });
-        };
-        search?.addEventListener('input', apply);
-        platform?.addEventListener('change', apply);
-    })();
-    </script>
     {{/inline}}
     {{#*inline "scripts"}}
-    <script data-cfasync="false" type="module" src="/js/pages/admin-devices.js"></script>
+    <script data-cfasync="false" type="module" src="/js/pages/admin-access-tokens.js"></script>
     {{/inline}}
 {{/layout}}

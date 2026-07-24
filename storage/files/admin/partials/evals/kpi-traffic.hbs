@@ -6,7 +6,11 @@
     <div class="kpi-card">
         <span class="kpi-card__label">Requests</span>
         <span class="kpi-card__value">{{traffic.total}}</span>
+        {{#if traffic.has_distribution}}
         <span class="kpi-card__sub">{{traffic.user_count}} users · {{traffic.model_count}} models</span>
+        {{else}}
+        <span class="kpi-card__sub">through the gateway in this window</span>
+        {{/if}}
     </div>
     <div class="kpi-card">
         <span class="kpi-card__label">p50 latency</span>

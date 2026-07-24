@@ -17,7 +17,7 @@ use crate::repositories::evals::results::{EvalPairRow, ResultFilter};
 use crate::repositories::evals::scores::{EvalScoreSummary, ModelScoreRow, ModelWinRateRow};
 use crate::util::time_range::TimeRange;
 
-use super::format::{bar_pct, format_cost, local_time, score_pct, share_pct, truncate};
+use super::format::{format_cost, local_time, score_pct, share_pct, truncate};
 
 use super::context::{
     EvalsTab, EvalTimeRangeView, FilterOptionView,
@@ -40,6 +40,11 @@ pub(super) fn traffic_stats(
         total_cost_display: format_cost(s.total_cost_microdollars),
         user_count: users.len() as i64,
         model_count: models.len() as i64,
+        // The user and model counts are the lengths of the distribution lists,
+        // which only the tabs that show those tables pay to fetch. Elsewhere a
+        // zero would read as "no users", not "not counted" — so the strip is
+        // told to leave the line off rather than print a number it never had.
+        has_distribution: !models.is_empty() || !users.is_empty(),
     }
 }
 

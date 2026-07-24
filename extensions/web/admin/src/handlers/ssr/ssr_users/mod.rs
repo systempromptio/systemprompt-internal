@@ -103,7 +103,7 @@ pub(crate) async fn user_detail_page(
 
     let not_found = detail.is_none();
 
-    let (user_department, user_assignments, user_devices, user_devices_count, effective) =
+    let (user_department, user_assignments, user_tokens, user_tokens_count, effective) =
         match detail.as_ref() {
             Some(d) => data::collect_user_detail_extras(&pool, d).await?,
             None => (
@@ -142,8 +142,8 @@ pub(crate) async fn user_detail_page(
         not_found,
         user_department,
         user_assignments,
-        user_devices,
-        user_devices_count,
+        user_tokens,
+        user_tokens_count,
         departments,
         runtime,
         effective_permissions: effective,
@@ -169,8 +169,8 @@ fn blank_user_detail() -> UserDetailPageData {
         not_found: true,
         user_department: String::new(),
         user_assignments: super::types::UserAssignmentSummary::default(),
-        user_devices: Vec::new(),
-        user_devices_count: 0,
+        user_tokens: Vec::new(),
+        user_tokens_count: 0,
         departments: Vec::new(),
         runtime: None,
         effective_permissions: None,
@@ -183,13 +183,9 @@ async fn load_runtime_view(pool: &PgPool, d: &crate::types::UserDetail) -> Optio
         .await
         .ok()
         .map(|r| UserRuntimeView {
-            connected_agents: r.connected_agents,
-            total_agents: r.total_agents,
+            requests: r.requests,
             tokens_in: r.tokens_in,
             tokens_out: r.tokens_out,
-            last_bridge_version: r.last_bridge_version,
-            last_os: r.last_os,
-            last_hostname: r.last_hostname,
-            last_heartbeat_at: r.last_heartbeat_at.map(|t| t.to_rfc3339()),
+            last_request_at: r.last_request_at.map(|t| t.to_rfc3339()),
         })
 }

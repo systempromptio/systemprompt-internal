@@ -314,15 +314,11 @@ Each recording is a live capture of the named script running against the binary.
 
 ---
 
-**Integrations**: any provider, Claude Desktop, web publisher, extensions.
+**Integrations**: any provider, web publisher, extensions.
 
 <picture><source media="(prefers-color-scheme: dark)" srcset="demo/recording/svg/output/dark/int-any-agent.svg"><source media="(prefers-color-scheme: light)" srcset="demo/recording/svg/output/light/int-any-agent.svg"><img src="demo/recording/svg/output/dark/int-any-agent.svg" alt="Any AI agent" width="820"></picture>
 
 <sub>Anthropic, OpenAI, Gemini swap at the profile level · cost attribution in integer microdollars · <code>./demo/agents/01-list-agents.sh</code> · <a href="https://systemprompt.io/features/any-ai-agent">Feature</a></sub>
-
-<picture><source media="(prefers-color-scheme: dark)" srcset="demo/recording/svg/output/dark/int-bridge.svg"><source media="(prefers-color-scheme: light)" srcset="demo/recording/svg/output/light/int-bridge.svg"><img src="demo/recording/svg/output/dark/int-bridge.svg" alt="Claude Desktop & Bridge" width="820"></picture>
-
-<sub>Skills persist across sessions via OAuth2 · <code>./demo/skills/01-skill-lifecycle.sh</code> · <a href="https://systemprompt.io/features/bridge">Feature</a></sub>
 
 <picture><source media="(prefers-color-scheme: dark)" srcset="demo/recording/svg/output/dark/int-web-publisher.svg"><source media="(prefers-color-scheme: light)" srcset="demo/recording/svg/output/light/int-web-publisher.svg"><img src="demo/recording/svg/output/dark/int-web-publisher.svg" alt="Web server & publisher" width="820"></picture>
 
@@ -346,10 +342,10 @@ Each recording is a live capture of the named script running against the binary.
 Claude for Work ships with extension points for inference, identity, and audit. Point them at this binary and every prompt, tool call, and cost line lands in a Postgres row you own.
 
 ```
-  Managed Device                 Enterprise Gateway              Upstream Inference
-  (Bridge via MDM)               (this binary, your VPC)         (pluggable)
+  Developer Machine              Enterprise Gateway              Upstream Inference
+  (Pi, Claude Code, curl)        (this binary, your VPC)         (pluggable)
   ───────────────── ──────────▶  ─────────────────────  ──────▶  ─────────────────
-  Credential helper              /v1/messages                    Anthropic direct
+  Access token                   /v1/messages                    Anthropic direct
   Managed MCP list               Governance pipeline             Bedrock / Vertex
   Signed plugins                 Audit to Postgres               OpenAI / Groq
                                                                  On-prem vLLM / Qwen
@@ -369,7 +365,7 @@ The same governance pipeline described above enforces scope, secrets, policy, an
 | **MCP allowlist** | Anthropic-curated | Device-local config | One registry, per-principal policy |
 | **Plugin catalogue** | Anthropic-hosted | Files on disk | Signed, scoped, versioned distribution |
 
-Manual install works end-to-end today; signed installers and MDM packages land in a later release. Full walkthrough: [docs/bridge-install.md](docs/bridge-install.md).
+Any client that speaks the Anthropic Messages API points at this gateway with an access token issued on `/admin/access/tokens`. Full walkthrough: [examples/pi/](examples/pi/).
 
 </details>
 

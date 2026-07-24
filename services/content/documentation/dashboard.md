@@ -25,8 +25,6 @@ related_docs:
     url: "/documentation/plugins"
   - title: "Integration: Claude Code"
     url: "/documentation/integration-claude-code"
-  - title: "Integration: Claude Cowork"
-    url: "/documentation/integration-claude-cowork"
 ---
 
 # Dashboard
@@ -132,8 +130,8 @@ The dashboard links to other admin pages:
 
 - Click **View all events** in the live activity feed to jump to the full events view
 - Use the sidebar to navigate to users, jobs, and other management pages
-- The **Share & Install** menu (share icon in the header) provides install commands for Claude Code and export options for Claude Cowork
-- New users see an onboarding panel with step-by-step installation guides for all three Claude surfaces (Claude Code, Cowork, and claude.ai)
+- The **Share & Install** menu (share icon in the header) provides install commands for Claude Code
+- New users see an onboarding panel with step-by-step installation guides for both Claude surfaces (Claude Code and claude.ai)
 
 ## Enterprise Cost & Usage Visibility
 

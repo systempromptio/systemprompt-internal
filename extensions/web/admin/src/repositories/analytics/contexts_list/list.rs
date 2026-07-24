@@ -79,10 +79,22 @@ pub async fn list_context_list(
             WHERE context_id IS NOT NULL
             GROUP BY context_id
         ),
+        -- Opening user turn per context, for the list's Conversation column.
+        -- Gateway turns are stored as a debug transcript rather than a bare
+        -- message, so the marker headers and the assistant's raw SSE half are
+        -- cut before truncating; without that the column shows protocol noise.
         preview AS (
             SELECT DISTINCT ON (r.context_id)
                 r.context_id,
-                LEFT(m.content, 160) AS summary
+                LEFT(
+                    NULLIF(
+                        BTRIM(regexp_replace(
+                            regexp_replace(
+                                split_part(m.content, '=== ASSISTANT ANSWER ===', 1),
+                                '=== USER PROMPT ===', '', 'g'),
+                            '\s+', ' ', 'g')),
+                        ''),
+                    160) AS summary
             FROM ai_request_messages m
             JOIN ai_requests r ON r.id = m.request_id
             WHERE r.context_id IS NOT NULL AND m.role = 'user'
@@ -126,7 +138,8 @@ pub async fn list_context_list(
                OR c.name ILIKE $4
                OR u.display_name ILIKE $4
                OR COALESCE(c.context_id, req.context_id) ILIKE $4
-               OR COALESCE(c.user_id, req.user_id) ILIKE $4)
+               OR COALESCE(c.user_id, req.user_id) ILIKE $4
+               OR preview.summary ILIKE $4)
         ORDER BY COALESCE(req.last_request_at, c.updated_at) DESC NULLS LAST
         LIMIT $5
         "#,

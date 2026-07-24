@@ -29,11 +29,14 @@ pub async fn list_departments(pool: &PgPool) -> Result<Vec<DepartmentSummary>, s
             d.created_at,
             d.updated_at
         FROM departments d
+        -- Driven from `users`, not from `user_profile_ext`: a user whose side
+        -- row has not been created yet still belongs to Default, and joining
+        -- through the side table dropped them from the count entirely.
         LEFT JOIN (
             SELECT COALESCE(NULLIF(upe.department, ''), 'Default') AS department,
                    COUNT(*)::BIGINT AS member_count
-            FROM user_profile_ext upe
-            JOIN users u ON u.id = upe.user_id
+            FROM users u
+            LEFT JOIN user_profile_ext upe ON upe.user_id = u.id
             WHERE NOT ('anonymous' = ANY(u.roles))
               AND u.email NOT LIKE '%@anonymous.local'
             GROUP BY 1
@@ -94,7 +97,7 @@ pub async fn list_department_members(
             WHERE created_at >= NOW() - INTERVAL '30 days'
             GROUP BY user_id
         ) ar ON ar.user_id = u.id
-        JOIN user_profile_ext upe ON upe.user_id = u.id
+        LEFT JOIN user_profile_ext upe ON upe.user_id = u.id
         WHERE COALESCE(NULLIF(upe.department, ''), 'Default') = $1
           AND NOT ('anonymous' = ANY(u.roles))
           AND u.email NOT LIKE '%@anonymous.local'

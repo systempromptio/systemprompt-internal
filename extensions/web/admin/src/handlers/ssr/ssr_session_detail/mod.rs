@@ -196,7 +196,7 @@ fn trace_view(t: &SessionTraceRow) -> SessionTraceRowView {
 fn request_view(r: &SessionRequestRow) -> SessionRequestRowView {
     SessionRequestRowView {
         id: r.id.clone(),
-        id_short: short_id(&r.id),
+        id_short: short_id(r.id.as_str()),
         request_url: request_detail_url(&r.id),
         context_id: r.context_id.clone(),
         context_id_short: r.context_id.as_ref().map(|c| short_id(c.as_str())),

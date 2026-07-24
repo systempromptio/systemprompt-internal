@@ -1,69 +1,53 @@
-<div class="panel-overlay" id="create-device-overlay"></div>
-<div class="side-panel" id="create-device-panel" role="dialog" aria-modal="true" aria-labelledby="create-device-title">
+<div class="panel-overlay" id="create-token-overlay"></div>
+<div class="side-panel" id="create-token-panel" role="dialog" aria-modal="true" aria-labelledby="create-token-title">
     <div class="panel-header">
-        <h2 id="create-device-title">Add Device</h2>
+        <h2 id="create-token-title">Issue access token</h2>
         <button type="button" class="panel-close" aria-label="Close panel">&times;</button>
     </div>
     <div class="panel-body">
-        <div id="new-device-form-state">
+        <div id="new-token-form-state">
             <div class="form-group">
-                <label for="new-device-name">Device name</label>
-                <input class="field-input" type="text" id="new-device-name" placeholder="Ed's MacBook Pro" autocomplete="off">
-                <p class="field-hint">A friendly label so you can identify this device in the dashboard.</p>
+                <label for="new-token-name">Token name</label>
+                <input class="field-input" type="text" id="new-token-name" placeholder="Ed's laptop — Pi" autocomplete="off">
+                <p class="field-hint">A friendly label so you can identify this token in the dashboard.</p>
             </div>
             <div class="form-group">
-                <label for="new-device-user">Owner</label>
-                <select class="field-input" id="new-device-user">
+                <label for="new-token-user">Owner</label>
+                <select class="field-input" id="new-token-user">
                     <option value="">-- Select user --</option>
                     {{#each user_options}}
                     <option value="{{user_id}}">{{label}}</option>
                     {{/each}}
                 </select>
+                <p class="field-hint">Governance resolves the caller's scope from this user's live role on every request.</p>
             </div>
             <div class="form-group">
-                <label for="new-device-platform">Platform</label>
-                <select class="field-input" id="new-device-platform">
-                    <option value="macos">macOS</option>
-                    <option value="windows">Windows</option>
-                    <option value="linux">Linux</option>
-                </select>
-                <p class="field-hint">Determines the install snippet shown after the device is created.</p>
+                <label for="new-token-expires">Expires at (optional)</label>
+                <input class="field-input" type="text" id="new-token-expires" placeholder="2026-12-31T23:59:59Z" autocomplete="off">
+                <p class="field-hint">ISO-8601 timestamp. Leave blank for a token that never expires.</p>
             </div>
-            <details class="form-advanced">
-                <summary>Advanced</summary>
-                <div class="form-group">
-                    <label for="new-device-hostname">Hostname (optional)</label>
-                    <input class="field-input" type="text" id="new-device-hostname" placeholder="ed-macbook.local" autocomplete="off">
-                    <p class="field-hint">
-                        The device's local network name &mdash; the output of <code>hostname</code> on the machine
-                        (e.g. <code>ed-macbook.local</code>). Used only to identify the device in this dashboard.
-                        <strong>This is not a URL.</strong> Leave blank to auto-detect on first connect.
-                    </p>
-                </div>
-            </details>
         </div>
 
-        <div id="new-device-success-state" hidden>
+        <div id="new-token-success-state" hidden>
             <div class="form-group">
-                <label for="new-device-secret">Personal Access Token</label>
-                <textarea class="field-input" id="new-device-secret" rows="2" readonly></textarea>
+                <label for="new-token-secret">Personal access token</label>
+                <textarea class="field-input" id="new-token-secret" rows="2" readonly></textarea>
                 <p class="field-hint"><strong>Copy this token now &mdash; it will not be shown again.</strong></p>
             </div>
-            <div class="install-block" id="new-device-install-block">
-                <h3 id="new-device-install-title">Install</h3>
-                <p class="install-intro" id="new-device-install-intro"></p>
-                <p>
-                    <a class="download-link" id="new-device-download-link" href="#" target="_blank" rel="noopener">
-                        Download installer &rarr;
-                    </a>
+            <div class="setup-block" id="new-token-setup-block">
+                <h3>Connect Pi</h3>
+                <p class="setup-intro">
+                    Run this on the machine that will use the token. Tool-level governance needs a
+                    separate hook token &mdash; <code>examples/pi/new-user.sh</code> provisions both
+                    in one pass.
                 </p>
                 <div class="snippet-wrap">
-                    <pre><code id="new-device-install-snippet"></code></pre>
-                    <button type="button" class="btn btn-tertiary btn-copy-snippet" data-action="copy-snippet" aria-label="Copy install snippet">Copy</button>
+                    <pre><code id="new-token-setup-snippet"></code></pre>
+                    <button type="button" class="btn btn-tertiary btn-copy-snippet" data-action="copy-snippet" aria-label="Copy setup snippet">Copy</button>
                 </div>
                 <p>
-                    <a class="install-guide-link" id="new-device-install-guide" href="#" target="_blank" rel="noopener">
-                        Full install guide &rarr;
+                    <a class="setup-guide-link" href="https://github.com/systempromptio/systemprompt-template/blob/main/examples/pi/README.md" target="_blank" rel="noopener">
+                        Full Pi setup guide &rarr;
                     </a>
                 </p>
             </div>
@@ -72,10 +56,10 @@
     <div class="panel-footer">
         <div class="panel-footer-state" data-state="form">
             <button type="button" class="btn btn-secondary" data-action="cancel">Cancel</button>
-            <button type="button" class="btn btn-primary" data-action="save">Create Device</button>
+            <button type="button" class="btn btn-primary" data-action="save">Issue token</button>
         </div>
         <div class="panel-footer-state" data-state="success" hidden>
-            <button type="button" class="btn btn-secondary" data-action="copy-snippet">Copy install snippet</button>
+            <button type="button" class="btn btn-secondary" data-action="copy-snippet">Copy setup snippet</button>
             <button type="button" class="btn btn-primary" data-action="done">Done</button>
         </div>
     </div>

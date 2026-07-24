@@ -77,7 +77,11 @@ pub async fn find_session_header(
             u.display_name                       AS "display_name?",
             upe.department                       AS "department?",
             COALESCE(s.started_at, r.first_seen) AS "started_at?",
-            COALESCE(s.ended_at, r.last_seen)    AS "last_activity_at?",
+            -- A hook session that never wrote an `ended_at` still has a last
+            -- activity: the moment it started. Falling through to NULL made
+            -- the field, and the duration derived from it, read as unknown.
+            COALESCE(s.ended_at, r.last_seen, s.started_at)
+                                                 AS "last_activity_at?",
             s.status                             AS "status?",
             COALESCE(s.model, r.model)           AS "model?",
             s.plugin_id                          AS "plugin_id?: PluginId",

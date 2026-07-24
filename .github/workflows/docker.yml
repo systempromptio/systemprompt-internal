@@ -50,7 +50,6 @@ env:
 jobs:
   build:
     name: Build (${{ matrix.arch }})
-    # bridge-v* releases are the client bundle — only gateway v* tags ship images.
     if: github.event_name != 'release' || startsWith(github.event.release.tag_name, 'v')
     strategy:
       fail-fast: true

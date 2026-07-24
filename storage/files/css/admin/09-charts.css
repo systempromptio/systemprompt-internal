@@ -73,47 +73,61 @@
     margin: 0 0 var(--sp-space-3);
 }
 
-/* Latency histogram — horizontal bars -------------------------------------- */
+/* Latency histogram — horizontal bars --------------------------------------
+   Every cell is pinned to row 1. The label used to rely on sparse
+   auto-placement to reach column 1 after a column-3 sibling, which is
+   impossible — the cursor never steps backwards — so it wrapped onto an
+   implicit second row and lined up with the next bar down. */
 .latency-histogram {
     display: flex;
     flex-direction: column;
     gap: var(--sp-space-1);
 }
 
-.latency-histogram__bar {
+.latency-histogram__row {
     display: grid;
-    grid-template-columns: 4rem 1fr 2.75rem;
+    grid-template-columns: 5.5rem 1fr 3rem;
     align-items: center;
-    gap: var(--sp-space-2);
-    min-height: 1.25rem;
+    gap: var(--sp-space-3);
+    min-height: 1.5rem;
+    border-radius: var(--sp-radius-sm);
+    transition: background var(--sp-duration-fast);
 }
 
-/* Every cell is pinned to row 1. The bar is generated content and so comes
-   first in grid order, ahead of the count (column 3) and the label (column 1);
-   without an explicit row, auto-placement refuses to step back to column 1 in a
-   row it has already passed and drops the label onto a second row, under its
-   own bar. */
+.latency-histogram__row:hover {
+    background: color-mix(in oklch, var(--sp-accent) 5%, transparent);
+}
+
 .latency-histogram__label {
     grid-column: 1;
     grid-row: 1;
     font-size: var(--sp-text-xs);
     color: var(--sp-text-secondary);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.latency-histogram__bar::before {
-    content: "";
+.latency-histogram__track {
     grid-column: 2;
     grid-row: 1;
     height: 0.75rem;
     border-radius: var(--sp-radius-sm);
-    background: linear-gradient(
-        to right,
-        var(--sp-chart-blue) var(--v, 0%),
-        color-mix(in oklch, var(--sp-warm-900) 6%, transparent) var(--v, 0%)
-    );
+    background: color-mix(in oklch, var(--sp-warm-900) 6%, transparent);
+}
+
+.latency-histogram__fill {
+    display: block;
+    width: var(--v, 0%);
+    height: 100%;
+    border-radius: var(--sp-radius-sm);
+    background: var(--sp-chart-blue);
+}
+
+.latency-histogram__row--peak .latency-histogram__fill {
+    background: var(--sp-accent);
 }
 
 .latency-histogram__count {
@@ -125,30 +139,127 @@
     color: var(--sp-text-tertiary);
 }
 
-/* Cost sparkline — vertical bars -------------------------------------------- */
-.cost-spark {
+.latency-histogram__axis {
     display: flex;
-    align-items: stretch;
-    gap: 2px;
-    height: 72px;
+    justify-content: space-between;
+    margin-top: var(--sp-space-2);
+    padding-top: var(--sp-space-1);
+    padding-left: calc(5.5rem + var(--sp-space-3));
+    border-top: 1px solid var(--sp-border-subtle);
+    font-size: var(--sp-text-xs);
+    color: var(--sp-text-tertiary);
 }
 
-.cost-spark__bar {
+/* Time series — vertical bars with a labelled axis --------------------------
+   Bars grow from a baseline via their own height, not a background gradient in
+   a fixed-height box, so the plot fills whatever height the panel gives it
+   instead of stranding itself at the top. */
+.timeseries {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-space-3);
+    flex: 1;
+    margin: 0;
+    min-width: 0;
+}
+
+.timeseries__head {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.timeseries__title {
+    font-size: var(--sp-text-sm);
+    font-weight: 600;
+    color: var(--sp-text-primary);
+}
+
+.timeseries__subtitle {
+    font-size: var(--sp-text-xs);
+    color: var(--sp-text-tertiary);
+    font-variant-numeric: tabular-nums;
+}
+
+.timeseries__plot {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--sp-space-3);
+    flex: 1;
+    min-height: 150px;
+}
+
+/* Axis labels sit at the top, middle, and baseline of the plot, which is what
+   ties a bar's height back to a number the reader can name. */
+.timeseries__y-axis {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-end;
+    font-size: var(--sp-text-xs);
+    color: var(--sp-text-tertiary);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+
+.timeseries__bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    border-bottom: 1px solid var(--sp-border-default);
+    background-image: linear-gradient(
+        to bottom,
+        var(--sp-border-subtle) 1px,
+        transparent 1px 100%
+    );
+    background-size: 100% 50%;
+    background-repeat: repeat-y;
+}
+
+.timeseries__bar {
     flex: 1 1 0;
     min-width: 0;
+    height: var(--v, 0%);
     border-radius: var(--sp-radius-sm) var(--sp-radius-sm) 0 0;
-    background: linear-gradient(
-        to top,
-        var(--sp-chart-green) var(--v, 0%),
-        transparent var(--v, 0%)
-    );
-    box-shadow: inset 0 -2px 0 0 color-mix(in oklch, var(--sp-warm-900) 12%, transparent);
+    background: var(--sp-chart-blue);
     transition: filter var(--sp-duration-fast);
 }
 
-.cost-spark__bar:hover {
+.timeseries[data-tone="success"] .timeseries__bar {
+    background: var(--sp-chart-green);
+}
+
+.timeseries__bar:hover {
     filter: brightness(1.12);
 }
+
+.timeseries__x-axis {
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--sp-text-xs);
+    color: var(--sp-text-tertiary);
+    font-variant-numeric: tabular-nums;
+}
+
+.chart-caption {
+    margin: 0;
+    font-size: var(--sp-text-xs);
+    color: var(--sp-text-secondary);
+}
+
+.chart-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    min-height: 150px;
+    margin: 0;
+    border: 1px dashed var(--sp-border-subtle);
+    border-radius: var(--sp-radius-sm);
+    font-size: var(--sp-text-sm);
+    color: var(--sp-text-tertiary);
+}
+
 
 /* Trace waterfall ---------------------------------------------------------- */
 .waterfall {

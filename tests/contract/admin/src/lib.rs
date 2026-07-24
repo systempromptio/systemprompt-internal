@@ -1,6 +1,6 @@
 //! HTTP contract coverage for the admin plane.
 //!
-//! Every route in `extensions/web/admin/src/routes/{admin,ssr,ssr_bridge}.rs`
+//! Every route in `extensions/web/admin/src/routes/{admin,ssr}.rs`
 //! is driven end-to-end through the *real* router — assembled exactly as
 //! `extensions/web/src/extension_impl.rs` assembles it — under three
 //! principals: anonymous, authenticated non-admin, and admin.

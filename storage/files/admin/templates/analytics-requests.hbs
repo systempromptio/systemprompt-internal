@@ -165,27 +165,7 @@
             </tbody>
         {{/components/data-table}}
 
-        <nav class="audit-pagination" aria-label="Requests pagination">
-            <span class="audit-pagination__pos">
-                Showing {{pagination.first_row}}–{{pagination.last_row}}
-                of {{pagination.total_rows}} {{pagination.noun}}
-            </span>
-            {{#if (gt pagination.total_pages 1)}}
-            {{#if pagination.has_prev}}
-                <a href="{{pagination.prev_url}}" class="btn btn-sm btn-outline">&larr; Previous</a>
-            {{else}}
-                <span class="btn btn-sm btn-outline is-disabled">&larr; Previous</span>
-            {{/if}}
-            <span class="audit-pagination__pos">
-                Page {{pagination.current_page}} of {{pagination.total_pages}}
-            </span>
-            {{#if pagination.has_next}}
-                <a href="{{pagination.next_url}}" class="btn btn-sm btn-outline">Next &rarr;</a>
-            {{else}}
-                <span class="btn btn-sm btn-outline is-disabled">Next &rarr;</span>
-            {{/if}}
-            {{/if}}
-        </nav>
+        {{> components/pagination pagination}}
         {{else}}
         {{> components/empty-state
             message="No inference requests match. Widen the time range, clear the filters, or run a demo to populate data."}}

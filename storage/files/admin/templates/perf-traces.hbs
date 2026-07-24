@@ -48,7 +48,7 @@
             <tr class="trace-row">
               <td class="col-started">
                 <div class="cell-stacked">
-                  <span class="cell-primary" title="{{this.started_at}}">{{this.started_at_time}}</span>
+                  <span class="cell-primary">{{this.started_at_time}}</span>
                   <span class="cell-secondary">{{this.started_at_day}}</span>
                 </div>
               </td>
@@ -82,7 +82,7 @@
                 <div class="cell-stacked">
                   <span class="cell-primary">{{this.activity_display}}</span>
                   {{#if this.governance_display}}
-                    <span class="cell-secondary" title="Governance decisions · tool calls">{{this.governance_display}}</span>
+                    <span class="cell-secondary">{{this.governance_display}}</span>
                   {{/if}}
                 </div>
               </td>
@@ -97,8 +97,8 @@
               <td class="col-cost">{{this.cost_display}}</td>
               <td class="col-duration">
                 <div class="cell-stacked">
-                  <span class="cell-primary" title="Summed request latency — the work this trace did">{{this.active_display}}</span>
-                  <span class="cell-secondary" title="First-to-last event on this session id">{{this.window_display}} window</span>
+                  <span class="cell-primary">{{this.active_display}}</span>
+                  <span class="cell-secondary">{{this.window_display}} window</span>
                 </div>
               </td>
               <td class="col-status">

@@ -50,7 +50,9 @@
         <tbody>
         {{#each sessions}}
         <tr>
-          <td class="col-date" title="{{this.started_at}}">{{#if this.started_at_local}}{{this.started_at_local}}{{else}}&mdash;{{/if}}</td>
+          {{!-- Guarded: strict mode rejects a null inside an attribute, and a
+                hook session can arrive with no timestamp at all. --}}
+          <td class="col-date" {{#if this.started_at}}title="{{this.started_at}}"{{/if}}>{{#if this.started_at_local}}{{this.started_at_local}}{{else}}&mdash;{{/if}}</td>
           <td>
             <div class="cell-stacked">
               <div class="cell-primary">
@@ -74,7 +76,7 @@
           <td class="col-status">
             {{> components/badge color=this.source_variant text=this.source_label}}
           </td>
-          <td>
+          <td class="col-model">
             <div class="cell-stacked">
               <div class="cell-primary">{{#if this.model}}<code class="code-inline">{{this.model}}</code>{{else}}&mdash;{{/if}}</div>
               {{#if this.client_source}}<div class="cell-secondary">{{this.client_source}}</div>{{/if}}

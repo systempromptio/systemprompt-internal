@@ -5,6 +5,7 @@ import { initTheme } from './theme.js';
 import { initHeaderActions } from './header-actions.js';
 import { initHeaderSearch } from './header-search.js';
 import { initLogout, initUserDisplay, getUserContext } from './auth.js';
+import { initFilterRibbon } from './filter-ribbon.js';
 
 setCloseMenus(closeAllMenus);
 initDelegation();
@@ -13,6 +14,7 @@ initSidebar();
 initTheme();
 initHeaderActions();
 initHeaderSearch();
+initFilterRibbon();
 initLogout();
 initUserDisplay();
 getUserContext();

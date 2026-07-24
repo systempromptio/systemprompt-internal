@@ -89,8 +89,8 @@ pub(super) struct StatsView {
     pub(super) p99_display: String,
 }
 
-/// The five sortable headers, named so the template reads as a table layout
-/// rather than an indexed list.
+// Why: named fields rather than a Vec so the template addresses each header by
+// name and the column set is checked at compile time.
 #[derive(Debug, Serialize)]
 pub(super) struct SortHeaders {
     pub(super) started: SortHeader,
@@ -100,12 +100,13 @@ pub(super) struct SortHeaders {
     pub(super) duration: SortHeader,
 }
 
-/// One clickable column header: where it links, and how it reads to a screen
-/// reader when it is the active sort.
 #[derive(Debug, Serialize)]
 pub(super) struct SortHeader {
     pub(super) label: &'static str,
     pub(super) class: &'static str,
+    // Why: the column explanation lives on the `th` because the row-wide link
+    // overlay would cover the same tooltip on a cell.
+    pub(super) hint: &'static str,
     pub(super) url: String,
     pub(super) active: bool,
     pub(super) aria_sort: &'static str,
@@ -116,7 +117,8 @@ pub(super) struct SortHeader {
 pub(super) struct Pagination {
     pub(super) current_page: i64,
     pub(super) total_pages: i64,
-    /// 1-based row range shown on this page, for "Showing 1–50 of 54".
+    // Why: 1-based row range for "Showing 1-50 of 54"; `first_row` is 0 only
+    // when the page is empty.
     pub(super) first_row: i64,
     pub(super) last_row: i64,
     pub(super) total_rows: i64,

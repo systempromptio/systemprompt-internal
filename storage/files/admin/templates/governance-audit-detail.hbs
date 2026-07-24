@@ -73,7 +73,7 @@
       {{/if}}
       <div class="trace-detail__field">
         <span class="trace-detail__label">Session</span>
-        <code class="code-inline" title="{{summary.session_id}}">{{summary.session_id_short}}</code>
+        <a href="{{summary.session_url}}"><code class="code-inline" title="{{summary.session_id}}">{{summary.session_id_short}}</code></a>
       </div>
       {{#if summary.trace_url}}
         <div class="trace-detail__field">

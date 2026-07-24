@@ -100,12 +100,25 @@
     width: 100%;
 }
 
+/* The panel is already the card, so the table container inside it drops its own
+   border, radius, and shadow rather than drawing a second card one pixel in.
+   It keeps .table-scroll, which is the point: a wide table scrolls sideways
+   inside the panel instead of widening the page. */
+.overview-pane > .table-container {
+    background: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+}
+
 /* ---------- transcript: message stream ---------- */
 
+/* One column, one left edge. This is an audit surface: turns are read in
+   sequence and compared against each other, which indented or side-aligned
+   message bubbles actively obstruct. */
 .transcript {
     list-style: none;
-    margin: 0 auto;
-    max-width: 62rem;
+    margin: 0;
     display: flex;
     flex-direction: column;
     gap: var(--sp-space-3);
@@ -117,35 +130,25 @@
     border: none;
 }
 
-/* Message block. Role tinting carries the speaker, so no rails or dividers. */
+/* Message block. A role-coloured rail carries the speaker; every turn keeps the
+   same left edge and the same full width. */
 .transcript__entry--user,
 .transcript__entry--assistant {
     padding: var(--sp-space-3) var(--sp-space-4);
     border: 1px solid var(--sp-border-subtle);
+    border-inline-start: 3px solid var(--sp-border-default);
     border-radius: var(--sp-radius-card-inner);
 }
 
 .transcript__entry--user {
     background: var(--sp-accent-surface);
     border-color: color-mix(in oklch, var(--sp-accent) 24%, transparent);
-    margin-inline-start: var(--sp-space-6);
+    border-inline-start-color: var(--sp-accent);
 }
 
 .transcript__entry--assistant {
     background: var(--sp-bg-surface-alt);
-    margin-inline-end: var(--sp-space-6);
-}
-
-/* Consecutive same-role turns are one continued utterance: tighten the gap and
-   drop the repeated role label rather than fading it out. */
-.transcript__entry--user + .transcript__entry--user,
-.transcript__entry--assistant + .transcript__entry--assistant {
-    margin-top: calc(var(--sp-space-3) * -1 + var(--sp-space-1));
-}
-
-.transcript__entry--user + .transcript__entry--user > .transcript__head .transcript__role,
-.transcript__entry--assistant + .transcript__entry--assistant > .transcript__head .transcript__role {
-    display: none;
+    border-inline-start-color: var(--sp-section-users);
 }
 
 /* ---------- message meta line ---------- */
@@ -154,14 +157,46 @@
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
+    gap: var(--sp-space-2) var(--sp-space-3);
+    font-size: var(--sp-text-sm);
+    color: var(--sp-text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Telemetry rail: what this turn cost and how it was served. Pushed to the end
+   of the meta line so the role and time stay flush left and the numbers form a
+   readable column down the thread. */
+.transcript__meta {
+    margin-inline-start: auto;
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
     gap: var(--sp-space-2);
-    font-size: var(--sp-text-xs);
+    font-size: var(--sp-text-sm);
     color: var(--sp-text-tertiary);
     font-variant-numeric: tabular-nums;
 }
 
+.transcript__meta-item {
+    white-space: nowrap;
+}
+
+.transcript__meta-model {
+    font-family: var(--sp-font-mono);
+    color: var(--sp-text-secondary);
+}
+
+.transcript__meta-sep {
+    color: var(--sp-border-default);
+}
+
+.transcript__meta-status--error {
+    color: var(--sp-danger);
+    font-weight: 600;
+}
+
 .transcript__role {
-    font-size: var(--sp-text-xs);
+    font-size: var(--sp-text-sm);
     text-transform: uppercase;
     letter-spacing: 0.06em;
     font-weight: 700;
@@ -177,10 +212,9 @@
     font-variant-numeric: tabular-nums;
 }
 
-/* Pushed to the end of the meta line and given a real affordance — it was
-   indistinguishable from the surrounding tertiary text. */
+/* Sits after the telemetry rail, which owns the auto margin, and is given a
+   real affordance — it was indistinguishable from the surrounding text. */
 .transcript__req {
-    margin-inline-start: auto;
     color: var(--sp-text-tertiary);
     border: 1px solid var(--sp-border-subtle);
     text-decoration: none;
@@ -194,8 +228,8 @@
 
 .transcript__body {
     margin: var(--sp-space-2) 0 0;
-    font-size: var(--sp-text-sm);
-    line-height: 1.6;
+    font-size: var(--sp-text-base);
+    line-height: 1.65;
     color: var(--sp-text-primary);
     white-space: pre-wrap;
     word-break: break-word;
@@ -278,6 +312,14 @@
 
 /* ---------- transcript: system divider ---------- */
 
+/* A system turn is a boundary marker, not a message: it opts out of the
+   message-block treatment entirely and renders as a labelled rule. */
+.transcript__entry--system {
+    padding: 0;
+    background: none;
+    border: none;
+}
+
 .transcript__system {
     display: flex;
     align-items: center;
@@ -328,10 +370,13 @@
     .overview-pane > .section-title {
         padding: var(--sp-space-2) var(--sp-space-3);
     }
-    /* Reclaim the indent that signalled speaker direction — at this width the
-       role label and tint carry it on their own. */
-    .transcript__entry--user    { margin-inline-start: 0; }
-    .transcript__entry--assistant { margin-inline-end: 0; }
+    /* The telemetry rail stops being a rail: at this width it wraps under the
+       role and time rather than being pushed to a right edge that is no longer
+       far enough away to read as a column. */
+    .transcript__meta {
+        margin-inline-start: 0;
+        flex-basis: 100%;
+    }
     .trace-detail__summary {
         gap: var(--sp-space-2);
         padding: var(--sp-space-2) var(--sp-space-3);
@@ -342,7 +387,6 @@
 
 @media print {
     .overview-pane { box-shadow: none; }
-    .transcript { max-width: none; }
     .transcript__entry { break-inside: avoid; }
     .transcript__tool[open] .code-block { max-height: none; overflow: visible; }
 }

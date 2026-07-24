@@ -26,7 +26,7 @@ pub(super) fn session_row(s: &SessionListItem) -> SessionRowView {
     SessionRowView {
         session_id: s.session_id.to_string(),
         session_id_short: short_id(s.session_id.as_str()),
-        detail_url: session_detail_url(s.session_id.as_str()),
+        detail_url: session_detail_url(&s.session_id),
         ai_title: s.ai_title.clone(),
         user_id: s.user_id.as_ref().map(ToString::to_string),
         user_label,
@@ -58,7 +58,8 @@ pub(super) fn session_row(s: &SessionListItem) -> SessionRowView {
 /// the error count is the only status signal they have.
 fn status_label(s: &SessionListItem) -> String {
     if s.error_count > 0 {
-        return format!("{} error(s)", s.error_count);
+        let noun = if s.error_count == 1 { "error" } else { "errors" };
+        return format!("{} {noun}", s.error_count);
     }
     s.status
         .clone()

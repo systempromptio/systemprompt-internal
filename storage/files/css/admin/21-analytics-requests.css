@@ -35,4 +35,25 @@
     outline-offset: -2px;
 }
 
+/* Log footer: the row range on the left, the page stepper on the right, so the
+   reader can see what is on screen without counting rows. */
+.audit-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--sp-space-3);
+    margin-top: var(--sp-space-4);
+}
+
+.audit-pagination__pos {
+    font-size: var(--sp-text-sm);
+    color: var(--sp-text-tertiary);
+    font-variant-numeric: tabular-nums;
+}
+
+.audit-pagination__pos:first-child {
+    margin-right: auto;
+}
+
 }

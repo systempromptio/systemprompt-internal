@@ -10,7 +10,7 @@ tags: ["demo", "governance", "allowed", "hooks"]
 published_at: "2026-03-20"
 updated_at: "2026-03-26"
 after_reading_this:
-  - "Run the allowed path demo end-to-end using Cowork"
+  - "Run the allowed path demo end-to-end in Claude Code"
   - "Understand what governance checks pass and why"
   - "Read the audit trail proving the tool call was allowed"
 related_docs:
@@ -26,7 +26,7 @@ related_docs:
 
 ## Overview
 
-This demo uses Cowork (Claude Code) with the **enterprise-demo** plugin installed. The `example-web-search` skill instructs Claude to use the WebSearch tool. The PreToolUse governance hook evaluates the tool input, finds no policy violations, and allows the call. The full request is governed, traced, and logged.
+This demo uses Claude Code with the **enterprise-demo** plugin installed. The `example-web-search` skill instructs Claude to use the WebSearch tool. The PreToolUse governance hook evaluates the tool input, finds no policy violations, and allows the call. The full request is governed, traced, and logged.
 
 > **Terminal alternative:** [Agent Messaging](/documentation/demo-terminal-agents) covers this same path using CLI commands.
 
@@ -48,7 +48,7 @@ Ensure the platform is healthy and the enterprise-demo plugin appears in Claude 
 
 ---
 
-## Step 1: Invoke the skill in Cowork
+## Step 1: Invoke the skill in Claude Code
 
 Open Claude Code with the enterprise-demo plugin and ask:
 

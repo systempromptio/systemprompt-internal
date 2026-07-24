@@ -6,18 +6,20 @@
     border: 1px solid var(--sp-border-subtle);
     border-radius: var(--sp-radius-card-brand);
     box-shadow: var(--sp-shadow-card), var(--sp-shadow-inner-glow);
-    overflow-x: auto;
     max-width: 100%;
 }
 
+/* Only the inner element scrolls. Both used to, which produced two nested
+   scrollbars on a wide table and let the inner one sit outside the card's
+   rounded corner. */
 .table-scroll {
     overflow-x: auto;
+    border-radius: inherit;
 }
 
 /* Classic CSS scroll shadow: the `local` layers mask the `scroll` shadows
    until the content actually overflows, so the cue only appears when there
    is something more to see sideways. */
-.table-container,
 .table-scroll {
     background-image:
         linear-gradient(to right, var(--sp-bg-surface), transparent),
@@ -30,18 +32,8 @@
     background-attachment: local, local, scroll, scroll;
 }
 
-.admin-main > .table-container {
-    flex: 1 1 0;
-    min-height: 200px;
-    display: flex;
-    flex-direction: column;
-}
-
-.admin-main > .table-container > .table-scroll {
-    flex: 1 1 0;
-    min-height: 0;
-    max-height: none;
-}
+/* A table is sized by its rows and the page scrolls; 02-base-layout.css states
+   that once, for every page section, so there is no per-element rule here. */
 
 .data-table {
     min-width: 100%;

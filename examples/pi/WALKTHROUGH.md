@@ -8,21 +8,28 @@ Prerequisites: server built and running (`just build`, `just start`), Pi
 installed and wired (`examples/pi/setup.sh`), and the per-model gateway
 routes added once (`examples/pi/routes.sh`, then restart the server).
 
-## 1. Sign up a new user
+## 1. Choose the user Pi acts as
 
 ```bash
-examples/pi/new-user.sh                                # prompts, defaults in brackets
+examples/pi/new-user.sh                                # menu of existing users
 examples/pi/new-user.sh alice@demo.local "Alice Demo"  # non-interactive
 ```
 
-Run with no arguments it asks for the email and display name, so the demo
-can be someone in the room rather than `pi-demo@demo.local`. It ends by
-printing the dashboard URLs for the user it just made.
+Run with no arguments it lists the users already in the database, admins
+first, and asks which one to act as — so the demo can be you, or someone in
+the room, and their usage lands on their own profile page. Pick `n` to create
+a fresh demo user instead. It ends by printing the dashboard URLs for whoever
+was selected.
 
-This registers the user with the default `user` role, has the admin API
-issue them a personal access token (the same `sp-live-…` credential the
-`/admin/devices` page self-issues), writes it to
-`~/.config/systemprompt-pi/`, and smoke-tests `/v1/messages` as them.
+Selecting an admin changes what the governance demo can prove: admins are
+exempt from `scope_check` and `tool_blocklist`, so those two cases come back
+allowed. `demo/governance/09-pi-agent.sh` detects this and asserts the
+exemption; select a non-admin to walk the denial path.
+
+The script has the admin API issue the selected user a personal access token
+(the same `sp-live-…` credential the `/admin/devices` page self-issues),
+writes it to `~/.config/systemprompt-pi/`, and smoke-tests `/v1/messages` as
+them. It never changes the roles of a user it did not create.
 
 Browser equivalent: `/admin/register` is the self-signup page
 (magic-link + passkey); a logged-in user then issues their own API key
@@ -112,7 +119,7 @@ call, every tool fire. The blocked prompt from step 3a has no model call under
 it, and the blocked write has no tool fire.
 
 Then open **`/admin/models`** (sidebar: Governance → Model Selection) and pick
-`pi-demo@demo.local`:
+the user you selected in step 1:
 
 - The model table shows each gateway route, its provider, and whether it
   is enabled for this user.

@@ -30,11 +30,13 @@
       {{/if}}
       <div class="trace-detail__field">
         <span class="trace-detail__label">Started</span>
-        <span title="{{header.started_at}}">{{#if header.started_at_local}}{{header.started_at_local}}{{else}}—{{/if}}</span>
+        {{!-- The title attribute must be guarded too: strict mode rejects a null
+              value inside an attribute just as it does in body text. --}}
+        <span {{#if header.started_at}}title="{{header.started_at}}"{{/if}}>{{#if header.started_at_local}}{{header.started_at_local}}{{else}}&mdash;{{/if}}</span>
       </div>
       <div class="trace-detail__field">
         <span class="trace-detail__label">Last activity</span>
-        <span title="{{header.last_activity_at}}">{{#if header.last_activity_at_local}}{{header.last_activity_at_local}}{{else}}—{{/if}}</span>
+        <span {{#if header.last_activity_at}}title="{{header.last_activity_at}}"{{/if}}>{{#if header.last_activity_at_local}}{{header.last_activity_at_local}}{{else}}&mdash;{{/if}}</span>
       </div>
       <div class="trace-detail__field">
         <span class="trace-detail__label">Duration</span>

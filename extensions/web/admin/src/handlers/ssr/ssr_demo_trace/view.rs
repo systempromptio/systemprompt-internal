@@ -30,11 +30,11 @@ pub(super) struct SessionView {
     pub is_active: bool,
 }
 
-/// One policy the governance pipeline evaluated for a single decision.
+// Why: one policy the governance pipeline evaluated for a single decision;
+// `result` is `pass` | `fail` | `skip`, as written by the audit payload.
 #[derive(Debug, Serialize)]
 pub(super) struct StageView {
     pub policy: String,
-    /// `pass` | `fail` | `skip`, as written by the governance audit payload.
     pub result: String,
     pub detail: String,
     pub is_fail: bool,
@@ -198,10 +198,8 @@ fn new_turn(ordinal: usize, prompt: &str) -> TurnView {
     }
 }
 
-/// Fold the flat timeline into turns, each opened by a prompt-gate decision.
-///
-/// Rows that arrive before any prompt (a gateway-only run has no hook spine)
-/// land in a leading turn 0 rather than being dropped.
+// Why: rows that arrive before any prompt (a gateway-only run has no hook
+// spine) open a leading turn of their own rather than being dropped.
 pub(super) fn to_turn_views(rows: Vec<DemoTraceRow>) -> Vec<TurnView> {
     let Some(origin) = rows.first().map(|r| r.at) else {
         return Vec::new();

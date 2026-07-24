@@ -105,7 +105,7 @@ fn build_admin_write_routes(write_pool: &Arc<PgPool>) -> Router {
         )
         .route(
             "/users/{user_id}/pats",
-            post(handlers::devices::issue_user_pat),
+            post(handlers::access_tokens::issue_user_pat),
         )
         .route(
             "/demo-register",
@@ -147,10 +147,6 @@ fn build_admin_write_routes(write_pool: &Arc<PgPool>) -> Router {
         .route(
             "/management/users/{user_id}/department",
             put(handlers::departments::assign_user_to_department_handler),
-        )
-        .route(
-            "/management/devices",
-            post(handlers::devices::enroll_device),
         )
         .with_state(Arc::clone(write_pool))
 }

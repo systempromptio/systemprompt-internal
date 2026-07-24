@@ -202,3 +202,6 @@ tests/target/
 ISSUE.md
 .audit-state
 rustc-ice-*.txt
+
+# Build coordinator ledger (shared build/lint/test state across agents)
+/.build/

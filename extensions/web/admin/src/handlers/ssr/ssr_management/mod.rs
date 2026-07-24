@@ -1,8 +1,9 @@
-//! `/admin/management/*` — Departments and Devices SSR pages.
+//! Departments and Access tokens SSR pages.
 //!
 //! Three admin-only page handlers: the department roster, a single department
-//! detail (members + token/cost rollup + top tools), and the enrolled-device
-//! fleet. View-model assembly lives in the `departments` / `devices` children.
+//! detail (members + token/cost rollup + top tools), and the access-token
+//! console. View-model assembly lives in the `departments` / `access_tokens`
+//! children.
 
 use std::sync::Arc;
 
@@ -17,14 +18,14 @@ use crate::types::{MarketplaceContext, UserContext};
 
 use super::ssr_helpers::render_typed_page;
 
+mod access_tokens;
 mod departments;
-mod devices;
 
-use departments::{DepartmentDetailPageData, DepartmentsPageData, sum_member_totals, url_escape};
-use devices::{
-    ManagementDevicesPageData, build_device_rows, compute_owner_rowspans, load_device_user_options,
-    load_devices,
+use access_tokens::{
+    ManagementAccessTokensPageData, build_token_rows, compute_owner_rowspans, load_access_tokens,
+    load_token_user_options,
 };
+use departments::{DepartmentDetailPageData, DepartmentsPageData, sum_member_totals, url_escape};
 
 fn forbidden() -> AdminHtmlError {
     AdminError::Forbidden("Admin access required.".to_owned()).into()
@@ -59,7 +60,7 @@ pub(crate) async fn management_departments_page(
     ))
 }
 
-pub(crate) async fn management_devices_page(
+pub(crate) async fn management_access_tokens_page(
     Extension(user_ctx): Extension<UserContext>,
     Extension(mkt_ctx): Extension<MarketplaceContext>,
     Extension(engine): Extension<AdminTemplateEngine>,
@@ -69,13 +70,12 @@ pub(crate) async fn management_devices_page(
         return Err(forbidden());
     }
 
-    let rows = load_devices(&pool).await;
+    let rows = load_access_tokens(&pool).await;
 
-    let (mut devices, online) = build_device_rows(rows);
-    let total = devices.len();
-    compute_owner_rowspans(&mut devices);
+    let (mut tokens, counts) = build_token_rows(rows);
+    compute_owner_rowspans(&mut tokens);
 
-    let user_options = load_device_user_options(&pool).await;
+    let user_options = load_token_user_options(&pool).await;
 
     let department_options: Vec<String> = repositories::departments::list_departments(&pool)
         .await
@@ -84,18 +84,19 @@ pub(crate) async fn management_devices_page(
         .map(|d| d.name)
         .collect();
 
-    let data = ManagementDevicesPageData {
-        page: "devices",
-        title: "Devices",
-        devices,
-        total,
-        online,
+    let data = ManagementAccessTokensPageData {
+        page: "tokens",
+        title: "Access tokens",
+        tokens,
+        total: counts.total,
+        active: counts.active,
+        expiring_soon: counts.expiring_soon,
         user_options,
         department_options,
     };
     Ok(render_typed_page(
         &engine,
-        "management-devices",
+        "management-access-tokens",
         &data,
         &user_ctx,
         &mkt_ctx,

@@ -138,6 +138,8 @@ pub(super) struct TrafficStatsView {
     pub total_cost_display: String,
     pub user_count: i64,
     pub model_count: i64,
+    /// Whether `user_count` / `model_count` were actually fetched on this tab.
+    pub has_distribution: bool,
 }
 
 #[derive(Debug, Serialize)]

@@ -27,10 +27,12 @@
 #   PART B (only with --live) — drives the real `pi` binary through the same
 #     gates so you can watch the agent get blocked. Costs model tokens.
 #
-# Identity: this demo needs a USER-scope caller. Admins are exempt from
-# scope_check and tool_blocklist (see 05-governance-denied.sh), so it prefers
-# the Pi demo user's governance token written by examples/pi/new-user.sh and
-# falls back to demo/.token.user from 00-preflight.sh.
+# Identity: the caller is whoever examples/pi/new-user.sh was pointed at
+# (~/.config/systemprompt-pi/), falling back to demo/.token.user from
+# 00-preflight.sh. Admins are exempt from scope_check and tool_blocklist
+# (scope_check.rs:66, tool_blocklist.rs:59), so cases 4 and 5 are asserted as
+# ALLOW for an admin caller — that exemption IS the enforced outcome. Pick a
+# non-admin user to see the denial path.
 #
 # Cost: Free (Part A). Part B makes real model calls.
 
@@ -98,14 +100,39 @@ echo ""
 # /hooks/govern validates a JWT (aud = hook|plugin|api); the sp-live-… PAT that
 # Pi uses for /v1/messages is rejected there, which is why new-user.sh mints a
 # second, user-scope token.
+CALLER_IS_ADMIN=0
+CALLER_USER_ID=""
 if [[ -s "$PI_CRED_DIR/hook-token" ]]; then
   HOOK_TOKEN=$(cat "$PI_CRED_DIR/hook-token")
-  echo "  Caller: the Pi demo user ($PI_CRED_DIR/hook-token)"
+  CALLER_EMAIL="the Pi user"
+  CALLER_ROLES="unknown"
+  if [[ -s "$PI_CRED_DIR/user.json" ]]; then
+    CALLER_EMAIL=$(jq -r '.email' "$PI_CRED_DIR/user.json")
+    CALLER_ROLES=$(jq -r '.roles' "$PI_CRED_DIR/user.json")
+    CALLER_USER_ID=$(jq -r '.id' "$PI_CRED_DIR/user.json")
+    [[ "$(jq -r '.is_admin' "$PI_CRED_DIR/user.json")" == "true" ]] && CALLER_IS_ADMIN=1
+  fi
+  echo "  Caller: $CALLER_EMAIL — roles: $CALLER_ROLES ($PI_CRED_DIR/hook-token)"
 else
   load_user_token "${LIVE_TOKEN:-}"
   HOOK_TOKEN="$USER_TOKEN"
   echo "  Caller: demo_user (demo/.token.user) — run examples/pi/new-user.sh"
-  echo "          to govern as the Pi demo user instead"
+  echo "          to govern as a user you select from the database instead"
+fi
+
+# Admins are exempt from two of the four policies, so the expected decision for
+# those two cases is ALLOW. Computing it here (rather than hard-coding DENY)
+# keeps every case a real assertion whichever user was selected.
+if [[ $CALLER_IS_ADMIN -eq 1 ]]; then
+  SCOPED_EXPECT="allow"
+  echo ""
+  echo "  This caller is an admin. scope_check (scope_check.rs:66) and"
+  echo "  tool_blocklist (tool_blocklist.rs:59) short-circuit on admin scope,"
+  echo "  so cases 4 and 5 below are asserted as ALLOW — that exemption is the"
+  echo "  enforced outcome, not a gap. secret_scan has no exemption and still"
+  echo "  denies. Select a non-admin user to prove the denial path."
+else
+  SCOPED_EXPECT="deny"
 fi
 echo ""
 
@@ -165,7 +192,7 @@ govern_event "TOOL GATE: write a .env containing a GitHub PAT" "deny" '{
 # ── 4. Destructive tool — blocklist ─────────────────────────────────────────
 # Deliberately NOT mcp__systemprompt__delete_*: scope_check runs first and would
 # short-circuit an admin-prefixed name, so the audit row would read scope_check.
-govern_event "TOOL GATE: destructive custom tool (tool_blocklist)" "deny" '{
+govern_event "TOOL GATE: destructive custom tool (tool_blocklist)" "$SCOPED_EXPECT" '{
   "hook_event_name": "PreToolUse",
   "session_id": "'"$SESSION"'",
   "cwd": "/var/www/html/systemprompt-template",
@@ -175,7 +202,7 @@ govern_event "TOOL GATE: destructive custom tool (tool_blocklist)" "deny" '{
 }'
 
 # ── 5. Admin-only tool — scope check ────────────────────────────────────────
-govern_event "TOOL GATE: admin-only MCP tool (scope_check)" "deny" '{
+govern_event "TOOL GATE: admin-only MCP tool (scope_check)" "$SCOPED_EXPECT" '{
   "hook_event_name": "PreToolUse",
   "session_id": "'"$SESSION"'",
   "cwd": "/var/www/html/systemprompt-template",
@@ -229,8 +256,12 @@ if $LIVE; then
     echo "  ^ The model was handed the denial reason and had to explain it."
     echo ""
 
-    assert_min "$(db_count "SELECT COUNT(*) FROM governance_decisions WHERE session_id = '$SESSION' $SINCE AND policy = 'tool_blocklist' AND decision = 'deny'")" \
-      2 "the live delete_records call was blocked too (Part A + Part B)"
+    if [[ $CALLER_IS_ADMIN -eq 0 ]]; then
+      assert_min "$(db_count "SELECT COUNT(*) FROM governance_decisions WHERE session_id = '$SESSION' $SINCE AND policy = 'tool_blocklist' AND decision = 'deny'")" \
+        2 "the live delete_records call was blocked too (Part A + Part B)"
+    else
+      echo "  (admin caller: tool_blocklist is exempt, so the live call ran)"
+    fi
     echo ""
 
     # Why not a live "write a .env full of secrets" case? Two reasons, both
@@ -257,28 +288,52 @@ echo ""
   --profile "$PROFILE" 2>&1 | grep -v "^\[profile"
 echo ""
 
-# Part A produces exactly four denials. A --live run adds its own, so only the
-# deterministic path can assert an exact count.
+# Part A produces four denials for a user-scope caller, and two for an admin —
+# the two secret_scan cases, the policies with no admin exemption. A --live run
+# adds its own, so only the deterministic path can assert an exact count.
+if [[ $CALLER_IS_ADMIN -eq 1 ]]; then
+  EXPECTED_DENIES=2
+  EXPECTED_ALLOWS=4
+else
+  EXPECTED_DENIES=4
+  EXPECTED_ALLOWS=2
+fi
 DENIES=$(db_count "SELECT COUNT(*) FROM governance_decisions WHERE session_id = '$SESSION' $SINCE AND decision = 'deny'")
 if $LIVE; then
-  assert_min "$DENIES" 4 "at least the four scripted denials landed in the audit"
+  assert_min "$DENIES" "$EXPECTED_DENIES" "at least the $EXPECTED_DENIES scripted denials landed in the audit"
 else
-  assert_eq "$DENIES" "4" "4 denials landed in the audit"
+  assert_eq "$DENIES" "$EXPECTED_DENIES" "$EXPECTED_DENIES denials landed in the audit"
 fi
 assert_min "$(db_count "SELECT COUNT(*) FROM governance_decisions WHERE session_id = '$SESSION' $SINCE AND decision = 'allow'")" \
-  2 "both clean events were allowed"
+  "$EXPECTED_ALLOWS" "the clean events were allowed"
 assert_min "$(db_count "SELECT COUNT(*) FROM governance_decisions WHERE session_id = '$SESSION' $SINCE AND tool_name = 'user_prompt' AND policy = 'secret_scan'")" \
   1 "the prompt gate denial is attributed to secret_scan"
-assert_min "$(db_count "SELECT COUNT(*) FROM governance_decisions WHERE session_id = '$SESSION' $SINCE AND policy = 'tool_blocklist'")" \
-  1 "tool_blocklist fired on delete_records"
-assert_min "$(db_count "SELECT COUNT(*) FROM governance_decisions WHERE session_id = '$SESSION' $SINCE AND policy = 'scope_check'")" \
-  1 "scope_check fired on the admin-only tool"
+if [[ $CALLER_IS_ADMIN -eq 0 ]]; then
+  assert_min "$(db_count "SELECT COUNT(*) FROM governance_decisions WHERE session_id = '$SESSION' $SINCE AND policy = 'tool_blocklist'")" \
+    1 "tool_blocklist fired on delete_records"
+  assert_min "$(db_count "SELECT COUNT(*) FROM governance_decisions WHERE session_id = '$SESSION' $SINCE AND policy = 'scope_check'")" \
+    1 "scope_check fired on the admin-only tool"
+else
+  echo "  (admin caller: tool_blocklist and scope_check are exempt by design)"
+fi
 
 # The point of a prompt gate: the blocked prompt produced no provider call at
 # all. In Part A that is true by construction (no model was ever invoked); with
 # --live it is the real proof, because the other prompts DID reach a model.
 assert_eq "$(db_count "SELECT COUNT(*) FROM ai_requests WHERE session_id = '$SESSION' $SINCE AND status = 'error'")" \
   "0" "no failed provider call — the secret never left the machine"
+
+# Attribution is the whole point of selecting a real user: every decision this
+# run produced has to carry their user_id, or the evidence lands on nobody and
+# their profile page stays empty. Assert it rather than trusting the header.
+if [[ -n "$CALLER_USER_ID" ]]; then
+  assert_eq "$(db_count "SELECT COUNT(*) FROM governance_decisions WHERE session_id = '$SESSION' $SINCE AND (user_id IS NULL OR user_id::text <> '$CALLER_USER_ID')")" \
+    "0" "every decision is attributed to $CALLER_EMAIL"
+  echo ""
+  echo "  Same view from the CLI:"
+  echo "    $CLI infra logs request list --user $CALLER_USER_ID"
+  echo "    $BASE_URL/admin/user?user_id=$CALLER_USER_ID"
+fi
 
 echo ""
 echo "=========================================="

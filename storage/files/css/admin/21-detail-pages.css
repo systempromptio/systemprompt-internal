@@ -54,7 +54,17 @@
 /* ── Trace Explorer list table (perf-traces) ─────────────────
    Every cell is a two-line stack, so the row height is set by the stack and
    nothing may wrap: each column gets an explicit budget and clips with an
-   ellipsis, with the full value on the cell's title attribute. */
+   ellipsis, with the full value on the cell's title attribute.
+
+   Fixed layout, not auto: under auto layout a column width is only a hint that
+   long content overrides, which is what pushed the status badges past the card
+   edge. Fixed makes every budget below binding. Trace carries no width, so it
+   absorbs whatever is left over. */
+.trace-table {
+    width: 100%;
+    table-layout: fixed;
+}
+
 .trace-table td {
     padding: var(--sp-space-3) var(--sp-space-4);
     vertical-align: middle;
@@ -72,9 +82,11 @@
 }
 
 .trace-table .col-started   { width: 6.5rem; }
-.trace-table .col-trace     { max-width: 15rem; }
-.trace-table .col-identity  { max-width: 14rem; }
-.trace-table .col-model     { max-width: 12rem; }
+/* Trace takes the leftover width, but never less than this: a session id
+   clipped to a few characters identifies nothing. */
+.trace-table .col-trace     { min-width: 11rem; }
+.trace-table .col-identity  { width: 13rem; }
+.trace-table .col-model     { width: 11.5rem; }
 .trace-table .col-spans     { width: 8rem; }
 .trace-table .col-tokens,
 .trace-table .col-cost,
@@ -117,10 +129,12 @@
     border-radius: var(--sp-radius-sm);
 }
 
-/* Anything the reader can interact with individually has to sit above the
-   stretched link, or the row swallows its clicks and tooltips. */
-.trace-table .cell-secondary,
-.trace-table [title],
+/* The stretched link covers the row, so it also covers any tooltip under it.
+   Only the cells whose truncation actually hides data — the full model name and
+   the identity behind a display name — are lifted back above it; the columns
+   that merely need explaining carry that on their header instead. */
+.trace-table .col-identity [title],
+.trace-table .col-model [title],
 .trace-table .mcp-badge {
     position: relative;
     z-index: 1;
@@ -134,6 +148,27 @@
 }
 
 .trace-table .cell-muted { color: var(--sp-text-tertiary); }
+
+/* Narrow viewports drop the two columns a reader can recover from the detail
+   page, rather than handing them a sideways scroll through all nine. The
+   thresholds are viewport-wide but the table is not: the sidebar takes ~220px
+   before the page gutter, so they fire earlier than the table's own width. */
+@media (max-width: 1400px) {
+    .trace-table .col-model { display: none; }
+
+    /* Dropping a column is not enough on its own: the remaining budgets still
+       add up past the content box, which clipped the status badges. */
+    .trace-table .col-identity { width: 11rem; }
+    .trace-table .col-spans    { width: 7rem; }
+    .trace-table .col-tokens   { width: 7.5rem; }
+    .trace-table .col-cost     { width: 5.5rem; }
+    .trace-table .col-duration { width: 8rem; }
+    .trace-table .col-status   { width: 7.5rem; }
+}
+
+@media (max-width: 1150px) {
+    .trace-table .col-identity { display: none; }
+}
 
 /* Sortable headers: the link fills the header cell so the whole th is the
    target, matching the cursor:pointer the table has always advertised. */

@@ -194,7 +194,7 @@
             {{#each contexts}}
             <tr data-context-id="{{context_id}}"
                 data-user-id="{{user_id}}"
-                data-search-blob="{{toLowerCase (default display_name user_id)}} {{toLowerCase (default name context_id)}} {{toLowerCase summary}}">
+                data-search-blob="{{toLowerCase (default display_name user_id)}} {{toLowerCase (default name context_id)}}">
                 <td>
                     {{#if user_id}}
                     <a href="/admin/user/?id={{user_id}}" class="user-cell">

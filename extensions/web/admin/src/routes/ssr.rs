@@ -86,18 +86,20 @@ fn access_routes() -> Router<Arc<PgPool>> {
             get(handlers::ssr::management_department_detail_page),
         )
         .route(
+            "/access/tokens",
+            get(handlers::ssr::management_access_tokens_page),
+        )
+        // Why: /access/devices was the bridge-era name for this page; keep the
+        // redirect so bookmarks and older links still land somewhere.
+        .route(
             "/access/devices",
-            get(handlers::ssr::management_devices_page),
+            get(|| async { axum::response::Redirect::permanent("/admin/access/tokens") }),
         )
         .route("/access/matrix", get(handlers::ssr::access_control_page))
-        .route("/devices/pats", post(handlers::devices::issue_pat))
+        .route("/tokens/pats", post(handlers::access_tokens::issue_pat))
         .route(
-            "/devices/pats/{id}",
-            axum::routing::delete(handlers::devices::revoke_pat),
-        )
-        .route(
-            "/devices/certs/{id}",
-            axum::routing::delete(handlers::devices::revoke_cert),
+            "/tokens/pats/{id}",
+            axum::routing::delete(handlers::access_tokens::revoke_pat),
         )
 }
 

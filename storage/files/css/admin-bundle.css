@@ -928,12 +928,22 @@ header.admin-header,
     border-radius: var(--sp-radius-sm);
 }
 
+/* Full-bleed on the left only. Bleeding right as well ran the card — and, on a
+   wide table, its scrollbar — under the window edge, so the content read as
+   cut off rather than as a deliberate edge-to-edge treatment. The left bleed
+   is what gives the brand asymmetric corner something to sit against. */
 .admin-main .table-container,
 .admin-main .toolbar {
     margin-left: calc(-1 * var(--sp-gutter));
-    margin-right: calc(-1 * var(--sp-gutter));
+    margin-right: 0;
     border-radius: 0 0.375rem 1.125rem 0;
     border-left: none;
+}
+
+/* The bleed moves the box, not its contents: a toolbar's own controls stay on
+   the page gutter so their labels line up with the heading above them. */
+.admin-main .toolbar {
+    padding-left: var(--sp-gutter);
 }
 
 .admin-main .toolbar .search-input,
@@ -1656,18 +1666,20 @@ h2.nav-label {
     border: 1px solid var(--sp-border-subtle);
     border-radius: var(--sp-radius-card-brand);
     box-shadow: var(--sp-shadow-card), var(--sp-shadow-inner-glow);
-    overflow-x: auto;
     max-width: 100%;
 }
 
+/* Only the inner element scrolls. Both used to, which produced two nested
+   scrollbars on a wide table and let the inner one sit outside the card's
+   rounded corner. */
 .table-scroll {
     overflow-x: auto;
+    border-radius: inherit;
 }
 
 /* Classic CSS scroll shadow: the `local` layers mask the `scroll` shadows
    until the content actually overflows, so the cue only appears when there
    is something more to see sideways. */
-.table-container,
 .table-scroll {
     background-image:
         linear-gradient(to right, var(--sp-bg-surface), transparent),
@@ -1680,17 +1692,11 @@ h2.nav-label {
     background-attachment: local, local, scroll, scroll;
 }
 
+/* A table is sized by its rows and the page scrolls. Making it a shrinkable
+   flex item of the 100vh .admin-main column gave it an internal scroll region,
+   which hid rows behind an unlabelled inner scrollbar. */
 .admin-main > .table-container {
-    flex: 1 1 0;
-    min-height: 200px;
-    display: flex;
-    flex-direction: column;
-}
-
-.admin-main > .table-container > .table-scroll {
-    flex: 1 1 0;
-    min-height: 0;
-    max-height: none;
+    flex: 0 0 auto;
 }
 
 .data-table {
@@ -2030,6 +2036,12 @@ h2.nav-label {
     cursor: default;
 }
 
+/* Ends of the range render as spans, not links: same shape, no target. */
+.pagination-controls .is-disabled {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
 .pagination-controls .current-page {
     padding: var(--sp-space-1) var(--sp-space-3);
     color: var(--sp-accent);
@@ -2193,6 +2205,33 @@ h2.nav-label {
     font-size: 0.78em;
     color: var(--sp-text-tertiary);
     margin-top: 0.1rem;
+}
+
+/* A model id is one token — wrapping it mid-name triples the row height and
+   makes it harder to read, so the column scrolls with the table instead. */
+.data-table td.col-model {
+    white-space: nowrap;
+}
+
+/* ── list-page pagination footer ─────────────────────────────── */
+
+.table-paginate {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--sp-space-2);
+    margin-top: var(--sp-space-4);
+}
+
+.table-paginate__info {
+    font-size: var(--sp-text-sm);
+    color: var(--sp-text-tertiary);
+    font-variant-numeric: tabular-nums;
+}
+
+/* The "you are here" line above a list: present, but never the headline. */
+.session-current {
+    margin-bottom: var(--sp-space-4);
 }
 
 }
@@ -2541,96 +2580,6 @@ h2.nav-label {
     margin: var(--sp-space-1) 0 0;
     font-size: var(--sp-text-sm);
     color: var(--sp-text-tertiary);
-}
-
-}
-
-/* Marketplace catalog card grid (catalog-marketplace.hbs). */
-
-@layer components {
-
-.catalog-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: var(--sp-space-4);
-    margin-top: var(--sp-space-4);
-}
-
-.catalog-card {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-space-2);
-    padding: var(--sp-space-5);
-    background: var(--sp-bg-surface);
-    border: 1px solid var(--sp-border-subtle);
-    border-radius: 0 0.375rem 1.125rem 0;
-    transition: box-shadow var(--sp-duration-fast), transform var(--sp-duration-fast);
-}
-
-.catalog-card:hover {
-    box-shadow: var(--sp-shadow-md);
-    transform: translateY(-2px);
-}
-
-.catalog-card__head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--sp-space-2);
-}
-
-.catalog-card__name {
-    margin: 0;
-    font-size: var(--sp-text-base);
-    font-weight: 600;
-    color: var(--sp-text-primary);
-}
-
-.catalog-card__id {
-    font-family: var(--sp-font-mono, monospace);
-    font-size: var(--sp-text-xs);
-    color: var(--sp-text-tertiary);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.catalog-card__desc {
-    margin: 0;
-    font-size: var(--sp-text-sm);
-    color: var(--sp-text-secondary);
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.catalog-card__foot {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--sp-space-2);
-    margin-top: auto;
-    padding-top: var(--sp-space-3);
-}
-
-.catalog-card__assignments {
-    font-size: var(--sp-text-xs);
-    color: var(--sp-text-secondary);
-    text-decoration: none;
-}
-
-.catalog-card__assignments:hover {
-    color: var(--sp-accent);
-    text-decoration: underline;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .catalog-card,
-    .catalog-card:hover {
-        transition: none;
-        transform: none;
-    }
 }
 
 }
@@ -3995,7 +3944,12 @@ a.sparkline-card:hover { border-color: var(--sp-border-strong); }
 
 @layer components {
 
+/* The ribbon owns a stacking context above the page content. Without it the
+   open dropdown panel competes with the stat grid and table that follow it in
+   .admin-main (position:relative; contain:layout) and paints underneath them. */
 .filter-ribbon {
+    position: relative;
+    z-index: var(--sp-z-panel);
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -4012,6 +3966,12 @@ a.sparkline-card:hover { border-color: var(--sp-border-strong); }
 
 .filter-ribbon__group {
     position: relative;
+}
+
+/* An open group outranks its closed siblings, so two open panels overlap in
+   the order the reader opened them rather than by DOM position. */
+.filter-ribbon__group[open] {
+    z-index: 1;
 }
 
 .filter-ribbon__group-summary {
@@ -4058,7 +4018,8 @@ a.sparkline-card:hover { border-color: var(--sp-border-strong); }
     top: calc(100% + var(--sp-space-1));
     left: 0;
     z-index: var(--sp-z-dropdown);
-    min-width: 220px;
+    min-width: 240px;
+    max-width: 320px;
     max-height: 320px;
     overflow-y: auto;
     padding: var(--sp-space-2);
@@ -5413,6 +5374,31 @@ a.sparkline-card:hover { border-color: var(--sp-border-strong); }
     border-radius: 0 0.375rem 1.125rem 0;
 }
 
+/* A stat card that is also a filter (its number and the rows it counts are the
+   same thing) reads as a card, not a link — the affordance is the hover lift. */
+.stat-card--link {
+    text-decoration: none;
+    color: inherit;
+    transition: border-color var(--sp-duration-fast), transform var(--sp-duration-fast),
+        box-shadow var(--sp-duration-fast);
+}
+
+.stat-card--link:hover {
+    border-color: var(--sp-accent);
+    transform: translateY(-1px);
+    box-shadow: var(--sp-shadow-sm, 0 1px 3px rgb(0 0 0 / 0.08));
+}
+
+.stat-card--link:focus-visible {
+    outline: 2px solid var(--sp-accent);
+    outline-offset: 2px;
+}
+
+.stat-card--link.is-active {
+    border-color: var(--sp-accent);
+    box-shadow: inset 0 0 0 1px var(--sp-accent);
+}
+
 .stat-card .label {
     font-size: var(--sp-text-xs);
     font-weight: 600;
@@ -5482,9 +5468,16 @@ a.sparkline-card:hover { border-color: var(--sp-border-strong); }
 
 @layer components {
 
+/* `flex-shrink: 0` is load-bearing wherever the bar is a direct child of a
+   column flex container, as it is on the admin pages: `overflow-x` other than
+   `visible` resolves this element's automatic minimum size to zero, so the
+   flex algorithm is free to crush it to its 1px border and clip every tab out
+   of sight. The bar renders, reads, and links correctly while being invisible,
+   which is why it has to be prevented here rather than noticed later. */
 .sp-tabs {
     display: flex;
     align-items: center;
+    flex-shrink: 0;
     gap: var(--sp-space-1);
     border-bottom: 1px solid var(--sp-border-subtle);
     margin-bottom: var(--sp-space-5);
@@ -6029,11 +6022,22 @@ a.sparkline-card:hover { border-color: var(--sp-border-strong); }
     margin-block: var(--sp-space-6);
 }
 
+/* Panels are flex columns so the chart inside fills the height the grid gives
+   the row. Without this a short chart strands itself at the top of a panel
+   stretched to match its taller neighbour. */
 .requests-charts__panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-space-3);
     background: var(--sp-bg-surface);
     border: 1px solid var(--sp-border-subtle);
     border-radius: var(--sp-radius-card-brand);
     padding: var(--sp-space-5);
+    min-width: 0;
+}
+
+.requests-charts__panel--wide {
+    margin-block: var(--sp-space-6);
 }
 
 .requests-charts__title {
@@ -6043,47 +6047,61 @@ a.sparkline-card:hover { border-color: var(--sp-border-strong); }
     margin: 0 0 var(--sp-space-3);
 }
 
-/* Latency histogram — horizontal bars -------------------------------------- */
+/* Latency histogram — horizontal bars --------------------------------------
+   Every cell is pinned to row 1. The label used to rely on sparse
+   auto-placement to reach column 1 after a column-3 sibling, which is
+   impossible — the cursor never steps backwards — so it wrapped onto an
+   implicit second row and lined up with the next bar down. */
 .latency-histogram {
     display: flex;
     flex-direction: column;
     gap: var(--sp-space-1);
 }
 
-.latency-histogram__bar {
+.latency-histogram__row {
     display: grid;
-    grid-template-columns: 4rem 1fr 2.75rem;
+    grid-template-columns: 5.5rem 1fr 3rem;
     align-items: center;
-    gap: var(--sp-space-2);
-    min-height: 1.25rem;
+    gap: var(--sp-space-3);
+    min-height: 1.5rem;
+    border-radius: var(--sp-radius-sm);
+    transition: background var(--sp-duration-fast);
 }
 
-/* Every cell is pinned to row 1. The bar is generated content and so comes
-   first in grid order, ahead of the count (column 3) and the label (column 1);
-   without an explicit row, auto-placement refuses to step back to column 1 in a
-   row it has already passed and drops the label onto a second row, under its
-   own bar. */
+.latency-histogram__row:hover {
+    background: color-mix(in oklch, var(--sp-accent) 5%, transparent);
+}
+
 .latency-histogram__label {
     grid-column: 1;
     grid-row: 1;
     font-size: var(--sp-text-xs);
     color: var(--sp-text-secondary);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.latency-histogram__bar::before {
-    content: "";
+.latency-histogram__track {
     grid-column: 2;
     grid-row: 1;
     height: 0.75rem;
     border-radius: var(--sp-radius-sm);
-    background: linear-gradient(
-        to right,
-        var(--sp-chart-blue) var(--v, 0%),
-        color-mix(in oklch, var(--sp-warm-900) 6%, transparent) var(--v, 0%)
-    );
+    background: color-mix(in oklch, var(--sp-warm-900) 6%, transparent);
+}
+
+.latency-histogram__fill {
+    display: block;
+    width: var(--v, 0%);
+    height: 100%;
+    border-radius: var(--sp-radius-sm);
+    background: var(--sp-chart-blue);
+}
+
+.latency-histogram__row--peak .latency-histogram__fill {
+    background: var(--sp-accent);
 }
 
 .latency-histogram__count {
@@ -6095,30 +6113,127 @@ a.sparkline-card:hover { border-color: var(--sp-border-strong); }
     color: var(--sp-text-tertiary);
 }
 
-/* Cost sparkline — vertical bars -------------------------------------------- */
-.cost-spark {
+.latency-histogram__axis {
     display: flex;
-    align-items: stretch;
-    gap: 2px;
-    height: 72px;
+    justify-content: space-between;
+    margin-top: var(--sp-space-2);
+    padding-top: var(--sp-space-1);
+    padding-left: calc(5.5rem + var(--sp-space-3));
+    border-top: 1px solid var(--sp-border-subtle);
+    font-size: var(--sp-text-xs);
+    color: var(--sp-text-tertiary);
 }
 
-.cost-spark__bar {
+/* Time series — vertical bars with a labelled axis --------------------------
+   Bars grow from a baseline via their own height, not a background gradient in
+   a fixed-height box, so the plot fills whatever height the panel gives it
+   instead of stranding itself at the top. */
+.timeseries {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-space-3);
+    flex: 1;
+    margin: 0;
+    min-width: 0;
+}
+
+.timeseries__head {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.timeseries__title {
+    font-size: var(--sp-text-sm);
+    font-weight: 600;
+    color: var(--sp-text-primary);
+}
+
+.timeseries__subtitle {
+    font-size: var(--sp-text-xs);
+    color: var(--sp-text-tertiary);
+    font-variant-numeric: tabular-nums;
+}
+
+.timeseries__plot {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--sp-space-3);
+    flex: 1;
+    min-height: 150px;
+}
+
+/* Axis labels sit at the top, middle, and baseline of the plot, which is what
+   ties a bar's height back to a number the reader can name. */
+.timeseries__y-axis {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-end;
+    font-size: var(--sp-text-xs);
+    color: var(--sp-text-tertiary);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+
+.timeseries__bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    border-bottom: 1px solid var(--sp-border-default);
+    background-image: linear-gradient(
+        to bottom,
+        var(--sp-border-subtle) 1px,
+        transparent 1px 100%
+    );
+    background-size: 100% 50%;
+    background-repeat: repeat-y;
+}
+
+.timeseries__bar {
     flex: 1 1 0;
     min-width: 0;
+    height: var(--v, 0%);
     border-radius: var(--sp-radius-sm) var(--sp-radius-sm) 0 0;
-    background: linear-gradient(
-        to top,
-        var(--sp-chart-green) var(--v, 0%),
-        transparent var(--v, 0%)
-    );
-    box-shadow: inset 0 -2px 0 0 color-mix(in oklch, var(--sp-warm-900) 12%, transparent);
+    background: var(--sp-chart-blue);
     transition: filter var(--sp-duration-fast);
 }
 
-.cost-spark__bar:hover {
+.timeseries[data-tone="success"] .timeseries__bar {
+    background: var(--sp-chart-green);
+}
+
+.timeseries__bar:hover {
     filter: brightness(1.12);
 }
+
+.timeseries__x-axis {
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--sp-text-xs);
+    color: var(--sp-text-tertiary);
+    font-variant-numeric: tabular-nums;
+}
+
+.chart-caption {
+    margin: 0;
+    font-size: var(--sp-text-xs);
+    color: var(--sp-text-secondary);
+}
+
+.chart-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    min-height: 150px;
+    margin: 0;
+    border: 1px dashed var(--sp-border-subtle);
+    border-radius: var(--sp-radius-sm);
+    font-size: var(--sp-text-sm);
+    color: var(--sp-text-tertiary);
+}
+
 
 /* Trace waterfall ---------------------------------------------------------- */
 .waterfall {
@@ -8265,7 +8380,7 @@ html, body {
 /* User detail + users-table runtime visualisations */
 
 .agent-pill,
-.device-pill {
+.token-pill {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -8292,11 +8407,11 @@ html, body {
 .agent-pill--live .agent-dot { opacity: 1; animation: agent-pulse 1.6s ease-out infinite; }
 .agent-pill--idle { color: var(--color-muted, #6b7280); }
 
-.device-pill--fresh { color: var(--color-success, #15803d); border-color: rgba(21, 128, 61, 0.3); }
-.device-pill--fresh .agent-dot { opacity: 1; animation: agent-pulse 1.6s ease-out infinite; }
-.device-pill--idle  { color: #b45309; border-color: rgba(180, 83, 9, 0.3); }
-.device-pill--stale { color: var(--color-muted, #6b7280); }
-.device-pill--never { color: var(--color-muted, #9ca3af); }
+.token-pill--fresh { color: var(--color-success, #15803d); border-color: rgba(21, 128, 61, 0.3); }
+.token-pill--fresh .agent-dot { opacity: 1; animation: agent-pulse 1.6s ease-out infinite; }
+.token-pill--idle  { color: #b45309; border-color: rgba(180, 83, 9, 0.3); }
+.token-pill--stale { color: var(--color-muted, #6b7280); }
+.token-pill--never { color: var(--color-muted, #9ca3af); }
 
 @keyframes agent-pulse {
   0%   { box-shadow: 0 0 0 0 currentColor; }
@@ -9429,6 +9544,14 @@ html, body {
 
 /* ---------- transcript: system divider ---------- */
 
+/* A system turn is a boundary marker, not a message: it opts out of the
+   message-block treatment entirely and renders as a labelled rule. */
+.transcript__entry--system {
+    padding: 0;
+    background: none;
+    border: none;
+}
+
 .transcript__system {
     display: flex;
     align-items: center;
@@ -10268,57 +10391,39 @@ html, body {
     min-width: 0;
 }
 
-/* Admin /access/devices — grouped table + create panel install block */
+/* Admin /access/tokens — grouped table + create panel setup block */
 
-.devices-grouped table.data-table {
+.tokens-grouped table.data-table {
     border-collapse: collapse;
 }
 
-.devices-grouped tbody tr.group-start > td {
+.tokens-grouped tbody tr.group-start > td {
     border-top: 1px solid var(--color-border, #2a2f3a);
 }
 
-.devices-grouped td.owner-cell {
+.tokens-grouped td.owner-cell {
     vertical-align: middle;
     background: var(--color-surface-alt, rgba(255, 255, 255, 0.02));
     font-weight: 500;
 }
 
-.devices-grouped td.owner-cell a {
+.tokens-grouped td.owner-cell a {
     text-decoration: none;
 }
 
-#create-device-panel .field-hint {
+#create-token-panel .field-hint {
     margin-top: 0.35rem;
     font-size: 0.85rem;
     color: var(--color-text-muted, rgba(255, 255, 255, 0.6));
     line-height: 1.4;
 }
 
-#create-device-panel .field-hint code {
+#create-token-panel .field-hint code {
     font-size: 0.85em;
     padding: 0 0.2rem;
 }
 
-#create-device-panel details.form-advanced {
-    margin-top: 0.5rem;
-    padding: 0.5rem 0;
-    border-top: 1px dashed var(--color-border, #2a2f3a);
-}
-
-#create-device-panel details.form-advanced > summary {
-    cursor: pointer;
-    font-size: 0.9rem;
-    color: var(--color-text-muted, rgba(255, 255, 255, 0.7));
-    padding: 0.25rem 0;
-    user-select: none;
-}
-
-#create-device-panel details.form-advanced[open] > summary {
-    margin-bottom: 0.75rem;
-}
-
-.install-block {
+.setup-block {
     margin-top: 1rem;
     padding: 1rem;
     border: 1px solid var(--color-border, #2a2f3a);
@@ -10326,36 +10431,34 @@ html, body {
     background: var(--color-surface-alt, rgba(255, 255, 255, 0.02));
 }
 
-.install-block h3 {
+.setup-block h3 {
     margin: 0 0 0.5rem;
     font-size: 1rem;
 }
 
-.install-block .install-intro {
+.setup-block .setup-intro {
     font-size: 0.9rem;
     color: var(--color-text-muted, rgba(255, 255, 255, 0.7));
     margin: 0 0 0.75rem;
     line-height: 1.5;
 }
 
-.install-block .download-link,
-.install-block .install-guide-link {
+.setup-block .setup-guide-link {
     color: var(--color-primary, #4a9eff);
     text-decoration: none;
     font-weight: 500;
 }
 
-.install-block .download-link:hover,
-.install-block .install-guide-link:hover {
+.setup-block .setup-guide-link:hover {
     text-decoration: underline;
 }
 
-.install-block .snippet-wrap {
+.setup-block .snippet-wrap {
     position: relative;
     margin: 0.75rem 0;
 }
 
-.install-block pre {
+.setup-block pre {
     background: var(--color-surface, #14171f);
     border: 1px solid var(--color-border, #2a2f3a);
     border-radius: 0.375rem;
@@ -10366,13 +10469,13 @@ html, body {
     line-height: 1.55;
 }
 
-.install-block pre code {
+.setup-block pre code {
     font-family: var(--font-mono, ui-monospace, monospace);
     color: var(--color-text, #e8eaed);
     white-space: pre;
 }
 
-.install-block .btn-copy-snippet {
+.setup-block .btn-copy-snippet {
     position: absolute;
     top: 0.4rem;
     right: 0.4rem;
@@ -10380,13 +10483,13 @@ html, body {
     padding: 0.25rem 0.55rem;
 }
 
-#create-device-panel .panel-footer-state {
+#create-token-panel .panel-footer-state {
     display: flex;
     gap: 0.5rem;
     justify-content: flex-end;
 }
 
-#create-device-panel .panel-footer-state[hidden] {
+#create-token-panel .panel-footer-state[hidden] {
     display: none;
 }
 
@@ -10427,10 +10530,13 @@ html, body {
     outline-offset: -2px;
 }
 
+/* Log footer: the row range on the left, the page stepper on the right, so the
+   reader can see what is on screen without counting rows. */
 .audit-pagination {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-end;
     gap: var(--sp-space-3);
     margin-top: var(--sp-space-4);
 }
@@ -10439,6 +10545,10 @@ html, body {
     font-size: var(--sp-text-sm);
     color: var(--sp-text-tertiary);
     font-variant-numeric: tabular-nums;
+}
+
+.audit-pagination__pos:first-child {
+    margin-right: auto;
 }
 
 }
@@ -10635,28 +10745,137 @@ html, body {
 }
 .alert--danger .alert__title { color: var(--sp-danger); }
 
-/* ── trace table sublines (perf-traces) ─────────────────────── */
+/* ── Trace Explorer list table (perf-traces) ─────────────────
+   Every cell is a two-line stack, so the row height is set by the stack and
+   nothing may wrap: each column gets an explicit budget and clips with an
+   ellipsis, with the full value on the cell's title attribute.
+
+   Fixed layout, not auto: under auto layout a column width is only a hint that
+   long content overrides, which is what pushed the status badges past the card
+   edge. Fixed makes every budget below binding. Trace carries no width, so it
+   absorbs whatever is left over. */
+.trace-table {
+    width: 100%;
+    table-layout: fixed;
+}
+
+.trace-table td {
+    padding: var(--sp-space-3) var(--sp-space-4);
+    vertical-align: middle;
+}
+
+.trace-table th,
+.trace-table td {
+    white-space: nowrap;
+}
+
+.trace-table .cell-stacked > * {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.trace-table .col-started   { width: 6.5rem; }
+.trace-table .col-identity  { width: 13rem; }
+.trace-table .col-model     { width: 11.5rem; }
+.trace-table .col-spans     { width: 8rem; }
+.trace-table .col-tokens,
+.trace-table .col-cost,
+.trace-table .col-duration {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+.trace-table .col-tokens    { width: 8.5rem; }
+.trace-table .col-cost      { width: 6rem; }
+.trace-table .col-duration  { width: 8.5rem; }
+.trace-table .col-status    { width: 8.5rem; }
+
+.trace-table .col-tokens .cell-stacked,
+.trace-table .col-duration .cell-stacked {
+    align-items: flex-end;
+}
+
+/* The whole row is the link to the waterfall: the trace-id anchor is stretched
+   over the row, so a click anywhere navigates while the link stays a real
+   anchor (keyboard focus, middle-click, copy address). */
+.trace-table tbody tr {
+    position: relative;
+}
+
 .trace-row__id {
     text-decoration: none;
     color: var(--sp-text-primary);
 }
 .trace-row__id:hover { color: var(--sp-accent); }
 
-.trace-row__trace,
-.trace-row__agent {
-    margin-top: 2px;
-    font-size: var(--sp-text-xs);
-    color: var(--sp-text-tertiary);
-    white-space: nowrap;
+.trace-row__id::after {
+    content: "";
+    position: absolute;
+    inset: 0;
 }
 
-.trace-paginate__info {
-    display: inline-block;
-    margin: 0 var(--sp-space-2);
-    font-size: var(--sp-text-sm);
-    color: var(--sp-text-tertiary);
-    font-variant-numeric: tabular-nums;
+.trace-row__id:focus-visible::after {
+    outline: 2px solid var(--sp-accent);
+    outline-offset: -2px;
+    border-radius: var(--sp-radius-sm);
 }
+
+/* The stretched link covers the row, so it also covers any tooltip under it.
+   Only the cells whose truncation actually hides data — the full model name and
+   the identity behind a display name — are lifted back above it; the columns
+   that merely need explaining carry that on their header instead. */
+.trace-table .col-identity [title],
+.trace-table .col-model [title],
+.trace-table .mcp-badge {
+    position: relative;
+    z-index: 1;
+}
+
+.trace-row__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-space-1);
+    justify-content: flex-end;
+}
+
+.trace-table .cell-muted { color: var(--sp-text-tertiary); }
+
+/* Narrow viewports drop the two columns a reader can recover from the detail
+   page, rather than handing them a sideways scroll through all nine. The
+   thresholds are viewport-wide but the table is not: the sidebar takes ~220px
+   before the page gutter, so they fire earlier than the table's own width. */
+@media (max-width: 1400px) {
+    .trace-table .col-model { display: none; }
+
+    /* Dropping a column is not enough on its own: the remaining budgets still
+       add up past the content box, which clipped the status badges. */
+    .trace-table .col-identity { width: 11rem; }
+    .trace-table .col-spans    { width: 7rem; }
+    .trace-table .col-tokens   { width: 7.5rem; }
+    .trace-table .col-cost     { width: 5.5rem; }
+    .trace-table .col-duration { width: 8rem; }
+    .trace-table .col-status   { width: 7.5rem; }
+}
+
+@media (max-width: 1150px) {
+    .trace-table .col-identity { display: none; }
+}
+
+/* Sortable headers: the link fills the header cell so the whole th is the
+   target, matching the cursor:pointer the table has always advertised. */
+.data-table th .th-sort {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-space-1);
+    color: inherit;
+    text-decoration: none;
+}
+
+.data-table th .th-sort:hover { color: var(--sp-text-primary); }
+
+.data-table th:not(.sorted) .th-sort .sort-icon { opacity: 0.35; }
+
+.data-table th:not(:has(.th-sort)) { cursor: default; }
 
 /* ── collapsible code block (transcript / chain dumps) ──────── */
 .code-collapsible summary {
@@ -10887,6 +11106,270 @@ html, body {
 /* a timestamp does not fit at the KPI value size */
 .kpi-card__value--sm {
     font-size: var(--sp-text-sm);
+}
+
+}
+
+@layer components {
+/* Demo trace: the governed-agent timeline at /admin/demo/trace.
+   The page is read as a story, so the styling groups events into turns and
+   makes a denial the loudest thing on the screen. */
+
+.trace-sessions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-space-2);
+    margin-bottom: var(--sp-space-4);
+}
+
+.trace-session {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding: var(--sp-space-2) var(--sp-space-3);
+    border: 1px solid var(--sp-border-subtle);
+    border-radius: 0 0.375rem 0.75rem 0;
+    background: var(--sp-bg-surface);
+    color: inherit;
+    text-decoration: none;
+    transition: border-color var(--sp-duration-normal), box-shadow var(--sp-duration-normal);
+}
+
+.trace-session:hover {
+    border-color: var(--sp-border-strong);
+    box-shadow: var(--sp-shadow-card);
+}
+
+.trace-session.is-active {
+    border-color: var(--sp-primary);
+    box-shadow: var(--sp-shadow-card);
+}
+
+.trace-session__when {
+    font-weight: 600;
+    font-size: var(--sp-text-sm);
+}
+
+.trace-session__model {
+    font-family: var(--sp-font-mono);
+    font-size: var(--sp-text-xs);
+    color: var(--sp-text-secondary);
+}
+
+.trace-session__counts {
+    display: flex;
+    gap: var(--sp-space-2);
+    font-size: var(--sp-text-xs);
+    color: var(--sp-text-tertiary);
+}
+
+.trace-session__allow {
+    color: var(--sp-success);
+}
+
+.trace-session__deny {
+    color: var(--sp-danger);
+}
+
+.trace-session__calls {
+    color: var(--sp-text-tertiary);
+}
+
+.trace-legend {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-space-4);
+    flex-wrap: wrap;
+    margin-bottom: var(--sp-space-4);
+    color: var(--sp-text-secondary);
+    font-size: var(--sp-text-sm);
+}
+
+.trace-legend p {
+    margin: 0;
+    max-width: 70ch;
+}
+
+.trace-turn {
+    margin-bottom: var(--sp-space-5);
+}
+
+.trace-turn__header {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-space-2);
+    flex-wrap: wrap;
+    padding: var(--sp-space-2) var(--sp-space-3);
+    background: var(--sp-bg-card-header);
+    border: 1px solid var(--sp-border-subtle);
+    border-bottom: none;
+    border-radius: 0 var(--sp-radius-brand-tr) 0 0;
+}
+
+.trace-turn--blocked .trace-turn__header {
+    border-left: 3px solid var(--sp-danger);
+}
+
+.trace-turn__ordinal {
+    font-weight: 700;
+    font-size: var(--sp-text-sm);
+}
+
+.trace-turn__prompt {
+    font-family: var(--sp-font-mono);
+    font-size: var(--sp-text-xs);
+    color: var(--sp-text-secondary);
+}
+
+.trace-turn__spacer {
+    flex: 1 1 auto;
+}
+
+.trace-turn__count {
+    font-size: var(--sp-text-xs);
+    color: var(--sp-text-tertiary);
+}
+
+.trace-turn .table-container {
+    border-radius: 0 0 0.75rem 0;
+}
+
+.trace-row {
+    cursor: pointer;
+}
+
+.trace-row--deny > td:first-child {
+    box-shadow: inset 3px 0 0 var(--sp-danger);
+}
+
+/* The four governance policies, shown in the order they ran. A stage the
+   pipeline skipped is dimmed rather than hidden: "we never got that far" is
+   itself the answer to why a call was blocked. */
+.trace-stages {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.trace-stage {
+    padding: 0.0625rem 0.375rem;
+    border-radius: 0.25rem;
+    font-family: var(--sp-font-mono);
+    font-size: 0.6875rem;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+.trace-stage__name {
+    font-size: inherit;
+}
+
+.trace-stage--pass {
+    background: var(--sp-success-dim);
+    color: var(--sp-success);
+}
+
+.trace-stage--fail {
+    background: var(--sp-danger-dim);
+    color: var(--sp-danger);
+    font-weight: 700;
+}
+
+.trace-stage--skip {
+    background: var(--sp-bg-tertiary);
+    color: var(--sp-text-tertiary);
+    opacity: 0.7;
+}
+
+.trace-detail {
+    font-size: var(--sp-text-sm);
+    color: var(--sp-text-secondary);
+    max-width: 46ch;
+}
+
+}
+
+/* Inference Requests tabs: the per-tab section wrapper, the breakdown share
+   bars, and the section caption shared by the breakdown tables.
+   Markup: analytics-requests.hbs + partials/components/breakdown-table.hbs */
+
+@layer components {
+
+/* Each tab renders inside one of these. It also keeps the tables off
+   .admin-main's direct-child flex rules, so a tab's content is laid out by the
+   section rather than stretched to fill the viewport column. */
+.requests-section {
+    display: block;
+    margin-bottom: var(--sp-space-8);
+}
+
+.section-caption {
+    margin: 0 0 var(--sp-space-4);
+    font-size: var(--sp-text-sm);
+    color: var(--sp-text-secondary);
+    max-width: 68ch;
+}
+
+/* Share column: a bar and its percentage on one line, so the eye can rank rows
+   without reading the numbers. */
+.data-table th.col-share {
+    width: 12rem;
+    min-width: 9rem;
+}
+
+.data-table td.col-share {
+    display: table-cell;
+    white-space: nowrap;
+}
+
+.share-bar {
+    display: inline-block;
+    width: 6.5rem;
+    height: 0.5rem;
+    margin-right: var(--sp-space-2);
+    vertical-align: middle;
+    border-radius: var(--sp-radius-sm);
+    background:
+        linear-gradient(
+            to right,
+            var(--sp-chart-blue) var(--v, 0%),
+            transparent var(--v, 0%)
+        ),
+        color-mix(in oklch, var(--sp-warm-900) 6%, transparent);
+}
+
+.share-bar__value {
+    font-size: var(--sp-text-xs);
+    color: var(--sp-text-tertiary);
+    font-variant-numeric: tabular-nums;
+}
+
+/* A breakdown row is a link into the log; the whole row lifts on hover so the
+   affordance does not depend on hitting the key text exactly. */
+.breakdown-row:hover td {
+    background: var(--sp-accent-dim);
+}
+
+.breakdown-row__key {
+    text-decoration: none;
+}
+
+.breakdown-row__key:hover {
+    text-decoration: underline;
+}
+
+.breakdown-row--errors .share-bar {
+    background:
+        linear-gradient(
+            to right,
+            var(--sp-danger) var(--v, 0%),
+            transparent var(--v, 0%)
+        ),
+        color-mix(in oklch, var(--sp-warm-900) 6%, transparent);
 }
 
 }

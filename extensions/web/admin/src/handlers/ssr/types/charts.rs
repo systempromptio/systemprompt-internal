@@ -14,9 +14,9 @@ use serde::Serialize;
 use crate::repositories::analytics::request_stats::{LatencyBucket, RequestStats, TimeBucket};
 use crate::util::time_range::TimeRange;
 
-/// A vertical bar chart over time: `series` plus the axis labels that make it
-/// readable. `y_max_display` / `y_mid_display` label the gridlines the partial
-/// draws, and `x_*_display` label the window the buckets span.
+// Why: the view carries its own axis labels — y_max/y_mid label the gridlines
+// the partial draws, x_* label the window the buckets span — so the template
+// never derives a scale and the axis cannot disagree with the bars.
 #[derive(Debug, Serialize)]
 pub(crate) struct ChartView {
     pub title: &'static str,
@@ -61,10 +61,9 @@ pub(crate) struct HistogramBarView {
     pub is_peak: bool,
 }
 
-/// The latency distribution. Bars scale to the busiest bin so the shape reads
-/// at a glance, and that bin is flagged so the partial can tint it; the p50 /
-/// p95 captions come from the same stats the KPI strip prints, so the chart and
-/// the strip cannot disagree.
+// Why: bars scale to the busiest bin so the shape reads at a glance, and that
+// bin is flagged so the partial can tint it. The p50 / p95 captions come from
+// the same stats the KPI strip prints, so the two cannot disagree.
 pub(crate) fn histogram_view(buckets: &[LatencyBucket], stats: &RequestStats) -> HistogramView {
     let max = buckets.iter().map(|b| b.count).max().unwrap_or(0);
     let has_data = buckets.iter().any(|b| b.count > 0);
@@ -151,9 +150,9 @@ pub(crate) fn cost_chart(buckets: &[TimeBucket], range: &TimeRange) -> ChartView
     }
 }
 
-/// Bar size as a percentage of the series max. Any non-zero value floors at 2%
-/// so a single request in a bucket is still visible; an empty series yields 0.
-/// Shared with the breakdown share bars so every bar on the page uses one rule.
+// Why: any non-zero value floors at 2% so a single request in a bucket is still
+// visible; an empty series yields 0. Shared with the breakdown share bars so
+// every bar on the page scales by one rule.
 pub(crate) fn bar_pct(value: i64, max: i64) -> i64 {
     if max <= 0 || value <= 0 {
         return 0;

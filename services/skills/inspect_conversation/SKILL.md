@@ -26,7 +26,7 @@ No single command returns all of it; compose the steps. Where there is no dedica
 
 The conversation type determines which id anchors the reconstruction:
 
-- **Gateway-client conversations** (Claude Desktop, Cowork, any Anthropic-SDK client hitting `/v1/messages`)
+- **Gateway-client conversations** (Pi, Claude Desktop, any Anthropic-SDK client hitting `/v1/messages`)
   are keyed on `session_id`. Start from `session_id` and walk to `ai_requests` directly (the path in steps
   3-5 below).
 - **A2A / internal agent runs** (an agent driven via `admin agents message … --context-id`) do **not** share

@@ -8,11 +8,10 @@
 //! coverage exhaustive by construction: a new `.route(...)` is picked up and
 //! exercised on the next run, and shows up as a baseline addition.
 
-use crate::app::{ADMIN_API_PREFIX, BRIDGE_PREFIX, SSR_PREFIX};
+use crate::app::{ADMIN_API_PREFIX, SSR_PREFIX};
 
 const ADMIN_API_SRC: &str = include_str!("../../../../extensions/web/admin/src/routes/admin.rs");
 const SSR_SRC: &str = include_str!("../../../../extensions/web/admin/src/routes/ssr.rs");
-const BRIDGE_SRC: &str = include_str!("../../../../extensions/web/admin/src/routes/ssr_bridge.rs");
 
 const METHODS: [&str; 5] = ["get", "post", "put", "patch", "delete"];
 
@@ -58,7 +57,6 @@ pub fn mounted_routes() -> Vec<MountedRoute> {
     for (src, prefix) in [
         (ADMIN_API_SRC, ADMIN_API_PREFIX),
         (SSR_SRC, SSR_PREFIX),
-        (BRIDGE_SRC, BRIDGE_PREFIX),
     ] {
         parse(src, prefix, &mut routes);
     }

@@ -138,7 +138,6 @@ fn format_governance(governance: i64, tools: i64) -> String {
     parts.join(" · ")
 }
 
-/// Stat-card total: `—` when the window has no billed tokens at all.
 pub(super) fn format_token_total(total: i64) -> String {
     if total <= 0 {
         return "—".to_owned();

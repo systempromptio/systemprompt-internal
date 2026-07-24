@@ -18,8 +18,6 @@ on:
 jobs:
   version:
     runs-on: ubuntu-latest
-    # bridge-v* releases are the client bundle — only gateway v* tags have
-    # the channels below.
     if: ${{ github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, 'v') }}
     outputs:
       tag: ${{ steps.t.outputs.tag }}
@@ -116,19 +114,6 @@ jobs:
           brew trust systempromptio/tap || true
           brew install gateway
           systemprompt --version
-
-  scoop:
-    needs: version
-    runs-on: windows-latest
-    steps:
-      - shell: pwsh
-        run: |
-          iwr -useb get.scoop.sh -outfile install-scoop.ps1
-          .\install-scoop.ps1 -RunAsAdmin
-          $env:Path = "$env:USERPROFILE\scoop\shims;$env:Path"
-          scoop bucket add systemprompt https://github.com/systempromptio/scoop-bucket
-          scoop install bridge
-          systemprompt-bridge --version
 
   compose:
     name: docker-compose / Coolify template
