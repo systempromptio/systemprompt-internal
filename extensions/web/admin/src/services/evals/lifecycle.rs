@@ -66,6 +66,13 @@ pub(crate) async fn close_run(
     failed: i32,
     cost: i64,
 ) -> Result<(), sqlx::Error> {
+    // Why: the per-call figures can be read before the gateway has finished
+    // writing a request's cost, so the run total is re-derived from the ledger
+    // once every call has settled; the larger of the two is the honest number.
+    let ledger_cost = crate::repositories::evals::sampling::get_run_call_cost(pool, run_id)
+        .await
+        .unwrap_or(0);
+    let cost = cost.max(ledger_cost);
     runs::update_run_completion(
         pool,
         runs::CompleteRunParams {

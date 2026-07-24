@@ -5192,7 +5192,7 @@ dependencies = [
 name = "systemprompt-mcp-shared"
 version = "0.22.0"
 dependencies = [
- "serde_json",
+ "serde",
  "sqlx",
  "systemprompt",
  "tracing",
@@ -5554,6 +5554,7 @@ dependencies = [
  "hex",
  "inventory",
  "rand 0.9.5",
+ "reqwest 0.13.4",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -5581,7 +5582,6 @@ dependencies = [
  "chrono",
  "rand 0.9.5",
  "serde",
- "serde_json",
  "serde_yaml",
  "sha2 0.10.9",
  "sqlx",

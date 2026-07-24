@@ -163,6 +163,24 @@ pub async fn insert_judge_call(
     Ok(())
 }
 
+/// Total cost of every call a run placed, summed from the ledger.
+///
+/// Read after the run finishes rather than per call: the gateway writes a
+/// request's cost when it completes the audit, which can land after the
+/// response has already been handed back to us.
+pub async fn get_run_call_cost(pool: &PgPool, run_id: &str) -> Result<i64, sqlx::Error> {
+    let row = sqlx::query!(
+        r#"SELECT COALESCE(SUM(ar.cost_microdollars), 0)::bigint AS "cost!"
+           FROM eval_judge_calls jc
+           JOIN ai_requests ar ON ar.gateway_conversation_id = jc.conversation_id
+           WHERE jc.run_id = $1"#,
+        run_id,
+    )
+    .fetch_one(pool)
+    .await?;
+    Ok(row.cost)
+}
+
 /// Cost of one gateway call, found by the conversation id the eval run tagged
 /// it with. That tag is why a judge call can be charged back to its run
 /// exactly, instead of being inferred from timing.
