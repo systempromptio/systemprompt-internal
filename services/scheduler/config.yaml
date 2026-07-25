@@ -88,18 +88,6 @@ scheduler:
       owner: admin
       enabled: true
 
-    # Manual-only sync jobs: their built-in schedule is empty, so with no
-    # `schedule:` override they register as manual-only and never cron-run.
-    - name: access_control_sync
-      extension: core
-      owner: admin
-      enabled: true
-
-    - name: content_sync
-      extension: core
-      owner: admin
-      enabled: true
-
     # publish_pipeline sub-steps. The composite above runs each of these every
     # 15 minutes in dependency order; scheduling them independently would
     # double-run them, so they are disabled here (an explicit entry also
