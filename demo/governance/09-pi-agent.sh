@@ -46,6 +46,14 @@ LIVE=false
 
 PI_CRED_DIR="$HOME/.config/systemprompt-pi"
 
+# Pi credentials live in $HOME, so they outlive the instance that issued them:
+# a token, hook token, and user record left by an earlier server are all
+# rejected by this one. Trust the directory only when it names this instance.
+if [[ ! -s "$PI_CRED_DIR/base-url" ]] \
+  || [[ "$(cat "$PI_CRED_DIR/base-url")" != "$BASE_URL" ]]; then
+  PI_CRED_DIR="$(mktemp -d)"
+fi
+
 # ── Session ──────────────────────────────────────────────────────────────────
 # The gateway attests x-session-id against a session row it issued, so this
 # demo cannot invent a per-run label any more: it obtains a real session and
@@ -62,17 +70,25 @@ jwt_session_claim() {
     | sed -n 's/.*"session_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1
 }
 
+obtain_session() {
+  local credential="$1" session
+  [[ -n "$credential" ]] || return 0
+  session=$(jwt_session_claim "$credential")
+  if [[ -z "$session" ]]; then
+    session=$(curl -fsS -X POST "${BASE_URL}/api/public/gateway/sessions" \
+      -H "x-api-key: $credential" | sed -n 's/.*"session_id":"\([^"]*\)".*/\1/p')
+  fi
+  printf '%s' "$session"
+}
+
 CREDENTIAL=""
 [[ -s "$PI_CRED_DIR/token" ]] && CREDENTIAL=$(cat "$PI_CRED_DIR/token")
-if [[ -z "$CREDENTIAL" ]]; then
+SESSION=$(obtain_session "$CREDENTIAL")
+
+if [[ -z "$SESSION" ]]; then
   load_user_token "${LIVE_TOKEN:-}"
   CREDENTIAL="$USER_TOKEN"
-fi
-
-SESSION=$(jwt_session_claim "$CREDENTIAL")
-if [[ -z "$SESSION" ]]; then
-  SESSION=$(curl -fsS -X POST "${BASE_URL}/api/public/gateway/sessions" \
-    -H "x-api-key: $CREDENTIAL" | sed -n 's/.*"session_id":"\([^"]*\)".*/\1/p')
+  SESSION=$(obtain_session "$CREDENTIAL")
 fi
 if [[ -z "$SESSION" ]]; then
   echo "ERROR: could not obtain a gateway session." >&2
