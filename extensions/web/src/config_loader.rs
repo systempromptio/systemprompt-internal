@@ -3,11 +3,13 @@
 //! Runs once at extension construction, before any request is served, so the
 //! file-system reads here are not on a hot path.
 
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use systemprompt::config::ProfileBootstrap;
 use systemprompt::models::AppPaths;
 use thiserror::Error;
+
+static BRANDING_CONFIG: OnceLock<Result<Option<BrandingConfig>, String>> = OnceLock::new();
 
 fn load_app_paths() -> Result<AppPaths, ConfigError> {
     let profile =
@@ -125,12 +127,16 @@ pub(crate) fn load_branding_config() -> Result<Option<BrandingConfig>, ConfigErr
 /// Both router builds and the HTTP contract suite need the engine configured
 /// the same way; the templates read `branding.*` under strict mode, so an
 /// engine built without it fails to render every page that has one.
+///
+/// Cached: the router build and each prerender context ask for branding
+/// independently, and re-reading theme.yaml per caller is pure waste.
 #[must_use]
 pub fn branding_config() -> Option<BrandingConfig> {
-    load_branding_config().unwrap_or_else(|e| {
-        tracing::warn!(error = %e, "Failed to load branding config");
-        None
-    })
+    crate::extension::log_and_discard_err(
+        &BRANDING_CONFIG,
+        load_branding_config,
+        "Branding config error",
+    )
 }
 
 pub(crate) fn load_features_config() -> Result<Option<Arc<FeaturePagesConfig>>, ConfigError> {

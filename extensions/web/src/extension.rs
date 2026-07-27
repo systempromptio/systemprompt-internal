@@ -81,7 +81,7 @@ impl WebExtension {
     }
 }
 
-fn log_and_discard_err<T: Clone>(
+pub(crate) fn log_and_discard_err<T: Clone>(
     lock: &OnceLock<Result<Option<T>, String>>,
     init: fn() -> Result<Option<T>, ConfigError>,
     msg: &str,
