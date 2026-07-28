@@ -106,7 +106,15 @@ if [ ! -f /app/signing_key.pem ]; then
 fi
 
 echo "Running database migrations..."
-/app/bin/systemprompt infra db migrate
+# A managed volume/database outlives the image, so a database seeded by an older
+# tag can carry checksums for migrations that were since edited in the source
+# tree. Reconcile the tracking table and retry once; anything else is a real
+# migration failure and still aborts boot.
+if ! /app/bin/systemprompt infra db migrate; then
+    echo "Migration failed; reconciling migration checksums and retrying..." >&2
+    /app/bin/systemprompt infra db migrate-repair --apply
+    /app/bin/systemprompt infra db migrate
+fi
 
 echo "Ensuring bootstrap admin user..."
 /app/bin/systemprompt admin bootstrap
