@@ -45,12 +45,10 @@ axum = { workspace = true }
 # Async
 
 # Serialization
-serde_yaml = { workspace = true }
 
 # Markdown processing
 
 # Utilities
-thiserror = { workspace = true }
 tracing = { workspace = true }
 
 # SSE streaming

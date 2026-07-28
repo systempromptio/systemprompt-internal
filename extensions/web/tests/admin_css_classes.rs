@@ -65,8 +65,8 @@ fn strip_handlebars(text: &str) -> String {
             out.push(' ');
             rest = &rest[open + close + 2..];
         } else {
-            // Unbalanced open brace: keep the tail verbatim, as the
-            // shell gate's non-greedy regex did.
+            // Why: unbalanced open brace — keep the tail verbatim, matching
+            // the shell gate's non-greedy regex.
             rest = &rest[open..];
             break;
         }

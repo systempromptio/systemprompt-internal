@@ -5567,7 +5567,6 @@ version = "0.25.0"
 dependencies = [
  "axum",
  "inventory",
- "serde_yaml",
  "systemprompt",
  "systemprompt-extension",
  "systemprompt-web-admin",
@@ -5575,7 +5574,6 @@ dependencies = [
  "systemprompt-web-jobs",
  "systemprompt-web-shared",
  "systemprompt-web-site",
- "thiserror 2.0.18",
  "tracing",
 ]
 

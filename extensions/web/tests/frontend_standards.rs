@@ -171,7 +171,6 @@ fn source_files(root: &Path, subdir: &str, ext: &str) -> Vec<(PathBuf, String)> 
                 .unwrap_or(&path)
                 .to_string_lossy()
                 .into_owned();
-            // Generated bundle; never linted.
             (!rel.contains("admin-bundle")).then_some((path, rel))
         })
         .collect()
@@ -181,7 +180,6 @@ fn check_js_line(v: &mut Violations, rel: &str, line_no: usize, raw: &str) {
     let trimmed = raw.trim_start();
     if trimmed.starts_with("//") || trimmed.starts_with("/*") {
         v.report(rel, line_no, "comments", raw);
-        // A comment line is not code; no other rule applies.
         return;
     }
     let code = strip_literals_and_comment(raw);
