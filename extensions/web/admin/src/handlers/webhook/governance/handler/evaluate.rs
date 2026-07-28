@@ -5,7 +5,7 @@
 //! deny. The handler owns request flow and auditing; this module owns the
 //! decision logic.
 
-use systemprompt::identifiers::{McpToolName, SessionId, UserId};
+use systemprompt::identifiers::{CallId, McpToolName, SessionId, UserId};
 use systemprompt_security::authz::{Decision, MatchedBy};
 use systemprompt_security::policy::types::AccessScope;
 use systemprompt_security::policy::{AgentScope, McpToolInput, PolicyContext};
@@ -30,6 +30,10 @@ pub(super) fn evaluate(input: &EvaluateInput<'_>) -> (Decision, Vec<ChainEntryOu
             .unwrap_or_else(|| serde_json::Value::Object(serde_json::Map::new())),
     );
 
+    // The webhook is this call's only enforcement point — nothing upstream
+    // hands us an identity to carry, so the call originates here.
+    let call_id = CallId::generate();
+
     let ctx = PolicyContext {
         tool: McpToolName::new(input.tool_name),
         agent_scope: AgentScope::User {
@@ -39,6 +43,7 @@ pub(super) fn evaluate(input: &EvaluateInput<'_>) -> (Decision, Vec<ChainEntryOu
         session_id: input.session_id,
         user_id: input.user_id,
         tool_input: &tool_input,
+        call_id: &call_id,
     };
 
     let mut chain_trace: Vec<ChainEntryOutcome> = Vec::new();

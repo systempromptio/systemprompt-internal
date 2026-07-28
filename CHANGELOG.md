@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.26.0 — 2026-07-28
+
+### Changed
+
+- Tracks systemprompt-core 0.26.0. The governance webhook supplies the `call_id` that `PolicyContext` now requires: the webhook is this call's only enforcement point and nothing upstream hands it an identity, so it mints one per request. A policy that accumulates state can use it to tell a repeat evaluation of one call from a second call.
+- The deployment manifests (Helm, CasaOS, DigitalOcean) pin the 0.26.0 image; the Helm chart is 0.7.0 with appVersion 0.26.0. `render.yaml` tracks `latest` by design and is unchanged.
+
 ## 0.14.7 — 2026-06-03
 
 ### Fixed
