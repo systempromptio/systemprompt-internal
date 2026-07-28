@@ -5,7 +5,9 @@ services:
     plan: free
     autoDeploy: false  # button-deployed instances shouldn't redeploy on every push to this repo
     image:
-      url: ghcr.io/systempromptio/systemprompt-template:latest
+      # :edge tracks main. Render pulls this once at deploy time, so an instance
+      # stays pinned to whatever digest it booted with until it is redeployed.
+      url: ghcr.io/systempromptio/systemprompt-template:edge
     healthCheckPath: /api/v1/health
     envVars:
       - key: HOST
