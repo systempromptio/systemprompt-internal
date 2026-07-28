@@ -1,6 +1,3 @@
-/* Time-range picker — segmented preset pills + custom datetime row.
-   Markup: partials/components/time-range.hbs */
-
 @layer components {
 
 .time-range {
@@ -40,7 +37,7 @@
 
 .time-range__btn--active {
     background: var(--sp-accent);
-    color: var(--sp-text-on-accent, #fff);
+    color: var(--sp-text-on-accent);
     font-weight: 600;
 }
 
@@ -73,7 +70,7 @@
 
 .time-range__input {
     padding: var(--sp-space-1) var(--sp-space-2);
-    background: var(--sp-bg-input, var(--sp-bg-surface-raised));
+    background: var(--sp-bg-input);
     border: 1px solid var(--sp-border-subtle);
     border-radius: var(--sp-radius-sm);
     font-size: var(--sp-text-sm);
@@ -92,7 +89,7 @@
     border-radius: var(--sp-radius-full);
     font-size: var(--sp-text-sm);
     font-weight: 600;
-    color: var(--sp-text-on-accent, #fff);
+    color: var(--sp-text-on-accent);
     cursor: pointer;
     transition: filter var(--sp-duration-fast);
 }

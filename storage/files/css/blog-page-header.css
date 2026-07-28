@@ -1,5 +1,5 @@
 .page-header {
-  margin-bottom: var(--sp-spacing-xxl);
+  margin-bottom: var(--sp-space-12);
 }
 
 .page-header h1 {
@@ -8,7 +8,7 @@
   font-weight: var(--sp-font-weight-bold);
   letter-spacing: -0.03em;
   color: var(--sp-color-text-primary);
-  margin-bottom: var(--sp-spacing-sm);
+  margin-bottom: var(--sp-space-2);
   text-transform: uppercase;
 }
 

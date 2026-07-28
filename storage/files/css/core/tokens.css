@@ -1,0 +1,99 @@
+:root {
+  --sp-font-brand: inherit;
+  --sp-font-body: 'OpenSans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --sp-font-heading: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+
+  --sp-font-size-xs: 12px;
+  --sp-font-size-sm: 14px;
+  --sp-font-size-md: 15px;
+  --sp-font-size-lg: 18px;
+  --sp-font-size-xl: 20px;
+  --sp-font-size-xxl: 28px;
+  --sp-text-xs: 0.75rem;
+  --sp-text-sm: 0.875rem;
+
+  --sp-font-weight-regular: 400;
+  --sp-font-weight-medium: 500;
+  --sp-font-weight-semibold: 600;
+  --sp-font-weight-bold: 700;
+
+  --sp-space-1: 4px;
+  --sp-space-2: 8px;
+  --sp-space-3: 12px;
+  --sp-space-4: 16px;
+  --sp-space-5: 20px;
+  --sp-space-6: 24px;
+  --sp-space-7: 28px;
+  --sp-space-8: 32px;
+  --sp-space-10: 40px;
+  --sp-space-12: 48px;
+  --sp-space-16: 64px;
+  --sp-space-24: 96px;
+
+  --sp-container-max: 1200px;
+  --sp-header-height: 72px;
+  --sp-sidebar-left-width: 280px;
+  --sp-sidebar-right-width: 220px;
+
+  --sp-radius-xs: 2px;
+  --sp-radius-sm: 4px;
+  --sp-radius-md: 8px;
+  --sp-radius-lg: 12px;
+  --sp-radius-xl: 16px;
+  --sp-radius-xxl: 24px;
+  --sp-radius-round: 9999px;
+
+  --sp-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06);
+  --sp-shadow-md: 0 4px 8px rgba(0, 0, 0, 0.08);
+  --sp-shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.1);
+  --sp-shadow-accent: 0 4px 12px rgba(0, 113, 206, 0.3);
+
+  --sp-animation-fast: 150ms;
+  --sp-animation-normal: 300ms;
+  --sp-animation-slow: 500ms;
+  --sp-duration-fast: 150ms;
+  --sp-duration-normal: 250ms;
+  --sp-transition-fast: 150ms ease;
+  --sp-transition-normal: 250ms ease;
+  --sp-transition-slow: 400ms ease;
+  --sp-ease-default: ease;
+  --sp-ease-out: ease-out;
+  --sp-ease-in-out: ease-in-out;
+
+  --sp-z-base: 1;
+  --sp-z-content: 10;
+  --sp-z-sidebar: 50;
+  --sp-z-sidebar-toggle: 60;
+  --sp-z-mobile-menu: 99;
+  --sp-z-navigation: 100;
+  --sp-z-dropdown: 100;
+  --sp-z-modal: 1000;
+  --sp-z-tooltip: 2000;
+  --sp-z-toast: 9999;
+
+  --sp-card-radius-main: 18px;
+  --sp-card-radius-notch: 6px;
+  --sp-card-radius: 18px 6px 18px 18px;
+  --sp-card-border-width: 1px;
+  --sp-card-bg-glass: hsla(28, 32%, 98%, 0.6);
+  --sp-card-bg-gradient: linear-gradient(135deg,
+    rgba(247, 153, 56, 0.06) 0%,
+    rgba(253, 186, 116, 0.08) 50%,
+    rgba(250, 250, 249, 0.04) 100%);
+  --sp-card-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  --sp-card-shadow-hover: 0 8px 32px rgba(28, 25, 23, 0.12);
+  --sp-card-shadow-highlight: 0 0 20px rgba(247, 153, 56, 0.15);
+
+  --sp-client-black: #0F172A;
+  --sp-client-orange: #f79938;
+  --sp-client-tints-cta-orange: #f79938;
+  --sp-client-tints-orange-3: #fde0b8;
+  --sp-client-sand: #FAFAF9;
+  --sp-client-sand-60: hsla(28, 32%, 98%, 0.6);
+  --sp-client-yellow: #FFF4C1;
+  --sp-client-teal: #006463;
+  --sp-client-grey: #F5F5F4;
+  --sp-client-cards-card-bg: #F5F5F4;
+}
+
+h1, h2, h3, h4, h5, h6 { letter-spacing: -0.03em; }

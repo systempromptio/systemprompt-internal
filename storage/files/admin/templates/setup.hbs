@@ -63,11 +63,7 @@
     {{/inline}}
     {{#*inline "scripts"}}
     {{#if just_verified}}
-    <script data-cfasync="false" type="module">
-    import { showToast } from '/js/services/toast.js';
-    showToast('Email verified! Your account is now active.', 'success');
-    window.history.replaceState({}, '', '/admin/setup');
-    </script>
+    <script data-cfasync="false" type="module" src="/js/pages/admin-setup-verified.js"></script>
     {{/if}}
     {{/inline}}
 {{/layout}}

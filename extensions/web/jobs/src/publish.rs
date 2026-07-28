@@ -13,7 +13,7 @@ use systemprompt::models::AppPaths;
 use systemprompt::traits::{Job, JobContext, JobResult};
 
 use super::{
-    BundleAdminCssJob, BundleAdminJsJob, ContentIngestionJob, ContentPrerenderJob,
+    BundleAdminCssJob, ContentIngestionJob, ContentPrerenderJob,
     CopyExtensionAssetsJob, LlmsTxtGenerationJob, RobotsTxtGenerationJob, SitemapGenerationJob,
 };
 use crate::error::JobError;
@@ -67,22 +67,6 @@ impl PublishPipelineJob {
             },
             Err(e) => {
                 tracing::error!(error = %e, "Admin CSS bundle failed");
-                stats.record_failure();
-            },
-        }
-    }
-
-    async fn run_bundle_admin_js(&self, stats: &mut PipelineStats) {
-        match BundleAdminJsJob::execute_bundle().await {
-            Ok(result) => {
-                tracing::debug!(
-                    bundled = result.items_processed.unwrap_or(0),
-                    "Admin JS bundle completed"
-                );
-                stats.record_success();
-            },
-            Err(e) => {
-                tracing::error!(error = %e, "Admin JS bundle failed");
                 stats.record_failure();
             },
         }
@@ -261,7 +245,6 @@ impl PublishPipelineJob {
 
         self.run_ingestion(ctx, &mut stats).await;
         self.run_bundle_admin_css(&mut stats).await;
-        self.run_bundle_admin_js(&mut stats).await;
         self.run_asset_copy(paths, &mut stats).await;
         self.run_prerender(ctx, &mut stats).await;
         self.run_page_prerender(paths, db_pool, &mut stats).await;

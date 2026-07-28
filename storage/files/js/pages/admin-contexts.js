@@ -1,6 +1,3 @@
-// /admin/entities/contexts — submit filters on change, toggle "By user" tabs,
-// and expand per-user nested rows.
-
 const form = document.getElementById('contexts-filter-form');
 const viewInput = document.getElementById('contexts-view-input');
 
@@ -21,24 +18,21 @@ if (form) {
   }
 }
 
-document.querySelectorAll('.tabs [data-view]').forEach((tab) => {
+for (const tab of document.querySelectorAll('.tabs [data-view]')) {
   tab.addEventListener('click', () => {
     const view = tab.dataset.view;
     if (!view || !viewInput || !form) return;
     viewInput.value = view;
     form.submit();
   });
-});
+}
 
-document.querySelectorAll('.row-expand-toggle').forEach((btn) => {
+for (const btn of document.querySelectorAll('.row-expand-toggle')) {
   btn.addEventListener('click', () => {
-    const id = btn.getAttribute('aria-controls');
-    if (!id) return;
-    const target = document.getElementById(id);
+    const target = document.getElementById(btn.getAttribute('aria-controls') || '');
     if (!target) return;
     const expanded = btn.getAttribute('aria-expanded') === 'true';
     btn.setAttribute('aria-expanded', expanded ? 'false' : 'true');
     target.hidden = expanded;
-    btn.style.transform = expanded ? '' : 'rotate(180deg)';
   });
-});
+}

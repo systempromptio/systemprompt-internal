@@ -16,6 +16,13 @@
     --sp-scrollbar-track: transparent;
     --sp-scrollbar-thumb: light-dark(var(--sp-warm-300), var(--sp-warm-300));
     --sp-scrollbar-thumb-hover: light-dark(var(--sp-warm-400), var(--sp-warm-400));
+    --sp-sidebar-control-bg: light-dark(var(--sp-primitive-warm-200), oklch(1.00 0 0 / 0.1));
+    --sp-sidebar-control-bg-hover: light-dark(var(--sp-primitive-warm-300), oklch(1.00 0 0 / 0.15));
+    --sp-sidebar-scrollbar-thumb: light-dark(var(--sp-primitive-warm-300), oklch(1.00 0 0 / 0.15));
+    --sp-sidebar-edge-line: oklch(1.00 0 0 / 0.04);
+    --sp-sidebar-brand-glow: oklch(1.00 0 0 / 0.03);
+    --sp-drawer-overlay: light-dark(oklch(0.20 0.01 50 / 0.32), oklch(0.05 0 0 / 0.55));
+    --sp-login-glow: oklch(0.62 0.18 260);
     --sp-toggle-knob: light-dark(var(--sp-primitive-white), var(--sp-primitive-warm-50));
     --sp-shimmer-from: light-dark(var(--sp-warm-100), var(--sp-warm-100));
     --sp-shimmer-via:  light-dark(var(--sp-warm-50), var(--sp-warm-50));

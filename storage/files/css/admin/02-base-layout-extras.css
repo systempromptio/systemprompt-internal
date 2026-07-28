@@ -49,15 +49,18 @@
     cursor: pointer;
     transition: color var(--sp-duration-fast), background var(--sp-duration-fast), border-color var(--sp-duration-fast);
 }
+
 .header-help-link:hover {
     color: var(--sp-text-primary);
     background: var(--sp-bg-surface-raised);
     border-color: var(--sp-border-strong);
 }
+
 .header-help-link:focus-visible {
     outline: none;
     box-shadow: 0 0 0 2px var(--sp-bg-canvas), 0 0 0 4px color-mix(in oklch, var(--sp-accent) 50%, transparent);
 }
+
 .header-help-link svg {
     display: block;
 }
@@ -88,17 +91,28 @@
 }
 
 [data-section="dashboard"]                          { --sp-section-color: var(--sp-section-dashboard); }
+
 [data-section="users"],  [data-section="user-detail"] { --sp-section-color: var(--sp-section-users); }
+
 [data-section="plugins"],[data-section="plugin-create"],
 [data-section="plugin-edit"]                          { --sp-section-color: var(--sp-section-plugins); }
+
 [data-section="skills"], [data-section="skill-edit"]  { --sp-section-color: var(--sp-section-skills); }
+
 [data-section="export"]                               { --sp-section-color: var(--sp-section-export); }
+
 [data-section="audit"]                                { --sp-section-color: var(--sp-section-audit); }
+
 [data-section="agents"], [data-section="agent-edit"]  { --sp-section-color: var(--sp-section-dashboard); }
+
 [data-section="hooks"],  [data-section="hook-edit"]   { --sp-section-color: var(--sp-section-dashboard); }
+
 [data-section="mcp-servers"],[data-section="mcp-edit"]{ --sp-section-color: var(--sp-section-dashboard); }
+
 [data-section="jobs"],   [data-section="events"]      { --sp-section-color: var(--sp-section-users); }
+
 [data-section="leaderboard"],[data-section="achievements"] { --sp-section-color: var(--sp-section-dashboard); }
+
 [data-section="contexts"], [data-section="context-detail"] { --sp-section-color: var(--sp-section-dashboard); }
 
 .section-title {

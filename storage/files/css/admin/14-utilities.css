@@ -65,11 +65,5 @@
 }
 .checklist-empty { padding: var(--sp-space-4); }
 
-.confirm-actions {
-  display: flex;
-  gap: var(--sp-space-3);
-  justify-content: flex-end;
-  margin-top: var(--sp-space-5);
-}
 
 }

@@ -1,0 +1,62 @@
+@layer utilities {
+
+.numeric {
+    font-variant-numeric: tabular-nums;
+}
+
+.inline {
+    display: inline;
+}
+
+.self-center {
+    align-self: center;
+}
+
+.gap-2 {
+    gap: var(--sp-space-2);
+}
+
+.mt-0 {
+    margin-top: 0;
+}
+
+.mt-8 {
+    margin-top: var(--sp-space-8);
+}
+
+.ml-3 {
+    margin-left: var(--sp-space-3);
+}
+
+.mr-2 {
+    margin-right: var(--sp-space-2);
+}
+
+.p-3 {
+    padding: var(--sp-space-3);
+}
+
+.p-6 {
+    padding: var(--sp-space-6);
+}
+
+.font-mono-sm {
+    font-family: var(--sp-font-mono);
+    font-size: var(--sp-text-xs);
+}
+
+.max-w-form {
+    max-width: 560px;
+}
+
+.empty-state--pad {
+    padding: var(--sp-space-8) var(--sp-space-6);
+    text-align: center;
+}
+
+.empty-state--pad-lg {
+    padding: var(--sp-space-12) var(--sp-space-6);
+    text-align: center;
+}
+
+}

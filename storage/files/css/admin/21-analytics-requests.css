@@ -1,9 +1,5 @@
-/* Analytics → Requests (audit) table chrome: identity cell stack, the
-   clickable audit rows, and the pagination footer. Markup: analytics-requests.hbs */
-
 @layer components {
 
-/* the toolbar already lays out via .toolbar; this is a light modifier */
 .audit-toolbar {
     align-items: flex-end;
 }
@@ -13,7 +9,6 @@
     font-variant-numeric: tabular-nums;
 }
 
-/* identity cell — user link over a muted tenant/agent subline */
 .audit-identity {
     display: flex;
     flex-direction: column;
@@ -26,7 +21,6 @@
     color: var(--sp-text-tertiary);
 }
 
-/* each row opens the chain-of-custody drawer */
 .audit-row {
     cursor: pointer;
 }
@@ -35,8 +29,6 @@
     outline-offset: -2px;
 }
 
-/* Log footer: the row range on the left, the page stepper on the right, so the
-   reader can see what is on screen without counting rows. */
 .audit-pagination {
     display: flex;
     flex-wrap: wrap;

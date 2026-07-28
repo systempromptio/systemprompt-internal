@@ -8,16 +8,8 @@
     <link rel="stylesheet" href="/css/core/fonts.css?v={{css_version}}">
     <link rel="stylesheet" href="/css/admin-bundle.css?v={{css_version}}">
     <script>(function(){document.documentElement.style.colorScheme='light';})();</script>
-    <style>
-        html,body{margin:0;background:var(--sp-bg-base);color:var(--sp-text-primary);font-family:"OpenSans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
-        /* Force light mode regardless of OS dark-mode preference */
-        .login-logo .logo-light{display:block !important}
-        .login-logo .logo-dark{display:none !important}
-        .login-container .card{background:var(--sp-bg-surface) !important;backdrop-filter:none !important;border:1px solid var(--sp-border-subtle) !important}
-        .card{background:linear-gradient(180deg,var(--sp-bg-surface) 0%,var(--sp-bg-canvas) 60%,var(--sp-bg-base) 100%) !important}
-    </style>
 </head>
-<body>
+<body class="auth-light">
     <main class="auth-page">
         <div class="auth-info">
             <div>
@@ -76,7 +68,7 @@
         </div>
 
         <div class="auth-form-col">
-            <div class="login-container" style="min-height:auto;padding:0;background:none">
+            <div class="login-container login-container--bare">
                 <div class="card">
                     <div class="login-logo">
                         <img src="/files/images/logo.svg" alt="{{branding.domain}}" height="40" class="logo-light">
@@ -84,7 +76,7 @@
                     </div>
                     <p class="login-subtitle">Create your account</p>
 
-                    <div id="error" class="login-error" role="alert" aria-live="polite"></div>
+                    <div id="error" class="login-error" role="alert" aria-live="polite" hidden></div>
 
                     <form id="register-form">
                         <div class="form-group">
@@ -126,166 +118,6 @@
         </div>
     </main>
 
-    <script type="module">
-        import {
-            makeRequest, preparePublicKeyCredentialCreationOptions,
-            preparePublicKeyCredentialRequestOptions,
-        } from '/js/services/webauthn-utils.js';
-        import {
-            buildAuthCredentialPayload, buildCreationCredentialPayload,
-            initPkceAndRedirect, WEBAUTHN_BASE,
-        } from '/js/services/webauthn-passkey-helpers.js';
-
-        const LOGIN_PATH = '/admin/login';
-
-        const form = document.getElementById('register-form');
-        const errorDiv = document.getElementById('error');
-        const loadingSection = document.getElementById('loading');
-        const loadingText = document.getElementById('loading-text');
-        const retrySection = document.getElementById('retry');
-
-        // --- UI Helpers ---
-
-        function showError(msg) {
-            errorDiv.textContent = msg;
-            errorDiv.style.display = 'block';
-            loadingSection.style.display = 'none';
-            form.style.display = 'block';
-            retrySection.style.display = 'block';
-        }
-
-        function showLoading(msg) {
-            loadingText.textContent = msg || 'Setting up your account...';
-            form.style.display = 'none';
-            errorDiv.style.display = 'none';
-            loadingSection.style.display = 'block';
-        }
-
-        // --- Redirect if already authenticated ---
-
-        function hasValidAdminToken() {
-            try {
-                const cookie = document.cookie.split('; ').find(c => c.startsWith('access_token='));
-                if (!cookie) return false;
-                const token = cookie.split('=').slice(1).join('=');
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                const scopes = (payload.scope || '').split(' ');
-                if (!scopes.includes('user')) return false;
-                if (payload.exp && payload.exp * 1000 < Date.now()) return false;
-                return true;
-            } catch { return false; }
-        }
-
-        if (hasValidAdminToken()) {
-            window.location.href = '/admin/';
-        } else {
-            // --- WebAuthn Check ---
-
-            if (!window.PublicKeyCredential) {
-                errorDiv.textContent = 'Your browser does not support passkeys. Please use a modern browser (Chrome, Firefox, Safari, Edge).';
-                errorDiv.style.display = 'block';
-                form.querySelector('button[type="submit"]').disabled = true;
-            }
-
-            // --- Auto-login after passkey creation ---
-
-            async function autoLogin(email) {
-                try {
-                    showLoading('Signing you in...');
-                    const startResponse = await makeRequest(
-                        WEBAUTHN_BASE + '/auth/start?email=' + encodeURIComponent(email), 'POST'
-                    );
-                    const publicKeyOptions = preparePublicKeyCredentialRequestOptions(startResponse.data.publicKey);
-                    const credential = await navigator.credentials.get({ publicKey: publicKeyOptions });
-                    if (!credential) throw new Error('Authentication was cancelled');
-                    showLoading('Verifying...');
-                    const finishResponse = await makeRequest(WEBAUTHN_BASE + '/auth/finish', 'POST', {
-                        challenge_id: startResponse.data.challenge_id,
-                        credential: buildAuthCredentialPayload(credential),
-                    });
-                    await initPkceAndRedirect(
-                        finishResponse.data.user_id,
-                        finishResponse.data.auth_token,
-                        showLoading,
-                        '/admin/',
-                    );
-                } catch (_error) {
-                    showLoading('Passkey created! Redirecting to sign in...');
-                    setTimeout(function() { window.location.href = LOGIN_PATH; }, 2000);
-                }
-            }
-
-            // --- Form Submit: Registration via link/start + link/finish ---
-
-            form.addEventListener('submit', async function(e) {
-                e.preventDefault();
-
-                const email = document.getElementById('reg-email').value.trim();
-                const displayName = document.getElementById('reg-name').value.trim();
-                const role = document.getElementById('reg-role').value;
-
-                if (!email || !displayName) {
-                    showError('Please fill in all fields.');
-                    return;
-                }
-
-                try {
-                    showLoading('Creating your account...');
-
-                    // Step 1: Create user and get setup token
-                    const regResponse = await fetch('/admin/api/register', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name: displayName, email: email, role: role }),
-                    });
-                    const regData = await regResponse.json();
-                    if (!regResponse.ok) {
-                        throw new Error(regData.error || regData.message || 'Registration failed');
-                    }
-
-                    showLoading('Creating your passkey...');
-
-                    // Step 2: Start credential linking with setup token (GET endpoint)
-                    const setupToken = regData.token;
-                    const startResponse = await makeRequest(
-                        WEBAUTHN_BASE + '/link/start?token=' + encodeURIComponent(setupToken),
-                        'GET'
-                    );
-
-                    const publicKeyOptions = preparePublicKeyCredentialCreationOptions(
-                        startResponse.data.challenge ? startResponse.data.challenge.publicKey : startResponse.data.publicKey
-                    );
-                    const credential = await navigator.credentials.create({
-                        publicKey: publicKeyOptions
-                    });
-
-                    if (!credential) {
-                        throw new Error('Passkey creation was cancelled');
-                    }
-
-                    showLoading('Finishing registration...');
-
-                    // Step 3: Finish credential linking with setup token
-                    await makeRequest(WEBAUTHN_BASE + '/link/finish', 'POST', {
-                        challenge_id: startResponse.data.challenge_id || startResponse.challengeId,
-                        token: setupToken,
-                        credential: buildCreationCredentialPayload(credential),
-                    });
-
-                    // Step 4: Auto-login with the new passkey
-                    await autoLogin(email);
-
-                } catch (error) {
-                    if (error.name === 'NotAllowedError') {
-                        showError('Passkey creation was cancelled or not allowed.');
-                    } else if (error.name === 'NotSupportedError') {
-                        showError('Passkeys are not supported on this device.');
-                    } else {
-                        showError(error.message || 'Registration failed. Please try again.');
-                    }
-                }
-            });
-        }
-    </script>
+    <script data-cfasync="false" type="module" src="/js/pages/admin-register.js"></script>
 </body>
 </html>

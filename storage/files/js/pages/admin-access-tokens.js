@@ -125,9 +125,9 @@ const bindSearch = () => {
   const search = document.getElementById('token-search');
   const apply = () => {
     const q = (search?.value || '').toLowerCase();
-    document.querySelectorAll('tr[data-search]').forEach((r) => {
-      r.style.display = !q || r.getAttribute('data-search').includes(q) ? '' : 'none';
-    });
+    for (const row of document.querySelectorAll('tr[data-search]')) {
+      row.hidden = Boolean(q) && !row.dataset.search.includes(q);
+    }
   };
   search?.addEventListener('input', apply);
 };

@@ -1,8 +1,8 @@
 .workflow-progress {
   display: block;
   position: relative;
-  padding: var(--sp-spacing-md) var(--sp-spacing-sm);
-  margin: var(--sp-spacing-md) 0 var(--sp-spacing-lg);
+  padding: var(--sp-space-4) var(--sp-space-2);
+  margin: var(--sp-space-4) 0 var(--sp-space-6);
   cursor: pointer;
   border-radius: var(--sp-radius-md);
   transition: background var(--sp-animation-fast) ease;
@@ -17,7 +17,7 @@
   text-align: center;
   font-size: var(--sp-font-size-xs);
   color: var(--sp-color-text-secondary);
-  margin-top: var(--sp-spacing-sm);
+  margin-top: var(--sp-space-2);
   opacity: 0;
   transition: opacity var(--sp-animation-fast) ease;
 }
@@ -28,12 +28,12 @@
 
 .workflow-progress__bar {
   position: absolute;
-  top: calc(var(--sp-spacing-md) + 8px);
-  left: var(--sp-spacing-sm);
-  right: var(--sp-spacing-sm);
+  top: calc(var(--sp-space-4) + 8px);
+  left: var(--sp-space-2);
+  right: var(--sp-space-2);
   height: 4px;
   background: var(--sp-color-border);
-  border-radius: var(--sp-radius-full);
+  border-radius: var(--sp-radius-round);
   z-index: 0;
 }
 
@@ -45,7 +45,7 @@
   width: var(--sp-progress, 0%);
   height: 100%;
   background: linear-gradient(90deg, var(--sp-color-primary), var(--sp-color-success));
-  border-radius: var(--sp-radius-full);
+  border-radius: var(--sp-radius-round);
   transition: width var(--sp-animation-normal) ease;
 }
 
@@ -53,20 +53,20 @@
   display: flex;
   justify-content: space-between;
   position: relative;
-  z-index: var(--sp-z-sticky);
+  z-index: var(--sp-z-base);
 }
 
 .workflow-state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--sp-spacing-xs);
+  gap: var(--sp-space-1);
 }
 
 .workflow-state__dot {
   width: 16px;
   height: 16px;
-  border-radius: var(--sp-radius-full);
+  border-radius: var(--sp-radius-round);
   background: var(--sp-color-surface);
   border: 3px solid var(--sp-color-border);
   transition: all var(--sp-animation-fast) ease;

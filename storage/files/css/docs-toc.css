@@ -1,7 +1,6 @@
-
 .docs-toc {
   position: relative;
-  padding: var(--sp-spacing-lg);
+  padding: var(--sp-space-6);
   border-left: 1px solid var(--sp-color-border);
   background: var(--sp-color-surface);
   overflow: hidden;
@@ -22,7 +21,7 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--sp-color-text-secondary);
-  margin: 0 0 var(--sp-spacing-md) 0;
+  margin: 0 0 var(--sp-space-4) 0;
 }
 
 .toc-content .toc-list {
@@ -34,7 +33,7 @@
 .toc-content .toc-item {
   margin: 0;
   position: relative;
-  padding-left: 16px;
+  padding-left: var(--sp-space-4);
   border-left: 1px solid var(--sp-color-border);
 }
 
@@ -91,7 +90,7 @@
 
 .docs-toc-mobile {
   display: none;
-  margin-bottom: var(--sp-spacing-lg);
+  margin-bottom: var(--sp-space-6);
 }
 
 @media (max-width: 1200px) {
@@ -110,7 +109,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--sp-spacing-sm) var(--sp-spacing-md);
+  padding: var(--sp-space-2) var(--sp-space-4);
   cursor: pointer;
   list-style: none;
   user-select: none;
@@ -139,7 +138,7 @@
 }
 
 .toc-mobile-nav {
-  padding: 0 var(--sp-spacing-md) var(--sp-spacing-md);
+  padding: 0 var(--sp-space-4) var(--sp-space-4);
   border-top: 1px solid var(--sp-color-border);
   max-height: 50vh;
   overflow-y: auto;
@@ -157,8 +156,8 @@
 
 .toc-content--mobile a {
   display: block;
-  padding: var(--sp-spacing-xs) 0;
-  padding-left: var(--sp-spacing-sm);
+  padding: var(--sp-space-1) 0;
+  padding-left: var(--sp-space-2);
   color: var(--sp-color-text-secondary);
   text-decoration: none;
   font-size: var(--sp-font-size-sm);
@@ -178,7 +177,7 @@
 }
 
 .toc-content--mobile ul ul {
-  padding-left: var(--sp-spacing-md);
+  padding-left: var(--sp-space-4);
 }
 
 .toc-content--mobile ul ul a {

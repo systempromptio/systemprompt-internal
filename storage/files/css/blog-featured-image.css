@@ -1,6 +1,6 @@
 .featured-image {
   max-width: 1100px;
-  margin: 0 auto var(--sp-spacing-xxl);
+  margin: 0 auto var(--sp-space-12);
   border-radius: var(--sp-radius-lg);
   overflow: hidden;
   box-shadow: var(--sp-shadow-lg);
@@ -35,8 +35,8 @@
   inset: 0;
   background: linear-gradient(
     to top,
-    rgba(0, 0, 0, 0.5) 0%,
-    rgba(0, 0, 0, 0.2) 40%,
+    rgba(var(--sp-color-black-rgb), 0.5) 0%,
+    rgba(var(--sp-color-black-rgb), 0.2) 40%,
     transparent 100%
   );
   pointer-events: none;

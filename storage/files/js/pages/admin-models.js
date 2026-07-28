@@ -1,8 +1,3 @@
-// Model Selection page: per-user gateway model toggles.
-//
-// Disabling writes a user-band deny rule against the gateway route; enabling
-// deletes it. The gateway re-reads access_control_rules on every /v1/messages
-// call, so the toggle governs the user's very next request.
 import { apiFetch } from '../services/api.js';
 import { showToast } from '../services/toast.js';
 import { on } from '../services/events.js';

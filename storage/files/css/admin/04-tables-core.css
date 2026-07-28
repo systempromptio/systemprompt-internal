@@ -1,6 +1,5 @@
 @layer components {
-/* Tables grow with their content and the page scrolls; an internal
-   max-height silently hides rows behind an unmarked inner scrollbar. */
+
 .table-container {
     background: var(--sp-bg-surface);
     border: 1px solid var(--sp-border-subtle);
@@ -9,17 +8,11 @@
     max-width: 100%;
 }
 
-/* Only the inner element scrolls. Both used to, which produced two nested
-   scrollbars on a wide table and let the inner one sit outside the card's
-   rounded corner. */
 .table-scroll {
     overflow-x: auto;
     border-radius: inherit;
 }
 
-/* Classic CSS scroll shadow: the `local` layers mask the `scroll` shadows
-   until the content actually overflows, so the cue only appears when there
-   is something more to see sideways. */
 .table-scroll {
     background-image:
         linear-gradient(to right, var(--sp-bg-surface), transparent),
@@ -31,9 +24,6 @@
     background-size: 2.5rem 100%, 2.5rem 100%, 1rem 100%, 1rem 100%;
     background-attachment: local, local, scroll, scroll;
 }
-
-/* A table is sized by its rows and the page scrolls; 02-base-layout.css states
-   that once, for every page section, so there is no per-element rule here. */
 
 .data-table {
     min-width: 100%;
@@ -189,7 +179,6 @@
     background: var(--sp-accent-dim);
 }
 
-/* Right-aligned numeric columns (header + cell). */
 .data-table th.col-num,
 .data-table td.col-num,
 .data-table th.col-numeric,

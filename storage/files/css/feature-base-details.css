@@ -1,14 +1,13 @@
-
 .detail-section {
-  padding: var(--sp-space-4xl) 0;
+  padding: var(--sp-space-24) 0;
   border-bottom: 1px solid var(--sp-color-border);
-  scroll-margin-top: calc(var(--sp-header-height) + var(--sp-space-lg));
+  scroll-margin-top: calc(var(--sp-header-height) + var(--sp-space-6));
 }
 
 .detail-section .container {
   display: grid;
   grid-template-columns: 1fr;
-  gap: var(--sp-space-3xl);
+  gap: var(--sp-space-16);
   align-items: start;
 }
 
@@ -28,7 +27,7 @@
   text-transform: uppercase;
   letter-spacing: 0.03em;
   color: var(--sp-color-primary);
-  margin-bottom: var(--sp-space-lg);
+  margin-bottom: var(--sp-space-6);
 }
 
 .detail-text {
@@ -38,7 +37,7 @@
 }
 
 .detail-text p {
-  margin-bottom: var(--sp-space-lg);
+  margin-bottom: var(--sp-space-6);
 }
 
 .detail-text p:last-child {
@@ -46,15 +45,15 @@
 }
 
 .detail-bullets {
-  margin-top: var(--sp-space-xl);
+  margin-top: var(--sp-space-8);
   padding-left: 0;
   list-style: none;
 }
 
 .detail-bullets li {
-  margin-bottom: var(--sp-space-md);
+  margin-bottom: var(--sp-space-4);
   color: var(--sp-color-text-secondary);
-  padding-left: var(--sp-space-lg);
+  padding-left: var(--sp-space-6);
   position: relative;
 }
 
@@ -80,7 +79,6 @@
   height: auto;
 }
 
-
 .detail-visual .visual-desktop {
   display: block;
   width: 100%;
@@ -88,9 +86,8 @@
   height: auto;
   border-radius: var(--sp-card-radius);
   border: 1px solid var(--sp-brand-800);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 32px rgba(var(--sp-color-black-rgb), 0.4);
 }
-
 
 .detail-visual .visual-mobile {
   display: none;
@@ -99,14 +96,12 @@
   height: auto;
   border-radius: var(--sp-card-radius);
   border: 1px solid var(--sp-brand-800);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 32px rgba(var(--sp-color-black-rgb), 0.4);
 }
-
 
 .detail-section:not(.detail-section--with-visual) .container {
   max-width: 800px;
 }
-
 
 @media (max-width: 768px) {
   .detail-section--with-visual .container {
@@ -118,7 +113,7 @@
   }
 
   .detail-visual {
-    margin-top: var(--sp-space-xl);
+    margin-top: var(--sp-space-8);
     width: 100%;
   }
 

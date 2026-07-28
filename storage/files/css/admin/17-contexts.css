@@ -1,10 +1,3 @@
-/* /admin/entities/contexts — list + detail page styles.
-
-   The KPI card itself is defined once, in 09-charts.css. This file used to
-   carry a second, unlayered copy: being unlayered it outranked every @layer
-   components rule, so the contexts pages quietly rendered a different card to
-   the rest of the admin surface. */
-
 @layer components {
 
 .contexts-kpis {
@@ -97,7 +90,7 @@
 
 .time-range-pills .pill--active {
     background: var(--sp-accent);
-    color: #fff;
+    color: var(--sp-text-on-accent);
     font-weight: 600;
 }
 
@@ -140,6 +133,10 @@
     transition: transform var(--sp-duration-fast);
 }
 
+[data-page="contexts"] .row-expand-toggle[aria-expanded="true"] {
+    transform: rotate(180deg);
+}
+
 .link-strong {
     color: var(--sp-text-primary);
     font-weight: 600;
@@ -153,11 +150,6 @@
 
 .text-xs { font-size: var(--sp-text-xs); }
 
-/* ---------- conversation preview column ---------- */
-
-/* The opening user turn, so the table says what each conversation was about
-   without opening it. Capped and ellipsised so it cannot push the numeric
-   columns off screen; the full text is in the cell's title attribute. */
 .col-conversation {
     max-width: 28rem;
     min-width: 12rem;

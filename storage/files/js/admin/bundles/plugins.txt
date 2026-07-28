@@ -1,5 +1,0 @@
-plugins.js
-plugin-env.js
-skill-files.js
-plugin-edit.js
-plugins-details.js

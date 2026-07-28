@@ -1,0 +1,18 @@
+@layer reset {
+
+html {
+    background: var(--sp-bg-base);
+    color: var(--sp-text-primary);
+}
+
+html,
+body {
+    margin: 0;
+    font-family: var(--sp-font-family);
+}
+
+[hidden] {
+    display: none;
+}
+
+}

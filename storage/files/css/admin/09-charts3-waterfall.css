@@ -1,0 +1,10 @@
+@layer components {
+
+.waterfall__dur {
+    font-size: var(--sp-text-xs);
+    color: var(--sp-text-tertiary);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+}

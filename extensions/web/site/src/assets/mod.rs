@@ -16,7 +16,7 @@ pub fn web_assets(paths: &dyn systemprompt::extension::AssetPaths) -> Vec<AssetD
     let mut assets = css::css_assets(&storage_css);
     assets.extend(js_services::public_js_assets(&storage_js));
     assets.extend(js_services::service_js_assets(&storage_js));
-    assets.extend(js_services::admin_assets(&storage_css, &storage_js));
+    assets.extend(js_services::admin_assets(&storage_css));
     assets.extend(js_pages::page_js_assets(&storage_js));
     assets
 }

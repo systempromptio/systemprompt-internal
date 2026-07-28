@@ -1,17 +1,16 @@
-
 .docs-pagination {
   display: flex;
   justify-content: space-between;
-  gap: var(--sp-spacing-lg);
-  margin-top: var(--sp-spacing-xxl);
-  padding-top: var(--sp-spacing-lg);
+  gap: var(--sp-space-6);
+  margin-top: var(--sp-space-12);
+  padding-top: var(--sp-space-6);
   border-top: 1px solid var(--sp-color-border);
 }
 
 .docs-pagination-link {
   display: flex;
   flex-direction: column;
-  padding: var(--sp-spacing-md);
+  padding: var(--sp-space-4);
   border: 1px solid var(--sp-color-border);
   border-radius: var(--sp-radius-md);
   text-decoration: none;
@@ -21,7 +20,7 @@
 
 .docs-pagination-link:hover {
   border-color: var(--sp-color-primary);
-  background: rgba(0, 113, 206, 0.05);
+  background: rgba(var(--sp-color-accent-blue-rgb), 0.05);
 }
 
 .docs-pagination-prev {

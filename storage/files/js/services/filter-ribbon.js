@@ -1,35 +1,7 @@
-// Identity filter ribbon — progressive enhancement over the SSR markup in
-// partials/components/identity-filter-ribbon.hbs. The checkboxes and the
-// submit button already work with JavaScript off; this adds the behaviour the
-// markup has always described but nothing implemented: typeahead inside a
-// group, one group open at a time, and dismissal by click-away or Escape.
+import { onOutsideClick, onEscape } from './events.js';
 
 const TYPEAHEAD_THRESHOLD = 10;
 
-export const initFilterRibbon = () => {
-  const ribbons = document.querySelectorAll('[data-filter-ribbon]');
-  if (!ribbons.length) return;
-  for (const ribbon of ribbons) {
-    const groups = [...ribbon.querySelectorAll('details.filter-ribbon__group')];
-    for (const group of groups) {
-      initTypeahead(group);
-      initExclusiveOpen(group, groups);
-    }
-    document.addEventListener('click', (e) => {
-      if (!ribbon.contains(e.target)) closeAll(groups);
-    });
-    ribbon.addEventListener('keydown', (e) => {
-      if (e.key !== 'Escape') return;
-      const open = groups.find((g) => g.open);
-      if (!open) return;
-      open.open = false;
-      open.querySelector('summary')?.focus();
-    });
-  }
-};
-
-// A search box over four options is noise, so it only survives on lists long
-// enough to be worth filtering.
 const initTypeahead = (group) => {
   const search = group.querySelector('[data-filter-typeahead]');
   const list = group.querySelector('[data-filter-list]');
@@ -50,8 +22,6 @@ const initTypeahead = (group) => {
   });
 };
 
-// Native <details> lets every group stand open at once, which stacks panels on
-// top of each other. Opening one closes the rest.
 const initExclusiveOpen = (group, groups) => {
   group.addEventListener('toggle', () => {
     if (!group.open) return;
@@ -65,4 +35,31 @@ const initExclusiveOpen = (group, groups) => {
 
 const closeAll = (groups) => {
   for (const group of groups) group.open = false;
+};
+
+const initRibbon = (ribbon) => {
+  const groups = [...ribbon.querySelectorAll('details.filter-ribbon__group')];
+  for (const group of groups) {
+    initTypeahead(group);
+    initExclusiveOpen(group, groups);
+  }
+  onOutsideClick((e) => {
+    if (!ribbon.contains(e.target)) closeAll(groups);
+  });
+  onEscape(() => {
+    const open = groups.find((g) => g.open);
+    if (!open) return;
+    open.open = false;
+    open.querySelector('summary')?.focus();
+  });
+};
+
+let ribbonsReady = false;
+
+export const initFilterRibbon = () => {
+  if (ribbonsReady) return;
+  const ribbons = document.querySelectorAll('[data-filter-ribbon]');
+  if (!ribbons.length) return;
+  ribbonsReady = true;
+  for (const ribbon of ribbons) initRibbon(ribbon);
 };

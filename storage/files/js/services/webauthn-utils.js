@@ -1,3 +1,5 @@
+import { rawResponse } from '/js/services/api.js';
+
 export function generateRandomString(length) {
   const array = new Uint8Array(length);
   crypto.getRandomValues(array);
@@ -49,10 +51,6 @@ export function preparePublicKeyCredentialCreationOptions(options) {
   };
 }
 
-// A passkey is bound to the relying-party id the server derives from
-// api_external_url. The browser rejects the ceremony outright when that id is
-// not the page's own domain — 127.0.0.1 and localhost are different domains to
-// WebAuthn — so check it ourselves and say which host to use.
 export function rpOriginUrl(rpId) {
   const host = window.location.hostname;
   if (!rpId || host === rpId || host.endsWith('.' + rpId)) {
@@ -77,14 +75,11 @@ export function assertRpIdMatchesOrigin(rpId) {
 }
 
 export async function makeRequest(url, method, body) {
-  const options = {
-    method,
-    headers: { 'Content-Type': 'application/json' }
-  };
+  const options = { method };
   if (body) {
     options.body = JSON.stringify(body);
   }
-  const response = await fetch(url, options);
+  const response = await rawResponse(url, options);
   const data = await response.json();
   if (!response.ok) {
     throw new Error(data.error_description || data.error || 'Request failed');

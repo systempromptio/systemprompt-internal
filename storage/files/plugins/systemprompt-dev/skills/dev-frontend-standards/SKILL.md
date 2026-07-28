@@ -260,9 +260,8 @@ just publish
 Runs in strict order:
 
 1. `bundle_admin_css` -- Concatenate CSS per `CSS_MODULE_ORDER` in Rust
-2. `bundle_admin_js` -- Concatenate JS per `bundle-order.txt` + per-page bundles
-3. `copy_extension_assets` -- Copy bundles to `web/dist/`
-4. `content_prerender` -- Generate static content pages
+2. `copy_extension_assets` -- Copy bundles to `web/dist/`
+3. `content_prerender` -- Generate static content pages
 
 Admin pages are SSR'd at runtime from `.hbs` templates in `storage/files/admin/templates/`; there is no precompile step.
 
@@ -270,7 +269,7 @@ Admin pages are SSR'd at runtime from `.hbs` templates in `storage/files/admin/t
 
 | File Type | Steps |
 |-----------|-------|
-| New JS module | 1. Create file. 2. Add to `bundle-order.txt`. 3. Add to `bundles/*.txt`. 4. `just publish` |
+| New JS module | 1. Create ES module under `storage/files/js/`. 2. Register in `extensions/web/site/src/assets/`. 3. `just build && just publish` |
 | New CSS module | 1. Create file with `@layer`. 2. Add to `CSS_MODULE_ORDER` in Rust. 3. `just build && just publish` |
 
 ---

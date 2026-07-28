@@ -1,6 +1,5 @@
 @layer components {
 
-/* KPI strip ---------------------------------------------------------------- */
 .kpi-strip {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -38,9 +37,9 @@
 }
 
 .kpi-card--danger .kpi-card__value { color: var(--sp-danger); }
+
 .kpi-card--warning .kpi-card__value { color: var(--sp-warning); }
 
-/* Chart panels ------------------------------------------------------------- */
 .requests-charts {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -48,9 +47,6 @@
     margin-block: var(--sp-space-6);
 }
 
-/* Panels are flex columns so the chart inside fills the height the grid gives
-   the row. Without this a short chart strands itself at the top of a panel
-   stretched to match its taller neighbour. */
 .requests-charts__panel {
     display: flex;
     flex-direction: column;
@@ -73,11 +69,6 @@
     margin: 0 0 var(--sp-space-3);
 }
 
-/* Latency histogram — horizontal bars --------------------------------------
-   Every cell is pinned to row 1. The label used to rely on sparse
-   auto-placement to reach column 1 after a column-3 sibling, which is
-   impossible — the cursor never steps backwards — so it wrapped onto an
-   implicit second row and lined up with the next bar down. */
 .latency-histogram {
     display: flex;
     flex-direction: column;
@@ -150,10 +141,6 @@
     color: var(--sp-text-tertiary);
 }
 
-/* Time series — vertical bars with a labelled axis --------------------------
-   Bars grow from a baseline via their own height, not a background gradient in
-   a fixed-height box, so the plot fills whatever height the panel gives it
-   instead of stranding itself at the top. */
 .timeseries {
     display: flex;
     flex-direction: column;
@@ -179,175 +166,6 @@
     font-size: var(--sp-text-xs);
     color: var(--sp-text-tertiary);
     font-variant-numeric: tabular-nums;
-}
-
-.timeseries__plot {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: var(--sp-space-3);
-    flex: 1;
-    min-height: 150px;
-}
-
-/* Axis labels sit at the top, middle, and baseline of the plot, which is what
-   ties a bar's height back to a number the reader can name. */
-.timeseries__y-axis {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    align-items: flex-end;
-    font-size: var(--sp-text-xs);
-    color: var(--sp-text-tertiary);
-    font-variant-numeric: tabular-nums;
-    line-height: 1;
-}
-
-.timeseries__bars {
-    display: flex;
-    align-items: flex-end;
-    gap: 2px;
-    border-bottom: 1px solid var(--sp-border-default);
-    background-image: linear-gradient(
-        to bottom,
-        var(--sp-border-subtle) 1px,
-        transparent 1px 100%
-    );
-    background-size: 100% 50%;
-    background-repeat: repeat-y;
-}
-
-.timeseries__bar {
-    flex: 1 1 0;
-    min-width: 0;
-    height: var(--v, 0%);
-    border-radius: var(--sp-radius-sm) var(--sp-radius-sm) 0 0;
-    background: var(--sp-chart-blue);
-    transition: filter var(--sp-duration-fast);
-}
-
-.timeseries[data-tone="success"] .timeseries__bar {
-    background: var(--sp-chart-green);
-}
-
-.timeseries__bar:hover {
-    filter: brightness(1.12);
-}
-
-.timeseries__x-axis {
-    display: flex;
-    justify-content: space-between;
-    font-size: var(--sp-text-xs);
-    color: var(--sp-text-tertiary);
-    font-variant-numeric: tabular-nums;
-}
-
-.chart-caption {
-    margin: 0;
-    font-size: var(--sp-text-xs);
-    color: var(--sp-text-secondary);
-}
-
-.chart-empty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
-    min-height: 150px;
-    margin: 0;
-    border: 1px dashed var(--sp-border-subtle);
-    border-radius: var(--sp-radius-sm);
-    font-size: var(--sp-text-sm);
-    color: var(--sp-text-tertiary);
-}
-
-
-/* Trace waterfall ---------------------------------------------------------- */
-.waterfall {
-    margin: var(--sp-space-6) 0 0;
-}
-
-.waterfall__legend {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--sp-space-2);
-    list-style: none;
-    margin: 0;
-    padding: 0;
-}
-
-.waterfall__legend li {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--sp-space-1);
-    font-size: var(--sp-text-xs);
-    color: var(--sp-text-secondary);
-}
-
-.waterfall__swatch {
-    display: inline-block;
-    width: 0.625rem;
-    height: 0.625rem;
-    border-radius: var(--sp-radius-sm);
-    background: var(--sp-warm-500);
-}
-
-.waterfall__swatch--gateway    { background: var(--sp-chart-blue); }
-.waterfall__swatch--governance { background: var(--sp-chart-amber); }
-.waterfall__swatch--tool       { background: var(--sp-chart-green); }
-.waterfall__swatch--model      { background: var(--sp-chart-purple); }
-.waterfall__swatch--spawn      { background: var(--sp-chart-indigo); }
-
-.waterfall__root {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-space-1);
-    margin-top: var(--sp-space-4);
-}
-
-.waterfall__row {
-    display: grid;
-    grid-template-columns: minmax(8rem, 14rem) 1fr auto;
-    align-items: center;
-    gap: var(--sp-space-3);
-    min-height: 1.5rem;
-}
-
-.waterfall__name {
-    font-size: var(--sp-text-xs);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.waterfall__track {
-    position: relative;
-    height: 0.75rem;
-    background: color-mix(in oklch, var(--sp-warm-900) 5%, transparent);
-    border-radius: var(--sp-radius-sm);
-}
-
-.waterfall__bar {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: var(--start, 0%);
-    width: var(--w, 0.5%);
-    min-width: 2px;
-    border-radius: var(--sp-radius-sm);
-    background: var(--sp-warm-500);
-}
-
-.waterfall__bar--gateway    { background: var(--sp-chart-blue); }
-.waterfall__bar--governance { background: var(--sp-chart-amber); }
-.waterfall__bar--tool       { background: var(--sp-chart-green); }
-.waterfall__bar--model      { background: var(--sp-chart-purple); }
-.waterfall__bar--spawn      { background: var(--sp-chart-indigo); }
-
-.waterfall__dur {
-    font-size: var(--sp-text-xs);
-    color: var(--sp-text-tertiary);
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
 }
 
 }

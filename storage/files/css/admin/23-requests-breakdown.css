@@ -1,12 +1,5 @@
-/* Inference Requests tabs: the per-tab section wrapper, the breakdown share
-   bars, and the section caption shared by the breakdown tables.
-   Markup: analytics-requests.hbs + partials/components/breakdown-table.hbs */
-
 @layer components {
 
-/* Each tab renders inside one of these. It also keeps the tables off
-   .admin-main's direct-child flex rules, so a tab's content is laid out by the
-   section rather than stretched to fill the viewport column. */
 .requests-section {
     display: block;
     margin-bottom: var(--sp-space-8);
@@ -19,8 +12,6 @@
     max-width: 68ch;
 }
 
-/* Share column: a bar and its percentage on one line, so the eye can rank rows
-   without reading the numbers. */
 .data-table th.col-share {
     width: 12rem;
     min-width: 9rem;
@@ -53,8 +44,6 @@
     font-variant-numeric: tabular-nums;
 }
 
-/* A breakdown row is a link into the log; the whole row lifts on hover so the
-   affordance does not depend on hitting the key text exactly. */
 .breakdown-row:hover td {
     background: var(--sp-accent-dim);
 }

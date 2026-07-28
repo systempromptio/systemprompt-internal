@@ -9,7 +9,6 @@
   <meta name="keywords" content="{{BLOG_KEYWORDS}}" />
   <link rel="canonical" href="{{BLOG_URL}}" />
   <link rel="icon" type="image/x-icon" href="{{FAVICON_PATH}}" />
-  <link rel="stylesheet" href="{{CSS_BASE_PATH}}/blog-variables.css" />
   <link rel="stylesheet" href="{{CSS_BASE_PATH}}/blog-background.css" />
   <link rel="stylesheet" href="{{CSS_BASE_PATH}}/blog-base.css" />
   <link rel="stylesheet" href="{{CSS_BASE_PATH}}/blog-post-header.css" />
@@ -21,6 +20,7 @@
   <link rel="stylesheet" href="{{CSS_BASE_PATH}}/blog-list-controls.css" />
   <link rel="stylesheet" href="{{CSS_BASE_PATH}}/blog-cards.css" />
   <link rel="stylesheet" href="{{CSS_BASE_PATH}}/blog-footer.css" />
+  <link rel="stylesheet" href="{{CSS_BASE_PATH}}/blog-footer-meta.css" />
   <link rel="stylesheet" href="{{CSS_BASE_PATH}}/blog-references.css" />
   <link rel="stylesheet" href="{{CSS_BASE_PATH}}/blog-related.css" />
   <link rel="stylesheet" href="{{CSS_BASE_PATH}}/blog-banner.css" />
@@ -29,16 +29,20 @@
   <link rel="stylesheet" href="{{CSS_BASE_PATH}}/blog-hero.css" />
   <link rel="stylesheet" href="{{CSS_BASE_PATH}}/blog-homepage.css" />
   <link rel="stylesheet" href="{{CSS_BASE_PATH}}/blog-platforms.css" />
+  <link rel="stylesheet" href="{{CSS_BASE_PATH}}/blog-platforms-links.css" />
   <link rel="stylesheet" href="{{CSS_BASE_PATH}}/blog-ai-badges.css" />
   <link rel="stylesheet" href="{{CSS_BASE_PATH}}/blog-content-sections.css" />
+  <link rel="stylesheet" href="{{CSS_BASE_PATH}}/blog-content-sections-platforms.css" />
   <link rel="stylesheet" href="{{CSS_BASE_PATH}}/blog-content-cards.css" />
+  <link rel="stylesheet" href="{{CSS_BASE_PATH}}/blog-content-cards-recent.css" />
   <link rel="stylesheet" href="{{CSS_BASE_PATH}}/blog-provenance-panel.css" />
+  <link rel="stylesheet" href="{{CSS_BASE_PATH}}/blog-provenance-panel-content.css" />
   <link rel="stylesheet" href="{{CSS_BASE_PATH}}/blog-provenance-sections.css" />
   <link rel="stylesheet" href="{{CSS_BASE_PATH}}/blog-provenance-header.css" />
   <link rel="stylesheet" href="{{CSS_BASE_PATH}}/blog-workflow.css" />
   <link rel="stylesheet" href="{{CSS_BASE_PATH}}/blog-provenance-details.css" />
-  <link rel="stylesheet" href="{{CSS_BASE_PATH}}/blog-live-dashboard.css" />
   <link rel="stylesheet" href="{{CSS_BASE_PATH}}/blog-responsive.css" />
+  <link rel="stylesheet" href="{{CSS_BASE_PATH}}/blog-responsive-breakpoints.css" />
   <link rel="stylesheet" href="{{CSS_BASE_PATH}}/content-cards-base.css" />
   <link rel="stylesheet" href="{{CSS_BASE_PATH}}/content-cards-categories.css" />
   <link rel="stylesheet" href="{{CSS_BASE_PATH}}/content-cards-list.css" />
@@ -138,73 +142,7 @@
     </div>
   </main>
 
-  <script>
-  (function() {
-    const grid = document.getElementById('blog-grid');
-    const filterBtns = document.querySelectorAll('.blog-filter-btn');
-    const sortSelect = document.getElementById('blog-sort');
-
-    // Apply filter from URL or button
-    function applyFilter(filter) {
-      filterBtns.forEach(b => b.classList.remove('active'));
-      const activeBtn = document.querySelector(`.blog-filter-btn[data-filter="${filter || 'all'}"]`);
-      if (activeBtn) activeBtn.classList.add('active');
-      grid.dataset.filter = filter || '';
-
-      // Update URL without reload
-      const url = new URL(window.location);
-      if (filter && filter !== 'all') {
-        url.searchParams.set('category', filter);
-      } else {
-        url.searchParams.delete('category');
-      }
-      window.history.replaceState({}, '', url);
-    }
-
-    // Check URL for initial filter
-    const urlParams = new URLSearchParams(window.location.search);
-    const initialFilter = urlParams.get('category');
-    if (initialFilter) {
-      applyFilter(initialFilter);
-    }
-
-    // Filter button clicks
-    filterBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const filter = btn.dataset.filter;
-        applyFilter(filter === 'all' ? '' : filter);
-      });
-    });
-
-    // Sort functionality
-    sortSelect.addEventListener('change', () => {
-      const cards = Array.from(grid.querySelectorAll('a.content-card-link, a.blog-card-link'));
-      const sortValue = sortSelect.value;
-
-      cards.sort((a, b) => {
-        const titleA = a.querySelector('.card-title')?.textContent?.toLowerCase() || '';
-        const titleB = b.querySelector('.card-title')?.textContent?.toLowerCase() || '';
-        const dateA = a.querySelector('.card-date, .meta-date')?.textContent || '';
-        const dateB = b.querySelector('.card-date, .meta-date')?.textContent || '';
-
-        switch(sortValue) {
-          case 'title-asc':
-            return titleA.localeCompare(titleB);
-          case 'title-desc':
-            return titleB.localeCompare(titleA);
-          case 'date-desc':
-            return new Date(dateB) - new Date(dateA);
-          case 'date-asc':
-            return new Date(dateA) - new Date(dateB);
-          default:
-            return 0;
-        }
-      });
-
-      cards.forEach(card => grid.appendChild(card));
-    });
-  })();
-  </script>
+  <script src="{{JS_BASE_PATH}}/blog-list.js" type="module"></script>
 
   {{{FOOTER}}}
 

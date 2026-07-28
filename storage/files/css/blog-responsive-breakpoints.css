@@ -1,0 +1,62 @@
+@media (max-width: 1024px) {
+  .featured-card {
+    grid-template-columns: 1fr;
+  }
+
+  .featured-image {
+    aspect-ratio: 16 / 9;
+  }
+
+  .platform-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .nav-actions .nav-link {
+    display: none;
+  }
+
+  .nav-actions .nav-link:first-child,
+  .nav-actions .chat-cta {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 480px) {
+  .featured-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-space-1);
+  }
+
+  .content-card .card-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-space-1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .provenance-icon .antenna {
+    animation: none;
+  }
+
+  .provenance-robot-large .eye {
+    animation: none;
+  }
+
+  .provenance-button,
+  .provenance-panel,
+  .provenance-backdrop {
+    transition: none;
+  }
+
+  .provenance-inline {
+    animation: none;
+  }
+
+  .provenance-header__icon .antenna,
+  .workflow-progress__bar::after {
+    animation: none;
+    transition: none;
+  }
+}

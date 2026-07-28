@@ -1,7 +1,4 @@
 @layer components {
-/* Demo trace: the governed-agent timeline at /admin/demo/trace.
-   The page is read as a story, so the styling groups events into turns and
-   makes a denial the loudest thing on the screen. */
 
 .trace-sessions {
     display: flex;
@@ -29,7 +26,7 @@
 }
 
 .trace-session.is-active {
-    border-color: var(--sp-primary);
+    border-color: var(--sp-accent);
     box-shadow: var(--sp-shadow-card);
 }
 
@@ -131,9 +128,6 @@
     box-shadow: inset 3px 0 0 var(--sp-danger);
 }
 
-/* The four governance policies, shown in the order they ran. A stage the
-   pipeline skipped is dimmed rather than hidden: "we never got that far" is
-   itself the answer to why a call was blocked. */
 .trace-stages {
     display: flex;
     flex-wrap: wrap;

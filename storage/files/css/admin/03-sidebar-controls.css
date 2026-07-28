@@ -30,7 +30,7 @@
     display: none;
     position: fixed;
     inset: 0;
-    background: oklch(0 0 0 / 0);
+    background: transparent;
     z-index: var(--sp-z-sidebar);
     transition: background var(--sp-duration-slow) var(--sp-ease-in-out);
 }
@@ -49,7 +49,7 @@
     width: 36px;
     height: 36px;
     border: none;
-    background: light-dark(var(--sp-primitive-warm-200), oklch(1.00 0 0 / 0.1));
+    background: var(--sp-sidebar-control-bg);
     color: var(--sp-sidebar-text);
     border-radius: var(--sp-radius-sm);
     cursor: pointer;
@@ -62,7 +62,7 @@
 }
 
 .sidebar-close-btn:hover {
-    background: light-dark(var(--sp-primitive-warm-300), oklch(1.00 0 0 / 0.15));
+    background: var(--sp-sidebar-control-bg-hover);
     color: var(--sp-sidebar-text-hover);
 }
 
@@ -73,7 +73,7 @@
 
 .admin-sidebar {
     scrollbar-width: thin;
-    scrollbar-color: light-dark(var(--sp-primitive-warm-300), oklch(1.00 0 0 / 0.15)) transparent;
+    scrollbar-color: var(--sp-sidebar-scrollbar-thumb) transparent;
 }
 
 .sidebar-footer {

@@ -1,28 +1,23 @@
-import { on } from './events.js';
+import { on, onOutsideClick } from './events.js';
 
 let portal = null;
 let activeDropdown = null;
 let activeMenu = null;
-let activeTrigger = null;
+
+const closeOnOutsideClick = (e) => {
+  if (!activeDropdown) return;
+  if (activeDropdown.contains(e.target)) return;
+  if (e.target.closest('[data-action="menu"]')) return;
+  close();
+};
 
 const init = () => {
-  if (!portal) {
-    portal = document.createElement('div');
-    portal.id = 'dropdown-portal';
-    portal.classList.add('sp-dropdown-portal');
-    document.body.append(portal);
-
-    document.addEventListener('click', (e) => {
-      if (activeDropdown) {
-        if (!activeDropdown.contains(e.target)) {
-          if (!e.target.closest('[data-action="menu"]')) {
-            close();
-          }
-        }
-      }
-    }, true);
-
-  }
+  if (portal) return;
+  portal = document.createElement('div');
+  portal.id = 'dropdown-portal';
+  portal.classList.add('sp-dropdown-portal');
+  document.body.append(portal);
+  onOutsideClick(closeOnOutsideClick);
 };
 
 export const open = (triggerBtn) => {
@@ -41,7 +36,6 @@ export const open = (triggerBtn) => {
       portal.append(clone);
       activeMenu = menu;
       activeDropdown = clone;
-      activeTrigger = triggerBtn;
       menu.classList.add('open');
     }
   }
@@ -52,7 +46,6 @@ export const close = () => {
   activeDropdown = null;
   activeMenu?.classList.remove('open');
   activeMenu = null;
-  activeTrigger = null;
 };
 
 export const closeAllMenus = () => {
@@ -79,7 +72,11 @@ export const closeAllMenus = () => {
   for (const p of document.querySelectorAll('.sf-action-menu--portal')) p.remove();
 };
 
+let dropdownReady = false;
+
 export const initDropdown = () => {
+  if (dropdownReady) return;
+  dropdownReady = true;
   init();
   on('click', '[data-action="menu"]', (e, trigger) => {
     e.stopPropagation();

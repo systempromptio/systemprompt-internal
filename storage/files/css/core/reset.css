@@ -67,7 +67,7 @@ a:hover {
   width: 100%;
   max-width: var(--sp-container-max);
   margin: 0 auto;
-  padding: 0 var(--sp-space-lg);
+  padding: 0 var(--sp-space-6);
 }
 
 main {
@@ -82,6 +82,10 @@ main {
   }
 
   .container {
-    padding: 0 var(--sp-space-md);
+    padding: 0 var(--sp-space-4);
   }
+}
+
+.is-hidden {
+  display: none;
 }

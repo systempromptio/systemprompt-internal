@@ -1,20 +1,20 @@
 .provenance-strategy {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-spacing-md);
+  gap: var(--sp-space-4);
 }
 
 .provenance-strategy__grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--sp-spacing-sm);
+  gap: var(--sp-space-2);
 }
 
 .provenance-strategy__item {
   display: flex;
   flex-direction: column;
   gap: var(--sp-space-1);
-  padding: var(--sp-spacing-sm);
+  padding: var(--sp-space-2);
   background: var(--sp-color-surface);
   border-radius: var(--sp-radius-md);
 }
@@ -36,7 +36,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--sp-spacing-xs);
+  gap: var(--sp-space-1);
 }
 
 .provenance-themes__label {
@@ -47,7 +47,7 @@
 .provenance-themes__list {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--sp-spacing-xs);
+  gap: var(--sp-space-1);
 }
 
 .provenance-theme {
@@ -62,8 +62,8 @@
 .provenance-source-link {
   display: flex;
   align-items: center;
-  gap: var(--sp-spacing-sm);
-  padding: var(--sp-spacing-sm) var(--sp-spacing-md);
+  gap: var(--sp-space-2);
+  padding: var(--sp-space-2) var(--sp-space-4);
   background: var(--sp-color-surface);
   border: 1px solid var(--sp-color-border);
   border-radius: var(--sp-radius-md);
@@ -90,14 +90,14 @@
 .provenance-adaptations {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-spacing-xs);
+  gap: var(--sp-space-1);
 }
 
 .provenance-adaptation {
   display: flex;
   align-items: center;
-  gap: var(--sp-spacing-sm);
-  padding: var(--sp-spacing-xs) var(--sp-spacing-sm);
+  gap: var(--sp-space-2);
+  padding: var(--sp-space-1) var(--sp-space-2);
   background: var(--sp-color-surface);
   border-radius: var(--sp-radius-sm);
 }
@@ -146,8 +146,8 @@
 .provenance-learn-more {
   display: inline-flex;
   align-items: center;
-  gap: var(--sp-spacing-xs);
-  margin-top: var(--sp-spacing-sm);
+  gap: var(--sp-space-1);
+  margin-top: var(--sp-space-2);
   font-size: var(--sp-font-size-sm);
   font-weight: var(--sp-font-weight-medium);
   color: var(--sp-color-primary);
@@ -156,7 +156,7 @@
 }
 
 .provenance-learn-more:hover {
-  gap: var(--sp-spacing-sm);
+  gap: var(--sp-space-2);
 }
 
 .provenance-learn-more svg {
@@ -173,11 +173,11 @@
   }
 
   .provenance-strategy__item {
-    background: color-mix(in srgb, var(--sp-color-bg) 50%, var(--sp-color-surface));
+    background: color-mix(in srgb, var(--sp-color-background) 50%, var(--sp-color-surface));
   }
 
   .provenance-source-link,
   .provenance-adaptation {
-    background: color-mix(in srgb, var(--sp-color-bg) 50%, var(--sp-color-surface));
+    background: color-mix(in srgb, var(--sp-color-background) 50%, var(--sp-color-surface));
   }
 }

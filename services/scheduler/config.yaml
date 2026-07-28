@@ -102,11 +102,6 @@ scheduler:
       owner: admin
       enabled: false
 
-    - name: bundle_admin_js
-      extension: web
-      owner: admin
-      enabled: false
-
     - name: copy_extension_assets
       extension: web
       owner: admin

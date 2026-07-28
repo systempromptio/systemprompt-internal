@@ -26,13 +26,11 @@
 
     <link rel="canonical" href="{{CANONICAL_URL}}">
 
-    <link rel="stylesheet" href="{{CSS_BASE_PATH}}/feature-page-hero.css">
-    <link rel="stylesheet" href="{{CSS_BASE_PATH}}/feature-page-content.css">
-    <link rel="stylesheet" href="{{CSS_BASE_PATH}}/feature-page-responsive.css">
     <link rel="stylesheet" href="{{CSS_BASE_PATH}}/feature-base-hero.css">
     <link rel="stylesheet" href="{{CSS_BASE_PATH}}/feature-base-sections.css">
     <link rel="stylesheet" href="{{CSS_BASE_PATH}}/feature-base-cta.css">
     <link rel="stylesheet" href="{{CSS_BASE_PATH}}/feature-base-details.css">
+    <link rel="stylesheet" href="{{CSS_BASE_PATH}}/feature-cli-remote.css">
 
     <script type="application/ld+json">
     {
@@ -186,7 +184,7 @@
                 {{> animation-agentic-mesh}}
                 {{/if}}
                 {{#if feature.hero_diagram}}
-                <img src="{{feature.hero_diagram}}" alt="{{feature.headline}} architecture diagram" style="width:100%;height:auto;position:relative;z-index:1;" loading="eager">
+                <img src="{{feature.hero_diagram}}" alt="{{feature.headline}} architecture diagram" class="feature-hero-diagram" loading="eager">
                 {{/if}}
             </div>
         </section>

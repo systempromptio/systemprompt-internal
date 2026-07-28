@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="/css/core/fonts.css?v={{css_version}}">
     <link rel="stylesheet" href="/css/admin-bundle.css?v={{css_version}}">
     <script data-cfasync="false">(function(){let t;try{t=localStorage.getItem('sp-admin-theme')}catch(e){}if(!t){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';}if(t==='dark'){document.documentElement.setAttribute('data-theme','dark');document.documentElement.style.colorScheme='dark';}else{document.documentElement.style.colorScheme='light';}})();</script>
-    <style>html,body{margin:0;background:oklch(0.96 0.004 70);color:#1c1917;font-family:"OpenSans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}[data-theme="dark"],[data-theme="dark"] body{background:oklch(0.16 0.01 45);color:#fafaf9}</style>
     {{#> head_extra}}{{/head_extra}}
 </head>
 <body>
@@ -30,7 +29,7 @@
                         <circle cx="7" cy="7" r="5"/>
                         <path d="M11 11l3 3" stroke-linecap="round"/>
                     </svg>
-                    <input type="search" name="q" id="admin-header-search-input"
+                    <input type="search" name="q" id="admin-header-search-input" class="admin-header__search-input"
                            placeholder="Paste a session, context, trace, or request ID…"
                            autocomplete="off" spellcheck="false"
                            aria-label="Jump to a trace or request by ID" />
@@ -57,7 +56,7 @@
                             <div class="user-widget user-widget--tier-{{marketplace.rank_tier}}" id="user-profile" title="Level {{marketplace.rank_level}} {{marketplace.rank_name}} — {{marketplace.total_xp}} XP">
                                 <svg class="user-widget__xp-ring" viewBox="0 0 44 44" aria-hidden="true">
                                     <circle class="user-widget__xp-track" cx="22" cy="22" r="20" />
-                                    <circle class="user-widget__xp-fill rank-ring-tier-{{marketplace.rank_tier}}" cx="22" cy="22" r="20" stroke-dasharray="125.66" style="stroke-dashoffset: calc(125.66px - 125.66px * {{marketplace.xp_progress_pct}} / 100)" />
+                                    <circle class="user-widget__xp-fill rank-ring-tier-{{marketplace.rank_tier}}" cx="22" cy="22" r="20" stroke-dasharray="125.66" style="--sp-xp-pct:{{marketplace.xp_progress_pct}}" />
                                 </svg>
                                 <div class="user-widget__avatar" id="user-avatar"></div>
                                 <span class="user-widget__level rank-bg-tier-{{marketplace.rank_tier}}">{{marketplace.rank_level}}</span>

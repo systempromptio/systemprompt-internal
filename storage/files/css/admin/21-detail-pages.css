@@ -1,10 +1,5 @@
-/* Shared chrome for the trace + governance audit detail pages
-   (perf-traces, governance-audit-detail). Section headers, alert banner,
-   secondary table sublines, and collapsible code blocks. */
-
 @layer components {
 
-/* ── section header (portfolio-section) ─────────────────────── */
 .portfolio-section__header {
     display: flex;
     align-items: center;
@@ -22,7 +17,6 @@
     color: var(--sp-text-primary);
 }
 
-/* ── alert banner ───────────────────────────────────────────── */
 .alert {
     padding: var(--sp-space-3) var(--sp-space-4);
     margin-bottom: var(--sp-space-5);
@@ -51,15 +45,6 @@
 }
 .alert--danger .alert__title { color: var(--sp-danger); }
 
-/* ── Trace Explorer list table (perf-traces) ─────────────────
-   Every cell is a two-line stack, so the row height is set by the stack and
-   nothing may wrap: each column gets an explicit budget and clips with an
-   ellipsis, with the full value on the cell's title attribute.
-
-   Fixed layout, not auto: under auto layout a column width is only a hint that
-   long content overrides, which is what pushed the status badges past the card
-   edge. Fixed makes every budget below binding. Trace carries no width, so it
-   absorbs whatever is left over. */
 .trace-table {
     width: 100%;
     table-layout: fixed;
@@ -82,8 +67,7 @@
 }
 
 .trace-table .col-started   { width: 6.5rem; }
-/* Trace takes the leftover width, but never less than this: a session id
-   clipped to a few characters identifies nothing. */
+
 .trace-table .col-trace     { min-width: 11rem; }
 .trace-table .col-identity  { width: 13rem; }
 .trace-table .col-model     { width: 11.5rem; }
@@ -104,9 +88,6 @@
     align-items: flex-end;
 }
 
-/* The whole row is the link to the waterfall: the trace-id anchor is stretched
-   over the row, so a click anywhere navigates while the link stays a real
-   anchor (keyboard focus, middle-click, copy address). */
 .trace-table tbody tr {
     position: relative;
 }
@@ -129,10 +110,6 @@
     border-radius: var(--sp-radius-sm);
 }
 
-/* The stretched link covers the row, so it also covers any tooltip under it.
-   Only the cells whose truncation actually hides data — the full model name and
-   the identity behind a display name — are lifted back above it; the columns
-   that merely need explaining carry that on their header instead. */
 .trace-table .col-identity [title],
 .trace-table .col-model [title],
 .trace-table .mcp-badge {
@@ -149,15 +126,9 @@
 
 .trace-table .cell-muted { color: var(--sp-text-tertiary); }
 
-/* Narrow viewports drop the two columns a reader can recover from the detail
-   page, rather than handing them a sideways scroll through all nine. The
-   thresholds are viewport-wide but the table is not: the sidebar takes ~220px
-   before the page gutter, so they fire earlier than the table's own width. */
 @media (max-width: 1400px) {
     .trace-table .col-model { display: none; }
 
-    /* Dropping a column is not enough on its own: the remaining budgets still
-       add up past the content box, which clipped the status badges. */
     .trace-table .col-identity { width: 11rem; }
     .trace-table .col-spans    { width: 7rem; }
     .trace-table .col-tokens   { width: 7.5rem; }
@@ -170,8 +141,6 @@
     .trace-table .col-identity { display: none; }
 }
 
-/* Sortable headers: the link fills the header cell so the whole th is the
-   target, matching the cursor:pointer the table has always advertised. */
 .data-table th .th-sort {
     display: inline-flex;
     align-items: center;
@@ -186,7 +155,6 @@
 
 .data-table th:not(:has(.th-sort)) { cursor: default; }
 
-/* ── collapsible code block (transcript / chain dumps) ──────── */
 .code-collapsible summary {
     cursor: pointer;
     font-size: var(--sp-text-sm);

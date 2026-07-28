@@ -140,7 +140,6 @@
     color: var(--sp-text-primary);
 }
 
-/* borderless tertiary — like btn-ghost but tuned for inline install actions */
 .btn-tertiary {
     background: transparent;
     color: var(--sp-accent);
@@ -152,7 +151,6 @@
     color: var(--sp-accent-hover);
 }
 
-/* size modifiers used by plugin/version cards and detail tabs */
 .btn--xs {
     padding: 0.0625rem var(--sp-space-2);
     font-size: var(--sp-text-xs);

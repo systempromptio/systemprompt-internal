@@ -1,5 +1,3 @@
-'use strict';
-
 import { generateRandomString, generateCodeChallenge } from '/js/services/webauthn-utils.js?v=3';
 
 const CLIENT_ID = 'marketplace-admin';

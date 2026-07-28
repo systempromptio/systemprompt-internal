@@ -364,9 +364,8 @@ just migrate        # Run database migrations
 ### Publish Flow (strict order)
 
 1. `bundle_admin_css` -- Concatenate CSS per `CSS_MODULE_ORDER`
-2. `bundle_admin_js` -- Concatenate JS per `bundle-order.txt` + per-page bundles
-3. `copy_extension_assets` -- Copy bundles to `web/dist/`
-4. `content_prerender` -- Generate static content pages
+2. `copy_extension_assets` -- Copy bundles to `web/dist/`
+3. `content_prerender` -- Generate static content pages
 
 Admin pages are SSR'd at runtime from `.hbs` templates in `storage/files/admin/templates/`; there is no precompile step.
 

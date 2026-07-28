@@ -7,10 +7,6 @@
     border-radius: var(--sp-radius-sm);
 }
 
-/* Full-bleed on the left only. Bleeding right as well ran the card — and, on a
-   wide table, its scrollbar — under the window edge, so the content read as
-   cut off rather than as a deliberate edge-to-edge treatment. The left bleed
-   is what gives the brand asymmetric corner something to sit against. */
 .admin-main .table-container,
 .admin-main .toolbar {
     margin-left: calc(-1 * var(--sp-gutter));
@@ -19,8 +15,6 @@
     border-left: none;
 }
 
-/* The bleed moves the box, not its contents: a toolbar's own controls stay on
-   the page gutter so their labels line up with the heading above them. */
 .admin-main .toolbar {
     padding-left: var(--sp-gutter);
 }
@@ -93,4 +87,29 @@
     transition: border-color var(--sp-duration-fast);
 }
 .field-input:focus { outline: none; border-color: var(--sp-accent); box-shadow: 0 0 0 2px color-mix(in oklch, var(--sp-accent) 20%, transparent); }
+}
+
+@layer responsive {
+@media (max-width: 768px) {
+    .dashboard-two-col {
+        grid-template-columns: 1fr;
+    }
+}
+@media (max-width: 480px) {
+    .dashboard-two-col {
+        grid-template-columns: 1fr;
+    }
+    .card {
+        box-shadow: var(--sp-shadow-sm), var(--sp-shadow-inner-glow);
+    }
+    .card:hover {
+        box-shadow: var(--sp-shadow-md);
+    }
+}
+@media (hover: none) {
+    .stat-card:hover {
+        transform: none;
+        box-shadow: none;
+    }
+}
 }

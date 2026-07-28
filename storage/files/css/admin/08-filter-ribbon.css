@@ -1,11 +1,5 @@
-/* Identity filter ribbon — multi-select dropdown groups + active chips.
-   Markup: partials/components/identity-filter-ribbon.hbs + filter-ribbon-group.hbs */
-
 @layer components {
 
-/* The ribbon owns a stacking context above the page content. Without it the
-   open dropdown panel competes with the stat grid and table that follow it in
-   .admin-main (position:relative; contain:layout) and paints underneath them. */
 .filter-ribbon {
     position: relative;
     z-index: var(--sp-z-panel);
@@ -27,8 +21,6 @@
     position: relative;
 }
 
-/* An open group outranks its closed siblings, so two open panels overlap in
-   the order the reader opened them rather than by DOM position. */
 .filter-ribbon__group[open] {
     z-index: 1;
 }
@@ -55,7 +47,7 @@
 
 .filter-ribbon__group-summary:hover {
     color: var(--sp-text-primary);
-    border-color: var(--sp-border-strong, var(--sp-border-subtle));
+    border-color: var(--sp-border-strong);
 }
 
 .filter-ribbon__group[open] > .filter-ribbon__group-summary {
@@ -84,7 +76,7 @@
     padding: var(--sp-space-2);
     background: var(--sp-bg-surface);
     border: 1px solid var(--sp-border-subtle);
-    border-radius: var(--sp-corners-md, var(--sp-radius-md));
+    border-radius: var(--sp-corners-md);
     box-shadow: var(--sp-shadow-lg);
 }
 
@@ -92,7 +84,7 @@
     width: 100%;
     margin-bottom: var(--sp-space-2);
     padding: var(--sp-space-1) var(--sp-space-2);
-    background: var(--sp-bg-input, var(--sp-bg-surface-raised));
+    background: var(--sp-bg-input);
     border: 1px solid var(--sp-border-subtle);
     border-radius: var(--sp-radius-sm);
     font-size: var(--sp-text-sm);
@@ -168,80 +160,6 @@
     display: inline-flex;
     align-items: center;
     gap: var(--sp-space-2);
-}
-
-.filter-ribbon__apply {
-    padding: var(--sp-space-1) var(--sp-space-3);
-    background: var(--sp-accent);
-    border: 1px solid var(--sp-accent);
-    border-radius: var(--sp-radius-full);
-    font-size: var(--sp-text-sm);
-    font-weight: 600;
-    color: var(--sp-text-on-accent, #fff);
-    cursor: pointer;
-    transition: filter var(--sp-duration-fast);
-}
-
-.filter-ribbon__apply:hover {
-    filter: brightness(1.08);
-}
-
-.filter-ribbon__clear {
-    font-size: var(--sp-text-sm);
-    color: var(--sp-text-secondary);
-    text-decoration: none;
-}
-
-.filter-ribbon__clear:hover {
-    color: var(--sp-text-primary);
-    text-decoration: underline;
-}
-
-.filter-ribbon__chips {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--sp-space-1);
-    width: 100%;
-    margin: var(--sp-space-1) 0 0;
-    padding: 0;
-    list-style: none;
-}
-
-.filter-ribbon__chip {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--sp-space-1);
-    padding: 2px var(--sp-space-2);
-    background: color-mix(in oklch, var(--sp-accent) 8%, var(--sp-bg-surface));
-    border: 1px solid color-mix(in oklch, var(--sp-accent) 30%, var(--sp-border-subtle));
-    border-radius: var(--sp-radius-full);
-    font-size: var(--sp-text-xs);
-}
-
-.filter-ribbon__chip-group {
-    color: var(--sp-text-tertiary);
-}
-
-.filter-ribbon__chip-value {
-    color: var(--sp-text-primary);
-    font-weight: 600;
-    max-width: 18ch;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.filter-ribbon__chip-remove {
-    color: var(--sp-text-tertiary);
-    text-decoration: none;
-    font-weight: 700;
-    line-height: 1;
-    padding: 0 2px;
-}
-
-.filter-ribbon__chip-remove:hover {
-    color: var(--sp-danger);
 }
 
 }

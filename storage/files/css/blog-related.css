@@ -1,12 +1,12 @@
 .related-articles {
-  margin-top: var(--sp-spacing-xxl);
+  margin-top: var(--sp-space-12);
 }
 
 .related-articles h3 {
   font-family: var(--sp-font-heading);
   font-size: 1.5rem;
   color: var(--sp-color-text-primary);
-  margin-bottom: var(--sp-spacing-xl);
+  margin-bottom: var(--sp-space-8);
   letter-spacing: -0.02em;
   text-transform: uppercase;
 }
@@ -14,7 +14,7 @@
 .related-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--sp-spacing-lg);
+  gap: var(--sp-space-6);
 }
 
 @media (max-width: 1024px) {

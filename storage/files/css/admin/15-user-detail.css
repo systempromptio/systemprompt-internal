@@ -1,5 +1,3 @@
-/* User detail + users-table runtime visualisations */
-
 .agent-pill,
 .token-pill {
   display: inline-flex;
@@ -10,9 +8,9 @@
   font-size: 0.8125rem;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
-  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
-  background: var(--color-surface-2, rgba(0, 0, 0, 0.03));
-  color: var(--color-text, inherit);
+  border: 1px solid var(--sp-border-subtle);
+  background: var(--sp-bg-surface-alt);
+  color: inherit;
 }
 
 .agent-dot {
@@ -24,23 +22,22 @@
   box-shadow: 0 0 0 0 currentColor;
 }
 
-.agent-pill--live { color: var(--color-success, #15803d); border-color: rgba(21, 128, 61, 0.3); }
+.agent-pill--live { color: var(--sp-success); border-color: color-mix(in oklch, var(--sp-success) 30%, transparent); }
 .agent-pill--live .agent-dot { opacity: 1; animation: agent-pulse 1.6s ease-out infinite; }
-.agent-pill--idle { color: var(--color-muted, #6b7280); }
+.agent-pill--idle { color: var(--sp-text-tertiary); }
 
-.token-pill--fresh { color: var(--color-success, #15803d); border-color: rgba(21, 128, 61, 0.3); }
+.token-pill--fresh { color: var(--sp-success); border-color: color-mix(in oklch, var(--sp-success) 30%, transparent); }
 .token-pill--fresh .agent-dot { opacity: 1; animation: agent-pulse 1.6s ease-out infinite; }
-.token-pill--idle  { color: #b45309; border-color: rgba(180, 83, 9, 0.3); }
-.token-pill--stale { color: var(--color-muted, #6b7280); }
-.token-pill--never { color: var(--color-muted, #9ca3af); }
+.token-pill--idle  { color: var(--sp-warning-strong); border-color: color-mix(in oklch, var(--sp-warning-strong) 30%, transparent); }
+.token-pill--stale { color: var(--sp-text-tertiary); }
+.token-pill--never { color: var(--sp-text-disabled); }
 
 @keyframes agent-pulse {
   0%   { box-shadow: 0 0 0 0 currentColor; }
-  70%  { box-shadow: 0 0 0 6px rgba(0, 0, 0, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
+  70%  { box-shadow: 0 0 0 6px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
 }
 
-/* Inline edit form on user-detail page */
 .user-edit-form .form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -62,22 +59,22 @@
 }
 
 .form-field--readonly {
-  color: var(--color-muted, #6b7280);
+  color: var(--sp-text-tertiary);
 }
 
 .form-label {
   font-size: 0.8125rem;
   font-weight: 600;
-  color: var(--color-muted, #4b5563);
+  color: var(--sp-text-secondary);
 }
 
 .user-edit-form input[type="text"],
 .user-edit-form input[type="email"],
 .user-edit-form select {
   padding: 0.45rem 0.6rem;
-  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.12));
+  border: 1px solid var(--sp-border-default);
   border-radius: 6px;
-  background: var(--color-surface, #fff);
+  background: var(--sp-bg-surface);
   color: inherit;
   font: inherit;
 }
@@ -96,7 +93,7 @@
 
 .form-status {
   font-size: 0.875rem;
-  color: var(--color-muted, #6b7280);
+  color: var(--sp-text-tertiary);
 }
 
 .runtime-meta {
@@ -121,7 +118,6 @@
 
 .card-header h3 { margin: 0; }
 
-/* Recent-activity feed (user-detail "Recent Activity" card) */
 .feed-item {
   display: flex;
   align-items: flex-start;
@@ -166,4 +162,12 @@
   color: var(--sp-text-tertiary);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+@layer responsive {
+@media (max-width: 768px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+}
 }

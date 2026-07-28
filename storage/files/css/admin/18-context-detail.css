@@ -1,14 +1,4 @@
-/* /admin/entities/contexts/{id} — conversation detail page.
-   Targets: back link, summary chips, and the transcript message stream.
-
-   The transcript is the point of this page, so it is styled as a real
-   conversation surface: a bordered panel ground with role-differentiated
-   message blocks, rather than body text separated by hairlines. Rules live in
-   @layer components so they sit above the shared table/card defaults. */
-
 @layer components {
-
-/* ---------- back link + summary chips ---------- */
 
 .back-link {
     display: inline-flex;
@@ -20,6 +10,7 @@
     margin-bottom: var(--sp-space-3);
     transition: color var(--sp-duration-fast);
 }
+
 .back-link:hover {
     color: var(--sp-accent);
 }
@@ -58,12 +49,11 @@
     color: var(--sp-text-primary);
     text-decoration: none;
 }
+
 .trace-detail__field a:hover {
     color: var(--sp-accent);
     text-decoration: underline;
 }
-
-/* ---------- conversation panel ---------- */
 
 .overview-pane {
     margin: 0 0 var(--sp-space-6);
@@ -74,8 +64,6 @@
     overflow: hidden;
 }
 
-/* Panel header: sits on the raised tone so the message stream below reads as
-   the recessed content area. */
 .overview-pane > .section-title {
     margin: 0;
     padding: var(--sp-space-3) var(--sp-space-5);
@@ -93,17 +81,11 @@
     padding: var(--sp-space-5);
 }
 
-/* The requests table shares the panel, but runs full-bleed to its edges so its
-   own row borders line up with the panel border. */
 .overview-pane > .data-table {
     margin: 0;
     width: 100%;
 }
 
-/* The panel is already the card, so the table container inside it drops its own
-   border, radius, and shadow rather than drawing a second card one pixel in.
-   It keeps .table-scroll, which is the point: a wide table scrolls sideways
-   inside the panel instead of widening the page. */
 .overview-pane > .table-container {
     background: none;
     border: none;
@@ -111,11 +93,6 @@
     box-shadow: none;
 }
 
-/* ---------- transcript: message stream ---------- */
-
-/* One column, one left edge. This is an audit surface: turns are read in
-   sequence and compared against each other, which indented or side-aligned
-   message bubbles actively obstruct. */
 .transcript {
     list-style: none;
     margin: 0;
@@ -130,8 +107,6 @@
     border: none;
 }
 
-/* Message block. A role-coloured rail carries the speaker; every turn keeps the
-   same left edge and the same full width. */
 .transcript__entry--user,
 .transcript__entry--assistant {
     padding: var(--sp-space-3) var(--sp-space-4);
@@ -151,8 +126,6 @@
     border-inline-start-color: var(--sp-section-users);
 }
 
-/* ---------- message meta line ---------- */
-
 .transcript__head {
     display: flex;
     flex-wrap: wrap;
@@ -163,9 +136,6 @@
     font-variant-numeric: tabular-nums;
 }
 
-/* Telemetry rail: what this turn cost and how it was served. Pushed to the end
-   of the meta line so the role and time stay flush left and the numbers form a
-   readable column down the thread. */
 .transcript__meta {
     margin-inline-start: auto;
     display: inline-flex;
@@ -193,195 +163,6 @@
 .transcript__meta-status--error {
     color: var(--sp-danger);
     font-weight: 600;
-}
-
-.transcript__role {
-    font-size: var(--sp-text-sm);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    font-weight: 700;
-    color: var(--sp-text-secondary);
-}
-
-.transcript__entry--user .transcript__role      { color: var(--sp-accent); }
-.transcript__entry--assistant .transcript__role { color: var(--sp-section-users); }
-.transcript__entry--tool .transcript__role      { color: var(--sp-warning); }
-
-.transcript__time {
-    color: var(--sp-text-tertiary);
-    font-variant-numeric: tabular-nums;
-}
-
-/* Sits after the telemetry rail, which owns the auto margin, and is given a
-   real affordance — it was indistinguishable from the surrounding text. */
-.transcript__req {
-    color: var(--sp-text-tertiary);
-    border: 1px solid var(--sp-border-subtle);
-    text-decoration: none;
-    transition: color var(--sp-duration-fast), border-color var(--sp-duration-fast);
-}
-
-.transcript__req:hover {
-    color: var(--sp-accent);
-    border-color: var(--sp-accent);
-}
-
-.transcript__body {
-    margin: var(--sp-space-2) 0 0;
-    font-size: var(--sp-text-base);
-    line-height: 1.65;
-    color: var(--sp-text-primary);
-    white-space: pre-wrap;
-    word-break: break-word;
-}
-
-/* ---------- transcript: tool entries ---------- */
-
-/* Tool calls are machine turns, not speech: full width, monospaced accent, and
-   collapsed by default so they never bury the conversation. */
-.transcript__tool {
-    margin: 0;
-    background: var(--sp-bg-surface-raised);
-    border: 1px solid var(--sp-border-subtle);
-    border-inline-start: 3px solid var(--sp-warning);
-    border-radius: var(--sp-radius-card-inner);
-    overflow: hidden;
-}
-
-.transcript__tool-summary {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--sp-space-2);
-    cursor: pointer;
-    list-style: none;
-    font-size: var(--sp-text-xs);
-    color: var(--sp-text-tertiary);
-    padding: var(--sp-space-2) var(--sp-space-3);
-    transition: background var(--sp-duration-fast);
-}
-
-.transcript__tool-summary:hover {
-    background: var(--sp-bg-surface-overlay);
-}
-
-.transcript__tool-summary::-webkit-details-marker { display: none; }
-
-.transcript__tool-chevron {
-    display: inline-block;
-    transition: transform var(--sp-duration-fast);
-    color: var(--sp-warning);
-    font-size: var(--sp-text-sm);
-    line-height: 1;
-}
-
-.transcript__tool[open] .transcript__tool-chevron {
-    transform: rotate(90deg);
-}
-
-.transcript__tool[open] .transcript__tool-summary {
-    border-bottom: 1px solid var(--sp-border-subtle);
-}
-
-.transcript__tool-name {
-    color: var(--sp-text-primary);
-    font-family: var(--sp-font-mono);
-    font-weight: 600;
-}
-
-.transcript__tool-detail {
-    padding: var(--sp-space-3);
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-space-3);
-}
-
-.transcript__tool-detail .code-block {
-    max-height: 20rem;
-}
-
-.transcript__tool-detail details > summary {
-    cursor: pointer;
-    font-size: var(--sp-text-xs);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--sp-text-tertiary);
-    font-weight: 600;
-    margin-bottom: var(--sp-space-2);
-}
-
-/* ---------- transcript: system divider ---------- */
-
-/* A system turn is a boundary marker, not a message: it opts out of the
-   message-block treatment entirely and renders as a labelled rule. */
-.transcript__entry--system {
-    padding: 0;
-    background: none;
-    border: none;
-}
-
-.transcript__system {
-    display: flex;
-    align-items: center;
-    gap: var(--sp-space-3);
-    padding: var(--sp-space-1) 0;
-    background: none;
-    border: none;
-    margin-inline: 0;
-}
-
-.transcript__system-rule {
-    flex: 1;
-    height: 0;
-    border: none;
-    border-top: 1px dashed var(--sp-border-default);
-    margin: 0;
-}
-
-.transcript__system-label {
-    display: inline-flex;
-    align-items: baseline;
-    gap: var(--sp-space-2);
-    font-size: var(--sp-text-xs);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--sp-text-tertiary);
-    flex-shrink: 0;
-}
-
-/* The .transcript--compact variant is gone: its only caller was this page's
-   transcript, and all it did was undo the line-height the messages are legible
-   at. Density is not worth an unreadable conversation. */
-
-/* ---------- responsive ---------- */
-
-@media (max-width: 700px) {
-    .overview-pane > .transcript,
-    .overview-pane > .empty-state {
-        padding: var(--sp-space-3);
-    }
-    .overview-pane > .section-title {
-        padding: var(--sp-space-2) var(--sp-space-3);
-    }
-    /* The telemetry rail stops being a rail: at this width it wraps under the
-       role and time rather than being pushed to a right edge that is no longer
-       far enough away to read as a column. */
-    .transcript__meta {
-        margin-inline-start: 0;
-        flex-basis: 100%;
-    }
-    .trace-detail__summary {
-        gap: var(--sp-space-2);
-        padding: var(--sp-space-2) var(--sp-space-3);
-    }
-}
-
-/* ---------- print ---------- */
-
-@media print {
-    .overview-pane { box-shadow: none; }
-    .transcript__entry { break-inside: avoid; }
-    .transcript__tool[open] .code-block { max-height: none; overflow: visible; }
 }
 
 }

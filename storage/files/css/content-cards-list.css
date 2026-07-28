@@ -1,9 +1,7 @@
-
-
 .content-list-header {
   text-align: center;
-  padding: var(--sp-spacing-3xl) 0;
-  margin-bottom: var(--sp-spacing-xxl);
+  padding: var(--sp-space-16) 0;
+  margin-bottom: var(--sp-space-12);
   position: relative;
   display: flex;
   flex-direction: column;
@@ -35,7 +33,7 @@
   text-transform: uppercase;
   letter-spacing: 0.03em;
   line-height: 1.1;
-  margin-bottom: var(--sp-spacing-lg);
+  margin-bottom: var(--sp-space-6);
   color: var(--sp-color-text-primary);
 }
 
@@ -51,7 +49,7 @@
   display: block;
   width: 64px;
   height: 64px;
-  margin-bottom: var(--sp-spacing-lg);
+  margin-bottom: var(--sp-space-6);
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
@@ -75,7 +73,7 @@
   }
 
   .content-list-header {
-    padding: var(--sp-spacing-xl) 0;
+    padding: var(--sp-space-8) 0;
   }
 
   .content-list-header__icon {
@@ -89,8 +87,6 @@
     font-size: 1.75rem;
   }
 }
-
-
 
 .playbook-grid .blog-card-link,
 .playbook-grid .content-card-link,

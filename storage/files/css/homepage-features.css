@@ -1,5 +1,5 @@
 .features-section {
-  padding: var(--sp-space-4xl) 0;
+  padding: var(--sp-space-24) 0;
   border-top: 1px solid var(--sp-color-border);
 }
 
@@ -10,21 +10,21 @@
   font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  margin-bottom: var(--sp-space-3xl);
+  margin-bottom: var(--sp-space-16);
 }
 
 .features-section .section-subtitle {
   text-align: center;
   color: var(--sp-color-text-secondary);
   font-size: 1.125rem;
-  margin-top: calc(-1 * var(--sp-space-2xl));
-  margin-bottom: var(--sp-space-3xl);
+  margin-top: calc(-1 * var(--sp-space-12));
+  margin-bottom: var(--sp-space-16);
 }
 
 .features-section .features-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: var(--sp-space-lg);
+  gap: var(--sp-space-6);
 }
 
 .features-section .feature-card {
@@ -34,7 +34,7 @@
   background: var(--sp-card-bg-glass);
   border: var(--sp-card-border-width) solid var(--sp-color-border);
   border-radius: var(--sp-card-radius);
-  padding: var(--sp-space-xl);
+  padding: var(--sp-space-8);
   transition: all var(--sp-transition-normal);
   position: relative;
 }
@@ -49,7 +49,7 @@
 .feature-card-title {
   font-size: 1.25rem;
   font-weight: 600;
-  margin-bottom: var(--sp-space-sm);
+  margin-bottom: var(--sp-space-2);
   color: var(--sp-color-text);
 }
 
@@ -61,8 +61,8 @@
 
 .feature-card-arrow {
   position: absolute;
-  bottom: var(--sp-space-lg);
-  right: var(--sp-space-lg);
+  bottom: var(--sp-space-6);
+  right: var(--sp-space-6);
   opacity: 0;
   transform: translateX(-8px);
   transition: all var(--sp-transition-normal);
@@ -87,6 +87,6 @@
   }
 
   .features-section .feature-card {
-    padding: var(--sp-space-lg);
+    padding: var(--sp-space-6);
   }
 }

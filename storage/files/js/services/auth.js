@@ -1,5 +1,4 @@
-import { escapeHtml } from '../utils/dom.js';
-import { API_BASE, BASE } from './api.js';
+import { API_BASE, BASE, rawResponse } from './api.js';
 
 export const getUser = () => {
   try {
@@ -8,7 +7,7 @@ export const getUser = () => {
     const token = cookie.trim().split('=')[1];
     const payload = JSON.parse(atob(token.split('.')[1]));
     return { id: payload.sub, username: payload.username, email: payload.email };
-  } catch (_e) {
+  } catch {
     return null;
   }
 };
@@ -20,27 +19,30 @@ export const getUserInitials = (name) => {
 
 export const getUserContext = async () => {
   try {
-    const resp = await fetch('/admin/auth/me');
+    const resp = await rawResponse('/admin/auth/me');
     if (!resp.ok) return null;
     const me = await resp.json();
     const meta = document.getElementById('user-meta');
     if (meta) {
       const parts = (me.roles || [])
         .filter((role) => role !== 'user')
-        .map((role) => escapeHtml(role.charAt(0).toUpperCase() + role.slice(1)));
+        .map((role) => role.charAt(0).toUpperCase() + role.slice(1));
       meta.textContent = parts.join(' \u00b7 ');
     }
     return me;
-  } catch (_e) {
+  } catch {
     return null;
   }
 };
 
+let logoutReady = false;
+
 export const initLogout = () => {
   const btn = document.getElementById('btn-logout');
-  if (btn) {
+  if (btn && !logoutReady) {
+    logoutReady = true;
     btn.addEventListener('click', () => {
-      fetch(API_BASE.replace('/admin', '') + '/auth/session', { method: 'DELETE' })
+      rawResponse(API_BASE.replace('/admin', '') + '/auth/session', { method: 'DELETE' })
         .finally(() => {
           sessionStorage.clear();
           window.location.href = BASE;
@@ -61,9 +63,9 @@ export const initUserDisplay = async () => {
     img.src = me.avatar_url;
     img.alt = name || 'User avatar';
     img.className = 'user-widget__avatar-img';
-    av.appendChild(img);
+    av.append(img);
   } else {
-    av.appendChild(document.createTextNode(initials));
+    av.append(initials);
   }
   const nm = document.getElementById('user-name');
   if (nm && name) nm.textContent = name;

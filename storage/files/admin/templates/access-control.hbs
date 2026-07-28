@@ -83,7 +83,7 @@
 
     <!-- ===== Modal overlay shells ===== -->
     <div class="panel-overlay" id="ac-modal-overlay" hidden></div>
-    <div class="ac-modal" id="ac-yaml-modal" role="dialog" aria-modal="true" aria-labelledby="ac-yaml-title" hidden>
+    <div class="ac-modal" id="ac-yaml-modal" role="dialog" aria-modal="true" aria-labelledby="ac-yaml-title" tabindex="-1" hidden>
         <div class="ac-modal-header">
             <h2 id="ac-yaml-title">Current state as YAML</h2>
             <button type="button" class="panel-close" id="ac-yaml-close" aria-label="Close">&times;</button>
@@ -102,7 +102,7 @@
         </div>
     </div>
 
-    <div class="ac-modal" id="ac-new-dept-modal" role="dialog" aria-modal="true" aria-labelledby="ac-new-dept-title" hidden>
+    <div class="ac-modal" id="ac-new-dept-modal" role="dialog" aria-modal="true" aria-labelledby="ac-new-dept-title" tabindex="-1" hidden>
         <div class="ac-modal-header">
             <h2 id="ac-new-dept-title">Create department</h2>
             <button type="button" class="panel-close" id="ac-new-dept-close" aria-label="Close">&times;</button>
@@ -129,6 +129,89 @@
             </div>
         </div>
     </div>
+
+    <!-- ===== Render templates cloned by the JS controller ===== -->
+    <template id="ac-tpl-dept-editor">
+        <div>
+            <div class="ac-user-header">
+                <h2 data-slot="name"></h2>
+                <div class="ac-user-meta">Department editor · changes save to this instance's database</div>
+            </div>
+            <p>Toggle access for the whole department here. To make a rule permanent across deployments, copy it into <code>services/access-control/departments.yaml</code> in the source repo.</p>
+            <div data-slot="sections"></div>
+        </div>
+    </template>
+    <template id="ac-tpl-dept-unselected">
+        <p><em>Pick a department from the tree to manage its access.</em></p>
+    </template>
+    <template id="ac-tpl-dept-section">
+        <div class="ac-section">
+            <h3 data-slot="label"></h3>
+            <div class="ac-dept-rule-list" data-slot="rules"></div>
+        </div>
+    </template>
+    <template id="ac-tpl-dept-rule-empty">
+        <div class="ac-dept-rule"><em>No entities of this type configured.</em></div>
+    </template>
+    <template id="ac-tpl-dept-rule">
+        <div class="ac-dept-rule">
+            <span class="ac-matrix-entity"><span data-slot="label"></span><span class="id" data-slot="id"></span></span>
+            <span class="ac-source">—</span>
+            <select data-action="dept-rule-access">
+                <option value="inherit">inherit</option>
+                <option value="allow">allow</option>
+                <option value="deny">deny</option>
+            </select>
+            <span></span>
+        </div>
+    </template>
+    <template id="ac-tpl-matrix-loading">
+        <p>Loading matrix for <strong data-slot="name"></strong>…</p>
+    </template>
+    <template id="ac-tpl-matrix-error">
+        <p class="error">Failed to load the permission matrix for this user.</p>
+    </template>
+    <template id="ac-tpl-matrix">
+        <div>
+            <div class="ac-user-header">
+                <h2 data-slot="name"></h2>
+                <div class="ac-user-meta">
+                    <span data-slot="email"></span>
+                    <span>·</span>
+                    <span data-slot="roles"></span>
+                    <span>·</span>
+                    <label>department:
+                        <select data-action="assign-dept" aria-label="Assign department"></select>
+                    </label>
+                </div>
+            </div>
+            <p>Per-user overrides are saved to this instance's database only and are intentionally never written back to YAML.</p>
+            <div data-slot="sections"></div>
+        </div>
+    </template>
+    <template id="ac-tpl-matrix-section">
+        <div class="ac-matrix-section">
+            <div class="ac-matrix-section-header"><span data-slot="label"></span><span data-slot="count"></span></div>
+        </div>
+    </template>
+    <template id="ac-tpl-matrix-empty">
+        <div class="ac-matrix-row"><em>No entities of this type configured.</em></div>
+    </template>
+    <template id="ac-tpl-matrix-row">
+        <div class="ac-matrix-row">
+            <div class="ac-matrix-entity"><span data-slot="name"></span><span class="id" data-slot="id"></span></div>
+            <div class="ac-effective" data-slot="effective"></div>
+            <div class="ac-source">
+                <span class="ac-layer-tag" data-slot="layer"></span>
+                <span data-slot="detail"></span>
+            </div>
+            <div class="ac-override">
+                <button type="button" class="is-allow" data-override="allow">Allow</button>
+                <button type="button" class="is-deny" data-override="deny">Deny</button>
+                <button type="button" class="is-inherit" data-override="inherit">Inherit</button>
+            </div>
+        </div>
+    </template>
 
     <!-- Embedded data for the JS controller. -->
     <script type="application/json" id="ac-entity-catalogue">{{{json entity_catalogue}}}</script>

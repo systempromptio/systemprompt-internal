@@ -1,5 +1,3 @@
-'use strict';
-
 import {
   generateRandomString, generateCodeChallenge,
   preparePublicKeyCredentialRequestOptions, makeRequest,

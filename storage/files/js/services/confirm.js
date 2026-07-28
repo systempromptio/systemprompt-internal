@@ -1,4 +1,4 @@
-import './sp-confirm-dialog.js';
+import '../components/sp-confirm-dialog.js';
 
 let dialogEl = null;
 

@@ -22,7 +22,7 @@ use crate::extenders::OrgUrlExtender;
 use crate::features::FeaturePagePrerenderer;
 use crate::homepage::{HomepagePageDataProvider, HomepagePrerenderer};
 use crate::jobs::{
-    BundleAdminCssJob, BundleAdminJsJob, ContentAnalyticsAggregationJob, ContentIngestionJob,
+    BundleAdminCssJob, ContentAnalyticsAggregationJob, ContentIngestionJob,
     ContentPrerenderJob, CopyExtensionAssetsJob, GovernanceBootstrapJob, LlmsTxtGenerationJob,
     PublishPipelineJob, RobotsTxtGenerationJob, SitemapGenerationJob,
 };
@@ -212,7 +212,6 @@ impl Extension for WebExtension {
             Arc::new(GovernanceBootstrapJob),
             Arc::new(ContentAnalyticsAggregationJob),
             Arc::new(BundleAdminCssJob),
-            Arc::new(BundleAdminJsJob),
         ]
     }
 

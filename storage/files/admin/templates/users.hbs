@@ -66,8 +66,8 @@
                         <span class="text-tertiary">0</span>
                     {{/if}}
                 </td>
-                <td class="numeric" style="font-variant-numeric: tabular-nums;" title="{{lifetime_tokens}} tokens">{{#if lifetime_tokens}}{{formatNumber lifetime_tokens}}{{else}}<span class="text-tertiary">0</span>{{/if}}</td>
-                <td class="numeric" style="font-variant-numeric: tabular-nums;">{{sessions}}</td>
+                <td class="numeric" title="{{lifetime_tokens}} tokens">{{#if lifetime_tokens}}{{formatNumber lifetime_tokens}}{{else}}<span class="text-tertiary">0</span>{{/if}}</td>
+                <td class="numeric">{{sessions}}</td>
                 <td class="col-status">{{#if is_active}}<span class="badge badge-success">Active</span>{{else}}<span class="badge badge-secondary">Inactive</span>{{/if}}</td>
                 <td class="col-date">{{#if created_at}}<span title="{{formatDate created_at}}">{{relativeTime created_at}}</span>{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
                 <td class="col-date">{{#if last_active}}<span title="{{formatDate last_active}}">{{relativeTime last_active}}</span>{{else}}Never{{/if}}</td>

@@ -5,7 +5,7 @@
 
     <div class="toolbar" role="toolbar" aria-label="User selection">
         <form method="get" action="/admin/models" class="search-group" id="model-user-form">
-            <label for="model-user-select" class="text-tertiary" style="align-self:center; margin-right:0.5rem;">User</label>
+            <label for="model-user-select" class="text-tertiary self-center mr-2">User</label>
             <select id="model-user-select" name="user_id" class="search-input" onchange="this.form.submit()">
                 <option value="">Select a user&hellip;</option>
                 {{#each users}}

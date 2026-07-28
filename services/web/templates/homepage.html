@@ -23,6 +23,11 @@
     <link rel="stylesheet" href="{{CSS_BASE_PATH}}/homepage-hero.css">
     <link rel="stylesheet" href="{{CSS_BASE_PATH}}/homepage-sections-titles.css">
     <link rel="stylesheet" href="{{CSS_BASE_PATH}}/homepage-demos.css">
+    <link rel="stylesheet" href="{{CSS_BASE_PATH}}/homepage-demos-quickstart.css">
+    <link rel="stylesheet" href="{{CSS_BASE_PATH}}/homepage-demos-nav.css">
+    <link rel="stylesheet" href="{{CSS_BASE_PATH}}/homepage-demos-categories.css">
+    <link rel="stylesheet" href="{{CSS_BASE_PATH}}/homepage-demos-story.css">
+    <link rel="stylesheet" href="{{CSS_BASE_PATH}}/homepage-demos-story-commands.css">
 </head>
 <body>
     {{{HEADER}}}
@@ -215,6 +220,27 @@
 
     {{{FOOTER}}}
     {{{SCRIPTS}}}
-    <script src="{{JS_BASE_PATH}}/homepage.js" defer></script>
+    <template id="mcp-connect-template">
+        <div class="mcp-modal" role="dialog" aria-modal="true" aria-label="MCP connection details">
+            <div class="mcp-modal__backdrop"></div>
+            <div class="mcp-modal__content">
+                <button type="button" class="mcp-modal__close" aria-label="Close">&times;</button>
+                <h3 class="mcp-modal__title"></h3>
+                <p class="mcp-modal__desc">Add this MCP server to your AI coding assistant using HTTP transport.</p>
+                <div class="mcp-modal__url-row">
+                    <code class="mcp-modal__url"></code>
+                    <button type="button" class="mcp-modal__copy">Copy</button>
+                </div>
+                <div class="mcp-modal__instructions">
+                    <h4>Claude Code</h4>
+                    <pre><code data-slot="claude-cmd"></code></pre>
+                    <h4>Cursor / VS Code</h4>
+                    <p>Add to your <code>.cursor/mcp.json</code> or <code>.vscode/mcp.json</code>:</p>
+                    <pre><code data-slot="mcp-json"></code></pre>
+                </div>
+            </div>
+        </div>
+    </template>
+    <script src="{{JS_BASE_PATH}}/homepage.js" type="module"></script>
 </body>
 </html>

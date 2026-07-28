@@ -1,6 +1,5 @@
-
 .docs-main {
-  padding: var(--sp-spacing-xl) var(--sp-spacing-xxl);
+  padding: var(--sp-space-8) var(--sp-space-12);
   min-width: 0;
 }
 
@@ -11,7 +10,7 @@
 .docs-main .breadcrumb {
   font-size: var(--sp-font-size-sm);
   color: var(--sp-color-text-secondary);
-  margin-bottom: var(--sp-spacing-lg);
+  margin-bottom: var(--sp-space-6);
 }
 
 .docs-main .breadcrumb a {
@@ -25,7 +24,7 @@
 }
 
 .docs-main .breadcrumb__separator {
-  margin: 0 var(--sp-spacing-xs);
+  margin: 0 var(--sp-space-1);
   color: var(--sp-color-text-disabled);
 }
 
@@ -34,8 +33,8 @@
 }
 
 .docs-header {
-  margin-bottom: var(--sp-spacing-xl);
-  padding-bottom: var(--sp-spacing-lg);
+  margin-bottom: var(--sp-space-8);
+  padding-bottom: var(--sp-space-6);
   border-bottom: 1px solid var(--sp-color-border);
 }
 
@@ -43,7 +42,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--sp-spacing-md);
+  gap: var(--sp-space-4);
 }
 
 .docs-title-row h1 {
@@ -60,7 +59,7 @@
   font-family: var(--sp-font-heading);
   font-size: 2.5rem;
   line-height: 1.2;
-  margin: 0 0 var(--sp-spacing-sm) 0;
+  margin: 0 0 var(--sp-space-2) 0;
   letter-spacing: 0.02em;
   text-transform: uppercase;
   color: var(--sp-color-text-primary);
@@ -69,14 +68,14 @@
 .docs-description {
   font-size: var(--sp-font-size-lg);
   color: var(--sp-color-text-secondary);
-  margin: var(--sp-spacing-sm) 0 var(--sp-spacing-md) 0;
+  margin: var(--sp-space-2) 0 var(--sp-space-4) 0;
   line-height: 1.5;
 }
 
 .docs-meta {
   display: flex;
   align-items: center;
-  gap: var(--sp-spacing-md);
+  gap: var(--sp-space-4);
   font-size: var(--sp-font-size-sm);
   color: var(--sp-color-text-disabled);
 }

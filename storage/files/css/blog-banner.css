@@ -1,6 +1,6 @@
 .agentic-banner {
-  margin: var(--sp-spacing-xxl) 0;
-  padding: var(--sp-spacing-xl);
+  margin: var(--sp-space-12) 0;
+  padding: var(--sp-space-8);
   background: linear-gradient(
     135deg,
     rgba(var(--sp-color-primary-rgb), 0.1) 0%,
@@ -14,7 +14,7 @@
 .banner-content {
   display: flex;
   align-items: center;
-  gap: var(--sp-spacing-lg);
+  gap: var(--sp-space-6);
   flex-wrap: wrap;
 }
 
@@ -31,7 +31,7 @@
   font-family: var(--sp-font-heading);
   font-size: 1.25rem;
   color: var(--sp-color-text-primary);
-  margin-bottom: var(--sp-spacing-xs);
+  margin-bottom: var(--sp-space-1);
   text-transform: uppercase;
 }
 
@@ -44,8 +44,8 @@
 .banner-cta {
   display: inline-flex;
   align-items: center;
-  gap: var(--sp-spacing-sm);
-  padding: var(--sp-spacing-sm) var(--sp-spacing-lg);
+  gap: var(--sp-space-2);
+  padding: var(--sp-space-2) var(--sp-space-6);
   background: var(--sp-color-primary);
   color: var(--sp-color-text-inverted);
   border-radius: var(--sp-radius-md);
@@ -55,7 +55,7 @@
 }
 
 .banner-cta:hover {
-  background: var(--sp-color-secondary);
+  background: var(--sp-color-primary-hover);
   transform: translateY(-2px);
   box-shadow: var(--sp-shadow-md);
 }

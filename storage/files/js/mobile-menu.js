@@ -1,74 +1,52 @@
-function initMobileMenu() {
-  'use strict';
+function registerOverlayEscape() {
+  window._overlays = window._overlays || [];
 
+  if (!window._overlayEscapeInit) {
+    window._overlayEscapeInit = true;
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      for (let i = window._overlays.length - 1; i >= 0; i -= 1) {
+        if (window._overlays[i]()) break;
+      }
+    });
+  }
+
+  return window._overlays;
+}
+
+export function initMobileMenu() {
   const menuToggle = document.querySelector('.mobile-menu-toggle');
+  if (!menuToggle || menuToggle.dataset.menuBound === 'true') return;
+  menuToggle.dataset.menuBound = 'true';
+
   const navLinks = document.querySelector('.nav-links');
   const docsSidebar = document.querySelector('.docs-sidebar');
+  const panel = docsSidebar ?? navLinks;
 
-  if (!menuToggle) return;
-
-  const isDocsPage = !!docsSidebar;
+  const closeMenu = () => {
+    panel?.classList.remove('is-open');
+    menuToggle.setAttribute('aria-expanded', 'false');
+    document.body.classList.remove('menu-open');
+  };
 
   menuToggle.addEventListener('click', () => {
-    const isExpanded = menuToggle.getAttribute('aria-expanded') === 'true';
-    menuToggle.setAttribute('aria-expanded', !isExpanded);
-
-    if (isDocsPage) {
-      docsSidebar.classList.toggle('is-open');
-    } else {
-      if (navLinks) {
-        navLinks.classList.toggle('is-open');
-      }
-    }
-
+    const expanded = menuToggle.getAttribute('aria-expanded') === 'true';
+    menuToggle.setAttribute('aria-expanded', String(!expanded));
+    panel?.classList.toggle('is-open');
     document.body.classList.toggle('menu-open');
   });
 
-  if (isDocsPage && docsSidebar) {
-    docsSidebar.querySelectorAll('a').forEach((link) => {
-      link.addEventListener('click', () => {
-        closeMenu();
-      });
-    });
-  } else if (navLinks) {
-    navLinks.querySelectorAll('a').forEach((link) => {
-      link.addEventListener('click', () => {
-        closeMenu();
-      });
-    });
+  if (panel) {
+    for (const link of panel.querySelectorAll('a')) {
+      link.addEventListener('click', closeMenu);
+    }
   }
 
-  // Register with public overlay manager instead of per-module Escape handler
-  window._overlays = window._overlays || [];
-  if (!window._overlayEscapeInit) {
-    window._overlayEscapeInit = true;
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        for (let i = window._overlays.length - 1; i >= 0; i--) {
-          if (window._overlays[i]()) break;
-        }
-      }
-    });
-  }
-  window._overlays.push(() => {
-    if (document.body.classList.contains('menu-open')) {
-      closeMenu();
-      return true;
-    }
-    return false;
+  registerOverlayEscape().push(() => {
+    if (!document.body.classList.contains('menu-open')) return false;
+    closeMenu();
+    return true;
   });
-
-  function closeMenu() {
-    if (isDocsPage && docsSidebar) {
-      docsSidebar.classList.remove('is-open');
-    } else if (navLinks) {
-      navLinks.classList.remove('is-open');
-    }
-    if (menuToggle) {
-      menuToggle.setAttribute('aria-expanded', 'false');
-    }
-    document.body.classList.remove('menu-open');
-  }
 }
 
-document.addEventListener('DOMContentLoaded', initMobileMenu);
+initMobileMenu();

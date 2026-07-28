@@ -1,10 +1,5 @@
 @layer components {
 
-/* `.table-container` and `.table-scroll` belong to 04-tables-core.css. This
-   file used to redeclare both, and since `08-` bundles after `04-` its
-   `max-height` won, clipping every admin table behind an unmarked inner
-   scrollbar. */
-
 .card {
     background: var(--sp-bg-surface-gradient);
     border: 1px solid var(--sp-border-subtle);
@@ -56,9 +51,6 @@
     border-bottom: 1px solid var(--sp-border-subtle);
 }
 
-/* Body region beneath a .card-header. The header uses negative margins to
-   bleed to the card edges, so the body just needs its natural flow; the
-   colour + spacing come from the card. */
 .card-body {
     color: var(--sp-text-secondary);
 }

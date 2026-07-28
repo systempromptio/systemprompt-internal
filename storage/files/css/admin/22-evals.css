@@ -1,6 +1,3 @@
-/* Evals page: share bars in the distribution tables, and the scored-answer
-   cards with their per-dimension meters. Markup: evals.hbs, eval-run-detail.hbs */
-
 @layer components {
 
 .eval-section-title {
@@ -25,12 +22,11 @@
     border-left-color: var(--sp-danger);
 }
 
-/* count over a proportional bar, so a table column reads as a distribution */
 .eval-share {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 3px;
+    gap: var(--sp-space-1);
     min-width: 4rem;
 }
 
@@ -72,9 +68,6 @@
     margin-top: 2px;
 }
 
-/* run launchers sit side by side and wrap on narrow viewports */
-/* Each tab carries the one form that launches its own kind of run, under the
-   heading that names it — so the form no longer needs a label of its own. */
 .eval-run-form,
 .eval-filter-form {
     align-items: flex-end;
@@ -85,7 +78,6 @@
     width: 6rem;
 }
 
-/* one card per scored answer */
 .eval-results {
     display: flex;
     flex-direction: column;
@@ -158,7 +150,7 @@
 }
 
 .eval-flag {
-    padding: 1px 6px;
+    padding: 1px var(--sp-space-2);
     border-radius: var(--sp-radius-sm);
     background: var(--sp-border-subtle);
     color: var(--sp-text-secondary);
@@ -166,51 +158,11 @@
     font-family: var(--sp-font-mono);
 }
 
-/* per-dimension meters — same 1-5 scale as the headline score */
 .eval-dims {
     display: flex;
     flex-wrap: wrap;
     gap: var(--sp-space-3);
     margin-top: var(--sp-space-2);
-}
-
-.eval-dim {
-    display: flex;
-    align-items: center;
-    gap: var(--sp-space-1);
-    font-size: var(--sp-text-xs);
-    color: var(--sp-text-tertiary);
-}
-
-.eval-dim__bar {
-    display: block;
-    width: 3rem;
-    height: 3px;
-    border-radius: 2px;
-    background: var(--sp-border-subtle);
-    position: relative;
-}
-
-.eval-dim__bar::after {
-    content: "";
-    position: absolute;
-    inset: 0 auto 0 0;
-    width: var(--v, 0%);
-    border-radius: 2px;
-    background: var(--sp-accent);
-}
-
-.eval-dim__label {
-    white-space: nowrap;
-}
-
-.eval-dim__score {
-    font-variant-numeric: tabular-nums;
-}
-
-/* a timestamp does not fit at the KPI value size */
-.kpi-card__value--sm {
-    font-size: var(--sp-text-sm);
 }
 
 }

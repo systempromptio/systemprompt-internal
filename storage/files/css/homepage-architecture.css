@@ -1,6 +1,5 @@
-
 .architecture-section {
-    padding: var(--sp-space-3xl) 0 var(--sp-space-4xl);
+    padding: var(--sp-space-16) 0 var(--sp-space-24);
     position: relative;
 }
 
@@ -10,7 +9,7 @@
     font-size: clamp(1.5rem, 3vw, 2rem);
     font-weight: 700;
     color: var(--sp-color-text);
-    margin-bottom: var(--sp-space-sm);
+    margin-bottom: var(--sp-space-2);
     letter-spacing: -0.01em;
 }
 
@@ -20,7 +19,7 @@
     font-size: var(--sp-font-size-md);
     color: var(--sp-color-text-secondary);
     max-width: 680px;
-    margin: 0 auto var(--sp-space-xl);
+    margin: 0 auto var(--sp-space-8);
     line-height: 1.6;
 }
 
@@ -40,13 +39,13 @@
 a.hero-scroll-hint {
     display: flex;
     justify-content: center;
-    margin-top: var(--sp-space-xl);
+    margin-top: var(--sp-space-8);
     color: var(--sp-color-text-secondary);
     text-decoration: none;
     cursor: pointer;
     pointer-events: auto;
     position: relative;
-    z-index: var(--sp-z-sticky-header);
+    z-index: var(--sp-z-content);
     opacity: 0.5;
     animation: scroll-hint-bounce 2s ease-in-out infinite;
 }
@@ -74,10 +73,10 @@ html {
     }
 
     .architecture-section {
-        padding: var(--sp-space-2xl) 0 var(--sp-space-3xl);
+        padding: var(--sp-space-12) 0 var(--sp-space-16);
     }
 
     .architecture-subtitle {
-        padding: 0 var(--sp-space-md);
+        padding: 0 var(--sp-space-4);
     }
 }

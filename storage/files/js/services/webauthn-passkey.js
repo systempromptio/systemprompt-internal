@@ -1,10 +1,10 @@
-'use strict';
-
 import {
   preparePublicKeyCredentialCreationOptions,
   preparePublicKeyCredentialRequestOptions, makeRequest,
   assertRpIdMatchesOrigin
 } from '/js/services/webauthn-utils.js?v=3';
+
+import { rawResponse } from '/js/services/api.js';
 
 import {
   buildAuthCredentialPayload, buildCreationCredentialPayload,
@@ -55,9 +55,8 @@ const validateToken = async () => {
   } else {
     try {
       showLoading('Validating link...');
-      const response = await fetch('/api/public/auth/magic-link/validate', {
+      const response = await rawResponse('/api/public/auth/magic-link/validate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token }),
       });
       const data = await response.json();
@@ -88,47 +87,54 @@ const autoLogin = async () => {
       credential: buildAuthCredentialPayload(credential),
     });
     await initPkceAndRedirect(finishResponse.data.user_id, finishResponse.data.auth_token, showLoading);
-  } catch (_error) {
+  } catch {
     showError('Passkey created successfully! Redirecting to sign in...');
     setTimeout(() => { window.location.href = LOGIN_PATH; }, 2000);
   }
 };
 
+const showCreationError = (error) => {
+  passkeyForm.hidden = false;
+  loadingSection.hidden = true;
+  if (error.name === 'NotAllowedError') errorDiv.textContent = 'Passkey creation was cancelled or not allowed.';
+  else if (error.name === 'NotSupportedError') errorDiv.textContent = 'Passkeys are not supported on this device.';
+  else errorDiv.textContent = error.message || 'Failed to create passkey. Please try again.';
+  if (error.correctUrl) {
+    errorDiv.append(' ');
+    const link = document.createElement('a');
+    link.href = error.correctUrl;
+    link.textContent = 'Continue on ' + new URL(error.correctUrl).hostname;
+    errorDiv.append(link);
+  }
+  errorDiv.hidden = false;
+};
+
+const runCreationCeremony = async () => {
+  showLoading('Creating your passkey...');
+  const username = validatedEmail.split('@')[0];
+  const startResponse = await makeRequest(
+    WEBAUTHN_BASE + '/link/start?username=' + encodeURIComponent(username) +
+    '&email=' + encodeURIComponent(validatedEmail), 'POST'
+  );
+  assertRpIdMatchesOrigin(startResponse.data.publicKey.rp && startResponse.data.publicKey.rp.id);
+  const publicKeyOptions = preparePublicKeyCredentialCreationOptions(startResponse.data.publicKey);
+  const credential = await navigator.credentials.create({ publicKey: publicKeyOptions });
+  if (!credential) throw new Error('Passkey creation was cancelled');
+  showLoading('Finishing setup...');
+  await makeRequest(WEBAUTHN_BASE + '/link/finish', 'POST', {
+    challenge_id: startResponse.data.challenge_id || startResponse.challengeId,
+    email: validatedEmail,
+    credential: buildCreationCredentialPayload(credential),
+  });
+};
+
 const createPasskey = async () => {
-  if (validatedEmail) {
-    try {
-      showLoading('Creating your passkey...');
-      const username = validatedEmail.split('@')[0];
-      const startResponse = await makeRequest(
-        WEBAUTHN_BASE + '/link/start?username=' + encodeURIComponent(username) +
-        '&email=' + encodeURIComponent(validatedEmail), 'POST'
-      );
-      assertRpIdMatchesOrigin(startResponse.data.publicKey.rp && startResponse.data.publicKey.rp.id);
-      const publicKeyOptions = preparePublicKeyCredentialCreationOptions(startResponse.data.publicKey);
-      const credential = await navigator.credentials.create({ publicKey: publicKeyOptions });
-      if (!credential) throw new Error('Passkey creation was cancelled');
-      showLoading('Finishing setup...');
-      await makeRequest(WEBAUTHN_BASE + '/link/finish', 'POST', {
-        challenge_id: startResponse.data.challenge_id || startResponse.challengeId,
-        email: validatedEmail,
-        credential: buildCreationCredentialPayload(credential),
-      });
-      await autoLogin();
-    } catch (error) {
-      passkeyForm.hidden = false;
-      loadingSection.hidden = true;
-      if (error.name === 'NotAllowedError') errorDiv.textContent = 'Passkey creation was cancelled or not allowed.';
-      else if (error.name === 'NotSupportedError') errorDiv.textContent = 'Passkeys are not supported on this device.';
-      else errorDiv.textContent = error.message || 'Failed to create passkey. Please try again.';
-      if (error.correctUrl) {
-        errorDiv.append(' ');
-        const link = document.createElement('a');
-        link.href = error.correctUrl;
-        link.textContent = 'Continue on ' + new URL(error.correctUrl).hostname;
-        errorDiv.append(link);
-      }
-      errorDiv.hidden = false;
-    }
+  if (!validatedEmail) return;
+  try {
+    await runCreationCeremony();
+    await autoLogin();
+  } catch (error) {
+    showCreationError(error);
   }
 };
 

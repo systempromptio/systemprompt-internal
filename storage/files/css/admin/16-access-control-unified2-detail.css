@@ -1,0 +1,166 @@
+.ac-detail {
+    background: var(--sp-bg-surface);
+    border: 1px solid var(--sp-border-subtle);
+    border-radius: 12px;
+    padding: var(--sp-space-4);
+    min-height: 400px;
+    color: var(--sp-text-primary);
+}
+
+.ac-welcome h2 {
+    margin-top: 0;
+    color: var(--sp-text-primary);
+}
+
+.ac-welcome p {
+    color: var(--sp-text-secondary);
+}
+
+.ac-welcome-tips {
+    margin-top: var(--sp-space-3);
+    padding-left: 1.2em;
+    color: var(--sp-text-secondary);
+}
+
+.ac-welcome-tips li {
+    margin-bottom: var(--sp-space-2);
+}
+
+.ac-welcome-tips code,
+.ac-modal-hint code,
+.ac-detail code {
+    background: var(--sp-bg-surface-raised);
+    border: 1px solid var(--sp-border-subtle);
+    padding: 1px var(--sp-space-2);
+    border-radius: 4px;
+    font-size: 0.85em;
+    color: var(--sp-text-primary);
+}
+
+.ac-dept-editor h2 {
+    margin: 0 0 var(--sp-space-2);
+    color: var(--sp-text-primary);
+}
+
+.ac-dept-editor .ac-section {
+    margin-top: var(--sp-space-3);
+}
+
+.ac-dept-editor .ac-section h3 {
+    margin: 0 0 var(--sp-space-2);
+    font-size: var(--sp-text-md);
+    color: var(--sp-text-primary);
+}
+
+.ac-dept-rule-list {
+    border: 1px solid var(--sp-border-subtle);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--sp-bg-surface);
+}
+
+.ac-dept-rule {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 140px 120px;
+    align-items: center;
+    gap: var(--sp-space-2);
+    padding: var(--sp-space-2) var(--sp-space-3);
+    border-bottom: 1px solid var(--sp-border-subtle);
+    font-size: var(--sp-text-sm);
+    color: var(--sp-text-primary);
+}
+
+.ac-dept-rule:last-child { border-bottom: none; }
+
+.ac-dept-rule select {
+    padding: var(--sp-space-1) var(--sp-space-2);
+    font-size: var(--sp-text-sm);
+    border: 1px solid var(--sp-border-default);
+    border-radius: 6px;
+    background: var(--sp-bg-surface);
+    color: var(--sp-text-primary);
+}
+
+.ac-user-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--sp-space-2);
+    margin-bottom: var(--sp-space-3);
+}
+
+.ac-user-header h2 { margin: 0; color: var(--sp-text-primary); }
+
+.ac-user-meta {
+    color: var(--sp-text-secondary);
+    font-size: var(--sp-text-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--sp-space-2);
+    flex-wrap: wrap;
+}
+
+.ac-user-meta select {
+    padding: var(--sp-space-1) var(--sp-space-2);
+    font-size: var(--sp-text-sm);
+    border: 1px solid var(--sp-border-default);
+    border-radius: 6px;
+    background: var(--sp-bg-surface);
+    color: var(--sp-text-primary);
+}
+
+.ac-matrix-section {
+    margin-top: var(--sp-space-3);
+    border: 1px solid var(--sp-border-subtle);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--sp-bg-surface);
+}
+
+.ac-matrix-section-header {
+    background: var(--sp-bg-surface-raised);
+    padding: var(--sp-space-2) var(--sp-space-3);
+    font-weight: 600;
+    font-size: var(--sp-text-md);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--sp-text-primary);
+    border-bottom: 1px solid var(--sp-border-subtle);
+}
+
+.ac-matrix-row {
+    display: grid;
+    grid-template-columns: 1fr 90px 220px 160px;
+    align-items: center;
+    gap: var(--sp-space-3);
+    padding: var(--sp-space-2) var(--sp-space-3);
+    border-top: 1px solid var(--sp-border-subtle);
+    font-size: var(--sp-text-sm);
+    color: var(--sp-text-primary);
+}
+
+.ac-matrix-row:first-child { border-top: none; }
+
+.ac-matrix-entity {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ac-matrix-entity .id {
+    font-family: var(--sp-font-mono);
+    font-size: var(--sp-text-xs);
+    color: var(--sp-text-tertiary);
+    display: block;
+}
+
+.ac-effective {
+    text-align: center;
+    padding: var(--sp-space-1) var(--sp-space-3);
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: var(--sp-text-xs);
+    text-transform: uppercase;
+    border: 1px solid transparent;
+}
