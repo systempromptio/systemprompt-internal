@@ -5531,7 +5531,6 @@ dependencies = [
  "sqlx",
  "systemprompt",
  "systemprompt-security",
- "systemprompt-web-admin",
  "systemprompt-web-shared",
  "tempfile",
  "thiserror 2.0.18",
