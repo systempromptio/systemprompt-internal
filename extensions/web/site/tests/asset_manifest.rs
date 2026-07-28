@@ -28,11 +28,12 @@ impl AssetPaths for TestPaths {
 }
 
 fn repo_root() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .ancestors()
-        .nth(3)
-        .expect("extensions/web/site is three levels below the repo root")
-        .to_path_buf()
+    // Why: extensions/web/site sits three levels below the repo root.
+    let mut root = Path::new(env!("CARGO_MANIFEST_DIR")).to_path_buf();
+    for _ in 0..3 {
+        root.pop();
+    }
+    root
 }
 
 fn test_paths() -> TestPaths {
