@@ -13,8 +13,8 @@ use systemprompt::models::AppPaths;
 use systemprompt::traits::{Job, JobContext, JobResult};
 
 use super::{
-    BundleAdminCssJob, ContentIngestionJob, ContentPrerenderJob,
-    CopyExtensionAssetsJob, LlmsTxtGenerationJob, RobotsTxtGenerationJob, SitemapGenerationJob,
+    BundleAdminCssJob, ContentIngestionJob, ContentPrerenderJob, CopyExtensionAssetsJob,
+    LlmsTxtGenerationJob, RobotsTxtGenerationJob, SitemapGenerationJob,
 };
 use crate::error::JobError;
 use systemprompt_web_shared::error::MarketplaceError;

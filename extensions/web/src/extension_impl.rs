@@ -22,9 +22,9 @@ use crate::extenders::OrgUrlExtender;
 use crate::features::FeaturePagePrerenderer;
 use crate::homepage::{HomepagePageDataProvider, HomepagePrerenderer};
 use crate::jobs::{
-    BundleAdminCssJob, ContentAnalyticsAggregationJob, ContentIngestionJob,
-    ContentPrerenderJob, CopyExtensionAssetsJob, GovernanceBootstrapJob, LlmsTxtGenerationJob,
-    PublishPipelineJob, RobotsTxtGenerationJob, SitemapGenerationJob,
+    BundleAdminCssJob, ContentAnalyticsAggregationJob, ContentIngestionJob, ContentPrerenderJob,
+    CopyExtensionAssetsJob, GovernanceBootstrapJob, LlmsTxtGenerationJob, PublishPipelineJob,
+    RobotsTxtGenerationJob, SitemapGenerationJob,
 };
 use crate::navigation::NavigationPageDataProvider;
 use crate::partials::{

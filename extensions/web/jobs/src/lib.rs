@@ -7,9 +7,9 @@
 //!   orchestrates ACL/profile/config bootstrap, asset copy, content ingestion,
 //!   prerender, sitemap/robots/llms.txt generation, and secret migration.
 //!   Sub-jobs are individually addressable via the CLI for targeted re-runs.
-//! - **Build helpers** ([`BundleAdminCssJob`],
-//!   [`CopyExtensionAssetsJob`], [`ContentPrerenderJob`]) — emit the static
-//!   surface under `web/dist/` consumed by the SSR layer.
+//! - **Build helpers** ([`BundleAdminCssJob`], [`CopyExtensionAssetsJob`],
+//!   [`ContentPrerenderJob`]) — emit the static surface under `web/dist/`
+//!   consumed by the SSR layer.
 //! - **Analytics / housekeeping** ([`ContentAnalyticsAggregationJob`],
 //!   [`SecretMigrationJob`]) — periodic rollups and one-shot migrations.
 //!

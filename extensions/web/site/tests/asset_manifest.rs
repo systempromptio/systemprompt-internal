@@ -124,11 +124,16 @@ fn extract_asset_refs(content: &str) -> Vec<String> {
             let value = value
                 .replace("{{CSS_BASE_PATH}}", "/css")
                 .replace("{{JS_BASE_PATH}}", "/js");
-            let value = value.split('?').next().unwrap_or(&value).to_string();
-            if (value.starts_with("/css/") && value.ends_with(".css"))
-                || (value.starts_with("/js/") && value.ends_with(".js"))
+            let value = value.split('?').next().unwrap_or(&value).to_owned();
+            let has_ext = |ext: &str| {
+                Path::new(&value)
+                    .extension()
+                    .is_some_and(|e| e.eq_ignore_ascii_case(ext))
+            };
+            if (value.starts_with("/css/") && has_ext("css"))
+                || (value.starts_with("/js/") && has_ext("js"))
             {
-                refs.push(value.trim_start_matches('/').to_string());
+                refs.push(value.trim_start_matches('/').to_owned());
             }
         }
     }
@@ -141,7 +146,7 @@ fn every_template_asset_reference_resolves() {
     let paths = test_paths();
     let published: BTreeSet<String> = web_assets(&paths)
         .iter()
-        .map(|a| a.destination().to_string())
+        .map(|a| a.destination().to_owned())
         .collect();
 
     let mut unresolved = Vec::new();
@@ -175,8 +180,7 @@ fn templates_contain_no_inline_code() {
         let is_critical_css_shell = name.ends_with("partials/head-assets.html");
         for (idx, line) in content.lines().enumerate() {
             let has_open = line.contains("<script") && !line.contains("src=");
-            let is_data =
-                line.contains("application/ld+json") || line.contains("application/json");
+            let is_data = line.contains("application/ld+json") || line.contains("application/json");
             let is_theme_snippet = line.contains("</script>") && line.contains("colorScheme");
             if has_open && !is_data && !is_fouc_shell && !is_theme_snippet {
                 violations.push(format!("{name}:{} inline <script>", idx + 1));
@@ -206,12 +210,9 @@ fn source_files_respect_line_limits() {
 
     let mut oversized = Vec::new();
     for (files, limit) in [(&js, 150usize), (&css, 200usize)] {
-        for file in files.iter() {
+        for file in files {
             let rel = file.strip_prefix(&root).unwrap_or(file);
-            if GENERATED
-                .iter()
-                .any(|g| rel.to_string_lossy().ends_with(g))
-            {
+            if GENERATED.iter().any(|g| rel.to_string_lossy().ends_with(g)) {
                 continue;
             }
             let Ok(content) = std::fs::read_to_string(file) else {
@@ -239,7 +240,7 @@ fn token_definitions(file: &Path) -> Vec<String> {
         .filter_map(|line| {
             let trimmed = line.trim_start();
             if trimmed.starts_with("--") {
-                trimmed.split(':').next().map(str::to_string)
+                trimmed.split(':').next().map(str::to_owned)
             } else {
                 None
             }
@@ -254,7 +255,11 @@ fn custom_properties_use_sp_prefix() {
     walk(&root.join("storage/files/css"), "css", &mut css);
     let mut violations = Vec::new();
     for file in &css {
-        let rel = file.strip_prefix(&root).unwrap_or(file).to_string_lossy().to_string();
+        let rel = file
+            .strip_prefix(&root)
+            .unwrap_or(file)
+            .to_string_lossy()
+            .to_string();
         if GENERATED.iter().any(|g| rel.ends_with(g)) {
             continue;
         }
@@ -292,7 +297,10 @@ fn design_tokens_have_a_single_defining_file_per_scope() {
 
     let admin_scope: Vec<&PathBuf> = all
         .iter()
-        .filter(|p| p.strip_prefix(&css_root).is_ok_and(|r| r.starts_with("admin/")))
+        .filter(|p| {
+            p.strip_prefix(&css_root)
+                .is_ok_and(|r| r.starts_with("admin/"))
+        })
         .collect();
     let site_scope: Vec<&PathBuf> = all
         .iter()
@@ -307,7 +315,11 @@ fn design_tokens_have_a_single_defining_file_per_scope() {
     for scope in [admin_scope, site_scope] {
         let mut owners: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
         for file in scope {
-            let rel = file.strip_prefix(&root).unwrap_or(file).display().to_string();
+            let rel = file
+                .strip_prefix(&root)
+                .unwrap_or(file)
+                .display()
+                .to_string();
             for token in token_definitions(file) {
                 if SCOPED_PROPERTIES.contains(&token.as_str()) {
                     continue;

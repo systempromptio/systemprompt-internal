@@ -116,11 +116,13 @@ fn service_utils_js(storage_js: &Path) -> Vec<AssetDefinition> {
 }
 
 pub(super) fn admin_assets(storage_css: &Path) -> Vec<AssetDefinition> {
-    vec![AssetDefinition::builder(
-        storage_css.join("admin-bundle.css"),
-        "css/admin-bundle.css",
-        systemprompt::extension::AssetType::Css,
-    )
-    .optional()
-    .build()]
+    vec![
+        AssetDefinition::builder(
+            storage_css.join("admin-bundle.css"),
+            "css/admin-bundle.css",
+            systemprompt::extension::AssetType::Css,
+        )
+        .optional()
+        .build(),
+    ]
 }
