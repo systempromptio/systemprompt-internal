@@ -1,4 +1,4 @@
-//! Admin extension for the Enterprise Demo template.
+//! Admin extension for the systemprompt template.
 //!
 //! Wires the admin dashboard, governance webhooks, and supporting services
 //! onto a shared `PgPool`. Public surface is grouped by concern:
@@ -16,6 +16,7 @@
 //! `MarketplaceError` re-export in [`systemprompt_web_shared`].
 
 pub mod activity;
+pub mod assets;
 pub mod audit_event_bus;
 pub mod authz;
 pub mod error;
@@ -41,8 +42,13 @@ use sqlx::PgPool;
 pub use routes::admin_ssr_router;
 pub use types::{CreateUserRequest, MarketplaceContext, UserContext, UserSummary, UserUsageEvent};
 
+/// Internals exposed to the test workspace only; gated so production
+/// consumers never see them.
+#[cfg(feature = "test-support")]
 pub mod test_support {
     pub use crate::handlers::resolve_principal;
+    pub use crate::handlers::ssr::format::{format_cost, format_duration_ms, short_id, short_num};
+    pub use crate::handlers::ssr::list_view::PageWindow;
 }
 
 pub fn hooks_webhook_router(

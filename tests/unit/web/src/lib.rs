@@ -2,6 +2,8 @@
 //! - `CampaignLink::full_url` UTM query assembly and `?`/`&` separator choice
 //! - `BlogConfigValidated::validate` base-URL scheme/parse validation
 //! - hook-event ingest leniency, which the governance record depends on
+//! - admin display formatting bands and `PageWindow` pagination arithmetic
+//! - inventory registry completeness for jobs, renderers, and providers
 
 #[cfg(test)]
 mod campaign_link_full_url;
@@ -11,3 +13,9 @@ mod config_base_url;
 mod hook_event_dispatch;
 #[cfg(test)]
 mod seed_contract;
+#[cfg(test)]
+mod format_display;
+#[cfg(test)]
+mod page_window;
+#[cfg(test)]
+mod registry_completeness;
