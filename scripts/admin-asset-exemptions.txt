@@ -2,3 +2,6 @@
 # storage/files/: assets served by another mechanism entirely. One served path
 # per line (no leading slash), `#` comments. Never list an asset that genuinely
 # 404s — register it in extensions/web/site/src/assets/ instead.
+
+# Generated at publish time by the bundle_admin_css job; never a source file.
+css/admin-bundle.css
