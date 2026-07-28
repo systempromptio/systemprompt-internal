@@ -280,10 +280,10 @@ _lint-gates-uncoordinated:
         lint-inline-comments.sh
         check-duplicate-types.sh
         check-repository-naming.sh
-        check-admin-css-classes.sh
         check-admin-template-links.sh
         check-admin-template-assets.sh
-        check-frontend-standards.sh
+        # admin-css-classes + frontend-standards now run as cargo tests in
+        # extensions/web/tests/ (admin_css_classes.rs, frontend_standards.rs).
         check-fork-drift.sh
         check-dead-repository-code.sh
         check-file-headers.sh

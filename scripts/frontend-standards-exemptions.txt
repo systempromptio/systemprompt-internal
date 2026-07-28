@@ -1,3 +1,3 @@
-# path:rule pairs exempt from scripts/check-frontend-standards.sh.
+# path:rule pairs exempt from extensions/web/tests/frontend_standards.rs.
 # Reserve for cases with a documented reason, never to mute a fixable violation.
 storage/files/js/components/sp-confirm-dialog.js:alert-confirm-prompt
