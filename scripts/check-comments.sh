@@ -13,13 +13,19 @@ fi
 fail=0
 
 # Lines under a `# Errors` heading are required by clippy::missing_errors_doc.
+# Single-pass: each file is read once and its lines cached, instead of one
+# sed subprocess per matched line.
 strip_errors_sections() {
     awk -F: '
         {
             file = $1; line = $2
-            cmd = "sed -n " (line - 1) "p " file
-            cmd | getline prev
-            close(cmd)
+            if (!(file in loaded)) {
+                n = 0
+                while ((getline row < file) > 0) lines[file, ++n] = row
+                close(file)
+                loaded[file] = n
+            }
+            prev = lines[file, line - 1]
             if (prev ~ /^[[:space:]]*\/\/\/[[:space:]]*#[[:space:]]*Errors/) next
             if (prev ~ /doc-ok:/) next
             print

@@ -263,28 +263,61 @@ test: test-unit test-integration test-contract
 lint-gates:
     @scripts/build-coordinator.sh run lint-gates "" -- {{just_executable()}} _lint-gates-uncoordinated
 
+# Gates are independent read-only checks; they run concurrently and every
+# failure is reported, so one red gate cannot hide the rest.
 _lint-gates-uncoordinated:
     #!/usr/bin/env bash
-    set -euo pipefail
-    bash scripts/lint-schema.sh
-    bash scripts/lint-extensions.sh
-    bash scripts/check-sqlx.sh
-    bash scripts/check-http-errors.sh
-    bash scripts/check-test-value.sh
-    bash scripts/lint-raw-ids.sh
-    bash scripts/check-glob-reexports.sh
-    bash scripts/check-comments.sh
-    bash scripts/lint-inline-comments.sh
-    bash scripts/check-duplicate-types.sh
-    bash scripts/check-repository-naming.sh
-    bash scripts/check-admin-css-classes.sh
-    bash scripts/check-admin-template-links.sh
-    bash scripts/check-admin-template-assets.sh
-    bash scripts/check-frontend-standards.sh
-    bash scripts/check-fork-drift.sh
-    bash scripts/check-dead-repository-code.sh
-    bash scripts/check-file-headers.sh
-    bash scripts/check-file-size.sh
+    set -uo pipefail
+    gates=(
+        lint-schema.sh
+        lint-extensions.sh
+        check-sqlx.sh
+        check-http-errors.sh
+        check-test-value.sh
+        lint-raw-ids.sh
+        check-glob-reexports.sh
+        check-comments.sh
+        lint-inline-comments.sh
+        check-duplicate-types.sh
+        check-repository-naming.sh
+        check-admin-css-classes.sh
+        check-admin-template-links.sh
+        check-admin-template-assets.sh
+        check-frontend-standards.sh
+        check-fork-drift.sh
+        check-dead-repository-code.sh
+        check-file-headers.sh
+        check-file-size.sh
+        validate-services.sh
+    )
+    logdir=$(mktemp -d)
+    trap 'rm -rf "$logdir"' EXIT
+    pids=()
+    for gate in "${gates[@]}"; do
+        bash "scripts/$gate" >"$logdir/$gate.log" 2>&1 &
+        pids+=("$!:$gate")
+    done
+    failed=()
+    for entry in "${pids[@]}"; do
+        pid=${entry%%:*}
+        gate=${entry#*:}
+        if ! wait "$pid"; then
+            failed+=("$gate")
+        fi
+    done
+    if [ ${#failed[@]} -gt 0 ]; then
+        for gate in "${failed[@]}"; do
+            echo "==== FAILED: $gate ===="
+            cat "$logdir/$gate.log"
+        done
+        echo "lint gates failed: ${failed[*]}"
+        exit 1
+    fi
+    echo "all ${#gates[@]} lint gates passed"
+
+# Cross-file referential integrity for services/ (ACL entity ids, MCP ports)
+validate:
+    bash scripts/validate-services.sh
 
 # Shared sources that differ from the sibling fork must be recorded in
 # .fork-divergence. Needs SIBLING_REPO; skips cleanly without it.
@@ -386,7 +419,7 @@ prepare:
     # Workspace-level prepare (catches lib crates)
     cargo sqlx prepare --workspace
     # Per-crate prepare for binary/extension crates that cargo sqlx skips
-    EXTENSION_DIRS="extensions/cli/activity extensions/cli/slack extensions/web extensions/marketplace extensions/mcp/shared extensions/mcp/systemprompt"
+    EXTENSION_DIRS="extensions/web extensions/mcp/shared extensions/mcp/systemprompt"
     for dir in $EXTENSION_DIRS; do
         if [ -f "{{justfile_directory()}}/$dir/Cargo.toml" ]; then
             # Skip crates with no sqlx dependency — prepare would only
