@@ -112,6 +112,10 @@ impl Job for BundleAdminCssJob {
         "bundle_admin_css"
     }
 
+    fn tags(&self) -> Vec<&'static str> {
+        vec![crate::registry::JOB_TAG]
+    }
+
     fn description(&self) -> &'static str {
         "Concatenates admin CSS modules into admin-bundle.css"
     }

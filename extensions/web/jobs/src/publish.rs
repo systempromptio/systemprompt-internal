@@ -210,6 +210,10 @@ impl Job for PublishPipelineJob {
         "publish_pipeline"
     }
 
+    fn tags(&self) -> Vec<&'static str> {
+        vec![crate::registry::JOB_TAG]
+    }
+
     fn description(&self) -> &'static str {
         "Full content publishing pipeline: ingestion, assets, prerender, pages, sitemap, robots.txt, RSS, llms.txt"
     }

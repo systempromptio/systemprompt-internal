@@ -161,3 +161,5 @@ impl DocsContentDataProvider {
         }
     }
 }
+
+systemprompt_web_shared::submit_content_data!(DocsContentDataProvider::new());

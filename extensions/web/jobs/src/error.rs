@@ -2,7 +2,7 @@
 
 use systemprompt::generator::PublishError;
 use systemprompt::traits::ProviderError;
-use systemprompt_web_shared::error::MarketplaceError;
+use systemprompt_web_shared::error::{InfraError, MarketplaceError};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -16,17 +16,8 @@ pub enum JobError {
     #[error("Format error: {0}")]
     Format(#[from] std::fmt::Error),
 
-    #[error("Database error: {0}")]
-    Database(#[from] sqlx::Error),
-
-    #[error("IO error: {0}")]
-    Io(#[from] std::io::Error),
-
-    #[error("YAML error: {0}")]
-    Yaml(#[from] serde_yaml::Error),
-
-    #[error("JSON error: {0}")]
-    Json(#[from] serde_json::Error),
+    #[error(transparent)]
+    Infra(#[from] InfraError),
 
     #[error("Marketplace error: {0}")]
     Marketplace(#[from] MarketplaceError),
@@ -44,6 +35,30 @@ pub enum JobError {
 impl From<JobError> for ProviderError {
     fn from(err: JobError) -> Self {
         Self::Internal(err.to_string())
+    }
+}
+
+impl From<sqlx::Error> for JobError {
+    fn from(e: sqlx::Error) -> Self {
+        Self::Infra(InfraError::from(e))
+    }
+}
+
+impl From<std::io::Error> for JobError {
+    fn from(e: std::io::Error) -> Self {
+        Self::Infra(InfraError::from(e))
+    }
+}
+
+impl From<serde_yaml::Error> for JobError {
+    fn from(e: serde_yaml::Error) -> Self {
+        Self::Infra(InfraError::from(e))
+    }
+}
+
+impl From<serde_json::Error> for JobError {
+    fn from(e: serde_json::Error) -> Self {
+        Self::Infra(InfraError::from(e))
     }
 }
 

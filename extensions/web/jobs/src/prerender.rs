@@ -18,6 +18,10 @@ impl Job for ContentPrerenderJob {
         "content_prerender"
     }
 
+    fn tags(&self) -> Vec<&'static str> {
+        vec![crate::registry::JOB_TAG]
+    }
+
     fn description(&self) -> &'static str {
         "Prerenders static HTML pages with enriched content from database"
     }

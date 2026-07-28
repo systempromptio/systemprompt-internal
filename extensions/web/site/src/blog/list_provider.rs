@@ -78,7 +78,7 @@ impl PageDataProvider for BlogListPageDataProvider {
 
         let posts = list_blog_posts(&pool)
             .await
-            .map_err(BlogError::Database)
+            .map_err(BlogError::from)
             .map_err(|e| systemprompt::traits::ProviderError::Internal(e.to_string()))?;
 
         tracing::debug!(count = posts.len(), "Fetched blog posts");
@@ -88,3 +88,5 @@ impl PageDataProvider for BlogListPageDataProvider {
         BlogListContext { posts: cards_html }.to_value()
     }
 }
+
+systemprompt_web_shared::submit_page_data!(BlogListPageDataProvider::new());

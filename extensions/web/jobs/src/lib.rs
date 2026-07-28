@@ -17,6 +17,7 @@
 //! through `infra logs trace`.
 
 mod error;
+mod registry;
 
 mod bundle_admin_css;
 mod content_analytics;
@@ -31,6 +32,7 @@ mod secret_migration;
 mod sitemap;
 
 pub use error::JobError;
+pub use registry::{JOB_TAG, extension_jobs};
 
 pub use bundle_admin_css::BundleAdminCssJob;
 pub use content_analytics::ContentAnalyticsAggregationJob;

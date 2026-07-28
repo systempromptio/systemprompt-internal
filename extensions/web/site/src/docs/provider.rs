@@ -2,8 +2,8 @@
 
 use std::fmt::Write;
 
+use crate::format::format_date;
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
 use serde::Serialize;
 use serde_json::Value;
 use systemprompt::extension::prelude::*;
@@ -46,15 +46,6 @@ struct DocsPageContext {
 
 fn str_field(item: &Value, field: &str) -> Option<String> {
     item.get(field).and_then(|v| v.as_str()).map(str::to_owned)
-}
-
-fn format_date(raw: &str) -> Option<String> {
-    if let Ok(dt) = DateTime::parse_from_rfc3339(raw) {
-        return Some(dt.format("%B %d, %Y").to_string());
-    }
-    raw.parse::<DateTime<Utc>>()
-        .ok()
-        .map(|dt| dt.format("%B %d, %Y").to_string())
 }
 
 fn parse_children(item: &Value) -> Vec<ChildDoc> {
@@ -182,3 +173,5 @@ impl PageDataProvider for DocsPageDataProvider {
         60
     }
 }
+
+systemprompt_web_shared::submit_page_data!(DocsPageDataProvider::new());

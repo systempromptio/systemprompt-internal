@@ -35,6 +35,10 @@ impl Job for GovernanceBootstrapJob {
         "governance_bootstrap"
     }
 
+    fn tags(&self) -> Vec<&'static str> {
+        vec![crate::registry::JOB_TAG]
+    }
+
     fn description(&self) -> &'static str {
         "Materialise gateway entities and project access-control + gateway-policy YAML into the \
          authz tables"

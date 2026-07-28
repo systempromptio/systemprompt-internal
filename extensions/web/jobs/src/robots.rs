@@ -18,6 +18,10 @@ impl Job for RobotsTxtGenerationJob {
         "robots_txt_generation"
     }
 
+    fn tags(&self) -> Vec<&'static str> {
+        vec![crate::registry::JOB_TAG]
+    }
+
     fn description(&self) -> &'static str {
         "Generates robots.txt for search engine crawlers"
     }
