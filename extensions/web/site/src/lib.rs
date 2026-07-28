@@ -15,9 +15,11 @@
 
 pub mod assets;
 pub mod blog;
+pub mod config_loader;
 pub mod docs;
 pub mod extenders;
 pub mod features;
+mod format;
 pub mod homepage;
 pub mod navigation;
 pub mod partials;
