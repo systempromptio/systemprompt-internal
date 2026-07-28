@@ -61,14 +61,7 @@ urlencoding = { workspace = true }
 inventory = { workspace = true }
 async-trait = { workspace = true }
 
-[features]
-# Exposes `test_support` internals to integration tests; never enabled by
-# production consumers. The self dev-dependency below turns it on for this
-# crate's own tests without leaking it downstream.
-test-support = []
-
 [dev-dependencies]
-systemprompt-web-admin = { path = ".", features = ["test-support"] }
 anyhow = { workspace = true }
 tempfile = { workspace = true }
 tower = { workspace = true, features = ["util"] }

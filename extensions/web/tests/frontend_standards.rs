@@ -46,7 +46,7 @@ fn exemptions(root: &Path) -> BTreeSet<String> {
         .collect()
 }
 
-fn is_word(c: char) -> bool {
+const fn is_word(c: char) -> bool {
     c.is_ascii_alphanumeric() || c == '_'
 }
 
@@ -241,6 +241,12 @@ fn check_js_line(v: &mut Violations, rel: &str, line_no: usize, raw: &str) {
 }
 
 fn check_css_line(v: &mut Violations, rel: &str, line_no: usize, raw: &str) {
+    const FALLBACK_OK: &[&str] = &[
+        "var(--sp-fill",
+        "var(--sp-progress",
+        "var(--sp-section-color",
+        "var(--sp-xp-pct",
+    ];
     const IMPORTANT_OK: &[&str] = &[
         "prefers-reduced-motion",
         "animation-duration",
@@ -261,12 +267,6 @@ fn check_css_line(v: &mut Violations, rel: &str, line_no: usize, raw: &str) {
     if chars.next() == Some('#') && chars.next().is_some_and(|c| c.is_ascii_lowercase()) {
         v.report(rel, line_no, "id-selector", raw);
     }
-    const FALLBACK_OK: &[&str] = &[
-        "var(--sp-fill",
-        "var(--sp-progress",
-        "var(--sp-section-color",
-        "var(--sp-xp-pct",
-    ];
     if has_token_fallback(raw) && !FALLBACK_OK.iter().any(|ok| raw.contains(ok)) {
         v.report(rel, line_no, "token-fallback", raw);
     }

@@ -14,14 +14,14 @@ use systemprompt_web_site::config_loader;
 
 use systemprompt::extension::prelude::*;
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct WebExtension;
 
 impl WebExtension {
     pub const PREFIX: &'static str = "web";
 
     #[must_use]
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self
     }
 

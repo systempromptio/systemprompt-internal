@@ -61,17 +61,14 @@ fn strip_handlebars(text: &str) -> String {
     let mut rest = text;
     while let Some(open) = rest.find("{{") {
         out.push_str(&rest[..open]);
-        match rest[open..].find("}}") {
-            Some(close) => {
-                out.push(' ');
-                rest = &rest[open + close + 2..];
-            },
-            None => {
-                // Unbalanced open brace: keep the tail verbatim, as the
-                // shell gate's non-greedy regex did.
-                rest = &rest[open..];
-                break;
-            },
+        if let Some(close) = rest[open..].find("}}") {
+            out.push(' ');
+            rest = &rest[open + close + 2..];
+        } else {
+            // Unbalanced open brace: keep the tail verbatim, as the
+            // shell gate's non-greedy regex did.
+            rest = &rest[open..];
+            break;
         }
     }
     out.push_str(rest);
@@ -103,7 +100,7 @@ fn classes_in(template: &str) -> BTreeSet<String> {
             if tok.chars().count() < 3 {
                 continue;
             }
-            if !tok.chars().next().is_some_and(|c| c.is_alphabetic()) {
+            if !tok.chars().next().is_some_and(char::is_alphabetic) {
                 continue;
             }
             if tok.ends_with('-') {

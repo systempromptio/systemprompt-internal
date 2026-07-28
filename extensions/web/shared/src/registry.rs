@@ -21,24 +21,28 @@ use systemprompt::extension::prelude::{
     ComponentRenderer, ContentDataProvider, PageDataProvider, TemplateDataExtender,
 };
 
+#[derive(Debug, Clone, Copy)]
 pub struct ComponentRegistration {
     pub build: fn() -> Arc<dyn ComponentRenderer>,
     pub priority: i32,
     pub source_path: &'static str,
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct PageDataRegistration {
     pub build: fn() -> Arc<dyn PageDataProvider>,
     pub priority: i32,
     pub source_path: &'static str,
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct ContentDataRegistration {
     pub build: fn() -> Arc<dyn ContentDataProvider>,
     pub priority: i32,
     pub source_path: &'static str,
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct ExtenderRegistration {
     pub build: fn() -> Arc<dyn TemplateDataExtender>,
     pub priority: i32,

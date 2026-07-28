@@ -42,9 +42,6 @@ use sqlx::PgPool;
 pub use routes::admin_ssr_router;
 pub use types::{CreateUserRequest, MarketplaceContext, UserContext, UserSummary, UserUsageEvent};
 
-/// Internals exposed to integration tests only; gated so production
-/// consumers never see them.
-#[cfg(feature = "test-support")]
 pub mod test_support {
     pub use crate::handlers::resolve_principal;
 }
