@@ -66,6 +66,14 @@ jobs:
       # only reported when it is dead here AND in the fork.
       - name: No dead repository code
         run: bash scripts/check-dead-repository-code.sh
+      - name: Admin templates reference published assets
+        run: bash scripts/check-admin-template-assets.sh
+      - name: Admin template classes have CSS rules
+        run: bash scripts/check-admin-css-classes.sh
+      - name: Admin template links match registered routes
+        run: bash scripts/check-admin-template-links.sh
+      - name: Front-end coding standards
+        run: bash scripts/check-frontend-standards.sh
       - name: Every production source has a `//!` module head
         run: bash scripts/check-file-headers.sh
       - name: No synthesized principals (UserId::new with string literal)

@@ -122,3 +122,8 @@ jobs:
         env:
           SQLX_OFFLINE: "true"
         run: cargo test -p systemprompt-web-admin --tests
+
+      - name: Front-end asset manifest and standards gate
+        env:
+          SQLX_OFFLINE: "true"
+        run: cargo test -p systemprompt-web-site --test asset_manifest

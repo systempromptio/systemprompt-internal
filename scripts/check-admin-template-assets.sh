@@ -47,9 +47,9 @@ if p.exists():
 # Manifest corpus: the served path of every asset web_assets() advertises. Each
 # macro hard-codes its own `concat!` prefix, so a bare file name resolves only
 # once the macro it appears in is known.
-MACRO_PREFIX = {'page_js': 'js/pages/', 'svc_js': 'js/services/', 'css': 'css/'}
-MACRO = re.compile(r'\b(page_js|svc_js|css)!\s*\([^,]+,\s*"([^"]+)"')
-DIRECT = re.compile(r'AssetDefinition::(?:js|css)\s*\([^,]+,\s*"([^"]+)"')
+MACRO_PREFIX = {'page_js': 'js/pages/', 'svc_js': 'js/services/', 'site_js': 'js/site/', 'css': 'css/'}
+MACRO = re.compile(r'\b(page_js|svc_js|site_js|css)!\s*\([^,]+,\s*"([^"]+)"')
+DIRECT = re.compile(r'AssetDefinition::(?:js|css|builder)\s*\([^,]+,\s*"([^"]+)"')
 
 served = set()
 for f in sorted(pathlib.Path(asset_dir).glob('*.rs')):

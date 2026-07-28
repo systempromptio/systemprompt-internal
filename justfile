@@ -280,6 +280,7 @@ _lint-gates-uncoordinated:
     bash scripts/check-admin-css-classes.sh
     bash scripts/check-admin-template-links.sh
     bash scripts/check-admin-template-assets.sh
+    bash scripts/check-frontend-standards.sh
     bash scripts/check-fork-drift.sh
     bash scripts/check-dead-repository-code.sh
     bash scripts/check-file-headers.sh
