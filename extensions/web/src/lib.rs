@@ -1,4 +1,4 @@
-//! Web extension facade for the Enterprise Demo template.
+//! Web extension facade for the systemprompt template.
 //!
 //! Aggregates the five web sibling crates (`admin`, `content`, `jobs`,
 //! `shared`, `site`) into a single `WebExtension` registered with the core
@@ -16,14 +16,13 @@
 //!   helpers.
 //! - `site` — public homepage / blog / docs / features content providers.
 
-mod config_loader;
-
 /// The admin template engine needs the same branding the server builds it
 /// with; the HTTP contract suite would otherwise render every page against a
 /// different context than production.
-pub use config_loader::branding_config;
+pub use systemprompt_web_site::config_loader::branding_config;
 pub mod extension;
 mod extension_impl;
+mod router;
 mod schemas;
 
 pub use systemprompt_web_admin as admin;
@@ -36,9 +35,6 @@ pub use systemprompt_web_shared::{
 pub use systemprompt_web_site::{
     assets, blog, docs, extenders, features, homepage, navigation, partials,
 };
-pub mod utils {
-    pub use systemprompt_web_shared::html_escape;
-}
 
 pub use blog::{BlogListPageDataProvider, BlogPostPageDataProvider};
 pub use config::{
@@ -47,7 +43,7 @@ pub use config::{
 };
 pub use docs::{ChildDoc, DocsContentDataProvider, DocsPageDataProvider};
 pub use error::BlogError;
-pub use extension::{BlogExtension, WebExtension};
+pub use extension::WebExtension;
 pub use features::{
     FeatureCta, FeaturePage, FeaturePagePrerenderer, FeaturePagesConfig, FeatureSection,
     FeatureSectionItem,

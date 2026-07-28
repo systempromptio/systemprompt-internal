@@ -8,10 +8,10 @@ ai:
     anthropic:
       enabled: true
       google_search_enabled: false
-      default_model: claude-sonnet-4-20250514
+      default_model: claude-sonnet-5
     openai:
       enabled: true
-      default_model: gpt-4-turbo
+      default_model: gpt-5
       google_search_enabled: false
     gemini:
       enabled: true

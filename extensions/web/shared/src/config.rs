@@ -5,15 +5,18 @@
 //! never handles a partially checked config.
 
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use serde::Deserialize;
-use systemprompt::config::ProfileBootstrap;
 use systemprompt::identifiers::{CategoryId, SourceId};
-use systemprompt::models::AppPaths;
 use url::Url;
 
 pub use crate::config_errors::{ExtensionConfigError, ExtensionConfigErrors};
+
+mod config_paths;
+use config_paths::{
+    resolve_blog_config_path, resolve_content_source_path, validate_content_source,
+};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct BlogConfigRaw {
@@ -132,6 +135,18 @@ impl BlogConfigValidated {
         }
     }
 
+    /// Process-wide cached result of [`Self::load_from_env_or_none`].
+    ///
+    /// Every consumer of the blog config (link API routing, content
+    /// ingestion) must go through this single load path so they cannot
+    /// disagree about which config the process is running with.
+    pub fn cached() -> Result<Option<Arc<Self>>, String> {
+        static CACHED: OnceLock<Result<Option<Arc<BlogConfigValidated>>, String>> = OnceLock::new();
+        CACHED
+            .get_or_init(|| Self::load_from_env_or_none().map_err(|e| e.to_string()))
+            .clone()
+    }
+
     pub fn enabled_sources(&self) -> impl Iterator<Item = &ContentSourceValidated> {
         self.content_sources.iter().filter(|s| s.enabled)
     }
@@ -173,99 +188,6 @@ fn validate_base_url(raw_url: &str, errors: &mut ExtensionConfigErrors) -> Optio
             );
             None
         },
-    }
-}
-
-fn validate_content_source(
-    src: ContentSourceRaw,
-    index: usize,
-    base_path: &Path,
-    errors: &mut ExtensionConfigErrors,
-) -> Option<ContentSourceValidated> {
-    let field_prefix = format!("content_sources[{index}]");
-
-    if src.source_id.as_str().trim().is_empty() {
-        errors.push(
-            format!("{field_prefix}.source_id"),
-            "source_id cannot be empty",
-        );
-        return None;
-    }
-
-    if src.category_id.as_str().trim().is_empty() {
-        errors.push(
-            format!("{field_prefix}.category_id"),
-            "category_id cannot be empty",
-        );
-        return None;
-    }
-
-    let resolved_path = resolve_content_source_path(&src.path, base_path);
-
-    if src.enabled {
-        let source_id = &src.source_id;
-        if !resolved_path.exists() {
-            errors.push_with_path(
-                format!("{field_prefix}.path"),
-                format!("Content source '{source_id}' path does not exist"),
-                &resolved_path,
-            );
-            return None;
-        }
-
-        if !resolved_path.is_dir() {
-            errors.push_with_path(
-                format!("{field_prefix}.path"),
-                format!("Content source '{source_id}' path is not a directory"),
-                &resolved_path,
-            );
-            return None;
-        }
-    }
-
-    let canonical_path = resolved_path.canonicalize().unwrap_or(resolved_path);
-
-    Some(ContentSourceValidated {
-        source_id: src.source_id,
-        category_id: src.category_id,
-        path: canonical_path,
-        allowed_content_types: src.allowed_content_types,
-        enabled: src.enabled,
-        override_existing: src.override_existing,
-    })
-}
-
-fn resolve_blog_config_path() -> PathBuf {
-    if let Ok(override_path) = std::env::var("BLOG_CONFIG") {
-        return PathBuf::from(override_path);
-    }
-    ProfileBootstrap::get()
-        .map_err(|e| e.to_string())
-        .and_then(|profile| AppPaths::from_profile(&profile.paths).map_err(|e| e.to_string()))
-        .map_or_else(
-            |_| PathBuf::from("./services/config/blog.yaml"),
-            |paths| paths.system().services().join("config/blog.yaml"),
-        )
-}
-
-fn resolve_content_source_path(path: &str, base_path: &Path) -> PathBuf {
-    if Path::new(path).is_absolute() {
-        PathBuf::from(path)
-    } else if path.starts_with("./") {
-        let services_dir = ProfileBootstrap::get()
-            .map_err(|e| e.to_string())
-            .and_then(|profile| AppPaths::from_profile(&profile.paths).map_err(|e| e.to_string()))
-            .map_or_else(
-                |e| {
-                    tracing::warn!(error = %e, "Failed to get app paths, using fallback services dir");
-                    PathBuf::from("./services")
-                },
-                |p| p.system().services().to_path_buf(),
-            );
-        let clean_path = path.strip_prefix("./services/").unwrap_or(path);
-        services_dir.join(clean_path)
-    } else {
-        base_path.join(path)
     }
 }
 
