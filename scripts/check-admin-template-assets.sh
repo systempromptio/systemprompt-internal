@@ -2,7 +2,8 @@
 # Check that every static asset a page requests is published by the manifest.
 #
 # CSS and JS sources live under storage/files/ and reach web/dist/ only if they
-# are listed in the asset manifest under extensions/web/site/src/assets/. That
+# are listed in the asset manifests (extensions/web/site/src/assets/ and
+# extensions/web/admin/src/assets.rs). That
 # list is hand-maintained, so a new file lands in storage, the template points at
 # it, and the browser 404s — with no build, lint, or test signal. This gate reads
 # every asset URL the templates and JS modules reference and fails if the source
@@ -26,15 +27,15 @@ TPL_DIR="${TPL_DIR:-storage/files/admin/templates}"
 PARTIAL_DIR="${PARTIAL_DIR:-storage/files/admin/partials}"
 SITE_PARTIAL_DIR="${SITE_PARTIAL_DIR:-services/web/templates/partials}"
 STORAGE_FILES="${STORAGE_FILES:-storage/files}"
-ASSET_DIR="${ASSET_DIR:-extensions/web/site/src/assets}"
+ASSET_DIRS="${ASSET_DIRS:-extensions/web/site/src/assets extensions/web/admin/src/assets.rs}"
 EXEMPT_FILE="${EXEMPT_FILE:-scripts/admin-asset-exemptions.txt}"
 
 [ -d "$TPL_DIR" ] || { echo "check-admin-template-assets: no $TPL_DIR - nothing to check"; exit 0; }
 
-python3 - "$TPL_DIR" "$PARTIAL_DIR" "$SITE_PARTIAL_DIR" "$STORAGE_FILES" "$ASSET_DIR" "$EXEMPT_FILE" <<'PY'
+python3 - "$TPL_DIR" "$PARTIAL_DIR" "$SITE_PARTIAL_DIR" "$STORAGE_FILES" "$ASSET_DIRS" "$EXEMPT_FILE" <<'PY'
 import re, sys, pathlib
 
-tpl_dir, partial_dir, site_partial_dir, storage_files, asset_dir, exempt_file = sys.argv[1:7]
+tpl_dir, partial_dir, site_partial_dir, storage_files, asset_dirs, exempt_file = sys.argv[1:7]
 
 exempt = set()
 p = pathlib.Path(exempt_file)
@@ -52,14 +53,18 @@ MACRO = re.compile(r'\b(page_js|svc_js|site_js|css)!\s*\([^,]+,\s*"([^"]+)"')
 DIRECT = re.compile(r'AssetDefinition::(?:js|css|builder)\s*\([^,]+,\s*"([^"]+)"')
 
 served = set()
-for f in sorted(pathlib.Path(asset_dir).glob('*.rs')):
+manifest_files = []
+for entry in asset_dirs.split():
+    path = pathlib.Path(entry)
+    manifest_files.extend(sorted(path.glob('*.rs')) if path.is_dir() else [path])
+for f in manifest_files:
     text = f.read_text()
     for name, leaf in MACRO.findall(text):
         served.add(MACRO_PREFIX[name] + leaf)
     served.update(DIRECT.findall(text))
 
 if not served:
-    print(f"check-admin-template-assets: no assets parsed from {asset_dir}", file=sys.stderr)
+    print(f"check-admin-template-assets: no assets parsed from {asset_dirs}", file=sys.stderr)
     sys.exit(1)
 
 # Reference corpus. Every entry is a served path relative to the web root, i.e.

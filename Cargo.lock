@@ -5531,6 +5531,7 @@ dependencies = [
  "sqlx",
  "systemprompt",
  "systemprompt-security",
+ "systemprompt-web-admin",
  "systemprompt-web-shared",
  "tempfile",
  "thiserror 2.0.18",
@@ -5604,6 +5605,7 @@ version = "0.25.0"
 dependencies = [
  "axum",
  "chrono",
+ "inventory",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -5621,6 +5623,7 @@ version = "0.25.0"
 dependencies = [
  "async-trait",
  "chrono",
+ "inventory",
  "serde",
  "serde_json",
  "serde_yaml",

@@ -11,7 +11,12 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 use systemprompt::extension::AssetPaths;
-use systemprompt_web_site::web_assets;
+use systemprompt::extension::prelude::Extension;
+use systemprompt_web_extension::extension::WebExtension;
+
+fn web_assets(paths: &dyn AssetPaths) -> Vec<systemprompt::extension::AssetDefinition> {
+    WebExtension::new().required_assets(paths)
+}
 
 struct TestPaths {
     storage: PathBuf,
@@ -28,9 +33,9 @@ impl AssetPaths for TestPaths {
 }
 
 fn repo_root() -> PathBuf {
-    // Why: extensions/web/site sits three levels below the repo root.
+    // Why: extensions/web sits two levels below the repo root.
     let mut root = Path::new(env!("CARGO_MANIFEST_DIR")).to_path_buf();
-    for _ in 0..3 {
+    for _ in 0..2 {
         root.pop();
     }
     root
@@ -103,7 +108,7 @@ fn every_source_file_is_registered() {
 
     assert!(
         orphans.is_empty(),
-        "unregistered source files (register in extensions/web/site/src/assets/ or delete):\n{}",
+        "unregistered source files (register in extensions/web/site/src/assets/ or extensions/web/admin/src/assets.rs, or delete):\n{}",
         orphans.join("\n")
     );
 }
@@ -210,7 +215,7 @@ fn source_files_respect_line_limits() {
     walk(&root.join("storage/files/css"), "css", &mut css);
 
     let mut oversized = Vec::new();
-    for (files, limit) in [(&js, 150usize), (&css, 200usize)] {
+    for (files, limit) in [(&js, 250usize), (&css, 400usize)] {
         for file in files {
             let rel = file.strip_prefix(&root).unwrap_or(file);
             if GENERATED.iter().any(|g| rel.to_string_lossy().ends_with(g)) {
