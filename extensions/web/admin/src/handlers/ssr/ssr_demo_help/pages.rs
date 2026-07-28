@@ -193,7 +193,7 @@ pub(super) fn demo_help_misc_pages(page: &str) -> Option<(&'static str, &'static
             "events",
         )),
         "demo-register" => Some((
-            "<strong>Demo Registration</strong> is the lightweight sign-up flow for the Enterprise Demo. It provisions a temporary workspace with pre-seeded plugins, agents, and sample telemetry so you can evaluate the full governance pipeline end-to-end without any setup overhead.",
+            "<strong>Demo Registration</strong> is the lightweight sign-up flow for the demo environment. It provisions a temporary workspace with pre-seeded plugins, agents, and sample telemetry so you can evaluate the full governance pipeline end-to-end without any setup overhead.",
             "getting-started",
         )),
         _ => None,

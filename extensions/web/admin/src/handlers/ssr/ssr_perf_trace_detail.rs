@@ -16,6 +16,7 @@ use serde::Serialize;
 use sqlx::PgPool;
 
 use crate::error::AdminHtmlResult;
+use crate::handlers::ssr::format::format_duration_ms;
 use crate::repositories::traces::{Span, SpanStatus, list_trace_spans, resolve_trace_session};
 use crate::templates::AdminTemplateEngine;
 use crate::types::{MarketplaceContext, UserContext};
@@ -146,7 +147,7 @@ fn build_summary(session_id: &SessionId, spans: &[Span]) -> Summary {
         }),
         ended_at: ended.map(|t| t.to_rfc3339()),
         duration_ms: total_ms,
-        duration_display: format_duration(total_ms),
+        duration_display: format_duration_ms(total_ms),
         identity,
         span_count,
         deny_count,
@@ -201,15 +202,5 @@ fn short_id(id: &str) -> String {
         format!("{}…", &id[..12])
     } else {
         id.to_owned()
-    }
-}
-
-fn format_duration(ms: i64) -> String {
-    if ms < 1000 {
-        format!("{ms} ms")
-    } else if ms < 60_000 {
-        format!("{:.2} s", ms as f64 / 1000.0)
-    } else {
-        format!("{:.1} min", ms as f64 / 60_000.0)
     }
 }

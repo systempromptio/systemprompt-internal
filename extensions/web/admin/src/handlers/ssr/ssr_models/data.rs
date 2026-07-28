@@ -13,7 +13,8 @@ use crate::repositories::analytics::requests::{
 };
 use crate::util::time_range::{TimeRangeQuery, parse_time_range};
 
-use super::view::{ModelRowView, UsageRowView, UsageTotalsView, format_microdollars};
+use super::view::{ModelRowView, UsageRowView, UsageTotalsView};
+use crate::handlers::ssr::format::format_cost;
 
 const USAGE_ROWS: i64 = 25;
 
@@ -117,7 +118,7 @@ pub(super) async fn load_usage(
                     r.input_tokens.unwrap_or(0),
                     r.output_tokens.unwrap_or(0)
                 ),
-                cost: format_microdollars(r.cost_microdollars),
+                cost: format_cost(r.cost_microdollars),
                 latency_ms: i64::from(r.latency_ms.unwrap_or(0)),
                 deny_count: r.deny_count,
             }
@@ -128,7 +129,7 @@ pub(super) async fn load_usage(
         requests: total,
         input_tokens,
         output_tokens,
-        cost: format_microdollars(cost_micro),
+        cost: format_cost(cost_micro),
         denied_requests,
     };
     (usage, totals)

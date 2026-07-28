@@ -5,6 +5,7 @@
 //! charts, the breakdown tables, paged rows, the tab bar, and the URL builders
 //! that preserve query state across tabs, pagination, and the time presets.
 
+use crate::handlers::ssr::format::{format_cost, format_duration_ms};
 use crate::handlers::ssr::types::bar_pct;
 use crate::repositories::analytics::request_stats::RequestStats;
 use crate::repositories::analytics::requests::{
@@ -58,7 +59,7 @@ pub(super) fn stats_to_json(s: &RequestStats) -> RequestStatsView {
         p50_latency_ms: s.p50_latency_ms.round() as i64,
         p95_latency_ms: s.p95_latency_ms.round() as i64,
         p99_latency_ms: s.p99_latency_ms.round() as i64,
-        total_cost_display: format_cost(Some(s.total_cost_microdollars)),
+        total_cost_display: format_cost(s.total_cost_microdollars),
         error_rate_pct: format!("{:.2}", s.error_rate * 100.0),
         denied_session_count: s.denied_session_count,
         denied_session_rate_pct: format!("{:.2}", s.denied_session_rate * 100.0),
@@ -109,9 +110,9 @@ pub(super) fn breakdown_view(
                     compact_int(r.input_tokens),
                     compact_int(r.output_tokens)
                 ),
-                cost_display: format_cost(Some(r.cost_microdollars)),
-                p50_display: format_ms(r.p50_latency_ms.round() as i64),
-                p95_display: format_ms(r.p95_latency_ms.round() as i64),
+                cost_display: format_cost(r.cost_microdollars),
+                p50_display: format_duration_ms(r.p50_latency_ms.round() as i64),
+                p95_display: format_duration_ms(r.p95_latency_ms.round() as i64),
                 error_count: r.error_count,
                 error_rate_display: format!("{:.1}%", pct_of(r.error_count, r.requests)),
                 has_errors: r.error_count > 0,
@@ -142,14 +143,6 @@ fn compact_int(v: i64) -> String {
     }
 }
 
-fn format_ms(ms: i64) -> String {
-    if ms >= 1000 {
-        format!("{:.1}s", ms as f64 / 1000.0)
-    } else {
-        format!("{ms} ms")
-    }
-}
-
 pub(super) fn request_row_to_json(r: &RequestRow) -> RequestListRowView {
     RequestListRowView {
         id: r.id.clone(),
@@ -169,7 +162,7 @@ pub(super) fn request_row_to_json(r: &RequestRow) -> RequestListRowView {
         output_tokens: r.output_tokens,
         tokens_total: r.input_tokens.unwrap_or(0) + r.output_tokens.unwrap_or(0),
         cost_microdollars: r.cost_microdollars,
-        cost_display: format_cost(Some(r.cost_microdollars)),
+        cost_display: format_cost(r.cost_microdollars),
         latency_ms: r.latency_ms,
         error_message: r.error_message.clone(),
         decision_count: r.decision_count,
@@ -187,20 +180,6 @@ pub(super) fn request_row_to_json(r: &RequestRow) -> RequestListRowView {
 
 fn is_error_status(status: &str) -> bool {
     !matches!(status, "completed" | "pending" | "streaming")
-}
-
-fn format_cost(microdollars: Option<i64>) -> String {
-    let Some(m) = microdollars else {
-        return "—".to_owned();
-    };
-    let dollars = m as f64 / 1_000_000.0;
-    if dollars == 0.0 {
-        "$0".to_owned()
-    } else if dollars < 0.01 {
-        format!("${dollars:.6}")
-    } else {
-        format!("${dollars:.4}")
-    }
 }
 
 pub(super) fn time_range_context(

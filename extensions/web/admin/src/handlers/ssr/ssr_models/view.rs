@@ -81,12 +81,3 @@ pub(super) fn build_user_options(
         })
         .collect()
 }
-
-pub(super) fn format_microdollars(micro: i64) -> String {
-    #[expect(
-        clippy::cast_precision_loss,
-        reason = "display-only dollar figure; precision loss above 2^53 microdollars is irrelevant"
-    )]
-    let dollars = micro as f64 / 1_000_000.0;
-    format!("${dollars:.4}")
-}

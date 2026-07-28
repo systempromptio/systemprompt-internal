@@ -17,6 +17,7 @@ use super::context::{
     TranscriptMetaView,
 };
 use crate::handlers::ssr::entity_urls::{request_detail_url, session_detail_url, trace_detail_url};
+use crate::handlers::ssr::format::format_cost;
 
 const TRANSCRIPT_PREVIEW_CHARS: usize = 4000;
 
@@ -276,16 +277,5 @@ fn short_id(id: &str) -> String {
         format!("{}…", &id[..12])
     } else {
         id.to_owned()
-    }
-}
-
-fn format_cost(microdollars: i64) -> String {
-    let dollars = microdollars as f64 / 1_000_000.0;
-    if dollars == 0.0 {
-        "$0".to_owned()
-    } else if dollars < 0.01 {
-        format!("${dollars:.6}")
-    } else {
-        format!("${dollars:.4}")
     }
 }

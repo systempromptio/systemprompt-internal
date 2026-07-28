@@ -72,5 +72,5 @@ pub async fn render_yaml_snapshot(pool: &PgPool) -> Result<String, MarketplaceEr
     let snap = Snapshot {
         rules: by_key.into_values().collect(),
     };
-    serde_yaml::to_string(&snap).map_err(MarketplaceError::Yaml)
+    serde_yaml::to_string(&snap).map_err(MarketplaceError::from)
 }

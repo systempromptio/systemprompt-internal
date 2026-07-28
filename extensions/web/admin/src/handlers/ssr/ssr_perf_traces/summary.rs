@@ -4,6 +4,7 @@
 //! Both halves share `preserved_query_string` so every link on the page carries
 //! the same filter and time-range state.
 
+use crate::handlers::ssr::format::{format_cost, format_duration_ms, format_token_total};
 use crate::repositories::traces::TraceStats;
 
 use super::context::{SortHeader, SortHeaders, TraceStatsView};
@@ -19,11 +20,11 @@ pub(super) fn serde_stats(query: &TraceListQuery, s: &TraceStats) -> TraceStatsV
         error_url: toggle_flag_url(query, "error_only"),
         deny_active: query.deny_only.as_deref() == Some("true"),
         error_active: query.error_only.as_deref() == Some("true"),
-        cost_display: super::rows::format_cost(s.total_cost_microdollars),
-        tokens_display: super::rows::format_token_total(s.total_tokens),
-        p50_display: super::rows::format_duration(s.p50_active_ms),
-        p95_display: super::rows::format_duration(s.p95_active_ms),
-        p99_display: super::rows::format_duration(s.p99_active_ms),
+        cost_display: format_cost(s.total_cost_microdollars),
+        tokens_display: format_token_total(s.total_tokens),
+        p50_display: format_duration_ms(s.p50_active_ms),
+        p95_display: format_duration_ms(s.p95_active_ms),
+        p99_display: format_duration_ms(s.p99_active_ms),
     }
 }
 

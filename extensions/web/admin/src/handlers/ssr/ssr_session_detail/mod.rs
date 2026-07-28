@@ -16,6 +16,7 @@ use systemprompt::identifiers::SessionId;
 
 use crate::error::AdminHtmlResult;
 use crate::handlers::ssr::entity_urls::{context_detail_url, request_detail_url, trace_detail_url};
+use crate::handlers::ssr::format::{format_cost, format_duration_ms};
 use crate::repositories::analytics::session_detail::{
     SessionContextRow, SessionHeader, SessionKpis, SessionRequestRow, SessionTraceRow,
     find_session_header, get_session_kpis, list_session_contexts, list_session_requests,
@@ -241,28 +242,5 @@ fn duration_display(
     match (start, end) {
         (Some(s), Some(e)) => format_duration_ms((e - s).num_milliseconds().max(0)),
         _ => "—".to_owned(),
-    }
-}
-
-fn format_duration_ms(ms: i64) -> String {
-    if ms < 1000 {
-        format!("{ms}ms")
-    } else if ms < 60_000 {
-        format!("{:.1}s", ms as f64 / 1000.0)
-    } else if ms < 3_600_000 {
-        format!("{}m {}s", ms / 60_000, (ms % 60_000) / 1000)
-    } else {
-        format!("{}h {}m", ms / 3_600_000, (ms % 3_600_000) / 60_000)
-    }
-}
-
-fn format_cost(microdollars: i64) -> String {
-    let dollars = microdollars as f64 / 1_000_000.0;
-    if dollars == 0.0 {
-        "$0".to_owned()
-    } else if dollars < 0.01 {
-        format!("${dollars:.6}")
-    } else {
-        format!("${dollars:.4}")
     }
 }

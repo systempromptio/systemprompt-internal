@@ -7,6 +7,9 @@ use serde::Serialize;
 use systemprompt::identifiers::{AgentId, SessionId, TraceId, UserId};
 use urlencoding::encode as urlencode;
 
+use crate::handlers::ssr::format::{
+    format_cost, format_duration_ms, format_token_total, short_num,
+};
 use crate::repositories::traces::TraceSummary;
 
 use super::BASE_URL;
@@ -60,8 +63,8 @@ pub(super) fn trace_to_json(t: &TraceSummary) -> TraceRow {
         started_at_time: started_local.format("%H:%M:%S").to_string(),
         started_at_day: started_local.format("%b %-d").to_string(),
         active_ms: t.active_ms,
-        active_display: format_duration(t.active_ms),
-        window_display: format_duration(t.window_ms),
+        active_display: format_duration_ms(t.active_ms),
+        window_display: format_duration_ms(t.window_ms),
         user_id: t.user_id.clone(),
         user_label: t.user_label.clone().unwrap_or_else(|| {
             t.user_id
@@ -138,51 +141,9 @@ fn format_governance(governance: i64, tools: i64) -> String {
     parts.join(" · ")
 }
 
-pub(super) fn format_token_total(total: i64) -> String {
-    if total <= 0 {
-        return "—".to_owned();
-    }
-    short_num(total)
-}
-
 fn format_token_split(total: i64, input: i64, output: i64) -> String {
     if total <= 0 {
         return String::new();
     }
     format!("{} in / {} out", short_num(input), short_num(output))
-}
-
-fn short_num(n: i64) -> String {
-    let abs = n.unsigned_abs();
-    if abs >= 1_000_000 {
-        format!("{:.1}M", n as f64 / 1_000_000.0)
-    } else if abs >= 1_000 {
-        format!("{:.1}k", n as f64 / 1_000.0)
-    } else {
-        n.to_string()
-    }
-}
-
-pub(super) fn format_cost(micros: i64) -> String {
-    if micros <= 0 {
-        return "—".to_owned();
-    }
-    let dollars = micros as f64 / 1_000_000.0;
-    if dollars >= 1.0 {
-        format!("${dollars:.2}")
-    } else if dollars >= 0.01 {
-        format!("${dollars:.4}")
-    } else {
-        format!("${dollars:.6}")
-    }
-}
-
-pub(super) fn format_duration(ms: i64) -> String {
-    if ms < 1000 {
-        format!("{ms} ms")
-    } else if ms < 60_000 {
-        format!("{:.2} s", ms as f64 / 1000.0)
-    } else {
-        format!("{:.1} min", ms as f64 / 60_000.0)
-    }
 }

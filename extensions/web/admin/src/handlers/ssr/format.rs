@@ -3,13 +3,10 @@
 //! Ids, costs, token counts and durations are rendered in a handful of places
 //! across the entity list and detail pages; the rules live here so a cost reads
 //! the same on the sessions list as it does on the session it links to.
-//!
-//! Several older page modules still carry private copies of these; they should
-//! migrate here rather than the copies being extended.
 
 // Why: Ids are long and the leading segment is the distinguishing part, so a
 // table cell shows the head and puts the full value in a `title`.
-pub(crate) fn short_id(id: &str) -> String {
+pub fn short_id(id: &str) -> String {
     const KEEP: usize = 12;
     if id.chars().count() > KEEP {
         let head: String = id.chars().take(KEEP).collect();
@@ -21,7 +18,7 @@ pub(crate) fn short_id(id: &str) -> String {
 
 // Why: `—` rather than `$0`: a session with no billed traffic has no cost to
 // show, which is different from one that cost nothing.
-pub(crate) fn format_cost(microdollars: i64) -> String {
+pub fn format_cost(microdollars: i64) -> String {
     if microdollars <= 0 {
         return "—".to_owned();
     }
@@ -35,7 +32,7 @@ pub(crate) fn format_cost(microdollars: i64) -> String {
     }
 }
 
-pub(crate) fn short_num(n: i64) -> String {
+pub fn short_num(n: i64) -> String {
     let abs = n.unsigned_abs();
     if abs >= 1_000_000 {
         format!("{:.1}M", n as f64 / 1_000_000.0)
@@ -53,7 +50,7 @@ pub(crate) fn format_token_total(total: i64) -> String {
     short_num(total)
 }
 
-pub(crate) fn format_duration_ms(ms: i64) -> String {
+pub fn format_duration_ms(ms: i64) -> String {
     if ms < 1000 {
         format!("{ms} ms")
     } else if ms < 60_000 {

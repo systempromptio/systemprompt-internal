@@ -11,6 +11,7 @@
 
 use serde::Serialize;
 
+use crate::handlers::ssr::format::{format_cost, format_duration_ms};
 use crate::repositories::analytics::request_stats::{LatencyBucket, RequestStats, TimeBucket};
 use crate::util::time_range::TimeRange;
 
@@ -79,8 +80,8 @@ pub(crate) fn histogram_view(buckets: &[LatencyBucket], stats: &RequestStats) ->
             .collect(),
         max_display: max.to_string(),
         has_data,
-        p50_display: has_data.then(|| format_ms(stats.p50_latency_ms.round() as i64)),
-        p95_display: has_data.then(|| format_ms(stats.p95_latency_ms.round() as i64)),
+        p50_display: has_data.then(|| format_duration_ms(stats.p50_latency_ms.round() as i64)),
+        p95_display: has_data.then(|| format_duration_ms(stats.p95_latency_ms.round() as i64)),
     }
 }
 
@@ -171,23 +172,4 @@ fn format_bucket_time(ts: &chrono::DateTime<chrono::Utc>) -> String {
     ts.with_timezone(&chrono::Local)
         .format("%b %d %H:%M")
         .to_string()
-}
-
-fn format_ms(ms: i64) -> String {
-    if ms >= 1000 {
-        format!("{:.1}s", ms as f64 / 1000.0)
-    } else {
-        format!("{ms} ms")
-    }
-}
-
-fn format_cost(microdollars: i64) -> String {
-    let dollars = microdollars as f64 / 1_000_000.0;
-    if dollars == 0.0 {
-        "$0".to_owned()
-    } else if dollars < 0.01 {
-        format!("${dollars:.6}")
-    } else {
-        format!("${dollars:.4}")
-    }
 }

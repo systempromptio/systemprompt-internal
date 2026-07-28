@@ -52,22 +52,22 @@ pub(crate) struct Chip {
 // Why: one bundle for the five numbers a footer needs, so each page's
 // `build_pagination` takes a window rather than a row of bare integers.
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct PageWindow {
+pub struct PageWindow {
     // Why: Zero-based page index.
-    pub(crate) index: i64,
-    pub(crate) size: i64,
-    pub(crate) total_pages: i64,
-    pub(crate) total_rows: i64,
+    pub index: i64,
+    pub size: i64,
+    pub total_pages: i64,
+    pub total_rows: i64,
     // Why: Rows actually rendered on this page — the last page is short.
-    pub(crate) shown_rows: i64,
+    pub shown_rows: i64,
     // Why: What the rows are called: "Showing 1-50 of 54 <noun>".
-    pub(crate) noun: &'static str,
+    pub noun: &'static str,
 }
 
 impl PageWindow {
     // Why: an empty result still renders as "page 1 of 1" rather than "of 0",
     // which is the one case the ceiling division cannot produce on its own.
-    pub(crate) const fn new(
+    pub const fn new(
         index: i64,
         size: i64,
         total_rows: i64,
@@ -90,7 +90,7 @@ impl PageWindow {
     }
 
     // Why: The 1-based inclusive row range this page covers, `(0, 0)` when empty.
-    pub(crate) const fn bounds(self) -> (i64, i64) {
+    pub const fn bounds(self) -> (i64, i64) {
         if self.shown_rows == 0 {
             return (0, 0);
         }

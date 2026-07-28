@@ -1,5 +1,7 @@
 //! Shared display formatting for the Evals page views.
 
+pub(super) use crate::handlers::ssr::format::format_cost;
+
 // Why: 1 is the floor of the 1-5 scale, not zero, so the bar fill reflects
 // the band rather than the raw number.
 pub(super) fn score_pct(score: f64) -> i64 {
@@ -14,17 +16,6 @@ pub(super) fn share_pct(value: i64, total: i64) -> i64 {
         return 0;
     }
     ((value as f64 / total as f64) * 100.0).round() as i64
-}
-
-pub(super) fn format_cost(microdollars: i64) -> String {
-    let dollars = microdollars as f64 / 1_000_000.0;
-    if dollars == 0.0 {
-        "$0".to_owned()
-    } else if dollars < 0.01 {
-        format!("${dollars:.6}")
-    } else {
-        format!("${dollars:.4}")
-    }
 }
 
 pub(super) fn local_time(ts: chrono::DateTime<chrono::Utc>) -> String {
