@@ -2,7 +2,7 @@
 //! every admin page, and zero/negative cost renders as an em-dash rather
 //! than `$0` (no billed traffic is not the same as free traffic).
 
-use systemprompt_web_admin::test_support::{format_cost, format_duration_ms, short_num};
+use systemprompt_web_shared::format::{format_cost, format_duration_ms, short_num};
 
 #[test]
 fn cost_zero_and_negative_render_as_dash() {

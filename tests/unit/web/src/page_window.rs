@@ -1,7 +1,7 @@
 //! `PageWindow::new` ceiling division: the empty result set is the one case
 //! the arithmetic cannot produce ("page 1 of 1", bounds (0, 0)).
 
-use systemprompt_web_admin::test_support::PageWindow;
+use systemprompt_web_shared::pagination::PageWindow;
 
 #[test]
 fn empty_result_is_one_page() {

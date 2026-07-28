@@ -2,10 +2,9 @@
 
 use std::sync::Arc;
 
-use sqlx::PgPool;
 
 use systemprompt::analytics::AnalyticsService;
-use systemprompt::database::Database;
+use systemprompt::database::{Database, PgPool};
 use systemprompt::extension::prelude::ExtensionContext;
 use systemprompt::oauth::SessionCreationService;
 use systemprompt::users::UserService;

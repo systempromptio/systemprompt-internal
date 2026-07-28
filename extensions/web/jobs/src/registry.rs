@@ -16,9 +16,9 @@ pub const JOB_TAG: &str = "web-extension";
 pub fn extension_jobs() -> Vec<Arc<dyn Job>> {
     let mut jobs: Vec<Arc<dyn Job>> = inventory::iter::<&'static dyn Job>()
         .filter(|job| job.tags().contains(&JOB_TAG))
-        .map(|job| Arc::new(StaticJob(*job)) as Arc<dyn Job>)
+        .map(|job| -> Arc<dyn Job> { Arc::new(StaticJob(*job)) })
         .collect();
-    jobs.sort_by_key(Job::name);
+    jobs.sort_by_key(|job| job.name());
     jobs
 }
 

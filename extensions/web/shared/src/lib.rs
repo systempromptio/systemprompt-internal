@@ -20,8 +20,10 @@
 pub mod config;
 pub mod config_errors;
 pub mod error;
+pub mod format;
 pub mod ids;
 pub mod models;
+pub mod pagination;
 pub mod registry;
 mod utils;
 

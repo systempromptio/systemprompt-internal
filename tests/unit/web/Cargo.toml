@@ -9,6 +9,6 @@ workspace = true
 
 [dependencies]
 systemprompt-web-shared = { workspace = true }
-systemprompt-web-admin = { workspace = true, features = ["test-support"] }
+systemprompt-web-admin = { workspace = true }
 systemprompt-web-extension = { workspace = true }
 serde_json = { workspace = true }
