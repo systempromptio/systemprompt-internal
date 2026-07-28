@@ -30,8 +30,8 @@ pub(super) fn evaluate(input: &EvaluateInput<'_>) -> (Decision, Vec<ChainEntryOu
             .unwrap_or_else(|| serde_json::Value::Object(serde_json::Map::new())),
     );
 
-    // The webhook is this call's only enforcement point — nothing upstream
-    // hands us an identity to carry, so the call originates here.
+    // Why: the webhook is this call's only enforcement point and nothing
+    // upstream hands it an identity, so the call originates here.
     let call_id = CallId::generate();
 
     let ctx = PolicyContext {

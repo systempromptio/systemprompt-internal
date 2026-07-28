@@ -97,7 +97,7 @@ jobs:
           for b in systemprompt systemprompt-mcp-agent; do
             cp "target/${{ matrix.target }}/release/${b}${ext}" "dist/${stage}/"
           done
-          cp -r services migrations "dist/${stage}/"
+          cp -r services "dist/${stage}/"
           # MCP extension manifests — services/mcp/*.yaml references
           # extensions/mcp/<name>/manifest.yaml. Without these, MCP startup
           # validation fails out of the gate.
@@ -254,7 +254,7 @@ jobs:
             (`linux-amd64`, `linux-arm64`, `darwin-arm64`; on Windows run the
             gateway via Docker), verify against `SHA256SUMS.gateway`, extract.
             Contents: `systemprompt`, `systemprompt-mcp-agent`, `services/`,
-            `migrations/`, `web/`.
+            `web/`.
 
           ## Verify signature
 
@@ -370,7 +370,7 @@ jobs:
             def install
               bin.install "systemprompt"
               bin.install "systemprompt-mcp-agent"
-              libexec.install "services", "migrations"
+              libexec.install "services"
               libexec.install "web" if File.exist?("web")
               libexec.install "extensions" if File.exist?("extensions")
             end
