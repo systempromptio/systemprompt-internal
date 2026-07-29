@@ -10,12 +10,12 @@ mod campaign_link_full_url;
 #[cfg(test)]
 mod config_base_url;
 #[cfg(test)]
-mod hook_event_dispatch;
-#[cfg(test)]
-mod seed_contract;
-#[cfg(test)]
 mod format_display;
+#[cfg(test)]
+mod hook_event_dispatch;
 #[cfg(test)]
 mod page_window;
 #[cfg(test)]
 mod registry_completeness;
+#[cfg(test)]
+mod seed_contract;

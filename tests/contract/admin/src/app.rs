@@ -8,10 +8,15 @@
 
 use std::sync::Arc;
 
+use systemprompt::analytics::AnalyticsService;
+use systemprompt::database::Database;
+use systemprompt::oauth::SessionCreationService;
+use systemprompt::users::UserService;
+
 use axum::Router;
 use axum::body::Body;
-use http_body_util::BodyExt as _;
 use axum::http::{Request, StatusCode};
+use http_body_util::BodyExt as _;
 use sqlx::PgPool;
 use systemprompt_web_admin as admin;
 use tower::ServiceExt;
@@ -29,6 +34,19 @@ pub struct App {
     credentials: Credentials,
 }
 
+fn session_service(pool: &Arc<PgPool>) -> Arc<SessionCreationService> {
+    let db = Arc::new(Database::from_pools(
+        Arc::clone(pool),
+        Some(Arc::clone(pool)),
+    ));
+    let user = UserService::new(&db).expect("build the user service");
+    let analytics = AnalyticsService::new(&db, None, None).expect("build the analytics service");
+    Arc::new(SessionCreationService::new(
+        Arc::new(analytics),
+        Arc::new(user),
+    ))
+}
+
 impl App {
     pub fn new(pool: &Arc<PgPool>, credentials: Credentials) -> Self {
         let admin_dir = globals::repo_root().join("storage/files/admin");
@@ -41,10 +59,19 @@ impl App {
             .with_branding(branding);
 
         let api = Router::new().nest("/admin", admin::admin_router(Arc::clone(pool)));
-        let ssr = admin::admin_ssr_router(Arc::clone(pool), engine);
+        // Salesforce SSO is disabled here: the suite drives routes, and a
+        // configured IdP would make every sign-in path depend on a live org.
+        let sf_deps = admin::SalesforceDeps {
+            config: Arc::new(admin::SalesforceConfig::disabled()),
+            write_pool: Arc::clone(pool),
+            session_service: session_service(pool),
+        };
+        let ssr = admin::admin_ssr_router(Arc::clone(pool), engine.clone(), sf_deps.clone());
+        let bridge_auth = admin::bridge_auth_ssr_router(Arc::clone(pool), engine);
 
         let router = Router::new()
             .nest_service(SSR_PREFIX, ssr)
+            .nest_service("/bridge-auth", bridge_auth)
             .nest("/api/public", api);
 
         Self {
@@ -67,7 +94,9 @@ impl App {
     ) -> (StatusCode, Option<String>) {
         // HTTP methods are case-sensitive; the route source spells them
         // lowercase after axum's constructors.
-        let mut builder = Request::builder().method(method.to_uppercase().as_str()).uri(path);
+        let mut builder = Request::builder()
+            .method(method.to_uppercase().as_str())
+            .uri(path);
         if let Some(token) = self.credentials.token_for(principal) {
             builder = builder.header("authorization", format!("Bearer {token}"));
         }
