@@ -13,6 +13,8 @@ pub mod governance;
 pub mod jobs;
 pub mod marketplace;
 pub mod mcp;
+pub mod organizations;
+pub mod reports;
 pub mod secrets;
 pub mod traces;
 pub mod users;

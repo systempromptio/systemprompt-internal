@@ -1,0 +1,26 @@
+{{!--
+  Calendar-month picker for the end-of-month reports.
+
+  A plain GET form: no JavaScript, so the month a report is scoped to is always
+  in the URL and a report link a colleague opens shows the same month.
+
+  Invoke as: {{> components/month-selector}}
+  Reads from the page context: base_url, month_key, months[{key,label,selected}],
+  prev_url, next_url, has_next, org_slug (optional, preserved by the form).
+--}}
+<form class="month-selector" method="get" action="{{base_url}}" data-print-hide>
+    {{#if org_slug}}<input type="hidden" name="org" value="{{org_slug}}" />{{/if}}
+    <a class="btn btn-secondary month-selector__step" href="{{prev_url}}"
+       aria-label="Previous month" title="Previous month">&larr;</a>
+    <label class="month-selector__label" for="month-select">Month</label>
+    <select class="month-selector__select" id="month-select" name="month">
+        {{#each months}}
+        <option value="{{this.key}}"{{#if this.selected}} selected{{/if}}>{{this.label}}</option>
+        {{/each}}
+    </select>
+    <button class="btn btn-primary" type="submit">Show</button>
+    {{#if has_next}}
+    <a class="btn btn-secondary month-selector__step" href="{{next_url}}"
+       aria-label="Next month" title="Next month">&rarr;</a>
+    {{/if}}
+</form>

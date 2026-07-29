@@ -1,0 +1,152 @@
+{{#> layout title=title page=page}}
+    {{#*inline "head_extra"}}{{/inline}}
+    {{#*inline "content"}}
+    {{> components/page-header title=title subtitle=subtitle}}
+
+    <div class="report-toolbar">
+        {{> components/month-selector}}
+        <button class="btn btn-secondary" type="button" data-print-report>Print / Save PDF</button>
+    </div>
+
+    {{!-- The print header replaces the page chrome on paper. --}}
+    <div class="report-print-header" aria-hidden="true">
+        <strong>Month-end P&amp;L</strong>
+        <span>{{month_label}} · generated {{generated_at}} · internal — do not distribute</span>
+    </div>
+
+    {{#unless month_complete}}
+    <p class="report-notice" role="status">
+        {{month_label}} is still in progress. Cost accrues for the rest of the month, so the
+        margin below will fall.
+    </p>
+    {{/unless}}
+
+    <section class="report-kpis" aria-label="Portfolio totals for {{month_label}}">
+      {{> components/stat-card label="Licence revenue" value=(formatUsd totals.revenue_microdollars) subtitle="billed to customers"}}
+      {{> components/stat-card label="Provider cost" value=(formatUsd totals.cost_microdollars) subtitle="every tenant, including our own"}}
+      {{> components/stat-card label="Gross margin" value=(formatUsd totals.margin_microdollars) variant=totals.margin_variant subtitle="revenue less cost"}}
+      {{> components/stat-card label="Margin rate" value=totals.margin_pct_display subtitle="of licence revenue"}}
+      {{> components/stat-card label="Customers" value=(formatNumber totals.customers) subtitle="excluding the platform tenant"}}
+      {{> components/stat-card label="Active users" value=(formatNumber totals.active_users) subtitle="made at least one request"}}
+      {{> components/stat-card label="Tokens" value=totals.tokens_display subtitle=(concat (formatNumber totals.requests) " requests")}}
+      {{> components/stat-card label="Cost per 1M tokens" value=totals.cost_per_1m_display subtitle=(concat totals.cost_per_request_display " per request")}}
+    </section>
+
+    <section aria-label="Profit and loss by customer" data-page="report-internal">
+    <h2 class="report-section-title">By customer</h2>
+    {{#if organizations}}
+    {{#> components/data-table}}
+        <thead><tr>
+            <th>Enterprise</th>
+            <th>Plan</th>
+            <th class="col-status" title="Active members against the plan's seat limit">Seats</th>
+            <th class="numeric col-numeric" title="Members who made at least one request">Active</th>
+            <th class="numeric col-numeric">Requests</th>
+            <th class="numeric col-numeric">Tokens</th>
+            <th class="numeric col-numeric" title="Monthly licence fee">Revenue</th>
+            <th class="numeric col-numeric" title="What their inference cost us">Cost</th>
+            <th class="numeric col-numeric" title="Revenue less cost">Margin</th>
+            <th class="numeric col-numeric" title="Cost to serve one seat">Per seat</th>
+            <th class="col-status" title="Spend against the plan's cap">Budget</th>
+        </tr></thead>
+        <tbody>
+        {{#each organizations}}
+            <tr>
+                <td>
+                    <a href="{{this.detail_url}}" class="user-cell">
+                        <span class="avatar avatar-sm">{{initials this.name}}</span>
+                        <span class="user-cell-text">
+                            <span class="user-cell-name">{{this.name}}</span>
+                            <span class="user-cell-email">{{this.slug}}</span>
+                        </span>
+                    </a>
+                </td>
+                <td>
+                    {{#if this.plan_name}}<span class="badge badge-orange">{{this.plan_name}}</span>{{else}}<span class="text-tertiary">No plan</span>{{/if}}
+                    {{#if this.is_platform}}<span class="badge badge-blue" title="The operator's own tenant">Platform</span>{{/if}}
+                    {{#unless this.is_active}}<span class="badge badge-secondary">{{this.status}}</span>{{/unless}}
+                </td>
+                <td class="col-status">{{this.seats_used}}{{#if this.has_seat_limit}} / {{this.seat_limit}}{{/if}}</td>
+                <td class="numeric">{{this.active_users}}</td>
+                <td class="numeric">{{formatNumber this.requests}}</td>
+                <td class="numeric">{{this.tokens_display}}</td>
+                {{#if this.is_platform}}
+                <td class="numeric text-tertiary" title="The operator's own tenant bills nobody">—</td>
+                <td class="numeric">{{formatUsd this.cost_microdollars}}</td>
+                <td class="numeric text-tertiary" title="Internal spend, not a margin">—</td>
+                {{else}}
+                <td class="numeric">{{formatUsd this.revenue_microdollars}}</td>
+                <td class="numeric">{{formatUsd this.cost_microdollars}}</td>
+                <td class="numeric ent-margin{{#unless this.margin_positive}} ent-margin--negative{{/unless}}">
+                    {{formatUsd this.margin_microdollars}}
+                    <span class="report-subvalue">{{this.margin_pct_display}}</span>
+                </td>
+                {{/if}}
+                <td class="numeric">{{formatUsd this.cost_per_seat_microdollars}}</td>
+                <td class="col-status">
+                    {{#if this.has_budget}}
+                        <span class="ent-pill ent-pill--{{this.budget_state}}">{{this.budget_pct}}%</span>
+                    {{else}}
+                        <span class="text-tertiary">uncapped</span>
+                    {{/if}}
+                </td>
+            </tr>
+        {{/each}}
+        </tbody>
+    {{/components/data-table}}
+    {{else}}
+    {{> components/empty-state message="No organizations on this instance yet."}}
+    {{/if}}
+    </section>
+
+    <section class="report-split" aria-label="Where the money went">
+        <div>
+            <h2 class="report-section-title">By provider</h2>
+            {{#if providers}}
+            {{#> components/data-table}}
+                <thead><tr><th>Provider</th><th class="col-share">Share</th><th class="col-num">Requests</th><th class="col-num">Tokens</th><th class="col-num">Cost</th></tr></thead>
+                <tbody>
+                {{#each providers}}
+                <tr>
+                    <td><code class="code-inline">{{this.key}}</code></td>
+                    <td class="col-share"><span class="share-bar" style="--v:{{this.share_pct}}%" aria-hidden="true"></span></td>
+                    <td class="col-num">{{formatNumber this.requests}}</td>
+                    <td class="col-num">{{this.tokens_display}}</td>
+                    <td class="col-num">{{formatUsd this.cost_microdollars}}</td>
+                </tr>
+                {{/each}}
+                </tbody>
+            {{/components/data-table}}
+            {{else}}
+            {{> components/empty-state message="No upstream calls in this month."}}
+            {{/if}}
+        </div>
+        <div>
+            <h2 class="report-section-title">By model</h2>
+            {{#if models}}
+            {{#> components/data-table}}
+                <thead><tr><th>Model</th><th class="col-share">Share</th><th class="col-num">Requests</th><th class="col-num">Tokens</th><th class="col-num">Cost</th></tr></thead>
+                <tbody>
+                {{#each models}}
+                <tr>
+                    <td><code class="code-inline">{{this.key}}</code></td>
+                    <td class="col-share"><span class="share-bar" style="--v:{{this.share_pct}}%" aria-hidden="true"></span></td>
+                    <td class="col-num">{{formatNumber this.requests}}</td>
+                    <td class="col-num">{{this.tokens_display}}</td>
+                    <td class="col-num">{{formatUsd this.cost_microdollars}}</td>
+                </tr>
+                {{/each}}
+                </tbody>
+            {{/components/data-table}}
+            {{else}}
+            {{> components/empty-state message="No billed models in this month."}}
+            {{/if}}
+        </div>
+    </section>
+
+    <section aria-label="Cost trend">
+        {{> components/timeseries-chart trend}}
+    </section>
+    <script data-cfasync="false" type="module" src="/js/pages/admin-report-print.js"></script>
+    {{/inline}}
+{{/layout}}

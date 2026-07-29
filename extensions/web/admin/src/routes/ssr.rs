@@ -17,6 +17,7 @@ pub fn admin_ssr_router(
     sf_deps: SalesforceDeps,
 ) -> Router {
     let inner = root_routes()
+        .merge(enterprise_routes())
         .merge(access_routes())
         .merge(catalog_routes())
         .merge(entity_routes())
@@ -54,21 +55,6 @@ pub fn admin_ssr_router(
 fn public_routes() -> Router<Arc<PgPool>> {
     Router::new()
         .route("/login", get(handlers::ssr::login_page))
-        .route("/register", get(handlers::ssr::register_page))
-        .route("/add-passkey", get(handlers::ssr::add_passkey_page))
-        .route("/verify-pending", get(handlers::ssr::verify_pending_page))
-        .route(
-            "/api/magic-link/request",
-            post(handlers::magic_link::request_magic_link),
-        )
-        .route(
-            "/api/magic-link/validate",
-            post(handlers::magic_link::validate_magic_link),
-        )
-        .route(
-            "/api/register",
-            post(handlers::public_register::public_register_handler),
-        )
         .route(
             "/auth/salesforce/start",
             get(handlers::salesforce_auth::salesforce_start),
@@ -83,14 +69,38 @@ fn root_routes() -> Router<Arc<PgPool>> {
     Router::new().route("/", get(root_redirect))
 }
 
+/// The console opens on whatever the caller actually administers: every
+/// organization for a platform admin, their own account for anyone else.
 async fn root_redirect(
     Extension(user_ctx): Extension<crate::types::UserContext>,
 ) -> axum::response::Redirect {
-    if user_ctx.is_admin {
-        axum::response::Redirect::to("/admin/access/users")
+    if user_ctx.is_platform_admin {
+        axum::response::Redirect::to("/admin/enterprises")
     } else {
         axum::response::Redirect::to("/admin/profile")
     }
+}
+
+/// The cross-customer console, behind its own gate.
+///
+/// The gate is on the routes rather than on the whole admin router because the
+/// rest of the console is scoped to the caller — a profile, a session list —
+/// while these pages are the operator's view of every customer's contract and
+/// spend.
+fn enterprise_routes() -> Router<Arc<PgPool>> {
+    Router::new()
+        .route("/enterprises", get(handlers::ssr::enterprises_page))
+        .route(
+            "/enterprises/{slug}",
+            get(handlers::ssr::enterprise_detail_page),
+        )
+        .route(
+            "/reports/internal",
+            get(handlers::ssr::report_internal_page),
+        )
+        .layer(axum_middleware::from_fn(
+            middleware::require_platform_admin_middleware,
+        ))
 }
 
 fn access_routes() -> Router<Arc<PgPool>> {
@@ -106,11 +116,16 @@ fn access_routes() -> Router<Arc<PgPool>> {
             "/access/departments/{id}",
             get(handlers::ssr::management_department_detail_page),
         )
+        // Why: the customer report is admin-scoped rather than
+        // platform-scoped — a customer's own administrator may read their own
+        // organization's usage, and the handler is what decides whose.
         .route(
-            "/access/devices",
-            get(handlers::ssr::management_devices_page),
+            "/reports/customer",
+            get(handlers::ssr::report_customer_page),
         )
-        .route("/access/matrix", get(handlers::ssr::access_control_page))
+        // Why: the token and access-matrix *pages* are gone — entitlement is
+        // derived from the organization's plan, and tokens are minted by the
+        // bridge's device-link flow. These endpoints are that flow's API.
         .route("/devices/pats", post(handlers::devices::issue_pat))
         .route(
             "/devices/pats/{id}",
@@ -188,7 +203,6 @@ fn account_routes() -> Router<Arc<PgPool>> {
         .route("/profile", get(handlers::ssr::profile_page))
         .route("/settings", get(handlers::ssr::settings_page))
         .route("/setup", get(handlers::ssr::setup_page))
-        .route("/demo-register", get(handlers::ssr::demo_register_page))
 }
 
 fn api_routes() -> Router<Arc<PgPool>> {

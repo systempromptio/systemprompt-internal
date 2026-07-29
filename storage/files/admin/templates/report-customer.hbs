@@ -1,0 +1,174 @@
+{{#> layout title=title page=page}}
+    {{#*inline "head_extra"}}{{/inline}}
+    {{#*inline "content"}}
+    {{!--
+      The sendable report. Nothing on this page is an internal figure: the only
+      money is the plan's licence fee, which is what the customer is billed.
+    --}}
+    {{> components/page-header title=org_name subtitle=month_label}}
+
+    <div class="report-toolbar">
+        {{#if is_platform_admin}}
+        <form class="month-selector" method="get" action="{{base_url}}" data-print-hide>
+            <input type="hidden" name="month" value="{{month_key}}" />
+            <label class="month-selector__label" for="org-select">Enterprise</label>
+            <select class="month-selector__select" id="org-select" name="org">
+                {{#each org_options}}
+                <option value="{{this.slug}}"{{#if this.selected}} selected{{/if}}>{{this.name}}</option>
+                {{/each}}
+            </select>
+            <button class="btn btn-primary" type="submit">Show</button>
+        </form>
+        {{/if}}
+        {{> components/month-selector}}
+        <button class="btn btn-secondary" type="button" data-print-report>Print / Save PDF</button>
+    </div>
+
+    <div class="report-print-header" aria-hidden="true">
+        <strong>{{org_name}} — usage report</strong>
+        <span>{{month_label}} · generated {{generated_at}}</span>
+    </div>
+
+    {{#unless month_complete}}
+    <p class="report-notice" role="status">
+        {{month_label}} is still in progress — these figures cover the month so far.
+    </p>
+    {{/unless}}
+
+    <section class="report-kpis" aria-label="Usage summary for {{month_label}}">
+      {{> components/stat-card label="Plan" value=(default plan_name "No plan") subtitle=(concat "seats " summary.seats_display)}}
+      {{#if has_price}}
+      {{> components/stat-card label="Licence for this month" value=(formatUsd plan_price_microdollars) subtitle="as contracted"}}
+      {{/if}}
+      {{> components/stat-card label="Users with activity" value=(formatNumber summary.active_users) subtitle=(concat "of " summary.seats_display " seats")}}
+      {{> components/stat-card label="Requests" value=(formatNumber summary.requests) subtitle=(concat summary.success_rate_display " succeeded")}}
+      {{> components/stat-card label="Total tokens" value=summary.total_tokens_display subtitle="input plus output"}}
+      {{> components/stat-card label="Input tokens" value=summary.input_tokens_display}}
+      {{> components/stat-card label="Output tokens" value=summary.output_tokens_display}}
+      {{> components/stat-card label="Cached reads" value=summary.cache_read_tokens_display subtitle="served from cache"}}
+    </section>
+
+    <section aria-label="Usage by department" data-page="report-customer">
+    <h2 class="report-section-title">By department</h2>
+    {{#if departments}}
+    {{#> components/data-table}}
+        <thead><tr>
+            <th>Department</th>
+            <th class="col-share">Share</th>
+            <th class="numeric col-numeric" title="Members who made at least one request">People</th>
+            <th class="numeric col-numeric">Requests</th>
+            <th class="numeric col-numeric">Input</th>
+            <th class="numeric col-numeric">Output</th>
+            <th class="numeric col-numeric">Total tokens</th>
+        </tr></thead>
+        <tbody>
+        {{#each departments}}
+        <tr>
+            <td>{{this.department}}</td>
+            <td class="col-share">
+                <span class="share-bar" style="--v:{{this.share_pct}}%" aria-hidden="true"></span>
+                <span class="share-bar__value">{{this.share_display}}</span>
+            </td>
+            <td class="numeric">{{this.members}}</td>
+            <td class="numeric">{{formatNumber this.requests}}</td>
+            <td class="numeric">{{this.input_tokens_display}}</td>
+            <td class="numeric">{{this.output_tokens_display}}</td>
+            <td class="numeric">{{this.total_tokens_display}}</td>
+        </tr>
+        {{/each}}
+        </tbody>
+    {{/components/data-table}}
+    {{else}}
+    {{> components/empty-state message="No department recorded any usage in this month."}}
+    {{/if}}
+    </section>
+
+    <section aria-label="Usage by model">
+    <h2 class="report-section-title">By model</h2>
+    {{#if models}}
+    {{#> components/data-table}}
+        <thead><tr>
+            <th>Model</th>
+            <th>Provider</th>
+            <th class="col-share">Share</th>
+            <th class="numeric col-numeric">Requests</th>
+            <th class="numeric col-numeric">Input</th>
+            <th class="numeric col-numeric">Output</th>
+            <th class="numeric col-numeric">Cached</th>
+            <th class="numeric col-numeric">Total tokens</th>
+        </tr></thead>
+        <tbody>
+        {{#each models}}
+        <tr>
+            <td><code class="code-inline">{{this.model}}</code></td>
+            <td>{{this.provider}}</td>
+            <td class="col-share">
+                <span class="share-bar" style="--v:{{this.share_pct}}%" aria-hidden="true"></span>
+                <span class="share-bar__value">{{this.share_display}}</span>
+            </td>
+            <td class="numeric">{{formatNumber this.requests}}</td>
+            <td class="numeric">{{this.input_tokens_display}}</td>
+            <td class="numeric">{{this.output_tokens_display}}</td>
+            <td class="numeric">{{this.cache_read_tokens_display}}</td>
+            <td class="numeric">{{this.total_tokens_display}}</td>
+        </tr>
+        {{/each}}
+        </tbody>
+    {{/components/data-table}}
+    {{else}}
+    {{> components/empty-state message="No model was called in this month."}}
+    {{/if}}
+    </section>
+
+    <section aria-label="Usage by user">
+    <h2 class="report-section-title">By user</h2>
+    {{#if users}}
+    {{#> components/data-table}}
+        <thead><tr>
+            <th>User</th>
+            <th>Department</th>
+            <th class="col-share">Share</th>
+            <th class="numeric col-numeric">Requests</th>
+            <th class="numeric col-numeric">Input</th>
+            <th class="numeric col-numeric">Output</th>
+            <th class="numeric col-numeric">Total tokens</th>
+            <th class="numeric col-numeric" title="Distinct models this person reached">Models</th>
+        </tr></thead>
+        <tbody>
+        {{#each users}}
+        <tr>
+            <td>
+                <span class="user-cell">
+                    <span class="avatar avatar-sm">{{initials this.display_name}}</span>
+                    <span class="user-cell-text">
+                        <span class="user-cell-name">{{this.display_name}}</span>
+                        <span class="user-cell-email">{{this.email}}</span>
+                    </span>
+                </span>
+            </td>
+            <td>{{this.department}}</td>
+            <td class="col-share">
+                <span class="share-bar" style="--v:{{this.share_pct}}%" aria-hidden="true"></span>
+                <span class="share-bar__value">{{this.share_display}}</span>
+            </td>
+            <td class="numeric">{{formatNumber this.requests}}</td>
+            <td class="numeric">{{this.input_tokens_display}}</td>
+            <td class="numeric">{{this.output_tokens_display}}</td>
+            <td class="numeric">{{this.total_tokens_display}}</td>
+            <td class="numeric">{{this.distinct_models}}</td>
+        </tr>
+        {{/each}}
+        </tbody>
+    {{/components/data-table}}
+    {{else}}
+    {{> components/empty-state message="Nobody in this organization made a request in this month."}}
+    {{/if}}
+    </section>
+
+    <p class="report-footer">
+        {{org_name}} · {{month_label}} · generated {{generated_at}}. Token counts are metered per
+        request at the gateway.
+    </p>
+    <script data-cfasync="false" type="module" src="/js/pages/admin-report-print.js"></script>
+    {{/inline}}
+{{/layout}}
