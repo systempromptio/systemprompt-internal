@@ -6554,6 +6554,7 @@ dependencies = [
 name = "web-unit-tests"
 version = "0.0.0"
 dependencies = [
+ "chrono",
  "serde_json",
  "systemprompt-web-admin",
  "systemprompt-web-extension",

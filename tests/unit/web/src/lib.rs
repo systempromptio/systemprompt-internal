@@ -4,6 +4,7 @@
 //! - hook-event ingest leniency, which the governance record depends on
 //! - admin display formatting bands and `PageWindow` pagination arithmetic
 //! - inventory registry completeness for jobs, renderers, and providers
+//! - calendar-month resolution and the month-end P&L's derived figures
 
 #[cfg(test)]
 mod campaign_link_full_url;
@@ -14,8 +15,12 @@ mod format_display;
 #[cfg(test)]
 mod hook_event_dispatch;
 #[cfg(test)]
+mod month_range;
+#[cfg(test)]
 mod page_window;
 #[cfg(test)]
 mod registry_completeness;
+#[cfg(test)]
+mod report_pnl;
 #[cfg(test)]
 mod seed_contract;
