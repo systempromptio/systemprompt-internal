@@ -9,9 +9,9 @@ and the donors for CapRover/Elestio variants). It differs from the root
 - it does not publish the Postgres port (catalog installs have no reason to
   expose the database).
 
-The service and volume topology must stay identical to the root compose —
-the `compose-drift` job in `.github/workflows/smoke-tests.yml` diffs the two
-on every release.
+The service and volume topology must stay identical to the root compose.
+Nothing checks that automatically — this repo runs no hosted CI — so diff the
+two by hand when either changes.
 
 ## Environment
 

@@ -14,40 +14,9 @@ header:
 
     - id: how-to-use
       label: "How to use"
-      href: "/#get-started"
+      href: "/documentation/"
       dropdown: false
 
-    - id: resources
-      label: "Resources"
-      href: "/documentation/"
-      dropdown: true
-      sections:
-        - title: "This Platform"
-          links:
-            - label: "Documentation"
-              description: "Setup, authentication, dashboard, and governance API guides for the platform."
-              href: "/documentation/"
-            - label: "Getting Started"
-              description: "Create your account, install the bridge, and connect your AI tools in minutes."
-              href: "/#get-started"
-        - title: "Astound Digital"
-          links:
-            - label: "Solutions"
-              description: "Commerce, experience design, AI & Agentforce, modernization, and performance marketing."
-              href: "https://astounddigital.com/solutions"
-              external: true
-            - label: "AI Hub"
-              description: "Astound's AI insights, perspectives, and agentic enterprise resources."
-              href: "https://astounddigital.com/ai-hub"
-              external: true
-            - label: "Client Success"
-              description: "Case studies from AllSaints, Boots Opticians, Zermatt, and more."
-              href: "https://astounddigital.com/client-success"
-              external: true
-            - label: "About"
-              description: "25+ years of digital commerce engineering. Boutique partnership, enterprise-grade impact."
-              href: "https://astounddigital.com/about"
-              external: true
 
 footer:
   capabilities:
@@ -120,6 +89,21 @@ social:
 
 # Docs sidebar - rendered dynamically via site.docs_sidebar in templates
 docs_sidebar:
+  - title: "Salesforce Integration"
+    links:
+      - label: "Overview"
+        href: "/documentation/salesforce"
+      - label: "1. Salesforce App Setup"
+        href: "/documentation/salesforce-app-setup"
+      - label: "2. JWT-Bearer & Certificate"
+        href: "/documentation/salesforce-jwt-bearer"
+      - label: "3. Hosted MCP Access"
+        href: "/documentation/salesforce-hosted-mcp"
+      - label: "4. Users, Seats & Roles"
+        href: "/documentation/salesforce-provisioning"
+      - label: "5. Rolling Out the Bridge"
+        href: "/documentation/salesforce-bridge-rollout"
+
   - title: "Using the Gateway"
     links:
       - label: "How to Use"

@@ -74,7 +74,9 @@ no forking of the bridge source:
    brand-level plugin-name field to set.
 4. Update `build.rs` (Windows metadata), `macos/Info.plist` (bundle id + names),
    and `scripts/make-mac-app.sh` (bundle/app name).
-5. Wire up the release workflow (`.github/workflows/release-bridge.yml`).
+5. Build and sign the per-platform artifacts locally — this repo runs no
+   hosted CI, so `scripts/make-mac-app.sh` and a Windows/Linux `cargo build
+   --release` are the release process.
 
 Everything else — auth, sync, proxy, GUI, host integrations — is inherited from
 core and stays in lockstep across all brands.

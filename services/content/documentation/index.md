@@ -34,7 +34,7 @@ brand, and governance.
 
 ## Dashboard
 
-- [Authentication & Login](/documentation/authentication) — login, passkeys, magic links, and session management
+- [Authentication & Login](/documentation/authentication) — Salesforce SSO, operator passkeys, and session management
 - [Dashboard Usage](/documentation/dashboard) — real-time metrics, activity feed, and health indicators
 
 ## Under the hood
