@@ -115,19 +115,6 @@ fn docs_css(p: &Path) -> Vec<AssetDefinition> {
     ]
 }
 
-fn feature_base_css(p: &Path) -> Vec<AssetDefinition> {
-    vec![
-        css!(p, "feature-base-hero.css"),
-        css!(p, "feature-base-sections.css"),
-        css!(p, "feature-base-cta.css"),
-        css!(p, "feature-base-details.css"),
-        css!(p, "content-cards-base.css"),
-        css!(p, "content-cards-categories.css"),
-        css!(p, "content-cards-list.css"),
-        css!(p, "feature-cli-remote.css"),
-    ]
-}
-
 fn syntax_css(p: &Path) -> Vec<AssetDefinition> {
     vec![css!(p, "syntax-highlight.css")]
 }

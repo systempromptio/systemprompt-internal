@@ -6,27 +6,23 @@
 
 use std::sync::Arc;
 
-use crate::config::BlogConfigValidated;
 use crate::SkillsPageConfig;
+use crate::config::BlogConfigValidated;
 use crate::homepage::HomepageConfig;
 use crate::navigation::NavigationConfig;
 use systemprompt_web_site::config_loader;
 
 use systemprompt::extension::prelude::*;
 
-#[derive(Debug, Default, Clone)]
-pub struct WebExtension {
-    pub(crate) validated_config: Option<Arc<BlogConfigValidated>>,
-}
+#[derive(Debug, Default, Clone, Copy)]
+pub struct WebExtension;
 
 impl WebExtension {
     pub const PREFIX: &'static str = "web";
 
     #[must_use]
     pub const fn new() -> Self {
-        Self {
-            validated_config: None,
-        }
+        Self
     }
 
     /// The blog config shared by the link API and content ingestion.
@@ -66,7 +62,6 @@ impl WebExtension {
     pub fn salesforce_config() -> Option<Arc<systemprompt_web_admin::SalesforceConfig>> {
         config_loader::salesforce_config()
     }
-
 }
 
 register_extension!(WebExtension);

@@ -17,6 +17,7 @@
 //! `MarketplaceError` re-export in [`systemprompt_web_shared`].
 
 pub mod activity;
+pub mod assets;
 pub mod audit_event_bus;
 pub mod authz;
 pub mod error;
@@ -30,7 +31,6 @@ pub mod numeric;
 pub mod repositories;
 mod routes;
 pub(crate) mod services;
-pub mod assets;
 pub mod slack_alerts;
 pub mod templates;
 pub mod types;

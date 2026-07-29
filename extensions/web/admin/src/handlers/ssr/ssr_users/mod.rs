@@ -94,7 +94,7 @@ pub(crate) async fn user_detail_page(
     };
     let user_id = UserId::new(id);
 
-    // `Err` and `Ok(None)` must not collapse together here: this value alone
+    // Why: `Err` and `Ok(None)` must not collapse together here: this value alone
     // decides whether the page renders "User not found.", so a failed query
     // would tell an admin the account had been deleted. Only a genuine absence
     // is a not-found.

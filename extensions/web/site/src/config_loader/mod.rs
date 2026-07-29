@@ -25,8 +25,8 @@ fn load_app_paths() -> Result<AppPaths, ConfigError> {
 }
 
 use crate::homepage::HomepageConfig;
-use crate::skills_page::SkillsPageConfig;
 use crate::navigation::{BrandingConfig, NavigationConfig};
+use crate::skills_page::SkillsPageConfig;
 
 #[derive(Debug, Clone, Error)]
 pub enum ConfigError {
@@ -168,7 +168,8 @@ pub fn branding_config() -> Option<BrandingConfig> {
 
 static NAVIGATION_CONFIG: OnceLock<Result<Option<Arc<NavigationConfig>>, String>> = OnceLock::new();
 static HOMEPAGE_CONFIG: OnceLock<Result<Option<Arc<HomepageConfig>>, String>> = OnceLock::new();
-static SKILLS_PAGE_CONFIG: OnceLock<Result<Option<Arc<SkillsPageConfig>>, String>> = OnceLock::new();
+static SKILLS_PAGE_CONFIG: OnceLock<Result<Option<Arc<SkillsPageConfig>>, String>> =
+    OnceLock::new();
 static SALESFORCE_CONFIG: OnceLock<
     Result<Option<Arc<systemprompt_web_admin::SalesforceConfig>>, String>,
 > = OnceLock::new();

@@ -41,8 +41,8 @@ pub(crate) use tokens::{post_token_request, salesforce_token_handler};
 pub(super) const STATE_COOKIE: &str = "sf_oauth_state";
 const DEFAULT_REDIRECT: &str = "/admin";
 
-/// Errors from the Salesforce OAuth/token plumbing. Logged once at the HTTP
-/// boundary; the browser only ever sees an opaque `?sso=<reason>`.
+// Why: Errors from the Salesforce OAuth/token plumbing. Logged once at the HTTP
+// boundary; the browser only ever sees an opaque `?sso=<reason>`.
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum SalesforceError {
     #[error("Salesforce HTTP error: {0}")]
@@ -94,8 +94,8 @@ pub(super) fn secure_flag() -> &'static str {
     if use_https { "; Secure" } else { "" }
 }
 
-/// Reject anything that isn't a same-site absolute path, to avoid
-/// open-redirect.
+// Why: Reject anything that isn't a same-site absolute path, to avoid
+// open-redirect.
 pub(super) fn sanitize_redirect(raw: Option<String>) -> String {
     match raw {
         Some(r) if r.starts_with('/') && !r.starts_with("//") => r,
@@ -103,20 +103,20 @@ pub(super) fn sanitize_redirect(raw: Option<String>) -> String {
     }
 }
 
-// lint-ok: http-error — this *is* the SSO failure channel: a redirect back
+// Why: lint-ok: http-error — this *is* the SSO failure channel: a redirect back
 // to the login page carrying the reason, not an HTTP error.
 pub(super) fn login_error(reason: &str) -> Response {
     Redirect::to(&format!("/admin/login?sso={reason}")).into_response()
 }
 
-/// 32 random bytes as base64url-no-pad (43 chars) — a valid PKCE verifier and a
-/// fine CSRF nonce.
+// Why: 32 random bytes as base64url-no-pad (43 chars) — a valid PKCE verifier
+// and a fine CSRF nonce.
 pub(super) fn random_url_safe() -> String {
     let bytes: [u8; 32] = rand::rng().random();
     URL_SAFE_NO_PAD.encode(bytes)
 }
 
-/// Parse the state cookie into `(state, code_verifier, redirect_to)`.
+// Why: Parse the state cookie into `(state, code_verifier, redirect_to)`.
 pub(super) fn read_state_cookie(headers: &HeaderMap) -> Option<(String, String, String)> {
     let raw = headers
         .get_all("cookie")

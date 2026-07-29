@@ -22,10 +22,10 @@ struct SalesforceUserInfo {
     preferred_username: Option<String>,
 }
 
-/// Exchange the code for tokens, read verified claims, gate them, and resolve
-/// the identity to a local user. The access token is used only to fetch
-/// userinfo here — it is not retained. Each step logs its own failure and
-/// collapses to a login *reason*.
+// Why: Exchange the code for tokens, read verified claims, gate them, and
+// resolve the identity to a local user. The access token is used only to fetch
+// userinfo here — it is not retained. Each step logs its own failure and
+// collapses to a login *reason*.
 pub(super) async fn resolve_identity(
     deps: &SalesforceDeps,
     code: &str,
@@ -74,9 +74,9 @@ pub(super) async fn resolve_identity(
             "not_provisioned"
         })?;
 
-    // Record the Salesforce Username so the Hosted-MCP token accessor can mint a
-    // JWT-bearer token as this user. A failure here must not break login — the
-    // accessor falls back to the email if no row exists.
+    // Why: Record the Salesforce Username so the Hosted-MCP token accessor can mint
+    // a JWT-bearer token as this user. A failure here must not break login —
+    // the accessor falls back to the email if no row exists.
     if let Err(e) =
         salesforce_identity::upsert(&deps.write_pool, &resolved.user_id, &sf_username).await
     {
@@ -98,7 +98,7 @@ fn gate_claims(
         .email
         .map(|e| e.trim().to_lowercase())
         .ok_or("no_email")?;
-    // Linking an unverified address would let a hostile IdP claim arbitrary
+    // Why: Linking an unverified address would let a hostile IdP claim arbitrary
     // accounts via the email-merge path in `federated`.
     if !info.email_verified {
         tracing::warn!(email, "Salesforce login rejected: email not verified");

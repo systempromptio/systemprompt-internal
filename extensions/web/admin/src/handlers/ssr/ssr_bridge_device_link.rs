@@ -92,7 +92,7 @@ pub(crate) async fn device_link_approve(
 }
 
 pub(crate) async fn device_link_deny(Form(form): Form<DeviceLinkApproveForm>) -> Response {
-    // lint-ok: http-error — denying the link is this handler's success path
+    // Why: lint-ok: http-error — denying the link is this handler's success path
     if validate_loopback_redirect(&form.redirect).is_none() {
         return bad_redirect_response(&form.redirect);
     }
@@ -119,8 +119,8 @@ fn validate_loopback_redirect(redirect: &str) -> Option<String> {
 }
 
 fn bad_redirect_response(redirect: &str) -> Response {
-    // lint-ok: http-error — names the accepted redirect forms, which the generic
-    // page cannot
+    // Why: lint-ok: http-error — names the accepted redirect forms, which the
+    // generic page cannot
     tracing::warn!(
         redirect,
         "Rejected bridge device-link redirect (non-loopback)"

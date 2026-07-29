@@ -15,8 +15,7 @@ pub(crate) use gates::{
     require_user_middleware,
 };
 
-use std::sync::{Arc, LazyLock};
-use std::time::{Duration, Instant};
+use std::sync::Arc;
 
 use axum::Extension;
 use axum::extract::{Request, State};
@@ -28,8 +27,7 @@ use sqlx::PgPool;
 use systemprompt::identifiers::{Email, UserId};
 
 use super::handlers::extract_user_from_cookie;
-use super::repositories::marketplace::plugins::MarketplaceCounts;
-use super::types::{MarketplaceContext, UserContext};
+use super::types::UserContext;
 
 #[derive(Debug, Serialize)]
 struct AuthMeResponse {

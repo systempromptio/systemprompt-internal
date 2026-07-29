@@ -16,7 +16,7 @@ use serde::Deserialize;
 use sqlx::PgPool;
 
 use crate::error::AdminHtmlResult;
-use crate::handlers::ssr::types::charts;
+use crate::handlers::ssr::types as charts;
 use crate::templates::AdminTemplateEngine;
 use crate::types::{MarketplaceContext, UserContext};
 use crate::util::time_range::TimeRange;

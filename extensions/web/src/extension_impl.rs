@@ -9,11 +9,11 @@ use std::sync::Arc;
 use systemprompt::extension::prelude::*;
 use systemprompt::traits::Job;
 
+use crate::SkillsPagePrerenderer;
 use crate::assets::web_assets;
 use crate::homepage::{HomepagePageDataProvider, HomepagePrerenderer};
 use crate::navigation::NavigationPageDataProvider;
 use crate::schemas::{migrations, schema_definitions};
-use crate::SkillsPagePrerenderer;
 use systemprompt_web_site::config_loader;
 
 use crate::extension::WebExtension;

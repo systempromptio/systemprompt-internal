@@ -43,21 +43,21 @@ struct Assertion {
     exp: u64,
 }
 
-/// Mint a fresh Salesforce access token for `username` via the JWT-bearer
-/// grant.
-///
-/// `username` is the Salesforce Username to act as — the userinfo
-/// `preferred_username` captured at SSO login (e.g. `ed.aa…@agentforce.com`),
-/// NOT the login email; the two differ and Salesforce matches `sub` on the
-/// Username. The External Client App must have the user admin-pre-authorized.
-///
-/// # Errors
-/// - [`SalesforceError::MissingPrivateKey`] if `SALESFORCE_PRIVATE_KEY` is
-///   unset.
-/// - [`SalesforceError::Internal`] if the key is not valid PEM or signing
-///   fails.
-/// - [`SalesforceError::TokenEndpoint`] / [`SalesforceError::Http`] on a failed
-///   POST.
+// Why: Mint a fresh Salesforce access token for `username` via the JWT-bearer
+// grant.
+//
+// `username` is the Salesforce Username to act as — the userinfo
+// `preferred_username` captured at SSO login (e.g. `ed.aa…@agentforce.com`),
+// NOT the login email; the two differ and Salesforce matches `sub` on the
+// Username. The External Client App must have the user admin-pre-authorized.
+//
+// # Errors
+// - [`SalesforceError::MissingPrivateKey`] if `SALESFORCE_PRIVATE_KEY` is
+// unset.
+// - [`SalesforceError::Internal`] if the key is not valid PEM or signing
+// fails.
+// - [`SalesforceError::TokenEndpoint`] / [`SalesforceError::Http`] on a failed
+// POST.
 pub(crate) async fn fetch_token(
     cfg: &SalesforceConfig,
     username: &str,
@@ -88,7 +88,7 @@ pub(crate) async fn fetch_token(
     );
     let resp = post_token_request(&cfg.token_url(), body).await?;
 
-    // The JWT-bearer grant returns the instance the token is scoped to; fall
+    // Why: The JWT-bearer grant returns the instance the token is scoped to; fall
     // back to the org base if Salesforce omits it.
     let instance_url = resp
         .instance_url

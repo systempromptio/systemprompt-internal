@@ -13,9 +13,9 @@ use systemprompt_web_site::config_loader;
 
 use crate::admin;
 
-/// The dashboard and the desktop-bridge sign-in flow, built together because
-/// both need the template engine, and either one missing is the same
-/// misconfiguration.
+// Why: The dashboard and the desktop-bridge sign-in flow, built together
+// because both need the template engine, and either one missing is the same
+// misconfiguration.
 pub(crate) struct SsrRouters {
     pub admin: Router,
     pub bridge_auth: Router,

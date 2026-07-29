@@ -24,7 +24,7 @@ pub(crate) async fn salesforce_start(
     Extension(deps): Extension<SalesforceDeps>,
     Query(params): Query<StartParams>,
 ) -> Response {
-    // lint-ok: http-error — an SSO flow reports failure by redirecting back to
+    // Why: lint-ok: http-error — an SSO flow reports failure by redirecting back to
     // the login page with ?sso=<reason>; an error status would strand the
     // browser on a dead end instead of returning the user to a usable page.
     let cfg = &deps.config;
@@ -33,9 +33,9 @@ pub(crate) async fn salesforce_start(
     }
 
     let state_token = random_url_safe();
-    // PKCE (RFC 7636): a high-entropy verifier kept server-side, and its SHA-256
-    // challenge sent to Salesforce. The token exchange later proves possession
-    // of the verifier, so an intercepted code is useless without it.
+    // Why: PKCE (RFC 7636): a high-entropy verifier kept server-side, and its
+    // SHA-256 challenge sent to Salesforce. The token exchange later proves
+    // possession of the verifier, so an intercepted code is useless without it.
     let code_verifier = random_url_safe();
     let code_challenge = {
         let digest = Sha256::digest(code_verifier.as_bytes());
@@ -43,7 +43,7 @@ pub(crate) async fn salesforce_start(
     };
     let redirect_to = sanitize_redirect(params.redirect);
 
-    // The state cookie carries the CSRF nonce, the PKCE verifier, and the
+    // Why: The state cookie carries the CSRF nonce, the PKCE verifier, and the
     // post-login target, '|'-separated (base64url values never contain '|').
     let cookie = format!(
         "{STATE_COOKIE}={state_token}|{code_verifier}|{redirect_to}; Path=/admin/auth/salesforce; HttpOnly; SameSite=Lax; Max-Age=600{}",

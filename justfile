@@ -1,5 +1,11 @@
-# systemprompt-template
+# systemprompt-astound
 set dotenv-load
+
+# The fork-aware gates (check-fork-drift, check-dead-repository-code) compare
+# against the sibling template checkout. Without this they skip silently, which
+# reads as "passed" — export a default so they actually run, and let an
+# already-set value win for CI or a non-standard layout.
+export SIBLING_REPO := env("SIBLING_REPO", if path_exists("../systemprompt-template") == "true" { "../systemprompt-template" } else { "" })
 
 CLI_RELEASE := "target/release/systemprompt"
 

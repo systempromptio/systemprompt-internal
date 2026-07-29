@@ -15,9 +15,9 @@ use crate::handlers::users::extract_mcp_accessor_user;
 use crate::repositories::users::salesforce_identity;
 use crate::services::salesforce_jwt_bearer;
 
-/// The Salesforce `/services/oauth2/token` response. Only the fields both the
-/// authorization-code (login) and JWT-bearer (Hosted-MCP) flows consume are
-/// modelled; other fields are ignored.
+// Why: The Salesforce `/services/oauth2/token` response. Only the fields both
+// the authorization-code (login) and JWT-bearer (Hosted-MCP) flows consume are
+// modelled; other fields are ignored.
 #[derive(Debug, Deserialize)]
 pub(crate) struct SalesforceTokenResponse {
     pub access_token: String,
@@ -25,14 +25,14 @@ pub(crate) struct SalesforceTokenResponse {
     pub instance_url: Option<String>,
 }
 
-/// Exchange an authorization code for the full token set.
+// Why: Exchange an authorization code for the full token set.
 pub(super) async fn exchange_code(
     cfg: &SalesforceConfig,
     code: &str,
     client_secret: &str,
     code_verifier: &str,
 ) -> Result<SalesforceTokenResponse, SalesforceError> {
-    // reqwest is built with `default-features = false`, so `.form()` is
+    // Why: reqwest is built with `default-features = false`, so `.form()` is
     // unavailable — encode the body by hand.
     let body = format!(
         "grant_type=authorization_code&code={}&client_id={}&client_secret={}&redirect_uri={}&code_verifier={}",
@@ -45,8 +45,8 @@ pub(super) async fn exchange_code(
     post_token_request(&cfg.token_url(), body).await
 }
 
-/// Shared `application/x-www-form-urlencoded` POST against a Salesforce token
-/// endpoint, used by both the code exchange and the refresh service.
+// Why: Shared `application/x-www-form-urlencoded` POST against a Salesforce
+// token endpoint, used by both the code exchange and the refresh service.
 pub(crate) async fn post_token_request(
     token_url: &str,
     body: String,
@@ -75,10 +75,10 @@ struct TokenResponse {
     instance_url: String,
 }
 
-/// `GET /api/public/salesforce/token` — the typed contract core's
-/// Salesforce-MCP bearer injection consumes. Authenticates the caller, mints a
-/// fresh bearer via the RFC 7523 JWT-bearer grant (acting as the caller's
-/// Salesforce username), and returns `{ access_token, instance_url }`.
+// Why: `GET /api/public/salesforce/token` — the typed contract core's
+// Salesforce-MCP bearer injection consumes. Authenticates the caller, mints a
+// fresh bearer via the RFC 7523 JWT-bearer grant (acting as the caller's
+// Salesforce username), and returns `{ access_token, instance_url }`.
 pub(crate) async fn salesforce_token_handler(
     Extension(deps): Extension<SalesforceDeps>,
     headers: HeaderMap,
@@ -90,9 +90,10 @@ pub(crate) async fn salesforce_token_handler(
         ));
     }
 
-    // The JWT-bearer `sub` must be the Salesforce Username (captured at SSO login),
-    // not the login email. Fall back to the email if this user has no stored
-    // Username (e.g. they never completed a Salesforce login) or the lookup fails.
+    // Why: The JWT-bearer `sub` must be the Salesforce Username (captured at SSO
+    // login), not the login email. Fall back to the email if this user has no
+    // stored Username (e.g. they never completed a Salesforce login) or the
+    // lookup fails.
     let username = match salesforce_identity::find(&deps.write_pool, &session.user_id).await {
         Ok(Some(u)) => u,
         Ok(None) => session.email.as_str().to_owned(),
@@ -102,7 +103,7 @@ pub(crate) async fn salesforce_token_handler(
         },
     };
 
-    // Why not `?`: a mint failure is an *upstream* fault. 502 tells the
+    // Why: Why not `?`: a mint failure is an *upstream* fault. 502 tells the
     // accessor's caller that Salesforce refused, where a 500 would blame this
     // server for Salesforce being down.
     let fresh = salesforce_jwt_bearer::fetch_token(&deps.config, &username)

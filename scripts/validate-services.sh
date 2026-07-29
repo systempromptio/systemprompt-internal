@@ -43,7 +43,12 @@ marketplaces = {
 plugins = set()
 for p in root.glob("services/plugins/*/config.yaml"):
     doc = load(p)
+    # Two shapes are in use: a `plugins:` map keyed by id, and a single
+    # `plugin:` block that carries its own `id`. Both name the same thing.
     plugins.update((doc.get("plugins") or {}).keys())
+    single = (doc.get("plugin") or {}).get("id")
+    if single:
+        plugins.add(single)
 
 known = {
     "skill": skills,

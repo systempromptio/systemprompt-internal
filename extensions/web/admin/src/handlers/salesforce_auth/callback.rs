@@ -44,7 +44,7 @@ pub(crate) async fn salesforce_callback(
     headers: HeaderMap,
     Query(params): Query<CallbackParams>,
 ) -> Response {
-    // lint-ok: http-error — every outcome here is a redirect: success sets the
+    // Why: lint-ok: http-error — every outcome here is a redirect: success sets the
     // session cookie and returns to the app, failure returns to login.
     if !deps.config.is_usable() {
         return login_error("unavailable");
@@ -108,7 +108,7 @@ fn validate_request(
 
 /// Build the cookie-setting redirect for a successful login: clear the spent
 /// state cookie and set the session `access_token`.
-// lint-ok: http-error — builds the success redirect, not an error.
+// Why: lint-ok: http-error — builds the success redirect, not an error.
 fn success_response(login: &SuccessfulLogin) -> Response {
     let mut out = HeaderMap::new();
     if let Ok(val) = format!(

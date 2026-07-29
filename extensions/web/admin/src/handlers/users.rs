@@ -26,11 +26,11 @@ pub(crate) fn extract_user_from_cookie(
     extract_user_with_audiences(headers, &[JwtAudience::Api])
 }
 
-/// Authenticate the caller of the Salesforce token accessor. Accepts an `Api`
-/// audience (admin/direct path) or an `Mcp` audience — the latter is the token
-/// the bridge forwards through the external-MCP flow this accessor belongs to.
-/// Deliberately kept separate from `extract_user_from_cookie` so sensitive
-/// endpoints (secrets, middleware) stay strictly `[Api]`-only.
+// Why: Authenticate the caller of the Salesforce token accessor. Accepts an
+// `Api` audience (admin/direct path) or an `Mcp` audience — the latter is the
+// token the bridge forwards through the external-MCP flow this accessor belongs
+// to. Deliberately kept separate from `extract_user_from_cookie` so sensitive
+// endpoints (secrets, middleware) stay strictly `[Api]`-only.
 pub(crate) fn extract_mcp_accessor_user(
     headers: &HeaderMap,
 ) -> Result<crate::types::CookieSession, AdminError> {
@@ -45,7 +45,7 @@ fn extract_user_with_audiences(
 
     let jwt_issuer = Config::get()?.jwt_issuer.clone();
 
-    let claims = validate_jwt_token(&token, &jwt_issuer, &[JwtAudience::Api])?;
+    let claims = validate_jwt_token(&token, &jwt_issuer, audiences)?;
 
     let email = Email::try_new(claims.email.clone()).map_err(AdminError::unauthenticated)?;
 

@@ -32,8 +32,6 @@ extensions/web/src/lib.rs	# brand: crate doc names the product
 # not drift. Converging these would mean shipping one product's pages
 # from the other's binary.
 # ---------------------------------------------------------------------
-extensions/web/admin/src/handlers/catalog/mod.rs	# astound serves plugins/skills/mcp; template serves marketplace/a2a/external
-extensions/web/admin/src/handlers/catalog/view.rs	# renders the catalog families above, which differ
 extensions/web/admin/src/handlers/public_register.rs	# astound limits registration to @astounddigital.com / @astoundcommerce.com; template takes a role argument
 extensions/web/admin/src/handlers/users.rs	# astound adds extract_mcp_accessor_user, accepting an Mcp-audience JWT for the Salesforce token accessor
 extensions/web/admin/src/lib.rs	# astound mounts the Salesforce token + Slack alert surface; template mounts the bridge plugin-file plane
@@ -44,13 +42,12 @@ extensions/web/site/src/lib.rs	# template ships blog + features sections; astoun
 extensions/web/site/src/navigation/provider.rs	# the blog nav link exists in the template only
 extensions/web/site/src/assets/css.rs	# template ships feature-page CSS; astound ships skills-page and showreel CSS
 extensions/web/site/src/assets/mod.rs	# astound serves the homepage showreel video
-extensions/web/site/src/assets/js_pages.rs	# astound ships the admin entities page
 
 # The template ships an SSR governance policy editor that astound does not. It
 # needs every policy to declare the file it is defined in so the page can link
 # to it "as code"; in astound the field and its accessors would be dead code.
 extensions/web/admin/src/handlers/ssr/mod.rs	# template ships the SSR governance policy editor; astound does not
-extensions/web/admin/src/handlers/webhook/governance/policy.rs	# source_path field + source_path_for/reload back the editor above
+extensions/web/admin/src/handlers/webhook/governance/policy.rs	# source_path field + source_path_for back the editor above
 extensions/web/admin/src/handlers/webhook/governance/mod.rs	# re-exports the policy editor the template alone mounts
 extensions/web/admin/src/handlers/webhook/governance/policies/rate_limit.rs	# source_path feeds the template-only policy editor
 extensions/web/admin/src/handlers/webhook/governance/policies/scope_check.rs	# source_path feeds the template-only policy editor
@@ -59,7 +56,39 @@ extensions/web/admin/src/handlers/webhook/governance/policies/tool_blocklist.rs	
 extensions/web/src/extension.rs	# astound loads a Salesforce SSO config and a skills-page config; template loads a feature-pages config
 extensions/web/src/extension_impl.rs	# astound mounts the Salesforce router and skills-page prerenderer; template mounts blog providers, feature prerenderers, the bridge router and an oauth-client seed
 extensions/web/admin/src/routes/ssr.rs	# astound mounts the Salesforce auth routes and redirects admins to /admin/access/users; template mounts the governance routes and always redirects to /admin/profile
-extensions/web/admin/src/activity/constructors_session.rs	# astound records session_started/session_ended/teammate_idle from Claude Code hook events; template has no such feed
+
+
+# ---------------------------------------------------------------------
+# BRIDGE - astound ships a white-label desktop client (bridge/) that signs
+# in over /bridge-auth/device-link. The template retired that plane and
+# renamed its credentials to access tokens. Converging would delete the
+# endpoint astound's own binary calls at runtime.
+# ---------------------------------------------------------------------
+extensions/web/admin/src/error.rs	# astound carries a BridgeRepo error variant; the template's is AccessTokenRepo
+extensions/web/admin/src/routes/mod.rs	# astound exports bridge_auth_ssr_router alongside the admin router
+extensions/web/admin/src/routes/admin.rs	# astound issues per-device PATs under /users/:id/devices; the template issues account access tokens
+extensions/web/admin/src/middleware/mod.rs	# astound keeps auth_me_handler, which the bridge polls to confirm a linked session
+extensions/web/admin/src/handlers/ssr/ssr_management/mod.rs	# astound's fleet page lists devices and their online state; the template lists access tokens
+extensions/web/admin/src/handlers/ssr/ssr_profile/mod.rs	# astound assembles a bridge profile block (device certs, exchange codes)
+extensions/web/admin/src/handlers/ssr/ssr_users/data.rs	# astound loads each user's devices and per-device PATs
+extensions/web/admin/src/handlers/ssr/ssr_users/mod.rs	# astound's user detail reports device connectivity, not request counts
+extensions/web/admin/src/handlers/ssr/ssr_users/view.rs	# astound renders device freshness from last heartbeat, not last request
+extensions/web/admin/src/handlers/ssr/types/users.rs	# UserDeviceView has no counterpart in the template
+extensions/web/admin/src/repositories/users/mod.rs	# astound persists devices, federated identities and salesforce identities
+extensions/web/admin/src/repositories/users/queries/runtime.rs	# astound sources per-user runtime from bridge_sessions; the template sources it from ai_requests
+extensions/web/admin/src/repositories/departments/aggregates.rs	# astound counts devices per department; the template counts tokens
+extensions/web/src/router/mod.rs	# astound nests /bridge-auth and builds the Salesforce deps the API plane needs
+extensions/web/src/router/admin_ssr.rs	# astound builds the bridge sign-in router beside the dashboard, from the same engine
+extensions/web/src/router/api.rs	# astound merges the Salesforce token accessor into the public API plane
+
+# ---------------------------------------------------------------------
+# SALESFORCE / CATALOG - surface the template does not ship.
+# ---------------------------------------------------------------------
+extensions/web/admin/src/assets.rs	# astound registers the devices and entities page scripts; the template registers access-tokens and models
+extensions/web/admin/src/repositories/users/access_control/mod.rs	# re-exports count_assignments_by_entity_type for the catalog pages below
+extensions/web/admin/src/repositories/users/access_control/rules.rs	# count_assignments_by_entity_type backs the astound-only catalog counts
+extensions/web/admin/src/repositories/users/user_queries.rs	# astound's department rollup labels the unassigned bucket, which its access matrix reads back
+extensions/web/site/src/config_loader/mod.rs	# astound loads the Salesforce SSO and skills-page configs; the template loads a feature-pages config
 
 # ---------------------------------------------------------------------
 # DEBT - one side is simply ahead. Port it, then delete the line.
