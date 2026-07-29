@@ -47,12 +47,8 @@ extensions/web/site/src/assets/mod.rs	# astound serves the homepage showreel vid
 # needs every policy to declare the file it is defined in so the page can link
 # to it "as code"; in astound the field and its accessors would be dead code.
 extensions/web/admin/src/handlers/ssr/mod.rs	# template ships the SSR governance policy editor; astound does not
-extensions/web/admin/src/handlers/webhook/governance/policy.rs	# source_path field + source_path_for back the editor above
+extensions/web/admin/src/handlers/webhook/governance/engine.rs	# astound resolves the governance config from its own profile services path
 extensions/web/admin/src/handlers/webhook/governance/mod.rs	# re-exports the policy editor the template alone mounts
-extensions/web/admin/src/handlers/webhook/governance/policies/rate_limit.rs	# source_path feeds the template-only policy editor
-extensions/web/admin/src/handlers/webhook/governance/policies/scope_check.rs	# source_path feeds the template-only policy editor
-extensions/web/admin/src/handlers/webhook/governance/policies/secret_scan.rs	# source_path feeds the template-only policy editor
-extensions/web/admin/src/handlers/webhook/governance/policies/tool_blocklist.rs	# source_path feeds the template-only policy editor
 extensions/web/src/extension.rs	# astound loads a Salesforce SSO config and a skills-page config; template loads a feature-pages config
 extensions/web/src/extension_impl.rs	# astound mounts the Salesforce router and skills-page prerenderer; template mounts blog providers, feature prerenderers, the bridge router and an oauth-client seed
 extensions/web/admin/src/routes/ssr.rs	# astound mounts the Salesforce auth routes and redirects admins to /admin/access/users; template mounts the governance routes and always redirects to /admin/profile
