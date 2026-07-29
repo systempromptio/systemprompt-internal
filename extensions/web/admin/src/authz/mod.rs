@@ -6,15 +6,18 @@
 //! the precedence ladder, and a [`SubjectAttributeProvider`][p] that looks up
 //! the values a user holds for it.
 //!
-//! We currently declare one, [`department`]. Adding a second — cost centre,
-//! clearance, jurisdiction — means writing a provider beside it and one
-//! `register_subject_attribute_provider!` call; no core change, and no edit to
-//! the resolve call sites, because they all read the registry through
-//! [`subject_attributes_for`] and [`dimensions`].
+//! We declare two: [`department`] and [`organization`]. They form a ladder
+//! with core's — user (0), department (100), role (200), organization (300) —
+//! where a lower number is the narrower, higher-priority scope. Adding a third
+//! — cost centre, clearance, jurisdiction — means writing a provider beside
+//! them and one `register_subject_attribute_provider!` call; no core change,
+//! and no edit to the resolve call sites, because they all read the registry
+//! through [`subject_attributes_for`] and [`dimensions`].
 //!
 //! [p]: systemprompt_security::authz::SubjectAttributeProvider
 
 pub mod department;
+pub mod organization;
 
 use std::sync::{Arc, OnceLock};
 
@@ -26,10 +29,17 @@ use systemprompt_security::authz::{
 };
 
 use crate::authz::department::DepartmentAttributeProvider;
+use crate::authz::organization::OrganizationAttributeProvider;
 
 systemprompt_security::register_subject_attribute_provider!(|ctx| {
     let provider: SharedSubjectAttributeProvider =
         Arc::new(DepartmentAttributeProvider::new(Arc::clone(&ctx.pool)));
+    provider
+});
+
+systemprompt_security::register_subject_attribute_provider!(|ctx| {
+    let provider: SharedSubjectAttributeProvider =
+        Arc::new(OrganizationAttributeProvider::new(Arc::clone(&ctx.pool)));
     provider
 });
 

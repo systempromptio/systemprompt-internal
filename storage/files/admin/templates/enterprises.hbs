@@ -1,0 +1,81 @@
+{{#> layout title=title page=page}}
+    {{#*inline "head_extra"}}{{/inline}}
+    {{#*inline "content"}}
+    {{> components/page-header title=title subtitle=subtitle}}
+
+    <section class="ent-kpis" aria-label="Portfolio totals">
+      {{> components/stat-card label="Enterprises" value=(formatNumber total_enterprises)}}
+      {{> components/stat-card label="Seats" value=(formatNumber total_seats) subtitle="active members on all plans"}}
+      {{> components/stat-card label="Departments" value=(formatNumber total_departments)}}
+      {{> components/stat-card label="Requests" value=(formatNumber total_requests_30d) subtitle="last 30 days"}}
+      {{> components/stat-card label="Licence revenue" value=(formatUsd total_revenue_microdollars) subtitle="billed this month"}}
+      {{> components/stat-card label="Inference cost" value=(formatUsd total_cost_microdollars) subtitle="month to date"}}
+      {{> components/stat-card label="Margin" value=(formatUsd total_margin_microdollars) variant=margin_variant subtitle="revenue less cost"}}
+    </section>
+
+    <section aria-label="Enterprises" data-page="enterprises">
+    {{#if enterprises}}
+    {{#> components/data-table}}
+        <thead><tr>
+            <th>Enterprise</th>
+            <th>Plan</th>
+            <th class="col-status" title="Active members against the plan's seat limit">Seats</th>
+            <th class="numeric col-numeric">Depts</th>
+            <th class="numeric col-numeric" title="Allow rules this organization's plan projected">Skills</th>
+            <th class="numeric col-numeric" title="Model tokens consumed in the last 30 days">Tokens 30d</th>
+            <th class="numeric col-numeric" title="Inference cost this calendar month">Cost</th>
+            <th class="numeric col-numeric" title="Monthly licence fee">Revenue</th>
+            <th class="numeric col-numeric" title="Licence revenue less inference cost">Margin</th>
+            <th class="col-status" title="Month-to-date spend against the plan's cap">Budget</th>
+        </tr></thead>
+        <tbody>
+        {{#each enterprises}}
+            <tr>
+                <td>
+                    <a href="/admin/enterprises/{{slug}}" class="user-cell">
+                        <span class="avatar avatar-sm">{{initials name}}</span>
+                        <span class="user-cell-text">
+                            <span class="user-cell-name">{{name}}</span>
+                            <span class="user-cell-email">{{slug}}</span>
+                        </span>
+                    </a>
+                </td>
+                <td>
+                    {{#if plan_name}}<span class="badge badge-orange">{{plan_name}}</span>{{else}}<span class="text-tertiary">No plan</span>{{/if}}
+                    {{#if is_platform}}<span class="badge badge-blue" title="The operator's own tenant">Platform</span>{{/if}}
+                    {{#unless is_active}}<span class="badge badge-secondary" title="A suspended organization resolves no plan grants">{{status}}</span>{{/unless}}
+                </td>
+                <td class="col-status">
+                    <span class="ent-seats">
+                        <span class="ent-seats__count">{{seats_used}}{{#if has_seat_limit}} / {{seat_limit}}{{/if}}</span>
+                        {{#if has_seat_limit}}<span class="ent-bar" style="--ent-bar-pct:{{seats_pct}}%"><span class="ent-bar__fill"></span></span>{{else}}<span class="ent-seats__note">unlimited</span>{{/if}}
+                    </span>
+                </td>
+                <td class="numeric">{{departments}}</td>
+                <td class="numeric">{{entitlements}}</td>
+                <td class="numeric">{{#if tokens_30d}}{{formatNumber tokens_30d}}{{else}}<span class="text-tertiary">0</span>{{/if}}</td>
+                <td class="numeric">{{formatUsd cost_mtd_microdollars}}</td>
+                {{#if is_platform}}
+                <td class="numeric text-tertiary" title="The operator's own tenant bills nobody">—</td>
+                <td class="numeric text-tertiary" title="Internal spend, not a margin">—</td>
+                {{else}}
+                <td class="numeric">{{#if revenue_microdollars}}{{formatUsd revenue_microdollars}}{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
+                <td class="numeric ent-margin{{#unless margin_positive}} ent-margin--negative{{/unless}}">{{formatUsd margin_microdollars}}</td>
+                {{/if}}
+                <td class="col-status">
+                    {{#if has_budget}}
+                        <span class="ent-pill ent-pill--{{budget_state}}" title="{{budget_pct}}% of the plan's monthly cap consumed">{{budget_pct}}%</span>
+                    {{else}}
+                        <span class="text-tertiary" title="This plan has no spend cap">uncapped</span>
+                    {{/if}}
+                </td>
+            </tr>
+        {{/each}}
+        </tbody>
+    {{/components/data-table}}
+    {{else}}
+    {{> components/empty-state message="No enterprises yet. Add one to services/access-control/plans.yaml and restart to bootstrap it."}}
+    {{/if}}
+    </section>
+    {{/inline}}
+{{/layout}}

@@ -12,11 +12,20 @@
 //!    is the account *merge*. The caller MUST have verified `email_verified`
 //!    and an allow-listed domain before reaching this path — linking an
 //!    unverified address would let a hostile `IdP` claim arbitrary accounts.
-//! 3. **Create** — no mapping and no local account: provision a fresh user plus
-//!    the mapping in a single transaction.
+//! 3. **Create** — no mapping and no local account: provision a fresh user, the
+//!    mapping, and — when the email's domain is claimed by a customer
+//!    organization — its membership row, in a single transaction.
+//!
+//! Just-in-time provisioning is one of the two doors a seat can be minted
+//! through, so the seat limit is checked here as well as on operator-created
+//! users. A limit enforced on only one door is not a limit, and this is the
+//! door an enterprise customer's users actually arrive through.
 
 use sqlx::PgPool;
 use systemprompt::identifiers::UserId;
+use systemprompt_web_shared::error::MarketplaceError;
+
+use crate::repositories::organizations;
 
 /// Outcome of [`resolve_federated_user`]: a local user the caller can mint a
 /// session for.
@@ -129,7 +138,16 @@ async fn create_federated(
     external_sub: &str,
     email: &str,
     display_name: &str,
-) -> Result<ResolvedFederatedUser, sqlx::Error> {
+) -> Result<ResolvedFederatedUser, MarketplaceError> {
+    // Why: the seat check runs before the user exists, so a full plan rejects
+    // the login rather than creating an orphaned account that cannot reach
+    // anything. An unclaimed email domain is not an error — that arrival is
+    // not on anyone's contract and lands unattached.
+    let org_id = organizations::crud::find_organization_for_email(pool, email).await?;
+    if let Some(org_id) = org_id.as_deref() {
+        organizations::seats::assert_seat_available(pool, org_id).await?;
+    }
+
     let user_id = uuid::Uuid::new_v4().to_string();
     let roles = vec!["user".to_owned()];
     let mut tx = pool.begin().await?;
@@ -157,6 +175,17 @@ async fn create_federated(
     .execute(&mut *tx)
     .await?;
 
+    if let Some(org_id) = org_id.as_deref() {
+        sqlx::query!(
+            "INSERT INTO organization_members (user_id, org_id, org_role)
+             VALUES ($1, $2, 'member')",
+            &user_id,
+            org_id,
+        )
+        .execute(&mut *tx)
+        .await?;
+    }
+
     tx.commit().await?;
 
     Ok(ResolvedFederatedUser {
@@ -181,7 +210,7 @@ pub async fn resolve_federated_user(
     pool: &PgPool,
     claims: &FederatedClaims<'_>,
     auto_provision: bool,
-) -> Result<Option<ResolvedFederatedUser>, sqlx::Error> {
+) -> Result<Option<ResolvedFederatedUser>, MarketplaceError> {
     let FederatedClaims {
         issuer,
         external_sub,

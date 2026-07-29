@@ -1,14 +1,33 @@
 //! User create, update, and delete.
+//!
+//! Creation is one of the two doors a seat is minted through (the other is SSO
+//! just-in-time provisioning in [`super::federated`]). Both resolve the
+//! organization the same way — from the email's domain — so which door a user
+//! arrives through cannot change whose contract they land on, and neither door
+//! can be the one that forgot to check the seat limit.
 
 use sqlx::PgPool;
 use systemprompt::identifiers::UserId;
+use systemprompt_web_shared::error::MarketplaceError;
 
+use crate::repositories::organizations;
 use crate::types::{CreateUserRequest, UpdateUserRequest, UserSummary};
 
 pub async fn create_user(
     pool: &PgPool,
     req: &CreateUserRequest,
-) -> Result<UserSummary, sqlx::Error> {
+) -> Result<UserSummary, MarketplaceError> {
+    // Why: resolved before the insert so a full plan rejects the request
+    // rather than leaving behind a user who exists but is entitled to nothing.
+    // An unclaimed domain is not an error — that user is not on a customer
+    // contract and consumes nobody's seat.
+    let org_id = organizations::crud::find_organization_for_email(pool, req.email.as_str()).await?;
+    if let Some(org_id) = org_id.as_deref()
+        && !is_existing_member(pool, &req.user_id, org_id).await?
+    {
+        organizations::seats::assert_seat_available(pool, org_id).await?;
+    }
+
     let user_id_str = req.user_id.as_str().to_owned();
     let status = req.status.clone().unwrap_or_else(|| "active".to_owned());
     let username = req.email.as_str();
@@ -48,7 +67,31 @@ pub async fn create_user(
     .fetch_one(pool)
     .await?;
 
+    if let Some(org_id) = org_id.as_deref() {
+        organizations::crud::set_membership(pool, &summary.user_id, org_id, "member").await?;
+    }
+
     Ok(summary)
+}
+
+/// Whether this user already holds a seat in the organization.
+///
+/// `create_user` upserts on email conflict, so re-running it for an existing
+/// member is a legitimate update — and must not be refused for want of a seat
+/// the user already occupies.
+async fn is_existing_member(
+    pool: &PgPool,
+    user_id: &UserId,
+    org_id: &str,
+) -> Result<bool, MarketplaceError> {
+    let found = sqlx::query_scalar!(
+        "SELECT 1 AS present FROM organization_members WHERE user_id = $1 AND org_id = $2",
+        user_id.as_str(),
+        org_id
+    )
+    .fetch_optional(pool)
+    .await?;
+    Ok(found.is_some())
 }
 
 pub async fn update_user(

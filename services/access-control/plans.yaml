@@ -1,0 +1,129 @@
+# Enterprise plan definitions and the organizations assigned to them.
+#
+# This file is the BOOTSTRAP source of truth. On startup the publish pipeline:
+#   1. Upserts each plan by `id` into the `plans` table.
+#   2. Upserts each organization by `slug` into `organizations`.
+#   3. Projects every plan's `grants` into `access_control_rules` at
+#      rule_type=organization, rule_value=<org slug>, for each org on that plan.
+#
+# Dashboard edits write to the database only — there is NO write-back to this
+# file. To make a plan or an organization permanent across deployments, edit
+# this file in the source repo and redeploy.
+#
+# A plan is not new enforcement machinery. It is a named bundle of the same
+# access_control_rules rows the roles and departments files write, keyed to a
+# broader subject. Enforcement is the ordinary resolver:
+#
+#   organization (300) -> role (200) -> department (100) -> user (0)
+#
+# deny-overrides, narrowest scope wins. So a customer admin can narrow what
+# their plan granted, and can never widen it.
+#
+# Schema:
+#   plans:
+#     - id:          stable slug, referenced by organizations[].plan
+#       name:        display name
+#       description: optional free text
+#       seat_limit:  max active members; omit for unlimited
+#       monthly_cost_cap_usd: spend ceiling; omit for uncapped
+#       monthly_price_usd: what the customer is billed per month. The cap is
+#                      what they may spend, this is what they pay, and the
+#                      enterprise dashboard reports the difference as margin.
+#                      Omit for a non-billed plan.
+#       grants:
+#         - entity_type: marketplace | plugin | agent | mcp_server | skill | gateway_route | hook
+#           entity_id:   string id of the entity
+#           access:      allow | deny  (default: allow)
+#
+#   organizations:
+#     - slug:   immutable; this is the rule_value grants are written against
+#       name:   display name
+#       plan:   plan id
+#       seat_limit_override: negotiated override of the plan's seat_limit
+#       email_domains: domains whose SSO arrivals join this org and consume a
+#                      seat. A federated user whose domain matches nothing
+#                      lands unattached: no organization, so no plan grants.
+#       status: active | suspended | cancelled  (default: active)
+#       platform: true on the operator's own tenant, whose members are the only
+#                 callers the enterprise console answers to. Exactly one
+#                 organization may set it, and no SSO arrival ever joins it —
+#                 domain matching skips platform tenants, so claiming a domain
+#                 cannot mint a super-admin.
+#
+# Suspending an organization revokes every grant at once without touching a
+# rule row — the subject provider reports no organization for a non-active org,
+# so its rules stop matching.
+#
+# Model tiering rides `gateway_route` grants: a route the organization has no
+# allow rule for is not dispatchable by its members, so "Standard does not get
+# Opus" is enforced at the gateway rather than hidden in the UI.
+
+plans:
+  - id: house
+    name: House
+    description: Astound-internal. Unlimited seats, no spend cap, everything on.
+    grants:
+      - entity_type: marketplace
+        entity_id: enterprise-demo
+      - entity_type: marketplace
+        entity_id: astound-admin
+
+  - id: standard
+    name: Standard
+    description: Salesforce plugins and the default model tier.
+    seat_limit: 25
+    monthly_cost_cap_usd: 2500
+    monthly_price_usd: 4000
+    grants:
+      - entity_type: marketplace
+        entity_id: enterprise-demo
+
+  - id: enterprise
+    name: Enterprise
+    description: Everything in Standard, plus the admin control plane.
+    seat_limit: 500
+    monthly_cost_cap_usd: 50000
+    monthly_price_usd: 75000
+    grants:
+      - entity_type: marketplace
+        entity_id: enterprise-demo
+      - entity_type: marketplace
+        entity_id: astound-admin
+
+organizations:
+  - slug: astound-digital
+    name: Astound Digital
+    plan: enterprise
+    email_domains:
+      - astounddigital.com
+      - astoundcommerce.com
+
+  - slug: systemprompt
+    name: systemprompt.io
+    plan: enterprise
+    email_domains:
+      - systemprompt.io
+
+  # Demo customers. They exist so the enterprise console has more than one
+  # tenant to show — a cross-customer view with a single row proves nothing.
+  # Their members, departments, and spend are seeded by
+  # extensions/web/schema/migrations/025_demo_organizations.sql.
+  - slug: northwind
+    name: Northwind Trading
+    plan: enterprise
+    email_domains:
+      - northwind.example
+
+  - slug: contoso
+    name: Contoso Retail
+    plan: standard
+    email_domains:
+      - contoso.example
+
+  - slug: initech
+    name: Initech Systems
+    plan: standard
+    seat_limit_override: 40
+    status: suspended
+    email_domains:
+      - initech.example

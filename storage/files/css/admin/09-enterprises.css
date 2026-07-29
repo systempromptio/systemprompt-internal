@@ -1,0 +1,170 @@
+/*
+ * Enterprise console: the portfolio list and one customer in detail.
+ *
+ * Colour here is semantic, never decorative. Green, amber, and red mean
+ * healthy, at-risk, and over — the same bands the gateway enforces — so a
+ * reader can scan the budget column without reading a number. The brand
+ * accent is reserved for interactive elements and never used to say "good".
+ */
+
+@layer components {
+
+.ent-kpis {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: var(--sp-space-3);
+    margin-bottom: var(--sp-space-5);
+}
+
+@media (max-width: 1400px) {
+    .ent-kpis { grid-template-columns: repeat(4, 1fr); }
+}
+
+@media (max-width: 900px) {
+    .ent-kpis { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* A portfolio running at a loss is the one thing on this page that must not
+   be missed, so the tile changes colour rather than only its sign. */
+.stat-card--negative .value {
+    color: var(--sp-danger);
+}
+
+.ent-seats {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-space-1);
+    min-width: 6rem;
+}
+
+.ent-seats__count {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.ent-seats__note {
+    font-size: var(--sp-text-xs);
+    color: var(--sp-text-tertiary);
+}
+
+/* Width comes from --ent-bar-pct, set per row in the template: the value is
+   data, and data belongs in the markup rather than in a generated stylesheet. */
+.ent-bar {
+    display: block;
+    width: 100%;
+    height: 0.25rem;
+    background: var(--sp-border-subtle);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.ent-bar--wide {
+    min-width: 8rem;
+}
+
+.ent-bar__fill {
+    display: block;
+    width: var(--ent-bar-pct, 0%);
+    height: 100%;
+    background: var(--sp-text-tertiary);
+    border-radius: inherit;
+}
+
+.ent-margin {
+    font-variant-numeric: tabular-nums;
+}
+
+.ent-margin--negative {
+    color: var(--sp-danger);
+}
+
+.ent-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.0625rem var(--sp-space-2);
+    border-radius: 999px;
+    font-size: var(--sp-text-xs);
+    font-variant-numeric: tabular-nums;
+    border: 1px solid transparent;
+}
+
+.ent-pill--ok {
+    color: var(--sp-success);
+    background: var(--sp-success-dim);
+}
+
+.ent-pill--warn {
+    color: var(--sp-warning);
+    background: var(--sp-warning-dim);
+}
+
+.ent-pill--over {
+    color: var(--sp-danger);
+    background: var(--sp-danger-dim);
+}
+
+.ent-pill--none {
+    color: var(--sp-text-tertiary);
+}
+
+.ent-summary {
+    display: grid;
+    gap: var(--sp-space-4);
+    margin-bottom: var(--sp-space-5);
+    padding: var(--sp-space-4);
+}
+
+.ent-summary__facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-space-6);
+}
+
+.ent-fact {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-space-1);
+}
+
+.ent-fact__label {
+    font-size: var(--sp-text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--sp-text-tertiary);
+}
+
+.ent-fact__value {
+    font-size: var(--sp-text-sm);
+    color: var(--sp-text-primary);
+}
+
+.ent-summary__pl {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--sp-space-3);
+}
+
+@media (max-width: 900px) {
+    .ent-summary__pl { grid-template-columns: repeat(2, 1fr); }
+}
+
+.ent-section {
+    margin-bottom: var(--sp-space-5);
+    padding: var(--sp-space-4);
+}
+
+.ent-section h2 {
+    display: flex;
+    align-items: baseline;
+    gap: var(--sp-space-2);
+    margin: 0 0 var(--sp-space-3);
+    font-size: var(--sp-text-base);
+}
+
+.ent-count {
+    font-size: var(--sp-text-xs);
+    font-weight: 400;
+    color: var(--sp-text-tertiary);
+}
+
+}

@@ -10,6 +10,12 @@ CREATE TABLE IF NOT EXISTS departments (
     id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
     name TEXT NOT NULL UNIQUE,
     description TEXT NOT NULL DEFAULT '',
+    -- Departments nest inside a customer organization (16_organizations.sql).
+    -- Declared here rather than there because a declarative schema may not
+    -- ALTER an earlier table; the FK, the NOT NULL, and the swap of
+    -- UNIQUE(name) for UNIQUE(org_id, name) are applied by
+    -- migrations/022_organizations_backfill.sql once `organizations` exists.
+    org_id TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

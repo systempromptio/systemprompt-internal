@@ -8,6 +8,7 @@ use super::SalesforceDeps;
 use super::config::SalesforceConfig;
 use super::tokens::exchange_code;
 use crate::repositories::users::{federated, salesforce_identity};
+use systemprompt_web_shared::error::MarketplaceError;
 
 #[derive(Deserialize)]
 struct SalesforceUserInfo {
@@ -63,6 +64,13 @@ pub(super) async fn resolve_identity(
     let resolved = federated::resolve_federated_user(&deps.write_pool, &claims, cfg.auto_provision)
         .await
         .map_err(|e| {
+            // Why: a full plan is the customer's problem to fix, not a fault,
+            // so it gets its own redirect reason and the login page can say
+            // "your organization has no seats left", not "something broke".
+            if matches!(e, MarketplaceError::Conflict(_)) {
+                tracing::warn!(error = %e, email, "Salesforce login rejected: seat limit reached");
+                return "seat_limit";
+            }
             tracing::error!(error = %e, "Failed to resolve federated Salesforce user");
             "error"
         })?
