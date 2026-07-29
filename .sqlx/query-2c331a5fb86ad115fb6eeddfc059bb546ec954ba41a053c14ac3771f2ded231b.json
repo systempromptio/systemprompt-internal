@@ -1,11 +1,11 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n            id              AS \"id!\",\n            request_id      AS \"request_id!\",\n            provider        AS \"provider!\",\n            model           AS \"model!\",\n            status          AS \"status!\",\n            latency_ms,\n            created_at      AS \"created_at!\",\n            completed_at,\n            user_id         AS \"user_id!\"\n        FROM ai_requests\n        WHERE session_id = $1\n        ORDER BY created_at ASC",
+  "query": "\n        SELECT\n            id                                  AS \"id!: AiRequestId\",\n            trace_id                            AS \"trace_id?: TraceId\",\n            model                               AS \"model!\",\n            status                              AS \"status!\",\n            latency_ms                          AS \"latency_ms?\",\n            input_tokens                        AS \"input_tokens?\",\n            output_tokens                       AS \"output_tokens?\",\n            cost_microdollars                   AS \"cost_microdollars!\",\n            created_at                          AS \"created_at!\"\n        FROM ai_requests\n        WHERE context_id = $1\n        ORDER BY created_at ASC\n        LIMIT 500\n        ",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id!",
+        "name": "id!: AiRequestId",
         "type_info": "Text",
         "origin": {
           "Table": {
@@ -16,28 +16,17 @@
       },
       {
         "ordinal": 1,
-        "name": "request_id!",
+        "name": "trace_id?: TraceId",
         "type_info": "Varchar",
         "origin": {
           "Table": {
             "table": "ai_requests",
-            "name": "request_id"
+            "name": "trace_id"
           }
         }
       },
       {
         "ordinal": 2,
-        "name": "provider!",
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "ai_requests",
-            "name": "provider"
-          }
-        }
-      },
-      {
-        "ordinal": 3,
         "name": "model!",
         "type_info": "Text",
         "origin": {
@@ -48,7 +37,7 @@
         }
       },
       {
-        "ordinal": 4,
+        "ordinal": 3,
         "name": "status!",
         "type_info": "Varchar",
         "origin": {
@@ -59,8 +48,8 @@
         }
       },
       {
-        "ordinal": 5,
-        "name": "latency_ms",
+        "ordinal": 4,
+        "name": "latency_ms?",
         "type_info": "Int4",
         "origin": {
           "Table": {
@@ -70,35 +59,46 @@
         }
       },
       {
+        "ordinal": 5,
+        "name": "input_tokens?",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "ai_requests",
+            "name": "input_tokens"
+          }
+        }
+      },
+      {
         "ordinal": 6,
+        "name": "output_tokens?",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "ai_requests",
+            "name": "output_tokens"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "cost_microdollars!",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "ai_requests",
+            "name": "cost_microdollars"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
         "name": "created_at!",
         "type_info": "Timestamptz",
         "origin": {
           "Table": {
             "table": "ai_requests",
             "name": "created_at"
-          }
-        }
-      },
-      {
-        "ordinal": 7,
-        "name": "completed_at",
-        "type_info": "Timestamptz",
-        "origin": {
-          "Table": {
-            "table": "ai_requests",
-            "name": "completed_at"
-          }
-        }
-      },
-      {
-        "ordinal": 8,
-        "name": "user_id!",
-        "type_info": "Varchar",
-        "origin": {
-          "Table": {
-            "table": "ai_requests",
-            "name": "user_id"
           }
         }
       }
@@ -110,15 +110,15 @@
     },
     "nullable": [
       false,
-      false,
       true,
       true,
       false,
       true,
-      false,
       true,
+      true,
+      false,
       false
     ]
   },
-  "hash": "a4dcb9382a9bc77924cba4380d8a18eff28d34237f05823f3c382085a6e4ec90"
+  "hash": "2c331a5fb86ad115fb6eeddfc059bb546ec954ba41a053c14ac3771f2ded231b"
 }

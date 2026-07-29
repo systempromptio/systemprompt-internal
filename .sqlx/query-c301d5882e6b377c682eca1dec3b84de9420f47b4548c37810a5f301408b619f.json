@@ -1,11 +1,11 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, model, provider, max_tokens, input_tokens, output_tokens, cost_microdollars, latency_ms\n           FROM ai_requests\n           WHERE mcp_execution_id = $1\n           ORDER BY created_at",
+  "query": "\n        SELECT id as \"id!: AiRequestId\", provider, model,\n            requested_model,\n            input_tokens, output_tokens, cost_microdollars as \"cost_microdollars!\",\n            latency_ms,\n            task_id as \"task_id: TaskId\",\n            trace_id as \"trace_id: TraceId\"\n        FROM ai_requests WHERE id = $1 OR id LIKE $2 LIMIT 1\n        ",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id",
+        "name": "id!: AiRequestId",
         "type_info": "Text",
         "origin": {
           "Table": {
@@ -16,17 +16,6 @@
       },
       {
         "ordinal": 1,
-        "name": "model",
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "ai_requests",
-            "name": "model"
-          }
-        }
-      },
-      {
-        "ordinal": 2,
         "name": "provider",
         "type_info": "Text",
         "origin": {
@@ -37,13 +26,24 @@
         }
       },
       {
-        "ordinal": 3,
-        "name": "max_tokens",
-        "type_info": "Int4",
+        "ordinal": 2,
+        "name": "model",
+        "type_info": "Text",
         "origin": {
           "Table": {
             "table": "ai_requests",
-            "name": "max_tokens"
+            "name": "model"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "requested_model",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "ai_requests",
+            "name": "requested_model"
           }
         }
       },
@@ -71,7 +71,7 @@
       },
       {
         "ordinal": 6,
-        "name": "cost_microdollars",
+        "name": "cost_microdollars!",
         "type_info": "Int8",
         "origin": {
           "Table": {
@@ -90,10 +90,33 @@
             "name": "latency_ms"
           }
         }
+      },
+      {
+        "ordinal": 8,
+        "name": "task_id: TaskId",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "ai_requests",
+            "name": "task_id"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "trace_id: TraceId",
+        "type_info": "Varchar",
+        "origin": {
+          "Table": {
+            "table": "ai_requests",
+            "name": "trace_id"
+          }
+        }
       }
     ],
     "parameters": {
       "Left": [
+        "Text",
         "Text"
       ]
     },
@@ -105,8 +128,10 @@
       true,
       true,
       false,
+      true,
+      true,
       true
     ]
   },
-  "hash": "a9dbdcb283ada5acb4df313a404db54e66e48d1b499820f96c2d91a84dc04800"
+  "hash": "c301d5882e6b377c682eca1dec3b84de9420f47b4548c37810a5f301408b619f"
 }
