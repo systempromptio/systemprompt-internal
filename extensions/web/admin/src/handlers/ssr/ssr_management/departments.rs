@@ -9,19 +9,6 @@ use crate::types::departments::{
     Department, DepartmentMember, DepartmentSummary, DepartmentTopTool,
 };
 
-pub(super) fn url_escape(s: &str) -> String {
-    let mut out = String::with_capacity(s.len());
-    for b in s.bytes() {
-        match b {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
-                out.push(b as char);
-            },
-            _ => out.push_str(&format!("%{b:02X}")),
-        }
-    }
-    out
-}
-
 #[derive(Debug, Serialize)]
 pub(super) struct DepartmentsPageData {
     pub page: &'static str,
@@ -36,7 +23,6 @@ pub(super) struct DepartmentDetailPageData {
     pub department: Department,
     pub members: Vec<DepartmentMember>,
     pub member_count: i64,
-    pub assignments_url: String,
     pub top_tools: Vec<DepartmentTopTool>,
     pub total_input_tokens: i64,
     pub total_output_tokens: i64,

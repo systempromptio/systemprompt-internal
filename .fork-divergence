@@ -32,7 +32,6 @@ extensions/web/src/lib.rs	# brand: crate doc names the product
 # not drift. Converging these would mean shipping one product's pages
 # from the other's binary.
 # ---------------------------------------------------------------------
-extensions/web/admin/src/handlers/public_register.rs	# astound limits registration to @astounddigital.com / @astoundcommerce.com; template takes a role argument
 extensions/web/admin/src/handlers/users.rs	# astound adds extract_mcp_accessor_user, accepting an Mcp-audience JWT for the Salesforce token accessor
 extensions/web/admin/src/lib.rs	# astound mounts the Salesforce token + Slack alert surface; template mounts the bridge plugin-file plane
 extensions/mcp/systemprompt/src/server/mod.rs	# astound serves artifact resources by URI (parse/read/shell template); template serves only the viewer resource
@@ -51,7 +50,22 @@ extensions/web/admin/src/handlers/webhook/governance/engine.rs	# astound resolve
 extensions/web/admin/src/handlers/webhook/governance/mod.rs	# re-exports the policy editor the template alone mounts
 extensions/web/src/extension.rs	# astound loads a Salesforce SSO config and a skills-page config; template loads a feature-pages config
 extensions/web/src/extension_impl.rs	# astound mounts the Salesforce router and skills-page prerenderer; template mounts blog providers, feature prerenderers, the bridge router and an oauth-client seed
-extensions/web/admin/src/routes/ssr.rs	# astound mounts the Salesforce auth routes and redirects admins to /admin/access/users; template mounts the governance routes and always redirects to /admin/profile
+extensions/web/admin/src/routes/ssr.rs	# astound mounts the Salesforce auth routes and the enterprise console, and opens platform admins on /admin/enterprises; template mounts the governance routes and always redirects to /admin/profile
+
+# Astound is a pooled multi-tenant instance: its console is a cross-customer
+# view of organizations, plans, and margin, gated on membership of the platform
+# tenant. The template is single-tenant, has no such tenant to belong to, and
+# gates on the admin role alone.
+extensions/web/admin/src/types/user_context.rs	# astound carries is_platform_admin alongside is_admin
+extensions/web/admin/src/handlers/ssr/context.rs	# astound exposes is_platform_admin to the page shell, which is what the nav renders on
+extensions/web/admin/src/middleware/gates.rs	# astound adds the platform-admin gate guarding the cross-customer pages
+extensions/web/admin/src/handlers/ssr/types/mod.rs	# declares astound's enterprise page context types
+extensions/web/admin/src/handlers/ssr/ssr_demo_help/mod.rs	# astound explains the enterprise console; the template has no such page
+extensions/web/admin/src/handlers/ssr/ssr_management/departments.rs	# astound derives department entitlement from the enterprise plan, so it has no access-matrix link to pass the template
+extensions/web/admin/src/authz/mod.rs	# astound registers the organization subject dimension at precedence 300; the template has one tenant and no such band
+extensions/web/admin/src/repositories/config/acl_yaml_loader.rs	# astound reads a third bootstrap file, plans.yaml, and projects each plan's grants onto its organizations
+extensions/web/admin/src/repositories/users/mutations.rs	# astound resolves the new user's organization from their email domain and refuses a full plan, so creation returns MarketplaceError rather than sqlx::Error
+
 
 
 # ---------------------------------------------------------------------

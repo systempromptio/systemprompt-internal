@@ -223,6 +223,7 @@ test-unit:
 
 _test-unit-uncoordinated:
     cargo test -p systemprompt-web-admin --tests
+    cargo test -p systemprompt-web-extension --tests
     cargo test --manifest-path tests/Cargo.toml -p mcp-unit-tests -p web-unit-tests
 
 # DB-backed integration tests. Creates/drops throwaway mcp_ext_test_*
@@ -322,6 +323,21 @@ _lint-gates-uncoordinated:
         exit 1
     fi
     echo "all ${#gates[@]} lint gates passed"
+
+# The whole gate, in one command. This repo runs no hosted CI, so nothing
+# else will catch what this misses: run it before you push.
+#
+# Order is cheapest-first so a formatting slip fails in seconds rather than
+# after a full clippy pass. `just clippy` pulls in lint-no-synthesis and the
+# 19 source gates, so they are not repeated here.
+verify:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cargo fmt --all -- --check
+    bash scripts/check-sqlx-cache.sh
+    {{just_executable()}} clippy
+    {{just_executable()}} test
+    echo "verify: format, sqlx cache, lint gates, clippy, and tests all pass"
 
 # Cross-file referential integrity for services/ (ACL entity ids, MCP ports)
 validate:
@@ -1107,13 +1123,15 @@ core-bump version:
     just clippy
     @echo "core-bump {{version}} complete — review the diff, run tests, commit to main, push, then: just release {{version}}"
 
-# Step B: push the release tag. Everything downstream (image, chart,
-# tarballs, smoke tests, GHCR pruning) is automatic from the tag.
+# Step B: tag the release. Nothing downstream is automatic — this repo runs no
+# hosted CI, so the tag is a marker and the artifacts are built here by hand
+# (just build-all, just docker-build) when a release actually needs shipping.
 release version:
     @test -z "$(git status --porcelain)" || (echo "ERROR: working tree not clean" && exit 1)
     git fetch origin main
     @test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" || (echo "ERROR: HEAD != origin/main — push first" && exit 1)
     scripts/sync-release-version.sh {{version}} --check
+    just verify
     git tag "v{{version}}"
     git push origin "v{{version}}"
-    @echo "v{{version}} pushed — watch Actions: docker (image), release-gateway (tarballs), helm (chart), smoke-tests"
+    @echo "v{{version}} tagged and pushed. No CI will pick it up — build artifacts locally with 'just build-all'."

@@ -113,6 +113,10 @@ fn demo_help_admin_pages(page: &str) -> Option<(&'static str, &'static str)> {
             "<strong>Governance</strong> provides oversight and policy management for AI usage across your organisation. Review every tool call decision (allowed, denied, or modified), configure usage policies per role and department, and set guardrails for how Claude is used by your team. Governance tracks compliance rates, policy violations, and cost allocation in real time. In production, governance policies are enforced automatically at the tool call level. Connect via <strong>Claude Code</strong> for the best evaluation experience &mdash; it is the recommended integration.",
             "tool-governance",
         )),
+        "enterprises" | "enterprise-detail" => Some((
+            "<strong>Enterprises</strong> is the top level of this console: every organization on the instance, the plan it bought, the seats it filled, and what that licence earns against what its inference costs. Entitlement is not edited here &mdash; a plan is a named bundle of access rules, projected onto the organization from <code>services/access-control/plans.yaml</code>, and enforced by the same resolver that decides every tool call. Drill into an enterprise for its users, departments, granted entitlements, and model usage.",
+            "access-control",
+        )),
         "access-control" => Some((
             "<strong>Access Control</strong> manages permissions, roles, and authorisation policies across your organisation. Define which roles and departments can access specific plugins, agents, and MCP servers. Access control operates at the tool call level &mdash; when Claude invokes a governed tool, the platform checks the user's role and department against the configured policies in real time. Audit every permission change with full history. Connect via <strong>Claude Code</strong> for the best evaluation experience &mdash; it is the recommended integration.",
             "access-control",

@@ -33,7 +33,9 @@ pub(super) fn default_scopes() -> String {
     "openid email profile api".to_owned()
 }
 
-// Why: Mirrors the registration gate in [`crate::handlers::public_register`].
+// Why: Salesforce SSO is the only way a non-operator account comes into
+// existence, so this list is the whole provisioning gate. Operators are created
+// out-of-band with `admin users create` and enrol a passkey.
 pub(super) fn default_allowed_domains() -> Vec<String> {
     vec![
         "astounddigital.com".to_owned(),
