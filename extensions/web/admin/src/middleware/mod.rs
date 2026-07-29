@@ -12,7 +12,7 @@ mod gates;
 
 pub(crate) use gates::{
     non_admin_gate_middleware, require_admin_middleware, require_auth_middleware,
-    require_user_middleware,
+    require_platform_admin_middleware, require_user_middleware,
 };
 
 use std::sync::Arc;
@@ -60,6 +60,10 @@ pub(crate) async fn user_context_middleware(
         .unwrap_or_else(|| (vec!["user".to_owned()], String::new()));
 
     let is_admin = roles.contains(&"admin".to_owned());
+    // Why: resolved per request rather than carried in the session token —
+    // revoking a super-admin has to take effect on the next request, not
+    // whenever their JWT happens to refresh.
+    let is_platform_admin = is_admin && platform_member(&pool, &session.user_id).await;
     let ctx = UserContext {
         user_id: session.user_id,
         username: session.username,
@@ -67,12 +71,26 @@ pub(crate) async fn user_context_middleware(
         roles,
         department,
         is_admin,
+        is_platform_admin,
         email_verified: false,
         session_id: session.session_id,
     };
 
     request.extensions_mut().insert(ctx);
     next.run(request).await
+}
+
+/// Fails closed: a lookup error denies the cross-customer console rather than
+/// opening it, which is the opposite of how the gateway guards fail. A blip
+/// there would take down inference for every customer; here it costs one
+/// operator one retry.
+async fn platform_member(pool: &PgPool, user_id: &UserId) -> bool {
+    super::repositories::organizations::crud::get_platform_membership(pool, user_id)
+        .await
+        .inspect_err(
+            |e| tracing::warn!(error = %e, user_id = %user_id, "platform membership lookup failed; denying"),
+        )
+        .unwrap_or(false)
 }
 
 async fn fetch_user_roles_department(

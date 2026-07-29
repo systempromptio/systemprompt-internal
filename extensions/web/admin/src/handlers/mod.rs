@@ -5,7 +5,6 @@
 
 pub(crate) mod access_control;
 pub(crate) mod catalog;
-pub(crate) mod demo_register;
 pub(crate) mod departments;
 pub(crate) mod devices;
 pub(crate) mod entity_access;
@@ -14,10 +13,8 @@ pub(crate) mod gateway_access;
 pub(crate) mod gateway_catalog;
 pub(crate) mod hooks_track;
 mod jobs;
-pub(crate) mod magic_link;
 mod plugins;
 mod plugins_env;
-pub(crate) mod public_register;
 pub(crate) mod resources;
 pub(crate) mod responses;
 pub(crate) mod salesforce_auth;
