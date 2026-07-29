@@ -89,6 +89,9 @@ extensions/web/admin/src/repositories/users/access_control/mod.rs	# re-exports c
 extensions/web/admin/src/repositories/users/access_control/rules.rs	# count_assignments_by_entity_type backs the astound-only catalog counts
 extensions/web/admin/src/repositories/users/user_queries.rs	# astound's department rollup labels the unassigned bucket, which its access matrix reads back
 extensions/web/site/src/config_loader/mod.rs	# astound loads the Salesforce SSO and skills-page configs; the template loads a feature-pages config
+extensions/web/admin/src/handlers/mod.rs	# astound mounts the catalog and device handlers; the template mounts access tokens
+extensions/web/admin/src/handlers/ssr/format.rs	# span and local-time helpers back the template-only evals and sessions pages
+extensions/web/admin/src/handlers/ssr/list_view.rs	# chip, preset and preserved-query helpers back the template-only list pages
 
 # ---------------------------------------------------------------------
 # DEBT - one side is simply ahead. Port it, then delete the line.

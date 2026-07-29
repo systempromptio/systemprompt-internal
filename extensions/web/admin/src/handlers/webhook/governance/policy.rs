@@ -69,13 +69,6 @@ pub(crate) fn chain() -> std::sync::RwLockReadGuard<'static, PolicyChain> {
         .unwrap_or_else(std::sync::PoisonError::into_inner)
 }
 
-pub(crate) fn reload() {
-    let new_chain = load_chain();
-    if let Ok(mut guard) = CHAIN.write() {
-        *guard = new_chain;
-    }
-}
-
 fn load_chain() -> PolicyChain {
     let configs = load_configs();
     let factories: HashMap<&'static str, PolicyFactory> = inventory::iter::<PolicyRegistration>()
