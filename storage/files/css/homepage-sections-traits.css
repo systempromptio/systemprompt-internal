@@ -103,7 +103,7 @@
   text-align: center;
   padding: var(--sp-space-xl);
   background: rgba(10, 10, 10, 0.03);
-  border-radius: var(--sp-radius-button);
+  border-radius: var(--sp-radius-md);
   margin-top: var(--sp-space-xl);
 }
 

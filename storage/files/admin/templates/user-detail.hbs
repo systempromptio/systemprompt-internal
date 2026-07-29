@@ -140,8 +140,8 @@
         </p>
         {{/if}}
         <p class="text-muted runtime-meta">
-            Marketplace baseline comes from <code class="code-inline">services/marketplaces/*/config.yaml</code>; per-user / per-department allow/deny overrides live in <code class="code-inline">access_control_rules</code>. Manage in the
-            <a href="/admin/access-control?user_id={{user.user_id}}">access matrix</a>.
+            Granted by the plan this user's enterprise is on, projected into <code class="code-inline">access_control_rules</code>. Change the plan in <code class="code-inline">services/access-control/plans.yaml</code>; see the
+            <a href="/admin/enterprises">enterprise list</a> for what each plan carries.
         </p>
     </div>
 
@@ -220,8 +220,7 @@
         {{> components/empty-state message="No access tokens issued."}}
         {{/if}}
         <div class="toolbar toolbar--compact">
-            <a class="btn btn-sm btn-primary" href="/admin/access/devices">Issue PAT</a>
-            <a class="btn btn-sm btn-outline" href="/bridge-auth/device-link?prefill_user={{user.user_id}}">Link desktop app</a>
+            <a class="btn btn-sm btn-primary" href="/bridge-auth/device-link?prefill_user={{user.user_id}}">Link desktop app</a>
         </div>
     </div>
 

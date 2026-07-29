@@ -15,18 +15,17 @@ pub(super) fn css_assets(storage_css: &Path) -> Vec<AssetDefinition> {
     v.extend(blog_css(storage_css));
     v.extend(docs_css(storage_css));
     v.extend(syntax_css(storage_css));
+    v.extend(skills_css(storage_css));
     v
 }
 
 fn core_css(p: &Path) -> Vec<AssetDefinition> {
     vec![
         css!(p, "core/variables.css"),
-        css!(p, "core/tokens.css"),
         css!(p, "core/fonts.css"),
         css!(p, "core/reset.css"),
         css!(p, "components/header-core.css"),
         css!(p, "components/header-dropdown.css"),
-        css!(p, "components/header-theme-toggle.css"),
         css!(p, "components/footer.css"),
         css!(p, "components/mobile-menu.css"),
         css!(p, "components/cta-buttons.css"),
@@ -117,4 +116,8 @@ fn docs_css(p: &Path) -> Vec<AssetDefinition> {
 
 fn syntax_css(p: &Path) -> Vec<AssetDefinition> {
     vec![css!(p, "syntax-highlight.css")]
+}
+
+fn skills_css(p: &Path) -> Vec<AssetDefinition> {
+    vec![css!(p, "skills-page.css")]
 }

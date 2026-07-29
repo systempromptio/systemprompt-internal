@@ -127,4 +127,13 @@
 }
 .advanced > div { padding: var(--sp-space-3) 0; }
 
+.device-link-actions {
+    display: flex;
+    gap: var(--sp-space-3);
+}
+
+.device-link-form {
+    flex: 1;
+}
+
 }

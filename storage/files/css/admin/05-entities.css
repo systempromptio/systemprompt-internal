@@ -52,21 +52,21 @@
 }
 
 .mcp-badge-success {
-    border-color: color-mix(in oklab, var(--sp-color-success) 40%, transparent);
-    background: color-mix(in oklab, var(--sp-color-success) 14%, transparent);
-    color: var(--sp-color-success);
+    border-color: color-mix(in oklab, var(--sp-success) 40%, transparent);
+    background: color-mix(in oklab, var(--sp-success) 14%, transparent);
+    color: var(--sp-success);
 }
 
 .mcp-badge-danger {
-    border-color: color-mix(in oklab, var(--sp-color-primary) 45%, transparent);
-    background: color-mix(in oklab, var(--sp-color-primary) 14%, transparent);
-    color: var(--sp-color-primary);
+    border-color: color-mix(in oklab, var(--sp-danger) 45%, transparent);
+    background: color-mix(in oklab, var(--sp-danger) 14%, transparent);
+    color: var(--sp-danger);
 }
 
 .mcp-badge-warning {
-    border-color: color-mix(in oklab, var(--sp-color-warning) 45%, transparent);
-    background: color-mix(in oklab, var(--sp-color-warning) 16%, transparent);
-    color: var(--sp-color-warning);
+    border-color: color-mix(in oklab, var(--sp-warning) 45%, transparent);
+    background: color-mix(in oklab, var(--sp-warning) 16%, transparent);
+    color: var(--sp-warning);
 }
 
 /* KPI strip / request charts ---------------------------------------------- */
@@ -142,7 +142,7 @@
 .cost-spark__bar {
     flex: 1;
     min-height: 2px;
-    background: var(--sp-accent-blue, var(--sp-accent));
+    background: var(--sp-info);
     border-radius: var(--sp-radius-xs) var(--sp-radius-xs) 0 0;
     opacity: 0.85;
 }
@@ -233,7 +233,7 @@
 }
 
 .trace-stats__value--bad {
-    color: var(--sp-color-primary);
+    color: var(--sp-danger);
 }
 
 .trace-row__id {
@@ -318,7 +318,7 @@
 }
 
 .waterfall__bar--bad {
-    outline: 1px solid var(--sp-color-primary);
+    outline: 1px solid var(--sp-danger);
 }
 
 .waterfall__dur {
@@ -336,9 +336,9 @@
     flex-shrink: 0;
 }
 
-.waterfall__swatch--gateway { background: var(--sp-accent-blue, #4f8cff); }
-.waterfall__swatch--governance { background: var(--sp-color-warning); }
-.waterfall__swatch--tool { background: var(--sp-color-success); }
+.waterfall__swatch--gateway { background: var(--sp-info); }
+.waterfall__swatch--governance { background: var(--sp-warning); }
+.waterfall__swatch--tool { background: var(--sp-success); }
 .waterfall__swatch--model { background: var(--sp-accent); }
 .waterfall__swatch--spawn { background: #a06bff; }
 

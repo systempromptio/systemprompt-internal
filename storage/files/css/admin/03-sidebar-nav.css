@@ -26,19 +26,8 @@
     height: auto;
 }
 
+.admin-logo--light { display: inline; }
 .admin-logo--dark { display: none; }
-
-[data-theme="dark"] .admin-logo--light { display: none; }
-
-[data-theme="dark"] .admin-logo--dark { display: inline; }
-
-[data-theme="dark"] .admin-sidebar {
-    box-shadow: inset -1px 0 0 var(--sp-sidebar-edge-line);
-}
-
-[data-theme="dark"] .admin-sidebar-brand {
-    background: linear-gradient(180deg, var(--sp-sidebar-brand-glow) 0%, transparent 100%);
-}
 
 .admin-sidebar nav {
     flex: 1;

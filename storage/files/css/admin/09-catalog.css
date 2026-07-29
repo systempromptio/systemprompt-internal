@@ -20,7 +20,7 @@
 }
 
 .catalog-card:hover {
-    border-color: var(--sp-border-hover);
+    border-color: var(--sp-border-strong);
     box-shadow: var(--sp-shadow-accent-md);
     transform: translateY(-2px);
 }
@@ -242,6 +242,10 @@
     margin: 0;
     color: var(--sp-text-primary);
     text-align: right;
+}
+
+.is-filtered-out {
+    display: none;
 }
 
 }

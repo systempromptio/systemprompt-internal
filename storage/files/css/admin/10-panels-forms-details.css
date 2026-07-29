@@ -144,4 +144,69 @@
     }
 }
 
+.field-hint {
+    margin: var(--sp-space-1) 0 0;
+    font-size: var(--sp-text-xs);
+    color: var(--sp-text-tertiary);
+    line-height: var(--sp-leading-normal);
+}
+
+.form-advanced {
+    margin-top: var(--sp-space-3);
+}
+
+.form-advanced > summary {
+    cursor: pointer;
+    font-size: var(--sp-text-sm);
+    font-weight: var(--sp-font-medium);
+    color: var(--sp-text-secondary);
+    padding: var(--sp-space-2) 0;
+}
+
+.install-block {
+    margin-top: var(--sp-space-4);
+    padding-top: var(--sp-space-4);
+    border-top: 1px solid var(--sp-border-subtle);
+}
+
+.install-intro {
+    font-size: var(--sp-text-sm);
+    color: var(--sp-text-secondary);
+    margin: 0 0 var(--sp-space-2);
+}
+
+.download-link,
+.install-guide-link {
+    font-size: var(--sp-text-sm);
+    font-weight: var(--sp-font-medium);
+    color: var(--sp-accent);
+    text-decoration: none;
+}
+
+.download-link:hover,
+.install-guide-link:hover {
+    color: var(--sp-accent-hover);
+    text-decoration: underline;
+}
+
+.snippet-wrap {
+    position: relative;
+}
+
+.btn-copy-snippet {
+    position: absolute;
+    top: var(--sp-space-2);
+    right: var(--sp-space-2);
+}
+
+.panel-footer-state {
+    display: flex;
+    gap: var(--sp-space-2);
+    width: 100%;
+}
+
+.panel-footer-state[hidden] {
+    display: none;
+}
+
 }

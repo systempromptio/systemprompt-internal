@@ -99,11 +99,6 @@
 
 .login-logo .logo-dark { display: none; }
 
-@media (prefers-color-scheme: dark) {
-    .login-logo .logo-light { display: none; }
-    .login-logo .logo-dark { display: block; }
-}
-
 .login-container .form-group input:focus-visible,
 .login-container .form-group select:focus-visible,
 .login-container .form-group textarea:focus-visible {
@@ -114,14 +109,6 @@
 .login-container .btn,
 .login-container button[type="submit"] {
     border-radius: var(--sp-radius-button);
-}
-
-@media (prefers-color-scheme: dark) {
-    .login-container .card {
-        background: var(--sp-bg-glass);
-        backdrop-filter: blur(16px);
-        border: 1px solid var(--sp-bg-glass-border);
-    }
 }
 
 main.login-container {
@@ -295,6 +282,53 @@ main.login-container {
     min-height: auto;
     padding: 0;
     background: none;
+}
+
+body.auth-light {
+    margin: 0;
+    background: var(--sp-bg-base);
+    color: var(--sp-text-primary);
+    font-family: var(--sp-font-body);
+}
+
+.sso-block {
+    margin: 0 0 1rem;
+}
+
+.sso-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--sp-space-2);
+    background: #00a1e0;
+    color: #fff;
+    border: 1px solid #00a1e0;
+    font-weight: var(--sp-font-semibold);
+}
+
+.sso-btn:hover {
+    background: #0089bf;
+    border-color: #0089bf;
+}
+
+.sso-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    color: var(--sp-text-tertiary);
+    font-size: var(--sp-text-xs);
+    margin: 0.85rem 0 0.25rem;
+}
+
+.sso-divider::before,
+.sso-divider::after {
+    content: "";
+    flex: 1;
+    border-top: 1px solid var(--sp-border-default);
+}
+
+.sso-divider span {
+    padding: 0 0.6rem;
 }
 
 }

@@ -7,42 +7,6 @@
     <title>{{branding.domain}} - Sign In or Create Account</title>
     <link rel="stylesheet" href="/css/core/fonts.css?v={{css_version}}">
     <link rel="stylesheet" href="/css/admin-bundle.css?v={{css_version}}">
-    <script>(function(){document.documentElement.style.colorScheme='light';})();</script>
-    <style>
-        html,body{margin:0;background:var(--sp-bg-base);color:var(--sp-text-primary);font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
-        .auth-page{display:flex;min-height:100vh;background:radial-gradient(ellipse at 30% 20%,color-mix(in oklch,var(--sp-accent) 6%,transparent) 0%,transparent 50%),radial-gradient(ellipse at 70% 80%,color-mix(in oklch,var(--sp-section-plugins) 4%,transparent) 0%,transparent 50%),linear-gradient(180deg,var(--sp-bg-canvas) 0%,var(--sp-bg-base) 100%)}
-        .auth-info{flex:1;padding:3rem 3rem 3rem 4rem;display:flex;flex-direction:column;justify-content:center;max-width:640px}
-        .auth-form-col{display:flex;align-items:center;justify-content:center;padding:2rem;min-width:420px}
-        .auth-info h2{font-size:1.1rem;font-weight:700;color:var(--sp-text-primary);margin:1.5rem 0 0.5rem}
-        .auth-info h3{font-size:0.85rem;font-weight:600;color:var(--sp-text-primary);margin:0.75rem 0 0.25rem}
-        .auth-info p{font-size:0.82rem;color:var(--sp-text-secondary);line-height:1.6;margin:0 0 0.5rem}
-        .auth-info .text-muted{color:var(--sp-text-tertiary)}
-        .auth-badge{display:inline-flex;align-items:center;gap:0.4rem;background:var(--sp-accent-dim);color:var(--sp-accent-hover);font-size:0.75rem;font-weight:600;padding:0.3rem 0.75rem;border-radius:999px;margin-bottom:1rem}
-        .auth-divider{border:none;border-top:1px solid var(--sp-border-default);margin:1.25rem 0}
-        .auth-flow-steps{display:flex;flex-direction:column;gap:0.4rem;margin:0.5rem 0}
-        .auth-flow-step{display:flex;align-items:flex-start;gap:0.5rem;font-size:0.78rem;color:var(--sp-text-secondary);line-height:1.5}
-        .auth-flow-step .step-num{display:inline-flex;align-items:center;justify-content:center;min-width:1.4rem;height:1.4rem;border-radius:50%;background:var(--sp-accent);color:#fff;font-size:0.65rem;font-weight:700;flex-shrink:0;margin-top:0.1rem}
-        .auth-tabs{display:flex;gap:0;border:1px solid var(--sp-border-default);border-radius:8px;overflow:hidden;margin-bottom:1.25rem}
-        .auth-tab{flex:1;padding:0.55rem 0;text-align:center;font-size:0.8rem;font-weight:600;background:transparent;border:none;color:var(--sp-text-tertiary);cursor:pointer}
-        .auth-tab.active{background:var(--sp-accent);color:#fff}
-        @media (max-width: 900px){
-            .auth-page{flex-direction:column}
-            .auth-info{max-width:100%;padding:2rem 1.5rem 1rem}
-            .auth-form-col{min-width:0;padding:1rem 1.5rem 2rem}
-        }
-        /* Salesforce SSO button + divider */
-        .sso-block{margin:0 0 1rem}
-        .sso-btn{display:flex;align-items:center;justify-content:center;gap:0.5rem;background:#00a1e0;color:#fff !important;border:1px solid #00a1e0;font-weight:600}
-        .sso-btn:hover{background:#0089bf;border-color:#0089bf}
-        .sso-divider{display:flex;align-items:center;text-align:center;color:var(--sp-text-tertiary);font-size:0.72rem;margin:0.85rem 0 0.25rem}
-        .sso-divider::before,.sso-divider::after{content:"";flex:1;border-top:1px solid var(--sp-border-default)}
-        .sso-divider span{padding:0 0.6rem}
-        /* Force light mode regardless of OS dark-mode preference */
-        .login-logo .logo-light{display:block !important}
-        .login-logo .logo-dark{display:none !important}
-        .login-container .card{background:var(--sp-bg-surface) !important;backdrop-filter:none !important;border:1px solid var(--sp-border-subtle) !important}
-        .card{background:linear-gradient(180deg,var(--sp-bg-surface) 0%,var(--sp-bg-canvas) 60%,var(--sp-bg-base) 100%) !important}
-    </style>
 </head>
 <body class="auth-light">
     <main class="auth-page">
@@ -51,39 +15,39 @@
                 <div class="auth-badge">Astound Digital &middot; Internal AI Platform</div>
                 <h2>Welcome</h2>
                 <p>
-                    This is Astound Digital's internal AI platform. Create an account with your Astound work
-                    email, then sign in with the passkey created during registration. WebAuthn passkeys are
-                    the authentication mechanism &mdash; no passwords are created or stored.
+                    This is Astound Digital's internal AI platform. Sign in with your Salesforce
+                    account &mdash; your Astound accounts are provisioned automatically on first
+                    sign-in. Platform operators sign in with a passkey. No passwords are created
+                    or stored.
                 </p>
 
                 <details class="auth-more">
-                <summary>How passkey login works, recovery, and enterprise options</summary>
+                <summary>How sign-in works, recovery, and enterprise options</summary>
                 <hr class="auth-divider">
 
                 <h2>Getting Started</h2>
                 <div class="auth-flow-steps">
-                    <div class="auth-flow-step"><span class="step-num">1</span><span>Create your account with your <strong>@astounddigital.com</strong> or <strong>@astoundcommerce.com</strong> email and register a passkey</span></div>
+                    <div class="auth-flow-step"><span class="step-num">1</span><span>Sign in with Salesforce using your Astound work account &mdash; there is no separate registration step</span></div>
                     <div class="auth-flow-step"><span class="step-num">2</span><span>Download the desktop bridge for <a href="https://github.com/systempromptio/systemprompt-core/releases/latest/download/systemprompt-bridge-aarch64-apple-darwin">Mac</a> or <a href="https://github.com/systempromptio/systemprompt-core/releases/latest/download/systemprompt-bridge-x86_64-pc-windows-msvc.exe">Windows</a></span></div>
-                    <div class="auth-flow-step"><span class="step-num">3</span><span>Connect Claude Code or Codex from your dashboard &mdash; the bridge installs your Cowork profile and syncs your skills</span></div>
-                    <div class="auth-flow-step"><span class="step-num">4</span><span>Use Astound skills (RFP responses, SOWs, brand voice, and more) directly inside your AI tools</span></div>
+                    <div class="auth-flow-step"><span class="step-num">3</span><span>Approve the device link &mdash; the bridge installs your Cowork profile and syncs your skills</span></div>
+                    <div class="auth-flow-step"><span class="step-num">4</span><span>Use Astound skills and your own Salesforce data directly inside your AI tools</span></div>
                 </div>
 
                 <hr class="auth-divider">
 
-                <h2>How Passkey Sign-In Works</h2>
-                <p>Passkey authentication uses public-key cryptography. Your browser generates a key pair bound
-                    to this domain; the private key stays on your device (or in your password manager). The server
-                    stores only the public key, verifies a signed challenge, and issues an OAuth 2.0 session token
-                    via PKCE.</p>
+                <h2>How Salesforce Sign-In Works</h2>
+                <p>Authentication happens against Astound's Salesforce org over OAuth 2.0 with PKCE,
+                    so your org's existing login policies &mdash; including MFA &mdash; apply unchanged.
+                    Your first sign-in provisions your account automatically, provided your work email
+                    is verified and on an allow-listed domain.</p>
 
                 <hr class="auth-divider">
 
-                <h2>Lost Your Passkey?</h2>
+                <h2>Trouble Signing In?</h2>
                 <p>
-                    If you have lost access to your passkey (new device, cleared browser data), use
-                    "Don't have a passkey?" on the sign-in tab to receive a time-limited, single-use
-                    link that lets you create a new passkey on this device. If you get stuck, contact
-                    the platform team.
+                    If Salesforce sign-in is refused, the message above the button explains why.
+                    Platform operators who have lost passkey access should contact the platform
+                    team for a new setup link.
                 </p>
                 </details>
             </div>
@@ -97,14 +61,9 @@
                         <img src="/files/images/logo-white.svg" alt="{{branding.domain}}" height="40" class="logo-dark">
                     </div>
 
-                    <div class="auth-tabs" role="tablist">
-                        <button type="button" class="auth-tab active" id="tab-signin" role="tab" aria-selected="true">Sign in</button>
-                        <button type="button" class="auth-tab" id="tab-register" role="tab" aria-selected="false">Create account</button>
-                    </div>
-
-                    <!-- ============ Sign-in pane (ids consumed by webauthn-login.js) ============ -->
+                    <!-- ids consumed by webauthn-login.js -->
                     <div id="pane-signin">
-                        <p class="login-subtitle">Sign in with your passkey</p>
+                        <p class="login-subtitle">Sign in</p>
 
                         <div id="error" class="login-error" role="alert" aria-live="polite"></div>
 
@@ -123,35 +82,6 @@
                             <div class="form-actions">
                                 <button type="button" id="sign-in-btn" class="btn btn-primary w-full">Sign in with Passkey</button>
                             </div>
-                            <p class="text-center mt-3 text-sm">
-                                <a href="#" id="magic-link-trigger" class="text-tertiary">Don't have a passkey?</a>
-                            </p>
-                        </div>
-
-                        <div id="magic-link-form" hidden>
-                            <p class="text-sm text-tertiary mb-3 text-center">
-                                Enter your email and we'll send you a link to create a passkey on this device.
-                            </p>
-                            <div class="form-group">
-                                <label for="magic-email">Email</label>
-                                <input class="form-input" type="email" id="magic-email" placeholder="you@astounddigital.com" required autocomplete="email">
-                            </div>
-                            <div class="form-actions">
-                                <button type="button" id="send-magic-btn" class="btn btn-primary w-full">Send Magic Link</button>
-                            </div>
-                            <p class="text-center mt-2">
-                                <a href="#" id="back-to-passkey" class="text-tertiary text-sm">Back to passkey sign in</a>
-                            </p>
-                        </div>
-
-                        <div id="magic-link-sent" class="text-center p-4" hidden>
-                            <p class="text-base text-primary mb-2">Check your email</p>
-                            <p class="text-sm text-tertiary">
-                                If an account exists for that email, we've sent a link to create a passkey on this device.
-                            </p>
-                            <p class="mt-3">
-                                <a href="/admin/login" class="text-tertiary text-sm">Back to sign in</a>
-                            </p>
                         </div>
 
                         <div id="loading" class="login-loading" hidden aria-live="polite">
@@ -163,246 +93,13 @@
                             <a href="/admin/login">Try again</a>
                         </div>
                     </div>
-
-                    <!-- ============ Create-account pane ============ -->
-                    <div id="pane-register" hidden>
-                        <p class="login-subtitle">Create your account</p>
-
-                        <div id="reg-error" class="login-error" role="alert" aria-live="polite"></div>
-
-                        <form id="register-form">
-                            <div class="form-group">
-                                <label for="reg-email">Work email</label>
-                                <input class="form-input" type="email" id="reg-email" placeholder="you@astounddigital.com" required autocomplete="email" aria-describedby="reg-error">
-                                <p class="text-sm text-tertiary mt-1">Use your Astound work email (@astounddigital.com or @astoundcommerce.com).</p>
-                            </div>
-                            <div class="form-group">
-                                <label for="reg-name">Full Name</label>
-                                <input class="form-input" type="text" id="reg-name" placeholder="Jane Smith" required autocomplete="name">
-                            </div>
-                            <div class="form-actions">
-                                <button type="submit" class="btn btn-primary w-full">Create Account</button>
-                            </div>
-                        </form>
-
-                        <div id="reg-loading" class="login-loading" hidden aria-live="polite">
-                            <div class="login-spinner" role="status" aria-label="Loading"></div>
-                            <p id="reg-loading-text">Setting up your account...</p>
-                        </div>
-
-                        <div id="reg-retry" class="login-retry" hidden>
-                            <a href="/admin/login?mode=register">Try again</a>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
     </main>
 
-    <script>
-        (function() {
-            var tabSignin = document.getElementById('tab-signin');
-            var tabRegister = document.getElementById('tab-register');
-            var paneSignin = document.getElementById('pane-signin');
-            var paneRegister = document.getElementById('pane-register');
-
-            function activate(mode) {
-                var register = mode === 'register';
-                paneSignin.hidden = register;
-                paneRegister.hidden = !register;
-                tabSignin.classList.toggle('active', !register);
-                tabRegister.classList.toggle('active', register);
-                tabSignin.setAttribute('aria-selected', String(!register));
-                tabRegister.setAttribute('aria-selected', String(register));
-            }
-
-            tabSignin.addEventListener('click', function() { activate('signin'); });
-            tabRegister.addEventListener('click', function() { activate('register'); });
-
-            var params = new URLSearchParams(window.location.search);
-            if (params.get('mode') === 'register' || window.location.hash === '#register') {
-                activate('register');
-            }
-
-            // Carry the post-login redirect target onto the Salesforce SSO link.
-            var sso = document.getElementById('salesforce-login');
-            var redirect = params.get('redirect');
-            if (sso && redirect) {
-                sso.href = '/admin/auth/salesforce/start?redirect=' + encodeURIComponent(redirect);
-            }
-
-            // Surface Salesforce SSO failures (?sso=...) in the error banner.
-            var ssoStatus = params.get('sso');
-            if (ssoStatus) {
-                var messages = {
-                    unavailable: 'Salesforce sign-in is not available right now. Use a passkey, or contact the platform team.',
-                    denied: 'Salesforce sign-in was cancelled.',
-                    forbidden: 'That Salesforce account is not permitted. Use your Astound work email.',
-                    unverified: 'Your Salesforce email is not verified. Verify it in Salesforce, then try again.',
-                    no_email: 'Salesforce did not return an email address for your account.',
-                    not_provisioned: 'No account exists for that Salesforce identity yet. Ask an administrator to create your account, then sign in again.',
-                    error: 'Salesforce sign-in failed. Please try again.'
-                };
-                var errEl = document.getElementById('error');
-                if (errEl) {
-                    errEl.textContent = messages[ssoStatus] || messages.error;
-                    errEl.style.display = 'block';
-                }
-            }
-        })();
-    </script>
+    <script data-cfasync="false" src="/js/pages/admin-login.js?v={{css_version}}" type="module"></script>
 
     <script data-cfasync="false" src="/js/services/webauthn-login.js?v=3" type="module"></script>
-
-    <script type="module">
-        import {
-            makeRequest, preparePublicKeyCredentialCreationOptions,
-            preparePublicKeyCredentialRequestOptions,
-        } from '/js/services/webauthn-utils.js';
-        import {
-            buildAuthCredentialPayload, buildCreationCredentialPayload,
-            initPkceAndRedirect, WEBAUTHN_BASE,
-        } from '/js/services/webauthn-passkey-helpers.js';
-
-        const LOGIN_PATH = '/admin/login';
-        const ALLOWED_DOMAINS = ['astounddigital.com', 'astoundcommerce.com'];
-
-        const form = document.getElementById('register-form');
-        const errorDiv = document.getElementById('reg-error');
-        const loadingSection = document.getElementById('reg-loading');
-        const loadingText = document.getElementById('reg-loading-text');
-        const retrySection = document.getElementById('reg-retry');
-
-        // --- UI Helpers ---
-
-        function showError(msg) {
-            errorDiv.textContent = msg;
-            errorDiv.style.display = 'block';
-            loadingSection.style.display = 'none';
-            form.style.display = 'block';
-            retrySection.style.display = 'block';
-        }
-
-        function showLoading(msg) {
-            loadingText.textContent = msg || 'Setting up your account...';
-            form.style.display = 'none';
-            errorDiv.style.display = 'none';
-            loadingSection.style.display = 'block';
-        }
-
-        function hasAllowedDomain(email) {
-            const domain = email.split('@').pop().toLowerCase();
-            return ALLOWED_DOMAINS.includes(domain);
-        }
-
-        if (!window.PublicKeyCredential) {
-            errorDiv.textContent = 'Your browser does not support passkeys. Please use a modern browser (Chrome, Firefox, Safari, Edge).';
-            errorDiv.style.display = 'block';
-            form.querySelector('button[type="submit"]').disabled = true;
-        }
-
-        // --- Auto-login after passkey creation ---
-
-        async function autoLogin(email) {
-            try {
-                showLoading('Signing you in...');
-                const startResponse = await makeRequest(
-                    WEBAUTHN_BASE + '/auth/start?email=' + encodeURIComponent(email), 'POST'
-                );
-                const publicKeyOptions = preparePublicKeyCredentialRequestOptions(startResponse.data.publicKey);
-                const credential = await navigator.credentials.get({ publicKey: publicKeyOptions });
-                if (!credential) throw new Error('Authentication was cancelled');
-                showLoading('Verifying...');
-                const finishResponse = await makeRequest(WEBAUTHN_BASE + '/auth/finish', 'POST', {
-                    challenge_id: startResponse.data.challenge_id,
-                    credential: buildAuthCredentialPayload(credential),
-                });
-                await initPkceAndRedirect(
-                    finishResponse.data.user_id,
-                    finishResponse.data.auth_token,
-                    showLoading,
-                    '/admin/',
-                );
-            } catch (_error) {
-                showLoading('Passkey created! Redirecting to sign in...');
-                setTimeout(function() { window.location.href = LOGIN_PATH; }, 2000);
-            }
-        }
-
-        // --- Form Submit: Registration via link/start + link/finish ---
-
-        form.addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            const email = document.getElementById('reg-email').value.trim();
-            const displayName = document.getElementById('reg-name').value.trim();
-
-            if (!email || !displayName) {
-                showError('Please fill in all fields.');
-                return;
-            }
-
-            if (!hasAllowedDomain(email)) {
-                showError('Registration is limited to Astound employees (@astounddigital.com or @astoundcommerce.com).');
-                return;
-            }
-
-            try {
-                showLoading('Creating your account...');
-
-                // Step 1: Create user and get setup token
-                const regResponse = await fetch('/admin/api/register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: displayName, email: email }),
-                });
-                const regData = await regResponse.json();
-                if (!regResponse.ok) {
-                    throw new Error(regData.error || regData.message || 'Registration failed');
-                }
-
-                showLoading('Creating your passkey...');
-
-                // Step 2: Start credential linking with setup token (GET endpoint)
-                const setupToken = regData.token;
-                const startResponse = await makeRequest(
-                    WEBAUTHN_BASE + '/link/start?token=' + encodeURIComponent(setupToken),
-                    'GET'
-                );
-
-                const publicKeyOptions = preparePublicKeyCredentialCreationOptions(
-                    startResponse.data.challenge ? startResponse.data.challenge.publicKey : startResponse.data.publicKey
-                );
-                const credential = await navigator.credentials.create({
-                    publicKey: publicKeyOptions
-                });
-
-                if (!credential) {
-                    throw new Error('Passkey creation was cancelled');
-                }
-
-                showLoading('Finishing registration...');
-
-                // Step 3: Finish credential linking with setup token
-                await makeRequest(WEBAUTHN_BASE + '/link/finish', 'POST', {
-                    challenge_id: startResponse.data.challenge_id || startResponse.challengeId,
-                    token: setupToken,
-                    credential: buildCreationCredentialPayload(credential),
-                });
-
-                // Step 4: Auto-login with the new passkey
-                await autoLogin(email);
-
-            } catch (error) {
-                if (error.name === 'NotAllowedError') {
-                    showError('Passkey creation was cancelled or not allowed.');
-                } else if (error.name === 'NotSupportedError') {
-                    showError('Passkeys are not supported on this device.');
-                } else {
-                    showError(error.message || 'Registration failed. Please try again.');
-                }
-            }
-        });
-    </script>
 </body>
 </html>

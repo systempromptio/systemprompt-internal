@@ -1,7 +1,7 @@
 {{#> layout title=title page=page}}
     {{#*inline "head_extra"}}{{/inline}}
     {{#*inline "content"}}
-    {{> components/page-header title=title subtitle="Plugins are the installable units in the catalog. Each bundles a set of skills, MCP servers, agents, and hooks. Loaded from services/plugins/*/config.yaml — edit on disk and restart to change."}}
+    {{> components/page-header title=title subtitle="Plugins are the installable units in the catalog, each bundling skills, MCP servers, agents, and hooks. Read-only: loaded from services/plugins/*/config.yaml — edit on disk and restart to change."}}
 
     <div class="toolbar" role="toolbar" aria-label="Plugin filters">
         <div class="search-group">
@@ -38,18 +38,8 @@
     {{> components/empty-state message="No plugins configured. Add a services/plugins/<id>/config.yaml and restart."}}
     {{/if}}
 
-    <script>
-    (function(){
-      var search = document.getElementById('catalog-search');
-      if (!search) return;
-      search.addEventListener('input', function(){
-        var q = (search.value || '').toLowerCase();
-        document.querySelectorAll('#catalog-grid .catalog-card').forEach(function(card){
-          var s = card.getAttribute('data-search') || '';
-          card.style.display = (!q || s.indexOf(q) !== -1) ? '' : 'none';
-        });
-      });
-    })();
-    </script>
+    {{/inline}}
+    {{#*inline "scripts"}}
+    <script type="module" src="/js/pages/admin-catalog-filter.js?v={{css_version}}"></script>
     {{/inline}}
 {{/layout}}

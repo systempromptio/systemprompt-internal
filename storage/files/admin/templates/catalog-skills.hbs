@@ -1,7 +1,7 @@
 {{#> layout title=title page=page}}
     {{#*inline "head_extra"}}{{/inline}}
     {{#*inline "content"}}
-    {{> components/page-header title=title subtitle="Skills are reusable instruction sets. They are bundled into plugins and assigned to users through the access matrix. Loaded from services/skills/*."}}
+    {{> components/page-header title=title subtitle="Skills are reusable instruction sets. Read-only: loaded from services/skills/* and granted to an enterprise by the plan it is on."}}
 
     <div class="toolbar" role="toolbar" aria-label="Skill filters">
         <div class="search-group">
@@ -39,18 +39,8 @@
     {{> components/empty-state message="No skills configured. Add a services/skills/<id>/config.yaml and restart."}}
     {{/if}}
 
-    <script>
-    (function(){
-      var search = document.getElementById('catalog-search');
-      if (!search) return;
-      search.addEventListener('input', function(){
-        var q = (search.value || '').toLowerCase();
-        document.querySelectorAll('tr[data-search]').forEach(function(row){
-          var s = row.getAttribute('data-search') || '';
-          row.style.display = (!q || s.indexOf(q) !== -1) ? '' : 'none';
-        });
-      });
-    })();
-    </script>
+    {{/inline}}
+    {{#*inline "scripts"}}
+    <script type="module" src="/js/pages/admin-catalog-filter.js?v={{css_version}}"></script>
     {{/inline}}
 {{/layout}}

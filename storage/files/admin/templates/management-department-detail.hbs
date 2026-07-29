@@ -20,14 +20,11 @@
         </div>
     </section>
 
-    <section aria-label="Permission matrix" class="card dept-section">
-        <h2>Permission matrix</h2>
-        <p>Skills, marketplaces, plugins, MCP servers, and gateway routes assigned to <strong>{{department.name}}</strong>. Members inherit everything assigned here. Direct user-level overrides take precedence.</p>
+    <section aria-label="Entitlement" class="card dept-section">
+        <h2>Entitlement</h2>
+        <p>What members of <strong>{{department.name}}</strong> can reach is decided by the plan their enterprise is on. Skills, marketplaces, plugins, MCP servers, and gateway routes are granted to the enterprise and inherited here; a department rule can narrow that, never widen it.</p>
         <p>
-            <a class="btn btn-primary" href="{{assignments_url}}">Open access matrix filtered to this department →</a>
-        </p>
-        <p class="text-muted dept-note">
-            Renaming this department updates its access rules automatically.
+            <a class="btn btn-primary" href="/admin/enterprises">View enterprises and their plans →</a>
         </p>
     </section>
 

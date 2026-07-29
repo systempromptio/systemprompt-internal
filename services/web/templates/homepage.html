@@ -25,15 +25,23 @@
     <link rel="stylesheet" href="{{CSS_BASE_PATH}}/homepage-sections-titles.css">
     <link rel="stylesheet" href="{{CSS_BASE_PATH}}/homepage-getting-started.css">
 </head>
-<body>
+<body class="has-video-hero">
     {{{HEADER}}}
 
     <main>
 
         <section class="hero">
-            <div class="hero-glow"></div>
-            <div class="container">
-                <div class="hero-content">
+            <video class="hero-bg-video" autoplay muted loop playsinline preload="metadata" aria-hidden="true" tabindex="-1">
+                <source src="/video/showreel.mp4" type="video/mp4">
+            </video>
+            <div class="hero-scrim" aria-hidden="true"></div>
+            <div class="hero-layout">
+                <div class="hero-pane">
+                    <nav class="hero-pane-nav" aria-label="Primary">
+                        {{#each site.header_nav.items}}
+                        <a href="{{this.href}}"{{#if this.external}} target="_blank" rel="noopener noreferrer"{{/if}}>{{this.label}}</a>
+                        {{/each}}
+                    </nav>
                     <p class="hero-eyebrow">{{#if site.homepage.hero.eyebrow}}{{site.homepage.hero.eyebrow}}{{else}}Astound Digital{{/if}}</p>
                     <h1 class="hero-title">{{site.homepage.hero.title}} <span class="highlight">{{site.homepage.hero.title_highlight}}</span></h1>
                     <p class="hero-subtitle">{{site.homepage.hero.subtitle}}</p>
@@ -45,138 +53,29 @@
                         <a href="{{site.homepage.hero.cta_secondary_url}}" class="hero-cta hero-cta-secondary">{{site.homepage.hero.cta_secondary}}</a>
                         {{/if}}
                     </div>
-                    <nav class="hero-nav-chips" aria-label="Jump to homepage section">
-                        <a href="#why" class="hero-nav-chip">Why it matters</a>
-                        <a href="#integrations" class="hero-nav-chip">Integrations</a>
-                        <a href="#get-started" class="hero-nav-chip">How to use</a>
-                    </nav>
-                </div>
-                <div class="hero-showreel">
-                    <video class="hero-showreel-video" autoplay muted loop playsinline preload="metadata" aria-label="Astound Digital showreel">
-                        <source src="/video/showreel.mp4" type="video/mp4">
-                    </video>
-                    <div class="hero-showreel-caption">
-                        <p class="hero-showreel-caption-title">The work behind the answers</p>
-                        <p class="hero-showreel-caption-text">Astound Digital builds commerce experiences for the world's most ambitious brands. This assistant puts the client relationships, pipeline, and project history behind that work one question away.</p>
+                    <div class="hero-downloads">
+                        <a href="https://github.com/systempromptio/systemprompt-core/releases/latest/download/systemprompt-bridge-aarch64-apple-darwin" class="download-badge" download target="_blank" rel="noopener noreferrer">
+                            <svg class="download-badge-logo" viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
+                                <path d="M16.365 12.86c-.02-2.06 1.68-3.05 1.76-3.1-0.96-1.4-2.45-1.6-2.98-1.62-1.27-.13-2.48.75-3.12.75-.64 0-1.64-.73-2.7-.71-1.39.02-2.67.81-3.38 2.05-1.44 2.5-.37 6.2 1.03 8.23.69.99 1.51 2.1 2.58 2.06 1.04-.04 1.43-.67 2.69-.67 1.26 0 1.61.67 2.71.65 1.12-.02 1.83-1.01 2.51-2.01.79-1.15 1.12-2.27 1.14-2.33-.02-.01-2.19-.84-2.21-3.33zM14.32 6.55c.56-.68.94-1.63.84-2.57-.81.03-1.79.54-2.37 1.22-.52.6-.98 1.56-.86 2.48.9.07 1.83-.46 2.39-1.13z"/>
+                            </svg>
+                            <span class="download-badge-text"><span class="download-badge-prefix">Download for</span><span class="download-badge-platform">Mac</span></span>
+                        </a>
+                        <a href="https://github.com/systempromptio/systemprompt-core/releases/latest/download/systemprompt-bridge-x86_64-pc-windows-msvc.exe" class="download-badge" download target="_blank" rel="noopener noreferrer">
+                            <svg class="download-badge-logo" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+                                <path d="M3 5.1L10.3 4.1V11.1H3V5.1zM3 12.9H10.3V19.9L3 18.9V12.9zM11.2 3.98L21 2.6V11.1H11.2V3.98zM21 12.9V21.4L11.2 20.02V12.9H21z"/>
+                            </svg>
+                            <span class="download-badge-text"><span class="download-badge-prefix">Download for</span><span class="download-badge-platform">Windows</span></span>
+                        </a>
                     </div>
                 </div>
             </div>
         </section>
 
-        <section id="why" class="value-pillars">
-            <div class="container">
-                <header class="section-header">
-                    <h2 class="section-title">Why teams switch it on</h2>
-                    <p class="section-subtitle">The context for a client conversation used to take hours to assemble. Now it takes one question. That changes how a commercial team works, and what the business keeps when people move on.</p>
-                </header>
-                <div class="pillars-grid">
-                    <div class="pillar-card">
-                        <h3 class="pillar-card-title">Answers in seconds, not hours</h3>
-                        <p class="pillar-card-text">Client history, pipeline, comparable case studies, and relationship notes surface the moment you ask. Conversations happen faster, with more credibility, and with the full picture in hand.</p>
-                    </div>
-                    <div class="pillar-card">
-                        <h3 class="pillar-card-title">Knowledge that stays with the business</h3>
-                        <p class="pillar-card-text">When people leave, their account history and client context usually leave with them. Connected to your own systems, that knowledge stays searchable and usable for whoever picks up the account next.</p>
-                    </div>
-                    <div class="pillar-card">
-                        <h3 class="pillar-card-title">New joiners productive in days</h3>
-                        <p class="pillar-card-text">A new Account Manager can ask for the full history of a client and get it. Onboarding becomes a structured briefing on real data instead of weeks of piecing context together.</p>
-                    </div>
-                    <div class="pillar-card">
-                        <h3 class="pillar-card-title">Governed by design</h3>
-                        <p class="pillar-card-text">Every request passes a four-stage governance pipeline and lands in a full audit trail. Changes are confirmed with you before they happen, and your data stays in your own infrastructure.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section id="integrations" class="integrations-strip">
-            <div class="container">
-                <header class="section-header">
-                    <h2 class="section-title">Sign in once. Connected to everything.</h2>
-                    <p class="section-subtitle">Log in with your existing Salesforce account and the gateway signs you into every connected source behind it. The complexity of the connections is owned by the platform, not by you.</p>
-                </header>
-                <div class="integrations-row">
-                    <div class="integration-item">
-                        <h3 class="integration-name">Salesforce</h3>
-                        <p class="integration-text">Live pipeline, accounts, contacts, leads, cases, and activities. Read and write, with confirmation before every change.</p>
-                    </div>
-                    <div class="integration-item">
-                        <h3 class="integration-name">Google Drive</h3>
-                        <p class="integration-text">Project documents, case studies, and capability materials, searchable in the same conversation as your CRM data.</p>
-                    </div>
-                    <div class="integration-item">
-                        <h3 class="integration-name">Email</h3>
-                        <p class="integration-text">Read-only access to the conversations where relationship context lives, scoped deliberately and governed like everything else.</p>
-                    </div>
-                    <div class="integration-item">
-                        <h3 class="integration-name">Claude Cowork &amp; Claude Code</h3>
-                        <p class="integration-text">The skills arrive inside the AI tools you already use, with dashboards and artifacts pre-installed and ready on day one.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section id="get-started" class="demos-quick-start homepage-usage">
-            <div class="container">
-                <header class="section-header">
-                    <h2 class="section-title">How to use it</h2>
-                    <p class="section-subtitle">From your work email to your first answered question in a few minutes. No config files, no tokens, no training course.</p>
-                </header>
-                <ol class="quick-start-list">
-                    <li class="quick-start-step">
-                        <div class="quick-start-number">1</div>
-                        <div class="quick-start-body">
-                            <h3 class="quick-start-label">Create your account</h3>
-                            <p class="quick-start-desc">Sign up with your <strong>@astounddigital.com</strong> or <strong>@astoundcommerce.com</strong> email and register a passkey. No passwords.</p>
-                        </div>
-                    </li>
-                    <li class="quick-start-step">
-                        <div class="quick-start-number">2</div>
-                        <div class="quick-start-body">
-                            <h3 class="quick-start-label">Download the desktop bridge</h3>
-                            <p class="quick-start-desc">The bridge runs in your menu bar or system tray. It signs you in, installs your workspace, and keeps your skills in sync inside Claude Code, Cowork, and Codex.</p>
-                            <div class="header-downloads">
-                                <a href="https://github.com/systempromptio/systemprompt-core/releases/latest/download/systemprompt-bridge-aarch64-apple-darwin" class="download-badge" download target="_blank" rel="noopener noreferrer">
-                                    <svg class="download-badge-logo" viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
-                                        <path d="M16.365 12.86c-.02-2.06 1.68-3.05 1.76-3.1-0.96-1.4-2.45-1.6-2.98-1.62-1.27-.13-2.48.75-3.12.75-.64 0-1.64-.73-2.7-.71-1.39.02-2.67.81-3.38 2.05-1.44 2.5-.37 6.2 1.03 8.23.69.99 1.51 2.1 2.58 2.06 1.04-.04 1.43-.67 2.69-.67 1.26 0 1.61.67 2.71.65 1.12-.02 1.83-1.01 2.51-2.01.79-1.15 1.12-2.27 1.14-2.33-.02-.01-2.19-.84-2.21-3.33zM14.32 6.55c.56-.68.94-1.63.84-2.57-.81.03-1.79.54-2.37 1.22-.52.6-.98 1.56-.86 2.48.9.07 1.83-.46 2.39-1.13z"/>
-                                    </svg>
-                                    <span class="download-badge-text"><span class="download-badge-prefix">Download for</span><span class="download-badge-platform">Mac</span></span>
-                                </a>
-                                <a href="https://github.com/systempromptio/systemprompt-core/releases/latest/download/systemprompt-bridge-x86_64-pc-windows-msvc.exe" class="download-badge" download target="_blank" rel="noopener noreferrer">
-                                    <svg class="download-badge-logo" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
-                                        <path d="M3 5.1L10.3 4.1V11.1H3V5.1zM3 12.9H10.3V19.9L3 18.9V12.9zM11.2 3.98L21 2.6V11.1H11.2V3.98zM21 12.9V21.4L11.2 20.02V12.9H21z"/>
-                                    </svg>
-                                    <span class="download-badge-text"><span class="download-badge-prefix">Download for</span><span class="download-badge-platform">Windows</span></span>
-                                </a>
-                            </div>
-                        </div>
-                    </li>
-                    <li class="quick-start-step">
-                        <div class="quick-start-number">3</div>
-                        <div class="quick-start-body">
-                            <h3 class="quick-start-label">Connect your AI tools</h3>
-                            <p class="quick-start-desc">Open your dashboard, click <strong>Connect</strong>, and follow the one-step instructions. Signing in with Salesforce connects every source behind it.</p>
-                        </div>
-                    </li>
-                    <li class="quick-start-step">
-                        <div class="quick-start-number">4</div>
-                        <div class="quick-start-body">
-                            <h3 class="quick-start-label">Ask your first question</h3>
-                            <p class="quick-start-desc">Try <em>"Give me a full briefing on my biggest account"</em>, <em>"What is in my pipeline this quarter?"</em>, or <em>"Draft a proposal in our voice"</em>. The skills are already there.</p>
-                            <div class="command-row">
-                                <a href="/skills/" class="hero-cta hero-cta-secondary">Browse all skills</a>
-                                <a href="/documentation/" class="hero-cta hero-cta-secondary">Read the how-to guide</a>
-                            </div>
-                        </div>
-                    </li>
-                </ol>
-            </div>
-        </section>
 
     </main>
 
     {{{FOOTER}}}
     {{{SCRIPTS}}}
+    <script src="{{JS_BASE_PATH}}/homepage.js" type="module"></script>
 </body>
 </html>

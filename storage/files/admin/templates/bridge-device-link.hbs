@@ -21,20 +21,20 @@
                 Only approve if you started <code>sp-bridge-auth</code> yourself on this machine. The helper will receive a one-time code (valid for 120&nbsp;seconds) and exchange it for a short-lived JWT.
             </p>
 
-            <div class="form-actions" style="display: flex; gap: 0.75rem;">
-                <form method="POST" action="/bridge-auth/device-link/approve" style="flex: 1;">
+            <div class="form-actions device-link-actions">
+                <form method="POST" action="/bridge-auth/device-link/approve" class="device-link-form">
                     <input type="hidden" name="redirect" value="{{redirect}}">
                     <button type="submit" class="btn btn-primary w-full">Allow</button>
                 </form>
-                <form method="POST" action="/bridge-auth/device-link/deny" style="flex: 1;">
+                <form method="POST" action="/bridge-auth/device-link/deny" class="device-link-form">
                     <input type="hidden" name="redirect" value="{{redirect}}">
                     <button type="submit" class="btn btn-secondary w-full">Deny</button>
                 </form>
             </div>
 
-            <p class="text-xs text-tertiary mt-3" style="text-align: center;">
-                Didn't start this? Click Deny and review your active sessions in
-                <a href="/admin/access/devices">Devices</a>.
+            <p class="text-xs text-tertiary mt-3 text-center">
+                Didn't start this? Click Deny and review your active tokens on
+                <a href="/admin/profile">your profile</a>.
             </p>
         </div>
     </div>

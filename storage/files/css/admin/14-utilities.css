@@ -154,11 +154,6 @@
 }
 
 .font-normal { font-weight: 400; }
-.theme-label {
-  font-size: var(--sp-text-sm);
-  color: var(--sp-text-secondary);
-  font-weight: 500;
-}
 }
 
 @layer utilities {

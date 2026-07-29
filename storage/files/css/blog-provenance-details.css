@@ -166,18 +166,3 @@
 .provenance-learn-more:hover svg {
   transform: translateX(2px);
 }
-
-@media (prefers-color-scheme: dark) {
-  .provenance-header {
-    background: linear-gradient(135deg, var(--sp-color-surface) 0%, color-mix(in srgb, var(--sp-color-primary) 12%, var(--sp-color-surface)) 100%);
-  }
-
-  .provenance-strategy__item {
-    background: color-mix(in srgb, var(--sp-color-background) 50%, var(--sp-color-surface));
-  }
-
-  .provenance-source-link,
-  .provenance-adaptation {
-    background: color-mix(in srgb, var(--sp-color-background) 50%, var(--sp-color-surface));
-  }
-}

@@ -55,6 +55,13 @@
     color: var(--sp-text-primary);
 }
 
+.page-header__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-space-2);
+    flex-shrink: 0;
+}
+
 .page-header__subtitle {
     margin: var(--sp-space-1) 0 0;
     font-size: var(--sp-text-sm);

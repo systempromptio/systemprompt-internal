@@ -1,32 +1,35 @@
 @layer tokens {
 :root {
 
-  --sp-primitive-brand-50:  oklch(0.975 0.004 95);
-  --sp-primitive-brand-100: oklch(0.95 0.003 95);
-  --sp-primitive-brand-200: oklch(0.89 0 0);
-  --sp-primitive-brand-300: oklch(0.78 0 0);
-  --sp-primitive-brand-400: oklch(0.55 0 0);
-  --sp-primitive-brand-500: oklch(0.44 0 0);
-  --sp-primitive-brand-600: oklch(0.30 0 0);
-  --sp-primitive-brand-700: oklch(0.235 0 0);
-  --sp-primitive-brand-800: oklch(0.20 0 0);
-  --sp-primitive-brand-900: oklch(0.18 0 0);
-  --sp-primitive-brand-950: oklch(0.14 0 0);
+  /* Astound Digital monochrome ramp — mirrors core/variables.css */
+  --sp-primitive-brand-50:  #f8f7f3;
+  --sp-primitive-brand-100: #f1efed;
+  --sp-primitive-brand-200: #dddddd;
+  --sp-primitive-brand-300: #b6b6b6;
+  --sp-primitive-brand-400: #707070;
+  --sp-primitive-brand-500: #4d4d4d;
+  --sp-primitive-brand-600: #292929;
+  --sp-primitive-brand-700: #171717;
+  --sp-primitive-brand-800: #0f0f0f;
+  --sp-primitive-brand-900: #0a0a0a;
+  --sp-primitive-brand-950: #050505;
 
-  --sp-primitive-warm-50:  oklch(0.98 0.003 60);
-  --sp-primitive-warm-100: oklch(0.96 0.004 60);
-  --sp-primitive-warm-200: oklch(0.92 0.006 58);
-  --sp-primitive-warm-300: oklch(0.86 0.008 55);
-  --sp-primitive-warm-400: oklch(0.70 0.008 55);
-  --sp-primitive-warm-500: oklch(0.53 0.008 55);
-  --sp-primitive-warm-600: oklch(0.41 0.008 55);
-  --sp-primitive-warm-700: oklch(0.34 0.008 55);
-  --sp-primitive-warm-800: oklch(0.24 0.008 55);
-  --sp-primitive-warm-900: oklch(0.20 0.008 55);
-  --sp-primitive-warm-950: oklch(0.13 0.006 55);
+  --sp-primitive-warm-50:  #f8f7f3;
+  --sp-primitive-warm-100: #f1efed;
+  --sp-primitive-warm-200: #dddddd;
+  --sp-primitive-warm-300: #b6b6b6;
+  --sp-primitive-warm-400: #b6b6b6;
+  --sp-primitive-warm-500: #707070;
+  --sp-primitive-warm-600: #4d4d4d;
+  --sp-primitive-warm-700: #292929;
+  --sp-primitive-warm-800: #171717;
+  --sp-primitive-warm-900: #171717;
+  --sp-primitive-warm-950: #0a0a0a;
 
-  --sp-primitive-white: oklch(1.00 0 0);
-  --sp-primitive-black: oklch(0 0 0);
+  --sp-primitive-accent-red: #fe190a;
+
+  --sp-primitive-white: #ffffff;
+  --sp-primitive-black: #000000;
 
   --sp-primitive-green-500:  oklch(0.72 0.19 155);
   --sp-primitive-green-400:  oklch(0.78 0.16 165);
@@ -49,15 +52,16 @@
   --sp-primitive-accent-cyan:        oklch(0.79 0.13 200);
   --sp-primitive-accent-cyan-light:  oklch(0.87 0.10 200);
 
-  --sp-text-xs:   clamp(0.7rem, 0.66rem + 0.2vw, 0.75rem);
-  --sp-text-sm:   clamp(0.8rem, 0.75rem + 0.25vw, 0.875rem);
-  --sp-text-base: clamp(0.875rem, 0.82rem + 0.28vw, 0.9375rem);
-  --sp-text-md:   clamp(0.9375rem, 0.87rem + 0.33vw, 1rem);
-  --sp-text-lg:   clamp(1rem, 0.93rem + 0.35vw, 1.125rem);
-  --sp-text-xl:   clamp(1.125rem, 1rem + 0.5vw, 1.25rem);
-  --sp-text-2xl:  clamp(1.4rem, 1.2rem + 1vw, 1.75rem);
-  --sp-text-3xl:  clamp(1.75rem, 1.4rem + 1.75vw, 2.5rem);
-  --sp-text-4xl:  clamp(2.25rem, 1.6rem + 3.2vw, 4rem);
+  /* Fixed steps, shared with the public site (core/variables.css) */
+  --sp-text-xs:   12px;
+  --sp-text-sm:   14px;
+  --sp-text-base: 15px;
+  --sp-text-md:   15px;
+  --sp-text-lg:   18px;
+  --sp-text-xl:   20px;
+  --sp-text-2xl:  28px;
+  --sp-text-3xl:  36px;
+  --sp-text-4xl:  44px;
 
   --sp-leading-tight:   1.1;
   --sp-leading-snug:    1.25;

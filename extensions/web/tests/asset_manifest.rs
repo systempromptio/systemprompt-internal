@@ -182,13 +182,15 @@ fn templates_contain_no_inline_code() {
             continue;
         };
         let name = template.display().to_string();
+        // The admin shell and the public head both carry a small unstyled-flash
+        // guard inline, on purpose: it has to land before the stylesheet link.
         let is_fouc_shell = name.ends_with("partials/layout.hbs");
-        let is_critical_css_shell = name.ends_with("partials/head-assets.html");
+        let is_critical_css_shell =
+            name.ends_with("partials/head-assets.html") || is_fouc_shell;
         for (idx, line) in content.lines().enumerate() {
             let has_open = line.contains("<script") && !line.contains("src=");
             let is_data = line.contains("application/ld+json") || line.contains("application/json");
-            let is_theme_snippet = line.contains("</script>") && line.contains("colorScheme");
-            if has_open && !is_data && !is_fouc_shell && !is_theme_snippet {
+            if has_open && !is_data && !is_fouc_shell {
                 violations.push(format!("{name}:{} inline <script>", idx + 1));
             }
             if line.contains("<style") && !is_critical_css_shell {

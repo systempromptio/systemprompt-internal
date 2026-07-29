@@ -101,10 +101,6 @@
   --sp-syntax-operator: #fe190a;
   --sp-syntax-class: #b6b6b6;
 
-  --sp-font-brand: "Inter", system-ui, sans-serif;
-  --sp-font-body: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --sp-font-heading: "Inter", system-ui, sans-serif;
-
   --sp-font-size-xs: 12px;
   --sp-font-size-sm: 14px;
   --sp-font-size-md: 15px;
@@ -157,6 +153,7 @@
   --sp-transition-slow: 400ms ease;
 
   --sp-z-base: 1;
+  --sp-z-content: 10;
   --sp-z-sidebar: 50;
   --sp-z-sidebar-toggle: 60;
   --sp-z-mobile-menu: 99;
@@ -175,12 +172,10 @@
   --sp-card-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
   --sp-card-shadow-hover: 0 8px 32px rgba(10, 10, 10, 0.12);
   --sp-card-shadow-highlight: 0 0 20px rgba(23, 23, 23, 0.12);
-  --sp-brand-green: #fe190a;
   --sp-brand-gradient: linear-gradient(135deg, #f1efed, #f8f7f3);
   --sp-brand-gradient-reverse: linear-gradient(135deg, #f8f7f3, #f1efed);
 
   --sp-client-black: #171717;
-  --sp-client-orange: #fe190a;
   --sp-client-tints-cta-orange: #171717;
   --sp-client-tints-orange-3: #f1efed;
   --sp-client-sand: #f8f7f3;
@@ -202,6 +197,7 @@
   --sp-space-10: 40px;
   --sp-space-12: 48px;
   --sp-space-16: 64px;
+  --sp-space-24: 96px;
 
   --sp-duration-fast: 150ms;
   --sp-duration-normal: 250ms;
@@ -225,5 +221,4 @@
 
   --sp-text-xs: 0.75rem;
   --sp-text-sm: 0.875rem;
-  --sp-font-brand: inherit;
 }
