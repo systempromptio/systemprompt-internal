@@ -9,9 +9,10 @@ mod tool;
 use crate::error::SystempromptToolError;
 use crate::tools::{self, SERVER_NAME};
 use rmcp::model::{
-    CallToolRequestParams, CallToolResult, Icon, Implementation, InitializeRequestParams,
+    CallToolRequestParams, CallToolResponse, Icon, Implementation, InitializeRequestParams,
     InitializeResult, ListResourcesResult, ListToolsResult, PaginatedRequestParams,
-    ProtocolVersion, ReadResourceRequestParams, ReadResourceResult, ServerCapabilities, ServerInfo,
+    ProtocolVersion, ReadResourceRequestParams, ReadResourceResponse, ServerCapabilities,
+    ServerInfo,
 };
 use rmcp::service::{MaybeSendFuture, RequestContext, RoleServer};
 use rmcp::{ErrorData as McpError, ServerHandler};
@@ -111,18 +112,14 @@ impl ServerHandler for SystempromptServer {
         _ctx: RequestContext<RoleServer>,
     ) -> impl Future<Output = Result<ListToolsResult, McpError>> + MaybeSendFuture + '_ {
         let tool_list = tools::list_tools();
-        std::future::ready(Ok(ListToolsResult {
-            tools: tool_list,
-            next_cursor: None,
-            meta: None,
-        }))
+        std::future::ready(Ok(ListToolsResult::with_all_items(tool_list)))
     }
 
     async fn call_tool(
         &self,
         request: CallToolRequestParams,
         ctx: RequestContext<RoleServer>,
-    ) -> Result<CallToolResult, McpError> {
+    ) -> Result<CallToolResponse, McpError> {
         let tool_name = request.name.to_string();
         let server_name = self.service_id.to_string();
 
@@ -152,6 +149,7 @@ impl ServerHandler for SystempromptServer {
             &auth_token,
         )
         .await
+        .map(Into::into)
     }
 
     fn list_resources(
@@ -181,13 +179,16 @@ impl ServerHandler for SystempromptServer {
         &self,
         request: ReadResourceRequestParams,
         _ctx: RequestContext<RoleServer>,
-    ) -> Result<ReadResourceResult, McpError> {
+    ) -> Result<ReadResourceResponse, McpError> {
         if parse_artifact_resource_uri(&request.uri).is_some() {
             let repo = McpArtifactRepository::new(&self.db_pool)
                 .map_err(|e| McpError::internal_error(e.to_string(), None))?;
-            return read_artifact_resource(&request, SERVER_NAME, &repo).await;
+            return read_artifact_resource(&request, SERVER_NAME, &repo)
+                .await
+                .map(Into::into);
         }
 
         read_artifact_viewer_resource(&request, SERVER_NAME, &artifact_shell_template())
+            .map(Into::into)
     }
 }
