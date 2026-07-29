@@ -33,6 +33,8 @@ pub(super) async fn record_decision(
             (DecisionTag::Deny, reason.to_string(), policy_str)
         },
     };
+    // JSON: JSONB column — `governance_decisions.evaluated_rules`, serialized
+    // from the typed `DecisionAudit`
     let evaluated_rules = serde_json::to_value(audit).unwrap_or(serde_json::Value::Null);
 
     let dec_record = GovernanceDecisionRecord {

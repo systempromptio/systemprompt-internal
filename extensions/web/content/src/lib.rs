@@ -9,8 +9,8 @@
 //! - [`services`] — business logic that composes repositories with file IO
 //!   (ingestion from the filesystem, search ranking, link-generation,
 //!   validation). Handlers and jobs call services, not the repository directly.
-//! - [`api`] — handler-shaped helpers that adapt service output to the
-//!   admin/bridge HTTP layer.
+//! - [`api`] — handler-shaped helpers that adapt service output to the admin
+//!   HTTP layer.
 
 pub mod api;
 pub mod repository;

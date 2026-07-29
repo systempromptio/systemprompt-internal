@@ -61,10 +61,9 @@ pub async fn render_yaml_snapshot(pool: &PgPool) -> Result<String, MarketplaceEr
             default_included: row.default_included,
             roles: Vec::new(),
         });
-        // The query filters to role rules, so anything else is a row that
-        // arrived after this snapshot format was fixed; roles.yaml has no
-        // shape for it and dropping it is better than emitting a file the
-        // loader would reject.
+        // Why: non-ROLE rows postdate this snapshot format; roles.yaml has no
+        // shape for them, so dropping them beats emitting a file the loader
+        // would reject.
         if row.rule_type == RuleType::ROLE {
             entry.roles.push(row.rule_value);
         }
@@ -73,5 +72,5 @@ pub async fn render_yaml_snapshot(pool: &PgPool) -> Result<String, MarketplaceEr
     let snap = Snapshot {
         rules: by_key.into_values().collect(),
     };
-    serde_yaml::to_string(&snap).map_err(MarketplaceError::Yaml)
+    serde_yaml::to_string(&snap).map_err(MarketplaceError::from)
 }

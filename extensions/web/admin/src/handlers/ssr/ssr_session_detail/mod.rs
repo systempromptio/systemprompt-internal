@@ -1,4 +1,4 @@
-//! `/admin/sessions/{session_id}` — single-session detail page.
+//! `/admin/entities/sessions/{session_id}` — single-session detail page.
 //!
 //! Renders the header, KPI strip, and three linked tables (contexts, traces,
 //! requests) for one `session_id`, mirroring `analytics sessions stats` plus
@@ -15,6 +15,8 @@ use sqlx::PgPool;
 use systemprompt::identifiers::SessionId;
 
 use crate::error::AdminHtmlResult;
+use crate::handlers::ssr::entity_urls::{context_detail_url, request_detail_url, trace_detail_url};
+use crate::handlers::ssr::format::{format_cost, format_duration_ms};
 use crate::repositories::analytics::session_detail::{
     SessionContextRow, SessionHeader, SessionKpis, SessionRequestRow, SessionTraceRow,
     find_session_header, get_session_kpis, list_session_contexts, list_session_requests,
@@ -159,10 +161,7 @@ fn context_view(c: &SessionContextRow) -> SessionContextRowView {
     SessionContextRowView {
         context_id: c.context_id.clone(),
         context_id_short: short_id(c.context_id.as_str()),
-        context_url: format!(
-            "/admin/contexts/{}",
-            urlencoding::encode(c.context_id.as_str())
-        ),
+        context_url: context_detail_url(&c.context_id),
         name: c.name.clone().unwrap_or_else(|| "—".into()),
         request_count: c.request_count,
         last_request_at: c.last_request_at.map(|t| t.to_rfc3339()),
@@ -172,6 +171,13 @@ fn context_view(c: &SessionContextRow) -> SessionContextRowView {
                 .to_string()
         }),
         model: c.model.clone(),
+        total_tokens: c.total_input_tokens + c.total_output_tokens,
+        token_display: format!(
+            "{} in / {} out",
+            c.total_input_tokens, c.total_output_tokens
+        ),
+        cost_display: format_cost(c.cost_microdollars),
+        error_count: c.error_count,
     }
 }
 
@@ -183,7 +189,7 @@ fn trace_view(t: &SessionTraceRow) -> SessionTraceRowView {
     SessionTraceRowView {
         trace_id: t.trace_id.clone(),
         trace_id_short: short_id(t.trace_id.as_str()),
-        trace_url: format!("/admin/traces/{}", urlencoding::encode(t.trace_id.as_str())),
+        trace_url: trace_detail_url(&t.trace_id),
         request_count: t.request_count,
         error_count: t.error_count,
         started_at_local: t.started_at.map(|x| {
@@ -198,20 +204,14 @@ fn trace_view(t: &SessionTraceRow) -> SessionTraceRowView {
 fn request_view(r: &SessionRequestRow) -> SessionRequestRowView {
     SessionRequestRowView {
         id: r.id.clone(),
-        id_short: short_id(&r.id),
-        request_url: format!("/admin/requests/{}", urlencoding::encode(&r.id)),
+        id_short: short_id(r.id.as_str()),
+        request_url: request_detail_url(&r.id),
         context_id: r.context_id.clone(),
         context_id_short: r.context_id.as_ref().map(|c| short_id(c.as_str())),
-        context_url: r
-            .context_id
-            .as_ref()
-            .map(|c| format!("/admin/contexts/{}", urlencoding::encode(c.as_str()))),
+        context_url: r.context_id.as_ref().map(context_detail_url),
         trace_id: r.trace_id.clone(),
         trace_id_short: r.trace_id.as_ref().map(|t| short_id(t.as_str())),
-        trace_url: r
-            .trace_id
-            .as_ref()
-            .map(|t| format!("/admin/traces/{}", urlencoding::encode(t.as_str()))),
+        trace_url: r.trace_id.as_ref().map(trace_detail_url),
         model: r.model.clone(),
         status: r.status.clone(),
         is_error: r.status == "failed",
@@ -242,28 +242,5 @@ fn duration_display(
     match (start, end) {
         (Some(s), Some(e)) => format_duration_ms((e - s).num_milliseconds().max(0)),
         _ => "—".to_owned(),
-    }
-}
-
-fn format_duration_ms(ms: i64) -> String {
-    if ms < 1000 {
-        format!("{ms}ms")
-    } else if ms < 60_000 {
-        format!("{:.1}s", ms as f64 / 1000.0)
-    } else if ms < 3_600_000 {
-        format!("{}m {}s", ms / 60_000, (ms % 60_000) / 1000)
-    } else {
-        format!("{}h {}m", ms / 3_600_000, (ms % 3_600_000) / 60_000)
-    }
-}
-
-fn format_cost(microdollars: i64) -> String {
-    let dollars = microdollars as f64 / 1_000_000.0;
-    if dollars == 0.0 {
-        "$0".to_owned()
-    } else if dollars < 0.01 {
-        format!("${dollars:.6}")
-    } else {
-        format!("${dollars:.4}")
     }
 }

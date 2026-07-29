@@ -13,9 +13,7 @@ use systemprompt::identifiers::UserId;
 use crate::error::{AdminError, AdminResult};
 use crate::repositories;
 use crate::types::UserContext;
-use crate::types::departments::DepartmentInput;
-
-const RESERVED_NAME: &str = "\"Unassigned\" is reserved for users without a department";
+use crate::types::departments::{DEFAULT_DEPARTMENT, DepartmentInput};
 
 fn require_admin(user_ctx: &UserContext) -> AdminResult<()> {
     if user_ctx.is_admin {
@@ -40,9 +38,6 @@ fn validated_name(input: DepartmentInput) -> AdminResult<DepartmentInput> {
     let trimmed = input.name.trim();
     if trimmed.is_empty() {
         return Err(AdminError::BadRequest("name must not be empty".to_owned()));
-    }
-    if trimmed.eq_ignore_ascii_case("unassigned") {
-        return Err(AdminError::BadRequest(RESERVED_NAME.to_owned()));
     }
     Ok(DepartmentInput {
         name: trimmed.to_owned(),
@@ -116,16 +111,20 @@ pub(crate) async fn assign_user_to_department_handler(
     Json(body): Json<AssignDepartmentRequest>,
 ) -> AdminResult<Response> {
     require_admin(&user_ctx)?;
-    let dept_name = body.department_name.trim();
-    if !dept_name.is_empty()
-        && repositories::departments::find_department_by_name(&pool, dept_name)
-            .await
-            .inspect_err(
-                |e| tracing::warn!(error = %e, dept_name, "find_department_by_name failed"),
-            )
-            .ok()
-            .flatten()
-            .is_none()
+    // Why: an empty name used to write '' back to the column, which every read
+    // path then had to coalesce into an invented "no department" label. Clearing
+    // an assignment means moving the user to the Default department, which is a
+    // real row and can carry rules of its own.
+    let dept_name = match body.department_name.trim() {
+        "" => DEFAULT_DEPARTMENT,
+        name => name,
+    };
+    if repositories::departments::find_department_by_name(&pool, dept_name)
+        .await
+        .inspect_err(|e| tracing::warn!(error = %e, dept_name, "find_department_by_name failed"))
+        .ok()
+        .flatten()
+        .is_none()
     {
         return Err(AdminError::BadRequest("unknown department".to_owned()));
     }

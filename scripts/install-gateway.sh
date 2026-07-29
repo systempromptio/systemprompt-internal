@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # systemprompt-gateway installer — https://get.systemprompt.io
 #
-# Installs the gateway SERVER binary. For the bridge client, use
-# scripts/install-cowork.sh or see docs/cowork/.
+# Installs the gateway SERVER binary.
 #
 # Usage:   curl -sSL get.systemprompt.io | sh
 #          curl -sSL get.systemprompt.io | sh -s -- --version v0.3.5
@@ -45,7 +44,7 @@ case "$uname_s" in
   linux)  os="linux" ;;
   darwin) os="darwin" ;;
   msys*|mingw*|cygwin*)
-    die "The gateway is Linux/macOS-only. On Windows install the bridge instead: docs/cowork/scoop.md" ;;
+    die "The gateway is Linux/macOS-only." ;;
   *) die "unsupported OS: $uname_s" ;;
 esac
 
@@ -59,8 +58,7 @@ target="${os}-${arch}"
 
 if [ "$VERSION" = "latest" ]; then
   log "resolving latest gateway release..."
-  # Gateway releases are tagged v* (e.g. v0.4.0); client tracks use other
-  # prefixes (cowork-v*, bridge-v*, bridge-mac-v*). Positively match v<digit>.
+  # Gateway releases are tagged v* (e.g. v0.4.0). Positively match v<digit>.
   VERSION=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases" \
     | grep -oE '"tag_name"\s*:\s*"[^"]+"' \
     | sed -E 's/.*"([^"]+)"$/\1/' \

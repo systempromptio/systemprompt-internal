@@ -31,24 +31,38 @@ pub async fn get_trace_stats(pool: &PgPool, range: TimeRange) -> Result<TraceSta
         per_session AS (
             SELECT
                 session_id,
-                EXTRACT(EPOCH FROM (MAX(created_at) - MIN(created_at))) * 1000 AS duration_ms,
                 BOOL_OR(decision = 'deny') AS has_deny,
                 BOOL_OR(status NOT IN ('ok','success','completed','pending') AND status IS NOT NULL)
                   AS has_error
             FROM all_sessions
             GROUP BY session_id
+        ),
+        -- Percentiles and totals come from the request rows only: a
+        -- governance-only trace has no latency, and counting it as 0 ms would
+        -- pin p50 to zero however slow the real traffic was.
+        active AS (
+            SELECT
+                session_id,
+                COALESCE(SUM(latency_ms), 0)::bigint       AS active_ms,
+                COALESCE(SUM(cost_microdollars), 0)::bigint AS cost_microdollars,
+                COALESCE(SUM(tokens_used), 0)::bigint       AS tokens
+            FROM ai_requests
+            WHERE created_at >= $1 AND created_at < $2 AND session_id IS NOT NULL
+            GROUP BY session_id
         )
         SELECT
-            COUNT(*)::bigint                                                AS "total_traces!",
-            COUNT(*) FILTER (WHERE has_error)::bigint                       AS "error_count!",
-            COUNT(*) FILTER (WHERE has_deny)::bigint                        AS "deny_count!",
-            COALESCE(percentile_disc(0.50) WITHIN GROUP (ORDER BY duration_ms), 0)::bigint
+            (SELECT COUNT(*) FROM per_session)::bigint                      AS "total_traces!",
+            (SELECT COUNT(*) FROM per_session WHERE has_error)::bigint      AS "error_count!",
+            (SELECT COUNT(*) FROM per_session WHERE has_deny)::bigint       AS "deny_count!",
+            COALESCE(percentile_disc(0.50) WITHIN GROUP (ORDER BY active_ms), 0)::bigint
                                                                             AS "p50!",
-            COALESCE(percentile_disc(0.95) WITHIN GROUP (ORDER BY duration_ms), 0)::bigint
+            COALESCE(percentile_disc(0.95) WITHIN GROUP (ORDER BY active_ms), 0)::bigint
                                                                             AS "p95!",
-            COALESCE(percentile_disc(0.99) WITHIN GROUP (ORDER BY duration_ms), 0)::bigint
-                                                                            AS "p99!"
-        FROM per_session"#,
+            COALESCE(percentile_disc(0.99) WITHIN GROUP (ORDER BY active_ms), 0)::bigint
+                                                                            AS "p99!",
+            COALESCE(SUM(cost_microdollars), 0)::bigint                     AS "total_cost!",
+            COALESCE(SUM(tokens), 0)::bigint                                AS "total_tokens!"
+        FROM active"#,
         range.from,
         range.to,
     )
@@ -59,8 +73,10 @@ pub async fn get_trace_stats(pool: &PgPool, range: TimeRange) -> Result<TraceSta
         total_traces: row.total_traces,
         error_count: row.error_count,
         deny_count: row.deny_count,
-        p50_duration_ms: row.p50,
-        p95_duration_ms: row.p95,
-        p99_duration_ms: row.p99,
+        p50_active_ms: row.p50,
+        p95_active_ms: row.p95,
+        p99_active_ms: row.p99,
+        total_cost_microdollars: row.total_cost,
+        total_tokens: row.total_tokens,
     })
 }

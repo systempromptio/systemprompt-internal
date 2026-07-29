@@ -58,11 +58,20 @@ jobs:
       - run: bash scripts/check-test-value.sh
       - run: bash scripts/lint-raw-ids.sh
       - run: bash scripts/check-glob-reexports.sh
-      # Upstream shares these files but not their callers; a symbol is only
-      # reported when it is dead here AND upstream.
+      - name: No archaeology, caller-reference, or paraphrase comments
+        run: bash scripts/check-comments.sh
+      - name: Inline comments limited to Why/JSON justifications
+        run: bash scripts/lint-inline-comments.sh
+      # Downstream forks share these files but not their callers; a symbol is
+      # only reported when it is dead here AND in the fork.
       - name: No dead repository code
         run: bash scripts/check-dead-repository-code.sh
-      - run: bash scripts/check-comments.sh
+      - name: Admin templates reference published assets
+        run: bash scripts/check-admin-template-assets.sh
+      - name: Admin template links match registered routes
+        run: bash scripts/check-admin-template-links.sh
+      # admin-css-classes + frontend-standards run as cargo tests in
+      # extensions/web/tests/ (admin_css_classes.rs, frontend_standards.rs).
       - name: Every production source has a `//!` module head
         run: bash scripts/check-file-headers.sh
       - name: No synthesized principals (UserId::new with string literal)

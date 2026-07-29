@@ -31,7 +31,7 @@ topic needs a verb, and the verbs differ per topic - not every topic has every v
 
 The fleet runs two distinct traffic paths, and they attribute differently:
 
-- **Gateway inference** - every `/v1/messages` hit (Cowork, any Anthropic-SDK client, the playground). These
+- **Gateway inference** - every `/v1/messages` hit (Pi, any Anthropic-SDK client, the playground). These
   land in `ai_requests` and drive `costs` and `requests`, but they carry **no agent task**, so they show as
   `unattributed` under `costs breakdown --by agent` and produce **no rows** in `agents list` / `agents stats`.
 - **Agent tasks** - spawned agent runs and their MCP tool calls. These are what populate `agents` and `tools`.

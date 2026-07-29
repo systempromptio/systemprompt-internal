@@ -2,10 +2,11 @@
 //! into the typed template-context structs in `context`, including the
 //! interleaved chronological transcript.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use chrono::{DateTime, Utc};
 use serde_json::Value;
+use systemprompt::identifiers::AiRequestId;
 
 use crate::repositories::analytics::context_detail::{
     ContextHeader, ContextKpis, ContextMessageRow, ContextRequestRow, ContextToolCallRow,
@@ -13,7 +14,10 @@ use crate::repositories::analytics::context_detail::{
 
 use super::context::{
     ContextDetailPageContext, ContextRequestRowView, HeaderView, KpisView, TranscriptEntryView,
+    TranscriptMetaView,
 };
+use crate::handlers::ssr::entity_urls::{request_detail_url, session_detail_url, trace_detail_url};
+use crate::handlers::ssr::format::format_cost;
 
 const TRANSCRIPT_PREVIEW_CHARS: usize = 4000;
 
@@ -38,11 +42,11 @@ pub(super) fn build_detail_data(
     messages: &[ContextMessageRow],
     tool_calls: &[ContextToolCallRow],
 ) -> ContextDetailPageContext {
-    let transcript = build_transcript(messages, tool_calls);
-    let back_url = header.session_id.as_ref().map_or_else(
-        || "/admin/overview/pulse".to_owned(),
-        |s| format!("/admin/sessions/{}", urlencoding::encode(s.as_str())),
-    );
+    let transcript = build_transcript(messages, tool_calls, requests);
+    let back_url = header
+        .session_id
+        .as_ref()
+        .map_or_else(|| "/admin/overview/pulse".to_owned(), session_detail_url);
     let back_label = header
         .session_id
         .as_ref()
@@ -72,10 +76,7 @@ fn header_view(h: &ContextHeader) -> HeaderView {
             .map(|u| format!("/admin/user?id={}", urlencoding::encode(u.as_str()))),
         display_name: h.display_name.clone(),
         session_id: h.session_id.clone(),
-        session_url: h
-            .session_id
-            .as_ref()
-            .map(|s| format!("/admin/sessions/{}", urlencoding::encode(s.as_str()))),
+        session_url: h.session_id.as_ref().map(session_detail_url),
         name: h.name.clone(),
         created_at: h.created_at.map(|t| t.to_rfc3339()),
         created_at_local: h.created_at.map(|t| {
@@ -118,20 +119,15 @@ fn kpis_view(k: &ContextKpis) -> KpisView {
 fn request_view(r: &ContextRequestRow) -> ContextRequestRowView {
     ContextRequestRowView {
         id: r.id.clone(),
-        id_short: short_id(&r.id),
-        request_url: format!("/admin/requests/{}", urlencoding::encode(&r.id)),
+        id_short: short_id(r.id.as_str()),
+        request_url: request_detail_url(&r.id),
         trace_id: r.trace_id.clone(),
         trace_id_short: r.trace_id.as_ref().map(|t| short_id(t.as_str())),
-        trace_url: r
-            .trace_id
-            .as_ref()
-            .map(|t| format!("/admin/traces/{}", urlencoding::encode(t.as_str()))),
+        trace_url: r.trace_id.as_ref().map(trace_detail_url),
         model: r.model.clone(),
         status: r.status.clone(),
         is_error: r.status == "failed",
-        latency_display: r
-            .latency_ms
-            .map_or_else(|| "—".to_owned(), |ms| format!("{ms}ms")),
+        latency_display: format_latency(r.latency_ms),
         cost_display: format_cost(r.cost_microdollars),
         created_at_local: r
             .created_at
@@ -142,10 +138,13 @@ fn request_view(r: &ContextRequestRow) -> ContextRequestRowView {
 }
 
 /// Build a chronological transcript by interleaving messages and tool calls
-/// within each request, then ordering requests by `created_at`.
+/// within each request, then ordering requests by `created_at`. Each turn
+/// carries the telemetry of the request that served it, so the thread answers
+/// "which model, how long, how much" without a trip to the rollup table.
 fn build_transcript(
     messages: &[ContextMessageRow],
     tool_calls: &[ContextToolCallRow],
+    requests: &[ContextRequestRow],
 ) -> Vec<TranscriptEntryView> {
     #[derive(Clone)]
     struct Entry {
@@ -155,6 +154,8 @@ fn build_transcript(
         role: String,
         content: String,
         tool_name: Option<String>,
+        // JSON: MCP tool arguments and results are per-tool shaped and only ever
+        // JSON: pretty-printed for display
         tool_input: Option<Value>,
         tool_result: Option<Value>,
     }
@@ -192,13 +193,20 @@ fn build_transcript(
             });
     }
 
+    let by_id: HashMap<&str, &ContextRequestRow> =
+        requests.iter().map(|r| (r.id.as_str(), r)).collect();
+
     let mut out = Vec::new();
     for ((ts, request_id), mut entries) in by_request {
+        let meta = by_id.get(request_id.as_str()).copied().map(meta_view);
+        let request_id = AiRequestId::new(&request_id);
         entries.sort_by_key(|e| e.seq);
         for e in entries {
             out.push(TranscriptEntryView {
                 request_id: request_id.clone(),
-                request_url: format!("/admin/requests/{}", urlencoding::encode(&request_id)),
+                request_id_short: short_id(request_id.as_str()),
+                request_url: request_detail_url(&request_id),
+                meta: meta.clone(),
                 ts_local: e
                     .ts
                     .with_timezone(&chrono::Local)
@@ -221,6 +229,35 @@ fn build_transcript(
     out
 }
 
+fn meta_view(r: &ContextRequestRow) -> TranscriptMetaView {
+    TranscriptMetaView {
+        model: r.model.clone(),
+        status: r.status.clone(),
+        is_error: r.status == "failed",
+        latency_display: format_latency(r.latency_ms),
+        token_display: format_tokens(r.input_tokens, r.output_tokens),
+        cost_display: format_cost(r.cost_microdollars),
+    }
+}
+
+fn format_latency(latency_ms: Option<i32>) -> String {
+    latency_ms.map_or_else(|| "—".to_owned(), |ms| format!("{ms}ms"))
+}
+
+/// `None` when neither count was recorded — an empty rail segment says less
+/// than no segment at all.
+fn format_tokens(input: Option<i32>, output: Option<i32>) -> Option<String> {
+    match (input, output) {
+        (None, None) => None,
+        (i, o) => Some(format!(
+            "{} in / {} out",
+            i.unwrap_or_default(),
+            o.unwrap_or_default()
+        )),
+    }
+}
+
+// JSON: pretty-prints the per-tool payloads above for the transcript view
 fn pretty_json(v: &Value) -> String {
     serde_json::to_string_pretty(v).unwrap_or_else(|_| v.to_string())
 }
@@ -240,16 +277,5 @@ fn short_id(id: &str) -> String {
         format!("{}…", &id[..12])
     } else {
         id.to_owned()
-    }
-}
-
-fn format_cost(microdollars: i64) -> String {
-    let dollars = microdollars as f64 / 1_000_000.0;
-    if dollars == 0.0 {
-        "$0".to_owned()
-    } else if dollars < 0.01 {
-        format!("${dollars:.6}")
-    } else {
-        format!("${dollars:.4}")
     }
 }

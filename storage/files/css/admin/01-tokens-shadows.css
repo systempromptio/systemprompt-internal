@@ -10,6 +10,9 @@
     --sp-shadow-card-hover: 0 8px 24px oklch(0.20 0.01 50 / 0.14), 0 2px 6px oklch(0.20 0.01 50 / 0.08), 0 0 0 1px oklch(0.20 0.01 50 / 0.06);
     --sp-shadow-elevated: 0 4px 16px oklch(0.20 0.01 50 / 0.12), 0 2px 6px oklch(0.20 0.01 50 / 0.07), 0 0 1px oklch(0.20 0.01 50 / 0.15);
     --sp-shadow-float: 0 12px 40px oklch(0.20 0.01 50 / 0.16), 0 4px 12px oklch(0.20 0.01 50 / 0.08);
+    --sp-shadow-drawer-panel: -8px 0 32px -12px oklch(0 0 0 / 0.18);
+    --sp-shadow-login-card: 0 8px 32px oklch(0.20 0.02 50 / 0.10), 0 2px 8px oklch(0.20 0.02 50 / 0.06);
+    --sp-text-shadow-badge: 0 1px 2px oklch(0 0 0 / 0.4);
     --sp-shadow-accent-sm: 0 2px 8px color-mix(in oklch, var(--sp-accent) 16%, transparent);
     --sp-shadow-accent-md: 0 4px 16px color-mix(in oklch, var(--sp-accent) 20%, transparent);
     --sp-shadow-inner-glow: inset 0 1px 0 oklch(1.00 0 0 / 0.5);
@@ -28,6 +31,9 @@
     --sp-shadow-card-hover: 0 8px 24px oklch(0 0 0 / 0.5), 0 2px 6px oklch(0 0 0 / 0.3), 0 0 0 1px oklch(1.00 0 0 / 0.05);
     --sp-shadow-elevated: 0 4px 16px oklch(0 0 0 / 0.5), 0 2px 6px oklch(0 0 0 / 0.35), 0 0 0 1px oklch(1.00 0 0 / 0.04);
     --sp-shadow-float: 0 12px 40px oklch(0 0 0 / 0.55), 0 4px 12px oklch(0 0 0 / 0.3);
+    --sp-shadow-drawer-panel: -8px 0 32px -12px oklch(0 0 0 / 0.18);
+    --sp-shadow-login-card: 0 8px 32px oklch(0.20 0.02 50 / 0.10), 0 2px 8px oklch(0.20 0.02 50 / 0.06);
+    --sp-text-shadow-badge: 0 1px 2px oklch(0 0 0 / 0.4);
     --sp-shadow-accent-sm: 0 2px 8px color-mix(in oklch, var(--sp-accent) 18%, transparent);
     --sp-shadow-accent-md: 0 4px 20px color-mix(in oklch, var(--sp-accent) 22%, transparent);
     --sp-shadow-inner-glow: inset 0 1px 0 oklch(1.00 0 0 / 0.04);

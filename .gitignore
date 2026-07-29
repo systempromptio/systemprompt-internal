@@ -204,3 +204,10 @@ rustc-ice-*.txt
 # last-audited SHA. Observational local state, not a source artifact.
 ISSUE.md
 .audit-state
+rustc-ice-*.txt
+
+# Build coordinator ledger (shared build/lint/test state across agents)
+/.build/
+
+# Generated at publish time by bundle_admin_css
+storage/files/css/admin-bundle.css

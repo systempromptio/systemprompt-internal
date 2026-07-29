@@ -1,6 +1,11 @@
 {{#> layout title=title page=page}}
     {{#*inline "head_extra"}}{{/inline}}
     {{#*inline "content"}}
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <a href="/admin/access/users">Users</a>
+        <span class="breadcrumbs__sep" aria-hidden="true">›</span>
+        <span aria-current="page">User detail</span>
+    </nav>
     {{> components/page-header title=title}}
     {{#if not_found}}
     {{> components/empty-state message="User not found."}}
@@ -38,7 +43,6 @@
                 <label class="form-field">
                     <span class="form-label">Department</span>
                     <select name="department">
-                        <option value=""{{#unless user_department}} selected{{/unless}}>Unassigned</option>
                         {{#each departments}}
                         <option value="{{this}}"{{#if (eq this ../user_department)}} selected{{/if}}>{{this}}</option>
                         {{/each}}
@@ -69,22 +73,15 @@
     <div class="card mb-6">
         <h3>Runtime</h3>
         <div class="dashboard-grid stats-grid-4col">
-            {{> components/stat-card label="Connected agents" value=(concat runtime.connected_agents "/" runtime.total_agents)}}
+            {{> components/stat-card label="AI requests" value=(formatNumber runtime.requests)}}
             {{> components/stat-card label="Tokens in" value=(formatNumber runtime.tokens_in)}}
             {{> components/stat-card label="Tokens out" value=(formatNumber runtime.tokens_out)}}
-            {{#if runtime.last_heartbeat_at}}
-            {{> components/stat-card label="Last heartbeat" value=(relativeTime runtime.last_heartbeat_at)}}
+            {{#if runtime.last_request_at}}
+            {{> components/stat-card label="Last request" value=(relativeTime runtime.last_request_at)}}
             {{else}}
-            {{> components/stat-card label="Last heartbeat" value="Never"}}
+            {{> components/stat-card label="Last request" value="Never"}}
             {{/if}}
         </div>
-        {{#if runtime.last_bridge_version}}
-        <p class="text-muted runtime-meta">
-            Most recent bridge: <code class="code-inline">{{runtime.last_bridge_version}}</code>
-            on <code class="code-inline">{{runtime.last_os}}</code>
-            {{#if runtime.last_hostname}}({{runtime.last_hostname}}){{/if}}
-        </p>
-        {{/if}}
     </div>
     {{/if}}
 
@@ -129,16 +126,16 @@
             {{#if user_department}}
             {{> components/stat-card label="Department" value=user_department}}
             {{else}}
-            {{> components/stat-card label="Department" value="Unassigned"}}
+            {{> components/stat-card label="Department" value="Default"}}
             {{/if}}
             {{> components/stat-card label="Effective skills" value=(default user_assignments.skills_count 0)}}
             {{> components/stat-card label="Marketplaces" value=(default user_assignments.marketplaces_count 0)}}
-            {{> components/stat-card label="Active devices" value=(default user_devices_count 0)}}
+            {{> components/stat-card label="Active tokens" value=(default user_tokens_count 0)}}
         </div>
         {{#if user_assignments.marketplaces}}
         <p>
         {{#each user_assignments.marketplaces}}
-            <a href="/admin/catalog?marketplace={{id}}" class="badge {{#if (eq source "override")}}badge-blue{{else}}badge-orange{{/if}}" title="{{#if (eq source "override")}}DB override{{else}}YAML default{{/if}}">{{name}}</a>
+            <span class="badge {{#if (eq source "override")}}badge-blue{{else}}badge-orange{{/if}}" title="{{#if (eq source "override")}}DB override{{else}}YAML default{{/if}}">{{name}}</span>
         {{/each}}
         </p>
         {{/if}}
@@ -204,24 +201,23 @@
     {{/if}}
 
     <div class="card mb-6">
-        <h3>Devices</h3>
-        {{#if user_devices}}
+        <h3>Access tokens</h3>
+        {{#if user_tokens}}
         <table class="data-table">
-            <thead><tr><th>Name</th><th>Prefix</th><th>Platform</th><th class="col-date">Last seen</th><th class="col-status">Status</th></tr></thead>
+            <thead><tr><th>Name</th><th>Prefix</th><th class="col-date">Last used</th><th class="col-status">Status</th></tr></thead>
             <tbody>
-            {{#each user_devices}}
+            {{#each user_tokens}}
             <tr>
                 <td><code class="code-inline">{{name}}</code></td>
                 <td><code class="code-inline">{{key_prefix}}</code></td>
-                <td>{{#if platform}}<span class="badge badge-blue">{{platform}}{{#if app_version}} {{app_version}}{{/if}}</span>{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
-                <td class="col-date">{{#if last_seen_at}}<span title="{{formatDate last_seen_at}}">{{relativeTime last_seen_at}}</span>{{else}}<span class="text-tertiary">Never</span>{{/if}}</td>
+                <td class="col-date">{{#if last_used_at}}<span title="{{formatDate last_used_at}}">{{relativeTime last_used_at}}</span>{{else}}<span class="text-tertiary">Never</span>{{/if}}</td>
                 <td class="col-status">{{#if revoked}}<span class="badge badge-gray">Revoked</span>{{else}}<span class="badge badge-green">Active</span>{{/if}}</td>
             </tr>
             {{/each}}
             </tbody>
         </table>
         {{else}}
-        {{> components/empty-state message="No devices linked."}}
+        {{> components/empty-state message="No access tokens issued."}}
         {{/if}}
         <div class="toolbar toolbar--compact">
             <a class="btn btn-sm btn-primary" href="/admin/access/devices">Issue PAT</a>
@@ -235,7 +231,7 @@
         <div class="live-feed">
             {{#each user.recent_activity}}
             <div class="feed-item">
-                <div class="feed-icon {{#if (eq category "login")}}feed-blue{{else if (eq category "skill_usage")}}feed-orange{{else if (eq category "marketplace_edit")}}feed-green{{else if (eq category "marketplace_connect")}}feed-purple{{else if (eq category "claude_code")}}feed-cyan{{else if (eq category "session")}}feed-cyan{{else}}feed-blue{{/if}}"></div>
+                <div class="feed-icon {{#if (eq category "login")}}feed-blue{{else if (eq category "skill_usage")}}feed-orange{{else if (eq category "marketplace_edit")}}feed-green{{else if (eq category "marketplace_connect")}}feed-purple{{else if (eq category "claude_code")}}feed-cyan{{else if (eq category "session")}}feed-cyan{{else if (eq category "prompt")}}feed-cyan{{else}}feed-blue{{/if}}"></div>
                 <div class="feed-content">
                     <span class="feed-text">{{description}}</span>
                     <span class="feed-time" title="{{formatDate created_at}}">{{relativeTime created_at}}</span>

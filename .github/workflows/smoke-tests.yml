@@ -1,14 +1,22 @@
 name: Smoke tests (post-publish)
 
 # Exercises every published install channel against a real release tag.
-# Runs automatically when a gateway release is published; dispatchable for
+# Called by release-gateway.yml once the image is published; dispatchable for
 # ad-hoc verification. Ported from systemprompt-deploy (apt/rpm remain
 # deferred alongside their publish workflows; helm/nix live with their
 # own pipelines).
+#
+# Not `release: published` — release-gateway.yml creates the release with the
+# default GITHUB_TOKEN, and events raised by that token never start a workflow
+# run, so this suite silently never ran. See the same note in docker.yml.
 
 on:
-  release:
-    types: [published]
+  workflow_call:
+    inputs:
+      tag:
+        description: "Release tag to smoke-test (e.g. v0.5.0)"
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       tag:
@@ -18,16 +26,14 @@ on:
 jobs:
   version:
     runs-on: ubuntu-latest
-    # bridge-v* releases are the client bundle — only gateway v* tags have
-    # the channels below.
-    if: ${{ github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, 'v') }}
+    if: ${{ startsWith(inputs.tag, 'v') }}
     outputs:
       tag: ${{ steps.t.outputs.tag }}
       version: ${{ steps.t.outputs.version }}
     steps:
       - id: t
         run: |
-          tag="${{ inputs.tag || github.event.release.tag_name }}"
+          tag="${{ inputs.tag }}"
           echo "tag=${tag}" >> "$GITHUB_OUTPUT"
           echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
 
@@ -116,19 +122,6 @@ jobs:
           brew trust systempromptio/tap || true
           brew install gateway
           systemprompt --version
-
-  scoop:
-    needs: version
-    runs-on: windows-latest
-    steps:
-      - shell: pwsh
-        run: |
-          iwr -useb get.scoop.sh -outfile install-scoop.ps1
-          .\install-scoop.ps1 -RunAsAdmin
-          $env:Path = "$env:USERPROFILE\scoop\shims;$env:Path"
-          scoop bucket add systemprompt https://github.com/systempromptio/scoop-bucket
-          scoop install bridge
-          systemprompt-bridge --version
 
   compose:
     name: docker-compose / Coolify template

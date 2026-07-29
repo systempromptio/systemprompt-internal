@@ -1,0 +1,9 @@
+{{!--
+  One sortable column header. Invoke with the header object itself:
+    {{> components/sort-header sort_headers.started}}
+  Inputs: label, class (column class), url, active, aria_sort, indicator, hint.
+  `hint` explains the column on the header, where no row overlay can cover it.
+--}}
+<th class="{{class}}{{#if active}} sorted{{/if}}" aria-sort="{{aria_sort}}"{{#if hint}} title="{{hint}}"{{/if}}>
+  <a class="th-sort" href="{{url}}">{{label}}<span class="sort-icon" aria-hidden="true">{{indicator}}</span></a>
+</th>

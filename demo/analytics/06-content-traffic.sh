@@ -19,10 +19,14 @@ source "$(cd "$(dirname "$0")/.." && pwd)/_common.sh"
 # Show a traffic rollup (box table) and assert it has at least one row in the
 # structured --json output. 01-seed-data.sh inserts 100 synthetic sessions, so
 # every rollup must be non-empty; an empty one means the seed never landed.
+#
+# The rollups default to --since 24h, but the seed spreads its sessions across
+# the preceding days rather than the current one, so the window has to match the
+# seed or every rollup reads empty on a freshly seeded instance.
 traffic_rollup() {
   local sub="$1" label="$2"
-  run_cli_indented analytics traffic "$sub"
-  assert_min "$(cli_json analytics traffic "$sub" | jq '.items | length')" 1 "$label"
+  run_cli_indented analytics traffic "$sub" --since 7d
+  assert_min "$(cli_json analytics traffic "$sub" --since 7d | jq '.items | length')" 1 "$label"
 }
 
 header "ANALYTICS: CONTENT & TRAFFIC" "Content engagement, top pages, traffic sources, geo, devices"

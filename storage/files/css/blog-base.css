@@ -49,7 +49,7 @@ svg {
 main {
   max-width: 1200px;
   margin: 0 auto;
-  padding: calc(var(--sp-header-height) + var(--sp-space-8)) var(--sp-spacing-lg) var(--sp-spacing-xxl);
+  padding: calc(var(--sp-header-height) + var(--sp-space-8)) var(--sp-space-6) var(--sp-space-12);
 }
 
 .blog-post {

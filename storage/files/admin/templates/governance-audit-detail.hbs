@@ -2,9 +2,14 @@
     {{#*inline "content"}}
     <a href="{{back_url}}" class="back-link">&larr; All decisions</a>
 
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <a href="/admin/entities/requests">Requests</a>
+        <span class="breadcrumbs__sep" aria-hidden="true">›</span>
+        <span aria-current="page">Request audit</span>
+    </nav>
     {{> components/page-header
         title=title
-        subtitle="Single-request audit chain — identity, policy evaluations, model traffic, and linked trace."}}
+        subtitle="Single-request audit chain: identity, policy evaluations, model traffic, and linked trace."}}
 
     {{#if banner}}
     <section class="alert {{#if banner.is_denial}}alert--danger{{else}}alert--warning{{/if}}" role="alert">
@@ -68,7 +73,7 @@
       {{/if}}
       <div class="trace-detail__field">
         <span class="trace-detail__label">Session</span>
-        <code class="code-inline" title="{{summary.session_id}}">{{summary.session_id_short}}</code>
+        <a href="{{summary.session_url}}"><code class="code-inline" title="{{summary.session_id}}">{{summary.session_id_short}}</code></a>
       </div>
       {{#if summary.trace_url}}
         <div class="trace-detail__field">

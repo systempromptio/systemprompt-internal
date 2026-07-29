@@ -2,8 +2,8 @@
 //!
 //! Each module owns the data model for a section of the marketing/docs site
 //! and exposes a `*PageDataProvider` that the core SSR runtime calls when
-//! rendering. No `sqlx` or DB access here — the site reads from prerendered
-//! content artifacts produced by `systemprompt_web_jobs::ContentPrerenderJob`.
+//! rendering. Queries are confined to `repositories`, which reads the
+//! `markdown_content` tables populated by the content ingestion job.
 //!
 //! - [`homepage`], [`docs`] — section providers.
 //! - [`navigation`] — header / footer nav config consumed by every page.
@@ -14,8 +14,10 @@
 //!   extension trait.
 
 pub mod assets;
+pub mod config_loader;
 pub mod docs;
 pub mod extenders;
+mod format;
 pub mod homepage;
 pub mod navigation;
 pub mod partials;

@@ -105,6 +105,10 @@ impl Job for CopyExtensionAssetsJob {
         "copy_extension_assets"
     }
 
+    fn tags(&self) -> Vec<&'static str> {
+        vec![crate::registry::JOB_TAG]
+    }
+
     fn description(&self) -> &'static str {
         "Copies extension assets (CSS, JS) to web dist directory"
     }

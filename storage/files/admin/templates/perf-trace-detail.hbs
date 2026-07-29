@@ -52,8 +52,22 @@
           <li><span class="waterfall__swatch waterfall__swatch--spawn"></span> Spawn</li>
         </ul>
       </div>
-      <div id="waterfall-root" class="waterfall__root" data-waterfall></div>
-      <script type="application/json" id="trace-spans">{{{spans_payload}}}</script>
+      <div class="waterfall__root">
+        {{#each spans}}
+        <div class="waterfall__row">
+          <span class="waterfall__name" title="{{this.name}}">
+            <code class="code-inline">{{truncate this.name 32}}</code>
+          </span>
+          <div class="waterfall__track">
+            <span class="waterfall__bar waterfall__bar--{{this.kind}}"
+                  data-chain-id="{{this.id}}"
+                  style="--start:{{this.offset_pct}}%;--w:{{this.width_pct}}%"
+                  title="{{this.name}} · {{this.offset_label}} · {{this.duration_ms}} ms"></span>
+          </div>
+          <span class="waterfall__dur">{{this.offset_label}} · {{this.duration_ms}} ms</span>
+        </div>
+        {{/each}}
+      </div>
     </section>
 
     <section aria-labelledby="span-list-title">
@@ -72,7 +86,7 @@
         <tbody>
         {{#each spans}}
           <tr>
-            <td class="col-date">{{this.started_at}}</td>
+            <td class="col-date">{{this.started_at_local}}</td>
             <td>
               <span class="waterfall__swatch waterfall__swatch--{{this.kind}}"></span>
               {{this.kind}}

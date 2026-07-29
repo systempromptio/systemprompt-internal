@@ -1,6 +1,5 @@
-
 .how-it-works {
-  padding: var(--sp-space-4xl) 0;
+  padding: var(--sp-space-24) 0;
   border-top: 1px solid var(--sp-color-border);
 }
 
@@ -15,9 +14,8 @@
   position: relative;
   max-width: 1300px;
   margin: 0 auto;
-  padding: 0 var(--sp-space-md);
+  padding: 0 var(--sp-space-4);
 }
-
 
 .steps::before {
   content: '';
@@ -32,17 +30,17 @@
 
 .step {
   text-align: center;
-  padding: var(--sp-space-md);
+  padding: var(--sp-space-4);
   flex: 1;
   max-width: 220px;
   position: relative;
-  z-index: var(--sp-z-sticky);
+  z-index: var(--sp-z-base);
 }
 
 .step-number {
   width: 64px;
   height: 64px;
-  border-radius: var(--sp-radius-full);
+  border-radius: var(--sp-radius-round);
   background: linear-gradient(135deg, var(--sp-brand-700), var(--sp-brand-500));
   color: var(--sp-color-text-on-primary);
   font-family: var(--sp-font-brand);
@@ -54,7 +52,7 @@
   margin: 0 auto var(--sp-space-lg);
   box-shadow: 0 4px 20px rgba(10, 10, 10, 0.17);
   position: relative;
-  z-index: var(--sp-z-sticky-header);
+  z-index: var(--sp-z-content);
 }
 
 .step h3 {
@@ -62,13 +60,13 @@
   font-size: 1.1rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-bottom: var(--sp-space-sm);
+  margin-bottom: var(--sp-space-2);
 }
 
 .step p {
   color: var(--sp-color-text-secondary);
   font-size: 0.875rem;
-  margin-bottom: var(--sp-space-md);
+  margin-bottom: var(--sp-space-4);
   line-height: 1.4;
 }
 
@@ -77,7 +75,7 @@
   background: var(--sp-color-surface-elevated);
   border: 1px solid var(--sp-color-border);
   border-radius: var(--sp-radius-sm);
-  padding: var(--sp-space-xs) var(--sp-space-sm);
+  padding: var(--sp-space-1) var(--sp-space-2);
   font-family: "SF Mono", "Fira Code", monospace;
   font-size: 0.75rem;
   color: var(--sp-color-primary);
@@ -85,23 +83,22 @@
   max-width: 100%;
 }
 
-
 .use-cases {
-  padding: var(--sp-space-4xl) 0;
+  padding: var(--sp-space-24) 0;
   border-top: 1px solid var(--sp-color-border);
 }
 
 .use-cases-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--sp-space-lg);
+  gap: var(--sp-space-6);
 }
 
 .use-case-card {
   background: var(--sp-card-bg-glass);
   border: var(--sp-card-border-width) solid var(--sp-color-border);
   border-radius: var(--sp-card-radius);
-  padding: var(--sp-space-xl);
+  padding: var(--sp-space-8);
   transition: all var(--sp-transition-normal);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -130,8 +127,8 @@
 .use-case-header {
   display: flex;
   align-items: center;
-  gap: var(--sp-space-md);
-  margin-bottom: var(--sp-space-md);
+  gap: var(--sp-space-4);
+  margin-bottom: var(--sp-space-4);
 }
 
 .use-case-icon {
@@ -149,7 +146,7 @@
 .use-case-card > p {
   color: var(--sp-color-text-secondary);
   font-size: 0.95rem;
-  margin-bottom: var(--sp-space-lg);
+  margin-bottom: var(--sp-space-6);
   line-height: 1.6;
   flex-grow: 1;
 }
@@ -157,8 +154,8 @@
 .use-case-code {
   background: var(--sp-color-surface);
   border: 1px solid var(--sp-color-border);
-  border-radius: var(--sp-radius-button);
-  padding: var(--sp-space-md);
+  border-radius: var(--sp-radius-md);
+  padding: var(--sp-space-4);
   overflow-x: auto;
   margin: 0;
   margin-top: auto;
@@ -167,7 +164,7 @@
 
 .use-case-link-hint {
   display: block;
-  margin-top: var(--sp-space-md);
+  margin-top: var(--sp-space-4);
   color: var(--sp-color-primary);
   font-size: 0.875rem;
   font-weight: 500;

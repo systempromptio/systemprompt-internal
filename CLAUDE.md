@@ -40,6 +40,47 @@ systemprompt core skills list
 
 ---
 
+## Shared Build State (read this before you compile)
+
+Several agents work this clone at once. Builds, clippy, and tests are expensive
+and take a shared cargo lock, so a build started mid-iteration stalls everyone.
+
+**Do all the work first, validate once at the end.** Never run `just build` or
+`just clippy` between edits to see how you're doing; finish the change set, then
+run the gate a single time.
+
+**Check the shared state before spending anything:**
+
+```bash
+just build-status     # in-flight run + last result per recipe + is it still fresh?
+just server-status    # running server, its binary, and whether that binary is stale
+```
+
+`just build`, `just clippy`, `just test-*`, and `just lint-gates` are
+single-flight (`scripts/build-coordinator.sh`). They key on a content
+fingerprint of the source tree, so:
+
+| situation | what happens |
+|-----------|--------------|
+| this tree already passed this recipe | returns immediately, no compile |
+| identical run already in flight | attaches to its log, exits with its status |
+| someone else's run in flight | queues, then runs |
+
+Results land in `.build/` (gitignored): `runs.jsonl`, `latest/<recipe>.json`,
+`logs/`, `binaries.jsonl`. Read them instead of re-running.
+
+`just start` reports the running server first, then starts. It does not restart
+a server another agent is already running (say so and stop), and it warns when
+the binary predates the current source, but it only refuses outright when there
+is no binary at all. Staleness is reported from the ledger when the binary came
+from a coordinated build, and from file mtimes otherwise.
+
+Always go through the justfile. A bare `cargo build` bypasses coordination and
+re-creates the contention. Escape hatches when you truly need them:
+`BUILD_FORCE=1`, `START_FORCE=1`, `BUILD_NO_COORD=1`.
+
+---
+
 ## CLI Structure
 
 ```
@@ -75,7 +116,7 @@ systemprompt infra --help
 
 # Subcommand help
 systemprompt core skills --help
-systemprompt core skills sync --help
+systemprompt core skills show --help
 ```
 
 ---
@@ -141,7 +182,7 @@ systemprompt analytics agents
 systemprompt analytics tools
 ```
 
-`logs request list` shows one row per `/v1/messages` hit — the gateway path Cowork / any Anthropic-SDK client uses. `logs trace list` shows MCP tool calls. Both are backed by the same 18-column `ai_requests` / trace tables with `user_id`, `tenant_id`, `session_id`, `trace_id` — so `audit <id> --full` reconstructs the chain from identity to cost.
+`logs request list` shows one row per `/v1/messages` hit — the gateway path Pi / any Anthropic-SDK client uses. `logs trace list` shows MCP tool calls. Both are backed by the same 18-column `ai_requests` / trace tables with `user_id`, `tenant_id`, `session_id`, `trace_id` — so `audit <id> --full` reconstructs the chain from identity to cost.
 
 **`infra logs` vs `analytics` — operational vs dashboard.** The `infra logs request {list,stats}` commands are quick operational views (recent rows, by-provider / by-model aggregate). Their `analytics requests {list,stats}` counterparts are dashboard metrics over a time range with model filtering, cache-hit rate, and CSV export. Same `ai_requests` table underneath — reach for `infra logs` when triaging a live issue, `analytics` when reporting. The `--help` on each cross-references the other.
 
@@ -208,7 +249,6 @@ it was doing all three jobs at once, which is how the convention drifted: a
 reader could not tell from `fetch_summary` whether an absent row was `None` or
 an error, and had to open the file to find out.
 
-
 ---
 
 ## CSS Files (IMPORTANT)
@@ -236,7 +276,7 @@ After changing templates, CSS, JS, or static files, run:
 just publish
 ```
 
-This runs (in order): `bundle_admin_css` -> `bundle_admin_js` -> `copy_extension_assets` -> `content_prerender`. Order matters — bundles must be built before `copy_extension_assets` copies them to `web/dist/`. Admin pages are SSR'd at runtime from `.hbs` templates in `storage/files/admin/templates/`, not precompiled.
+This runs (in order): `bundle_admin_css` -> `copy_extension_assets` -> `content_prerender`. Order matters — bundles must be built before `copy_extension_assets` copies them to `web/dist/`. Admin pages are SSR'd at runtime from `.hbs` templates in `storage/files/admin/templates/`, not precompiled.
 
 **Exception: the public-site partials are compiled into the binary.** `services/web/templates/partials/{head-assets,header,footer,scripts}.html` are `include_str!`-embedded by `extensions/web/site/src/partials.rs`. Editing them requires a rebuild (`just build`) and a server restart before `just publish` — running publish alone keeps serving the markup baked into the old binary.
 

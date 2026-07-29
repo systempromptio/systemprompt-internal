@@ -70,57 +70,6 @@
 .rank-tier-4 { background: var(--sp-rank-tier-4-bg); color: var(--sp-text-on-accent); }
 .rank-tier-5 { background: var(--sp-rank-tier-5-bg); color: var(--sp-text-on-accent); }
 
-.user-widget--tier-bronze  { }
-.user-widget--tier-silver  { }
-.user-widget--tier-gold    { }
-.user-widget--tier-platinum { }
-.user-widget--tier-diamond { }
-
-.xp-guide {
-    padding: var(--sp-space-4);
-    background: var(--sp-bg-surface);
-    border: 1px solid var(--sp-border-default);
-    border-radius: var(--sp-radius-md);
-    margin-bottom: var(--sp-space-4);
-}
-
-.xp-guide__header {
-    margin-bottom: var(--sp-space-3);
-}
-
-.xp-guide__title {
-    font-size: var(--sp-text-md);
-    font-weight: 700;
-    color: var(--sp-text-primary);
-    margin: 0;
-}
-
-.xp-guide__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: var(--sp-space-2);
-}
-
-.xp-guide__item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: var(--sp-space-2) var(--sp-space-3);
-    background: var(--sp-bg-surface-raised);
-    border-radius: var(--sp-radius-sm);
-}
-
-.xp-guide__action {
-    font-size: var(--sp-text-sm);
-    color: var(--sp-text-primary);
-}
-
-.xp-guide__amount {
-    font-size: var(--sp-text-sm);
-    font-weight: 700;
-    color: var(--sp-success);
-}
-
 .rank-ladder {
     margin-bottom: var(--sp-space-4);
 }

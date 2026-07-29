@@ -1,13 +1,9 @@
-/* Governance Policies — chain layout and enforcement panel.
-   Used by storage/files/admin/templates/governance.hbs. Bundled into
-   admin-bundle.css by jobs/bundle_admin_css. */
-
 .policy-chain-intro {
     margin: var(--sp-space-6) 0 var(--sp-space-4);
     padding: var(--sp-space-5) var(--sp-space-6);
     background: var(--sp-bg-surface-raised);
     border: 1px solid var(--sp-border-default);
-    border-radius: var(--sp-radius-card-brand, var(--sp-radius-card));
+    border-radius: var(--sp-radius-card-brand);
 }
 
 .policy-chain-intro__title {
@@ -28,8 +24,6 @@
     font-size: var(--sp-text-sm);
     line-height: 1.5;
 }
-
-/* Chain ---------------------------------------------------------------- */
 
 .policy-chain {
     list-style: none;
@@ -74,7 +68,7 @@
 }
 
 .policy-chain__step--disabled .policy-chain__order {
-    color: var(--sp-text-muted);
+    color: var(--sp-text-tertiary);
     background: var(--sp-bg-surface);
 }
 
@@ -93,7 +87,7 @@
 .policy-chain__card {
     background: var(--sp-bg-surface);
     border: 1px solid var(--sp-border-default);
-    border-radius: var(--sp-radius-card-brand, var(--sp-radius-card));
+    border-radius: var(--sp-radius-card-brand);
     padding: var(--sp-space-5);
     display: grid;
     gap: var(--sp-space-4);
@@ -129,7 +123,7 @@
 
 .policy-chain__id {
     font-size: var(--sp-text-sm);
-    color: var(--sp-text-muted);
+    color: var(--sp-text-tertiary);
 }
 
 .policy-chain__description {
@@ -138,16 +132,14 @@
     line-height: 1.55;
 }
 
-/* Meta (as-code + config) --------------------------------------------- */
-
 .policy-chain__meta {
     margin: 0;
     display: grid;
     gap: var(--sp-space-2);
     padding: var(--sp-space-3) var(--sp-space-4);
-    background: var(--sp-bg-surface-alt, var(--sp-bg-surface-raised));
+    background: var(--sp-bg-surface-alt);
     border: 1px solid var(--sp-border-default);
-    border-radius: var(--sp-radius-card-inner-brand, var(--sp-radius-card-inner));
+    border-radius: var(--sp-radius-card-inner-brand);
 }
 
 .policy-chain__meta-row {
@@ -162,7 +154,7 @@
     font-size: var(--sp-text-xs);
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    color: var(--sp-text-muted);
+    color: var(--sp-text-tertiary);
     font-weight: 600;
 }
 
@@ -190,8 +182,6 @@
     font-size: var(--sp-text-sm);
 }
 
-/* Stats strip ---------------------------------------------------------- */
-
 .policy-chain__stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
@@ -202,7 +192,7 @@
     display: grid;
     gap: var(--sp-space-1);
     padding: var(--sp-space-3) var(--sp-space-4);
-    background: var(--sp-bg-surface-alt, var(--sp-bg-surface-raised));
+    background: var(--sp-bg-surface-alt);
     border: 1px solid var(--sp-border-default);
     border-radius: var(--sp-radius-md);
     text-decoration: none;
@@ -226,7 +216,7 @@ a.policy-chain__stat:hover {
     font-size: var(--sp-text-xs);
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    color: var(--sp-text-muted);
+    color: var(--sp-text-tertiary);
 }
 
 .policy-chain__stat--allow .policy-chain__stat-value {
@@ -242,8 +232,6 @@ a.policy-chain__stat:hover {
     gap: var(--sp-space-2);
     flex-wrap: wrap;
 }
-
-/* Enforcement section ------------------------------------------------- */
 
 .enforcement-section {
     margin-top: var(--sp-space-8);
@@ -275,7 +263,6 @@ a.policy-chain__stat:hover {
     align-items: start;
 }
 
-/* Number-aligned cells in enforcement tables */
 .enforcement-section .data-table td.num,
 .enforcement-section .data-table th.num {
     text-align: right;
@@ -286,8 +273,6 @@ a.policy-chain__stat:hover {
 .enforcement-section .data-table tr.row-muted td {
     opacity: 0.7;
 }
-
-/* Orphan / historical drawer ------------------------------------------ */
 
 .policy-chain-orphans {
     margin-top: var(--sp-space-8);

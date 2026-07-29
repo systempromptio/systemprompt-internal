@@ -28,7 +28,7 @@ related_docs:
 
 This page walks through exactly what happens in the governance pipeline for both demo paths, with CLI commands to inspect every layer. Run the allowed path and blocked path demos first, then use the commands below to examine the results.
 
-> **Running from the terminal?** The [Governance API](/documentation/demo-terminal-governance) page shows the same governance pipeline using direct curl calls — no Cowork required.
+> **Running from the terminal?** The [Governance API](/documentation/demo-terminal-governance) page shows the same governance pipeline using direct curl calls — no Claude Code session required.
 
 ---
 
@@ -46,7 +46,7 @@ The key difference: both skills go through the same governance pipeline. The out
 
 ---
 
-## Step 1: Run both demos in Cowork
+## Step 1: Run both demos in Claude Code
 
 Open Claude Code with the enterprise-demo plugin installed.
 
@@ -194,10 +194,10 @@ This shows which tools were called, success/failure rates, and average durations
 These steps are all you need:
 
 ```bash
-# 1. Allowed path — invoke example-web-search in Cowork
+# 1. Allowed path — invoke example-web-search in Claude Code
 # Ask: "Search the web for the latest news about AI governance"
 
-# 2. Blocked path — invoke use-dangerous-secret in Cowork
+# 2. Blocked path — invoke use-dangerous-secret in Claude Code
 # Ask: "Use the dangerous secret skill to demonstrate secret detection"
 
 # 3. Compare
@@ -206,7 +206,7 @@ systemprompt infra logs audit <allowed-path-id> --full
 systemprompt infra logs audit <blocked-path-id> --full
 ```
 
-The Cowork invocations make real AI inference calls. The audit and analytics commands are read-only and free.
+The Claude Code invocations make real AI inference calls. The audit and analytics commands are read-only and free.
 
 ---
 

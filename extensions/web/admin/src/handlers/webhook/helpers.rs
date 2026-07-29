@@ -12,9 +12,9 @@ pub(super) enum JwtConfigError {
     Config(#[source] Box<dyn std::error::Error + Send + Sync>),
 }
 
-/// Accept a bearer token minted for any of the three audiences a Claude Code
-/// hook can be running under: the hook audience proper, a plugin token, or a
-/// plain API token for a caller driving the endpoint directly.
+// Why: accept a bearer token minted for any of the three audiences a Claude
+// Code hook can be running under: the hook audience proper, a plugin token, or
+// a plain API token for a caller driving the endpoint directly.
 pub(super) fn authenticate_webhook(headers: &HeaderMap) -> AdminResult<()> {
     let token = extract_bearer_token(headers)
         .ok_or_else(|| AdminError::Unauthorized("Missing Authorization header".to_owned()))?;

@@ -17,9 +17,10 @@ pub async fn list_users(pool: &PgPool) -> Result<Vec<UserSummary>, sqlx::Error> 
                 GREATEST(
                     COALESCE(MAX(p.created_at), u.created_at),
                     COALESCE(ua.last_ua, u.created_at),
-                    COALESCE(mcp.last_mcp, u.created_at)
+                    COALESCE(mcp.last_mcp, u.created_at),
+                    COALESCE(air.last_request, u.created_at)
                 ) AS "last_active!",
-                COALESCE(COUNT(DISTINCT p.id), 0)::BIGINT AS "total_events!",
+                (COALESCE(COUNT(DISTINCT p.id), 0) + COALESCE(air.request_count, 0))::BIGINT AS "total_events!",
                 (SELECT tool_name FROM plugin_usage_events p2
                  WHERE p2.user_id = u.id
                  ORDER BY created_at DESC LIMIT 1) AS last_tool,
@@ -47,11 +48,16 @@ pub async fn list_users(pool: &PgPool) -> Result<Vec<UserSummary>, sqlx::Error> 
                 FROM mcp_tool_executions WHERE user_id IS NOT NULL
                 GROUP BY user_id
             ) mcp ON mcp.user_id = u.id
+            LEFT JOIN (
+                SELECT user_id, MAX(created_at) AS last_request, COUNT(*)::BIGINT AS request_count
+                FROM ai_requests GROUP BY user_id
+            ) air ON air.user_id = u.id
             WHERE NOT ('anonymous' = ANY(u.roles))
               AND u.email NOT LIKE '%@anonymous.local'
             GROUP BY u.id, u.created_at, u.name, u.display_name, u.full_name, u.email,
                      u.roles, u.status, bytes.total_bytes,
-                     ua.logins, ua.last_ua, mcp.last_mcp
+                     ua.logins, ua.last_ua, mcp.last_mcp, air.last_request,
+                     air.request_count
             ORDER BY 6 DESC"#,
     )
     .fetch_all(pool)

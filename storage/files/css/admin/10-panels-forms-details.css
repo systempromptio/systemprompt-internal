@@ -58,13 +58,6 @@
     padding: var(--sp-space-12);
     color: var(--sp-text-tertiary);
 }
-
-
-.sp-panel-empty-text {
-    color: var(--sp-text-tertiary);
-    font-size: var(--sp-text-sm);
-}
-
 .sp-skill-detail-field {
     margin-bottom: var(--sp-space-2);
 }

@@ -4,14 +4,17 @@
 
 use serde::Serialize;
 
+use crate::handlers::ssr::list_view::{
+    AnnotatedOption, Chip, Pagination, Preserved, TimeRangeContext,
+};
+
 #[derive(Debug, Serialize)]
 pub(super) struct PerfTracesPageContext {
     pub(super) page: &'static str,
     pub(super) title: &'static str,
-    pub(super) entity_view_tabs: Vec<EntityViewTab>,
     pub(super) time_range: TimeRangeContext,
-    pub(super) filter_ribbon: FilterRibbon,
-    pub(super) stats: StatsView,
+    pub(super) filter_ribbon: TraceFilterRibbon,
+    pub(super) stats: TraceStatsView,
     pub(super) traces: Vec<super::rows::TraceRow>,
     pub(super) has_traces: bool,
     pub(super) total_count: i64,
@@ -19,6 +22,7 @@ pub(super) struct PerfTracesPageContext {
     pub(super) page_index: i64,
     pub(super) page_count: i64,
     pub(super) pagination: Pagination,
+    pub(super) sort_headers: SortHeaders,
     pub(super) sort: &'static str,
     pub(super) dir: &'static str,
     pub(super) error_only: bool,
@@ -26,34 +30,11 @@ pub(super) struct PerfTracesPageContext {
 }
 
 #[derive(Debug, Serialize)]
-pub(super) struct EntityViewTab {
-    pub(super) key: &'static str,
-    pub(super) label: &'static str,
-    pub(super) url: String,
-    pub(super) active: bool,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct TimeRangeContext {
-    pub(super) preset: String,
-    pub(super) from: String,
-    pub(super) to: String,
-    pub(super) base_url: &'static str,
-    pub(super) query: &'static str,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct FilterRibbon {
+pub(super) struct TraceFilterRibbon {
     pub(super) base_url: &'static str,
     pub(super) preserved: Vec<Preserved>,
     pub(super) options: TraceFilterOptionsView,
     pub(super) chips: Vec<Chip>,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct Preserved {
-    pub(super) name: &'static str,
-    pub(super) value: String,
 }
 
 #[derive(Debug, Default, Serialize)]
@@ -66,37 +47,41 @@ pub(super) struct TraceFilterOptionsView {
 }
 
 #[derive(Debug, Serialize)]
-pub(super) struct AnnotatedOption {
-    pub(super) id: String,
-    pub(super) label: String,
-    pub(super) count: i64,
-    pub(super) selected: bool,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct Chip {
-    pub(super) group_label: &'static str,
-    pub(super) label: String,
-    pub(super) value: String,
-    pub(super) remove_url: String,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct StatsView {
+pub(super) struct TraceStatsView {
     pub(super) total_traces: i64,
     pub(super) error_count: i64,
     pub(super) deny_count: i64,
-    pub(super) p50_ms: i64,
-    pub(super) p95_ms: i64,
-    pub(super) p99_ms: i64,
+    pub(super) deny_url: String,
+    pub(super) error_url: String,
+    pub(super) deny_active: bool,
+    pub(super) error_active: bool,
+    pub(super) cost_display: String,
+    pub(super) tokens_display: String,
+    pub(super) p50_display: String,
+    pub(super) p95_display: String,
+    pub(super) p99_display: String,
+}
+
+// Why: named fields rather than a Vec so the template addresses each header by
+// name and the column set is checked at compile time.
+#[derive(Debug, Serialize)]
+pub(super) struct SortHeaders {
+    pub(super) started: SortHeader,
+    pub(super) activity: SortHeader,
+    pub(super) tokens: SortHeader,
+    pub(super) cost: SortHeader,
+    pub(super) duration: SortHeader,
 }
 
 #[derive(Debug, Serialize)]
-pub(super) struct Pagination {
-    pub(super) current_page: i64,
-    pub(super) total_pages: i64,
-    pub(super) has_prev: bool,
-    pub(super) has_next: bool,
-    pub(super) prev_url: Option<String>,
-    pub(super) next_url: Option<String>,
+pub(super) struct SortHeader {
+    pub(super) label: &'static str,
+    pub(super) class: &'static str,
+    // Why: the column explanation lives on the `th` because the row-wide link
+    // overlay would cover the same tooltip on a cell.
+    pub(super) hint: &'static str,
+    pub(super) url: String,
+    pub(super) active: bool,
+    pub(super) aria_sort: &'static str,
+    pub(super) indicator: &'static str,
 }

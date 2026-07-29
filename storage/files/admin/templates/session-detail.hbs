@@ -2,9 +2,20 @@
     {{#*inline "content"}}
     <a href="{{back_url}}" class="back-link">&larr; All sessions</a>
 
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <a href="/admin/entities/sessions">Sessions</a>
+        <span class="breadcrumbs__sep" aria-hidden="true">›</span>
+        <span aria-current="page">Session detail</span>
+    </nav>
+    {{!-- The AI-written title says what the session was actually about, so it
+          leads the page rather than sitting in a panel below the fold. --}}
+    {{#if header.ai_title}}
+    {{> components/page-header title=title subtitle=header.ai_title}}
+    {{else}}
     {{> components/page-header
         title=title
-        subtitle="One interactive session — every context, trace, and AI request it produced."}}
+        subtitle="One interactive session: every context, trace, and AI request it produced."}}
+    {{/if}}
 
     <section class="trace-detail__summary" aria-label="Session summary">
       <div class="trace-detail__field">
@@ -25,11 +36,13 @@
       {{/if}}
       <div class="trace-detail__field">
         <span class="trace-detail__label">Started</span>
-        <span title="{{header.started_at}}">{{#if header.started_at_local}}{{header.started_at_local}}{{else}}—{{/if}}</span>
+        {{!-- The title attribute must be guarded too: strict mode rejects a null
+              value inside an attribute just as it does in body text. --}}
+        <span {{#if header.started_at}}title="{{header.started_at}}"{{/if}}>{{#if header.started_at_local}}{{header.started_at_local}}{{else}}&mdash;{{/if}}</span>
       </div>
       <div class="trace-detail__field">
         <span class="trace-detail__label">Last activity</span>
-        <span title="{{header.last_activity_at}}">{{#if header.last_activity_at_local}}{{header.last_activity_at_local}}{{else}}—{{/if}}</span>
+        <span {{#if header.last_activity_at}}title="{{header.last_activity_at}}"{{/if}}>{{#if header.last_activity_at_local}}{{header.last_activity_at_local}}{{else}}&mdash;{{/if}}</span>
       </div>
       <div class="trace-detail__field">
         <span class="trace-detail__label">Duration</span>
@@ -52,13 +65,6 @@
       </div>
       {{/if}}
     </section>
-
-    {{#if header.ai_title}}
-    <section class="overview-pane">
-      <h3 class="section-title">Summary</h3>
-      <p>{{header.ai_title}}</p>
-    </section>
-    {{/if}}
 
     <section class="kpi-strip" aria-label="Session KPIs">
       <div class="kpi-card">
@@ -91,9 +97,10 @@
     <section class="overview-pane">
       <h3 class="section-title">Contexts in this session ({{kpis.context_count}})</h3>
       {{#if has_contexts}}
+      <div class="table-container"><div class="table-scroll">
       <table class="data-table">
         <thead><tr>
-          <th>Context</th><th>Name</th><th>Requests</th><th>Last request</th><th>Model</th>
+          <th>Context</th><th>Name</th><th>Requests</th><th>Errors</th><th>Last request</th><th>Model</th><th>Tokens</th><th>Cost</th>
         </tr></thead>
         <tbody>
         {{#each contexts}}
@@ -101,20 +108,25 @@
             <td><a href="{{context_url}}" class="code-inline" title="{{context_id}}">{{context_id_short}}</a></td>
             <td>{{name}}</td>
             <td>{{request_count}}</td>
+            <td>{{#if error_count}}<span class="text-danger">{{error_count}}</span>{{else}}0{{/if}}</td>
             <td>{{#if last_request_at_local}}{{last_request_at_local}}{{else}}—{{/if}}</td>
             <td>{{#if model}}{{model}}{{else}}—{{/if}}</td>
+            <td title="{{token_display}}">{{total_tokens}}</td>
+            <td>{{cost_display}}</td>
           </tr>
         {{/each}}
         </tbody>
       </table>
+      </div></div>
       {{else}}
-      <p class="text-tertiary">No contexts recorded for this session.</p>
+      {{> components/empty-state message="No contexts recorded for this session."}}
       {{/if}}
     </section>
 
     <section class="overview-pane">
       <h3 class="section-title">Traces in this session ({{kpis.trace_count}})</h3>
       {{#if has_traces}}
+      <div class="table-container"><div class="table-scroll">
       <table class="data-table">
         <thead><tr>
           <th>Trace</th><th>Started</th><th>Duration</th><th>Requests</th><th>Errors</th>
@@ -131,14 +143,16 @@
         {{/each}}
         </tbody>
       </table>
+      </div></div>
       {{else}}
-      <p class="text-tertiary">No traces recorded for this session.</p>
+      {{> components/empty-state message="No traces recorded for this session."}}
       {{/if}}
     </section>
 
     <section class="overview-pane">
       <h3 class="section-title">Requests in this session ({{kpis.request_count}})</h3>
       {{#if has_requests}}
+      <div class="table-container"><div class="table-scroll">
       <table class="data-table">
         <thead><tr>
           <th>Request</th><th>Created</th><th>Context</th><th>Trace</th><th>Model</th><th>Status</th><th>Latency</th><th>Cost</th>
@@ -158,8 +172,9 @@
         {{/each}}
         </tbody>
       </table>
+      </div></div>
       {{else}}
-      <p class="text-tertiary">No requests recorded for this session.</p>
+      {{> components/empty-state message="No requests recorded for this session."}}
       {{/if}}
     </section>
 

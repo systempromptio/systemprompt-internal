@@ -4,10 +4,9 @@ use sqlx::PgPool;
 
 use super::{GovernanceCounts, PerPolicyCounts};
 
-// Live upstream in systemprompt-template via the ssr_governance
-// handlers, which this fork does not ship. Kept so the shared
-// repository files stay identical across both trees.
-// lint-ok: unused-pub
+// Why: lint-ok: unused-pub — live upstream via the ssr_governance handlers,
+// which this fork does not ship; kept so shared repository files stay
+// identical.
 pub async fn get_governance_counts(pool: &PgPool) -> Result<GovernanceCounts, sqlx::Error> {
     let row = sqlx::query!(
         r#"SELECT
@@ -27,10 +26,9 @@ pub async fn get_governance_counts(pool: &PgPool) -> Result<GovernanceCounts, sq
     })
 }
 
-// Live upstream in systemprompt-template via the ssr_governance
-// handlers, which this fork does not ship. Kept so the shared
-// repository files stay identical across both trees.
-// lint-ok: unused-pub
+// Why: lint-ok: unused-pub — live upstream via the ssr_governance handlers,
+// which this fork does not ship; kept so shared repository files stay
+// identical.
 pub async fn get_governance_counts_windowed(
     pool: &PgPool,
     window_seconds: i64,
@@ -55,10 +53,9 @@ pub async fn get_governance_counts_windowed(
     })
 }
 
-// Live upstream in systemprompt-template via the ssr_governance
-// handlers, which this fork does not ship. Kept so the shared
-// repository files stay identical across both trees.
-// lint-ok: unused-pub
+// Why: lint-ok: unused-pub — live upstream via the ssr_governance handlers,
+// which this fork does not ship; kept so shared repository files stay
+// identical.
 pub async fn list_per_policy_counts(pool: &PgPool) -> Result<Vec<PerPolicyCounts>, sqlx::Error> {
     let rows = sqlx::query!(
         r#"SELECT
@@ -83,10 +80,9 @@ pub async fn list_per_policy_counts(pool: &PgPool) -> Result<Vec<PerPolicyCounts
         .collect())
 }
 
-// Live upstream in systemprompt-template via the ssr_governance
-// handlers, which this fork does not ship. Kept so the shared
-// repository files stay identical across both trees.
-// lint-ok: unused-pub
+// Why: lint-ok: unused-pub — live upstream via the ssr_governance handlers,
+// which this fork does not ship; kept so shared repository files stay
+// identical.
 pub async fn list_per_policy_counts_windowed(
     pool: &PgPool,
     window_seconds: i64,

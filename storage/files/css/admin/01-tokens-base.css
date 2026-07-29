@@ -2,46 +2,14 @@
 :root {
     color-scheme: light dark;
 
-
-    --sp-primitive-brand-50:  oklch(0.975 0.004 95);
-    --sp-primitive-brand-100: oklch(0.95 0.003 95);
-    --sp-primitive-brand-200: oklch(0.89 0 0);
-    --sp-primitive-brand-300: oklch(0.78 0 0);
-    --sp-primitive-brand-400: oklch(0.55 0 0);
-    --sp-primitive-brand-500: oklch(0.44 0 0);
-    --sp-primitive-brand-600: oklch(0.30 0 0);
-    --sp-primitive-brand-700: oklch(0.235 0 0);
-    --sp-primitive-brand-800: oklch(0.20 0 0);
-    --sp-primitive-brand-900: oklch(0.18 0 0);
-    --sp-primitive-brand-950: oklch(0.14 0 0);
-    --sp-primitive-warm-50:  oklch(0.98 0.004 70);
-    --sp-primitive-warm-100: oklch(0.96 0.005 70);
-    --sp-primitive-warm-200: oklch(0.92 0.008 65);
-    --sp-primitive-warm-300: oklch(0.86 0.010 60);
-    --sp-primitive-warm-400: oklch(0.70 0.01 70);
-    --sp-primitive-warm-500: oklch(0.53 0.01 65);
-    --sp-primitive-warm-600: oklch(0.41 0.01 60);
-    --sp-primitive-warm-700: oklch(0.34 0.01 55);
-    --sp-primitive-warm-800: oklch(0.24 0.01 50);
-    --sp-primitive-warm-900: oklch(0.20 0.01 50);
-    --sp-primitive-warm-950: oklch(0.13 0.01 45);
-    --sp-primitive-white: oklch(1.00 0 0);
-    --sp-primitive-black: oklch(0 0 0);
-
-    --sp-font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --sp-font-family: "OpenSans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     --sp-font-heading: "Inter", system-ui, sans-serif;
-    --sp-text-xs: 0.6875rem;
-    --sp-text-sm: 0.8125rem;
-    --sp-text-base: 0.9375rem;
-    --sp-text-md: 1rem;
-    --sp-text-lg: 1.25rem;
-    --sp-text-xl: 1.5rem;
-    --sp-text-2xl: 2rem;
+    --sp-font-mono: "SF Mono", "Cascadia Code", "Fira Code", "JetBrains Mono", monospace;
 
     --sp-primary-50:  light-dark(var(--sp-primitive-brand-50),  var(--sp-primitive-brand-950));
-    --sp-primary-100: light-dark(var(--sp-primitive-brand-100), oklch(0.31 0 0));
-    --sp-primary-200: light-dark(var(--sp-primitive-brand-200), oklch(0.42 0 0));
-    --sp-primary-300: light-dark(var(--sp-primitive-brand-300), oklch(0.52 0 0));
+    --sp-primary-100: light-dark(var(--sp-primitive-brand-100), oklch(0.31 0.07 46));
+    --sp-primary-200: light-dark(var(--sp-primitive-brand-200), oklch(0.42 0.11 47));
+    --sp-primary-300: light-dark(var(--sp-primitive-brand-300), oklch(0.52 0.14 48));
     --sp-primary-400: light-dark(var(--sp-primitive-brand-400), var(--sp-primitive-brand-600));
     --sp-primary-500: light-dark(var(--sp-primitive-brand-500), var(--sp-primitive-brand-500));
     --sp-primary-600: light-dark(var(--sp-primitive-brand-600), var(--sp-primitive-brand-400));
@@ -120,6 +88,22 @@
       color-mix(in oklch, var(--sp-warning) 25%, transparent)
     );
 
+    --sp-info: light-dark(oklch(0.62 0.18 260), oklch(0.70 0.14 250));
+    --sp-accent-surface: light-dark(
+      color-mix(in oklch, var(--sp-accent) 6%, var(--sp-bg-surface)),
+      color-mix(in oklch, var(--sp-accent) 8%, var(--sp-bg-surface))
+    );
+    --sp-bg-input: light-dark(oklch(1.0 0 0), oklch(0.19 0.01 47));
+    --sp-bg-tertiary: light-dark(oklch(0.96 0.005 70), oklch(0.23 0.01 48));
+    --sp-bg-warning: light-dark(
+      color-mix(in oklch, var(--sp-warning) 10%, var(--sp-bg-surface)),
+      color-mix(in oklch, var(--sp-warning) 12%, var(--sp-bg-surface))
+    );
+    --sp-border-primary: light-dark(
+      color-mix(in oklch, var(--sp-accent) 30%, var(--sp-border-default)),
+      color-mix(in oklch, var(--sp-accent) 25%, var(--sp-border-default))
+    );
+
     --sp-danger: light-dark(oklch(0.63 0.21 25), oklch(0.70 0.17 20));
     --sp-danger-dim: light-dark(
       color-mix(in oklch, var(--sp-danger) 12%, transparent),
@@ -161,10 +145,6 @@
       color-mix(in oklch, var(--sp-section-audit) 16%, transparent)
     );
 
-    --sp-chart-purple:  var(--sp-section-users);
-    --sp-chart-green:   var(--sp-section-skills);
-    --sp-chart-blue:    var(--sp-section-plugins);
     --sp-chart-indigo:  light-dark(oklch(0.55 0.20 275), oklch(0.65 0.18 275));
-    --sp-chart-red:     var(--sp-danger);
 }
 }

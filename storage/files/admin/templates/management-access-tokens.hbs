@@ -1,0 +1,56 @@
+{{#> layout title=title page=page}}
+    {{#*inline "head_extra"}}{{/inline}}
+    {{#*inline "content"}}
+    {{> components/page-header title=title subtitle="Personal access tokens issued to users. A token authenticates Pi and any other client calling the gateway."}}
+
+    <div class="stat-grid">
+        {{> components/stat-card label="Total tokens" value=total}}
+        {{> components/stat-card label="Active" value=active}}
+        {{> components/stat-card label="Expiring ≤30d" value=expiring_soon}}
+    </div>
+
+    <div class="toolbar" role="toolbar" aria-label="Actions">
+        <div class="search-group"><input type="text" class="search-input" placeholder="Search by user, token, prefix..." id="token-search"></div>
+        <button type="button" class="btn btn-primary" id="btn-add-token" data-action="create-token">+ Issue token</button>
+    </div>
+    {{> components/create-token-panel user_options=user_options}}
+
+    <section aria-label="Access tokens list" data-page="tokens">
+    {{#if tokens}}
+    <div class="tokens-grouped">
+    {{#> components/data-table}}
+        <thead><tr><th>Owner</th><th>Token</th><th>Department</th><th>Created</th><th>Expires</th><th>Last used</th><th class="col-status">Status</th></tr></thead>
+        <tbody>
+        {{#each tokens}}
+        <tr data-search="{{toLowerCase name}} {{toLowerCase (default user_email user_id)}} {{toLowerCase key_prefix}}"{{#if group_start}} class="group-start"{{/if}}>
+            {{#if owner_rowspan}}
+            <td class="owner-cell" rowspan="{{owner_rowspan}}">
+                {{#if user_email}}<a href="/admin/access/user?id={{user_id}}">{{user_email}}</a>{{else}}<a href="/admin/access/user?id={{user_id}}"><code>{{user_id}}</code></a>{{/if}}
+            </td>
+            {{/if}}
+            <td>
+                <strong>{{name}}</strong><br>
+                <code class="code-inline">{{key_prefix}}</code>
+            </td>
+            <td>{{#if department}}<a href="/admin/access/matrix?department={{department}}" class="badge badge-blue">{{department}}</a>{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
+            <td>{{#if created_at}}<span title="{{formatDate created_at}}">{{relativeTime created_at}}</span>{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
+            <td>{{#if expires_at}}<span title="{{formatDate expires_at}}">{{relativeTime expires_at}}</span>{{else}}<span class="text-tertiary">Never</span>{{/if}}</td>
+            <td>{{#if last_used_at}}<span title="{{formatDate last_used_at}}">{{relativeTime last_used_at}}</span>{{else}}<span class="text-tertiary">Never</span>{{/if}}</td>
+            <td class="col-status">{{#if revoked}}<span class="badge badge-gray">Revoked</span>{{else}}<span class="badge badge-green">Active</span>{{/if}}</td>
+        </tr>
+        {{/each}}
+        </tbody>
+    {{/components/data-table}}
+    </div>
+    {{else}}
+    <div class="empty-state empty-state--pad-lg">
+        <h3>No access tokens issued yet</h3>
+        <p class="text-muted">Click <strong>+ Issue token</strong> to mint one for a user, then point Pi at the gateway with it.</p>
+    </div>
+    {{/if}}
+    </section>
+    {{/inline}}
+    {{#*inline "scripts"}}
+    <script data-cfasync="false" type="module" src="/js/pages/admin-access-tokens.js"></script>
+    {{/inline}}
+{{/layout}}

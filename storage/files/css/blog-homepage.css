@@ -1,15 +1,15 @@
 .homepage-posts {
   max-width: 1200px;
   margin: 0 auto;
-  padding: var(--sp-spacing-xxl) var(--sp-spacing-lg);
+  padding: var(--sp-space-12) var(--sp-space-6);
 }
 
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--sp-spacing-xl);
-  padding-bottom: var(--sp-spacing-md);
+  margin-bottom: var(--sp-space-8);
+  padding-bottom: var(--sp-space-4);
   border-bottom: 1px solid var(--sp-color-border);
 }
 
@@ -37,7 +37,7 @@
 .nav-actions {
   display: flex;
   align-items: center;
-  gap: var(--sp-spacing-lg);
+  gap: var(--sp-space-6);
 }
 
 .nav-link {
@@ -55,7 +55,7 @@
 .homepage-featured {
   max-width: 1000px;
   margin: 0 auto;
-  padding: 0 var(--sp-spacing-lg) var(--sp-spacing-xxl);
+  padding: 0 var(--sp-space-6) var(--sp-space-12);
 }
 
 .featured-spotlight {
@@ -65,8 +65,8 @@
 .featured-spotlight .blog-card {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--sp-spacing-xl);
-  padding: var(--sp-spacing-xl);
+  gap: var(--sp-space-8);
+  padding: var(--sp-space-8);
   background: linear-gradient(
     135deg,
     rgba(var(--sp-color-primary-rgb), 0.08) 0%,
@@ -97,20 +97,20 @@
 
 .featured-spotlight .card-title {
   font-size: 1.75rem;
-  margin-bottom: var(--sp-spacing-md);
+  margin-bottom: var(--sp-space-4);
   text-transform: uppercase;
 }
 
 .featured-spotlight .card-excerpt {
   font-size: var(--sp-font-size-md);
   line-height: 1.7;
-  margin-bottom: var(--sp-spacing-lg);
+  margin-bottom: var(--sp-space-6);
 }
 
 .featured-spotlight .card-meta {
   display: flex;
   align-items: center;
-  gap: var(--sp-spacing-md);
+  gap: var(--sp-space-4);
   color: var(--sp-color-text-secondary);
   font-size: var(--sp-font-size-sm);
 }
@@ -118,16 +118,16 @@
 .featured-spotlight .read-more {
   display: inline-flex;
   align-items: center;
-  gap: var(--sp-spacing-sm);
+  gap: var(--sp-space-2);
   color: var(--sp-color-text-primary);
   font-weight: var(--sp-font-weight-medium);
   text-decoration: none;
-  margin-top: var(--sp-spacing-lg);
+  margin-top: var(--sp-space-6);
   transition: gap var(--sp-animation-fast) ease;
 }
 
 .featured-spotlight .read-more:hover {
-  gap: var(--sp-spacing-md);
+  gap: var(--sp-space-4);
 }
 
 @media (max-width: 768px) {
@@ -137,7 +137,7 @@
 
   .section-header {
     flex-direction: column;
-    gap: var(--sp-spacing-sm);
+    gap: var(--sp-space-2);
     text-align: center;
   }
 }

@@ -212,10 +212,7 @@ paths:
   templates: services/web/templates
   assets: services/web/assets
   css_url_prefix: /css
-scripts:
-- src: /files/js/analytics.js
-  defer: true
-  async: false
+scripts: []
 content:
   config_file: services/content/config.yaml
   sources:

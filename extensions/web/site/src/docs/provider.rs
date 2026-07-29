@@ -2,14 +2,88 @@
 
 use std::fmt::Write;
 
+use crate::format::format_date;
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
+use serde::Serialize;
 use serde_json::Value;
 use systemprompt::extension::prelude::*;
 
+use super::content_provider::ChildDoc;
 use super::error::DocsError;
-use super::types::DocsLearningContent;
+use super::types::{DocsLearningContent, DocsLearningTemplateData};
 use systemprompt_web_shared::html_escape;
+
+/// Template context for `docs-page.html`. Absent metadata is omitted so the
+/// template's `{{#if}}` guards behave as when the keys were inserted
+/// conditionally into a map.
+#[derive(Debug, Default, Serialize)]
+struct DocsPageContext {
+    #[serde(rename = "TITLE", skip_serializing_if = "Option::is_none")]
+    title: Option<String>,
+    #[serde(rename = "DESCRIPTION", skip_serializing_if = "Option::is_none")]
+    description: Option<String>,
+    #[serde(rename = "SLUG", skip_serializing_if = "Option::is_none")]
+    slug: Option<String>,
+    #[serde(rename = "AUTHOR", skip_serializing_if = "Option::is_none")]
+    author: Option<String>,
+    #[serde(rename = "KEYWORDS", skip_serializing_if = "Option::is_none")]
+    keywords: Option<String>,
+    #[serde(rename = "IMAGE", skip_serializing_if = "Option::is_none")]
+    image: Option<String>,
+    #[serde(rename = "DATE_MODIFIED_ISO", skip_serializing_if = "Option::is_none")]
+    date_modified_iso: Option<String>,
+    #[serde(rename = "DATE_MODIFIED", skip_serializing_if = "Option::is_none")]
+    date_modified: Option<String>,
+    #[serde(rename = "DATE_ISO", skip_serializing_if = "Option::is_none")]
+    date_iso: Option<String>,
+    #[serde(rename = "DATE", skip_serializing_if = "Option::is_none")]
+    date: Option<String>,
+    #[serde(rename = "CHILDREN", skip_serializing_if = "Option::is_none")]
+    children: Option<String>,
+    #[serde(flatten)]
+    learning: DocsLearningTemplateData,
+}
+
+fn str_field(item: &Value, field: &str) -> Option<String> {
+    item.get(field).and_then(|v| v.as_str()).map(str::to_owned)
+}
+
+fn parse_children(item: &Value) -> Vec<ChildDoc> {
+    let Some(raw) = item.get("children") else {
+        return Vec::new();
+    };
+    serde_json::from_value::<Vec<ChildDoc>>(raw.clone()).unwrap_or_else(|e| {
+        tracing::warn!(error = %e, "Failed to parse docs children");
+        Vec::new()
+    })
+}
+
+impl DocsPageContext {
+    fn from_content_item(item: &Value) -> Self {
+        let mut context = Self {
+            title: str_field(item, "title"),
+            description: str_field(item, "description"),
+            slug: str_field(item, "slug"),
+            author: str_field(item, "author"),
+            keywords: str_field(item, "keywords"),
+            image: str_field(item, "image"),
+            ..Self::default()
+        };
+
+        if let Some(updated) = str_field(item, "updated_at") {
+            context.date_modified = format_date(&updated);
+            context.date_modified_iso = Some(updated);
+        }
+        if let Some(published) = str_field(item, "published_at") {
+            context.date = format_date(&published);
+            context.date_iso = Some(published);
+        }
+
+        context.learning = DocsLearningContent::from_content_item(item).template_data();
+        context.children = DocsPageDataProvider::render_children_cards(&parse_children(item));
+        context
+    }
+}
 
 #[derive(Debug, Clone, Copy)]
 pub struct DocsPageDataProvider;
@@ -21,7 +95,7 @@ impl DocsPageDataProvider {
     }
 
     #[must_use]
-    pub fn render_children_cards(children: &[Value]) -> Option<String> {
+    pub fn render_children_cards(children: &[ChildDoc]) -> Option<String> {
         if children.is_empty() {
             return None;
         }
@@ -30,16 +104,6 @@ impl DocsPageDataProvider {
         let mut first = true;
 
         for child in children {
-            let Some(title) = child.get("title").and_then(|v| v.as_str()) else {
-                continue;
-            };
-            let Some(description) = child.get("description").and_then(|v| v.as_str()) else {
-                continue;
-            };
-            let Some(url) = child.get("url").and_then(|v| v.as_str()) else {
-                continue;
-            };
-
             if !first {
                 result.push('\n');
             }
@@ -53,9 +117,9 @@ impl DocsPageDataProvider {
   <h3 class="docs-card-title">{}</h3>
   <p class="docs-card-description">{}</p>
 </a>"#,
-                html_escape(url),
-                html_escape(title),
-                html_escape(description)
+                html_escape(&child.url),
+                html_escape(&child.title),
+                html_escape(&child.description)
             )
             .ok();
         }
@@ -93,80 +157,21 @@ impl PageDataProvider for DocsPageDataProvider {
     async fn provide_page_data(
         &self,
         ctx: &PageContext<'_>,
+        // JSON: required by trait contract
     ) -> Result<Value, systemprompt::traits::ProviderError> {
         let item = ctx
             .content_item()
             .ok_or(DocsError::ContentItemRequired)
             .map_err(|e| systemprompt::traits::ProviderError::Internal(e.to_string()))?;
 
-        let learning_content = DocsLearningContent::from_content_item(item);
-        let mut data = learning_content.to_template_data();
-
-        if let Some(obj) = data.as_object_mut() {
-            if let Some(title) = item.get("title").and_then(|v| v.as_str()) {
-                obj.insert("TITLE".to_owned(), Value::String(title.to_owned()));
-            }
-            if let Some(desc) = item.get("description").and_then(|v| v.as_str()) {
-                obj.insert("DESCRIPTION".to_owned(), Value::String(desc.to_owned()));
-            }
-            if let Some(slug) = item.get("slug").and_then(|v| v.as_str()) {
-                obj.insert("SLUG".to_owned(), Value::String(slug.to_owned()));
-            }
-            if let Some(author) = item.get("author").and_then(|v| v.as_str()) {
-                obj.insert("AUTHOR".to_owned(), Value::String(author.to_owned()));
-            }
-            if let Some(keywords) = item.get("keywords").and_then(|v| v.as_str()) {
-                obj.insert("KEYWORDS".to_owned(), Value::String(keywords.to_owned()));
-            }
-            if let Some(image) = item.get("image").and_then(|v| v.as_str()) {
-                obj.insert("IMAGE".to_owned(), Value::String(image.to_owned()));
-            }
-
-            if let Some(updated) = item.get("updated_at").and_then(|v| v.as_str()) {
-                obj.insert(
-                    "DATE_MODIFIED_ISO".to_owned(),
-                    Value::String(updated.to_owned()),
-                );
-                if let Ok(dt) = DateTime::parse_from_rfc3339(updated) {
-                    obj.insert(
-                        "DATE_MODIFIED".to_owned(),
-                        Value::String(dt.format("%B %d, %Y").to_string()),
-                    );
-                } else if let Ok(dt) = updated.parse::<DateTime<Utc>>() {
-                    obj.insert(
-                        "DATE_MODIFIED".to_owned(),
-                        Value::String(dt.format("%B %d, %Y").to_string()),
-                    );
-                }
-            }
-
-            if let Some(published) = item.get("published_at").and_then(|v| v.as_str()) {
-                obj.insert("DATE_ISO".to_owned(), Value::String(published.to_owned()));
-                if let Ok(dt) = DateTime::parse_from_rfc3339(published) {
-                    obj.insert(
-                        "DATE".to_owned(),
-                        Value::String(dt.format("%B %d, %Y").to_string()),
-                    );
-                } else if let Ok(dt) = published.parse::<DateTime<Utc>>() {
-                    obj.insert(
-                        "DATE".to_owned(),
-                        Value::String(dt.format("%B %d, %Y").to_string()),
-                    );
-                }
-            }
-        }
-
-        if let Some(children) = item.get("children").and_then(|v| v.as_array())
-            && let Some(children_html) = Self::render_children_cards(children)
-            && let Some(obj) = data.as_object_mut()
-        {
-            obj.insert("CHILDREN".to_owned(), Value::String(children_html));
-        }
-
-        Ok(data)
+        Ok(serde_json::to_value(DocsPageContext::from_content_item(
+            item,
+        ))?)
     }
 
     fn priority(&self) -> u32 {
         60
     }
 }
+
+systemprompt_web_shared::submit_page_data!(DocsPageDataProvider::new());

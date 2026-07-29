@@ -1,6 +1,5 @@
 @layer components {
 
-
     .plugin-detail-row > td {
         padding: 0;
         background: var(--sp-bg-surface-raised);

@@ -1,4 +1,3 @@
-
 .blog-content {
 
   font-family: var(--sp-font-body);
@@ -7,20 +6,15 @@
   color: var(--sp-color-text-primary);
   font-weight: var(--sp-font-weight-regular);
 
-
   max-width: 680px;
-
 
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 
-
   orphans: 3;
   widows: 3;
 }
-
-
 
 .blog-content h1,
 .blog-content h2,
@@ -36,7 +30,6 @@
   margin-bottom: 0.75em;
   letter-spacing: -0.02em;
   text-transform: uppercase;
-
 
   page-break-after: avoid;
   break-after: avoid;
@@ -70,13 +63,10 @@
   color: var(--sp-color-text-secondary);
 }
 
-
-
 .blog-content p {
   margin-top: 0;
   margin-bottom: 1.5em;
 }
-
 
 .blog-content h1 + p,
 .blog-content h2 + p,
@@ -85,7 +75,6 @@
   margin-top: 0;
 }
 
-
 .blog-content .lead,
 .blog-content > p:first-of-type {
   font-size: 1.25rem;
@@ -93,8 +82,6 @@
   color: var(--sp-color-text-secondary);
   margin-bottom: 2em;
 }
-
-
 
 .blog-content a {
   color: var(--sp-color-primary);
@@ -113,15 +100,12 @@
   color: var(--sp-color-text-secondary);
 }
 
-
 .blog-content a[href^="http"]::after {
   content: "\2197";
   font-size: 0.8em;
   margin-left: 0.2em;
   opacity: 0.5;
 }
-
-
 
 .blog-content em {
   font-style: italic;
@@ -137,8 +121,6 @@
   font-weight: var(--sp-font-weight-bold);
   font-style: italic;
 }
-
-
 
 .blog-content ul,
 .blog-content ol {
@@ -157,7 +139,6 @@
   margin-top: 0.5em;
   margin-bottom: 0.5em;
 }
-
 
 .blog-content ul {
   list-style-type: disc;

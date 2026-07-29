@@ -5,14 +5,33 @@ import { initTheme } from './theme.js';
 import { initHeaderActions } from './header-actions.js';
 import { initHeaderSearch } from './header-search.js';
 import { initLogout, initUserDisplay, getUserContext } from './auth.js';
+import { initFilterRibbon } from './filter-ribbon.js';
+import { showToast } from './toast.js';
+
+const run = (init) => {
+  try {
+    const result = init();
+    if (result instanceof Promise) {
+      result.catch((err) => showToast(err.message || 'Initialisation failed', 'error'));
+    }
+  } catch (err) {
+    showToast(err.message || 'Initialisation failed', 'error');
+  }
+};
 
 setCloseMenus(closeAllMenus);
-initDelegation();
-initDropdown();
-initSidebar();
-initTheme();
-initHeaderActions();
-initHeaderSearch();
-initLogout();
-initUserDisplay();
-getUserContext();
+
+for (const init of [
+  initDelegation,
+  initDropdown,
+  initSidebar,
+  initTheme,
+  initHeaderActions,
+  initHeaderSearch,
+  initFilterRibbon,
+  initLogout,
+  initUserDisplay,
+  getUserContext
+]) {
+  run(init);
+}

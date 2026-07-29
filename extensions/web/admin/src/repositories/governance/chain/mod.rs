@@ -31,6 +31,7 @@ pub struct DecisionStage {
     pub agent_id: Option<AgentId>,
     pub agent_scope: Option<String>,
     pub plugin_id: Option<PluginId>,
+    // JSON: governance audit payload; each policy stage writes its own shape.
     pub evaluated_rules: serde_json::Value,
     pub created_at: DateTime<Utc>,
 }
@@ -59,6 +60,7 @@ pub struct ChainUsageEvent {
     pub plugin_id: Option<PluginId>,
     pub description: Option<String>,
     pub prompt_preview: Option<String>,
+    // JSON: arbitrary per-event metadata posted by the plugin hook.
     pub metadata: serde_json::Value,
     pub created_at: DateTime<Utc>,
 }
@@ -71,6 +73,7 @@ pub struct TranscriptEnvelope {
     pub total_input_tokens: Option<i64>,
     pub total_output_tokens: Option<i64>,
     pub captured_at: DateTime<Utc>,
+    // JSON: third-party Claude Code transcript, stored as received.
     pub transcript: serde_json::Value,
 }
 

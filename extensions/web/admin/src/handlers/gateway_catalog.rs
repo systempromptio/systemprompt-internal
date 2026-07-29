@@ -123,8 +123,8 @@ pub(crate) struct DetectResponse {
     pub since_minutes: i64,
 }
 
-/// Detection is admin-triggered rather than scheduled, so decisions for
-/// denied combinations only appear once someone runs it.
+// Why: detection is admin-triggered rather than scheduled, so decisions for
+// denied combinations only appear once someone runs it.
 pub(crate) async fn detect_handler(
     State(pool): State<Arc<PgPool>>,
     Extension(user_ctx): Extension<UserContext>,
@@ -144,9 +144,14 @@ pub(crate) async fn detect_handler(
     .into_response())
 }
 
-/// After-the-fact detector: scan recent `ai_requests` and emit a
-/// `governance_decisions` row for any request whose user/model combination
-/// the ACL would have denied. Best-effort; called by [`detect_handler`].
+#[derive(Debug, Serialize)]
+struct AclDetectAudit<'a> {
+    ai_request_id: &'a str,
+    model: &'a str,
+    matched_route_id: &'a str,
+    reason: &'a systemprompt_security::authz::DenyReason,
+}
+
 pub(crate) async fn detect_after_the_fact(
     pool: &PgPool,
     routes: &[GatewayRouteView],
@@ -189,14 +194,15 @@ pub(crate) async fn detect_after_the_fact(
                 .as_ref()
                 .map(|s| s.as_str().to_owned())
                 .unwrap_or_default();
-            // variable-shape: governance audit `evaluated_rules` JSONB payload, not a
-            // template/response body
-            let evaluated = serde_json::json!({
-                "ai_request_id": row.id,
-                "model": row.model,
-                "matched_route_id": route.id,
-                "reason": reason,
-            });
+            // JSON: JSONB column — `governance_decisions.evaluated_rules`,
+            // serialized from the typed `AclDetectAudit` below
+            let evaluated = serde_json::to_value(AclDetectAudit {
+                ai_request_id: &row.id,
+                model: &row.model,
+                matched_route_id: &route.id,
+                reason: &reason,
+            })
+            .unwrap_or_default();
             acl_detect::insert_gateway_acl_decision(
                 pool,
                 acl_detect::GatewayAclDecision {

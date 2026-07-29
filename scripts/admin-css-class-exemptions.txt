@@ -1,0 +1,24 @@
+# Classes referenced by admin templates that intentionally have no static CSS
+# rule: they are added, removed, or generated at runtime by JavaScript, so the
+# stylesheet targets them via a parent/state selector or not at all.
+#
+# One class per line. Do NOT add a class here just to silence the gate — if the
+# rule is simply missing, write the rule. Every entry must be a genuine
+# JS-toggled state or runtime-generated class.
+
+# JS-toggled state classes (added/removed by admin JS at runtime)
+open
+active
+hidden
+visible
+is-open
+is-active
+is-disabled
+dragging
+selected
+show
+collapsed
+expanded
+loading
+error
+success

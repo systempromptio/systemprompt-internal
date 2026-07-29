@@ -65,6 +65,7 @@
 
 .user-widget__xp-fill {
     fill: none;
+    stroke-dashoffset: calc(125.66px - 125.66px * var(--sp-xp-pct, 0) / 100);
     stroke-width: 2.5;
     stroke-linecap: round;
     transition: stroke-dashoffset 0.8s ease-out;
@@ -106,7 +107,7 @@
     font-size: 0.6rem;
     line-height: 1;
     color: var(--sp-text-on-accent);
-    text-shadow: 0 1px 2px oklch(0 0 0 / 0.4);
+    text-shadow: var(--sp-text-shadow-badge);
     border: 2px solid var(--sp-bg-surface);
     z-index: var(--sp-z-sticky-header);
 }

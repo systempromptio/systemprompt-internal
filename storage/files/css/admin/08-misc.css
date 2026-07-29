@@ -58,13 +58,28 @@
     font-size: var(--sp-text-xs);
 }
 
+.code-block {
+    margin: 0;
+    padding: var(--sp-space-3);
+    background: var(--sp-bg-surface-raised);
+    border: 1px solid var(--sp-border-subtle);
+    border-radius: var(--sp-radius-md);
+    font-family: var(--sp-font-mono);
+    font-size: var(--sp-text-xs);
+    line-height: 1.5;
+    color: var(--sp-text-secondary);
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow: auto;
+}
+
 .section-footer {
     text-align: center;
     margin-top: var(--sp-space-3);
 }
 
 .section-footer a {
-    color: var(--sp-accent-blue);
+    color: var(--sp-info);
 }
 
 .dept-grid {
@@ -136,10 +151,6 @@
     width: 260px;
 }
 
-.self-center {
-    align-self: center;
-}
-
 .cell-no-pad {
     padding: 0;
 }
@@ -153,6 +164,10 @@
     color: var(--sp-text-tertiary);
 }
 
+}
+
+@layer components {
+
 .toggle-label {
     display: inline-flex;
     align-items: center;
@@ -164,6 +179,56 @@
 .toggle-label-text {
     margin: 0;
     white-space: nowrap;
+}
+
+.toggle-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-space-3);
+    cursor: pointer;
+}
+
+.toggle-switch input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: relative;
+    flex-shrink: 0;
+    width: 44px;
+    height: 24px;
+    background: color-mix(in oklch, var(--sp-text-tertiary) 25%, transparent);
+    border-radius: var(--sp-radius-full);
+    transition: background var(--sp-duration-fast) var(--sp-ease-out);
+}
+
+.toggle-slider::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: var(--sp-toggle-knob);
+    border-radius: var(--sp-radius-full);
+    box-shadow: var(--sp-shadow-xs);
+    transition: transform var(--sp-duration-fast) var(--sp-ease-out);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background: var(--sp-accent);
+}
+
+.toggle-switch input:checked + .toggle-slider::after {
+    transform: translateX(20px);
+}
+
+.toggle-switch input:focus-visible + .toggle-slider {
+    outline: 2px solid var(--sp-accent);
+    outline-offset: 2px;
 }
 
 }

@@ -7,9 +7,6 @@ use systemprompt::identifiers::UserId;
 pub(crate) struct SettingsView {
     pub display_name: Option<String>,
     pub avatar_url: Option<String>,
-    pub notify_daily_summary: bool,
-    pub notify_achievements: bool,
-    pub leaderboard_opt_in: bool,
     pub timezone: String,
 }
 

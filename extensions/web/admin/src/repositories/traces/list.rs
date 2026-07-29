@@ -1,39 +1,13 @@
 //! Trace list query: one aggregated summary row per session in the window.
 
 use sqlx::PgPool;
+// Why: the `query_as!` column overrides below name these types, so they must be
+// in scope here even though the row struct itself lives in `list_row`.
 use systemprompt::identifiers::{AgentId, SessionId, TraceId, UserId};
 
+use super::list_row::TraceListRow;
 use super::{TraceFilter, TraceSort, TraceSummary};
 use crate::util::time_range::TimeRange;
-
-#[derive(Debug)]
-struct TraceRow {
-    session_id: SessionId,
-    trace_id: Option<TraceId>,
-    started_at: chrono::DateTime<chrono::Utc>,
-    ended_at: chrono::DateTime<chrono::Utc>,
-    duration_ms: i64,
-    user_id: Option<UserId>,
-    agent_id: Option<AgentId>,
-    agent_scope: Option<String>,
-    model: Option<String>,
-    provider: Option<String>,
-    span_count: i64,
-    request_count: i64,
-    tool_call_count: i64,
-    governance_count: i64,
-    deny_count: i64,
-    total_tokens: i64,
-    input_tokens: i64,
-    output_tokens: i64,
-    total_cost_microdollars: i64,
-    total_latency_ms: i64,
-    cache_hit_any: bool,
-    top_tool: Option<String>,
-    has_error: bool,
-    has_deny: bool,
-    total_count: i64,
-}
 
 #[derive(Debug, Clone, Copy)]
 pub struct TracePage {
@@ -66,7 +40,7 @@ pub async fn list_traces(
     let sort_dir = sort.dir.sql_key();
 
     let rows = sqlx::query_as!(
-        TraceRow,
+        TraceListRow,
         r#"WITH trace_to_session AS (
             SELECT DISTINCT trace_id, session_id
             FROM ai_requests
@@ -146,12 +120,16 @@ pub async fn list_traces(
                 p.user_id,
                 p.agent_id,
                 p.agent_scope,
+                u.label                             AS user_label,
                 p.started_at,
                 p.ended_at,
-                GREATEST(
-                    (EXTRACT(EPOCH FROM (p.ended_at - p.started_at)) * 1000)::bigint,
-                    COALESCE(a.total_latency_ms, 0)
-                )                                                   AS duration_ms,
+                -- Two distinct clocks, never collapsed: `active_ms` is the work
+                -- actually done (summed request latency), `window_ms` the span
+                -- between first and last event on a session id that a client is
+                -- free to reuse for hours.
+                COALESCE(a.total_latency_ms, 0)     AS active_ms,
+                (EXTRACT(EPOCH FROM (p.ended_at - p.started_at)) * 1000)::bigint
+                                                    AS window_ms,
                 p.span_count,
                 COALESCE(a.request_count, 0)        AS request_count,
                 COALESCE(t.tool_call_count, 0)      AS tool_call_count,
@@ -172,6 +150,10 @@ pub async fn list_traces(
             FROM per_session p
             LEFT JOIN ai_meta   a ON a.session_id = p.session_id
             LEFT JOIN tool_meta t ON t.session_id = p.session_id
+            LEFT JOIN LATERAL (
+                SELECT COALESCE(x.display_name, x.full_name, x.name, x.email) AS label
+                FROM users x WHERE x.id = p.user_id
+            ) u ON true
         ),
         filtered AS (
             SELECT j.* FROM joined j
@@ -202,8 +184,10 @@ pub async fn list_traces(
             trace_id                AS "trace_id?: TraceId",
             started_at              AS "started_at!",
             ended_at                AS "ended_at!",
-            duration_ms             AS "duration_ms!",
+            active_ms               AS "active_ms!",
+            window_ms               AS "window_ms!",
             user_id                 AS "user_id?: UserId",
+            user_label              AS "user_label?",
             agent_id                AS "agent_id?: AgentId",
             agent_scope             AS "agent_scope?",
             model                   AS "model?",
@@ -227,8 +211,8 @@ pub async fn list_traces(
         ORDER BY
             (CASE WHEN $12 = 'started_at' AND $13 = 'asc'  THEN started_at END) ASC  NULLS LAST,
             (CASE WHEN $12 = 'started_at' AND $13 = 'desc' THEN started_at END) DESC NULLS LAST,
-            (CASE WHEN $12 = 'duration'   AND $13 = 'asc'  THEN duration_ms END) ASC  NULLS LAST,
-            (CASE WHEN $12 = 'duration'   AND $13 = 'desc' THEN duration_ms END) DESC NULLS LAST,
+            (CASE WHEN $12 = 'duration'   AND $13 = 'asc'  THEN active_ms END) ASC  NULLS LAST,
+            (CASE WHEN $12 = 'duration'   AND $13 = 'desc' THEN active_ms END) DESC NULLS LAST,
             (CASE WHEN $12 = 'span_count' AND $13 = 'asc'  THEN span_count  END) ASC  NULLS LAST,
             (CASE WHEN $12 = 'span_count' AND $13 = 'desc' THEN span_count  END) DESC NULLS LAST,
             (CASE WHEN $12 = 'cost'       AND $13 = 'asc'  THEN total_cost_microdollars END) ASC  NULLS LAST,
@@ -256,35 +240,4 @@ pub async fn list_traces(
     let total = rows.first().map_or(0, |r| r.total_count);
     let summaries = rows.into_iter().map(TraceSummary::from).collect();
     Ok((summaries, total))
-}
-
-impl From<TraceRow> for TraceSummary {
-    fn from(r: TraceRow) -> Self {
-        Self {
-            session_id: r.session_id,
-            trace_id: r.trace_id,
-            started_at: r.started_at,
-            ended_at: r.ended_at,
-            duration_ms: r.duration_ms,
-            user_id: r.user_id,
-            agent_id: r.agent_id,
-            agent_scope: r.agent_scope,
-            model: r.model,
-            provider: r.provider,
-            span_count: r.span_count,
-            request_count: r.request_count,
-            tool_call_count: r.tool_call_count,
-            governance_count: r.governance_count,
-            deny_count: r.deny_count,
-            total_tokens: r.total_tokens,
-            input_tokens: r.input_tokens,
-            output_tokens: r.output_tokens,
-            total_cost_microdollars: r.total_cost_microdollars,
-            total_latency_ms: r.total_latency_ms,
-            cache_hit_any: r.cache_hit_any,
-            top_tool: r.top_tool,
-            has_error: r.has_error,
-            has_deny: r.has_deny,
-        }
-    }
 }

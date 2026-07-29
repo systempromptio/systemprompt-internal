@@ -1,3 +1,5 @@
+import { rawResponse } from '/js/services/api.js';
+
 export function generateRandomString(length) {
   const array = new Uint8Array(length);
   crypto.getRandomValues(array);
@@ -49,15 +51,35 @@ export function preparePublicKeyCredentialCreationOptions(options) {
   };
 }
 
+export function rpOriginUrl(rpId) {
+  const host = window.location.hostname;
+  if (!rpId || host === rpId || host.endsWith('.' + rpId)) {
+    return null;
+  }
+  const url = new URL(window.location.href);
+  url.hostname = rpId;
+  return url.toString();
+}
+
+export function assertRpIdMatchesOrigin(rpId) {
+  const correctUrl = rpOriginUrl(rpId);
+  if (correctUrl) {
+    const error = new Error(
+      'Passkeys here are registered to "' + rpId + '", but this page is on "' +
+      window.location.hostname + '". Open it on ' + rpId + ' to sign in.'
+    );
+    error.name = 'RpIdMismatchError';
+    error.correctUrl = correctUrl;
+    throw error;
+  }
+}
+
 export async function makeRequest(url, method, body) {
-  const options = {
-    method,
-    headers: { 'Content-Type': 'application/json' }
-  };
+  const options = { method };
   if (body) {
     options.body = JSON.stringify(body);
   }
-  const response = await fetch(url, options);
+  const response = await rawResponse(url, options);
   const data = await response.json();
   if (!response.ok) {
     throw new Error(data.error_description || data.error || 'Request failed');

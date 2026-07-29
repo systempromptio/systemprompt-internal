@@ -44,7 +44,7 @@
         .card{background:linear-gradient(180deg,var(--sp-bg-surface) 0%,var(--sp-bg-canvas) 60%,var(--sp-bg-base) 100%) !important}
     </style>
 </head>
-<body>
+<body class="auth-light">
     <main class="auth-page">
         <div class="auth-info">
             <div>
@@ -56,6 +56,8 @@
                     the authentication mechanism &mdash; no passwords are created or stored.
                 </p>
 
+                <details class="auth-more">
+                <summary>How passkey login works, recovery, and enterprise options</summary>
                 <hr class="auth-divider">
 
                 <h2>Getting Started</h2>
@@ -83,11 +85,12 @@
                     link that lets you create a new passkey on this device. If you get stuck, contact
                     the platform team.
                 </p>
+                </details>
             </div>
         </div>
 
         <div class="auth-form-col">
-            <div class="login-container" style="min-height:auto;padding:0;background:none">
+            <div class="login-container login-container--bare">
                 <div class="card">
                     <div class="login-logo">
                         <img src="/files/images/logo.svg" alt="{{branding.domain}}" height="40" class="logo-light">
@@ -249,7 +252,7 @@
         })();
     </script>
 
-    <script data-cfasync="false" src="/js/services/webauthn-login.js?v=2" type="module"></script>
+    <script data-cfasync="false" src="/js/services/webauthn-login.js?v=3" type="module"></script>
 
     <script type="module">
         import {

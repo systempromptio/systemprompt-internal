@@ -6,10 +6,21 @@
 //! authz is never blocked by an audit-row insert. Callers do not need to
 //! propagate errors.
 
+use serde::Serialize;
 use systemprompt::database::DbPool;
 use systemprompt::identifiers::UserId;
 
 mod repositories;
+
+/// Audit-row metadata persisted to `user_activity.metadata` for every MCP
+/// access event. `reason` is present only on rejections.
+#[derive(Debug, Serialize)]
+pub struct AuditMetadata {
+    pub tool_name: String,
+    pub server: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+}
 
 use repositories::McpAccessParams;
 
@@ -68,7 +79,11 @@ pub async fn record_mcp_access(
         "mcp_server"
     };
     let entity_name = if action == ACTION_USED { tool } else { server };
-    let metadata = serde_json::json!({ "tool_name": tool, "server": server });
+    let metadata = AuditMetadata {
+        tool_name: tool.to_owned(),
+        server: server.to_owned(),
+        reason: None,
+    };
 
     let params = McpAccessParams {
         user_id,
@@ -91,7 +106,11 @@ pub async fn record_mcp_access_rejected(pool: &DbPool, server: &str, tool: &str,
     };
     let reason_text = truncate_on_char_boundary(reason, MAX_REASON_LEN);
     let description = format!("Access rejected on {server}: {reason_text}");
-    let metadata = serde_json::json!({ "tool_name": tool, "server": server, "reason": reason });
+    let metadata = AuditMetadata {
+        tool_name: tool.to_owned(),
+        server: server.to_owned(),
+        reason: Some(reason.to_owned()),
+    };
 
     let anonymous_user_id = match find_anonymous_user_id(pg_pool.as_ref()).await {
         Ok(Some(id)) => id,

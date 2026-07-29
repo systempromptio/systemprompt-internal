@@ -13,7 +13,6 @@
                 <div class="detail-item-name">{{name}} <span class="badge {{#if (eq source "custom")}}badge-success{{else}}badge-info{{/if}}">{{default source "system"}}</span></div>
                 {{#if description}}<div class="detail-item-desc">{{description}}</div>{{/if}}
             </div>
-            <button type="button" class="btn btn-secondary btn-sm btn--files" data-browse-skill="{{id}}" data-skill-name="{{name}}">Files</button>
             {{#if command}}<span class="detail-item-command">{{command}}</span>{{/if}}
         </div>
         {{/each}}

@@ -19,6 +19,7 @@ use crate::templates::AdminTemplateEngine;
 use crate::types::UserContext;
 
 use super::ssr_helpers::branding_context;
+use systemprompt_web_shared::BrandingConfig;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct DeviceLinkQuery {
@@ -30,13 +31,12 @@ pub(crate) struct DeviceLinkApproveForm {
     pub redirect: String,
 }
 
-/// `branding` stays an untyped `Value` because the branding config shape is
-/// not fixed at compile time. Unconfigured branding must stay a *missing* key,
+/// Unconfigured branding must stay a *missing* key,
 /// not a null, so the template's `{{#if}}` guard behaves.
 #[derive(Debug, Serialize)]
-struct DeviceLinkContext {
+struct DeviceLinkContext<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
-    branding: Option<serde_json::Value>,
+    branding: Option<&'a BrandingConfig>,
     user_email: String,
     redirect: String,
     redirect_host: String,
@@ -51,9 +51,7 @@ pub(crate) async fn device_link_page(
         return Ok(bad_redirect_response(&query.redirect));
     };
 
-    let branding = branding_context(&engine)
-        .as_object_mut()
-        .and_then(|obj| obj.remove("branding"));
+    let branding = branding_context(&engine).branding;
 
     let data = DeviceLinkContext {
         branding,

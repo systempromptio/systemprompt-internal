@@ -2,7 +2,7 @@
     {{#*inline "content"}}
     {{> components/page-header
         title="Inference Requests"
-        subtitle="Every /v1/messages call through the gateway. Click any row for the full chain of custody."}}
+        subtitle="Every /v1/messages call through the gateway. Click any log row for the full chain of custody."}}
 
     {{> components/time-range time_range}}
 
@@ -12,187 +12,165 @@
     </p>
     {{/if}}
 
-    <section class="kpi-strip" aria-label="Request KPIs">
-        <div class="kpi-card">
-            <span class="kpi-card__label">Requests</span>
-            <span class="kpi-card__value">{{stats.total}}</span>
-            <span class="kpi-card__sub">{{stats.requests_per_minute}}/min</span>
-        </div>
-        <div class="kpi-card">
-            <span class="kpi-card__label">p50 latency</span>
-            <span class="kpi-card__value">{{stats.p50_latency_ms}} ms</span>
-            <span class="kpi-card__sub">p95 {{stats.p95_latency_ms}} · p99 {{stats.p99_latency_ms}}</span>
-        </div>
-        <div class="kpi-card">
-            <span class="kpi-card__label">Total cost</span>
-            <span class="kpi-card__value">{{stats.total_cost_display}}</span>
-        </div>
-        <div class="kpi-card{{#if stats.error_count}} kpi-card--danger{{/if}}">
-            <span class="kpi-card__label">Errors</span>
-            <span class="kpi-card__value">{{stats.error_count}}</span>
-            <span class="kpi-card__sub">{{stats.error_rate_pct}}%</span>
-        </div>
-        <div class="kpi-card{{#if stats.denied_session_count}} kpi-card--warning{{/if}}">
-            <span class="kpi-card__label">Pre-flight denies</span>
-            <span class="kpi-card__value">{{stats.denied_session_count}}</span>
-            <span class="kpi-card__sub">{{stats.denied_session_rate_pct}}% of sessions</span>
-        </div>
-    </section>
-
-    <div class="requests-charts">
-        <section class="requests-charts__panel">
-            <h3 class="requests-charts__title">Latency distribution</h3>
-            <div class="latency-histogram" data-histogram-max="{{histogram_max}}">
-                {{#each histogram}}
-                <div class="latency-histogram__bar" data-count="{{this.count}}"
-                     title="{{this.label}}: {{this.count}} requests">
-                    <span class="latency-histogram__count">{{this.count}}</span>
-                    <span class="latency-histogram__label">{{this.label}}</span>
-                </div>
-                {{/each}}
-            </div>
-        </section>
-
-        <section class="requests-charts__panel">
-            <h3 class="requests-charts__title">Cost over time</h3>
-            <div class="cost-spark" data-cost-max="{{cost_max}}"
-                 aria-label="Cost time series, 24 buckets">
-                {{#each cost_series}}
-                <div class="cost-spark__bar" data-cost="{{this.cost_microdollars}}"
-                     title="{{this.bucket_start}}: {{this.cost_microdollars}} μ$"></div>
-                {{/each}}
-            </div>
-        </section>
-    </div>
-
-    <form method="get" action="{{base_url}}" class="toolbar audit-toolbar">
-        <input type="hidden" name="preset" value="{{time_range.preset}}">
-        <input type="hidden" name="from" value="{{time_range.from}}">
-        <input type="hidden" name="to" value="{{time_range.to}}">
-
-        <label class="filter-field">
-            <span class="filter-field__label">Model</span>
-            <select name="model" class="filter-select">
-                <option value="">All models</option>
-                {{#each filters.options.models}}
-                <option value="{{this}}"{{#if (eq this ../filters.model)}} selected{{/if}}>{{this}}</option>
-                {{/each}}
-            </select>
-        </label>
-
-        <label class="filter-field">
-            <span class="filter-field__label">Provider</span>
-            <select name="provider" class="filter-select">
-                <option value="">All providers</option>
-                {{#each filters.options.providers}}
-                <option value="{{this}}"{{#if (eq this ../filters.provider)}} selected{{/if}}>{{this}}</option>
-                {{/each}}
-            </select>
-        </label>
-
-        <label class="filter-field">
-            <span class="filter-field__label">Status</span>
-            <select name="status" class="filter-select">
-                <option value="">All statuses</option>
-                {{#each filters.options.statuses}}
-                <option value="{{this}}"{{#if (eq this ../filters.status)}} selected{{/if}}>{{this}}</option>
-                {{/each}}
-            </select>
-        </label>
-
-        <input type="text" name="q" placeholder="Search user / model / trace_id / error..."
-               value="{{search_query}}" class="search-input">
-
-        <button type="submit" class="btn btn-sm">Apply</button>
-        {{#if has_active_filters}}
-        <a href="{{clear_url}}" class="btn btn-sm btn-outline">Clear</a>
-        {{/if}}
-        <span class="text-muted audit-toolbar__count">
-            {{total_count}} request{{#unless (eq total_count 1)}}s{{/unless}}
-        </span>
-    </form>
-
-    {{#if has_rows}}
-    {{#> components/data-table}}
-        <thead><tr>
-            <th class="col-date">Time</th>
-            <th>Identity</th>
-            <th>Model</th>
-            <th class="col-status">Status</th>
-            <th class="col-num">Tokens</th>
-            <th class="col-num">Cost</th>
-            <th class="col-num">Latency</th>
-            <th class="col-status">Denies</th>
-            <th>trace_id</th>
-        </tr></thead>
-        <tbody>
-        {{#each rows}}
-        <tr data-chain-id="{{this.id}}" class="audit-row" tabindex="0"
-            role="button" aria-label="Open chain of custody for {{this.id}}">
-            <td class="col-date" title="{{this.created_at}}">{{this.created_at_local}}</td>
-            <td>
-                <div class="audit-identity">
-                    <a href="/admin/user?id={{this.user_id}}">{{truncate this.user_label 16}}</a>
-                    {{#if this.tenant_id}}
-                      <span class="audit-identity__agent">tenant {{this.tenant_id}}</span>
-                    {{/if}}
-                </div>
-            </td>
-            <td>
-                <code class="code-inline">{{this.model}}</code>
-                <span class="text-muted text-xs">{{this.provider}}</span>
-            </td>
-            <td class="col-status">
-                {{#if this.is_error}}
-                  <span class="mcp-badge mcp-badge-danger" title="{{this.error_message}}">{{this.status}}</span>
-                {{else}}
-                  <span class="mcp-badge mcp-badge-success">{{this.status}}</span>
-                {{/if}}
-            </td>
-            <td class="col-num">
-                {{#if this.input_tokens}}{{this.input_tokens}}{{else}}—{{/if}}
-                /
-                {{#if this.output_tokens}}{{this.output_tokens}}{{else}}—{{/if}}
-            </td>
-            <td class="col-num">{{this.cost_display}}</td>
-            <td class="col-num">{{#if this.latency_ms}}{{this.latency_ms}} ms{{else}}—{{/if}}</td>
-            <td class="col-status">
-                {{#if this.is_denied_preflight}}
-                  <span class="mcp-badge mcp-badge-danger">{{this.deny_count}}</span>
-                {{else}}
-                  {{#if this.tool_call_count}}
-                    <span class="text-muted">{{this.tool_call_count}} tool</span>
-                  {{else}}—{{/if}}
-                {{/if}}
-            </td>
-            <td>
-                {{#if this.trace_id}}
-                    <code class="code-inline">{{truncate this.trace_id 8}}</code>
-                {{else}}—{{/if}}
-            </td>
-        </tr>
+    <nav class="sp-tabs" role="tablist" aria-label="Request views">
+        {{#each tabs}}
+        <a class="sp-tab{{#if this.is_active}} sp-tab--active{{/if}}" role="tab"
+           aria-selected="{{#if this.is_active}}true{{else}}false{{/if}}"
+           href="{{this.href}}">{{this.label}}{{#if this.count}}
+            <span class="sp-tab-count">{{this.count}}</span>{{/if}}</a>
         {{/each}}
-        </tbody>
-    {{/components/data-table}}
-
-    <nav class="audit-pagination" aria-label="Requests pagination">
-        {{#if pagination.has_prev}}
-            <a href="{{pagination.prev_url}}" class="btn btn-sm btn-outline">&larr; Previous</a>
-        {{else}}
-            <span class="btn btn-sm btn-outline is-disabled">&larr; Previous</span>
-        {{/if}}
-        <span class="audit-pagination__pos">
-            Page {{pagination.current_page}} of {{pagination.total_pages}}
-        </span>
-        {{#if pagination.has_next}}
-            <a href="{{pagination.next_url}}" class="btn btn-sm btn-outline">Next &rarr;</a>
-        {{else}}
-            <span class="btn btn-sm btn-outline is-disabled">Next &rarr;</span>
-        {{/if}}
     </nav>
-    {{else}}
-    {{> components/empty-state
-        message="No inference requests in the current time range. Widen the window or run a demo to populate data."}}
+
+    {{#if chips}}
+    <ul class="filter-ribbon__chips" aria-label="Active filters">
+        {{#each chips}}
+        <li class="filter-ribbon__chip">
+            <span class="filter-ribbon__chip-group">{{this.group_label}}:</span>
+            <span class="filter-ribbon__chip-value">{{this.label}}</span>
+            <a class="filter-ribbon__chip-remove" href="{{this.remove_url}}"
+               aria-label="Remove {{this.group_label}} filter {{this.label}}">&times;</a>
+        </li>
+        {{/each}}
+        <li><a class="filter-ribbon__clear" href="{{clear_url}}">Clear all</a></li>
+    </ul>
+    {{/if}}
+
+    {{#if is_overview}}
+    <section class="requests-section" aria-label="Window health">
+        <div class="kpi-strip">
+            <div class="kpi-card">
+                <span class="kpi-card__label">Requests</span>
+                <span class="kpi-card__value">{{stats.total}}</span>
+                <span class="kpi-card__sub">{{stats.requests_per_minute}}/min</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-card__label">p50 latency</span>
+                <span class="kpi-card__value">{{stats.p50_latency_ms}} ms</span>
+                <span class="kpi-card__sub">p95 {{stats.p95_latency_ms}} · p99 {{stats.p99_latency_ms}}</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-card__label">Total cost</span>
+                <span class="kpi-card__value">{{stats.total_cost_display}}</span>
+                <span class="kpi-card__sub">across the window</span>
+            </div>
+            <div class="kpi-card{{#if stats.error_count}} kpi-card--danger{{/if}}">
+                <span class="kpi-card__label">Errors</span>
+                <span class="kpi-card__value">{{stats.error_count}}</span>
+                <span class="kpi-card__sub">{{stats.error_rate_pct}}% of calls</span>
+            </div>
+            <div class="kpi-card{{#if stats.denied_session_count}} kpi-card--warning{{/if}}">
+                <span class="kpi-card__label">Pre-flight denies</span>
+                <span class="kpi-card__value">{{stats.denied_session_count}}</span>
+                <span class="kpi-card__sub">{{stats.denied_session_rate_pct}}% of sessions</span>
+            </div>
+        </div>
+
+        <div class="requests-charts">
+            <section class="requests-charts__panel">
+                {{> components/timeseries-chart traffic_chart}}
+            </section>
+            <section class="requests-charts__panel">
+                {{> components/timeseries-chart cost_chart}}
+            </section>
+        </div>
+
+        <section class="requests-charts__panel requests-charts__panel--wide">
+            <h3 class="requests-charts__title">Latency distribution</h3>
+            {{> components/latency-histogram histogram}}
+        </section>
+    </section>
+    {{/if}}
+
+    {{#if is_breakdown}}
+    <section class="requests-section" aria-label="{{breakdown.dimension_label}} breakdown">
+        {{> components/breakdown-table breakdown}}
+    </section>
+    {{/if}}
+
+    {{#if is_log}}
+    <section class="requests-section" aria-label="Request log">
+        <form method="get" action="{{base_url}}" class="toolbar audit-toolbar">
+            <input type="hidden" name="tab" value="log">
+            <input type="hidden" name="preset" value="{{time_range.preset}}">
+            <input type="hidden" name="from" value="{{time_range.from}}">
+            <input type="hidden" name="to" value="{{time_range.to}}">
+            <div class="search-group">
+                <input type="text" name="q" placeholder="Search user / model / trace_id / error..."
+                       value="{{search_query}}" class="search-input"
+                       aria-label="Search requests">
+            </div>
+            <button type="submit" class="btn btn-sm">Search</button>
+            {{#if has_active_filters}}
+            <a href="{{clear_url}}" class="btn btn-sm btn-outline">Clear</a>
+            {{/if}}
+        </form>
+
+        {{#if has_rows}}
+        {{#> components/data-table}}
+            <thead><tr>
+                <th class="col-date">Time</th>
+                <th>Identity</th>
+                <th>Model</th>
+                <th class="col-status">Status</th>
+                <th class="col-num">Tokens</th>
+                <th class="col-num">Cost</th>
+                <th class="col-num">Latency</th>
+                <th class="col-status">Denies</th>
+                <th>trace_id</th>
+            </tr></thead>
+            <tbody>
+            {{#each rows}}
+            <tr data-chain-id="{{this.id}}" class="audit-row" tabindex="0"
+                role="button" aria-label="Open chain of custody for {{this.id}}">
+                <td class="col-date" title="{{this.created_at}}">{{this.created_at_local}}</td>
+                <td>
+                    <div class="audit-identity">
+                        <a href="/admin/user?id={{this.user_id}}">{{truncate this.user_label 16}}</a>
+                    </div>
+                </td>
+                <td>
+                    <code class="code-inline">{{this.model}}</code>
+                    <span class="text-muted text-xs">{{this.provider}}</span>
+                </td>
+                <td class="col-status">
+                    {{#if this.is_error}}
+                      <span class="mcp-badge mcp-badge-danger" title="{{this.error_message}}">{{this.status}}</span>
+                    {{else}}
+                      <span class="mcp-badge mcp-badge-success">{{this.status}}</span>
+                    {{/if}}
+                </td>
+                <td class="col-num">
+                    {{#if this.input_tokens}}{{this.input_tokens}}{{else}}—{{/if}}
+                    /
+                    {{#if this.output_tokens}}{{this.output_tokens}}{{else}}—{{/if}}
+                </td>
+                <td class="col-num">{{this.cost_display}}</td>
+                <td class="col-num">{{#if this.latency_ms}}{{this.latency_ms}} ms{{else}}—{{/if}}</td>
+                <td class="col-status">
+                    {{#if this.is_denied_preflight}}
+                      <span class="mcp-badge mcp-badge-danger">{{this.deny_count}}</span>
+                    {{else}}
+                      {{#if this.tool_call_count}}
+                        <span class="text-muted">{{this.tool_call_count}} tool</span>
+                      {{else}}—{{/if}}
+                    {{/if}}
+                </td>
+                <td>
+                    {{#if this.trace_id}}
+                        <code class="code-inline">{{truncate this.trace_id 8}}</code>
+                    {{else}}—{{/if}}
+                </td>
+            </tr>
+            {{/each}}
+            </tbody>
+        {{/components/data-table}}
+
+        {{> components/pagination pagination}}
+        {{else}}
+        {{> components/empty-state
+            message="No inference requests match. Widen the time range, clear the filters, or run a demo to populate data."}}
+        {{/if}}
+    </section>
     {{/if}}
 
     {{/inline}}

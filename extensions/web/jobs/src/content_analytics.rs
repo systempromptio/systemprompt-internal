@@ -103,6 +103,10 @@ impl Job for ContentAnalyticsAggregationJob {
         "content_analytics_aggregation"
     }
 
+    fn tags(&self) -> Vec<&'static str> {
+        vec![crate::registry::JOB_TAG]
+    }
+
     fn description(&self) -> &'static str {
         "Aggregates engagement events into content performance metrics (views, unique visitors, time on page)"
     }

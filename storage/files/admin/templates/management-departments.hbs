@@ -32,7 +32,7 @@
             <td class="numeric col-numeric">{{add input_tokens output_tokens}}</td>
             <td>{{description}}</td>
             <td class="col-actions">
-                <a class="btn btn-sm" href="/admin/access/departments/{{id}}">Open</a>
+                <a class="btn btn-sm btn-outline" href="/admin/access/departments/{{id}}">Open →</a>
                 {{#unless (eq name "Default")}}<button type="button" class="btn btn-sm btn-danger" data-delete-dept="{{id}}" data-dept-name="{{name}}">Delete</button>{{/unless}}
             </td>
         </tr>
@@ -40,7 +40,7 @@
         </tbody>
     {{/components/data-table}}
     {{else}}
-    <div class="empty-state" style="padding:3rem;text-align:center;">
+    <div class="empty-state empty-state--pad-lg">
         <h3>No departments yet</h3>
         <p class="text-muted">Departments group users and let you bulk-assign skills, marketplaces, and access rules.</p>
         <button type="button" class="btn btn-primary" id="btn-new-department-empty">+ Create your first department</button>
@@ -57,53 +57,10 @@
                 <button type="button" class="btn btn-sm btn-outline" id="dept-create-cancel">Cancel</button>
                 <button type="submit" class="btn btn-sm btn-primary">Create</button>
             </menu>
-            <p id="dept-create-error" class="text-danger" style="display:none;"></p>
+            <p id="dept-create-error" class="text-danger" hidden></p>
         </form>
     </dialog>
 
-    <script>
-    (function() {
-        const dlg = document.getElementById('dept-create-dialog');
-        const form = document.getElementById('dept-create-form');
-        const errEl = document.getElementById('dept-create-error');
-        const open = () => { errEl.style.display = 'none'; form.reset(); dlg.showModal(); };
-        document.getElementById('btn-new-department')?.addEventListener('click', open);
-        document.getElementById('btn-new-department-empty')?.addEventListener('click', open);
-        document.getElementById('dept-create-cancel')?.addEventListener('click', () => dlg.close());
-        form?.addEventListener('submit', async (ev) => {
-            ev.preventDefault();
-            const fd = new FormData(form);
-            const body = {
-                name: fd.get('name'),
-                description: fd.get('description') || '',
-            };
-            const res = await fetch('/admin/management/departments', {
-                method: 'POST',
-                headers: {'content-type': 'application/json'},
-                body: JSON.stringify(body),
-            });
-            if (res.ok) { location.reload(); return; }
-            errEl.textContent = await AdminApp.errorMessage(res);
-            errEl.style.display = 'block';
-        });
-        document.querySelectorAll('[data-delete-dept]').forEach(btn => {
-            btn.addEventListener('click', async (ev) => {
-                ev.stopPropagation();
-                const id = btn.getAttribute('data-delete-dept');
-                const name = btn.getAttribute('data-dept-name');
-                if (!confirm('Delete department "' + name + '"? Members will be reassigned to "Default" and department-level access rules removed.')) return;
-                const res = await fetch('/admin/management/departments/' + id, { method: 'DELETE' });
-                if (res.ok) location.reload();
-                else alert('Delete failed: ' + await AdminApp.errorMessage(res));
-            });
-        });
-        document.getElementById('dept-search')?.addEventListener('input', (ev) => {
-            const q = ev.target.value.toLowerCase();
-            document.querySelectorAll('[data-dept-name]').forEach(row => {
-                row.style.display = !q || row.getAttribute('data-dept-name').includes(q) ? '' : 'none';
-            });
-        });
-    })();
-    </script>
+    <script data-cfasync="false" type="module" src="/js/pages/management-departments.js"></script>
     {{/inline}}
 {{/layout}}

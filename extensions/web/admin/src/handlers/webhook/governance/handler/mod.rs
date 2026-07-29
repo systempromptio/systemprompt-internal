@@ -37,8 +37,34 @@ fn header_str(headers: &HeaderMap, name: header::HeaderName) -> Option<String> {
         .map(ToOwned::to_owned)
 }
 
-fn build_response(decision: &Decision) -> Response {
-    // lint-ok: http-error — builds the decision body itself
+/// Tool name recorded for a governed `UserPromptSubmit`. The chain wants a
+/// tool referent for every decision; a prompt has none, so it gets an explicit
+/// one rather than falling through to `"unknown"` and making the audit row
+/// unreadable.
+const PROMPT_TOOL_NAME: &str = "user_prompt";
+
+#[derive(serde::Serialize)]
+struct GovernedPrompt<'a> {
+    prompt: &'a str,
+}
+
+/// The evaluated payload for one hook event.
+///
+/// `PreToolUse` carries a `tool_input` object; `UserPromptSubmit` carries a
+/// bare string, which is wrapped so the same value-walking policies
+/// (`secret_scan`) apply to both without a second code path.
+// JSON: protocol boundary — arbitrary third-party tool payload handed to the
+// policy chain, which walks it for credentials at any depth
+fn governed_input(payload: &HookEventPayload) -> Option<serde_json::Value> {
+    payload.tool_input().cloned().or_else(|| {
+        payload
+            .prompt()
+            .and_then(|prompt| serde_json::to_value(GovernedPrompt { prompt }).ok())
+    })
+}
+
+fn build_response(decision: &Decision, hook_event_name: &'static str) -> Response {
+    // Why: lint-ok: http-error — builds the decision body itself
     let permission_decision = GovernanceDecision::from_decision(decision);
     let permission_decision_reason = match decision {
         Decision::Allow { .. } => None,
@@ -46,7 +72,7 @@ fn build_response(decision: &Decision) -> Response {
     };
     let response = GovernanceResponse {
         hook_specific_output: HookSpecificOutput {
-            hook_event_name: "PreToolUse",
+            hook_event_name,
             permission_decision,
             permission_decision_reason,
         },
@@ -59,13 +85,27 @@ pub(crate) async fn govern_tool_use(
     Extension(session_service): Extension<Arc<SessionCreationService>>,
     headers: HeaderMap,
     Query(query): Query<GovernQuery>,
+    // JSON: protocol boundary — the third-party hook envelope, parsed into typed
+    // events by `HookEventPayload::from_value` after the raw copy is retained
     Json(raw): Json<serde_json::Value>,
 ) -> Response {
-    // lint-ok: http-error — a hook answers 200 with a decision; an error status
-    // reads as "hook unavailable" and lets the call through
+    // Why: lint-ok: http-error — a hook answers 200 with a decision; an error
+    // status reads as "hook unavailable" and lets the call through
     let (payload, _warnings) = HookEventPayload::from_value(raw);
 
-    let tool_name = payload.tool_name().unwrap_or("unknown");
+    let is_prompt = payload.prompt().is_some();
+    let tool_name = payload.tool_name().unwrap_or(if is_prompt {
+        PROMPT_TOOL_NAME
+    } else {
+        "unknown"
+    });
+    // Why: echo the caller's event back so a `UserPromptSubmit` gate is not handed
+    // a `PreToolUse` envelope it would have to ignore.
+    let response_event = if is_prompt {
+        "UserPromptSubmit"
+    } else {
+        "PreToolUse"
+    };
     let session_id = SessionId::new(payload.session_id());
     let agent_id = payload.common.agent_id.as_ref();
     let plugin_id = query.plugin_id.as_ref();
@@ -74,6 +114,7 @@ pub(crate) async fn govern_tool_use(
         pool: &pool,
         session_id: &session_id,
         tool_name,
+        hook_event_name: response_event,
         agent_id,
         plugin_id,
         session_service: &session_service,
@@ -92,12 +133,13 @@ pub(crate) async fn govern_tool_use(
         scope::higher_privilege(principal_scope, scope::resolve_agent_scope(id))
     });
 
+    let evaluated_input = governed_input(&payload);
     let (decision, chain) = evaluate(&EvaluateInput {
         tool_name,
         session_id: &session_id,
         user_id: &user_id,
         access_scope,
-        tool_input: payload.tool_input(),
+        tool_input: evaluated_input.as_ref(),
     });
 
     let audit = DecisionAudit {
@@ -116,7 +158,7 @@ pub(crate) async fn govern_tool_use(
     };
     spawn_audit_recording(&pool, audit);
 
-    build_response(&decision)
+    build_response(&decision, response_event)
 }
 
 fn spawn_auth_denial(params: &AuthDenialParams<'_>, reason: &str) {
@@ -130,7 +172,7 @@ fn spawn_auth_denial(params: &AuthDenialParams<'_>, reason: &str) {
     let headers = params.headers.clone();
 
     tokio::spawn(async move {
-        // Authentication failed before any real user was resolved. Every UserId
+        // Why: authentication failed before any real user was resolved. Every UserId
         // must be a real `users` row, so provision the anonymous principal for
         // this fingerprint (idempotent upsert) to carry the audit's foreign key.
         // Core now takes the extracted analytics rather than raw headers. The

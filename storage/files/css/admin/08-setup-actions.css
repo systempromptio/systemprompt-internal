@@ -61,11 +61,6 @@
     border-color: var(--sp-accent);
     gap: 0.5rem;
 }
-
-.setup-phase-expand {
-    margin-top: var(--sp-space-4);
-}
-
 @media (max-width: 640px) {
     .setup-page {
         padding: var(--sp-space-4) var(--sp-space-2);

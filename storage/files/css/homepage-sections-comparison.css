@@ -1,19 +1,18 @@
-
 .comparison {
-  padding: var(--sp-space-4xl) 0;
+  padding: var(--sp-space-24) 0;
   border-top: 1px solid var(--sp-color-border);
 }
 
 .comparison-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: var(--sp-space-xl);
+  gap: var(--sp-space-8);
   max-width: 900px;
   margin: 0 auto;
 }
 
 .comparison-col {
-  padding: var(--sp-space-xl);
+  padding: var(--sp-space-8);
   border-radius: var(--sp-card-radius);
   background: var(--sp-card-bg-glass);
   border: var(--sp-card-border-width) solid var(--sp-color-border);
@@ -30,7 +29,7 @@
 .comparison-col h3 {
   font-size: 1.125rem;
   font-weight: 600;
-  margin-bottom: var(--sp-space-lg);
+  margin-bottom: var(--sp-space-6);
   color: var(--sp-color-text-secondary);
 }
 
@@ -44,7 +43,7 @@
 }
 
 .comparison-col li {
-  padding: var(--sp-space-sm) 0;
+  padding: var(--sp-space-2) 0;
   color: var(--sp-color-text-secondary);
   font-size: 0.95rem;
   border-bottom: 1px solid var(--sp-color-border);
@@ -61,7 +60,7 @@
 .comparison-row {
   display: flex;
   align-items: center;
-  gap: var(--sp-space-sm);
+  gap: var(--sp-space-2);
 }
 
 .comparison-icon {
@@ -82,7 +81,7 @@
 .comparison-link {
   display: flex;
   align-items: center;
-  gap: var(--sp-space-sm);
+  gap: var(--sp-space-2);
   text-decoration: none;
   color: inherit;
   width: 100%;

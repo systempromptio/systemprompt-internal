@@ -1,4 +1,4 @@
-//! Session-detail repository — drives `/admin/sessions/{id}`.
+//! Session-detail repository — drives `/admin/entities/sessions/{id}`.
 //!
 //! A session groups every AI request, context, and trace produced by a single
 //! interactive run. This module assembles the header row from
@@ -7,7 +7,7 @@
 
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
-use systemprompt::identifiers::{ContextId, PluginId, SessionId, TraceId, UserId};
+use systemprompt::identifiers::{AiRequestId, ContextId, PluginId, SessionId, TraceId, UserId};
 
 #[derive(Debug, Clone)]
 pub struct SessionHeader {
@@ -41,6 +41,10 @@ pub struct SessionContextRow {
     pub request_count: i64,
     pub last_request_at: Option<DateTime<Utc>>,
     pub model: Option<String>,
+    pub total_input_tokens: i64,
+    pub total_output_tokens: i64,
+    pub cost_microdollars: i64,
+    pub error_count: i64,
 }
 
 #[derive(Debug, Clone)]
@@ -54,7 +58,7 @@ pub struct SessionTraceRow {
 
 #[derive(Debug, Clone)]
 pub struct SessionRequestRow {
-    pub id: String,
+    pub id: AiRequestId,
     pub context_id: Option<ContextId>,
     pub trace_id: Option<TraceId>,
     pub model: String,
@@ -77,7 +81,11 @@ pub async fn find_session_header(
             u.display_name                       AS "display_name?",
             upe.department                       AS "department?",
             COALESCE(s.started_at, r.first_seen) AS "started_at?",
-            COALESCE(s.ended_at, r.last_seen)    AS "last_activity_at?",
+            -- A hook session that never wrote an `ended_at` still has a last
+            -- activity: the moment it started. Falling through to NULL made
+            -- the field, and the duration derived from it, read as unknown.
+            COALESCE(s.ended_at, r.last_seen, s.started_at)
+                                                 AS "last_activity_at?",
             s.status                             AS "status?",
             COALESCE(s.model, r.model)           AS "model?",
             s.plugin_id                          AS "plugin_id?: PluginId",
@@ -150,7 +158,11 @@ pub async fn list_session_contexts(
             c.name                               AS "name?",
             COUNT(*)::bigint                     AS "request_count!",
             MAX(r.created_at)                    AS "last_request_at?",
-            MAX(r.model)                         AS "model?"
+            MAX(r.model)                         AS "model?",
+            COALESCE(SUM(r.input_tokens), 0)::bigint     AS "total_input_tokens!",
+            COALESCE(SUM(r.output_tokens), 0)::bigint    AS "total_output_tokens!",
+            COALESCE(SUM(r.cost_microdollars), 0)::bigint AS "cost_microdollars!",
+            COUNT(*) FILTER (WHERE r.status = 'failed')::bigint AS "error_count!"
         FROM ai_requests r
         LEFT JOIN user_contexts c ON c.context_id = r.context_id
         WHERE r.session_id = $1 AND r.context_id IS NOT NULL
@@ -197,7 +209,7 @@ pub async fn list_session_requests(
         SessionRequestRow,
         r#"
         SELECT
-            id                                  AS "id!",
+            id                                  AS "id!: AiRequestId",
             context_id                          AS "context_id?: ContextId",
             trace_id                            AS "trace_id?: TraceId",
             model                               AS "model!",

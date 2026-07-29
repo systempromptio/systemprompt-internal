@@ -70,7 +70,9 @@ pub struct TranscriptTurn {
 pub struct ToolCall {
     pub id: Option<String>,
     pub name: String,
+    // JSON: arbitrary tool arguments lifted out of the third-party transcript.
     pub args_json: serde_json::Value,
+    // JSON: arbitrary tool result lifted out of the third-party transcript.
     pub result_json: Option<serde_json::Value>,
     pub duration_ms: Option<i32>,
     pub status: String,

@@ -14,6 +14,7 @@ impl HelperDef for EqHelper {
         _: &'rc Context,
         _: &mut RenderContext<'reg, 'rc>,
     ) -> Result<handlebars::ScopedJson<'rc>, RenderError> {
+        // JSON: required by the handlebars HelperDef trait contract
         let a = h.param(0).map(handlebars::PathAndJson::value);
         let b = h.param(1).map(handlebars::PathAndJson::value);
         let equal = match (a, b) {
@@ -39,6 +40,7 @@ impl HelperDef for GtHelper {
     ) -> Result<handlebars::ScopedJson<'rc>, RenderError> {
         let a = h.param(0).and_then(|v| v.value().as_f64()).unwrap_or(0.0);
         let b = h.param(1).and_then(|v| v.value().as_f64()).unwrap_or(0.0);
+        // JSON: required by the handlebars HelperDef trait contract
         Ok(handlebars::ScopedJson::Derived(serde_json::Value::Bool(
             a > b,
         )))
@@ -56,6 +58,7 @@ impl HelperDef for NotHelper {
         _: &mut RenderContext<'reg, 'rc>,
     ) -> Result<handlebars::ScopedJson<'rc>, RenderError> {
         let val = h.param(0).map(handlebars::PathAndJson::value);
+        // JSON: required by the handlebars HelperDef trait contract
         let is_falsy = match val {
             None | Some(serde_json::Value::Null | serde_json::Value::Bool(false)) => true,
             Some(serde_json::Value::String(s)) => s.is_empty(),
@@ -63,6 +66,7 @@ impl HelperDef for NotHelper {
             Some(serde_json::Value::Array(a)) => a.is_empty(),
             _ => false,
         };
+        // JSON: required by the handlebars HelperDef trait contract
         Ok(handlebars::ScopedJson::Derived(serde_json::Value::Bool(
             is_falsy,
         )))

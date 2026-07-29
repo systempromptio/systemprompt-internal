@@ -4,11 +4,17 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
+description = "Public site extension for the systemprompt.io template: pages, guides, and static-site routes for the self-hosted AI governance binary."
+repository.workspace = true
+homepage.workspace = true
+publish = false
 
 [dependencies]
+inventory = { workspace = true }
 systemprompt-web-shared = { workspace = true }
-# Audit: uses database, extension, models, template_provider — needs `database`.
-systemprompt = { workspace = true, features = ["database"] }
+systemprompt-web-admin = { workspace = true }
+# Audit: uses config (profile paths), database, extension, models, template_provider.
+systemprompt = { workspace = true, features = ["database", "config"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
@@ -20,3 +26,8 @@ thiserror = { workspace = true }
 
 [lints]
 workspace = true
+
+# Registration macros expand to ::inventory::submit! paths; machete
+# cannot see through the macro.
+[package.metadata.cargo-machete]
+ignored = ["inventory"]

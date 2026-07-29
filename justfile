@@ -63,9 +63,24 @@ _db-url:
 build *FLAGS:
     $env:SQLX_OFFLINE="true"; cargo build --workspace {{FLAGS}}
 
-# Build (Unix) - tries database, falls back to offline
+# Build (Unix) - single-flight: dedupes concurrent identical builds across agents
 [unix]
 build *FLAGS:
+    @scripts/build-coordinator.sh run build "{{FLAGS}}" -- {{just_executable()}} _build-uncoordinated {{FLAGS}}
+
+# What is the build/lint/test state right now? Read this before running anything.
+[unix]
+build-status *RECIPE:
+    @scripts/build-coordinator.sh status {{RECIPE}}
+
+# Re-run even if the coordinator considers this source tree already green
+[unix]
+build-force *FLAGS:
+    @BUILD_FORCE=1 scripts/build-coordinator.sh run build "{{FLAGS}}" -- {{just_executable()}} _build-uncoordinated {{FLAGS}}
+
+# The real build. Call `just build` instead - this one skips coordination.
+[unix]
+_build-uncoordinated *FLAGS:
     #!/usr/bin/env bash
     set -euo pipefail
     # Default to the `local` profile when one is set up but no SYSTEMPROMPT_PROFILE
@@ -146,9 +161,14 @@ build *FLAGS:
 clippy *FLAGS: lint-no-synthesis lint-gates
     $env:SQLX_OFFLINE="true"; cargo clippy --workspace {{FLAGS}} -- -D warnings
 
-# Clippy (Unix) - tries database, falls back to offline
+# Clippy (Unix) - single-flight, same coordinator as `just build`
 [unix]
-clippy *FLAGS: lint-no-synthesis lint-gates
+clippy *FLAGS:
+    @scripts/build-coordinator.sh run clippy "{{FLAGS}}" -- {{just_executable()}} _clippy-uncoordinated {{FLAGS}}
+
+# The real clippy. Call `just clippy` instead - this one skips coordination.
+[unix]
+_clippy-uncoordinated *FLAGS: lint-no-synthesis lint-gates
     #!/usr/bin/env bash
     set -euo pipefail
     SECRETS_FILE="{{justfile_directory()}}/.systemprompt/profiles/local/secrets.json"
@@ -190,26 +210,123 @@ clippy *FLAGS: lint-no-synthesis lint-gates
     # bridge/ is a standalone workspace and is not covered by --workspace
     cargo clippy --manifest-path bridge/Cargo.toml --all-targets {{FLAGS}} -- -D warnings
 
-# Source gates ported from systemprompt-core (scripts/*.sh)
-lint-gates:
+# Unit tests: extensions/web/admin (main workspace) + the tests/ workspace.
+# If sqlx offline errors appear, run `just prepare` first to refresh .sqlx.
+test-unit:
+    @scripts/build-coordinator.sh run test-unit "" -- {{just_executable()}} _test-unit-uncoordinated
+
+_test-unit-uncoordinated:
+    cargo test -p systemprompt-web-admin --tests
+    cargo test --manifest-path tests/Cargo.toml -p mcp-unit-tests -p web-unit-tests
+
+# DB-backed integration tests. Creates/drops throwaway mcp_ext_test_*
+# databases on the maintenance DB; the harness guard refuses any database
+# name that is not 'test', 'postgres', or '*_test'. Falls back to the local
+# profile's server with the database swapped to 'postgres'.
+test-integration:
+    @scripts/build-coordinator.sh run test-integration "" -- {{just_executable()}} _test-integration-uncoordinated
+
+_test-integration-uncoordinated:
     #!/usr/bin/env bash
     set -euo pipefail
-    bash scripts/lint-schema.sh
-    bash scripts/lint-extensions.sh
-    bash scripts/check-sqlx.sh
-    bash scripts/check-http-errors.sh
-    bash scripts/check-test-value.sh
-    bash scripts/lint-raw-ids.sh
-    bash scripts/check-glob-reexports.sh
-    bash scripts/check-dead-repository-code.sh
-    bash scripts/check-file-size.sh
-    bash scripts/check-comments.sh
-    bash scripts/check-duplicate-types.sh
-    bash scripts/check-repository-naming.sh
-    bash scripts/check-file-headers.sh
+    if [ -z "${SYSTEMPROMPT_TEST_DATABASE_URL:-}" ] && [ -f .systemprompt/profiles/local/secrets.json ]; then
+        SYSTEMPROMPT_TEST_DATABASE_URL=$(python3 -c "
+    import json, urllib.parse as up
+    u = up.urlsplit(json.load(open('.systemprompt/profiles/local/secrets.json'))['database_url'])
+    print(up.urlunsplit((u.scheme, u.netloc, '/postgres', '', '')))")
+        export SYSTEMPROMPT_TEST_DATABASE_URL
+    fi
+    cargo test --manifest-path tests/Cargo.toml -p mcp-integration-tests
+
+# HTTP contract suite: drives every admin route under three principals and
+# diffs the result against tests/contract/admin/baseline.txt. Same throwaway-
+# database convention as test-integration. A status change fails the run; if
+# it is deliberate, re-record with UPDATE_CONTRACT_BASELINE=1 and list it in
+# the PR.
+test-contract:
+    @scripts/build-coordinator.sh run test-contract "" -- {{just_executable()}} _test-contract-uncoordinated
+
+_test-contract-uncoordinated:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -z "${SYSTEMPROMPT_TEST_DATABASE_URL:-}" ] && [ -f .systemprompt/profiles/local/secrets.json ]; then
+        SYSTEMPROMPT_TEST_DATABASE_URL=$(python3 -c "
+    import json, urllib.parse as up
+    u = up.urlsplit(json.load(open('.systemprompt/profiles/local/secrets.json'))['database_url'])
+    print(up.urlunsplit((u.scheme, u.netloc, '/postgres', '', '')))")
+        export SYSTEMPROMPT_TEST_DATABASE_URL
+    fi
+    cargo test --manifest-path tests/Cargo.toml -p admin-contract-tests
+
+# All tests
+test: test-unit test-integration test-contract
+
+# Source gates ported from systemprompt-core (scripts/*.sh)
+lint-gates:
+    @scripts/build-coordinator.sh run lint-gates "" -- {{just_executable()}} _lint-gates-uncoordinated
+
+# Gates are independent read-only checks; they run concurrently and every
+# failure is reported, so one red gate cannot hide the rest.
+_lint-gates-uncoordinated:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    gates=(
+        lint-schema.sh
+        lint-extensions.sh
+        check-sqlx.sh
+        check-http-errors.sh
+        check-test-value.sh
+        lint-raw-ids.sh
+        check-glob-reexports.sh
+        check-comments.sh
+        lint-inline-comments.sh
+        check-duplicate-types.sh
+        check-repository-naming.sh
+        check-admin-template-links.sh
+        check-admin-template-assets.sh
+        # admin-css-classes + frontend-standards now run as cargo tests in
+        # extensions/web/tests/ (admin_css_classes.rs, frontend_standards.rs).
+        check-fork-drift.sh
+        check-dead-repository-code.sh
+        check-file-headers.sh
+        check-file-size.sh
+        validate-services.sh
+    )
+    logdir=$(mktemp -d)
+    trap 'rm -rf "$logdir"' EXIT
+    pids=()
+    for gate in "${gates[@]}"; do
+        bash "scripts/$gate" >"$logdir/$gate.log" 2>&1 &
+        pids+=("$!:$gate")
+    done
+    failed=()
+    for entry in "${pids[@]}"; do
+        pid=${entry%%:*}
+        gate=${entry#*:}
+        if ! wait "$pid"; then
+            failed+=("$gate")
+        fi
+    done
+    if [ ${#failed[@]} -gt 0 ]; then
+        for gate in "${failed[@]}"; do
+            echo "==== FAILED: $gate ===="
+            cat "$logdir/$gate.log"
+        done
+        echo "lint gates failed: ${failed[*]}"
+        exit 1
+    fi
+    echo "all ${#gates[@]} lint gates passed"
+
+# Cross-file referential integrity for services/ (ACL entity ids, MCP ports)
+validate:
+    bash scripts/validate-services.sh
+
+# Shared sources that differ from the sibling fork must be recorded in
+# .fork-divergence. Needs SIBLING_REPO; skips cleanly without it.
+check-fork-drift:
     bash scripts/check-fork-drift.sh
 
-# Verify every production source has a `//!` module head
+# Verify every production extension source has a `//!` module head
 check-headers:
     bash scripts/check-file-headers.sh
 
@@ -221,16 +338,16 @@ audit-standards:
 file-size:
     bash scripts/check-file-size.sh
 
+# Detect unused dependencies (same check the CI machete job runs)
+machete:
+    cargo machete
+
 # Supply-chain gates: cargo-deny (licenses/bans/advisories) and cargo-audit
 deny:
     cargo deny check
 
 check-bans:
     cargo deny check bans
-
-# Detect unused workspace dependencies
-machete:
-    cargo machete
 
 audit:
     cargo audit
@@ -304,7 +421,7 @@ prepare:
     # Workspace-level prepare (catches lib crates)
     cargo sqlx prepare --workspace
     # Per-crate prepare for binary/extension crates that cargo sqlx skips
-    EXTENSION_DIRS="extensions/cli/activity extensions/cli/slack extensions/web extensions/marketplace extensions/mcp/shared extensions/mcp/systemprompt"
+    EXTENSION_DIRS="extensions/web extensions/mcp/shared extensions/mcp/systemprompt"
     for dir in $EXTENSION_DIRS; do
         if [ -f "{{justfile_directory()}}/$dir/Cargo.toml" ]; then
             # Skip crates with no sqlx dependency — prepare would only
@@ -328,6 +445,11 @@ prepare:
 # Start server (always uses local profile)
 start:
     {{CLI}} infra services start --profile local
+
+# Optional: running server + binary provenance + recent build/lint/test results
+[unix]
+server-status:
+    @scripts/server-state.sh report
 
 # Start server with release binary
 start-release:
@@ -579,18 +701,8 @@ profiles:
 # SYNC
 # ══════════════════════════════════════════════════════════════════════════════
 
-# Sync content to database
-sync-content *ARGS:
-    {{CLI}} cloud sync local content {{ARGS}}
-
-# Sync skills to database
-sync-skills *ARGS:
-    {{CLI}} cloud sync local skills {{ARGS}}
-
-# Sync all local content
-sync-local:
-    {{CLI}} cloud sync local content
-    {{CLI}} cloud sync local skills
+# Content and skills are ingested from services/ at server startup and by
+# `just publish` (publish_pipeline job); there is no separate local sync command.
 
 # Push to cloud
 sync-push *ARGS:

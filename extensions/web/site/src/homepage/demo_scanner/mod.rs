@@ -263,9 +263,9 @@ fn extract_commands(content: &str) -> Vec<String> {
             .iter()
             .find_map(|prefix| {
                 trimmed.strip_prefix(prefix).map(|args| {
-                    // `run_cli_head` takes a leading numeric line-limit before
-                    // the real subcommand; drop it so the rendered command is
-                    // the actual CLI invocation, not `systemprompt 40 …`.
+                    // Why: the run_cli_head prefix carries a leading numeric
+                    // line-limit that is shell-harness syntax, not part of the
+                    // CLI invocation a visitor should copy; strip it.
                     let trimmed_args = args.trim();
                     let cleaned = if *prefix == "run_cli_head " {
                         trimmed_args

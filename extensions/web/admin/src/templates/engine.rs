@@ -7,7 +7,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use handlebars::Handlebars;
-use serde_json::Value;
+use serde::Serialize;
 use thiserror::Error;
 
 use super::helpers;
@@ -164,7 +164,7 @@ impl AdminTemplateEngine {
         Ok(())
     }
 
-    pub fn render(&self, template: &str, data: &Value) -> Result<String> {
+    pub fn render<T: Serialize>(&self, template: &str, data: &T) -> Result<String> {
         self.hbs
             .render(template, data)
             .map_err(|source| AdminTemplateError::Render {

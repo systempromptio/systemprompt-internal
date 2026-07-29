@@ -78,6 +78,10 @@ impl Job for ContentIngestionJob {
         "blog_content_ingestion"
     }
 
+    fn tags(&self) -> Vec<&'static str> {
+        vec![crate::registry::JOB_TAG]
+    }
+
     fn description(&self) -> &'static str {
         "Ingests markdown content from configured blog directories into the database. Set CONTENT_INGESTION_DELETE_ORPHANS=true to clean up orphaned records."
     }
@@ -103,7 +107,7 @@ async fn execute_inner(ctx: &JobContext) -> Result<JobResult, JobError> {
         "Write PgPool not available from database".to_owned(),
     ))?;
 
-    let Some(config) = BlogConfigValidated::load_from_env_or_none()
+    let Some(config) = BlogConfigValidated::cached()
         .map_err(|e| MarketplaceError::Internal(format!("Failed to load blog config: {e}")))?
     else {
         tracing::debug!(

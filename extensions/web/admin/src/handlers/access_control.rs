@@ -19,13 +19,11 @@ use crate::types::access_control::{
     AccessControlQuery, AccessControlRule, BulkAssignRequest, UpdateEntityRulesRequest,
 };
 
-/// JSON body returned by the rule-listing endpoints (`{ "rules": [...] }`).
 #[derive(Debug, Serialize)]
 pub(crate) struct RulesResponse {
     pub rules: Vec<AccessControlRule>,
 }
 
-/// JSON body returned by `bulk_assign_handler`.
 #[derive(Debug, Serialize)]
 pub(crate) struct BulkAssignResponse {
     pub updated_count: usize,
@@ -130,8 +128,8 @@ fn build_matrix_sections(
     services_path: &std::path::Path,
     profile_path: &std::path::Path,
 ) -> Vec<repositories::users::access_control::SectionInput> {
-    // Each source is best-effort: a config that fails to load is skipped so the
-    // matrix renders whatever resolved instead of failing the whole view.
+    // Why: each source is best-effort — a config that fails to load is skipped
+    // so the matrix renders whatever resolved instead of failing the whole view.
     let mut sections: Vec<repositories::users::access_control::SectionInput> = Vec::new();
 
     if let Ok(cfg) = repositories::config::gateway::get_gateway_config(profile_path) {
@@ -205,8 +203,8 @@ fn build_matrix_sections(
     sections
 }
 
-/// Renders current DB state as YAML for copying into the committed baseline.
-/// Writes nothing to disk — instances never write back to `services/`.
+// Why: renders the snapshot for copy-out only; writes nothing to disk —
+// instances never write back to `services/`.
 pub(crate) async fn yaml_snapshot_handler(
     State(pool): State<Arc<PgPool>>,
 ) -> AdminResult<Response> {

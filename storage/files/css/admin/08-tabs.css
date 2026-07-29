@@ -3,6 +3,7 @@
 .sp-tabs {
     display: flex;
     align-items: center;
+    flex-shrink: 0;
     gap: var(--sp-space-1);
     border-bottom: 1px solid var(--sp-border-subtle);
     margin-bottom: var(--sp-space-5);

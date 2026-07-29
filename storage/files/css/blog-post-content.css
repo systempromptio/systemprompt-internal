@@ -64,7 +64,7 @@
 
 .post-content blockquote {
   margin: 2em 0;
-  padding: var(--sp-spacing-lg) var(--sp-spacing-xl);
+  padding: var(--sp-space-6) var(--sp-space-8);
   border-left: 4px solid var(--sp-color-primary);
   background: var(--sp-color-surface-variant);
   border-radius: var(--sp-radius-sm);
@@ -101,21 +101,20 @@
 .post-content pre {
   margin: 2em 0;
   border-radius: var(--sp-radius-md);
-  background: #0E1726;
+  background: var(--sp-syntax-bg-dark);
   overflow-x: auto;
   box-shadow: var(--sp-shadow-md);
 }
 
 .post-content pre code {
   display: block;
-  padding: var(--sp-spacing-lg);
+  padding: var(--sp-space-6);
   font-size: 0.875rem;
   line-height: 1.6;
   background: none;
   border: none;
-  color: #abb2bf;
+  color: var(--sp-syntax-fg-dark);
   overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
 }
 
 .post-content table {

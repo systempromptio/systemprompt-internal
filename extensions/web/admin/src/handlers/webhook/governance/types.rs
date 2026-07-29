@@ -79,7 +79,6 @@ pub(super) struct ChainEntryOutcome {
     pub detail: String,
 }
 
-/// Snapshot of the authenticated principal at evaluation time.
 #[derive(Debug, Serialize, Clone)]
 pub(super) struct PrincipalSnapshot {
     pub user_id: UserId,
@@ -94,10 +93,10 @@ pub(super) struct AuditTarget {
     pub plugin_id: Option<PluginId>,
 }
 
-/// Typed audit blob serialized into `governance_decisions.evaluated_rules`.
-///
-/// The `decision` and `reason` columns are populated from the same data by the
-/// repository layer.
+// Why: typed audit blob serialized into `governance_decisions.evaluated_rules`.
+//
+// The `decision` and `reason` columns are populated from the same data by the
+// repository layer.
 #[derive(Debug, Serialize, Clone)]
 pub(super) struct DecisionAudit {
     pub decision: Decision,
@@ -110,6 +109,9 @@ pub(super) struct AuthDenialParams<'a> {
     pub pool: &'a Arc<PgPool>,
     pub session_id: &'a SessionId,
     pub tool_name: &'a str,
+    /// Echoed into the response envelope so a `UserPromptSubmit` caller is not
+    /// answered with a `PreToolUse` denial it has to reinterpret.
+    pub hook_event_name: &'static str,
     pub agent_id: Option<&'a AgentId>,
     pub plugin_id: Option<&'a PluginId>,
     pub session_service: &'a Arc<SessionCreationService>,

@@ -29,8 +29,6 @@ pub(crate) use systemprompt_security::policy::GovernancePolicy;
 
 type PolicyFactory = fn(&YamlValue) -> Box<dyn GovernancePolicy>;
 
-/// Compile-time registration. Each built-in lives in its own file and submits
-/// one of these.
 pub(crate) struct PolicyRegistration {
     pub id: &'static str,
     pub factory: PolicyFactory,
@@ -38,7 +36,6 @@ pub(crate) struct PolicyRegistration {
 
 inventory::collect!(PolicyRegistration);
 
-/// Per-policy config block from `services/governance/config.yaml`.
 #[derive(Debug, Clone)]
 pub(crate) struct PolicyConfig {
     pub id: String,
@@ -70,6 +67,13 @@ pub(crate) fn chain() -> std::sync::RwLockReadGuard<'static, PolicyChain> {
     CHAIN
         .read()
         .unwrap_or_else(std::sync::PoisonError::into_inner)
+}
+
+pub(crate) fn reload() {
+    let new_chain = load_chain();
+    if let Ok(mut guard) = CHAIN.write() {
+        *guard = new_chain;
+    }
 }
 
 fn load_chain() -> PolicyChain {

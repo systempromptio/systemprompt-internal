@@ -1,5 +1,5 @@
 .content-card {
-  background: var(--sp-color-surface-default);
+  background: var(--sp-color-surface);
   border: 1px solid var(--sp-color-border);
   border-radius: var(--sp-radius-lg);
   overflow: hidden;
@@ -29,15 +29,15 @@
 }
 
 .content-card .card-content {
-  padding: var(--sp-spacing-md);
+  padding: var(--sp-space-4);
 }
 
 .content-card .card-meta {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--sp-spacing-sm);
-  margin-bottom: var(--sp-spacing-sm);
+  gap: var(--sp-space-2);
+  margin-bottom: var(--sp-space-2);
 }
 
 .content-card .card-date {
@@ -46,11 +46,11 @@
 }
 
 .content-card .card-title {
-  font-family: var(--sp-font-family-heading);
+  font-family: var(--sp-font-heading);
   font-size: 1rem;
   font-weight: 600;
   line-height: 1.4;
-  margin: 0 0 var(--sp-spacing-sm);
+  margin: 0 0 var(--sp-space-2);
 }
 
 .content-card .card-title a {
@@ -75,9 +75,9 @@
 
 .agents-section {
   max-width: 1200px;
-  margin: 0 auto var(--sp-spacing-xxl);
-  padding: var(--sp-spacing-xxl) var(--sp-spacing-lg);
-  background: linear-gradient(180deg, rgba(100, 100, 100, 0.04) 0%, transparent 100%);
+  margin: 0 auto var(--sp-space-12);
+  padding: var(--sp-space-12) var(--sp-space-6);
+  background: linear-gradient(180deg, rgba(var(--sp-color-neutral-600-rgb), 0.04) 0%, transparent 100%);
   border-radius: var(--sp-radius-xl);
 }
 
@@ -85,20 +85,20 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  margin-bottom: var(--sp-spacing-xl);
+  margin-bottom: var(--sp-space-8);
 }
 
 .agents-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: var(--sp-spacing-lg);
+  gap: var(--sp-space-6);
 }
 
 .agent-card {
   display: flex;
-  gap: var(--sp-spacing-md);
-  padding: var(--sp-spacing-lg);
-  background: var(--sp-color-surface-default);
+  gap: var(--sp-space-4);
+  padding: var(--sp-space-6);
+  background: var(--sp-color-surface);
   border: 1px solid var(--sp-color-border);
   border-radius: var(--sp-radius-lg);
   transition: box-shadow var(--sp-animation-fast);
@@ -115,8 +115,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(100, 100, 100, 0.1), rgba(150, 150, 150, 0.05));
-  border: 1px solid rgba(150, 150, 150, 0.15);
+  background: linear-gradient(135deg, rgba(var(--sp-color-neutral-600-rgb), 0.1), rgba(var(--sp-color-neutral-400-rgb), 0.05));
+  border: 1px solid rgba(var(--sp-color-neutral-400-rgb), 0.15);
   border-radius: var(--sp-radius-lg);
 }
 
@@ -130,18 +130,18 @@
 }
 
 .agent-display-name {
-  font-family: var(--sp-font-family-heading);
+  font-family: var(--sp-font-heading);
   font-size: 1rem;
   font-weight: 600;
   color: var(--sp-color-text-primary);
-  margin: 0 0 var(--sp-spacing-xs);
+  margin: 0 0 var(--sp-space-1);
 }
 
 .agent-description {
   font-size: 0.8125rem;
   color: var(--sp-color-text-secondary);
   line-height: 1.5;
-  margin: 0 0 var(--sp-spacing-sm);
+  margin: 0 0 var(--sp-space-2);
 }
 
 .agent-stats {
@@ -152,57 +152,4 @@
 .agent-content-count strong {
   color: var(--sp-color-text-primary);
   font-weight: 600;
-}
-
-.recent-section {
-  max-width: 1200px;
-  margin: 0 auto var(--sp-spacing-xxl);
-  padding: 0 var(--sp-spacing-lg);
-}
-
-.recent-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: var(--sp-spacing-md);
-}
-
-.recent-card {
-  padding: var(--sp-spacing-md);
-  background: var(--sp-color-surface-default);
-  border: 1px solid var(--sp-color-border);
-  border-radius: var(--sp-radius-md);
-  transition: border-color var(--sp-animation-fast);
-}
-
-.recent-card:hover {
-  border-color: var(--sp-color-primary);
-}
-
-.recent-meta {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-spacing-sm);
-  margin-bottom: var(--sp-spacing-xs);
-}
-
-.recent-date {
-  font-size: 0.75rem;
-  color: var(--sp-color-text-secondary);
-}
-
-.recent-title {
-  font-family: var(--sp-font-family-heading);
-  font-size: 0.9375rem;
-  font-weight: 600;
-  line-height: 1.4;
-  margin: 0 0 var(--sp-spacing-xs);
-}
-
-.recent-title a {
-  color: var(--sp-color-text-primary);
-  text-decoration: none;
-}
-
-.recent-title a:hover {
-  color: var(--sp-color-primary);
 }

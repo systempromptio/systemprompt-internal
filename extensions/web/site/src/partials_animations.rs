@@ -216,3 +216,9 @@ impl ComponentRenderer for ArchitectureDiagramPartialRenderer {
         PRIORITY_MID
     }
 }
+
+systemprompt_web_shared::submit_component!(CliRemoteAnimationPartialRenderer);
+systemprompt_web_shared::submit_component!(RustMeshAnimationPartialRenderer);
+systemprompt_web_shared::submit_component!(MemoryLoopAnimationPartialRenderer);
+systemprompt_web_shared::submit_component!(AgenticMeshAnimationPartialRenderer);
+systemprompt_web_shared::submit_component!(ArchitectureDiagramPartialRenderer);

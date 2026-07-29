@@ -2,7 +2,7 @@
 //! (`context-detail.hbs`).
 
 use serde::Serialize;
-use systemprompt::identifiers::{ContextId, SessionId, TraceId, UserId};
+use systemprompt::identifiers::{AiRequestId, ContextId, SessionId, TraceId, UserId};
 
 #[derive(Debug, Serialize)]
 pub(super) struct ContextDetailPageContext {
@@ -59,8 +59,14 @@ pub(super) struct KpisView {
 #[derive(Debug, Serialize)]
 pub(super) struct TranscriptEntryView {
     // Why: display DTO; request id carried as string from the transcript grouping key
-    pub(super) request_id: String,
+    pub(super) request_id: AiRequestId,
+    pub(super) request_id_short: String,
     pub(super) request_url: String,
+    // Why: Telemetry for the request that carried this turn. `None` when the
+    // transcript row outlives its `ai_requests` row (retention trims the
+    // request rollup before the messages), so the turn still renders.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) meta: Option<TranscriptMetaView>,
     pub(super) ts_local: String,
     pub(super) ts_full: String,
     pub(super) kind: &'static str,
@@ -78,9 +84,23 @@ pub(super) struct TranscriptEntryView {
     pub(super) tool_result_pretty: Option<String>,
 }
 
+// Why: The per-turn telemetry rail: how the turn was served and what it cost.
+// Cloned onto every turn of the same request, so all of a request's messages
+// state the same numbers rather than only the last one.
+#[derive(Debug, Clone, Serialize)]
+pub(super) struct TranscriptMetaView {
+    pub(super) model: String,
+    pub(super) status: String,
+    pub(super) is_error: bool,
+    pub(super) latency_display: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) token_display: Option<String>,
+    pub(super) cost_display: String,
+}
+
 #[derive(Debug, Serialize)]
 pub(super) struct ContextRequestRowView {
-    pub(super) id: String,
+    pub(super) id: AiRequestId,
     pub(super) id_short: String,
     pub(super) request_url: String,
     pub(super) trace_id: Option<TraceId>,

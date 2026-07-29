@@ -1,4 +1,4 @@
-//! MCP server crate for the Enterprise Demo template.
+//! MCP server crate for the systemprompt template.
 //!
 //! Implements the `systemprompt` MCP server that ships with the demo plugin.
 //! Tools are defined in [`tools`] and exposed through [`SystempromptServer`];

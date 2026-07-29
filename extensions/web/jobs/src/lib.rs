@@ -7,23 +7,21 @@
 //!   orchestrates ACL/profile/config bootstrap, asset copy, content ingestion,
 //!   prerender, sitemap/robots/llms.txt generation, and secret migration.
 //!   Sub-jobs are individually addressable via the CLI for targeted re-runs.
-//! - **Build helpers** ([`BundleAdminCssJob`], [`BundleAdminJsJob`],
-//!   [`CopyExtensionAssetsJob`], [`ContentPrerenderJob`]) — emit the static
-//!   surface under `web/dist/` consumed by the SSR layer.
+//! - **Build helpers** ([`BundleAdminCssJob`], [`CopyExtensionAssetsJob`],
+//!   [`ContentPrerenderJob`]) — emit the static surface under `web/dist/`
+//!   consumed by the SSR layer.
 //! - **Analytics / housekeeping** ([`ContentAnalyticsAggregationJob`],
-//!   [`SecretMigrationJob`], the daily summary jobs in [`daily_summary`]) —
-//!   periodic rollups and one-shot migrations.
+//!   [`SecretMigrationJob`]) — periodic rollups and one-shot migrations.
 //!
 //! Errors normalise on [`JobError`]; the scheduler logs and surfaces them
 //! through `infra logs trace`.
 
 mod error;
+mod registry;
 
 mod bundle_admin_css;
-mod bundle_admin_js;
 mod content_analytics;
 mod copy_assets;
-pub mod daily_summary;
 mod governance_bootstrap;
 mod ingestion;
 mod llms_txt;
@@ -34,9 +32,9 @@ mod secret_migration;
 mod sitemap;
 
 pub use error::JobError;
+pub use registry::{JOB_TAG, extension_jobs};
 
 pub use bundle_admin_css::BundleAdminCssJob;
-pub use bundle_admin_js::BundleAdminJsJob;
 pub use content_analytics::ContentAnalyticsAggregationJob;
 pub use copy_assets::CopyExtensionAssetsJob;
 pub use governance_bootstrap::GovernanceBootstrapJob;

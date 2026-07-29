@@ -70,6 +70,7 @@ impl HelperDef for ConcatHelper {
     ) -> HelperResult {
         let mut result = String::new();
         for param in h.params() {
+            // JSON: required by the handlebars HelperDef trait contract
             match param.value() {
                 serde_json::Value::String(s) => result.push_str(s),
                 serde_json::Value::Number(n) => result.push_str(&n.to_string()),

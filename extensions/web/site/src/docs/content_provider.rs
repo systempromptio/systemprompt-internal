@@ -45,6 +45,7 @@ impl ContentDataProvider for DocsContentDataProvider {
     async fn enrich_content(
         &self,
         ctx: &ContentDataContext<'_>,
+        // JSON: required by trait contract
         item: &mut serde_json::Value,
     ) -> Result<(), systemprompt::traits::ProviderError> {
         let db = ctx
@@ -95,7 +96,7 @@ impl ContentDataProvider for DocsContentDataProvider {
     }
 }
 
-#[derive(Clone, serde::Serialize, Debug)]
+#[derive(Clone, serde::Serialize, serde::Deserialize, Debug)]
 pub struct ChildDoc {
     pub slug: String,
     pub title: String,
@@ -160,3 +161,5 @@ impl DocsContentDataProvider {
         }
     }
 }
+
+systemprompt_web_shared::submit_content_data!(DocsContentDataProvider::new());

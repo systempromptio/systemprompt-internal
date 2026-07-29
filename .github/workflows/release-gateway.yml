@@ -3,8 +3,7 @@ name: Release (gateway server)
 # Publishes the systemprompt-gateway — the server-side AI governance gateway.
 # Ported from systempromptio/systemprompt-deploy (which built from a stale copy
 # of this tree); this workflow builds from the tag being released, so assets
-# always match the source. Triggered by `v*` tags; `bridge-v*` releases (the
-# client) are handled by release.yml and never collide with this series.
+# always match the source. Triggered by `v*` tags.
 #
 # deb/rpm packaging stays deferred (see systemprompt-deploy history).
 
@@ -98,7 +97,7 @@ jobs:
           for b in systemprompt systemprompt-mcp-agent; do
             cp "target/${{ matrix.target }}/release/${b}${ext}" "dist/${stage}/"
           done
-          cp -r services migrations "dist/${stage}/"
+          cp -r services "dist/${stage}/"
           # MCP extension manifests — services/mcp/*.yaml references
           # extensions/mcp/<name>/manifest.yaml. Without these, MCP startup
           # validation fails out of the gate.
@@ -136,6 +135,9 @@ jobs:
     name: Sign + Release (gateway)
     runs-on: ubuntu-latest
     needs: [build-gateway]
+    outputs:
+      tag: ${{ steps.tags.outputs.template_tag }}
+      version: ${{ steps.tags.outputs.version }}
     steps:
       - uses: actions/checkout@v4
 
@@ -205,10 +207,6 @@ jobs:
           one binary plus your database. It is a library you own and extend, not
           a SaaS you rent.
 
-          > Looking for the **bridge** client (macOS / Windows / Linux developer
-          > workstations)? It ships under the separate `bridge-v*` tag series:
-          > [latest bridge release](https://github.com/systempromptio/systemprompt-template/releases?q=%22systemprompt-bridge%22).
-
           ## Deploy anywhere
 
           Quickest start:
@@ -256,7 +254,7 @@ jobs:
             (`linux-amd64`, `linux-arm64`, `darwin-arm64`; on Windows run the
             gateway via Docker), verify against `SHA256SUMS.gateway`, extract.
             Contents: `systemprompt`, `systemprompt-mcp-agent`, `services/`,
-            `migrations/`, `web/`.
+            `web/`.
 
           ## Verify signature
 
@@ -273,8 +271,7 @@ jobs:
 
           [systemprompt.io](https://systemprompt.io) ·
           [Documentation](https://github.com/systempromptio/systemprompt-template/blob/main/docs/README.md) ·
-          [Discord](https://discord.gg/wkAbSuPWpr) ·
-          [Bridge releases](https://github.com/systempromptio/systemprompt-template/releases?q=%22systemprompt-bridge%22)
+          [Discord](https://discord.gg/wkAbSuPWpr)
           EOF
 
       - name: Create or update release
@@ -290,6 +287,32 @@ jobs:
             gh release create "$tag" --title "$title" --notes-file notes.md
           fi
           gh release upload "$tag" --clobber dist/*
+
+  # Why called, not triggered: `gh release create` above runs as the default
+  # GITHUB_TOKEN, and events raised by that token never start a workflow run.
+  # Both of these used to listen for `release: published` and so never fired —
+  # v0.23.0 shipped with no image and no smoke tests until they were dispatched
+  # by hand. Calling them keeps the whole release in one run.
+  publish-image:
+    name: Publish image
+    needs: [sign-and-release]
+    if: ${{ !inputs.dry_run }}
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # cosign keyless
+    uses: ./.github/workflows/docker.yml
+    with:
+      version: ${{ needs.sign-and-release.outputs.version }}
+
+  smoke:
+    name: Smoke tests
+    needs: [publish-image, sign-and-release]
+    if: ${{ !inputs.dry_run }}
+    uses: ./.github/workflows/smoke-tests.yml
+    with:
+      tag: ${{ needs.sign-and-release.outputs.tag }}
+    secrets: inherit
 
   bump-packagers:
     name: Bump Homebrew tap
@@ -347,7 +370,7 @@ jobs:
             def install
               bin.install "systemprompt"
               bin.install "systemprompt-mcp-agent"
-              libexec.install "services", "migrations"
+              libexec.install "services"
               libexec.install "web" if File.exist?("web")
               libexec.install "extensions" if File.exist?("extensions")
             end

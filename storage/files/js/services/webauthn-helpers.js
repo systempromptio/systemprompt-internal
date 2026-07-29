@@ -1,22 +1,29 @@
-'use strict';
-
 import {
   generateRandomString, generateCodeChallenge,
-  preparePublicKeyCredentialRequestOptions, makeRequest
-} from '/js/services/webauthn-utils.js';
+  preparePublicKeyCredentialRequestOptions, makeRequest,
+  assertRpIdMatchesOrigin, rpOriginUrl
+} from '/js/services/webauthn-utils.js?v=3';
 import { buildAuthCredentialPayload } from '/js/services/webauthn-passkey-helpers.js';
-import { showLoading } from '/js/services/webauthn-login-ui.js';
+import { showLoading } from '/js/services/webauthn-login-ui.js?v=3';
 
 const CLIENT_ID = 'marketplace-admin';
 const WEBAUTHN_BASE = '/api/v1/core/oauth/webauthn';
 const LOGIN_PATH = '/admin/login';
-const DEFAULT_REDIRECT = '/admin/access/users';
+const DEFAULT_REDIRECT = '/admin/profile';
 
 export const startPasskeyAuth = async (email) => {
   showLoading('Authenticating...');
   const startResponse = await makeRequest(WEBAUTHN_BASE + '/auth/start?email=' + encodeURIComponent(email), 'POST');
+  const rpId = startResponse.data.publicKey.rpId;
+  assertRpIdMatchesOrigin(rpId);
   const publicKeyOptions = preparePublicKeyCredentialRequestOptions(startResponse.data.publicKey);
-  const credential = await navigator.credentials.get({ publicKey: publicKeyOptions });
+  let credential;
+  try {
+    credential = await navigator.credentials.get({ publicKey: publicKeyOptions });
+  } catch (error) {
+    if (error.name === 'SecurityError') error.correctUrl = rpOriginUrl(rpId);
+    throw error;
+  }
   if (!credential) throw new Error('Authentication was cancelled');
   return { startResponse, credential };
 };

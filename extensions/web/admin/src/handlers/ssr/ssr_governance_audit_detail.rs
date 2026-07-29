@@ -16,6 +16,7 @@ use serde::Serialize;
 use sqlx::PgPool;
 
 use crate::error::AdminHtmlResult;
+use crate::handlers::ssr::entity_urls::{session_detail_url, trace_detail_url};
 use crate::repositories::governance::chain::{
     AiRequestSummary, ChainEnvelope, DecisionStage, TranscriptEnvelope, find_decision_chain,
 };
@@ -89,6 +90,8 @@ struct Denial {
     reason: String,
     tool_name: String,
     decision_id: String,
+    // JSON: rule-evaluation detail is policy-shaped and rendered by the template's
+    // JSON: `{{json}}` helper, so no fixed struct exists to decode it into
     evaluated_rules: serde_json::Value,
 }
 
@@ -161,14 +164,8 @@ fn build_summary(env: &ChainEnvelope) -> Summary {
         session_id: env.session_id.clone(),
         session_id_short: short_id(env.session_id.as_str()),
         trace_id: env.trace_id.clone(),
-        trace_url: env
-            .trace_id
-            .as_ref()
-            .map(|tid| format!("/admin/traces/{}", urlencoding::encode(tid.as_str()))),
-        session_url: format!(
-            "/admin/sessions/{}",
-            urlencoding::encode(env.session_id.as_str())
-        ),
+        trace_url: env.trace_id.as_ref().map(trace_detail_url),
+        session_url: session_detail_url(&env.session_id),
         user_id: env.identity.user_id.clone(),
         agent_id: env.identity.agent_id.clone(),
         agent_scope: env.identity.agent_scope.clone(),

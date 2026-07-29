@@ -1,12 +1,12 @@
 .sp-skip-link {
   position: absolute;
   top: -100%;
-  left: var(--sp-space-sm);
-  padding: var(--sp-space-sm) var(--sp-space-md);
+  left: var(--sp-space-2);
+  padding: var(--sp-space-2) var(--sp-space-4);
   background: var(--sp-color-primary);
   color: var(--sp-color-text-on-primary);
   border-radius: 0 0 var(--sp-radius-sm) var(--sp-radius-sm);
-  z-index: var(--sp-z-toast, 9999);
+  z-index: var(--sp-z-toast);
   text-decoration: none;
   font-weight: 600;
   transition: top var(--sp-transition-fast);
@@ -25,7 +25,7 @@
   left: 0;
   right: 0;
   height: var(--sp-header-height);
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(var(--sp-color-white-rgb), 0.85);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-bottom: 1px solid var(--sp-color-border);
@@ -40,9 +40,8 @@
   height: 100%;
   max-width: 1600px;
   margin: 0 auto;
-  padding: 0 var(--sp-space-lg);
+  padding: 0 var(--sp-space-6);
 }
-
 
 .logo-link {
   display: flex;
@@ -55,19 +54,18 @@
   width: auto;
 }
 
-
 .logo-container {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--sp-space-xs);
+  gap: var(--sp-space-1);
 }
 
 .logo-badges {
   display: flex;
   align-items: center;
-  gap: var(--sp-space-sm);
-  margin-left: var(--sp-space-xs);
+  gap: var(--sp-space-2);
+  margin-left: var(--sp-space-1);
 }
 
 .badge {
@@ -97,7 +95,7 @@
 }
 
 .badge-early-access {
-  padding: var(--sp-space-xs) var(--sp-space-sm);
+  padding: var(--sp-space-1) var(--sp-space-2);
   background: var(--sp-brand-50);
   color: var(--sp-color-primary-hover);
   border: 1px solid var(--sp-brand-200);
@@ -105,11 +103,10 @@
   font-weight: 500;
 }
 
-
 .nav-links {
   display: flex;
   align-items: center;
-  gap: var(--sp-space-xl);
+  gap: var(--sp-space-8);
 }
 
 .nav-links a {
@@ -128,13 +125,12 @@
   color: var(--sp-color-primary);
 }
 
-
 a.cta-button,
 button.cta-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: var(--sp-space-sm) var(--sp-space-lg);
+  padding: var(--sp-space-2) var(--sp-space-6);
   background: var(--sp-color-primary);
   color: var(--sp-color-text-on-primary);
   font-family: var(--sp-font-brand);

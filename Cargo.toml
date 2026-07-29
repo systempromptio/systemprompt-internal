@@ -31,6 +31,9 @@ rust-version = "1.94"
 version = "0.21.0"
 authors = ["Astound Digital <ed@tyingshoelaces.com>"]
 license = "MIT"
+repository = "https://github.com/systempromptio/systemprompt-astound"
+homepage = "https://astounddigital.com"
+documentation = "https://systemprompt.io/documentation"
 
 [workspace.dependencies]
 # ============================================
@@ -73,7 +76,7 @@ indexmap = { version = "2.0", features = ["serde"] }
 
 # HTTP/API
 axum = "0.8"
-reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls"] }
+reqwest = { version = "0.13", default-features = false, features = ["json", "stream", "rustls"] }
 tower = { version = "0.5", features = ["util"] }
 tower-http = { version = "0.7", features = ["cors", "trace", "fs", "normalize-path"] }
 

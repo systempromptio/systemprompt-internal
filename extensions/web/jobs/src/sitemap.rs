@@ -18,6 +18,10 @@ impl Job for SitemapGenerationJob {
         "sitemap_generation"
     }
 
+    fn tags(&self) -> Vec<&'static str> {
+        vec![crate::registry::JOB_TAG]
+    }
+
     fn description(&self) -> &'static str {
         "Generates sitemap.xml from all published content"
     }

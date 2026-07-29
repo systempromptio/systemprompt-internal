@@ -9,8 +9,6 @@ use serde::Serialize;
 
 use crate::repositories;
 
-/// A generic labelled entity reference used by dropdowns/lookup tables in the
-/// unified access-control UI (mcp servers, plugins, agents, marketplaces).
 #[derive(Debug, Serialize)]
 pub(super) struct EntityOption {
     pub(super) id: String,
@@ -18,7 +16,6 @@ pub(super) struct EntityOption {
     pub(super) description: String,
 }
 
-/// Gateway routes have a `provider` instead of a `description`.
 #[derive(Debug, Serialize)]
 pub(super) struct RouteRef {
     pub(super) id: String,
@@ -26,8 +23,6 @@ pub(super) struct RouteRef {
     pub(super) provider: String,
 }
 
-/// Lightweight list of every entity that can have an ACL rule attached, used
-/// by the unified access-control UI to populate dropdowns and lookup tables.
 #[derive(Debug, Serialize)]
 pub(super) struct EntityCatalogue {
     pub(super) gateway_routes: Vec<RouteRef>,
@@ -55,7 +50,7 @@ fn build_gateway_routes(services_path: &Path) -> Vec<RouteRef> {
         parent.join("profile.yaml"),
         services_path.join("../.systemprompt/profiles/local/profile.yaml"),
     ];
-    // An unparseable profile.yaml would otherwise leave no trace at all: the
+    // Why: an unparseable profile.yaml would otherwise leave no trace at all: the
     // catalogue renders "No entities of this type configured", which is
     // indistinguishable from a gateway that genuinely has no routes.
     for path in &candidates {

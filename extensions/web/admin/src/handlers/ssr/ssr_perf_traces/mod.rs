@@ -14,6 +14,7 @@ use sqlx::PgPool;
 use systemprompt::identifiers::{AgentId, UserId};
 
 use crate::error::AdminHtmlResult;
+use crate::handlers::ssr::list_view;
 use crate::repositories::governance::filter_options::get_filter_options;
 use crate::repositories::traces::{
     TraceFilter, TracePage, TraceSort, TraceSortColumn, TraceSortDir, TraceStats, get_trace_stats,
@@ -26,6 +27,7 @@ use crate::util::time_range::{TimeRange, TimeRangePreset, TimeRangeQuery, parse_
 
 mod context;
 mod rows;
+mod summary;
 mod view;
 
 use context::PerfTracesPageContext;
@@ -117,37 +119,40 @@ async fn load_traces_data(
     });
     let options = options_res.unwrap_or_default();
 
-    let total_pages = if total == 0 {
-        1
-    } else {
-        (total + PAGE_SIZE - 1) / PAGE_SIZE
-    };
-    let pagination = view::build_pagination(query, page, total_pages);
-    let view_qs = view::view_tabs_qs(range, &preset);
     let trace_rows: Vec<rows::TraceRow> = rows.iter().map(rows::trace_to_json).collect();
     let has_traces = !trace_rows.is_empty();
+    let window = list_view::PageWindow::new(
+        page,
+        PAGE_SIZE,
+        total,
+        i64::try_from(trace_rows.len()).unwrap_or(PAGE_SIZE),
+        "traces",
+    );
+    let pagination = view::build_pagination(query, window);
+    let sort_col = view::sort_col_to_str(sort.column);
+    let sort_dir = view::sort_dir_to_str(sort.dir);
 
     PerfTracesPageContext {
         page: "traces",
         title: "Trace Explorer",
-        entity_view_tabs: view::entity_view_tabs("traces", &view_qs),
         time_range: view::time_range_context(range, &preset),
-        filter_ribbon: context::FilterRibbon {
+        filter_ribbon: context::TraceFilterRibbon {
             base_url: BASE_URL,
             preserved: view::build_preserved(query, range, &preset),
             options: view::annotate_options(&options, &filter),
             chips: view::build_chips(query),
         },
-        stats: view::serde_stats(&stats),
+        stats: summary::serde_stats(query, &stats),
         traces: trace_rows,
         has_traces,
         total_count: total,
         page_size: PAGE_SIZE,
         page_index: page,
-        page_count: total_pages,
+        page_count: window.total_pages,
         pagination,
-        sort: view::sort_col_to_str(sort.column),
-        dir: view::sort_dir_to_str(sort.dir),
+        sort_headers: summary::build_sort_headers(query, sort_col, sort_dir),
+        sort: sort_col,
+        dir: sort_dir,
         error_only: filter.error_only,
         deny_only: filter.deny_only,
     }

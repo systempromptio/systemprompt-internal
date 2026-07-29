@@ -1,0 +1,66 @@
+<div class="panel-overlay" id="create-token-overlay"></div>
+<div class="side-panel create-token-panel" id="create-token-panel" role="dialog" aria-modal="true" aria-labelledby="create-token-title">
+    <div class="panel-header">
+        <h2 id="create-token-title">Issue access token</h2>
+        <button type="button" class="panel-close" aria-label="Close panel">&times;</button>
+    </div>
+    <div class="panel-body">
+        <div id="new-token-form-state">
+            <div class="form-group">
+                <label for="new-token-name">Token name</label>
+                <input class="field-input" type="text" id="new-token-name" placeholder="Ed's laptop — Pi" autocomplete="off">
+                <p class="field-hint">A friendly label so you can identify this token in the dashboard.</p>
+            </div>
+            <div class="form-group">
+                <label for="new-token-user">Owner</label>
+                <select class="field-input" id="new-token-user">
+                    <option value="">-- Select user --</option>
+                    {{#each user_options}}
+                    <option value="{{user_id}}">{{label}}</option>
+                    {{/each}}
+                </select>
+                <p class="field-hint">Governance resolves the caller's scope from this user's live role on every request.</p>
+            </div>
+            <div class="form-group">
+                <label for="new-token-expires">Expires at (optional)</label>
+                <input class="field-input" type="text" id="new-token-expires" placeholder="2026-12-31T23:59:59Z" autocomplete="off">
+                <p class="field-hint">ISO-8601 timestamp. Leave blank for a token that never expires.</p>
+            </div>
+        </div>
+
+        <div id="new-token-success-state" hidden>
+            <div class="form-group">
+                <label for="new-token-secret">Personal access token</label>
+                <textarea class="field-input" id="new-token-secret" rows="2" readonly></textarea>
+                <p class="field-hint"><strong>Copy this token now &mdash; it will not be shown again.</strong></p>
+            </div>
+            <div class="setup-block" id="new-token-setup-block">
+                <h3>Connect Pi</h3>
+                <p class="setup-intro">
+                    Run this on the machine that will use the token. Tool-level governance needs a
+                    separate hook token &mdash; <code>examples/pi/new-user.sh</code> provisions both
+                    in one pass.
+                </p>
+                <div class="snippet-wrap">
+                    <pre><code id="new-token-setup-snippet"></code></pre>
+                    <button type="button" class="btn btn-tertiary btn-copy-snippet" data-action="copy-snippet" aria-label="Copy setup snippet">Copy</button>
+                </div>
+                <p>
+                    <a class="setup-guide-link" href="https://github.com/systempromptio/systemprompt-template/blob/main/examples/pi/README.md" target="_blank" rel="noopener">
+                        Full Pi setup guide &rarr;
+                    </a>
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="panel-footer">
+        <div class="panel-footer-state" data-state="form">
+            <button type="button" class="btn btn-secondary" data-action="cancel">Cancel</button>
+            <button type="button" class="btn btn-primary" data-action="save">Issue token</button>
+        </div>
+        <div class="panel-footer-state" data-state="success" hidden>
+            <button type="button" class="btn btn-secondary" data-action="copy-snippet">Copy setup snippet</button>
+            <button type="button" class="btn btn-primary" data-action="done">Done</button>
+        </div>
+    </div>
+</div>

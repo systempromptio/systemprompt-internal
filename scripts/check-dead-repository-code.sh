@@ -21,7 +21,7 @@
 # not count.
 #
 # Exemption: annotate a deliberately-unused public entry point with
-# `// lint-ok: unused-pub` on the line above it, and say why.
+# `// lint-ok: unused-pub` in the comment block directly above it, and say why.
 set -uo pipefail
 
 REPO_DIR="${REPO_DIR:-extensions/web/admin/src/repositories}"
@@ -43,7 +43,7 @@ while IFS=' ' read -r orig alias; do
 done < <(grep -rhoE '\b[A-Za-z0-9_]+ as [A-Za-z0-9_]+' "$REPO_DIR" --include='*.rs' 2>/dev/null \
          | sed -E 's/ as / /' | sort -u)
 
-# Functions annotated `// lint-ok: unused-pub` on the preceding line are
+# Functions annotated `// lint-ok: unused-pub` in the preceding comment block are
 # deliberate entry points and are never reported.
 declare -A EXEMPT
 while IFS= read -r fn; do
@@ -53,6 +53,7 @@ done < <(find "$REPO_DIR" -name '*.rs' -exec awk '
     skip && match($0, /^[[:space:]]*pub (async )?fn [a-z_0-9]+/) {
         sub(/.*fn /, ""); sub(/[^a-z_0-9].*/, ""); print; skip = 0; next
     }
+    skip && /^[[:space:]]*(\/\/|#!?\[)/ { next }
     { skip = 0 }
 ' {} + 2>/dev/null | sort -u)
 

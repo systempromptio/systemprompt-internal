@@ -171,3 +171,8 @@ impl ComponentRenderer for ScriptsPartialRenderer {
         PRIORITY_LAST
     }
 }
+
+systemprompt_web_shared::submit_component!(HeadAssetsPartialRenderer);
+systemprompt_web_shared::submit_component!(HeaderPartialRenderer);
+systemprompt_web_shared::submit_component!(FooterPartialRenderer);
+systemprompt_web_shared::submit_component!(ScriptsPartialRenderer);

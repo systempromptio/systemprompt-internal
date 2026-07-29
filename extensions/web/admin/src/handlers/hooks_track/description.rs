@@ -2,9 +2,9 @@
 
 use std::borrow::Cow;
 
-use crate::types::webhook::{HookEvent, HookEventPayload};
+use crate::types::webhook::{HookEvent, HookEventPayload, ToolInputSummary};
 
-use super::helpers::{truncate, value_field};
+use super::helpers::truncate;
 
 pub(super) fn generate_description(payload: &HookEventPayload) -> Cow<'static, str> {
     match &payload.event {
@@ -59,9 +59,11 @@ fn describe_post_tool_use(d: &crate::types::webhook::PostToolUseData) -> Cow<'st
     } else {
         &d.name
     };
-    let detail = value_field(&d.input, "file_path")
-        .or_else(|| value_field(&d.input, "command").map(|c| truncate(&c, 60)))
-        .or_else(|| value_field(&d.input, "pattern"));
+    let summary = ToolInputSummary::of(&d.input);
+    let detail = summary
+        .file_path
+        .or_else(|| summary.command.map(|c| truncate(&c, 60)))
+        .or(summary.pattern);
     Cow::Owned(detail.map_or_else(
         || format!("Completed: {tool}"),
         |det| format!("Completed: {tool} — {det}"),

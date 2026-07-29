@@ -19,6 +19,10 @@ impl Job for LlmsTxtGenerationJob {
         "llms_txt_generation"
     }
 
+    fn tags(&self) -> Vec<&'static str> {
+        vec![crate::registry::JOB_TAG]
+    }
+
     fn description(&self) -> &'static str {
         "Generates llms.txt for AI/LLM crawlers"
     }

@@ -12,21 +12,12 @@ pub(super) struct ContentMutationRepository {
     pool: Arc<PgPool>,
 }
 
-fn to_jsonb<T: serde::Serialize>(value: &T) -> Result<serde_json::Value, sqlx::Error> {
-    serde_json::to_value(value).map_err(|e| sqlx::Error::Encode(Box::new(e)))
-}
-
 async fn insert_enrichment(
     tx: &mut sqlx::Transaction<'_, Postgres>,
     content_id: &ContentId,
     params: &CreateContentParams,
     now: chrono::DateTime<Utc>,
 ) -> Result<(), sqlx::Error> {
-    let after_reading_this = to_jsonb(&params.after_reading_this.0)?;
-    let related_playbooks = to_jsonb(&params.related_playbooks.0)?;
-    let related_code = to_jsonb(&params.related_code.0)?;
-    let related_docs = to_jsonb(&params.related_docs.0)?;
-
     sqlx::query!(
         r#"
         INSERT INTO markdown_content_enrichment (
@@ -44,10 +35,10 @@ async fn insert_enrichment(
         "#,
         content_id.as_str(),
         params.category.as_deref(),
-        after_reading_this,
-        related_playbooks,
-        related_code,
-        related_docs,
+        params.after_reading_this as _,
+        params.related_playbooks as _,
+        params.related_code as _,
+        params.related_docs as _,
         now
     )
     .execute(&mut **tx)
@@ -96,7 +87,6 @@ impl ContentMutationRepository {
     ) -> Result<Content, sqlx::Error> {
         let id = ContentId::new(uuid::Uuid::new_v4().to_string());
         let now = Utc::now();
-        let links = to_jsonb(&params.links.0)?;
         let mut tx = self.pool.begin().await?;
 
         let row = sqlx::query!(
@@ -136,7 +126,7 @@ impl ContentMutationRepository {
             params.category_id.as_ref().map(CategoryId::as_str),
             params.source_id.as_str(),
             params.version_hash,
-            links,
+            params.links as _,
             now
         )
         .fetch_one(&mut *tx)
@@ -154,11 +144,7 @@ impl ContentMutationRepository {
         params: &UpdateContentParams,
     ) -> Result<Content, sqlx::Error> {
         let now = Utc::now();
-        let links = params
-            .links
-            .as_ref()
-            .map(|value| to_jsonb(&value.0))
-            .transpose()?;
+        let links = params.links.as_ref();
         let mut tx = self.pool.begin().await?;
 
         sqlx::query!(
@@ -177,7 +163,7 @@ impl ContentMutationRepository {
             params.version_hash,
             now,
             params.id.as_str(),
-            links
+            links as _
         )
         .execute(&mut *tx)
         .await?;

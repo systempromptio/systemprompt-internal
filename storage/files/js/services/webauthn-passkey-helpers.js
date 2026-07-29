@@ -1,11 +1,9 @@
-'use strict';
-
-import { generateRandomString, generateCodeChallenge } from '/js/services/webauthn-utils.js';
+import { generateRandomString, generateCodeChallenge } from '/js/services/webauthn-utils.js?v=3';
 
 const CLIENT_ID = 'marketplace-admin';
 const WEBAUTHN_BASE = '/api/v1/core/oauth/webauthn';
 const LOGIN_PATH = '/admin/login';
-const DEFAULT_REDIRECT = '/admin/access/users';
+const DEFAULT_REDIRECT = '/admin/profile';
 
 export { WEBAUTHN_BASE };
 

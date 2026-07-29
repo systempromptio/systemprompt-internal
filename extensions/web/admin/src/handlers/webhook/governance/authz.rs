@@ -20,7 +20,7 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use sqlx::PgPool;
-use systemprompt::identifiers::{Actor, MarketplaceId};
+use systemprompt::identifiers::{Actor, MarketplaceId, SessionId};
 use systemprompt_security::authz::{
     AccessControlRepository, AccessRule, AuthzDecision, AuthzRequest, Decision, DecisionTag,
     EntityKind, EntityRef, EntityRow, ResolveInput, ResolveParent, resolve,
@@ -99,14 +99,14 @@ async fn load_rules(
         .await
         .map_err(|e| {
             tracing::error!(error = %e, entity_type = %kind, entity_id = %id, "list_rules_for_entity failed");
-            // lint-ok: http-error — the authz hook's own wire contract: core
+            // Why: lint-ok: http-error — the authz hook's own wire contract: core
             // reads a non-decision status as "hook unavailable", so this must
             // stay distinguishable from a deny body rather than become one.
             (StatusCode::INTERNAL_SERVER_ERROR, "list_rules failed").into_response()
         })?;
     let entity = repo.get_entity(kind, id).await.map_err(|e| {
         tracing::error!(error = %e, entity_type = %kind, entity_id = %id, "get_entity failed");
-        // lint-ok: http-error — same wire contract as above.
+        // Why: lint-ok: http-error — same wire contract as above.
         (StatusCode::INTERNAL_SERVER_ERROR, "get_entity failed").into_response()
     })?;
     Ok((rules, entity))
@@ -127,9 +127,9 @@ async fn audit_decision(
     let id = uuid::Uuid::new_v4().to_string();
     let entity_type_str = req.entity.kind().as_str();
     let entity_id_str = req.entity.id_str();
-    // variable-shape: governance audit `evaluated_rules` JSONB payload embedding
-    // caller-supplied roles/attributes/context maps, not a template/response
-    // body
+    // JSON: variable-shape: governance audit `evaluated_rules` JSONB payload
+    // embedding caller-supplied roles/attributes/context maps, not a
+    // template/response body
     let evaluated = serde_json::json!({
         "entity_type": entity_type_str,
         "entity_id": entity_id_str,
@@ -145,7 +145,14 @@ async fn audit_decision(
     let record = GovernanceDecisionRecord {
         id: &id,
         actor: &actor,
-        session_id: req.trace_id.as_str(),
+        // Why: the attested session, so a gateway decision keys to the same
+        // session row as the prompt gate and the `ai_requests` row it belongs
+        // to. Enforcement sites without a session (server-attach RBAC, MCP)
+        // send none, and the trace id keeps the row correlatable.
+        session_id: req
+            .session_id
+            .as_ref()
+            .map_or_else(|| req.trace_id.as_str(), SessionId::as_str),
         tool_name: entity_id_str,
         agent_id: None,
         // Why: authz decisions are entity-keyed, not agent-keyed; entity_type
@@ -156,7 +163,7 @@ async fn audit_decision(
         reason: &reason_str,
         evaluated_rules: &evaluated,
         plugin_id: None,
-        act_chain: &[],
+        act_chain: &req.act_chain,
         context_id: req
             .context_id
             .as_ref()
@@ -175,8 +182,8 @@ pub(crate) async fn govern_authz(
     State(pool): State<Arc<PgPool>>,
     Json(req): Json<AuthzRequest>,
 ) -> Response {
-    // lint-ok: http-error — a hook answers 200 with a decision; an error status
-    // reads as "hook unavailable" and lets the call through
+    // Why: lint-ok: http-error — a hook answers 200 with a decision; an error
+    // status reads as "hook unavailable" and lets the call through
     let repo = AccessControlRepository::from_pool(Arc::clone(&pool));
 
     let (rules, entity) = match load_rules(&repo, &req).await {
@@ -194,7 +201,7 @@ pub(crate) async fn govern_authz(
         })
         .collect();
 
-    // Resolved by lookup rather than read off the request, so a department
+    // Why: resolved by lookup rather than read off the request, so a department
     // change or a revocation binds on the next call instead of waiting for the
     // caller's token to refresh.
     let attributes = subject_attributes_for(&pool, &req.user_id).await;

@@ -54,7 +54,4 @@ BEGIN
     VALUES ('marketplace-admin', 'http://localhost:8080/admin/login', false)
     ON CONFLICT (client_id, redirect_uri) DO NOTHING;
 
-    INSERT INTO oauth_client_redirect_uris (client_id, redirect_uri, is_primary)
-    VALUES ('marketplace-admin', 'https://f7ae798f9c2a.systemprompt.io/admin/login', false)
-    ON CONFLICT (client_id, redirect_uri) DO NOTHING;
 END $$;

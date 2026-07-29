@@ -1,0 +1,72 @@
+{{#> layout title=title page=page}}
+    {{#*inline "head_extra"}}{{/inline}}
+    {{#*inline "content"}}
+
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <a href="/admin/governance/policies">Policies</a>
+        <span aria-hidden="true">›</span>
+        <span aria-current="page">Decisions</span>
+    </nav>
+
+    {{> components/page-header title=hero_title subtitle=hero_subtitle}}
+
+    <section class="stats-grid-3col">
+        {{> components/stat-card label="Decisions shown" value=total}}
+        {{> components/stat-card label="Allowed" value=allowed variant="success"}}
+        {{> components/stat-card label="Denied" value=denied variant="danger"}}
+    </section>
+
+    {{#if has_chips}}
+    <div class="filter-ribbon__chips" role="list" aria-label="Active filters">
+        {{#each chips}}
+        <span class="filter-ribbon__chip" role="listitem">
+            <span class="filter-ribbon__chip-group">{{label}}</span>
+            <span class="filter-ribbon__chip-value">{{value}}</span>
+            <a class="filter-ribbon__chip-remove" href="{{remove_url}}" aria-label="Remove {{label}} filter">×</a>
+        </span>
+        {{/each}}
+        <a class="filter-ribbon__clear" href="/admin/governance/decisions">Clear all</a>
+    </div>
+    {{/if}}
+
+    {{#if has_rows}}
+    {{#> components/data-table}}
+        <thead><tr>
+            <th class="col-date">Time</th>
+            <th class="col-status">Policy</th>
+            <th class="col-status">Decision</th>
+            <th>Tool</th>
+            <th>User</th>
+            <th>Scope</th>
+            <th>Reason</th>
+        </tr></thead>
+        <tbody>
+        {{#each rows}}
+        <tr>
+            <td class="col-date"><code class="code-inline">{{created_at}}</code></td>
+            <td class="col-status"><span class="badge badge-blue">{{policy}}</span></td>
+            <td class="col-status">
+                {{#if is_deny}}
+                <span class="badge badge-red">DENY</span>
+                {{else}}
+                <span class="badge badge-green">ALLOW</span>
+                {{/if}}
+            </td>
+            <td>{{#if tool_name}}<code class="code-inline">{{tool_name}}</code>{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
+            <td><a href="{{user_url}}" title="{{user_id}}">{{truncate user_id 12}}</a></td>
+            <td>{{#if agent_scope}}{{agent_scope}}{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
+            <td>{{#if reason}}{{reason}}{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
+        </tr>
+        {{/each}}
+        </tbody>
+    {{/components/data-table}}
+    {{#if at_limit}}
+    <p class="text-secondary">Showing the {{limit}} most recent decisions. Narrow with a policy or outcome filter to see further back.</p>
+    {{/if}}
+    {{else}}
+    {{> components/empty-state message="No decisions match these filters yet. Decisions appear here as soon as the policy pipeline evaluates a tool call."}}
+    {{/if}}
+
+    {{/inline}}
+    {{#*inline "scripts"}}{{/inline}}
+{{/layout}}

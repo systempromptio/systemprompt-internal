@@ -33,11 +33,10 @@ pub struct RelatedLink {
     pub url: String,
 }
 
-/// Template context fragment for the docs-page learning aside. Empty lists and
-/// a `false` flag are omitted so the `{{#if}}` guards in `docs-page.html`
-/// behave exactly as when the keys were inserted conditionally.
-#[derive(Debug, Serialize)]
-struct DocsLearningTemplateData {
+// Why: empty lists and a `false` flag are omitted so the `{{#if}}` guards in
+// `docs-page.html` behave exactly as when the keys were inserted conditionally.
+#[derive(Debug, Default, Serialize)]
+pub(crate) struct DocsLearningTemplateData {
     #[serde(rename = "AFTER_READING_THIS", skip_serializing_if = "Vec::is_empty")]
     after_reading_this: Vec<String>,
     #[serde(rename = "RELATED_PLAYBOOKS", skip_serializing_if = "Vec::is_empty")]
@@ -65,6 +64,7 @@ impl DocsLearningContent {
     }
 
     #[must_use]
+    // JSON: required by trait contract
     pub fn from_content_item(item: &Value) -> Self {
         Self {
             after_reading_this: parse_field(item, "after_reading_this"),
@@ -73,14 +73,18 @@ impl DocsLearningContent {
         }
     }
 
-    #[must_use]
-    pub fn to_template_data(&self) -> Value {
-        let data = DocsLearningTemplateData {
+    pub(crate) fn template_data(&self) -> DocsLearningTemplateData {
+        DocsLearningTemplateData {
             after_reading_this: self.after_reading_this.clone(),
             related_playbooks: self.related_playbooks.clone(),
             related_code: self.related_code.clone(),
             has_learning_content: self.has_content(),
-        };
-        serde_json::to_value(data).unwrap_or_else(|_| Value::Object(serde_json::Map::new()))
+        }
+    }
+
+    #[must_use]
+    pub fn to_template_data(&self) -> Value {
+        serde_json::to_value(self.template_data())
+            .unwrap_or_else(|_| Value::Object(serde_json::Map::new()))
     }
 }

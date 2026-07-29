@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # No extension source file (excluding tests) may exceed 300 lines. Shared by
 # `just file-size` and the quality.yml file-size CI job.
+#
+# `//!` module-head lines are excluded from the count, matching the core
+# repo's `just file-size`. The ceiling is a cohesion proxy for *code*; a file
+# must never have to choose between documenting itself and staying under it.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."

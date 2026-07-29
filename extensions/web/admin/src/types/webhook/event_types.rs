@@ -47,10 +47,31 @@ pub struct UserPromptSubmitData {
     pub prompt: String,
 }
 
+// Why: the known-shape view of a tool input. Claude Code's built-in tools agree
+// on these three field names; every other key in the payload is tool-defined
+// and stays in the untyped `input` the secret scanner walks.
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct ToolInputSummary {
+    #[serde(default)]
+    pub file_path: Option<String>,
+    #[serde(default)]
+    pub command: Option<String>,
+    #[serde(default)]
+    pub pattern: Option<String>,
+}
+
+impl ToolInputSummary {
+    #[must_use]
+    pub fn of(input: &serde_json::Value) -> Self {
+        serde_json::from_value(input.clone()).unwrap_or_default()
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct PreToolUseData {
     #[serde(default, rename = "tool_name")]
     pub name: String,
+    // JSON: protocol boundary — arbitrary third-party tool payload
     #[serde(default, rename = "tool_input")]
     pub input: serde_json::Value,
     #[serde(default, rename = "tool_use_id")]
@@ -61,8 +82,10 @@ pub struct PreToolUseData {
 pub struct PostToolUseData {
     #[serde(default, rename = "tool_name")]
     pub name: String,
+    // JSON: protocol boundary — arbitrary third-party tool payload
     #[serde(default, rename = "tool_input")]
     pub input: serde_json::Value,
+    // JSON: protocol boundary — arbitrary third-party tool payload
     #[serde(default, rename = "tool_response")]
     pub response: serde_json::Value,
     #[serde(default, rename = "tool_use_id")]
@@ -73,6 +96,7 @@ pub struct PostToolUseData {
 pub struct PostToolUseFailureData {
     #[serde(default)]
     pub tool_name: String,
+    // JSON: protocol boundary — arbitrary third-party tool payload
     #[serde(default)]
     pub tool_input: serde_json::Value,
     #[serde(default)]
@@ -86,8 +110,10 @@ pub struct PostToolUseFailureData {
 pub struct PermissionRequestData {
     #[serde(default)]
     pub tool_name: String,
+    // JSON: protocol boundary — arbitrary third-party tool payload
     #[serde(default)]
     pub tool_input: serde_json::Value,
+    // JSON: protocol boundary — arbitrary third-party tool payload
     pub permission_suggestions: Option<serde_json::Value>,
 }
 
@@ -173,7 +199,8 @@ pub struct InstructionsLoadedData {
     pub memory_type: String,
     #[serde(default)]
     pub load_reason: String,
-    pub globs: Option<serde_json::Value>,
+    #[serde(default)]
+    pub globs: Option<Vec<String>>,
     pub trigger_file_path: Option<String>,
     pub parent_file_path: Option<String>,
 }

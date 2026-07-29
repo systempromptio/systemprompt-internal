@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "webhook": {
-      "command": "node",
-      "args": ["/home/dev/channels/webhook-channel.mjs"]
-    }
-  }
-}

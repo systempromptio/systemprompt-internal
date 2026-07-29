@@ -54,7 +54,7 @@ pub enum AdminError {
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),
 
-    #[error("Bridge repository error: {0}")]
+    #[error("Access token repository error: {0}")]
     BridgeRepo(BridgeRepoError),
 
     #[error("Marketplace error: {0}")]
@@ -115,9 +115,10 @@ impl AdminError {
             Self::Upstream(_) => "Upstream service error".to_owned(),
             Self::Unauthenticated(_) => "Unauthorized".to_owned(),
             Self::Crypto(_) => "Internal configuration error".to_owned(),
-            Self::Database(_) | Self::BridgeRepo(_) | Self::Marketplace(_) | Self::Internal(_) => {
-                "Internal server error".to_owned()
-            },
+            Self::Database(_)
+            | Self::BridgeRepo(_)
+            | Self::Marketplace(_)
+            | Self::Internal(_) => "Internal server error".to_owned(),
         }
     }
 }
@@ -193,7 +194,7 @@ impl IntoResponse for AdminError {
 /// status and the client-visible text come from the same classification either
 /// way, so an SSR handler cannot accidentally disagree with an API handler
 /// about what a given failure means. Unlike the hand-rolled error pages this
-/// replaces, it renders [`AdminError::public_message`], so an internal cause
+/// replaces, it renders the error's public message, so an internal cause
 /// is logged rather than interpolated into the page.
 #[derive(Debug, Error)]
 #[error(transparent)]
@@ -203,14 +204,23 @@ impl IntoResponse for AdminHtmlError {
     fn into_response(self) -> Response {
         let status = self.0.status();
         self.0.log(status);
-        // The heading names the class of failure and the paragraph names this
-        // instance of it, which is what the hand-rolled pages did one at a
-        // time — "Access Denied" over "Admin access required", "Not Found"
-        // over which thing was not found.
         let body = Html(format!(
-            "<h1>{}</h1><p>{}</p>",
-            status.canonical_reason().unwrap_or("Error"),
-            html_escape(&self.0.public_message())
+            r#"<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{reason}</title>
+<link rel="stylesheet" href="/css/core/fonts.css">
+<link rel="stylesheet" href="/css/admin-bundle.css">
+</head><body style="display:grid;place-items:center;min-height:100vh;margin:0;background:var(--sp-bg-canvas,#faf9f6)">
+<main style="max-width:28rem;padding:2rem 2.5rem;background:var(--sp-bg-surface,#fff);border:1px solid var(--sp-border-subtle,#e4e2db);border-radius:0 0.375rem 1.125rem 0;text-align:center">
+<p style="font-size:2.5rem;margin:0" aria-hidden="true">{status_code}</p>
+<h1 style="font-size:1.25rem;margin:0.5rem 0">{reason}</h1>
+<p style="color:var(--sp-text-secondary,#5a5d66)">{message}</p>
+<p><a href="/admin/profile" style="color:var(--sp-accent,#c75b12)">&larr; Back to the dashboard</a></p>
+</main></body></html>"#,
+            status_code = status.as_u16(),
+            reason = status.canonical_reason().unwrap_or("Error"),
+            message = html_escape(&self.0.public_message())
         ));
         (status, body).into_response()
     }

@@ -6,14 +6,14 @@
 
 use urlencoding::encode as urlencode;
 
+use crate::handlers::ssr::list_view::{
+    AnnotatedOption, Chip, PageWindow, Pagination, Preserved, TimeRangeContext,
+};
 use crate::repositories::governance::filter_options::{FilterOption, FilterOptions};
-use crate::repositories::traces::{TraceFilter, TraceSortColumn, TraceSortDir, TraceStats};
+use crate::repositories::traces::{TraceFilter, TraceSortColumn, TraceSortDir};
 use crate::util::time_range::TimeRange;
 
-use super::context::{
-    AnnotatedOption, Chip, EntityViewTab, Pagination, Preserved, StatsView, TimeRangeContext,
-    TraceFilterOptionsView,
-};
+use super::context::TraceFilterOptionsView;
 use super::{BASE_URL, TraceListQuery, empty_to_none};
 
 pub(super) const fn sort_col_to_str(c: TraceSortColumn) -> &'static str {
@@ -31,32 +31,6 @@ pub(super) const fn sort_dir_to_str(d: TraceSortDir) -> &'static str {
         TraceSortDir::Asc => "asc",
         TraceSortDir::Desc => "desc",
     }
-}
-
-pub(super) fn view_tabs_qs(range: TimeRange, preset: &str) -> String {
-    format!(
-        "preset={}&from={}&to={}",
-        urlencode(preset),
-        urlencode(&range.from.to_rfc3339()),
-        urlencode(&range.to.to_rfc3339()),
-    )
-}
-
-pub(super) fn entity_view_tabs(active: &str, qs: &str) -> Vec<EntityViewTab> {
-    const TABS: &[(&str, &str, &str)] = &[
-        ("sessions", "Sessions", "/admin/entities/sessions"),
-        ("traces", "Traces", "/admin/entities/traces"),
-        ("requests", "Requests", "/admin/entities/requests"),
-        ("contexts", "Contexts", "/admin/entities/contexts"),
-    ];
-    TABS.iter()
-        .map(|(key, label, url)| EntityViewTab {
-            key,
-            label,
-            url: format!("{url}?{qs}"),
-            active: *key == active,
-        })
-        .collect()
 }
 
 pub(super) fn time_range_context(range: TimeRange, preset: &str) -> TimeRangeContext {
@@ -149,7 +123,7 @@ fn chip_remove_url(query: &TraceListQuery, drop: &str) -> String {
     }
 }
 
-fn preserved_query_string(query: &TraceListQuery, drop: &[&str]) -> String {
+pub(super) fn preserved_query_string(query: &TraceListQuery, drop: &[&str]) -> String {
     let pairs: [(&str, Option<&str>); 12] = [
         ("preset", query.preset.as_deref()),
         ("from", query.from.as_deref()),
@@ -212,7 +186,8 @@ fn annotate_group(items: &[FilterOption], selected: Option<&str>) -> Vec<Annotat
         .collect()
 }
 
-pub(super) fn build_pagination(query: &TraceListQuery, page: i64, total_pages: i64) -> Pagination {
+pub(super) fn build_pagination(query: &TraceListQuery, window: PageWindow) -> Pagination {
+    let page = window.index;
     let qs = preserved_query_string(query, &["page"]);
     let prefix = if qs.is_empty() {
         format!("{BASE_URL}?")
@@ -220,24 +195,18 @@ pub(super) fn build_pagination(query: &TraceListQuery, page: i64, total_pages: i
         format!("{BASE_URL}?{qs}&")
     };
     let prev_url = (page > 0).then(|| format!("{prefix}page={}", page - 1));
-    let next_url = (page + 1 < total_pages).then(|| format!("{prefix}page={}", page + 1));
+    let next_url = (page + 1 < window.total_pages).then(|| format!("{prefix}page={}", page + 1));
+    let (first_row, last_row) = window.bounds();
     Pagination {
         current_page: page + 1,
-        total_pages,
+        total_pages: window.total_pages,
+        first_row,
+        last_row,
+        total_rows: window.total_rows,
+        noun: window.noun,
         has_prev: prev_url.is_some(),
         has_next: next_url.is_some(),
         prev_url,
         next_url,
-    }
-}
-
-pub(super) const fn serde_stats(s: &TraceStats) -> StatsView {
-    StatsView {
-        total_traces: s.total_traces,
-        error_count: s.error_count,
-        deny_count: s.deny_count,
-        p50_ms: s.p50_duration_ms,
-        p95_ms: s.p95_duration_ms,
-        p99_ms: s.p99_duration_ms,
     }
 }

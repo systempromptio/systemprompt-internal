@@ -27,7 +27,7 @@ Every section below is a fenced code block — open this file in your editor, cl
 - [Scenarios — factsheet proofs](#scenarios--factsheet-proofs)
   - [Air-gap scenario](#air-gap-scenario)
   - [Scaled scenario](#scaled-scenario)
-- [Connecting the Bridge desktop app](#connecting-the-bridge-desktop-app)
+- [Connecting a client](#connecting-a-client)
 - [Troubleshooting](#troubleshooting)
 - [Verification status](#verification-status)
 
@@ -462,7 +462,7 @@ just scaled-down
 
 ---
 
-## Connecting the Bridge desktop app
+## Connecting a client
 
 The `enterprise-demo` plugin, its skills, agents, and MCP servers ship with the template, but plugin assignment is **per-user** — `setup-local` populates the global registry and `01-seed-data.sh` forks `enterprise-demo` into the active session's user. Whoever is authenticated when you run the seed gets the plugin.
 
@@ -480,7 +480,7 @@ Preflight + seed (also forks `enterprise-demo` for the current admin session):
 ./demo/01-seed-data.sh
 ```
 
-Issue a PAT: open <http://localhost:8080/admin/devices>, sign in, create device, copy the `sp-live-...` token. If you need to fork for a different user than the one seeded, hit the fork endpoint with their JWT:
+Issue a token: open <http://localhost:8080/admin/access/tokens>, sign in, issue a token, copy the `sp-live-...` secret. If you need to fork for a different user than the one seeded, hit the fork endpoint with their JWT:
 
 ```bash
 curl -X POST http://localhost:8080/api/public/admin/user/fork/plugin \
@@ -489,34 +489,7 @@ curl -X POST http://localhost:8080/api/public/admin/user/fork/plugin \
   -d '{"org_plugin_id":"enterprise-demo"}'
 ```
 
-Build and wire up the bridge helper (from systemprompt-core):
-
-```bash
-cargo build --release --manifest-path bin/bridge/Cargo.toml
-BIN=bin/bridge/target/release/systemprompt-bridge
-"$BIN" login sp-live-... --gateway http://localhost:8080
-"$BIN" install --apply
-"$BIN" sync
-```
-
-Cmd+Q Bridge and relaunch. It now reads `inferenceProvider=gateway` from the MDM keys and routes every request through `http://localhost:8080` with a JWT minted by the helper.
-
-Verify:
-
-```bash
-"$BIN" status
-"$BIN" whoami
-```
-
-If `sync` reports `0 plugins / 0 skills / 0 agents / 0 MCP`, the authenticated user has no forked plugin — re-run the fork POST above with the correct user's token.
-
-Revert Bridge to direct Anthropic:
-
-```bash
-systemprompt-bridge uninstall
-```
-
-then Cmd+Q and relaunch.
+Point a client at the gateway with that token — [`examples/pi/`](../examples/pi/) is the worked example, and `examples/pi/new-user.sh` lets you pick a user from the database (or create one) and provisions their token and governance token in one pass.
 
 ---
 

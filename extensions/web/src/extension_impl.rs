@@ -6,34 +6,15 @@
 
 use std::sync::Arc;
 
-use axum::Router;
-
-use systemprompt::analytics::AnalyticsService;
-use systemprompt::database::Database;
 use systemprompt::extension::prelude::*;
-use systemprompt::oauth::SessionCreationService;
 use systemprompt::traits::Job;
-use systemprompt::users::UserService;
 
 use crate::assets::web_assets;
-use crate::docs::{DocsContentDataProvider, DocsPageDataProvider};
-use crate::extenders::OrgUrlExtender;
 use crate::homepage::{HomepagePageDataProvider, HomepagePrerenderer};
-use crate::jobs::{
-    BundleAdminCssJob, BundleAdminJsJob, ContentAnalyticsAggregationJob, ContentIngestionJob,
-    ContentPrerenderJob, CopyExtensionAssetsJob, GovernanceBootstrapJob, LlmsTxtGenerationJob,
-    PublishPipelineJob, RobotsTxtGenerationJob, SitemapGenerationJob,
-};
 use crate::navigation::NavigationPageDataProvider;
-use crate::partials::{
-    AgenticMeshAnimationPartialRenderer, ArchitectureDiagramPartialRenderer,
-    CliRemoteAnimationPartialRenderer, FooterPartialRenderer, HeadAssetsPartialRenderer,
-    HeaderPartialRenderer, MemoryLoopAnimationPartialRenderer, RustMeshAnimationPartialRenderer,
-    ScriptsPartialRenderer,
-};
 use crate::schemas::{migrations, schema_definitions};
-use crate::skills_page::SkillsPagePrerenderer;
-use crate::{admin, api, config_loader};
+use crate::SkillsPagePrerenderer;
+use systemprompt_web_site::config_loader;
 
 use crate::extension::WebExtension;
 
@@ -60,12 +41,12 @@ impl Extension for WebExtension {
             providers.push(Arc::new(HomepagePageDataProvider::new(homepage_config)));
         }
 
-        providers.push(Arc::new(DocsPageDataProvider::new()));
+        providers.extend(crate::shared::registry::page_data_providers());
         providers
     }
 
     fn content_data_providers(&self) -> Vec<Arc<dyn ContentDataProvider>> {
-        vec![Arc::new(DocsContentDataProvider::new())]
+        crate::shared::registry::content_data_providers()
     }
 
     fn page_prerenderers(&self) -> Vec<Arc<dyn PagePrerenderer>> {
@@ -83,21 +64,11 @@ impl Extension for WebExtension {
     }
 
     fn component_renderers(&self) -> Vec<Arc<dyn ComponentRenderer>> {
-        vec![
-            Arc::new(HeadAssetsPartialRenderer),
-            Arc::new(HeaderPartialRenderer),
-            Arc::new(FooterPartialRenderer),
-            Arc::new(ScriptsPartialRenderer),
-            Arc::new(CliRemoteAnimationPartialRenderer),
-            Arc::new(RustMeshAnimationPartialRenderer),
-            Arc::new(MemoryLoopAnimationPartialRenderer),
-            Arc::new(AgenticMeshAnimationPartialRenderer),
-            Arc::new(ArchitectureDiagramPartialRenderer),
-        ]
+        crate::shared::registry::component_renderers()
     }
 
     fn template_data_extenders(&self) -> Vec<Arc<dyn TemplateDataExtender>> {
-        vec![Arc::new(OrgUrlExtender::new())]
+        crate::shared::registry::template_data_extenders()
     }
 
     fn schemas(&self) -> Vec<SchemaDefinition> {
@@ -106,6 +77,13 @@ impl Extension for WebExtension {
 
     fn migrations(&self) -> Vec<Migration> {
         migrations()
+    }
+
+    fn seeds(&self) -> Vec<Seed> {
+        vec![Seed::new(
+            "admin_oauth_client",
+            include_str!("../schema/seeds/admin_oauth_client.sql"),
+        )]
     }
 
     fn dependencies(&self) -> Vec<&'static str> {
@@ -117,74 +95,7 @@ impl Extension for WebExtension {
     }
 
     fn router(&self, ctx: &dyn ExtensionContext) -> Option<ExtensionRouter> {
-        use axum::routing::post;
-
-        let db_handle = ctx.database();
-        let db = db_handle.as_any().downcast_ref::<Database>()?;
-        let pool = db.pool()?;
-        let write_pool = db.write_pool_arc().unwrap_or_else(|e| {
-            tracing::warn!(error = %e, "Failed to get write pool, falling back to read pool");
-            Arc::clone(&pool)
-        });
-
-        let dbpool = Arc::new(Database::from_pools(
-            Arc::clone(&pool),
-            Some(Arc::clone(&write_pool)),
-        ));
-        let session_service = Self::build_session_service(&dbpool)?;
-
-        let sf_config = Self::salesforce_config()
-            .unwrap_or_else(|| Arc::new(admin::SalesforceConfig::disabled()));
-        let sf_deps = admin::SalesforceDeps {
-            config: sf_config,
-            write_pool: Arc::clone(&write_pool),
-            session_service: Arc::clone(&session_service),
-        };
-
-        let admin_api = admin::admin_router(Arc::clone(&pool));
-        let webhook_api =
-            admin::hooks_webhook_router(Arc::clone(&write_pool), Arc::clone(&session_service));
-        let secrets_api = admin::secrets_router(Arc::clone(&write_pool));
-        let share_api = admin::share_manifest_router(Arc::clone(&pool));
-        let links_router = api::router(Arc::clone(&pool), self.validated_config.clone());
-
-        let api_router = Router::new()
-            .route(
-                "/auth/session",
-                post(api::auth::set_session).delete(api::auth::clear_session),
-            )
-            .merge(links_router)
-            .merge(webhook_api)
-            .merge(secrets_api)
-            .merge(admin::salesforce_api_router(sf_deps.clone()))
-            .nest("/admin", admin_api);
-
-        let admin_dir = std::env::current_dir()
-            .unwrap_or_else(|e| {
-                tracing::warn!(error = %e, "Failed to get current directory, using fallback");
-                std::path::PathBuf::from(".")
-            })
-            .join("storage")
-            .join("files")
-            .join("admin");
-        let branding = config_loader::branding_config();
-        let engine = match admin::templates::AdminTemplateEngine::new(&admin_dir) {
-            Ok(engine) => engine.with_branding(branding),
-            Err(e) => {
-                tracing::error!(error = %e, "Failed to initialize admin template engine");
-                return Some(ExtensionRouter::public(api_router, "/api/public"));
-            },
-        };
-        let bridge_auth_router = admin::bridge_auth_ssr_router(Arc::clone(&pool), engine.clone());
-        let ssr_router = admin::admin_ssr_router(pool, engine, sf_deps);
-
-        let combined = Router::new()
-            .nest_service("/admin", ssr_router)
-            .nest_service("/bridge-auth", bridge_auth_router)
-            .merge(share_api)
-            .nest("/api/public", api_router);
-
-        Some(ExtensionRouter::public(combined, "/"))
+        crate::router::build(ctx)
     }
 
     fn site_auth(&self) -> Option<SiteAuthConfig> {
@@ -202,19 +113,7 @@ impl Extension for WebExtension {
     }
 
     fn jobs(&self) -> Vec<Arc<dyn Job>> {
-        vec![
-            Arc::new(ContentIngestionJob),
-            Arc::new(CopyExtensionAssetsJob),
-            Arc::new(ContentPrerenderJob),
-            Arc::new(SitemapGenerationJob),
-            Arc::new(LlmsTxtGenerationJob),
-            Arc::new(RobotsTxtGenerationJob),
-            Arc::new(PublishPipelineJob),
-            Arc::new(GovernanceBootstrapJob),
-            Arc::new(ContentAnalyticsAggregationJob),
-            Arc::new(BundleAdminCssJob),
-            Arc::new(BundleAdminJsJob),
-        ]
+        crate::jobs::extension_jobs()
     }
 
     fn priority(&self) -> u32 {
@@ -230,21 +129,8 @@ impl Extension for WebExtension {
     }
 
     fn required_assets(&self, paths: &dyn AssetPaths) -> Vec<AssetDefinition> {
-        web_assets(paths)
-    }
-}
-
-impl WebExtension {
-    fn build_session_service(dbpool: &Arc<Database>) -> Option<Arc<SessionCreationService>> {
-        let user = UserService::new(dbpool)
-            .map_err(|e| tracing::error!(error = %e, "Failed to build user service"))
-            .ok()?;
-        let analytics = AnalyticsService::new(dbpool, None, None)
-            .map_err(|e| tracing::error!(error = %e, "Failed to build analytics service"))
-            .ok()?;
-        Some(Arc::new(SessionCreationService::new(
-            Arc::new(analytics),
-            Arc::new(user),
-        )))
+        let mut assets = web_assets(paths);
+        assets.extend(crate::admin::assets::admin_assets(paths));
+        assets
     }
 }

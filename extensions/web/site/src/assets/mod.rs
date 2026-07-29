@@ -4,7 +4,6 @@
 //! sources live under `storage/files/`, never alongside the Rust code.
 
 mod css;
-mod js_pages;
 mod js_services;
 
 use systemprompt::extension::AssetDefinition;
@@ -21,7 +20,5 @@ pub fn web_assets(paths: &dyn systemprompt::extension::AssetPaths) -> Vec<AssetD
     ));
     assets.extend(js_services::public_js_assets(&storage_js));
     assets.extend(js_services::service_js_assets(&storage_js));
-    assets.extend(js_services::admin_assets(&storage_css, &storage_js));
-    assets.extend(js_pages::page_js_assets(&storage_js));
     assets
 }

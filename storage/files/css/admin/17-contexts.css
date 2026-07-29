@@ -1,50 +1,10 @@
-/* /admin/entities/contexts — list + detail page styles. */
-
-.contexts-kpis,
-.kpi-strip {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: var(--sp-space-3);
-    margin-bottom: var(--sp-space-5);
-}
+@layer components {
 
 .contexts-kpis {
+    display: grid;
     grid-template-columns: repeat(6, 1fr);
-}
-
-.kpi-card {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-space-1);
-    padding: var(--sp-space-4);
-    background: var(--sp-bg-surface);
-    border: 1px solid var(--sp-border-subtle);
-    border-radius: 0 0.375rem 1.125rem 0;
-}
-
-.kpi-card--danger {
-    border-color: color-mix(in oklch, var(--sp-danger) 45%, var(--sp-border-subtle));
-    background: color-mix(in oklch, var(--sp-danger) 4%, var(--sp-bg-surface));
-}
-
-.kpi-card__label {
-    font-size: var(--sp-text-xs);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--sp-text-tertiary);
-}
-
-.kpi-card__value {
-    font-size: var(--sp-text-2xl, 1.5rem);
-    font-weight: 700;
-    color: var(--sp-text-primary);
-    font-variant-numeric: tabular-nums;
-}
-
-.kpi-card__sub {
-    font-size: var(--sp-text-xs);
-    color: var(--sp-text-tertiary);
+    gap: var(--sp-space-3);
+    margin-bottom: var(--sp-space-5);
 }
 
 @media (max-width: 1100px) {
@@ -130,7 +90,7 @@
 
 .time-range-pills .pill--active {
     background: var(--sp-accent);
-    color: #fff;
+    color: var(--sp-text-on-accent);
     font-weight: 600;
 }
 
@@ -173,6 +133,10 @@
     transition: transform var(--sp-duration-fast);
 }
 
+[data-page="contexts"] .row-expand-toggle[aria-expanded="true"] {
+    transform: rotate(180deg);
+}
+
 .link-strong {
     color: var(--sp-text-primary);
     font-weight: 600;
@@ -185,3 +149,23 @@
 }
 
 .text-xs { font-size: var(--sp-text-xs); }
+
+.col-conversation {
+    max-width: 28rem;
+    min-width: 12rem;
+}
+
+.conversation-preview {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--sp-text-sm);
+    color: var(--sp-text-secondary);
+}
+
+@media (max-width: 1200px) {
+    .col-conversation { max-width: 18rem; }
+}
+
+}

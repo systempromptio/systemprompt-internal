@@ -33,7 +33,7 @@
                 </div>
                 <div class="sp-quickstat">
                     <span class="sp-quickstat__value">{{formatNumber usage.conversations.total_conversations}}</span>
-                    <span class="sp-quickstat__label">conversations</span>
+                    <span class="sp-quickstat__label">conversations · all time</span>
                 </div>
             </div>
         </header>
@@ -91,7 +91,7 @@
                                 <span class="sp-modellist__share">{{percent token_share}}</span>
                             </div>
                             <span class="sp-modellist__bar" aria-hidden="true">
-                                <span class="sp-modellist__fill" style="width: {{percent token_share}}"></span>
+                                <span class="sp-modellist__fill" style="--sp-fill:{{percent token_share}}"></span>
                             </span>
                             <span class="sp-modellist__meta">{{formatNumber tokens}} tokens · {{formatUsd cost_microdollars}}</span>
                         </div>
@@ -112,7 +112,7 @@
                         <svg class="sp-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><path d="M8 16h.01M16 16h.01"/></svg>
                         <h2>Available agents</h2>
                     </div>
-                    <span class="sp-chip sp-chip--accent">{{agents.enabled}}/{{agents.total}} enabled</span>
+                    {{#if agents.total}}<span class="sp-chip sp-chip--accent">{{agents.enabled}}/{{agents.total}} enabled</span>{{/if}}
                 </header>
                 {{#if agents.items}}
                 <ul class="sp-agentlist">
@@ -127,8 +127,8 @@
                 {{else}}
                 <div class="sp-empty">
                     <svg class="sp-empty__icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/></svg>
-                    <p>No agents configured.</p>
-                    <small>Add agents under <code>services/agents/*.yaml</code> with <code>show_in_ui: true</code>.</small>
+                    <p>No agents configured yet.</p>
+                    <small>Agents you enable appear here with their live status.</small>
                 </div>
                 {{/if}}
             </article>
@@ -175,7 +175,7 @@
                         </li>
                         {{/each}}
                     </ul>
-                    {{else}}<p class="sp-muted">agent labels are not yet linked to ai_requests in this build.</p>{{/if}}
+                    {{else}}<p class="sp-muted">No per-agent activity yet.</p>{{/if}}
                 </div>
             </div>
 
@@ -186,7 +186,7 @@
                         <tr>
                             <th>Context</th>
                             <th>Model</th>
-                            <th>Agent</th>
+                            {{#if usage.conversations.by_agent}}<th>Agent</th>{{/if}}
                             <th class="sp-conv-table__num">Requests</th>
                             <th class="sp-conv-table__when">Last activity</th>
                         </tr>
@@ -200,7 +200,7 @@
                                 </a>
                             </td>
                             <td>{{default model "—"}}</td>
-                            <td>{{default agent_name "—"}}</td>
+                            {{#if ../usage.conversations.by_agent}}<td>{{default agent_name "—"}}</td>{{/if}}
                             <td class="sp-conv-table__num">{{formatNumber ai_requests}}</td>
                             <td class="sp-conv-table__when">{{relativeTime last_activity}}</td>
                         </tr>
@@ -238,7 +238,7 @@
                 </dl>
             </article>
 
-            {{#if bridge_profile}}
+            {{#if gateway_access}}
             <article class="sp-profile-card">
                 <header class="sp-profile-card__head">
                     <div class="sp-profile-card__title">
@@ -247,16 +247,16 @@
                     </div>
                 </header>
                 <dl class="sp-deflist">
-                    <dt>Auth scheme</dt><dd><code>{{bridge_profile.auth_scheme}}</code></dd>
-                    <dt>Inference gateway</dt><dd><code class="sp-deflist__break">{{bridge_profile.inference_gateway_base_url}}</code></dd>
-                    {{#if bridge_profile.organization_uuid}}<dt>Organization</dt><dd><code class="sp-deflist__break">{{bridge_profile.organization_uuid}}</code></dd>{{/if}}
-                    <dt>Allowed models</dt><dd><b>{{bridge_profile.models_count}}</b> models{{#if bridge_profile.models}} signed for this user{{/if}}</dd>
+                    <dt>Auth scheme</dt><dd><code>{{gateway_access.auth_scheme}}</code></dd>
+                    <dt>Inference gateway</dt><dd><code class="sp-deflist__break">{{gateway_access.inference_gateway_base_url}}</code></dd>
+                    {{#if gateway_access.organization_uuid}}<dt>Organization</dt><dd><code class="sp-deflist__break">{{gateway_access.organization_uuid}}</code></dd>{{/if}}
+                    <dt>Allowed models</dt><dd><b>{{gateway_access.models_count}}</b> models{{#if gateway_access.models}} signed for this user{{/if}}</dd>
                 </dl>
-                {{#if bridge_profile.models}}
+                {{#if gateway_access.models}}
                 <details class="sp-allowed-models">
-                    <summary>View {{bridge_profile.models_count}} allowed models</summary>
+                    <summary>View {{gateway_access.models_count}} allowed models</summary>
                     <ul class="sp-allowed-models__list">
-                        {{#each bridge_profile.models}}<li>{{this}}</li>{{/each}}
+                        {{#each gateway_access.models}}<li>{{this}}</li>{{/each}}
                     </ul>
                 </details>
                 {{/if}}

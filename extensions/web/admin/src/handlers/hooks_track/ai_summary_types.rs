@@ -1,42 +1,10 @@
 //! Typed schema for the AI session-analysis tool call.
 
-use std::collections::HashMap;
-
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct GoalOutcomeMapping {
-    #[serde(default)]
-    pub goal: String,
-    #[serde(default)]
-    pub outcome: String,
-    #[serde(default)]
-    pub achieved: bool,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
-pub struct EfficiencyMetrics {
-    #[serde(default)]
-    pub total_turns: i32,
-    #[serde(default)]
-    pub duration_minutes: i32,
-    #[serde(default)]
-    pub corrections_count: i32,
-    #[serde(default)]
-    pub avg_turns_per_goal: f32,
-    #[serde(default)]
-    pub unnecessary_loops: i32,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct BestPracticeItem {
-    #[serde(default)]
-    pub practice: String,
-    #[serde(default)]
-    pub score: String,
-    #[serde(default)]
-    pub note: String,
-}
+pub(crate) use crate::types::session_analysis::{
+    BestPracticeItem, EfficiencyMetrics, GoalOutcomeMapping, SkillScores,
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SessionAnalysis {
@@ -56,7 +24,7 @@ pub struct SessionAnalysis {
     #[serde(default)]
     pub recommendations: Option<String>,
     #[serde(default)]
-    pub skill_scores: Option<HashMap<String, i16>>,
+    pub skill_scores: Option<SkillScores>,
     pub category: Option<String>,
     #[serde(default)]
     pub goal_outcome_map: Option<Vec<GoalOutcomeMapping>>,
@@ -88,7 +56,7 @@ impl SessionAnalysis {
     }
 }
 
-// variable-shape: this builds a JSON Schema document (nested
+// JSON: this builds a JSON Schema document (nested
 // "type"/"properties"/ "enum" descriptors) passed to the AI provider's tool
 // schema, not a response body; its shape is schema metadata, not a typed DTO we
 // control end-to-end.

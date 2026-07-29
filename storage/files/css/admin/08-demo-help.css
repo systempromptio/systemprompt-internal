@@ -69,9 +69,9 @@
     align-items: center;
     padding: 2px var(--sp-space-2);
     border: 1px solid var(--sp-border-subtle);
-    border-radius: var(--sp-radius-pill, 999px);
-    font-family: var(--sp-font-mono, ui-monospace, SFMono-Regular, monospace);
-    font-size: var(--sp-text-2xs, 0.6875rem);
+    border-radius: var(--sp-radius-full);
+    font-family: var(--sp-font-mono);
+    font-size: var(--sp-text-xs);
     color: var(--sp-text-tertiary);
     background: var(--sp-bg-surface);
 }
@@ -88,10 +88,10 @@
 .demo-help-box__body p { margin: 0 0 var(--sp-space-2); }
 .demo-help-box__body strong { color: var(--sp-text-primary); font-weight: 600; }
 .demo-help-box__body code {
-    font-family: var(--sp-font-mono, ui-monospace, SFMono-Regular, monospace);
+    font-family: var(--sp-font-mono);
     font-size: 0.9em;
-    padding: 1px 4px;
-    border-radius: var(--sp-radius-sm, 4px);
+    padding: 1px var(--sp-space-1);
+    border-radius: var(--sp-radius-sm);
     background: var(--sp-bg-surface);
     border: 1px solid var(--sp-border-subtle);
 }
@@ -103,7 +103,7 @@
     align-self: flex-start;
     padding: var(--sp-space-2) var(--sp-space-3);
     border: 1px solid var(--sp-border-subtle);
-    border-radius: var(--sp-radius-pill, 999px);
+    border-radius: var(--sp-radius-full);
     color: var(--sp-accent);
     font-weight: 500;
     font-size: var(--sp-text-sm);
@@ -115,7 +115,7 @@
 .demo-help-box__docs:hover {
     color: var(--sp-accent-hover);
     border-color: var(--sp-accent);
-    background: var(--sp-bg-surface-raised, var(--sp-bg-surface));
+    background: var(--sp-bg-surface-raised);
 }
 
 .demo-help-box__docs svg { flex-shrink: 0; }

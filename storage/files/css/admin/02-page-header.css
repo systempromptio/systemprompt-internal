@@ -1,5 +1,35 @@
 @layer components {
 
+.breadcrumbs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sp-space-1);
+    margin-bottom: var(--sp-space-2);
+    font-size: var(--sp-text-sm);
+    color: var(--sp-text-tertiary);
+}
+
+.breadcrumbs a {
+    color: var(--sp-text-secondary);
+    text-decoration: none;
+}
+
+.breadcrumbs a:hover {
+    color: var(--sp-accent);
+    text-decoration: underline;
+}
+
+.breadcrumbs__sep {
+    color: var(--sp-text-tertiary);
+    user-select: none;
+}
+
+.breadcrumbs [aria-current="page"] {
+    color: var(--sp-text-primary);
+    font-weight: 500;
+}
+
 .page-header {
     display: flex;
     align-items: flex-start;
@@ -30,28 +60,11 @@
     font-size: var(--sp-text-sm);
     color: var(--sp-text-secondary);
     line-height: 1.5;
-}
-
-.page-header__actions {
-    display: flex;
-    align-items: center;
-    gap: var(--sp-space-2);
-    flex-shrink: 0;
-}
-
-.page-header__actions:empty {
-    display: none;
-}
-
-@media (max-width: 640px) {
+}@media (max-width: 640px) {
     .page-header {
         flex-direction: column;
         gap: var(--sp-space-3);
         align-items: stretch;
-    }
-    .page-header__actions {
-        justify-content: flex-end;
-    }
-}
+    }}
 
 }

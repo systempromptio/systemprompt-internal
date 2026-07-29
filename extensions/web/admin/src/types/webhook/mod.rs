@@ -10,8 +10,8 @@ pub use event_types::{
     ConfigChangeData, HookCommonFields, HookEvent, InstructionsLoadedData, NotificationData,
     PermissionRequestData, PostToolUseData, PostToolUseFailureData, PreCompactData, PreToolUseData,
     SessionEndData, SessionStartData, StopData, SubagentStartData, SubagentStopData,
-    TaskCompletedData, TeammateIdleData, UserPromptSubmitData, WorktreeCreateData,
-    WorktreeRemoveData,
+    TaskCompletedData, TeammateIdleData, ToolInputSummary, UserPromptSubmitData,
+    WorktreeCreateData, WorktreeRemoveData,
 };
 use serde::Deserialize;
 
@@ -19,6 +19,8 @@ use serde::Deserialize;
 pub struct HookEventPayload {
     pub common: HookCommonFields,
     pub event: HookEvent,
+    // JSON: protocol boundary — the unmodified third-party hook envelope, kept
+    // whole so the audit row records exactly what Claude Code posted
     pub raw: serde_json::Value,
 }
 
@@ -74,6 +76,20 @@ impl HookEventPayload {
             HookEvent::PreToolUse(d) => Some(&d.input),
             HookEvent::PostToolUse(d) => Some(&d.input),
             HookEvent::PostToolUseFailure(d) => Some(&d.tool_input),
+            _ => None,
+        }
+    }
+
+    /// The raw text of a `UserPromptSubmit` event.
+    ///
+    /// Tool inputs are authored by the model; a prompt is authored by the
+    /// human. Governing both means the secret scanner sees a credential the
+    /// user pasted *before* it is serialized into a provider request, not
+    /// merely after the model has echoed it back into a tool call.
+    #[must_use]
+    pub fn prompt(&self) -> Option<&str> {
+        match &self.event {
+            HookEvent::UserPromptSubmit(d) if !d.prompt.is_empty() => Some(&d.prompt),
             _ => None,
         }
     }
@@ -196,8 +212,8 @@ fn dispatch_event(
             HookEvent::Unknown(other.to_owned())
         },
     };
-    // `agent_id` is a common field rather than part of either variant, so the
-    // subagent events can only be checked for it out here.
+    // Why: `agent_id` is a common field rather than part of either variant, so
+    // the subagent events can only be checked for it out here.
     if matches!(
         event,
         HookEvent::SubagentStart(_) | HookEvent::SubagentStop(_)
@@ -225,6 +241,7 @@ pub struct StatusLinePayload {
     pub model: Option<StatusLineModel>,
     pub cost: Option<StatusLineCost>,
     pub context_window: Option<ContextWindow>,
+    // JSON: protocol boundary — arbitrary third-party tool payload
     #[serde(flatten)]
     pub extra: serde_json::Value,
 }
@@ -266,6 +283,7 @@ pub struct StatusLineQuery {
 #[derive(Debug, Deserialize)]
 pub struct TranscriptPayload {
     pub session_id: Option<systemprompt::identifiers::SessionId>,
+    // JSON: protocol boundary — arbitrary third-party tool payload
     pub transcript: serde_json::Value,
 }
 

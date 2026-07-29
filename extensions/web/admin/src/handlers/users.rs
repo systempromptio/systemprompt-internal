@@ -45,7 +45,7 @@ fn extract_user_with_audiences(
 
     let jwt_issuer = Config::get()?.jwt_issuer.clone();
 
-    let claims = validate_jwt_token(&token, &jwt_issuer, audiences)?;
+    let claims = validate_jwt_token(&token, &jwt_issuer, &[JwtAudience::Api])?;
 
     let email = Email::try_new(claims.email.clone()).map_err(AdminError::unauthenticated)?;
 
@@ -53,10 +53,11 @@ fn extract_user_with_audiences(
         user_id: UserId::new(claims.sub),
         username: claims.username,
         email,
+        session_id: claims.session_id,
     })
 }
 
-fn extract_token_from_headers(headers: &HeaderMap) -> Result<String, AdminError> {
+pub(crate) fn extract_token_from_headers(headers: &HeaderMap) -> Result<String, AdminError> {
     if let Some(auth) = headers.get("authorization").and_then(|v| v.to_str().ok())
         && let Some(token) = auth
             .strip_prefix("Bearer ")

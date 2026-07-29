@@ -12,8 +12,8 @@
 # type. Mutations (`insert_`/`update_`/`delete_`/`set_`/`count_`) name an
 # action rather than a shape and are left alone.
 #
-# Exemption: annotate with `// lint-ok: repository-naming` on the line above,
-# and say why.
+# Exemption: annotate with `// lint-ok: repository-naming` anywhere in the
+# comment block directly above the function, and say why.
 set -uo pipefail
 
 REPO_DIR="${REPO_DIR:-extensions/web/admin/src/repositories}"
@@ -73,7 +73,14 @@ for path in sorted(root.rglob('*.rs')):
     for m in re.finditer(r'\bfn ([a-z][a-z0-9_]*)\s*(?:<[^>]*>)?\s*\(', src):
         name = m.group(1)
         line_no = src[:m.start()].count('\n') + 1
-        if line_no > 1 and 'lint-ok: repository-naming' in lines[line_no - 2]:
+        probe = line_no - 2
+        exempt = False
+        while probe >= 0 and re.match(r'\s*(//|#!?\[)', lines[probe]):
+            if 'lint-ok: repository-naming' in lines[probe]:
+                exempt = True
+                break
+            probe -= 1
+        if exempt:
             continue
         where = f"{path}:{line_no}"
         if name.startswith('fetch_'):

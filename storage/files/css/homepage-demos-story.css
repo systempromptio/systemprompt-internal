@@ -1,0 +1,82 @@
+.demo-story-timeline {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  counter-reset: demo-step;
+  display: grid;
+  gap: var(--sp-space-6);
+  position: relative;
+}
+
+.demo-story-timeline::before {
+  content: "";
+  position: absolute;
+  left: 1.125rem;
+  top: 0.5rem;
+  bottom: 0.5rem;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--sp-color-primary), var(--sp-brand-100));
+}
+
+.demo-step {
+  counter-increment: demo-step;
+  position: relative;
+  padding-left: 3.25rem;
+}
+
+.demo-step::before {
+  content: counter(demo-step);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--sp-radius-round);
+  background: var(--sp-color-primary);
+  color: var(--sp-color-text-on-primary);
+  display: grid;
+  place-items: center;
+  font-family: var(--sp-font-brand);
+  font-weight: 700;
+  font-size: 0.95rem;
+  box-shadow: 0 0 0 4px var(--sp-color-surface-variant);
+}
+
+.demo-step-body {
+  padding: var(--sp-space-1) 0 var(--sp-space-2);
+}
+
+.demo-step-label {
+  margin: 0 0 var(--sp-space-1);
+  font-family: var(--sp-font-heading);
+  font-size: 1.1rem;
+  color: var(--sp-color-text);
+}
+
+.demo-step-narrative {
+  margin: 0 0 var(--sp-space-2);
+  color: var(--sp-color-text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.demo-step-outcome {
+  margin: 0 0 var(--sp-space-4);
+  font-size: 0.88rem;
+  color: var(--sp-color-text);
+  padding: var(--sp-space-2) var(--sp-space-4);
+  background: var(--sp-brand-50);
+  border-left: 3px solid var(--sp-color-primary);
+  border-radius: 0 var(--sp-radius-sm) var(--sp-radius-sm) 0;
+}
+
+.demo-step-outcome-label {
+  display: inline-block;
+  font-family: var(--sp-font-brand);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--sp-color-primary-hover);
+  margin-right: var(--sp-space-2);
+}

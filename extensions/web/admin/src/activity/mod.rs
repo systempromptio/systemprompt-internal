@@ -3,7 +3,6 @@
 
 mod constructors;
 mod constructors_entity;
-mod constructors_mcp;
 mod constructors_session;
 pub mod enums;
 pub mod types;

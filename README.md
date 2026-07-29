@@ -32,6 +32,8 @@ This repository is Astound Digital's evaluation instance: clone it, compile it, 
 
 ---
 
+This project uses [systemprompt.io](https://systemprompt.io), self-hosted AI governance infrastructure. It is the evaluation template for [systemprompt-core](https://github.com/systempromptio/systemprompt-core), published on crates.io as [`systemprompt`](https://crates.io/crates/systemprompt).
+
 ## Quick start
 
 ```bash
@@ -64,6 +66,45 @@ Running a second clone side-by-side? `just setup-local <keys> "" "" 8081 5433`. 
 | **Ports 8080 + 5432** | HTTP + PostgreSQL | Free on localhost |
 
 </details>
+
+---
+
+## Bring an agent we have never seen. Watch it get governed.
+
+Every AI gateway vendor shows you their own client talking to their own dashboard. That proves nothing. The honest test is a third-party agent, unmodified, pointed at your infrastructure, and the screenshot above is that test running.
+
+[Pi](https://pi.dev) is an open-source coding agent from a different company. We did not fork it, patch it, or wrap it. We gave it one provider entry in `~/.pi/agent/models.json` pointing at the gateway's Anthropic-compatible `/v1/messages` endpoint. From that single config block, everything below works out of the box.
+
+**One endpoint, four upstream providers.** The gateway routes by model id: `claude-*` to Anthropic, `gpt-*` to OpenAI, `gemini-*` to Google, `gpt-oss-120b` to Cerebras. Pi's `/model` picker hops between them mid-session. The agent speaks one protocol; the gateway owns the provider sprawl, the keys, and the bill.
+
+**Every request is somebody's.** The demo registers a fresh non-admin user, issues them an API key from the admin API, and hands that identity to Pi. From then on every call the agent makes is attributed: user, session, model, provider, tokens in and out, cost in microdollars, latency, and the policy decisions that ran before dispatch. One 18-column Postgres table. One query answers "what did the agent do."
+
+**Models are permissions, not config.** Open **Model Selection** in the dashboard, pick the user, click Disable on a model. That writes a user-scoped deny rule which the gateway evaluates live on the next request. The agent's next call to that model gets a 403 with a structured reason. No restart, no token rotation, no redeploy. Click Enable and it works again. This is the difference between a router and a control plane: a router forwards what it is given, a control plane decides.
+
+**The prompt and the tools are governed too.** A Pi extension wires the same four-policy pipeline (scope check, secret scan, blocklist, rate limit) into the agent's `input` and `tool_call` events. Paste a live AWS key into a prompt and the turn is denied before any provider sees it. Ask the agent to write a credential to disk and the tool call is blocked before execution, with the reason handed back to the model.
+
+**The evidence is not a claim, it is a page.** Everything above lands in the dashboard while it happens: **Model Selection** (`/admin/models`) shows the per-user toggles next to that user's usage; the request audit trail (`/admin/entities/requests`) holds the full chain of custody for every call, including the denied ones.
+
+<div align="center">
+<img src="docs/images/pi-demo-request-audit.png" alt="The Inference Requests dashboard: KPI cards for request count, p50 latency, total cost, errors, and pre-flight denies, with a latency distribution histogram, captured immediately after the Pi demo run." width="900">
+
+<sub>The same demo run from the audit side: 27 requests across four providers, $0.0341 total spend, and 5 errors, which are the deliberate governance denials. Captured from <code>/admin/entities/requests</code> seconds after the run.</sub>
+</div>
+
+Run it yourself, from a fresh clone, in about ten minutes:
+
+```bash
+examples/pi/setup.sh          # install Pi, wire the gateway provider, branded theme
+examples/pi/routes.sh         # split demo models into individually governable routes
+examples/pi/new-user.sh       # register a demo user, issue their key, hand Pi the identity
+
+pi -p --provider systemprompt --model gpt-oss-120b "hello"    # Cerebras, governed
+pi -p --provider systemprompt --model claude-sonnet-4-6 "hi"  # Anthropic, same endpoint
+```
+
+Then open `/admin/models`, disable a model for the user, and run the prompt again. The full scripted walkthrough, including the deny-and-recover loop and the tool-gate demos, is in [examples/pi/WALKTHROUGH.md](examples/pi/WALKTHROUGH.md).
+
+The point is not Pi. The point is that Pi needed nothing special. Any client that speaks the Anthropic Messages protocol (Claude Code included, see [docker/claude-code-clean-room](docker/claude-code-clean-room)) inherits the same identity binding, the same per-user model permissions, and the same audit spine, because governance lives at the transport layer instead of inside any one tool.
 
 ---
 
@@ -303,10 +344,6 @@ Each recording is a live capture of the named script running against the binary.
 
 <sub>Anthropic, OpenAI, Gemini swap at the profile level · cost attribution in integer microdollars · <code>./demo/agents/01-list-agents.sh</code> · <a href="https://systemprompt.io/features/any-ai-agent">Feature</a></sub>
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="demo/recording/svg/output/dark/int-bridge.svg"><source media="(prefers-color-scheme: light)" srcset="demo/recording/svg/output/light/int-bridge.svg"><img src="demo/recording/svg/output/dark/int-bridge.svg" alt="Claude Desktop & Bridge" width="820"></picture>
-
-<sub>Skills persist across sessions via OAuth2 · <code>./demo/skills/01-skill-lifecycle.sh</code> · <a href="https://systemprompt.io/features/bridge">Feature</a></sub>
-
 <picture><source media="(prefers-color-scheme: dark)" srcset="demo/recording/svg/output/dark/int-web-publisher.svg"><source media="(prefers-color-scheme: light)" srcset="demo/recording/svg/output/light/int-web-publisher.svg"><img src="demo/recording/svg/output/dark/int-web-publisher.svg" alt="Web server & publisher" width="820"></picture>
 
 <sub>Same binary serves your website, blog, and docs · systemprompt.io runs on this binary · <code>./demo/web/01-web-config.sh</code> · <a href="https://systemprompt.io/features/web-publisher">Feature</a></sub>
@@ -329,10 +366,10 @@ Each recording is a live capture of the named script running against the binary.
 Claude for Work ships with extension points for inference, identity, and audit. Point them at this binary and every prompt, tool call, and cost line lands in a Postgres row you own.
 
 ```
-  Managed Device                 Enterprise Gateway              Upstream Inference
-  (Bridge via MDM)               (this binary, your VPC)         (pluggable)
+  Developer Machine              Enterprise Gateway              Upstream Inference
+  (Pi, Claude Code, curl)        (this binary, your VPC)         (pluggable)
   ───────────────── ──────────▶  ─────────────────────  ──────▶  ─────────────────
-  Credential helper              /v1/messages                    Anthropic direct
+  Access token                   /v1/messages                    Anthropic direct
   Managed MCP list               Governance pipeline             Bedrock / Vertex
   Signed plugins                 Audit to Postgres               OpenAI / Groq
                                                                  On-prem vLLM / Qwen

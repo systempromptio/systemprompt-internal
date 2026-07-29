@@ -11,6 +11,7 @@ use serde::Serialize;
 use systemprompt::identifiers::{AgentId, SessionId, TraceId, UserId};
 
 mod list;
+mod list_row;
 mod spans;
 mod stats;
 
@@ -24,8 +25,14 @@ pub struct TraceSummary {
     pub trace_id: Option<TraceId>,
     pub started_at: DateTime<Utc>,
     pub ended_at: DateTime<Utc>,
-    pub duration_ms: i64,
+    /// Summed request latency — the work the trace actually did.
+    pub active_ms: i64,
+    /// First-to-last event span. A client may reuse a session id for hours, so
+    /// this is context for `active_ms`, never a substitute for it.
+    pub window_ms: i64,
     pub user_id: Option<UserId>,
+    /// Display name for `user_id`, resolved from `users`.
+    pub user_label: Option<String>,
     pub agent_id: Option<AgentId>,
     pub agent_scope: Option<String>,
     pub model: Option<String>,
@@ -113,9 +120,14 @@ pub struct TraceStats {
     pub total_traces: i64,
     pub error_count: i64,
     pub deny_count: i64,
-    pub p50_duration_ms: i64,
-    pub p95_duration_ms: i64,
-    pub p99_duration_ms: i64,
+    /// Percentiles over `active_ms` of the traces that issued at least one
+    /// request; governance-only traces have no latency to contribute and would
+    /// otherwise drag every percentile to zero.
+    pub p50_active_ms: i64,
+    pub p95_active_ms: i64,
+    pub p99_active_ms: i64,
+    pub total_cost_microdollars: i64,
+    pub total_tokens: i64,
 }
 
 /// One waterfall span — normalised across the four span sources.
@@ -129,6 +141,8 @@ pub struct Span {
     pub duration_ms: i64,
     pub status: SpanStatus,
     pub identity_label: Option<String>,
+    // JSON: source row rendered for the span inspector; the four span sources have no common
+    // shape.
     pub raw: serde_json::Value,
 }
 

@@ -1,8 +1,6 @@
-
-
 .blog-content blockquote {
   margin: 2em 0;
-  padding: var(--sp-spacing-lg) var(--sp-spacing-xl);
+  padding: var(--sp-space-6) var(--sp-space-8);
   border-left: 4px solid var(--sp-color-primary);
   background: var(--sp-color-surface-variant);
   border-radius: var(--sp-radius-sm);
@@ -30,15 +28,12 @@
   content: "\2014 ";
 }
 
-
-
 .blog-content hr {
   border: none;
   border-top: 2px solid var(--sp-color-border);
   margin: 3em 0;
   opacity: 0.5;
 }
-
 
 .blog-content hr.decorative {
   border: none;
@@ -51,8 +46,6 @@
   color: var(--sp-color-text-disabled);
   letter-spacing: 1em;
 }
-
-
 
 @media (max-width: 768px) {
   .blog-content {

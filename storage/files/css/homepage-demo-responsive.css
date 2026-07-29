@@ -1,4 +1,3 @@
-
 @media (max-width: 768px) {
   .terminal-stack {
     height: auto;
@@ -17,7 +16,7 @@
   }
 
   .terminal-body {
-    padding: var(--sp-space-sm) var(--sp-space-md);
+    padding: var(--sp-space-2) var(--sp-space-4);
     font-size: 0.68rem;
     min-height: auto;
   }
@@ -33,14 +32,14 @@
   .terminal-controls.terminal-controls {
     display: flex;
     position: relative;
-    z-index: var(--sp-z-sticky-header);
-    margin-top: var(--sp-space-lg);
+    z-index: var(--sp-z-content);
+    margin-top: var(--sp-space-6);
   }
 
   .terminal-btn {
     color: var(--sp-color-text);
-    border-color: rgba(255, 255, 255, 0.4);
-    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(var(--sp-color-white-rgb), 0.4);
+    background: rgba(var(--sp-color-white-rgb), 0.1);
   }
 }
 

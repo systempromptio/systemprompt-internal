@@ -98,7 +98,7 @@ pub(super) fn apply_keep_sets(
             .into_iter()
             .filter(|m| keep.mcp.contains(m.name.as_str()))
             .collect(),
-        // Artifacts carry no access rule of their own, so they inherit their
+        // Why: artifacts carry no access rule of their own, so they inherit their
         // owning plugins' decision: an artifact is staged only while at least
         // one plugin that ships it survived the plugin keep-set. Without this
         // an admin-only dashboard would be staged to every user's Artifacts
@@ -114,7 +114,7 @@ pub(super) fn apply_keep_sets(
             })
             .collect(),
         artifact_owners: candidate.artifact_owners,
-        // Carry the owning marketplace context through unchanged; the
+        // Why: carry the owning marketplace context through unchanged — the
         // filter only shrinks entry lists, it must not drop the scope the
         // gateway attached.
         marketplace_id: candidate.marketplace_id,

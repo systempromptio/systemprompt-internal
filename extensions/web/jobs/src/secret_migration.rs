@@ -17,6 +17,10 @@ impl Job for SecretMigrationJob {
         "secret_migration"
     }
 
+    fn tags(&self) -> Vec<&'static str> {
+        vec![crate::registry::JOB_TAG]
+    }
+
     fn description(&self) -> &'static str {
         "Encrypts existing plaintext secrets in plugin_env_vars"
     }
@@ -51,7 +55,7 @@ async fn execute_inner(ctx: &JobContext) -> Result<JobResult, JobError> {
 
     let rows = secret_migration::list_unencrypted_secrets(pool.as_ref())
         .await
-        .map_err(MarketplaceError::Database)?;
+        .map_err(MarketplaceError::from)?;
 
     if rows.is_empty() {
         let duration_ms = u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX);

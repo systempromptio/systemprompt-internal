@@ -7,19 +7,19 @@
     <section aria-label="Profile settings">
     <div class="card mb-6">
         <div class="card-header">
-            <h2 class="card-title">Profile</h2>
+            <h2 class="card-title">Identity</h2>
         </div>
         <div class="card-body">
             <form id="settings-form" class="settings-form">
                 <div class="settings-form-grid">
                     <div class="settings-field">
                         <label class="settings-label" for="settings-username">Username</label>
-                        <input type="text" id="settings-username" class="form-input" value="{{username}}" readonly disabled />
+                        <input type="text" id="settings-username" class="form-input form-input--readonly" value="{{username}}" readonly disabled />
                         <span class="settings-hint">Username cannot be changed</span>
                     </div>
                     <div class="settings-field">
                         <label class="settings-label" for="settings-email">Email</label>
-                        <input type="email" id="settings-email" class="form-input" value="{{user_email}}" readonly disabled />
+                        <input type="email" id="settings-email" class="form-input form-input--readonly" value="{{user_email}}" readonly disabled />
                         <span class="settings-hint">Contact support to change email</span>
                     </div>
                     <div class="settings-field">
@@ -43,47 +43,14 @@
 
                 <div class="settings-divider"></div>
 
-                <h3 class="settings-section-title">Notifications</h3>
-                <div class="settings-toggles">
-                    <label class="settings-toggle" id="toggle-daily-summary">
-                        <input type="checkbox" id="settings-notify-daily-summary" role="switch" aria-checked="{{#if settings.notify_daily_summary}}true{{else}}false{{/if}}" {{#if settings.notify_daily_summary}}checked{{/if}} />
-                        <span class="settings-toggle-slider" aria-hidden="true"></span>
-                        <span class="settings-toggle-text">
-                            <strong>Daily Summary</strong>
-                            <span class="text-secondary text-sm">Receive a daily email with your activity summary, insights, and metrics</span>
-                        </span>
-                    </label>
-                    <label class="settings-toggle" id="toggle-achievements">
-                        <input type="checkbox" id="settings-notify-achievements" role="switch" aria-checked="{{#if settings.notify_achievements}}true{{else}}false{{/if}}" {{#if settings.notify_achievements}}checked{{/if}} />
-                        <span class="settings-toggle-slider" aria-hidden="true"></span>
-                        <span class="settings-toggle-text">
-                            <strong>Achievements</strong>
-                            <span class="text-secondary text-sm">Get notified when you unlock new achievements and milestones</span>
-                        </span>
-                    </label>
-                </div>
-                <p class="text-secondary text-sm" style="margin-top: 8px;">Turn off both to stop all email notifications.</p>
-
-                <div class="settings-divider"></div>
-
                 <h3 class="settings-section-title">Preferences</h3>
-                <div class="settings-toggles">
-                    <label class="settings-toggle" id="toggle-leaderboard">
-                        <input type="checkbox" id="settings-leaderboard-opt-in" role="switch" aria-checked="{{#if settings.leaderboard_opt_in}}true{{else}}false{{/if}}" {{#if settings.leaderboard_opt_in}}checked{{/if}} />
-                        <span class="settings-toggle-slider" aria-hidden="true"></span>
-                        <span class="settings-toggle-text">
-                            <strong>Leaderboard Visibility</strong>
-                            <span class="text-secondary text-sm">Show your profile on the public leaderboard</span>
-                        </span>
-                    </label>
-                </div>
 
-                <div class="settings-field" style="margin-top: 16px;">
+                <div class="settings-field mt-4">
                     <label class="settings-label" for="settings-timezone">Timezone</label>
                     <select id="settings-timezone" class="form-input">
                         <option value="UTC">UTC</option>
                     </select>
-                    <span class="settings-hint">Used to schedule achievement emails at your local morning time</span>
+                    <span class="settings-hint">Used to render timestamps in your local time</span>
                     <input type="hidden" id="settings-timezone-saved" value="{{settings.timezone}}" />
                 </div>
 

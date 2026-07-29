@@ -74,6 +74,21 @@ pub async fn resolve_trace_session(
         return Ok(Some(row.session_id));
     }
 
+    // Why: hook-only traces exist solely in plugin_usage_events; without this
+    // arm the trace list links them but the detail page answers 404.
+    if let Some(row) = sqlx::query!(
+        r#"SELECT session_id AS "session_id!: SessionId"
+           FROM plugin_usage_events
+           WHERE session_id = $1
+           LIMIT 1"#,
+        id,
+    )
+    .fetch_optional(pool)
+    .await?
+    {
+        return Ok(Some(row.session_id));
+    }
+
     Ok(None)
 }
 

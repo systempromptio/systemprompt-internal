@@ -1,9 +1,8 @@
-
 .docs-learning-objectives {
-  margin: 0 0 var(--sp-spacing-xl) 0;
-  padding: var(--sp-spacing-lg);
+  margin: 0 0 var(--sp-space-8) 0;
+  padding: var(--sp-space-6);
   border-left: 4px solid var(--sp-color-success);
-  background: rgba(34, 197, 94, 0.05);
+  background: rgba(var(--sp-color-success-rgb), 0.05);
   border-radius: 0 var(--sp-radius-md) var(--sp-radius-md) 0;
 }
 
@@ -11,7 +10,7 @@
   font-family: var(--sp-font-heading);
   font-size: 1rem;
   font-weight: var(--sp-font-weight-semibold);
-  margin: 0 0 var(--sp-spacing-xs) 0;
+  margin: 0 0 var(--sp-space-1) 0;
   padding: 0;
   border: none;
   color: var(--sp-color-text-primary);
@@ -22,7 +21,7 @@
 .docs-learning-objectives .docs-section-intro {
   font-size: var(--sp-font-size-sm);
   color: var(--sp-color-text-secondary);
-  margin: 0 0 var(--sp-spacing-sm) 0;
+  margin: 0 0 var(--sp-space-2) 0;
 }
 
 .docs-learning-objectives ul {
@@ -33,7 +32,7 @@
 
 .docs-learning-objectives li {
   position: relative;
-  padding: var(--sp-spacing-xs) 0 var(--sp-spacing-xs) var(--sp-spacing-lg);
+  padding: var(--sp-space-1) 0 var(--sp-space-1) var(--sp-space-6);
   color: var(--sp-color-text-secondary);
   font-size: var(--sp-font-size-sm);
 }
@@ -47,9 +46,9 @@
 }
 
 .docs-related-cta {
-  margin-top: var(--sp-spacing-md);
-  padding-top: var(--sp-spacing-md);
-  border-top: 1px solid rgba(34, 197, 94, 0.2);
+  margin-top: var(--sp-space-4);
+  padding-top: var(--sp-space-4);
+  border-top: 1px solid rgba(var(--sp-color-success-rgb), 0.2);
 }
 
 .docs-related-cta:first-child {
@@ -65,20 +64,20 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--sp-color-text-secondary);
-  margin: 0 0 var(--sp-spacing-sm) 0;
+  margin: 0 0 var(--sp-space-2) 0;
 }
 
 .docs-related-links {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--sp-spacing-sm);
+  gap: var(--sp-space-2);
 }
 
 .docs-cta-link {
   display: inline-flex;
   align-items: center;
-  gap: var(--sp-spacing-xs);
-  padding: var(--sp-spacing-xs) var(--sp-spacing-sm);
+  gap: var(--sp-space-1);
+  padding: var(--sp-space-1) var(--sp-space-2);
   font-size: var(--sp-font-size-sm);
   font-weight: var(--sp-font-weight-medium);
   text-decoration: none;
@@ -98,14 +97,14 @@
 }
 
 .docs-cta-link--code {
-  background: rgba(96, 165, 250, 0.1);
-  color: #60a5fa;
-  border: 1px solid rgba(96, 165, 250, 0.2);
+  background: rgba(var(--sp-color-accent-sky-rgb), 0.1);
+  color: var(--sp-color-accent-sky);
+  border: 1px solid rgba(var(--sp-color-accent-sky-rgb), 0.2);
 }
 
 .docs-cta-link--code:hover {
-  background: rgba(96, 165, 250, 0.2);
-  border-color: #60a5fa;
+  background: rgba(var(--sp-color-accent-sky-rgb), 0.2);
+  border-color: var(--sp-color-accent-sky);
 }
 
 .docs-cta-link svg {
@@ -122,14 +121,14 @@
 }
 
 .toc-section {
-  margin-top: var(--sp-spacing-lg);
-  padding-top: var(--sp-spacing-lg);
+  margin-top: var(--sp-space-6);
+  padding-top: var(--sp-space-6);
   border-top: 1px solid var(--sp-color-border);
 }
 
 .toc-links {
   list-style: none;
-  margin: var(--sp-spacing-sm) 0 0 0;
+  margin: var(--sp-space-2) 0 0 0;
   padding: 0;
 }
 
@@ -139,7 +138,7 @@
 
 .toc-links a {
   display: block;
-  padding: var(--sp-spacing-xs) 0;
+  padding: var(--sp-space-1) 0;
   font-size: var(--sp-font-size-xs);
   color: var(--sp-color-text-secondary);
   text-decoration: none;
@@ -157,7 +156,7 @@
 .toc-links--code a {
   display: flex;
   align-items: center;
-  gap: var(--sp-spacing-xs);
+  gap: var(--sp-space-1);
 }
 
 .toc-links--code a::after {
@@ -167,7 +166,7 @@
 }
 
 .toc-links--code a:hover {
-  color: #60a5fa;
+  color: var(--sp-color-accent-sky);
 }
 
 .toc-links--code a:hover::after {
@@ -175,8 +174,8 @@
 }
 
 .toc-mobile-section {
-  margin-top: var(--sp-spacing-md);
-  padding-top: var(--sp-spacing-md);
+  margin-top: var(--sp-space-4);
+  padding-top: var(--sp-space-4);
   border-top: 1px solid var(--sp-color-border);
 }
 
@@ -185,6 +184,6 @@
   font-weight: var(--sp-font-weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--sp-color-text-tertiary);
-  margin: 0 0 var(--sp-spacing-xs) 0;
+  color: var(--sp-color-text-muted);
+  margin: 0 0 var(--sp-space-1) 0;
 }

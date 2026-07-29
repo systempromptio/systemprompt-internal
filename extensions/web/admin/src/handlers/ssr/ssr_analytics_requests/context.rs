@@ -1,29 +1,122 @@
 //! Typed view-model structs for the Inference Requests (`analytics-requests`)
 //! page. Mirrors every `{{field}}` / `{{#each}}` / `{{#if}}` referenced by
-//! `storage/files/admin/templates/analytics-requests.hbs`.
+//! `storage/files/admin/templates/analytics-requests.hbs` and its tab partials.
 
 use serde::Serialize;
 use systemprompt::identifiers::{AiRequestId, SessionId, TraceId, UserId};
+
+use crate::handlers::ssr::list_view::Pagination;
+use crate::handlers::ssr::types::{ChartView, HistogramView};
+
+// Why: each tab is its own GET so it can be bookmarked, and so only the
+// queries that tab renders ever run.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum RequestsTab {
+    /// Health of the window: KPIs, traffic, spend, and latency shape.
+    Overview,
+    /// Spend and failure attributed to the model that produced it.
+    Models,
+    /// The same, rolled up to the upstream provider.
+    Providers,
+    /// Outcome mix: what completed, what failed, and how much it still cost.
+    Status,
+    /// The raw call log, filtered by whatever the breakdown tabs selected.
+    Log,
+}
+
+impl RequestsTab {
+    // Why: anything unrecognised lands on Overview — a mistyped tab in a
+    // shared link should still show the page rather than a 400.
+    pub(super) fn from_query(raw: Option<&str>) -> Self {
+        match raw {
+            Some("models") => Self::Models,
+            Some("providers") => Self::Providers,
+            Some("status") => Self::Status,
+            Some("log") => Self::Log,
+            _ => Self::Overview,
+        }
+    }
+
+    pub(super) const fn as_str(self) -> &'static str {
+        match self {
+            Self::Overview => "overview",
+            Self::Models => "models",
+            Self::Providers => "providers",
+            Self::Status => "status",
+            Self::Log => "log",
+        }
+    }
+}
 
 #[derive(Debug, Serialize)]
 pub(super) struct AnalyticsRequestsPageContext {
     pub page: &'static str,
     pub title: &'static str,
     pub time_range: TimeRangeView,
+    pub tabs: Vec<TabLinkView>,
+    pub is_overview: bool,
+    pub is_breakdown: bool,
+    pub is_log: bool,
     pub stats: RequestStatsView,
-    pub histogram: Vec<LatencyBucketView>,
-    pub histogram_max: i64,
-    pub cost_series: Vec<CostBucketView>,
-    pub cost_max: i64,
+    pub histogram: HistogramView,
+    pub traffic_chart: ChartView,
+    pub cost_chart: ChartView,
+    pub breakdown: BreakdownView,
     pub rows: Vec<RequestListRowView>,
     pub has_rows: bool,
     pub total_count: i64,
-    pub pagination: PaginationView,
+    pub pagination: Pagination,
     pub search_query: String,
-    pub filters: FiltersView,
+    pub chips: Vec<ChipView>,
     pub has_active_filters: bool,
     pub clear_url: String,
     pub base_url: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+pub(super) struct TabLinkView {
+    pub slug: &'static str,
+    pub label: &'static str,
+    pub href: String,
+    pub is_active: bool,
+    /// Shown as a count pill next to the label. Only the Log tab carries one:
+    /// on the other tabs the number the reader wants is already in the table.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub count: Option<i64>,
+}
+
+// Why: one shape for all three breakdown tabs, so Models, Providers, and
+// Status cannot drift apart.
+#[derive(Debug, Serialize)]
+pub(super) struct BreakdownView {
+    pub dimension_label: &'static str,
+    pub caption: &'static str,
+    pub rows: Vec<BreakdownRowView>,
+    pub has_rows: bool,
+}
+
+#[derive(Debug, Serialize)]
+pub(super) struct BreakdownRowView {
+    pub key: String,
+    pub requests: i64,
+    pub share_pct: i64,
+    pub share_display: String,
+    pub tokens_display: String,
+    pub cost_display: String,
+    pub p50_display: String,
+    pub p95_display: String,
+    pub error_count: i64,
+    pub error_rate_display: String,
+    pub has_errors: bool,
+    /// Jumps to the Log tab pre-filtered to this row.
+    pub filter_url: String,
+}
+
+#[derive(Debug, Serialize)]
+pub(super) struct ChipView {
+    pub group_label: &'static str,
+    pub label: String,
+    pub remove_url: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -38,20 +131,6 @@ pub(super) struct RequestStatsView {
     pub error_rate_pct: String,
     pub denied_session_count: i64,
     pub denied_session_rate_pct: String,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct LatencyBucketView {
-    pub label: String,
-    pub count: i64,
-    pub upper_bound_ms: Option<f64>,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct CostBucketView {
-    pub bucket_index: i32,
-    pub bucket_start: String,
-    pub cost_microdollars: i64,
 }
 
 #[derive(Debug, Serialize)]
@@ -93,29 +172,4 @@ pub(super) struct TimeRangeView {
     /// so an *absent* key (not `null`) must mean "not widened".
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auto_widened: Option<&'static str>,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct FiltersView {
-    pub model: Option<String>,
-    pub provider: Option<String>,
-    pub status: Option<String>,
-    pub options: RequestFilterOptionsView,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct RequestFilterOptionsView {
-    pub models: Vec<String>,
-    pub providers: Vec<String>,
-    pub statuses: Vec<String>,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct PaginationView {
-    pub current_page: i64,
-    pub total_pages: i64,
-    pub has_prev: bool,
-    pub has_next: bool,
-    pub prev_url: Option<String>,
-    pub next_url: Option<String>,
 }

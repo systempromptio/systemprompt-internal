@@ -1,7 +1,10 @@
 //! Database access shared by the MCP server extensions.
 
 use sqlx::PgPool;
+use sqlx::types::Json;
 use systemprompt::identifiers::UserId;
+
+use crate::AuditMetadata;
 
 #[derive(Debug)]
 pub(crate) struct McpAccessParams<'a> {
@@ -10,7 +13,7 @@ pub(crate) struct McpAccessParams<'a> {
     pub entity_type: &'a str,
     pub entity_name: &'a str,
     pub description: &'a str,
-    pub metadata: &'a serde_json::Value,
+    pub metadata: &'a AuditMetadata,
 }
 
 pub(crate) async fn insert_mcp_access(
@@ -25,18 +28,16 @@ pub(crate) async fn insert_mcp_access(
         params.entity_type,
         params.entity_name,
         params.description,
-        params.metadata,
+        Json(params.metadata) as _,
     )
     .execute(pool)
     .await?;
     Ok(())
 }
 
-/// Resolve the id of the dedicated anonymous principal, if one exists.
-///
-/// Rejections must never be attributed to an arbitrary user, so this looks up
-/// only the reserved `*@anonymous.local` account and returns `None` when it is
-/// absent rather than falling back to whatever user happens to be first.
+// Why: rejections must never be attributed to an arbitrary user, so this looks
+// up only the reserved `*@anonymous.local` account and returns `None` when it
+// is absent rather than falling back to whatever user happens to be first.
 pub(crate) async fn find_anonymous_user_id(pool: &PgPool) -> Result<Option<UserId>, sqlx::Error> {
     let row = sqlx::query!(
         r#"SELECT id as "id: UserId" FROM users WHERE email LIKE '%@anonymous.local' ORDER BY created_at LIMIT 1"#
@@ -51,7 +52,7 @@ pub(crate) async fn insert_mcp_access_rejection(
     user_id: &UserId,
     server: &str,
     description: &str,
-    metadata: &serde_json::Value,
+    metadata: &AuditMetadata,
 ) -> Result<(), sqlx::Error> {
     sqlx::query!(
         r"INSERT INTO user_activity (id, user_id, category, action, entity_type, entity_name, description, metadata)
@@ -59,7 +60,7 @@ pub(crate) async fn insert_mcp_access_rejection(
         user_id.as_str(),
         server,
         description,
-        metadata,
+        Json(metadata) as _,
     )
     .execute(pool)
     .await?;

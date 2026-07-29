@@ -6,17 +6,28 @@ name: Docker
 #   push to main       -> :edge, :sha-<sha>        (moving development image)
 #   release published  -> :X.Y.Z, :X.Y, :X, :latest (multi-arch, signed)
 #
-# Releases trigger via `release: published` (emitted by release-gateway.yml on
-# v* tags), NOT `push: tags` — a push trigger with a paths: filter never
-# matches tag pushes (no changed-file diff), which silently skips the build.
+# Releases arrive as a `workflow_call` from release-gateway.yml, NOT as a
+# `release: published` event and NOT via `push: tags`:
+#   - a push trigger with a paths: filter never matches tag pushes (no
+#     changed-file diff), which silently skips the build;
+#   - `release: published` never fires either, because release-gateway.yml
+#     creates the release with the default GITHUB_TOKEN, and events raised by
+#     that token do not start workflow runs. That gap shipped v0.23.0 with no
+#     image until it was dispatched by hand.
+# Calling this workflow directly keeps the release in one run, with no PAT and
+# no event indirection to go quiet on us.
 #
 # Multi-arch is built natively per-arch (amd64 + arm64 runners), pushed by
 # digest, then merged into one manifest list — QEMU cross-building the Rust
 # workspace is too slow to be practical.
 
 on:
-  release:
-    types: [published]
+  workflow_call:
+    inputs:
+      version:
+        description: "Semver (X.Y.Z) to tag this build with — set by release-gateway.yml"
+        required: true
+        type: string
   push:
     branches: [main]
     paths:
@@ -50,8 +61,6 @@ env:
 jobs:
   build:
     name: Build (${{ matrix.arch }})
-    # bridge-v* releases are the client bundle — only gateway v* tags ship images.
-    if: github.event_name != 'release' || startsWith(github.event.release.tag_name, 'v')
     strategy:
       fail-fast: true
       matrix:

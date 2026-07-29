@@ -64,6 +64,32 @@ _derive_base_url() {
 }
 BASE_URL="${BASE_URL:-$(_derive_base_url)}"
 
+# Links a human is meant to click go to ADMIN_URL, not BASE_URL. The admin UI
+# signs in with passkeys, and the WebAuthn relying-party id is the host of
+# api_external_url — a link on any other host (an IP literal above all, which
+# can never be a valid RP id) reaches the login page and then dead-ends there.
+_derive_admin_url() {
+  local profile_yaml="$PROJECT_DIR/.systemprompt/profiles/$PROFILE/profile.yaml"
+  if [[ -f "$profile_yaml" ]]; then
+    local url
+    url=$(grep -E '^[[:space:]]*api_external_url:' "$profile_yaml" | head -1 | sed -E 's/.*api_external_url:[[:space:]]*//; s/[[:space:]]*$//; s/^"//; s/"$//')
+    [[ -n "$url" && "$url" != "null" ]] && { echo "$url"; return; }
+  fi
+  echo "$BASE_URL"
+}
+ADMIN_URL="${ADMIN_URL:-$(_derive_admin_url)}"
+
+_warn_if_ip_host() {
+  local host
+  host=$(printf '%s' "$ADMIN_URL" | sed -E 's#^[a-z]+://##; s#[:/].*$##')
+  if printf '%s' "$host" | grep -qE '^[0-9]+(\.[0-9]+){3}$'; then
+    echo "  WARNING: admin links resolve to $host, an IP address. WebAuthn"
+    echo "  rejects IP relying-party ids, so passkey sign in cannot work there."
+    echo "  Set api_external_url to a hostname (e.g. http://localhost:PORT)."
+  fi
+}
+_warn_if_ip_host
+
 load_token() {
   # Precedence: explicit arg > exported $TOKEN env > demo/.token file. The env
   # path lets an orchestrator (e.g. scaled/run.sh) inject a token signed by a

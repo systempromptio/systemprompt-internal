@@ -38,6 +38,7 @@ impl TemplateDataExtender for OrgUrlExtender {
     async fn extend(
         &self,
         _ctx: &ExtenderContext<'_>,
+        // JSON: required by trait contract
         data: &mut Value,
     ) -> Result<(), systemprompt::traits::ProviderError> {
         let config = Config::get()
@@ -56,3 +57,5 @@ impl TemplateDataExtender for OrgUrlExtender {
         Ok(())
     }
 }
+
+systemprompt_web_shared::submit_extender!(OrgUrlExtender::new());
