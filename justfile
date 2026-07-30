@@ -1,5 +1,8 @@
 # systemprompt-astound
 set dotenv-load
+# Without this, `just cli ... --full-name "Test User"` word-splits the quoted
+# value into two arguments before the CLI ever parses it.
+set positional-arguments
 
 # The fork-aware gates (check-fork-drift, check-dead-repository-code) compare
 # against the sibling template checkout. Without this they skip silently, which
@@ -24,7 +27,7 @@ CLI := if path_exists("target/release/systemprompt") == "true" { \
 
 # Default: run CLI with any arguments
 default *ARGS:
-    {{CLI}} {{ARGS}}
+    {{CLI}} "$@"
 
 # Run CLI with full session context (profile + auth token)
 cli *ARGS:
@@ -39,7 +42,7 @@ cli *ARGS:
     if [ -z "${SYSTEMPROMPT_PROFILE:-}" ]; then
         export SYSTEMPROMPT_PROFILE="{{justfile_directory()}}/.systemprompt/profiles/local/profile.yaml"
     fi
-    exec {{CLI}} {{ARGS}}
+    exec {{CLI}} "$@"
 
 # Get DATABASE_URL from profile secrets (for sqlx compile-time checks)
 _db-url:
@@ -728,11 +731,11 @@ profiles:
 
 # Push to cloud
 sync-push *ARGS:
-    {{CLI}} cloud sync push {{ARGS}}
+    {{CLI}} cloud sync push "$@"
 
 # Pull from cloud
 sync-pull *ARGS:
-    {{CLI}} cloud sync pull {{ARGS}}
+    {{CLI}} cloud sync pull "$@"
 
 # ══════════════════════════════════════════════════════════════════════════════
 # DEPLOY
@@ -801,6 +804,87 @@ docker-build TAG="local":
 # Run image locally for testing
 docker-run TAG="local":
     docker run -p 8080:8080 --env-file .env systemprompt-template:{{TAG}}
+
+# Build the branded bridge. Its own standalone workspace, NOT the server
+# workspace — `just build` does not touch it, and a bare `cargo build` from the
+# repo root silently builds the server instead.
+bridge-build *ARGS:
+    cd {{justfile_directory()}}/bridge && cargo build --release {{ARGS}}
+
+# Package the branded bridge as a Linux release tarball into dist/
+bridge-package-linux:
+    scripts/package-bridge-linux.sh
+
+# ──────────────────────────────────────────────────────────────────────────────
+# CLEAN CLIENT — a config-free Linux box for testing the Claude Code + bridge
+# integration. See deploy/clean-client/README.md.
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Build the clean-client image (context is deploy/clean-client only — no repo state)
+clean-client-build *ARGS:
+    docker build {{ARGS}} -f deploy/clean-client/Dockerfile -t astound-clean-client:local deploy/clean-client
+
+# Shell into a clean client. PERSIST=1 keeps the login across runs.
+# GATEWAY overrides the gateway URL (default: this WSL host on :8080).
+clean-client PERSIST="0" GATEWAY="http://host.docker.internal:8080":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! docker image inspect astound-clean-client:local >/dev/null 2>&1; then
+        echo "Image missing — building it first." >&2
+        just clean-client-build
+    fi
+
+    # Mount the bridge you just built, read-only. Absent is not fatal: you can
+    # still test Claude Code against the gateway without the bridge installed.
+    BRIDGE="{{justfile_directory()}}/bridge/target/release/astound-bridge"
+    MOUNTS=()
+    # -f as well as -x: a bare `docker run -v` against a missing path makes
+    # docker create a root-owned DIRECTORY there, and `[ -x dir ]` is true, so
+    # an -x-only test would happily mount the directory and report a bridge that
+    # is not there.
+    if [ -d "$BRIDGE" ]; then
+        echo "ERROR: $BRIDGE is a directory (docker created it from a stale -v mount)." >&2
+        echo "       Remove it with: sudo rmdir '$BRIDGE'" >&2
+        exit 1
+    fi
+    if [ -f "$BRIDGE" ] && [ -x "$BRIDGE" ]; then
+        MOUNTS+=(-v "$BRIDGE:/usr/local/bin/astound-bridge:ro")
+    else
+        echo "warn: $BRIDGE not found — run 'cd bridge && cargo build --release' for the full flow." >&2
+    fi
+
+    # PERSIST keeps ~/.config/astound and ~/.claude in a named volume so a PAT
+    # survives a restart. Off by default: a throwaway HOME is the point.
+    if [ "{{PERSIST}}" = "1" ]; then
+        MOUNTS+=(-v astound-clean-home:/home/tester -e CLEAN_CLIENT_ALLOW_STATE=1)
+        echo "State persists in volume 'astound-clean-home' — 'just clean-client-reset' wipes it."
+    fi
+
+    # 8767 is the bridge's plugin-OAuth loopback port; it must be reachable from
+    # a Windows browser. It is NOT published if your primary distro already
+    # holds it, since that bind would just fail.
+    PORTS=()
+    if ss -ltn 2>/dev/null | grep -q ':8767 '; then
+        echo "warn: host port 8767 already in use — not publishing it. Plugin OAuth loopback will not work." >&2
+    else
+        PORTS+=(-p 127.0.0.1:8767:8767)
+    fi
+
+    # Note what is deliberately NOT here: no --env-file, no $HOME mounts, no
+    # repo mount. The container must start from nothing.
+    exec docker run -it --rm \
+        --name astound-clean-client \
+        --hostname clean-client \
+        --add-host host.docker.internal:host-gateway \
+        -e ASTOUND_BRIDGE_GATEWAY_URL="{{GATEWAY}}" \
+        "${MOUNTS[@]}" "${PORTS[@]}" \
+        astound-clean-client:local
+
+# Wipe the persisted clean-client state volume
+clean-client-reset:
+    -docker rm -f astound-clean-client 2>/dev/null
+    -docker volume rm astound-clean-home
+    @echo "Clean-client state wiped."
 
 # Test build without pushing
 docker-test:
