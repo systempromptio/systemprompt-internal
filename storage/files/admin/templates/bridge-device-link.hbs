@@ -13,21 +13,28 @@
         <div class="card">
             <div class="login-logo"><img src="/files/images/logo.svg" alt="{{branding.domain}}" height="40"></div>
             <h1 class="text-xl mb-2">Authorise a device</h1>
+            {{#if redirect_host}}
             <p class="text-sm text-tertiary mb-3">
                 A local helper at <strong class="text-primary">{{redirect_host}}</strong> is asking to sign in as
                 <strong class="text-primary">{{user_email}}</strong>.
             </p>
+            {{else}}
+            <p class="text-sm text-tertiary mb-3">
+                A command-line helper on another machine is asking to sign in as
+                <strong class="text-primary">{{user_email}}</strong>.
+            </p>
+            {{/if}}
             <p class="text-sm text-tertiary mb-4">
-                Only approve if you started <code>sp-bridge-auth</code> yourself on this machine. The helper will receive a one-time code (valid for 120&nbsp;seconds) and exchange it for a short-lived JWT.
+                Only approve if you started <code>{{#if redirect_host}}sp-bridge-auth{{else}}astound-bridge login{{/if}}</code> yourself. The helper will receive a one-time code (valid for {{code_ttl_seconds}}&nbsp;seconds) and exchange it for a durable personal access token that signs in as you until you revoke it.
             </p>
 
             <div class="form-actions device-link-actions">
                 <form method="POST" action="/bridge-auth/device-link/approve" class="device-link-form">
-                    <input type="hidden" name="redirect" value="{{redirect}}">
+                    {{#if redirect}}<input type="hidden" name="redirect" value="{{redirect}}">{{/if}}
                     <button type="submit" class="btn btn-primary w-full">Allow</button>
                 </form>
                 <form method="POST" action="/bridge-auth/device-link/deny" class="device-link-form">
-                    <input type="hidden" name="redirect" value="{{redirect}}">
+                    {{#if redirect}}<input type="hidden" name="redirect" value="{{redirect}}">{{/if}}
                     <button type="submit" class="btn btn-secondary w-full">Deny</button>
                 </form>
             </div>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>{{branding.domain}} — {{#if approved}}Device code{{else}}Not approved{{/if}}</title>
+    <link rel="stylesheet" href="/css/core/fonts.css?v={{css_version}}">
+    <link rel="stylesheet" href="/css/admin-bundle.css?v={{css_version}}">
+</head>
+<body>
+    <div class="login-container">
+        <div class="card">
+            <div class="login-logo"><img src="/files/images/logo.svg" alt="{{branding.domain}}" height="40"></div>
+            {{#if approved}}
+            <h1 class="text-xl mb-2">Your device code</h1>
+            <p class="text-sm text-tertiary mb-3">
+                Signed in as <strong class="text-primary">{{user_email}}</strong>. Paste this command into the
+                terminal that asked for a code — it can be used once, and expires in
+                {{expires_in_seconds}}&nbsp;seconds.
+            </p>
+
+            <pre class="sp-connect__cmd"><code>{{login_command}}</code></pre>
+
+            <details class="sp-connect__raw mt-3">
+                <summary>Just the code</summary>
+                <pre class="sp-connect__cmd"><code>{{code}}</code></pre>
+            </details>
+
+            <p class="text-xs text-tertiary mt-3 text-center">
+                Expired before you got to it? Reload the sign-in URL to issue a new code.
+            </p>
+            {{else}}
+            <h1 class="text-xl mb-2">Not approved</h1>
+            <p class="text-sm text-tertiary mb-3">
+                No code was issued and nothing was granted. You can close this page.
+            </p>
+            <p class="text-xs text-tertiary mt-3 text-center">
+                Review your active tokens on <a href="/admin/profile">your profile</a>.
+            </p>
+            {{/if}}
+        </div>
+    </div>
+</body>
+</html>
