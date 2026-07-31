@@ -157,6 +157,9 @@ Screenshot*.png
 # Storage - generated/uploaded files only
 storage/files/uploads/
 storage/files/images/generated/
+# Bridge release artefacts, produced by `just bridge-package-linux` and served
+# from the deployed host at /files/downloads.
+storage/files/downloads/
 
 # SQLx offline cache - MUST be committed for offline builds
 # .sqlx/
