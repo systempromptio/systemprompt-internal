@@ -13,12 +13,9 @@ use axum::response::{IntoResponse, Response};
 use crate::handlers::shared::ErrorBody;
 use crate::types::UserContext;
 
-/// The request path as the client sent it.
-///
-/// `nest_service` strips its prefix from `request.uri()`, so a layer inside
-/// the admin SSR router sees `/profile` where the caller asked for
-/// `/admin/profile`. Anything matching against user-facing paths has to read
-/// through `OriginalUri` instead.
+// Why: `nest_service` strips its prefix from `request.uri()`, so a layer
+// inside the admin SSR router sees `/profile` for a request to
+// `/admin/profile`; matching user-facing paths requires `OriginalUri`.
 fn original_path(request: &Request) -> String {
     request
         .extensions()
@@ -29,13 +26,27 @@ fn original_path(request: &Request) -> String {
         )
 }
 
+// Why: `/bridge/device-link` carries the bridge's loopback callback in
+// `?redirect=`; dropping the query strands the CLI on a callback that never
+// arrives.
+fn original_target(request: &Request) -> String {
+    fn render(uri: &axum::http::Uri) -> String {
+        uri.path_and_query()
+            .map_or_else(|| uri.path().to_owned(), ToString::to_string)
+    }
+    request
+        .extensions()
+        .get::<axum::extract::OriginalUri>()
+        .map_or_else(|| render(request.uri()), |o| render(&o.0))
+}
+
 pub(crate) async fn require_user_middleware(request: Request, next: Next) -> Response {
     let user_ctx = request.extensions().get::<UserContext>().cloned();
     match user_ctx {
         Some(ctx) if !ctx.user_id.as_str().is_empty() => next.run(request).await,
         _ => {
-            let uri = original_path(&request);
-            let redirect_url = format!("/admin/login?redirect={uri}");
+            let target = urlencoding::encode(&original_target(&request)).into_owned();
+            let redirect_url = format!("/admin/login?redirect={target}");
             axum::response::Redirect::temporary(&redirect_url).into_response()
         },
     }

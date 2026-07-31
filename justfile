@@ -12,6 +12,11 @@ export SIBLING_REPO := env("SIBLING_REPO", if path_exists("../systemprompt-templ
 
 CLI_RELEASE := "target/release/systemprompt"
 
+# Cloud profile every deploy targets: tenant a2f658d8bc5f, Fly app
+# sp-a2f658d8bc5f, served at https://astound.systemprompt.io.
+# See .systemprompt/profiles/production/.
+DEPLOY_PROFILE := "production"
+
 # Use newest binary (release vs debug, whichever is most recent)
 CLI := if path_exists("target/release/systemprompt") == "true" { \
     if path_exists("target/debug/systemprompt") == "true" { \
@@ -741,15 +746,20 @@ sync-pull *ARGS:
 # DEPLOY
 # ══════════════════════════════════════════════════════════════════════════════
 
-# Deploy to cloud
+# Build everything and deploy to cloud — one command, no preceding build step.
 # Note: publish_pipeline runs automatically on server startup with correct profile URLs
-deploy *FLAGS:
-    just build --release
-    {{CLI_RELEASE}} cloud deploy {{FLAGS}}
+# Pinned to the `production` profile so a deploy never follows whichever profile
+# the CLI session happens to be switched to.
+deploy *FLAGS: build-all
+    {{CLI_RELEASE}} cloud deploy --profile {{DEPLOY_PROFILE}} {{FLAGS}}
+
+# Pre-deploy preflight only — no build, no push
+deploy-check:
+    {{CLI}} cloud doctor --profile {{DEPLOY_PROFILE}}
 
 # Check deployment status
 status:
-    {{CLI}} cloud status
+    {{CLI}} cloud status --profile {{DEPLOY_PROFILE}}
 
 # ══════════════════════════════════════════════════════════════════════════════
 # MCP & BUILD ALL
@@ -759,10 +769,16 @@ status:
 build-mcp:
     DATABASE_URL="$(just _db-url)" {{CLI}} build mcp --release
 
+# Build CLI extensions. `systemprompt build mcp` only walks type: mcp manifests,
+# so these need their own recipe or `plugins run <name>` finds no binary.
+build-cli:
+    cargo build --release -p systemprompt-cli-salesforce
+
 # Build everything for deployment (Rust binary + MCP servers + web assets)
 build-all:
     just build --release
     just build-mcp
+    just build-cli
     just web-build
     {{CLI_RELEASE}} infra jobs run publish_pipeline
     @echo "All components built"
@@ -879,6 +895,10 @@ clean-client PERSIST="0" GATEWAY="http://host.docker.internal:8080":
         -e ASTOUND_BRIDGE_GATEWAY_URL="{{GATEWAY}}" \
         "${MOUNTS[@]}" "${PORTS[@]}" \
         astound-clean-client:local
+
+# End-to-end: run the published installer with a PAT and assert managed MCP (see script header for how to mint the PAT)
+clean-client-install PAT GATEWAY="http://host.docker.internal:8080":
+    GATEWAY="{{GATEWAY}}" scripts/clean-client-install.sh "{{PAT}}"
 
 # Wipe the persisted clean-client state volume
 clean-client-reset:

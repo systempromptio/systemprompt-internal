@@ -1,7 +1,10 @@
 //! One-shot exchange codes for the bridge device-link flow.
 //!
-//! Only the hash is stored, and codes expire in two minutes: the code travels
-//! through a browser redirect, so a leaked log line must not stay usable.
+//! Only the hash is stored, and codes are short-lived: the code travels through
+//! a browser redirect, so a leaked log line must not stay usable. The window is
+//! ten minutes rather than the two a machine round-trip needs, because the
+//! browserless path asks a person to read the code off a screen and type it
+//! into a terminal.
 
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use rand::RngCore;
@@ -12,7 +15,7 @@ use systemprompt::identifiers::UserId;
 use super::error::Result;
 
 const EXCHANGE_CODE_BYTES: usize = 32;
-const EXCHANGE_CODE_TTL_SECONDS: i64 = 120;
+pub const EXCHANGE_CODE_TTL_SECONDS: i64 = 600;
 
 #[derive(Debug)]
 pub struct IssuedExchangeCode {

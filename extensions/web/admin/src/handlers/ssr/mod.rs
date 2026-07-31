@@ -6,6 +6,7 @@
 use crate::error::{AdminHtmlError, AdminHtmlResult};
 use crate::templates::AdminTemplateEngine;
 use axum::Extension;
+use axum::extract::Query;
 use axum::response::{Html, IntoResponse, Response};
 
 
@@ -61,20 +62,39 @@ pub(crate) use ssr_skills_contexts::skills_contexts_page;
 pub(crate) use ssr_users::{user_detail_page, users_page};
 pub(crate) use ssr_users_sessions::users_sessions_page;
 
-pub(crate) async fn login_page(
-    Extension(engine): Extension<AdminTemplateEngine>,
-) -> AdminHtmlResult<Response> {
-    render_unauthenticated(&engine, "login")
+#[derive(serde::Deserialize)]
+pub(crate) struct LoginParams {
+    redirect: Option<String>,
 }
 
-/// The pages reachable before sign-in, which therefore have no user or
-/// marketplace context to inject and cannot go through `render_page`.
-fn render_unauthenticated(
-    engine: &AdminTemplateEngine,
-    template: &str,
+#[derive(serde::Serialize)]
+struct LoginContext<'a> {
+    #[serde(flatten)]
+    shell: context::BrandingShell<'a>,
+    /// Percent-encoded, ready to append to an SSO start URL. Absent when the
+    /// user came to the login page directly.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    redirect_encoded: Option<String>,
+}
+
+pub(crate) async fn login_page(
+    Extension(engine): Extension<AdminTemplateEngine>,
+    Query(params): Query<LoginParams>,
 ) -> AdminHtmlResult<Response> {
+    let redirect_encoded = sanitize_login_redirect(params.redirect.as_deref())
+        .map(|target| urlencoding::encode(&target).into_owned());
+
+    let ctx = LoginContext {
+        shell: branding_context(&engine),
+        redirect_encoded,
+    };
     let html = engine
-        .render(template, &branding_context(engine))
-        .map_err(|e| AdminHtmlError::internal(format!("{template} page render failed: {e:?}")))?;
+        .render("login", &ctx)
+        .map_err(|e| AdminHtmlError::internal(format!("login page render failed: {e:?}")))?;
     Ok(Html(html).into_response())
+}
+
+fn sanitize_login_redirect(raw: Option<&str>) -> Option<String> {
+    let raw = raw?.trim();
+    (raw.starts_with('/') && !raw.starts_with("//")).then(|| raw.to_owned())
 }

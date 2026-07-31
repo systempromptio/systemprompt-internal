@@ -69,24 +69,10 @@ fn root_routes() -> Router<Arc<PgPool>> {
     Router::new().route("/", get(root_redirect))
 }
 
-/// The console opens on whatever the caller actually administers: every
-/// organization for a platform admin, their own account for anyone else.
-async fn root_redirect(
-    Extension(user_ctx): Extension<crate::types::UserContext>,
-) -> axum::response::Redirect {
-    if user_ctx.is_platform_admin {
-        axum::response::Redirect::to("/admin/enterprises")
-    } else {
-        axum::response::Redirect::to("/admin/profile")
-    }
+async fn root_redirect() -> axum::response::Redirect {
+    axum::response::Redirect::to("/admin/profile")
 }
 
-/// The cross-customer console, behind its own gate.
-///
-/// The gate is on the routes rather than on the whole admin router because the
-/// rest of the console is scoped to the caller — a profile, a session list —
-/// while these pages are the operator's view of every customer's contract and
-/// spend.
 fn enterprise_routes() -> Router<Arc<PgPool>> {
     Router::new()
         .route("/enterprises", get(handlers::ssr::enterprises_page))
@@ -164,7 +150,6 @@ fn catalog_routes() -> Router<Arc<PgPool>> {
         )
 }
 
-/// Read-only inspection of first-class entities.
 fn entity_routes() -> Router<Arc<PgPool>> {
     Router::new()
         .route(

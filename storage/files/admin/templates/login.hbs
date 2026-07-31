@@ -28,7 +28,7 @@
                 <h2>Getting Started</h2>
                 <div class="auth-flow-steps">
                     <div class="auth-flow-step"><span class="step-num">1</span><span>Sign in with Salesforce using your Astound work account &mdash; there is no separate registration step</span></div>
-                    <div class="auth-flow-step"><span class="step-num">2</span><span>Download the desktop bridge for <a href="https://github.com/systempromptio/systemprompt-core/releases/latest/download/systemprompt-bridge-aarch64-apple-darwin">Mac</a> or <a href="https://github.com/systempromptio/systemprompt-core/releases/latest/download/systemprompt-bridge-x86_64-pc-windows-msvc.exe">Windows</a></span></div>
+                    <div class="auth-flow-step"><span class="step-num">2</span><span>Download the desktop bridge for <a href="/files/downloads/astound-bridge-macos.dmg">Mac</a>, <a href="/files/downloads/astound-bridge-windows.exe">Windows</a>, or <a href="/files/downloads/astound-bridge-linux-x86_64.tar.gz">Linux</a></span></div>
                     <div class="auth-flow-step"><span class="step-num">3</span><span>Approve the device link &mdash; the bridge installs your Cowork profile and syncs your skills</span></div>
                     <div class="auth-flow-step"><span class="step-num">4</span><span>Use Astound skills and your own Salesforce data directly inside your AI tools</span></div>
                 </div>
@@ -68,7 +68,11 @@
                         <div id="error" class="login-error" role="alert" aria-live="polite"></div>
 
                         <div class="sso-block">
-                            <a id="salesforce-login" href="/admin/auth/salesforce/start" class="btn w-full sso-btn">
+                            {{!-- redirect_encoded carries where the user was headed
+                                  before the gate bounced them here, so flows that
+                                  start outside the console (device-link) resume
+                                  after sign-in instead of landing on the dashboard. --}}
+                            <a id="salesforce-login" href="/admin/auth/salesforce/start{{#if redirect_encoded}}?redirect={{redirect_encoded}}{{/if}}" class="btn w-full sso-btn">
                                 Sign in with Salesforce
                             </a>
                             <div class="sso-divider"><span>or use a passkey</span></div>

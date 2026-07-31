@@ -11,8 +11,13 @@ use crate::types::{MarketplaceContext, UserContext};
 
 use super::ssr_helpers::render_typed_page;
 
-const DOWNLOAD_BASE_URL: &str =
-    "https://github.com/Ejb503/systemprompt-core/releases/latest/download";
+// Why: `/files/**` serves straight out of `storage/files/`, so dropping an
+// artifact there publishes it. `/downloads` is not viable —
+// `RoutingDecision::is_static_asset_path` gates on an extension list with no
+// archive entry while whitelisting the `/files` prefix wholesale. Asset names
+// stay in lockstep with `scripts/package-bridge-linux.sh`, `bridge-setup.hbs`,
+// and `ARTIFACTS` in `storage/files/js/pages/admin-bridge-setup.js`.
+const DOWNLOAD_BASE_URL: &str = "/files/downloads";
 
 #[derive(Debug, Serialize)]
 struct SetupPageData {

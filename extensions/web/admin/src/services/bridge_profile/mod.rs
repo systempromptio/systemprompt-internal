@@ -68,13 +68,65 @@ pub(crate) struct AgentsBlock {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub(crate) struct BridgeConnectBlock {
+    pub code: String,
+    pub expires_in_seconds: i64,
+    pub gateway: String,
+    /// For a machine with no bridge yet.
+    pub install_command: String,
+    /// For a machine that already has one.
+    pub login_command: String,
+}
+
+// Why: not derivable here — `brand()` lives in the bridge crate, which the
+// admin extension does not depend on.
+const BRIDGE_BINARY: &str = "astound-bridge";
+
+#[derive(Debug, Clone, Serialize)]
 pub(crate) struct BridgeProfilePageData {
     pub page: &'static str,
     pub title: &'static str,
     pub identity: ProfileIdentity,
+    pub bridge_connect: Option<BridgeConnectBlock>,
     pub bridge_profile: Option<BridgeProfileBlock>,
     pub usage: ProfileUsage,
     pub agents: AgentsBlock,
+}
+
+async fn build_bridge_connect(
+    pool: &PgPool,
+    user_ctx: &UserContext,
+    gateway: Option<&str>,
+) -> Option<BridgeConnectBlock> {
+    let gateway = gateway?.to_owned();
+    let issued = crate::repositories::bridge::issue_exchange_code(pool, &user_ctx.user_id)
+        .await
+        .map_err(|e| {
+            tracing::warn!(
+                error = %e,
+                "could not mint a bridge exchange code for the profile page"
+            );
+        })
+        .ok()?;
+
+    let expires_in_seconds = (issued.expires_at - chrono::Utc::now())
+        .num_seconds()
+        .max(0);
+
+    Some(BridgeConnectBlock {
+        install_command: format!(
+            "curl -fsSL {gateway}/files/downloads/install.sh | sh -s -- \
+             --download-base {gateway}/files/downloads --code {code}",
+            code = issued.code
+        ),
+        login_command: format!(
+            "{BRIDGE_BINARY} login --code {code} --gateway {gateway}",
+            code = issued.code
+        ),
+        code: issued.code,
+        expires_in_seconds,
+        gateway,
+    })
 }
 
 // Why: Build the full payload. Falls back gracefully when individual sections
@@ -94,6 +146,7 @@ pub(crate) async fn build_bridge_profile_data(
 
     let (jwt_issuer, gateway_url) = read_config_strings();
     let bridge_profile = build_bridge_profile_block();
+    let bridge_connect = build_bridge_connect(&pool, user_ctx, gateway_url.as_deref()).await;
 
     let identity = ProfileIdentity {
         email: user_ctx.email.as_str().to_owned(),
@@ -114,6 +167,7 @@ pub(crate) async fn build_bridge_profile_data(
         page: "profile",
         title: "Profile",
         identity,
+        bridge_connect,
         bridge_profile,
         usage,
         agents,

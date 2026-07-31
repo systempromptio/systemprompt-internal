@@ -38,6 +38,43 @@
             </div>
         </header>
 
+        {{!-- CONNECT THE BRIDGE — first thing after sign-in ── --}}
+        {{#if bridge_connect}}
+        <article class="sp-profile-card sp-profile-card--connect" id="connect-bridge">
+            <header class="sp-profile-card__head">
+                <div class="sp-profile-card__title">
+                    <svg class="sp-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                    <h2>Connect Claude Code on your machine</h2>
+                </div>
+                <span class="sp-profile-card__hint">
+                    one-shot code · expires in {{bridge_connect.expires_in_seconds}}s · reload this page for a fresh one
+                </span>
+            </header>
+
+            <div class="sp-connect">
+                <p class="sp-connect__lede">
+                    You are signed in as <strong>{{identity.email}}</strong>. The code below is bound to
+                    that identity and can be used once.
+                </p>
+
+                <div class="sp-connect__step">
+                    <span class="sp-connect__label">New machine — installs the bridge and Claude Code</span>
+                    <pre class="sp-connect__cmd"><code>{{bridge_connect.install_command}}</code></pre>
+                </div>
+
+                <div class="sp-connect__step">
+                    <span class="sp-connect__label">Bridge already installed</span>
+                    <pre class="sp-connect__cmd"><code>{{bridge_connect.login_command}}</code></pre>
+                </div>
+
+                <details class="sp-connect__raw">
+                    <summary>Just the code</summary>
+                    <pre class="sp-connect__cmd"><code>{{bridge_connect.code}}</code></pre>
+                </details>
+            </div>
+        </article>
+        {{/if}}
+
         {{!-- TOKEN USAGE — full row of big tiles ──────────── --}}
         <article class="sp-profile-card sp-profile-card--usage">
             <header class="sp-profile-card__head">

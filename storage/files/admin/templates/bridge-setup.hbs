@@ -19,9 +19,10 @@
                     <details class="download-other">
                         <summary>Other platforms</summary>
                         <ul>
-                            <li><a href="{{download_base_url}}/systemprompt-bridge-macos.dmg">macOS (.dmg)</a></li>
-                            <li><a href="{{download_base_url}}/systemprompt-bridge-windows.exe">Windows (.exe)</a></li>
-                            <li><a href="{{download_base_url}}/systemprompt-bridge-linux.tar.gz">Linux (.tar.gz)</a></li>
+                            <li><a href="{{download_base_url}}/astound-bridge-macos.dmg">macOS (.dmg)</a></li>
+                            <li><a href="{{download_base_url}}/astound-bridge-windows.exe">Windows (.exe)</a></li>
+                            <li><a href="{{download_base_url}}/astound-bridge-linux-x86_64.tar.gz">Linux (.tar.gz, x86_64)</a></li>
+                            <li><a href="{{download_base_url}}/astound-bridge-linux-aarch64.tar.gz">Linux (.tar.gz, aarch64)</a></li>
                         </ul>
                     </details>
                 </div>
@@ -43,6 +44,7 @@
                     <div class="tabs" role="tablist">
                         <button type="button" class="active" role="tab" data-tab="tray">Tray app (macOS / Windows)</button>
                         <button type="button" role="tab" data-tab="terminal">Terminal (any OS)</button>
+                        <button type="button" role="tab" data-tab="linux">Linux (one-line install)</button>
                     </div>
                     <div class="tab-panel" id="tab-tray" role="tabpanel">
                         <ol>
@@ -57,6 +59,14 @@
                             <pre><code id="cli-snippet">systemprompt-bridge login sp-live-YOUR_TOKEN --gateway {{gateway_url}}</code></pre>
                         </div>
                         <p class="text-tertiary text-sm">Replace <code>sp-live-YOUR_TOKEN</code> with the token from step 2.</p>
+                    </div>
+                    <div class="tab-panel" id="tab-linux" role="tabpanel" hidden>
+                        <p>One command &mdash; downloads, verifies the checksum, installs to <code>~/.local/bin</code>, and writes the environment.</p>
+                        <div class="snippet">
+                            <button type="button" class="btn btn-sm copy-btn" id="linux-copy-btn">Copy</button>
+                            <pre><code id="linux-snippet">curl -fsSL {{download_base_url}}/install.sh | sh -s -- --download-base {{download_base_url}} --gateway {{gateway_url}}</code></pre>
+                        </div>
+                        <p class="text-tertiary text-sm">Then open a new login shell and run <code>claude</code>. No manual exports: the installer writes <code>~/.config/astound/env.sh</code> and a managed block in <code>~/.profile</code>, and registers the systemd user units for sync and the loopback proxy.</p>
                     </div>
                 </div>
             </div>
@@ -84,9 +94,11 @@ enabled = true
 # file = "/abs/path/to/pat.txt"  # contents = the sp-live-... secret
 
 # [mtls]
-# cert_path = "/etc/systemprompt/device.pem"  # Linux
-# cert_label = "systemprompt-device"          # macOS keystore
-# cert_sha256 = "&lt;64-hex&gt;"                   # Windows cert store</code></pre>
+# On Linux cert_keystore_ref is the path to the device certificate.
+# On macOS/Windows its presence only means "use mTLS" &mdash; the certificate is
+# named by SYSTEMPROMPT_BRIDGE_DEVICE_CERT_LABEL (Keychain label) or
+# SYSTEMPROMPT_BRIDGE_DEVICE_CERT_SHA256 (cert-store thumbprint).
+# cert_keystore_ref = "~/.config/systemprompt/device.pem"</code></pre>
             </div>
             <p class="text-tertiary text-sm">
                 Stored at <code>$XDG_CONFIG_HOME/systemprompt/</code> on Linux,

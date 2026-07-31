@@ -1,13 +1,21 @@
+// Filenames must match the release assets: scripts/package-bridge-linux.sh
+// emits the Linux pair, and DOWNLOAD_BASE_URL lives in
+// extensions/web/admin/src/handlers/ssr/ssr_bridge_setup.rs.
 const ARTIFACTS = {
-  macos: { label: 'Download for macOS', file: 'systemprompt-bridge-macos.dmg' },
-  windows: { label: 'Download for Windows', file: 'systemprompt-bridge-windows.exe' },
-  linux: { label: 'Download for Linux', file: 'systemprompt-bridge-linux.tar.gz' }
+  macos: { label: 'Download for macOS', file: 'astound-bridge-macos.dmg' },
+  windows: { label: 'Download for Windows', file: 'astound-bridge-windows.exe' },
+  'linux-x86_64': { label: 'Download for Linux (x86_64)', file: 'astound-bridge-linux-x86_64.tar.gz' },
+  'linux-aarch64': { label: 'Download for Linux (aarch64)', file: 'astound-bridge-linux-aarch64.tar.gz' }
 };
 
+// Linux ships one tarball per architecture, so the CTA has to pick. The UA
+// string only advertises arm64 when it is not x86_64, so absence means x86_64.
 const detectPlatform = (ua) => {
   if (/Mac/i.test(ua)) return 'macos';
   if (/Win/i.test(ua)) return 'windows';
-  if (/Linux/i.test(ua)) return 'linux';
+  if (/Linux|Android/i.test(ua)) {
+    return /aarch64|arm64|armv8/i.test(ua) ? 'linux-aarch64' : 'linux-x86_64';
+  }
   return 'macos';
 };
 
@@ -34,14 +42,21 @@ if (pill) {
     });
 }
 
-const tabs = document.querySelectorAll('.tabs button');
-for (const btn of tabs) {
-  btn.addEventListener('click', () => {
-    for (const b of tabs) b.classList.toggle('active', b === btn);
-    const target = btn.dataset.tab;
-    document.getElementById('tab-tray').hidden = target !== 'tray';
-    document.getElementById('tab-terminal').hidden = target !== 'terminal';
-  });
+// Panels are derived from the buttons rather than listed, so adding a tab to
+// the template needs no change here.
+const tabs = [...document.querySelectorAll('.tabs button')];
+const selectTab = (name) => {
+  for (const b of tabs) b.classList.toggle('active', b.dataset.tab === name);
+  for (const b of tabs) {
+    const panel = document.getElementById(`tab-${b.dataset.tab}`);
+    if (panel) panel.hidden = b.dataset.tab !== name;
+  }
+};
+for (const btn of tabs) btn.addEventListener('click', () => selectTab(btn.dataset.tab));
+
+// There is no tray app on Linux, so land Linux visitors on the one-line install.
+if (detectPlatform(navigator.userAgent).startsWith('linux') && tabs.some((b) => b.dataset.tab === 'linux')) {
+  selectTab('linux');
 }
 
 const wireCopy = (btnId, srcId) => {
@@ -59,4 +74,5 @@ const wireCopy = (btnId, srcId) => {
 };
 
 wireCopy('cli-copy-btn', 'cli-snippet');
+wireCopy('linux-copy-btn', 'linux-snippet');
 wireCopy('toml-copy-btn', 'toml-snippet');

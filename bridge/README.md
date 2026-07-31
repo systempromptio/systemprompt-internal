@@ -28,6 +28,106 @@ paths (e.g. `~/.config/astound/astound-bridge.toml`), and all env overrides use
 the `ASTOUND_BRIDGE_` prefix (`ASTOUND_BRIDGE_GATEWAY_URL`, `ASTOUND_BRIDGE_PAT`,
 `ASTOUND_BRIDGE_CONFIG`, …).
 
+## Linux
+
+There is no GUI on Linux (`gui` is macOS/Windows only). The headless inference
+proxy takes its place: it listens on `127.0.0.1:48217`, swaps a loopback secret
+for a fresh gateway JWT, and injects identity headers.
+
+### Steady state: log in, run `claude`
+
+An admin issues the user a one-shot enrolment code:
+
+```bash
+systemprompt admin bridge issue-code --user-id <uuid>
+```
+
+The user runs one command and pastes it (it prompts if omitted):
+
+```bash
+curl -fsSL https://your-gateway/files/downloads/install.sh | sh -s -- \
+  --download-base https://your-gateway/files/downloads --code <code>
+```
+
+The installer verifies the tarball checksum (refusing to proceed on a mismatch),
+installs to `~/.local/bin` (or `/usr/local/bin` as root), installs Claude Code if
+absent — that must precede `sync`, or the marketplace emitter skips silently —
+redeems the code for a durable PAT via `login --code`, then runs
+`install --apply --apply-schedule`, starts the proxy, syncs, and finishes on
+`doctor`. Codes are short-lived and single-use; `--pat sp-live-…` is accepted
+instead, and `--pubkey <base64>` pins the manifest signing key out of band
+(without it the first sync trusts the key it is served, and says so).
+
+`install --apply --apply-schedule` between them write:
+
+| What | Where |
+|---|---|
+| `ANTHROPIC_BASE_URL`, `ANTHROPIC_AUTH_TOKEN` | `~/.config/astound/env.sh` |
+| a marker-delimited block sourcing that file | `~/.profile` |
+| periodic plugin/MCP sync | `astound-bridge-sync.{service,timer}` (systemd user) |
+| the loopback proxy, restarted on failure | `astound-bridge-proxy.service` (systemd user) |
+
+The token is read from `~/.config/astound/bridge-loopback.key` when the file is
+sourced, not baked in, so a rotated secret needs no rewrite. Re-running install
+replaces the `~/.profile` block rather than appending a second one, and
+`astound-bridge uninstall` removes both units, `env.sh`, and the block.
+
+Where there is no systemd user bus (a container, WSL without systemd) the units
+are still written and `--apply-schedule` warns instead of failing; run the proxy
+by hand with `astound-bridge proxy`.
+
+After a new login shell, `claude` works with no manual exports.
+
+### Headless credentials
+
+Device certificates are the supported unattended credential — they renew without
+a browser, which a device-link grant cannot. Name the certificate in the config:
+
+```toml
+[mtls]
+cert_keystore_ref = "~/.config/astound/device.pem"
+```
+
+`cert_keystore_ref` carries a *path* on Linux only. macOS addresses certificates
+by Keychain label and Windows by cert-store thumbprint, and both ignore the
+value — there, its presence just means "use mTLS".
+`ASTOUND_BRIDGE_DEVICE_CERT` still works and takes precedence where both are set.
+
+**Credential storage tiers down.** The OAuth client secret behind plugin hooks
+prefers the freedesktop Secret Service, falls back to the kernel keyutils keyring
+when no provider is present (headless servers, containers, CI), and finally to
+this process's memory. Never a plaintext file — the secret is re-mintable, so
+disk persistence would add an exfiltration target and buy nothing. Docker's
+default seccomp profile denies `keyctl`/`add_key`, so keyutils is probed with a
+real write/read round-trip before being accepted. `astound-bridge doctor` reports
+which tier is in use — along with whether the proxy is listening and whether its
+systemd unit is active.
+
+**Runtime dependencies.** The binary dynamically links `libdbus-1`, `libsystemd`,
+`libcap`, and `libgcrypt` — dbus because of the Secret Service store above. On a
+minimal host these must be installed or the binary fails at exec with
+`error while loading shared libraries`, before any of our diagnostics run:
+
+```bash
+sudo apt-get install -y libdbus-1-3 libcap2 libgcrypt20 libsystemd0   # Debian/Ubuntu
+```
+
+### Release tarball
+
+```bash
+just bridge-package-linux     # → dist/astound-bridge-linux-<arch>.tar.gz + .sha256
+```
+
+The recipe also publishes the tarball, its `.sha256`, and
+`scripts/install-bridge.sh` (as `install.sh`) into `storage/files/downloads/`,
+which the admin Bridge Setup page serves same-origin. The archive carries the
+binary plus an `INSTALL.md` stating the above. Asset
+names are load-bearing — they must match `DOWNLOAD_BASE_URL` in
+`extensions/web/admin/src/handlers/ssr/ssr_bridge_setup.rs`, the links in
+`storage/files/admin/templates/bridge-setup.hbs`, and `ARTIFACTS` in
+`storage/files/js/pages/admin-bridge-setup.js`. Test the result on a machine
+with no config using `just clean-client` (see `deploy/clean-client/`).
+
 ## macOS .app bundle
 
 ```bash
