@@ -1,7 +1,7 @@
 marketplace:
   id: enterprise-demo
   name: "Astound Digital — Salesforce Productivity"
-  description: "A Salesforce-first workspace: plain-English assistants for your deals, accounts, contacts, leads, cases, and to-dos. One plugin per common object, each bundling skills, a specialist agent, and the Salesforce MCP server."
+  description: "A Salesforce-first workspace: plain-English assistants for your deals, accounts, contacts, leads, cases, and to-dos. One plugin per common object, each bundling skills, dashboards, and the Salesforce MCP server."
   version: "3.0.0"
   visibility: public
   author:
@@ -76,12 +76,7 @@ marketplace:
       - salesforce
       - systemprompt
     exclude: []
+  # No agents are published by this marketplace. Plugins ship skills, the
+  # Salesforce MCP server, and artifacts only.
   agents:
-    include:
-      - salesforce_agent
-      - pipeline_agent
-      - account_agent
-      - contact_agent
-      - lead_agent
-      - case_agent
-      - activity_agent
+    include: []

@@ -1,7 +1,7 @@
 plugin:
   id: astound-salesforce-activities
   name: "Salesforce — Tasks, Calls & Meetings"
-  description: "Work with your Salesforce activities: find what's due and overdue, read your day and week at a glance, and safely log calls, set follow-ups, and schedule meetings — with a tasks and meetings specialist agent"
+  description: "Work with your Salesforce activities: find what's due and overdue, read your day and week at a glance, and safely log calls, set follow-ups, and schedule meetings"
   version: "1.0.0"
   enabled: true
   author:
@@ -18,8 +18,7 @@ plugin:
       - activities_update
   agents:
     source: explicit
-    include:
-      - activity_agent
+    include: []
   mcp_servers:
     source: explicit
     include:

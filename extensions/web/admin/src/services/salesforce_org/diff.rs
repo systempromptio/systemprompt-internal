@@ -9,7 +9,7 @@
 
 use std::fmt;
 
-use super::spec::{OrgSpec, PermissionSetSpec};
+use super::spec::{HostedMcpServer, OrgSpec, PermissionSetSpec};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ChangeKind {
@@ -159,14 +159,62 @@ pub fn diff(actual: &OrgSpec, desired: &OrgSpec) -> ChangeSet {
         "",
         &d.oauth.consumer_secret_optional.to_string(),
     );
+    push(
+        &mut changes,
+        ChangeKind::AlwaysApplied,
+        "external_client_app.oauth.named_user_jwt",
+        "",
+        &d.oauth.named_user_jwt.to_string(),
+    );
 
     diff_permission_sets(
         &mut changes,
         &actual.permission_sets,
         &desired.permission_sets,
     );
+    diff_hosted_mcp_servers(
+        &mut changes,
+        &actual.hosted_mcp_servers,
+        &desired.hosted_mcp_servers,
+    );
 
     ChangeSet { changes }
+}
+
+/// A server switched off in the org is real drift, not a note: `apply` can and
+/// does switch it back on through `McpServerAccess`.
+///
+/// Servers active in the org but absent from the spec are deliberately not
+/// reported. Apply is additive and would never deactivate one, so calling it
+/// drift would be reporting a difference nothing will ever resolve.
+fn diff_hosted_mcp_servers(
+    changes: &mut Vec<Change>,
+    actual: &[HostedMcpServer],
+    desired: &[HostedMcpServer],
+) {
+    for want in desired {
+        let path = format!("hosted_mcp_servers.{}", want.developer_name);
+        match actual
+            .iter()
+            .find(|a| a.developer_name == want.developer_name)
+        {
+            // Why: absent means the org does not offer this server. Apply
+            // cannot fix it, so it is surfaced as an add the operator must
+            // resolve rather than something the tool will silently create.
+            None => push(changes, ChangeKind::Add, &path, "absent", "present"),
+            Some(have) => {
+                if have.active != want.active {
+                    push(
+                        changes,
+                        ChangeKind::Update,
+                        &format!("{path}.active"),
+                        &have.active.to_string(),
+                        &want.active.to_string(),
+                    );
+                }
+            },
+        }
+    }
 }
 
 fn diff_scopes(

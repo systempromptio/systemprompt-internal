@@ -45,6 +45,13 @@ external_client_app:
     # unaffected. Not readable back from any API — see the note below.
     pkce_required: true
     consumer_secret_optional: false
+    # Issue JWT-format access tokens for named users. Declared explicitly, not
+    # left to the default: the REST metadata deploy accepts JWT-format tokens
+    # where the SOAP Metadata API rejects them, so this flag is what makes a
+    # headless apply possible. It is out of schema at metadata version 64.0 and
+    # in scope at 67.0 — from 67.0, omitting it would reset it and lock this
+    # tool out of the org it had just configured.
+    named_user_jwt: true
 
   policies:
     # Access is granted only through the permission set below.
@@ -66,16 +73,24 @@ permission_sets:
     # user who needs MCP; without it they authenticate and get nothing.
     grants_app: Systemprompt_SSO
 
-# Asserted, never created. No API to activate a standard hosted MCP server was
-# found, so apply reports an inactive one as an actionable error rather than
-# pretending to fix it.
+# Never created — an org either offers a standard server or it does not — but
+# `active` is read and written through the Tooling `McpServerAccess` object
+# (API version 67.0 and up). A server switched off in the org is reported as
+# drift and switched back on by apply. A server named here but absent from the
+# org is an error: the org does not offer it, and activation cannot fix that.
+#
+# Apply is additive. Servers active in the org but not listed here are left
+# alone, not deactivated.
 hosted_mcp_servers:
   - name: sobject-all
+    developer_name: platform_sobject_all
     endpoint: https://api.salesforce.com/platform/mcp/v1/platform/sobject-all
+    active: true
 
 # WRITE-ONLY FIELDS
 #
-# `callback_url`, `pkce_required` and `consumer_secret_optional` live on
+# `callback_url`, `pkce_required`, `consumer_secret_optional` and
+# `named_user_jwt` live on
 # ExtlClntAppGlobalOauthSettings, which is not a queryable sObject — the
 # ExtlClntAppOauthSetAttr/PlcyAttr bags that might have carried them are empty.
 # They are deployed on every apply but cannot be read back, so `diff` reports

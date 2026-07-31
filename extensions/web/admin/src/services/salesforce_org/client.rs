@@ -10,26 +10,31 @@
 //! instead of shelling out to the `sf` CLI: deploy over REST keeps the whole
 //! loop headless with the credentials the platform already holds.
 
-use std::time::Duration;
-
-use serde::Deserialize;
-
 use crate::handlers::salesforce_auth::SalesforceError;
 use crate::services::salesforce_jwt_bearer;
 
-/// Salesforce API version. Bumping this is a deliberate act: the metadata
-/// schema is version-sensitive (`isNamedUserJwtEnabled`, for one, is rejected
-/// as "not valid in version 64.0").
-pub const API_VERSION: &str = "64.0";
+/// Salesforce API version for REST and Tooling *resource paths*.
+///
+/// Independent of [`METADATA_VERSION`] despite holding the same value today.
+/// This one only decides which `/services/data/vNN.0/` URLs are called, so it
+/// governs which sObjects exist — `McpServerAccess`, for one, appears at 67.0.
+pub const API_VERSION: &str = "67.0";
 
-const DEPLOY_TIMEOUT: Duration = Duration::from_secs(300);
-const DEPLOY_POLL_INTERVAL: Duration = Duration::from_secs(3);
+/// Metadata API *schema* version, emitted as `<version>` in `package.xml`.
+///
+/// Separate from [`API_VERSION`] because this one selects a schema, not a URL:
+/// it decides which elements a deployed component may carry. Bumping it is a
+/// deliberate act — the deploy is declarative, so an element that comes newly
+/// into scope and is then omitted takes its default rather than being left
+/// alone. See `deploy/salesforce/README.md` for the probe method that
+/// establishes the accepted element set for a version.
+pub const METADATA_VERSION: &str = "67.0";
 
 /// Connection details for the org being read or configured.
 ///
 /// Deliberately separate from `SalesforceConfig`: that describes *this*
 /// deployment's SSO client, whereas this describes an arbitrary target org.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct TargetOrg {
     /// My Domain base URL, e.g. `https://acme.my.salesforce.com`.
     pub my_domain: String,
@@ -40,6 +45,14 @@ pub struct TargetOrg {
     pub jwt_subject: String,
     /// PEM private key matching the certificate uploaded to the app.
     pub private_key_pem: String,
+    /// PEM certificate matching [`private_key_pem`](Self::private_key_pem).
+    ///
+    /// Required to *apply*, unused to export or diff. A metadata deploy is
+    /// declarative and `certificate` is in schema on
+    /// `ExtlClntAppGlobalOauthSettings`, so a package that omits it clears the
+    /// app's digital signature — and with it the JWT-bearer grant this type
+    /// authenticates with.
+    pub certificate_pem: Option<String>,
 }
 
 impl TargetOrg {
@@ -49,13 +62,17 @@ impl TargetOrg {
     /// [`SalesforceError::Internal`] naming the first missing variable.
     pub fn from_env() -> Result<Self, SalesforceError> {
         fn var(name: &str) -> Result<String, SalesforceError> {
-            std::env::var(name).map_err(|_| SalesforceError::Internal(format!("{name} is not set")))
+            std::env::var(name)
+                .map_err(|e| SalesforceError::Internal(format!("{name} is unusable: {e}")))
         }
         Ok(Self {
             my_domain: var("SF_TARGET_MY_DOMAIN")?.trim_end_matches('/').to_owned(),
             consumer_key: var("SF_TARGET_CONSUMER_KEY")?,
             jwt_subject: var("SF_TARGET_JWT_SUBJECT")?,
             private_key_pem: var("SF_TARGET_PRIVATE_KEY")?,
+            // Why: optional here rather than required, so export and diff still
+            // work without it. Apply checks for it and refuses.
+            certificate_pem: std::env::var("SF_TARGET_CERTIFICATE").ok(),
         })
     }
 
@@ -64,11 +81,37 @@ impl TargetOrg {
     }
 }
 
+// Why: hand-written rather than derived because the struct holds an RSA
+// private key. A derived Debug would print it in full anywhere the value is
+// formatted or attached to a tracing span.
+impl std::fmt::Debug for TargetOrg {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TargetOrg")
+            .field("my_domain", &self.my_domain)
+            .field("consumer_key", &"<redacted>")
+            .field("jwt_subject", &self.jwt_subject)
+            .field("private_key_pem", &"<redacted>")
+            .field("certificate_pem", &self.certificate_pem.is_some())
+            .finish()
+    }
+}
+
 /// A live, authenticated connection to one org.
 pub struct Connection {
     access_token: String,
     instance_url: String,
     http: reqwest::Client,
+}
+
+// Why: same reason as TargetOrg — this one holds a live bearer token.
+impl std::fmt::Debug for Connection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Connection")
+            .field("instance_url", &self.instance_url)
+            .field("access_token", &"<redacted>")
+            .field("http", &"reqwest::Client")
+            .finish()
+    }
 }
 
 impl Connection {
@@ -231,6 +274,40 @@ impl Connection {
             .ok_or_else(|| {
                 SalesforceError::Internal(format!("create {sobject} returned no id: {text}"))
             })
+    }
+
+    /// Update an sObject record in place.
+    ///
+    /// Salesforce answers a successful PATCH with 204 and an empty body, so
+    /// there is nothing to return.
+    ///
+    /// # Errors
+    /// [`SalesforceError::TokenEndpoint`] carrying Salesforce's error body on a
+    /// non-2xx.
+    pub async fn update_sobject(
+        &self,
+        sobject: &str,
+        id: &str,
+        body: &serde_json::Value,
+        tooling: bool,
+    ) -> Result<(), SalesforceError> {
+        let prefix = if tooling { "tooling/" } else { "" };
+        let resp = self
+            .http
+            .patch(format!(
+                "{}/services/data/v{API_VERSION}/{prefix}sobjects/{sobject}/{id}",
+                self.instance_url
+            ))
+            .bearer_auth(&self.access_token)
+            .json(body)
+            .send()
+            .await?;
+        let status = resp.status();
+        if !status.is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(SalesforceError::TokenEndpoint { status, body });
+        }
+        Ok(())
     }
 
     /// Delete an sObject record.

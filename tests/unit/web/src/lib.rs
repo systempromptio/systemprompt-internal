@@ -6,6 +6,8 @@
 //! - inventory registry completeness for jobs, renderers, and providers
 //! - calendar-month resolution and the month-end P&L's derived figures
 //! - Salesforce org drift detection, including the fields no API can read back
+//! - the `secrets` gateway scanner's response surface, which must cover tool
+//!   calls and unmodelled blocks, not only `Text`
 
 #[cfg(test)]
 mod campaign_link_full_url;
@@ -25,5 +27,10 @@ mod registry_completeness;
 mod report_pnl;
 #[cfg(test)]
 mod salesforce_org_diff;
+mod salesforce_org_package;
+#[cfg(test)]
+mod salesforce_org_secrets;
+#[cfg(test)]
+mod secrets_scanner_response;
 #[cfg(test)]
 mod seed_contract;

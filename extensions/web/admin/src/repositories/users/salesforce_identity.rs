@@ -27,6 +27,22 @@ pub async fn upsert(pool: &PgPool, user_id: &UserId, sf_username: &str) -> Resul
     Ok(())
 }
 
+/// Every Salesforce Username this deployment knows about, sorted.
+///
+/// The source of truth for "who our users are" when provisioning an org: these
+/// are the accounts that completed a Salesforce SSO login, so these are the
+/// accounts `salesforce apply` assigns the MCP permission set to. Keeping the
+/// list here rather than in `org.yaml` keeps personal data out of the
+/// repository and out of a file that gets copied between orgs.
+pub async fn list_salesforce_usernames(pool: &PgPool) -> Result<Vec<String>, sqlx::Error> {
+    let rows = sqlx::query!(
+        "SELECT DISTINCT sf_username FROM salesforce_user_identities ORDER BY sf_username"
+    )
+    .fetch_all(pool)
+    .await?;
+    Ok(rows.into_iter().map(|r| r.sf_username).collect())
+}
+
 /// The Salesforce Username for `user_id`, or `None` if this user never
 /// completed a Salesforce SSO login (in which case the caller falls back to the
 /// email).

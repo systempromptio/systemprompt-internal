@@ -9,8 +9,8 @@
 use systemprompt_web_admin::salesforce_org::diff::{ChangeKind, diff};
 use systemprompt_web_admin::salesforce_org::scope::OauthScope;
 use systemprompt_web_admin::salesforce_org::spec::{
-    ExternalClientApp, IpRelaxation, OauthSpec, OrgSpec, PermissionSetSpec, PolicySpec, Validity,
-    ValidityUnit,
+    ExternalClientApp, HostedMcpServer, IpRelaxation, OauthSpec, OrgSpec, PermissionSetSpec,
+    PolicySpec, Validity, ValidityUnit,
 };
 
 fn spec() -> OrgSpec {
@@ -33,6 +33,7 @@ fn spec() -> OrgSpec {
                 first_party_app_enabled: false,
                 pkce_required: true,
                 consumer_secret_optional: false,
+                named_user_jwt: true,
                 single_logout_url: None,
             },
             policies: PolicySpec {
@@ -176,5 +177,89 @@ fn a_permission_set_that_lost_its_app_grant_is_drift() {
     assert_eq!(
         drift[0].path,
         "permission_sets.Salesforce_MCP_Access.grants_app"
+    );
+}
+
+fn sobject_all(active: bool) -> HostedMcpServer {
+    HostedMcpServer {
+        name: "sobject-all".to_owned(),
+        developer_name: "platform_sobject_all".to_owned(),
+        endpoint: "https://api.salesforce.com/platform/mcp/v1/platform/sobject-all".to_owned(),
+        active,
+    }
+}
+
+/// A server switched off in the org is drift, not a note. `apply` PATCHes
+/// `McpServerAccess.Active` back on, so reporting it as "always applied" would
+/// hide a change the tool can and will make.
+#[test]
+fn an_inactive_hosted_mcp_server_is_drift() {
+    let mut desired = spec();
+    desired.hosted_mcp_servers = vec![sobject_all(true)];
+    let mut actual = desired.clone();
+    actual.hosted_mcp_servers = vec![sobject_all(false)];
+
+    let drift = diff(&actual, &desired);
+    let changes = drift.drift();
+    assert_eq!(changes.len(), 1, "expected exactly one delta: {changes:?}");
+    assert_eq!(
+        changes[0].path,
+        "hosted_mcp_servers.platform_sobject_all.active"
+    );
+    assert_eq!(changes[0].kind, ChangeKind::Update);
+    assert_eq!(changes[0].actual, "false");
+    assert_eq!(changes[0].desired, "true");
+}
+
+/// Apply is additive: it never deactivates. A server the org has active but the
+/// spec does not mention is therefore not drift — calling it drift would report
+/// a difference no apply will ever resolve.
+#[test]
+fn an_unmanaged_active_server_is_not_drift() {
+    let desired = spec();
+    let mut actual = desired.clone();
+    actual.hosted_mcp_servers = vec![HostedMcpServer {
+        name: "engagement-interaction".to_owned(),
+        developer_name: "industries_engagement_interaction".to_owned(),
+        endpoint: "https://example.test/engagement".to_owned(),
+        active: true,
+    }];
+
+    assert!(diff(&actual, &desired).is_clean());
+}
+
+/// A server the spec names but the org does not offer cannot be fixed by
+/// activation, so it surfaces as an actionable add rather than being skipped.
+#[test]
+fn a_server_missing_from_the_org_is_reported() {
+    let mut desired = spec();
+    desired.hosted_mcp_servers = vec![sobject_all(true)];
+    let mut actual = desired.clone();
+    actual.hosted_mcp_servers = Vec::new();
+
+    let drift = diff(&actual, &desired);
+    let changes = drift.drift();
+    assert_eq!(changes.len(), 1, "expected exactly one delta: {changes:?}");
+    assert_eq!(changes[0].kind, ChangeKind::Add);
+    assert_eq!(changes[0].path, "hosted_mcp_servers.platform_sobject_all");
+}
+
+/// `named_user_jwt` lives on ExtlClntAppGlobalOauthSettings, which no query API
+/// exposes, so it is deployed unconditionally rather than compared.
+#[test]
+fn named_user_jwt_is_always_applied() {
+    let desired = spec();
+    let actual = desired.clone();
+    let changes = diff(&actual, &desired);
+
+    assert!(changes.is_clean());
+    assert!(
+        changes.changes.iter().any(|c| {
+            c.kind == ChangeKind::AlwaysApplied
+                && c.path == "external_client_app.oauth.named_user_jwt"
+                && c.desired == "true"
+        }),
+        "named_user_jwt must be reported as always-applied: {:?}",
+        changes.changes
     );
 }

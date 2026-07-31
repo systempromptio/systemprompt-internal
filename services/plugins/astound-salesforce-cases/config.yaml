@@ -1,7 +1,7 @@
 plugin:
   id: astound-salesforce-cases
   name: "Salesforce — Support Cases"
-  description: "Work with your Salesforce support cases: find cases, read your queue and backlog, and safely create and update cases — with a support case specialist agent"
+  description: "Work with your Salesforce support cases: find cases, read your queue and backlog, and safely create and update cases"
   version: "1.0.0"
   enabled: true
   author:
@@ -18,8 +18,7 @@ plugin:
       - cases_update
   agents:
     source: explicit
-    include:
-      - case_agent
+    include: []
   mcp_servers:
     source: explicit
     include:

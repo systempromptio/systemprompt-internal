@@ -111,5 +111,9 @@ fn service_utils_js(storage_js: &Path) -> Vec<AssetDefinition> {
             storage_js.join("components/sp-confirm-dialog-view.js"),
             "js/components/sp-confirm-dialog-view.js",
         ),
+        AssetDefinition::js(
+            storage_js.join("components/sp-copy.js"),
+            "js/components/sp-copy.js",
+        ),
     ]
 }

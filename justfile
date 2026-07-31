@@ -897,6 +897,45 @@ clean-client PERSIST="0" GATEWAY="http://host.docker.internal:8080":
         "${MOUNTS[@]}" "${PORTS[@]}" \
         astound-clean-client:local
 
+alias cc := clean-client-ready
+
+# Clean client, signed in and ready: paste one code, then type `claude`.
+clean-client-ready GATEWAY="http://host.docker.internal:8080":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! docker image inspect astound-clean-client:local >/dev/null 2>&1; then
+        echo "Image missing — building it first." >&2
+        just clean-client-build
+    fi
+
+    BRIDGE="{{justfile_directory()}}/bridge/target/release/astound-bridge"
+    if [ ! -f "$BRIDGE" ] || [ ! -x "$BRIDGE" ]; then
+        echo "ERROR: $BRIDGE not found — run 'just bridge-build' first." >&2
+        exit 1
+    fi
+
+    PORTS=()
+    if ss -ltn 2>/dev/null | grep -q ':8767 '; then
+        echo "warn: host port 8767 already in use — not publishing it." >&2
+    else
+        PORTS+=(-p 127.0.0.1:8767:8767)
+    fi
+
+    # State persists so a second run reuses the PAT instead of burning a code;
+    # CLEAN_CLIENT_ALLOW_STATE tells the entrypoint that reuse is deliberate
+    # here rather than host config leaking in.
+    exec docker run -it --rm \
+        --name astound-clean-client \
+        --hostname clean-client \
+        --add-host host.docker.internal:host-gateway \
+        -e ASTOUND_BRIDGE_GATEWAY_URL="{{GATEWAY}}" \
+        -e CLEAN_CLIENT_ALLOW_STATE=1 \
+        -v astound-clean-home:/home/tester \
+        -v "$BRIDGE:/usr/local/bin/astound-bridge:ro" \
+        -v "{{justfile_directory()}}/deploy/clean-client/bootstrap.sh:/usr/local/bin/bootstrap.sh:ro" \
+        "${PORTS[@]}" \
+        astound-clean-client:local /usr/local/bin/bootstrap.sh
+
 # End-to-end: run the published installer with a PAT and assert managed MCP (see script header for how to mint the PAT)
 clean-client-install PAT GATEWAY="http://host.docker.internal:8080":
     GATEWAY="{{GATEWAY}}" scripts/clean-client-install.sh "{{PAT}}"

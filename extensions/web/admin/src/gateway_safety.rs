@@ -9,9 +9,7 @@
 //! .block_categories` includes `secret`.
 
 use systemprompt::ai::{Finding, SafetyScanner, Severity, register_safety_scanner};
-use systemprompt::models::wire::canonical::{
-    CanonicalContent, CanonicalRequest, CanonicalResponse,
-};
+use systemprompt::models::wire::canonical::{CanonicalRequest, CanonicalResponse};
 
 use systemprompt_security::policy::secrets::scan_str_for_secret;
 
@@ -36,14 +34,11 @@ impl SafetyScanner for SecretsScanner {
     }
 
     async fn scan_response_final(&self, response: &CanonicalResponse) -> Vec<Finding> {
-        let mut text = String::new();
-        for part in &response.content {
-            if let CanonicalContent::Text(t) = part {
-                text.push_str(t);
-                text.push('\n');
-            }
+        let mut findings = Vec::new();
+        for unit in response.content_units() {
+            findings.extend(scan("response", &unit));
         }
-        scan("response", &text)
+        findings
     }
 }
 

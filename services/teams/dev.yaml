@@ -29,10 +29,14 @@ teams_apps:
 
     app_password_ref: "teams_app_password"
 
-    enabled: true
+    # Disabled: this instance defines no A2A agents, and a Teams message can
+    # only be dispatched to one. Re-enabling requires defining an agent under
+    # services/agents/ and naming it in default_agent below.
+    enabled: false
 
-    # Must resolve to a real agent id in services/agents/. associate_agent is a
-    # real, enabled, user-scope agent (port 9102).
+    # Must resolve to a real agent id in services/agents/. No agents are
+    # defined, so this is a placeholder held for the re-enable path above —
+    # core requires the field, but never dispatches while enabled is false.
     default_agent: "associate_agent"
 
     # Optional conversation/command → agent overrides. Keys are conversation ids

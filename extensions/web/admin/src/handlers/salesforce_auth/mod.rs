@@ -43,8 +43,10 @@ const DEFAULT_REDIRECT: &str = "/admin";
 
 // Why: Errors from the Salesforce OAuth/token plumbing. Logged once at the HTTP
 // boundary; the browser only ever sees an opaque `?sso=<reason>`.
+// Why: public because `salesforce_org` returns it across the crate boundary to
+// the CLI extension; the SSO handlers still only surface it as `?sso=<reason>`.
 #[derive(Debug, thiserror::Error)]
-pub(crate) enum SalesforceError {
+pub enum SalesforceError {
     #[error("Salesforce HTTP error: {0}")]
     Http(#[from] reqwest::Error),
     #[error("Salesforce token endpoint returned {status}: {body}")]

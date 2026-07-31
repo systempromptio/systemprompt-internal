@@ -1,7 +1,7 @@
 plugin:
   id: astound-salesforce-opportunities
   name: "Salesforce — Sales Pipeline & Deals"
-  description: "Work with your Salesforce opportunities: find deals, read your pipeline and forecast, and safely create and update deals — with a sales pipeline specialist agent"
+  description: "Work with your Salesforce opportunities: find deals, read your pipeline and forecast, and safely create and update deals"
   version: "1.0.0"
   enabled: true
   author:
@@ -18,8 +18,7 @@ plugin:
       - opportunities_update
   agents:
     source: explicit
-    include:
-      - pipeline_agent
+    include: []
   mcp_servers:
     source: explicit
     include:

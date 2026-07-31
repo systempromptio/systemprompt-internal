@@ -37,9 +37,9 @@ pub struct OrgSpec {
     pub external_client_app: ExternalClientApp,
     #[serde(default)]
     pub permission_sets: Vec<PermissionSetSpec>,
-    /// Standard hosted MCP servers. These are *asserted*, never created — no
-    /// API to activate them was found, so apply reports an inactive one as an
-    /// actionable error rather than pretending to fix it.
+    /// Standard hosted MCP servers. Never *created* — an org either offers a
+    /// standard server or it does not — but their `Active` flag is read and
+    /// written through the Tooling `McpServerAccess` object.
     #[serde(default)]
     pub hosted_mcp_servers: Vec<HostedMcpServer>,
 }
@@ -75,6 +75,16 @@ pub struct OauthSpec {
     pub pkce_required: bool,
     #[serde(default)]
     pub consumer_secret_optional: bool,
+    /// Issue JWT-format access tokens for named users.
+    ///
+    /// Declared explicitly rather than left implicit because the whole tool
+    /// depends on it: the SOAP Metadata API rejects JWT-format tokens but the
+    /// REST deploy resource accepts them, which is the only reason a headless
+    /// apply is possible at all. The element is out of schema at metadata
+    /// version 64.0 and in scope at 67.0, so from 67.0 a deploy that omitted it
+    /// would reset it and lock the tool out of the org it just configured.
+    #[serde(default = "default_true")]
+    pub named_user_jwt: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub single_logout_url: Option<String>,
 }
@@ -161,8 +171,19 @@ pub struct PermissionSetSpec {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct HostedMcpServer {
+    /// `McpServerAccess.MasterLabel`, e.g. `sobject-all`. The human-facing name,
+    /// and what Setup shows.
     pub name: String,
+    /// `McpServerAccess.DeveloperName`, e.g. `platform_sobject_all`. The stable
+    /// key `apply` matches on — labels are translatable, developer names are
+    /// not.
+    pub developer_name: String,
     pub endpoint: String,
+    /// Desired `Active` state. Apply switches a server on; it never switches one
+    /// off, and a server absent from the org is an error rather than something
+    /// activation could fix.
+    #[serde(default = "default_true")]
+    pub active: bool,
 }
 
 const fn default_true() -> bool {

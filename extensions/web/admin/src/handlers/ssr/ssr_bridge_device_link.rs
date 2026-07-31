@@ -19,15 +19,12 @@ use systemprompt_web_shared::html_escape;
 
 use crate::error::{AdminHtmlError, AdminHtmlResult};
 use crate::repositories::bridge;
+use crate::services::bridge_profile::BRIDGE_BINARY;
 use crate::templates::AdminTemplateEngine;
 use crate::types::UserContext;
 
 use super::ssr_helpers::branding_context;
 use systemprompt_web_shared::BrandingConfig;
-
-// Why: not derivable here — `brand()` lives in the bridge crate, which the
-// admin extension does not depend on.
-const BRIDGE_BINARY: &str = "astound-bridge";
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct DeviceLinkQuery {
@@ -187,9 +184,10 @@ fn render_code_page(
 // Why: `--gateway` is only worth printing when the server knows its own
 // external URL; a wrong one is worse than the CLI's configured default.
 fn gateway_suffix() -> String {
-    systemprompt::models::Config::get().map_or_else(String::new, |c| {
-        format!(" --gateway {}", c.api_external_url.trim_end_matches('/'))
-    })
+    systemprompt::models::Config::get().map_or_else(
+        |_| String::new(),
+        |c| format!(" --gateway {}", c.api_external_url.trim_end_matches('/')),
+    )
 }
 
 fn validate_loopback_redirect(redirect: &str) -> Option<String> {

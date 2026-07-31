@@ -44,45 +44,8 @@ rules:
   # authz). Add an entity-level rule here only to DENY a specific member — an
   # entity-level deny overrides the inherited marketplace allow (deny-overrides).
 
-  # Salesforce specialist agents. Agents are granted explicitly (mirroring the
-  # marketplace grant) so runtime authz lets user-role members invoke them, not
-  # just list them. Ids match services/agents/*.yaml and the marketplace's
-  # agents.include.
-  - entity_type: agent
-    entity_id: salesforce_agent
-    access: allow
-    default_included: true
-    roles: [user]
-  - entity_type: agent
-    entity_id: pipeline_agent
-    access: allow
-    default_included: true
-    roles: [user]
-  - entity_type: agent
-    entity_id: account_agent
-    access: allow
-    default_included: true
-    roles: [user]
-  - entity_type: agent
-    entity_id: contact_agent
-    access: allow
-    default_included: true
-    roles: [user]
-  - entity_type: agent
-    entity_id: lead_agent
-    access: allow
-    default_included: true
-    roles: [user]
-  - entity_type: agent
-    entity_id: case_agent
-    access: allow
-    default_included: true
-    roles: [user]
-  - entity_type: agent
-    entity_id: activity_agent
-    access: allow
-    default_included: true
-    roles: [user]
+  # No `entity_type: agent` rules — this instance defines no A2A agents, so
+  # there is nothing for a user-role member to list or invoke.
 
   # Salesforce Hosted MCP server — the one server shipped to users. Per-user
   # Salesforce bearer is injected at call time (see services/mcp/salesforce.yaml).

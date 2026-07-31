@@ -1,7 +1,7 @@
 plugin:
   id: astound-salesforce-accounts
   name: "Salesforce — Accounts & Customers"
-  description: "Work with your Salesforce accounts: find customers, get a 360° briefing before a call, and safely create and update account records — with an account specialist agent"
+  description: "Work with your Salesforce accounts: find customers, get a 360° briefing before a call, and safely create and update account records"
   version: "1.0.0"
   enabled: true
   author:
@@ -18,8 +18,7 @@ plugin:
       - accounts_update
   agents:
     source: explicit
-    include:
-      - account_agent
+    include: []
   mcp_servers:
     source: explicit
     include:

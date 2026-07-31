@@ -373,25 +373,5 @@
     color: var(--sp-text-tertiary);
 }
 
-/* The command is long and must stay copyable in one selection, so it scrolls
-   inside its own box rather than wrapping mid-token or widening the page. */
-.sp-connect__cmd {
-    margin: 0;
-    padding: var(--sp-space-3) var(--sp-space-4);
-    background: var(--sp-bg-code, var(--sp-bg-surface-alt));
-    border: 1px solid var(--sp-border-subtle);
-    border-radius: var(--sp-radius-sm, 6px);
-    overflow-x: auto;
-    font-family: var(--sp-font-mono);
-    font-size: var(--sp-text-sm);
-    line-height: 1.6;
-    color: var(--sp-text-primary);
-    user-select: all;
-}
-
-.sp-connect__raw summary {
-    cursor: pointer;
-    font-size: var(--sp-text-xs);
-    color: var(--sp-text-tertiary);
-    margin-bottom: var(--sp-space-2);
-}
+/* `.sp-connect__cmd` / `.sp-connect__raw summary` live in
+   08-connect-command.css — the device-link code page needs them too. */

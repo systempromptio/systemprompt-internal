@@ -6,8 +6,9 @@
 //! `createable: false` on all four — which is why apply reaches for the
 //! Metadata API while export does not.
 //!
-//! Three fields cannot be read from any org: `callback_url`, `pkce_required`
-//! and `consumer_secret_optional` live on `ExtlClntAppGlobalOauthSettings`,
+//! Four fields cannot be read from any org: `callback_url`, `pkce_required`,
+//! `consumer_secret_optional` and `named_user_jwt` live on
+//! `ExtlClntAppGlobalOauthSettings`,
 //! which is not a queryable sObject, and the `ExtlClntAppOauthSetAttr` bag that
 //! might have carried them is empty. Export carries those forward from a
 //! baseline spec rather than inventing values — see [`export_org`].
@@ -21,6 +22,7 @@ use super::spec::{
 use crate::handlers::salesforce_auth::SalesforceError;
 
 /// Placeholder emitted for a write-only field when no baseline is supplied.
+///
 /// Deliberately not a plausible value: applying it fails Salesforce's URL
 /// validation rather than quietly pointing an org at the wrong callback.
 pub const UNREADABLE_PLACEHOLDER: &str = "UNREADABLE-SUPPLY-A-BASELINE";
@@ -69,6 +71,7 @@ pub async fn export_org(
     let oauth = export_oauth(conn, &developer_name, baseline).await?;
     let policies = export_policies(conn).await?;
     let permission_sets = export_permission_sets(conn).await?;
+    let hosted_mcp_servers = export_hosted_mcp_servers(conn, baseline).await?;
 
     Ok(OrgSpec {
         external_client_app: ExternalClientApp {
@@ -82,12 +85,54 @@ pub async fn export_org(
             policies,
         },
         permission_sets,
-        // Why: standard hosted servers are not in any queryable object, so they
-        // are carried from the baseline rather than discovered.
-        hosted_mcp_servers: baseline
-            .map(|b| b.hosted_mcp_servers.clone())
-            .unwrap_or_default(),
+        hosted_mcp_servers,
     })
+}
+
+/// Read the org's hosted MCP servers and their live `Active` state.
+///
+/// `McpServerAccess` (Tooling, from API version 67.0) is the activation record.
+/// The endpoint URL is not one of its fields, so that one value is carried from
+/// the baseline where there is one — everything else is read from the org.
+///
+/// Scoped to the baseline's servers when there is a baseline, for the same
+/// reason [`export_permission_sets`] is scoped to app-granting sets: an org
+/// offers standard servers this deployment does not manage, and reporting them
+/// would be drift no `apply` will ever resolve. With no baseline — exporting an
+/// org to clone it — the full inventory comes back instead.
+async fn export_hosted_mcp_servers(
+    conn: &Connection,
+    baseline: Option<&OrgSpec>,
+) -> Result<Vec<HostedMcpServer>, SalesforceError> {
+    let rows = conn
+        .tooling_soql("SELECT DeveloperName,MasterLabel,Active FROM McpServerAccess")
+        .await?;
+
+    let mut out: Vec<HostedMcpServer> = rows
+        .iter()
+        .filter_map(|row| {
+            let developer_name = str_field(row, "DeveloperName")?;
+            let known = baseline.and_then(|b| {
+                b.hosted_mcp_servers
+                    .iter()
+                    .find(|s| s.developer_name == developer_name)
+            });
+            if baseline.is_some() && known.is_none() {
+                return None;
+            }
+            Some(HostedMcpServer {
+                name: str_field(row, "MasterLabel").unwrap_or_else(|| developer_name.clone()),
+                endpoint: known.map_or_else(
+                    || UNREADABLE_PLACEHOLDER.to_owned(),
+                    |s| s.endpoint.clone(),
+                ),
+                developer_name,
+                active: bool_field(row, "Active"),
+            })
+        })
+        .collect();
+    out.sort_by(|a, b| a.developer_name.cmp(&b.developer_name));
+    Ok(out)
 }
 
 async fn export_oauth(
@@ -138,6 +183,7 @@ async fn export_oauth(
         ),
         pkce_required: base.is_none_or(|b| b.pkce_required),
         consumer_secret_optional: base.is_some_and(|b| b.consumer_secret_optional),
+        named_user_jwt: base.is_none_or(|b| b.named_user_jwt),
         single_logout_url: str_field(settings, "SingleLogoutUrl"),
     })
 }
@@ -224,12 +270,3 @@ async fn export_permission_sets(
     Ok(out)
 }
 
-/// Assert that each hosted MCP server in the spec answers. Activation has no
-/// API, so this only reports; it never fixes.
-///
-/// A server that authenticates returns a JSON-RPC-level error for a bare
-/// request, which is success as far as reachability goes — only an auth-level
-/// rejection means it is not usable.
-pub fn describe_hosted_servers(spec: &OrgSpec) -> Vec<&HostedMcpServer> {
-    spec.hosted_mcp_servers.iter().collect()
-}

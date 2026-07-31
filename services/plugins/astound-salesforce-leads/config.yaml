@@ -1,7 +1,7 @@
 plugin:
   id: astound-salesforce-leads
   name: "Salesforce — Leads & Prospects"
-  description: "Work with your Salesforce leads: find and filter prospects, read your funnel insights, and safely capture and update leads — with a leads specialist agent"
+  description: "Work with your Salesforce leads: find and filter prospects, read your funnel insights, and safely capture and update leads"
   version: "1.0.0"
   enabled: true
   author:
@@ -18,8 +18,7 @@ plugin:
       - leads_update
   agents:
     source: explicit
-    include:
-      - lead_agent
+    include: []
   mcp_servers:
     source: explicit
     include:

@@ -80,7 +80,7 @@ pub(crate) struct BridgeConnectBlock {
 
 // Why: not derivable here — `brand()` lives in the bridge crate, which the
 // admin extension does not depend on.
-const BRIDGE_BINARY: &str = "astound-bridge";
+pub(crate) const BRIDGE_BINARY: &str = "astound-bridge";
 
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct BridgeProfilePageData {

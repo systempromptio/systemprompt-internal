@@ -62,51 +62,15 @@ fn load_homepage_config() -> Result<Option<Arc<HomepageConfig>>, ConfigError> {
         return Ok(None);
     };
 
-    let mut homepage_config: HomepageConfig =
+    let homepage_config: HomepageConfig =
         serde_yaml::from_value(homepage_value).map_err(|e| ConfigError::Parse {
             config_name: "homepage.yaml".to_owned(),
             message: e.to_string(),
         })?;
 
-    if let Ok(paths) = load_app_paths() {
-        populate_demo_showcase(
-            &mut homepage_config,
-            paths.system().root().join("demo").as_path(),
-        );
-    }
-
     tracing::info!("Loaded homepage config from config/homepage.yaml");
 
     Ok(Some(Arc::new(homepage_config)))
-}
-
-fn populate_demo_showcase(homepage_config: &mut HomepageConfig, demo_root: &std::path::Path) {
-    match crate::homepage::demo_scanner::scan_demos(demo_root) {
-        Ok(mut scanned) => {
-            if let Some(existing) = homepage_config.demos.as_ref() {
-                if existing.title.is_some() {
-                    scanned.title.clone_from(&existing.title);
-                }
-                if existing.subtitle.is_some() {
-                    scanned.subtitle.clone_from(&existing.subtitle);
-                }
-            }
-            let total_categories: usize = scanned.pillars.iter().map(|p| p.categories.len()).sum();
-            tracing::info!(
-                pillars = scanned.pillars.len(),
-                categories = total_categories,
-                "Scanned demo/ for homepage showcase"
-            );
-            homepage_config.demos = Some(scanned);
-        },
-        Err(e) => {
-            tracing::warn!(
-                error = %e,
-                path = %demo_root.display(),
-                "Failed to scan demo/ directory — homepage will render without demo cards"
-            );
-        },
-    }
 }
 
 pub(crate) fn load_salesforce_config()

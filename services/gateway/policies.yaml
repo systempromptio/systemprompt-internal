@@ -4,18 +4,30 @@
 # .systemprompt/profiles/<name>/profile.yaml), not here.
 #
 # Spec fields (systemprompt_ai::GatewayPolicySpec):
-#   quota_windows, safety { scanners, block_categories }
+#   quota_windows, safety { scanners, block_categories,
+#                           block_response_categories, history }
 #
 # safety.scanners names resolve against the gateway's SafetyScannerRegistry:
 # the built-in `heuristic` scanner plus any extension-registered scanner. The
 # admin extension registers `secrets` (extensions/web/admin/src/gateway_safety.rs).
 # A request whose content yields a finding in `block_categories` is denied with
 # 403 before the upstream call, with an `ai_safety_findings` audit row.
+#
+# `block_response_categories` does the same for the reply, and applies to
+# buffered replies only — a streamed reply is already on the wire when the scan
+# runs, so its findings are recorded and never block. Leave the list empty to
+# keep every response scan audit-only.
+
+# SAFETY SCANNING IS INTENTIONALLY OFF in this installation. The paragraphs
+# above describe the mechanism, not current behaviour: with `scanners` empty no
+# scan runs, so nothing is blocked and no `ai_safety_findings` rows are written.
+# The policy chain is disabled to match — see services/governance/config.yaml.
+# To restore: scanners: [heuristic, secrets] / block_categories: [secret].
 
 policies:
   - name: default-quotas
     enabled: true
     spec:
       safety:
-        scanners: [heuristic, secrets]
-        block_categories: [secret]
+        scanners: []
+        block_categories: []

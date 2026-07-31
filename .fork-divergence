@@ -41,12 +41,13 @@ extensions/web/site/src/lib.rs	# template ships blog + features sections; astoun
 extensions/web/site/src/navigation/provider.rs	# the blog nav link exists in the template only
 extensions/web/site/src/assets/css.rs	# template ships feature-page CSS; astound ships skills-page and showreel CSS
 extensions/web/site/src/assets/mod.rs	# astound serves the homepage showreel video
+extensions/web/site/src/homepage/mod.rs	# the template homepage renders the demo showcase; astound's does not, so the scanner and its config types are gone
+extensions/web/site/src/homepage/config/mod.rs	# no `demos` section: astound's homepage has no demo showcase to configure
 
 # The template ships an SSR governance policy editor that astound does not. It
 # needs every policy to declare the file it is defined in so the page can link
 # to it "as code"; in astound the field and its accessors would be dead code.
 extensions/web/admin/src/handlers/ssr/mod.rs	# template ships the SSR governance policy editor; astound does not
-extensions/web/admin/src/handlers/webhook/governance/engine.rs	# astound resolves the governance config from its own profile services path
 extensions/web/admin/src/handlers/webhook/governance/mod.rs	# re-exports the policy editor the template alone mounts
 extensions/web/src/extension.rs	# astound loads a Salesforce SSO config and a skills-page config; template loads a feature-pages config
 extensions/web/src/extension_impl.rs	# astound mounts the Salesforce router and skills-page prerenderer; template mounts blog providers, feature prerenderers, the bridge router and an oauth-client seed

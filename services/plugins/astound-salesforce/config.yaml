@@ -1,7 +1,7 @@
 plugin:
   id: astound-salesforce
   name: "Salesforce — Getting Started"
-  description: "Your Salesforce assistant: what it can do, how to ask in plain English, and the generalist agent that routes across deals, accounts, contacts, leads, cases, and tasks"
+  description: "Your Salesforce assistant: what it can do, and how to ask in plain English across deals, accounts, contacts, leads, cases, and tasks"
   version: "1.0.0"
   enabled: true
   author:
@@ -16,8 +16,7 @@ plugin:
       - salesforce_essentials
   agents:
     source: explicit
-    include:
-      - salesforce_agent
+    include: []
   mcp_servers:
     source: explicit
     include:
