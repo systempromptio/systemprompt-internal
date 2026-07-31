@@ -45,6 +45,9 @@ use sqlx::PgPool;
 
 pub use handlers::salesforce_auth::{SalesforceConfig, SalesforceDeps};
 pub use routes::{admin_ssr_router, bridge_auth_ssr_router};
+/// Salesforce org configuration as code — export, diff and apply an org's
+/// identity and MCP setup.
+pub use services::salesforce_org;
 pub use types::{CreateUserRequest, MarketplaceContext, UserContext, UserSummary, UserUsageEvent};
 
 pub mod test_support {

@@ -1,0 +1,15 @@
+extension:
+  type: cli
+  name: salesforce
+  binary: systemprompt-cli-salesforce
+  description: Export, diff and apply Salesforce org configuration as code
+  build_type: workspace
+  enabled: true
+  supports_json_output: false
+  commands:
+    - name: export
+      description: Read a live org into services/salesforce/org.yaml shape
+    - name: diff
+      description: Compare a live org against the committed spec
+    - name: apply
+      description: Make a live org match the committed spec

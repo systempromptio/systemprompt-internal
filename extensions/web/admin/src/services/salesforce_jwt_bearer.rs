@@ -28,13 +28,9 @@ pub(crate) struct FreshToken {
     pub instance_url: String,
 }
 
-/// Lifetime of the signed assertion. Salesforce requires `exp` within 5 minutes
-/// of issuance; a short window bounds replay of the assertion itself.
+// Why: Salesforce rejects an assertion whose `exp` is more than 5 minutes out.
 const ASSERTION_TTL_SECS: u64 = 180;
 
-/// RFC 7523 assertion claims for the Salesforce JWT-bearer flow. `iss` is the
-/// Connected App consumer key, `sub` the Salesforce username to act as, `aud`
-/// the org login host.
 #[derive(Debug, Serialize)]
 struct Assertion {
     iss: String,
@@ -63,16 +59,41 @@ pub(crate) async fn fetch_token(
     username: &str,
 ) -> Result<FreshToken, SalesforceError> {
     let private_key_pem = salesforce_private_key().ok_or(SalesforceError::MissingPrivateKey)?;
+    fetch_token_with_key(
+        &cfg.consumer_key,
+        username,
+        cfg.jwt_bearer_audience(),
+        &cfg.token_url(),
+        &private_key_pem,
+    )
+    .await
+}
 
+// Why: The same grant against an arbitrary org rather than this deployment's
+// configured one. Org provisioning targets orgs that have no `SalesforceConfig`
+// and whose key is supplied per-invocation, so the credentials are parameters
+// here instead of being read from the ambient config and secret store.
+//
+// # Errors
+// - [`SalesforceError::Internal`] if the key is not valid PEM or signing fails.
+// - [`SalesforceError::TokenEndpoint`] / [`SalesforceError::Http`] on a failed
+// POST.
+pub(crate) async fn fetch_token_with_key(
+    consumer_key: &str,
+    username: &str,
+    audience: &str,
+    token_url: &str,
+    private_key_pem: &str,
+) -> Result<FreshToken, SalesforceError> {
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_err(|e| SalesforceError::Internal(format!("system clock before epoch: {e}")))?
         .as_secs();
 
     let assertion = Assertion {
-        iss: cfg.consumer_key.clone(),
+        iss: consumer_key.to_owned(),
         sub: username.to_owned(),
-        aud: cfg.jwt_bearer_audience().to_owned(),
+        aud: audience.to_owned(),
         exp: now + ASSERTION_TTL_SECS,
     };
 
@@ -86,14 +107,14 @@ pub(crate) async fn fetch_token(
         urlencoding::encode("urn:ietf:params:oauth:grant-type:jwt-bearer"),
         urlencoding::encode(&signed),
     );
-    let resp = post_token_request(&cfg.token_url(), body).await?;
+    let resp = post_token_request(token_url, body).await?;
 
     // Why: The JWT-bearer grant returns the instance the token is scoped to; fall
     // back to the org base if Salesforce omits it.
     let instance_url = resp
         .instance_url
         .filter(|u| !u.is_empty())
-        .unwrap_or_else(|| cfg.jwt_bearer_audience().to_owned());
+        .unwrap_or_else(|| audience.to_owned());
 
     Ok(FreshToken {
         access_token: resp.access_token,

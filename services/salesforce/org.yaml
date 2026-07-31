@@ -1,0 +1,82 @@
+# Desired state of the Salesforce org backing this deployment.
+#
+# Applied with:
+#   systemprompt plugins run salesforce diff  --org <target>
+#   systemprompt plugins run salesforce apply --org <target> --dry-run
+#   systemprompt plugins run salesforce apply --org <target>
+#
+# This file is NOT listed in services/config/config.yaml's `includes:` — it has
+# no counterpart in core's aggregate config and `deny_unknown_fields` would
+# reject it. It is read directly, the same way services/web/config.yaml is.
+#
+# Deliberately absent: record ids, consumer keys and org ids. Salesforce mints
+# those per org, so a spec carrying them could not be applied to a second org.
+
+external_client_app:
+  # Immutable. Every dependent metadata record keys off this name, so changing
+  # it creates a second app rather than renaming the first.
+  developer_name: Systemprompt_SSO
+  label: Systemprompt SSO
+  description: Systemprompt <=> Astound
+  contact_email: ed@systemprompt.io
+  distribution_state: Local
+
+  oauth:
+    # Must match `redirect_uri` in services/web/config/salesforce.yaml exactly;
+    # Salesforce compares character for character. Per-deployment value —
+    # override with SF_TARGET_CALLBACK_URL when applying to another org.
+    callback_url: http://localhost:8080/admin/auth/salesforce/callback
+
+    # `full` is deliberately NOT granted. The platform requests
+    # "openid email profile api" at login and receives "openid mcp_api id api"
+    # on the JWT-bearer mint, so `full` was granted but never exercised — a
+    # strictly wider blast radius than anything in use. The dev org currently
+    # has it enabled; applying this spec removes it.
+    scopes:
+      - basic          # identity URL service (sObject calls this SSO)
+      - api
+      - refresh_token
+      - open_id
+      - mcp            # Salesforce Hosted MCP. Removing this breaks every tool call.
+
+    first_party_app_enabled: false
+    # Hardening. The auth-code flow already sends S256 (see salesforce_auth/
+    # start.rs); the JWT-bearer grant has no authorization code and is
+    # unaffected. Not readable back from any API — see the note below.
+    pkce_required: true
+    consumer_secret_optional: false
+
+  policies:
+    # Access is granted only through the permission set below.
+    permitted_users: AdminApprovedPreAuthorized
+    ip_relaxation: Enforce
+    refresh_token_policy: SpecificLifetime
+    # The dev org reads 8760 Days — roughly 24 years. 8760 is the hour count for
+    # one year, so that is almost certainly an hours value left on a Days unit.
+    refresh_token_validity:
+      period: 365
+      unit: Days
+    required_session_level: STANDARD
+
+permission_sets:
+  - name: Salesforce_MCP_Access
+    label: Salesforce MCP Access
+    # Creates the SetupEntityAccess grant that makes
+    # `permitted_users: AdminApprovedPreAuthorized` usable. Assign this to every
+    # user who needs MCP; without it they authenticate and get nothing.
+    grants_app: Systemprompt_SSO
+
+# Asserted, never created. No API to activate a standard hosted MCP server was
+# found, so apply reports an inactive one as an actionable error rather than
+# pretending to fix it.
+hosted_mcp_servers:
+  - name: sobject-all
+    endpoint: https://api.salesforce.com/platform/mcp/v1/platform/sobject-all
+
+# WRITE-ONLY FIELDS
+#
+# `callback_url`, `pkce_required` and `consumer_secret_optional` live on
+# ExtlClntAppGlobalOauthSettings, which is not a queryable sObject — the
+# ExtlClntAppOauthSetAttr/PlcyAttr bags that might have carried them are empty.
+# They are deployed on every apply but cannot be read back, so `diff` reports
+# them as "always applied" rather than claiming to have verified them.

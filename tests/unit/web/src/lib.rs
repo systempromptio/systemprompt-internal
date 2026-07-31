@@ -5,6 +5,7 @@
 //! - admin display formatting bands and `PageWindow` pagination arithmetic
 //! - inventory registry completeness for jobs, renderers, and providers
 //! - calendar-month resolution and the month-end P&L's derived figures
+//! - Salesforce org drift detection, including the fields no API can read back
 
 #[cfg(test)]
 mod campaign_link_full_url;
@@ -22,5 +23,7 @@ mod page_window;
 mod registry_completeness;
 #[cfg(test)]
 mod report_pnl;
+#[cfg(test)]
+mod salesforce_org_diff;
 #[cfg(test)]
 mod seed_contract;

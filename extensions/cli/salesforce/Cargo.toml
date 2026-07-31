@@ -1,0 +1,28 @@
+[package]
+name = "systemprompt-cli-salesforce"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "CLI extension for the systemprompt.io template: export, diff and apply Salesforce org configuration as code."
+repository.workspace = true
+homepage.workspace = true
+publish = false
+
+[[bin]]
+name = "systemprompt-cli-salesforce"
+path = "src/main.rs"
+
+[dependencies]
+# The export/diff/apply implementation lives with the rest of the Salesforce
+# code in the admin extension; this crate is only an argument parser around it.
+systemprompt-web-admin = { workspace = true }
+
+clap = { version = "4", features = ["derive"] }
+tokio = { workspace = true }
+serde_yaml = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[lints]
+workspace = true

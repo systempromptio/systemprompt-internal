@@ -1,0 +1,170 @@
+{
+  "acting_identity": {
+    "active": true,
+    "address": {},
+    "email": "ed@systemprompt.io",
+    "email_verified": true,
+    "family_name": "Burton",
+    "given_name": "Edward",
+    "is_salesforce_integration_user": false,
+    "language": "en_US",
+    "locale": "es_ES",
+    "name": "Edward Burton",
+    "nickname": "ed",
+    "organization_id": "00DgK00000RNMczUAH",
+    "phone_number": "+34 689090683",
+    "phone_number_verified": true,
+    "photos": {
+      "picture": "https://orgfarm-141013b2b4-dev-ed.develop.file.force.com/profilephoto/005/F",
+      "thumbnail": "https://orgfarm-141013b2b4-dev-ed.develop.file.force.com/profilephoto/005/T"
+    },
+    "picture": "https://orgfarm-141013b2b4-dev-ed.develop.file.force.com/profilephoto/005/F",
+    "preferred_username": "ed.aa5967144c6c@agentforce.com",
+    "profile": "https://orgfarm-141013b2b4-dev-ed.develop.my.salesforce.com/005gK00004y2MbeQAE",
+    "sub": "https://login.salesforce.com/id/00DgK00000RNMczUAH/005gK00004y2MbeQAE",
+    "updated_at": "2026-06-22T08:17:06Z",
+    "urls": {
+      "custom_domain": "https://orgfarm-141013b2b4-dev-ed.develop.my.salesforce.com",
+      "enterprise": "https://orgfarm-141013b2b4-dev-ed.develop.my.salesforce.com/services/Soap/c/{version}/00DgK00000RNMcz",
+      "feed_elements": "https://orgfarm-141013b2b4-dev-ed.develop.my.salesforce.com/services/data/v{version}/chatter/feed-elements",
+      "feed_items": "https://orgfarm-141013b2b4-dev-ed.develop.my.salesforce.com/services/data/v{version}/chatter/feed-items",
+      "feeds": "https://orgfarm-141013b2b4-dev-ed.develop.my.salesforce.com/services/data/v{version}/chatter/feeds",
+      "groups": "https://orgfarm-141013b2b4-dev-ed.develop.my.salesforce.com/services/data/v{version}/chatter/groups",
+      "metadata": "https://orgfarm-141013b2b4-dev-ed.develop.my.salesforce.com/services/Soap/m/{version}/00DgK00000RNMcz",
+      "partner": "https://orgfarm-141013b2b4-dev-ed.develop.my.salesforce.com/services/Soap/u/{version}/00DgK00000RNMcz",
+      "profile": "https://orgfarm-141013b2b4-dev-ed.develop.my.salesforce.com/005gK00004y2MbeQAE",
+      "query": "https://orgfarm-141013b2b4-dev-ed.develop.my.salesforce.com/services/data/v{version}/query/",
+      "recent": "https://orgfarm-141013b2b4-dev-ed.develop.my.salesforce.com/services/data/v{version}/recent/",
+      "rest": "https://orgfarm-141013b2b4-dev-ed.develop.my.salesforce.com/services/data/v{version}/",
+      "search": "https://orgfarm-141013b2b4-dev-ed.develop.my.salesforce.com/services/data/v{version}/search/",
+      "sobjects": "https://orgfarm-141013b2b4-dev-ed.develop.my.salesforce.com/services/data/v{version}/sobjects/",
+      "tooling_rest": "https://orgfarm-141013b2b4-dev-ed.develop.my.salesforce.com/services/data/v{version}/tooling/",
+      "tooling_soap": "https://orgfarm-141013b2b4-dev-ed.develop.my.salesforce.com/services/Soap/T/{version}/00DgK00000RNMcz",
+      "users": "https://orgfarm-141013b2b4-dev-ed.develop.my.salesforce.com/services/data/v{version}/chatter/users"
+    },
+    "user_id": "005gK00004y2MbeQAE",
+    "user_type": "STANDARD",
+    "utcOffset": 3600000,
+    "zoneinfo": "Europe/Paris"
+  },
+  "app_preauthorization": [
+    {
+      "Parent": {
+        "Label": "Salesforce MCP Access",
+        "Name": "Salesforce_MCP_Access",
+        "Profile": null,
+        "attributes": {
+          "type": "PermissionSet",
+          "url": "/services/data/v64.0/sobjects/PermissionSet/0PSgK00000GTaGbWAL"
+        }
+      },
+      "SetupEntityId": "0xIgK000000JBkXUAW",
+      "SetupEntityType": "ExternalClientApplication"
+    }
+  ],
+  "connected_applications": [],
+  "cors_allowlist": [],
+  "external_client_applications": [
+    {
+      "ContactEmail": "ed@systemprompt.io",
+      "CreatedDate": "2026-06-22T08:31:39.000+0000",
+      "Description": "Systemprompt <=> Astound",
+      "DeveloperName": "Systemprompt_SSO",
+      "DistributionState": "Local",
+      "Id": "0xIgK000000JBkXUAW",
+      "ManagedType": null,
+      "MasterLabel": "Systemprompt SSO",
+      "OrgScopedExternalApp": "00DgK00000RNMcz:Systemprompt_SSO"
+    }
+  ],
+  "granted_scopes": "openid mcp_api api id",
+  "mcp_server_definitions": [],
+  "named_credentials": [],
+  "oauth_consumers": [
+    {
+      "DeveloperName": "Systemprompt_SSO_glbloauth",
+      "ExternalClientApplicationId": "0xIgK000000JBkXUAW",
+      "ExtlClntAppOauthSettingsId": "3SNgK000000I52rWAC",
+      "Id": "13PgK000000ISp3UAG",
+      "MasterLabel": "Systemprompt_SSO_glbloauth"
+    }
+  ],
+  "oauth_policies": [
+    {
+      "DeveloperName": "Systemprompt_SSO_oauthPlcy",
+      "ExternalClientApplicationId": "0xIgK000000JBkXUAW",
+      "Id": "0yOgK000000RWrpUAG",
+      "IpRelaxationPolicyType": "Enforce",
+      "IsClientCredentialsFlowEnabled": false,
+      "IsNamedUserJwtEnabled": false,
+      "IsTokenExchangeFlowEnabled": false,
+      "NamedUserJwtTimeout": null,
+      "PermittedUsersPolicyType": "AdminApprovedPreAuthorized",
+      "RefreshTokenPolicyType": "SpecificLifetime",
+      "RefreshTokenValidityPeriod": 8760,
+      "RefreshTokenValidityUnit": "Days",
+      "RequiredSessionLevel": "STANDARD",
+      "SessionTimeoutInMinutes": null,
+      "StartUrl": null
+    }
+  ],
+  "oauth_settings": [
+    {
+      "ClientAssertionCertificate": null,
+      "DeveloperName": "Systemprompt_SSO_oauth",
+      "ExternalClientApplicationId": "0xIgK000000JBkXUAW",
+      "ExtlClntAppOauthOptionsFirstPartyAppEnabled": false,
+      "Id": "3SNgK000000I52rWAC",
+      "MasterLabel": "Systemprompt_SSO_oauth",
+      "OauthLink": "00DgK00000RNMcz:888gK000000iDRN",
+      "OauthScopesADDRESS": false,
+      "OauthScopesAPI": true,
+      "OauthScopesCHATTER_REST_API": false,
+      "OauthScopesCONTENT": false,
+      "OauthScopesCUSTOM_PERMISSIONS": false,
+      "OauthScopesEINSTEIN_GPT_API": false,
+      "OauthScopesEMAIL": false,
+      "OauthScopesFULL": true,
+      "OauthScopesLIGHTNING": false,
+      "OauthScopesMCP_API": true,
+      "OauthScopesOFFLINE_ACCESS": false,
+      "OauthScopesOPENID": true,
+      "OauthScopesPHONE": false,
+      "OauthScopesPROFILE": false,
+      "OauthScopesREFRESH_TOKEN": true,
+      "OauthScopesSFAP_API": false,
+      "OauthScopesSSO": true,
+      "OauthScopesVF": false,
+      "OauthScopesWEB": false,
+      "SingleLogoutUrl": null
+    }
+  ],
+  "org": [
+    {
+      "Id": "00DgK00000RNMczUAH",
+      "InstanceName": "CAN96",
+      "IsSandbox": false,
+      "Name": "systemprompt.io",
+      "OrganizationType": "Developer Edition"
+    }
+  ],
+  "preauth_assignments": [
+    {
+      "Assignee": {
+        "Name": "Edward Burton",
+        "Username": "ed.aa5967144c6c@agentforce.com",
+        "attributes": {
+          "type": "User",
+          "url": "/services/data/v64.0/sobjects/User/005gK00004y2MbeQAE"
+        }
+      },
+      "PermissionSet": {
+        "Name": "Salesforce_MCP_Access",
+        "attributes": {
+          "type": "PermissionSet",
+          "url": "/services/data/v64.0/sobjects/PermissionSet/0PSgK00000GTaGbWAL"
+        }
+      }
+    }
+  ]
+}

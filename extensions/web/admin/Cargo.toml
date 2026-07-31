@@ -52,6 +52,8 @@ handlebars = { workspace = true }
 
 # Archive
 tempfile = { workspace = true }
+# Salesforce metadata deploys ship as a zipped package over the REST resource.
+zip = { workspace = true }
 
 # HTTP client
 reqwest = { workspace = true }
