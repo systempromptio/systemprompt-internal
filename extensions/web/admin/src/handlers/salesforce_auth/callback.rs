@@ -31,8 +31,6 @@ pub(crate) struct CallbackParams {
     error_description: Option<String>,
 }
 
-/// A completed Salesforce login, ready to be turned into a cookie-setting
-/// redirect.
 struct SuccessfulLogin {
     redirect_to: String,
     jwt: String,
@@ -55,8 +53,6 @@ pub(crate) async fn salesforce_callback(
     }
 }
 
-/// Drive the callback end-to-end, returning a short error *reason* (surfaced as
-/// `?sso=<reason>` on the login page) on any failure.
 async fn run_callback(
     deps: &SalesforceDeps,
     headers: &HeaderMap,
@@ -82,9 +78,6 @@ async fn run_callback(
     })
 }
 
-/// Validate the OAuth callback shape: surface a provider error, require
-/// `code`/`state`, check the CSRF state against the cookie, and recover the
-/// PKCE verifier + post-login redirect target.
 fn validate_request(
     headers: &HeaderMap,
     params: CallbackParams,
@@ -132,8 +125,6 @@ fn success_response(login: &SuccessfulLogin) -> Response {
     (out, Redirect::to(&login.redirect_to)).into_response()
 }
 
-/// Mint a systemprompt session JWT for a resolved user, returning the signed
-/// token and its max-age (seconds). Mirrors core's OAuth `/token` minting.
 async fn mint_session(
     session_service: &SessionCreationService,
     resolved: &federated::ResolvedFederatedUser,

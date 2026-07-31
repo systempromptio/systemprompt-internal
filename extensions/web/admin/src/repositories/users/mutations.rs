@@ -74,11 +74,6 @@ pub async fn create_user(
     Ok(summary)
 }
 
-/// Whether this user already holds a seat in the organization.
-///
-/// `create_user` upserts on email conflict, so re-running it for an existing
-/// member is a legitimate update — and must not be refused for want of a seat
-/// the user already occupies.
 async fn is_existing_member(
     pool: &PgPool,
     user_id: &UserId,

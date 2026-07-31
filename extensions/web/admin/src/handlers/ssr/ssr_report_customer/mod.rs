@@ -91,11 +91,9 @@ pub(crate) async fn report_customer_page(
     ))
 }
 
-/// Whose report this is.
-///
-/// `?org=` is read only for a platform admin. A customer's own administrator
-/// holds the `admin` role too, so honouring the parameter for them would turn
-/// a URL edit into a read of another customer's usage.
+// Why: `?org=` is honoured only for a platform admin — a customer's own
+// administrator holds `admin` too, so trusting it would turn a URL edit into
+// a read of another customer's usage.
 async fn resolve_slug(
     pool: &PgPool,
     user_ctx: &UserContext,

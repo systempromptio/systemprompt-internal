@@ -68,7 +68,6 @@ pub(crate) async fn post_token_request(
     Ok(resp.json().await?)
 }
 
-/// The accessor response: a Salesforce bearer + the instance it is scoped to.
 #[derive(Debug, Serialize)]
 struct TokenResponse {
     access_token: String,

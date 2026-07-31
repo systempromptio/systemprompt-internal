@@ -26,7 +26,6 @@ use super::types::{EnterpriseDetailPageData, EnterpriseView, EnterprisesPageData
 
 mod view;
 
-/// Modifier the margin tile takes when money is going the wrong way.
 const fn margin_variant(margin_microdollars: i64) -> &'static str {
     if margin_microdollars < 0 {
         "stat-card--negative"
@@ -47,11 +46,11 @@ pub(crate) async fn enterprises_page(
     let metrics = organizations::metrics::list_organization_metrics(&pool).await?;
 
     let mut enterprises: Vec<EnterpriseView> = metrics.iter().map(view::enterprise_view).collect();
-    // Least profitable first — the customers costing more than they pay are
+    // Why: least profitable first — the customers costing more than they pay are
     // the reason to open this page.
     enterprises.sort_by_key(|e| e.margin_microdollars);
 
-    // The platform tenant is a row on the page — its spend is real — but it is
+    // Why: the platform tenant is a row on the page — its spend is real — but it is
     // not a customer, so it must not inflate the count an operator reads as
     // "how many enterprises do we have".
     let customers = enterprises.iter().filter(|e| !e.is_platform).count();

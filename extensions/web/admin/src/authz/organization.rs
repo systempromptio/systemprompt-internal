@@ -26,16 +26,12 @@ use systemprompt::identifiers::UserId;
 use systemprompt_security::authz::{RuleType, SubjectAttributeProvider, SubjectDimension};
 use tokio::sync::RwLock;
 
-/// Slug bound to `access_control_rules.rule_type`.
 const ORGANIZATION_SLUG: &str = "organization";
 
-/// Below core's `ROLE` (200) and our `DEPARTMENT` (100): the broadest scope
-/// yields to every narrower one, so a department deny inside a customer beats
-/// the customer-wide allow its plan granted.
+// Why: below core's `ROLE` (200) and `DEPARTMENT` (100) — the broadest scope
+// yields to every narrower one.
 const ORGANIZATION_PRECEDENCE: u16 = 300;
 
-/// Matches the department provider: bounds staleness after a membership or
-/// suspension change without turning every decision into a query.
 const ORGANIZATION_TTL: Duration = Duration::from_secs(60);
 
 type OrganizationCache = HashMap<String, (Vec<String>, Instant)>;

@@ -37,8 +37,8 @@ pub(super) fn summary_view(summary: &CustomerMonthSummary) -> CustomerSummaryVie
     }
 }
 
-/// An empty month is a real answer, not a missing one — a customer who ran
-/// nothing still gets a report saying so.
+// Why: An empty month is a real answer, not a missing one — a customer who ran
+// nothing still gets a report saying so.
 pub(super) const fn empty_summary_view() -> CustomerSummaryView {
     CustomerSummaryView {
         seats_used: 0,

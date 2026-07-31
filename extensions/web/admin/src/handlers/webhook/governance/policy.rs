@@ -60,7 +60,6 @@ impl PolicyChain {
     }
 }
 
-/// Process-wide, hot-reloadable policy chain.
 static CHAIN: LazyLock<RwLock<PolicyChain>> = LazyLock::new(|| RwLock::new(load_chain()));
 
 pub(crate) fn chain() -> std::sync::RwLockReadGuard<'static, PolicyChain> {

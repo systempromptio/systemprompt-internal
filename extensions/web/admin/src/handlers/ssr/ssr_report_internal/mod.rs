@@ -28,8 +28,6 @@ mod view;
 use context::ReportInternalContext;
 
 const BASE_URL: &str = "/admin/reports/internal";
-/// Months of history the trend chart spans. A year plus the current month, so
-/// the same month last year is on the chart to compare against.
 const TREND_MONTHS: i32 = 12;
 
 pub(crate) async fn report_internal_page(
@@ -50,7 +48,7 @@ pub(crate) async fn report_internal_page(
     let series = internal::list_platform_month_series(&pool, TREND_MONTHS).await?;
 
     let mut organizations: Vec<_> = rows.iter().map(|r| view::org_view(r, &month.key)).collect();
-    // Least profitable first — the accounts costing more than they pay are the
+    // Why: least profitable first — the accounts costing more than they pay are the
     // reason to open this page.
     organizations.sort_by_key(|o| o.margin_microdollars);
 

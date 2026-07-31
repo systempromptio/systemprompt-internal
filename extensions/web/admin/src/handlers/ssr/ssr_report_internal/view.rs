@@ -12,7 +12,7 @@ use crate::repositories::reports::internal::{
 
 use super::context::{InternalTotals, OrgPnlView, SupplierView};
 
-/// Modifier the margin tile takes when money is going the wrong way.
+// Why: Modifier the margin tile takes when money is going the wrong way.
 pub(super) const fn margin_variant(margin_microdollars: i64) -> &'static str {
     if margin_microdollars < 0 {
         "stat-card--negative"
@@ -52,12 +52,12 @@ pub(super) fn org_view(row: &OrganizationMonthPnl, month_key: &str) -> OrgPnlVie
     }
 }
 
-/// Portfolio totals folded from the rows the table prints.
-///
-/// The platform tenant is included in cost — its spend is real money — and
-/// excluded from the customer count and from revenue, because it bills nobody
-/// and would otherwise drag the portfolio margin down as if a customer were
-/// underwater.
+// Why: Portfolio totals folded from the rows the table prints.
+//
+// The platform tenant is included in cost — its spend is real money — and
+// excluded from the customer count and from revenue, because it bills nobody
+// and would otherwise drag the portfolio margin down as if a customer were
+// underwater.
 pub(super) fn totals(rows: &[OrganizationMonthPnl]) -> InternalTotals {
     let revenue: i64 = rows
         .iter()
@@ -103,7 +103,7 @@ pub(super) fn supplier_views(rows: &[SupplierMonthCost]) -> Vec<SupplierView> {
         .collect()
 }
 
-/// Trailing months of platform spend, as the CSS bar chart reads it.
+// Why: Trailing months of platform spend, as the CSS bar chart reads it.
 pub(super) fn trend_chart(points: &[PlatformMonthPoint]) -> ChartView {
     let max = points
         .iter()
@@ -145,8 +145,6 @@ fn month_label(point: &PlatformMonthPoint) -> String {
     point.month_start.format("%b %Y").to_string()
 }
 
-/// A percentage that may not exist. An uncapped or non-billed row prints an
-/// em dash rather than a zero a reader would take at face value.
 fn pct_display(pct: Option<i64>) -> String {
     pct.map_or_else(|| "—".to_owned(), |p| format!("{p}%"))
 }

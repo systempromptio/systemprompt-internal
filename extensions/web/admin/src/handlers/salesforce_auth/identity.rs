@@ -94,10 +94,6 @@ pub(super) async fn resolve_identity(
     Ok(resolved)
 }
 
-/// Enforce the verified-email + allow-listed-domain gate, returning the
-/// `(sub, email, display_name, sf_username)` to provision/link with.
-/// `sf_username` is the Salesforce Username (userinfo `preferred_username`),
-/// falling back to the email when Salesforce omits it.
 fn gate_claims(
     cfg: &SalesforceConfig,
     info: SalesforceUserInfo,

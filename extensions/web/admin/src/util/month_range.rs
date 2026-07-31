@@ -13,8 +13,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::util::time_range::{TimeRange, TimeRangePreset};
 
-/// How many months back the selector offers. Thirteen so the same month a year
-/// ago is always reachable for a year-on-year read.
 const MONTH_OPTIONS: u32 = 13;
 
 /// Query parameter parsed from `?month=YYYY-MM`.
@@ -117,7 +115,6 @@ fn parse_month_key(raw: &str) -> Option<DateTime<Utc>> {
         .single()
 }
 
-/// Build a month from any instant inside it.
 fn from_start(instant: DateTime<Utc>) -> MonthRange {
     let from = month_start(instant);
     let to = from + Months::new(1);

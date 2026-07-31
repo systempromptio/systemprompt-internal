@@ -11,9 +11,6 @@ use super::super::types::{
     EnterpriseModelUsageView, EnterpriseView,
 };
 
-/// Budget headroom, banded. The thresholds match what the gateway does rather
-/// than what looks calm: at 100% the next request is refused, so 100 is "over"
-/// and not "nearly there".
 const BUDGET_WARN_PCT: i64 = 80;
 
 pub(super) fn enterprise_view(m: &OrganizationMetrics) -> EnterpriseView {
@@ -92,11 +89,11 @@ pub(super) fn entitlement_view(e: OrganizationEntitlement) -> EnterpriseEntitlem
     }
 }
 
-/// Model rows with each one's share of the period's spend.
-///
-/// The share is of cost rather than of requests: a handful of calls to an
-/// expensive model is the line an operator needs to see, and counting requests
-/// would bury it under chatter.
+// Why: Model rows with each one's share of the period's spend.
+//
+// The share is of cost rather than of requests: a handful of calls to an
+// expensive model is the line an operator needs to see, and counting requests
+// would bury it under chatter.
 pub(super) fn model_views(rows: Vec<OrganizationModelUsage>) -> Vec<EnterpriseModelUsageView> {
     let total: i64 = rows.iter().map(|r| r.cost_microdollars).sum();
     rows.into_iter()

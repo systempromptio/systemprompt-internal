@@ -80,10 +80,6 @@ pub(crate) async fn user_context_middleware(
     next.run(request).await
 }
 
-/// Fails closed: a lookup error denies the cross-customer console rather than
-/// opening it, which is the opposite of how the gateway guards fail. A blip
-/// there would take down inference for every customer; here it costs one
-/// operator one retry.
 async fn platform_member(pool: &PgPool, user_id: &UserId) -> bool {
     super::repositories::organizations::crud::get_platform_membership(pool, user_id)
         .await

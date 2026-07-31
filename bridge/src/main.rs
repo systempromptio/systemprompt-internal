@@ -12,10 +12,9 @@ use std::process::ExitCode;
 
 use systemprompt_bridge::brand::{Brand, BrandAssets};
 
-// Astound behaviour registered through core's `inventory` seams. The GUI
-// (hence the marketplace-source seam) is win/mac-only, so this module compiles
-// there; the `mod` reference keeps its `inventory::submit!`s linked into the
-// binary (an unreferenced module would be dropped before its initializers run).
+// Why: the `mod` reference is what keeps this module's `inventory::submit!`s
+// linked into the binary — an unreferenced module is dropped before its
+// initializers run.
 #[cfg(any(target_os = "windows", target_os = "macos"))]
 mod registry;
 
@@ -27,40 +26,23 @@ static ASTOUND_BRAND: Brand = Brand {
     config_file: "astound-bridge.toml",
     pat_file: "astound-bridge.pat",
     working_dir_name: "astound-bridge",
-    // User-facing default Cowork workspace folder → ~/Astound, pushed as a
-    // pre-trusted allowedWorkspaceFolders entry so the agent has a writable home
-    // without folder prompts. Brand-specific (Astound), consumed by core's MDM
-    // policy writer.
     workspace_dir_name: "Astound",
     keyring_service: "astound-bridge.oauth-client",
     env_prefix: "ASTOUND_BRIDGE",
-    // Pre-fills the setup/settings gateway field with the local gateway so a dev
-    // build talks to a `just start` server out of the box. Point at the deployed
-    // Astound gateway host before cutting a release. Overridable at runtime via
-    // ASTOUND_BRIDGE_GATEWAY_URL or `astound-bridge install --gateway <url>`.
     default_gateway_url: "http://localhost:8080",
-    // The Astound gateway mounts the device-link consent page under
-    // /bridge-auth (see extensions/web/src/extension_impl.rs nest_service),
-    // not the upstream default /bridge — keep these in lockstep.
+    // Why: the gateway mounts this page under /bridge-auth (see
+    // extensions/web/src/extension_impl.rs), not the upstream default /bridge.
     device_link_path: "/bridge-auth/device-link",
     tray_tooltip: "Astound Bridge",
     window_title: "Astound Bridge",
     app_menu_name: "Astound Bridge",
-    // The Astound gateway federates identity through Salesforce, so the one-click
-    // setup button drives the device-link flow into the gateway's "Sign in with
-    // Salesforce" login. The bridge never speaks to Salesforce directly — it only
-    // carries the gateway credential the device-link approval returns.
     sign_in_label: "Sign in with Salesforce",
     sign_in_hint: "Opens your browser. This device is linked automatically once you approve.",
-    // Scheduler identifiers for the periodic sync job. Brand-scoped so an
-    // Astound bridge never registers (or, on uninstall, tears down) a task
-    // named after upstream systemprompt.
     schedule_label: "com.astounddigital.bridge-sync",
     schedule_unit: "astound-bridge-sync",
     schedule_task_name: "AstoundBridgeSync",
-    // Embedded from OUT_DIR (copied there by build.rs) rather than directly from
-    // `assets/`, so regenerating an asset reliably re-embeds it even under
-    // incremental/sccache builds. See build.rs.
+    // Why: embedded from OUT_DIR (build.rs copies them there) so a regenerated
+    // asset re-embeds under incremental/sccache builds.
     assets: BrandAssets {
         icon_svg: include_str!(concat!(env!("OUT_DIR"), "/icon.svg")),
         logo_svg: include_str!(concat!(env!("OUT_DIR"), "/logo.svg")),

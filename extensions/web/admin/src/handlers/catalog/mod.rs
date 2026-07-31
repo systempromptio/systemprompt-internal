@@ -184,9 +184,6 @@ pub(crate) async fn mcp_detail_page(
     ))
 }
 
-/// The catalog is a read-only view of what an operator installed, so every
-/// page in it is admin-gated by the same rule rather than each one restating
-/// it.
 fn admin_only(user_ctx: &UserContext) -> AdminHtmlResult<()> {
     if user_ctx.is_admin {
         return Ok(());

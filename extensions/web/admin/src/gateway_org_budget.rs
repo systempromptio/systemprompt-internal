@@ -155,8 +155,6 @@ impl GatewayRequestGuard for OrgBudgetGuard {
     }
 }
 
-/// The same query the enterprise console reports budget health from, so the
-/// percentage an operator reads and the ceiling a customer hits are one number.
 async fn load_org_spend(pool: &PgPool, user_id: &UserId) -> Option<OrganizationSpend> {
     organizations::spend::find_spend_for_user(pool, user_id)
         .await

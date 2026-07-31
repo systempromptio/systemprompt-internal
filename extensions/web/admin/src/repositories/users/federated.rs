@@ -107,8 +107,6 @@ async fn load_user(pool: &PgPool, user_id: &UserId) -> Result<Option<LocalUser>,
     }))
 }
 
-/// Attach `(issuer, external_sub)` to an existing user. Idempotent: a mapping
-/// that already exists is left untouched.
 async fn link_existing(
     pool: &PgPool,
     issuer: &str,
@@ -127,11 +125,8 @@ async fn link_existing(
     Ok(())
 }
 
-/// Provision a brand-new federated user and its mapping in one transaction.
-///
-/// Only reached for verified, allow-listed emails, so `email_verified` is set
-/// `true` and `name` is the (unique) email — sidestepping the `users.name`
-/// uniqueness constraint while keeping `display_name` human-friendly.
+// Why: `name` is set to the email to sidestep the `users.name` uniqueness
+// constraint; `display_name` carries the human-friendly form.
 async fn create_federated(
     pool: &PgPool,
     issuer: &str,

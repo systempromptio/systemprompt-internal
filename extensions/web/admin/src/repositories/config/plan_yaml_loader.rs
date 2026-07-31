@@ -30,11 +30,8 @@ use super::plan_yaml_types::{PlanLoadReport, PlansDoc, YamlGrant, YamlOrganizati
 
 const PLANS_FILE: &str = "access-control/plans.yaml";
 
-/// Provenance written onto any entity row this loader has to materialise.
 const SOURCE_LABEL: &str = "plans.yaml";
 
-/// Microdollars per dollar. `ai_requests.cost_microdollars` is the unit every
-/// cost in the system is accounted in; plans are authored in dollars.
 const MICRODOLLARS_PER_USD: f64 = 1_000_000.0;
 
 pub async fn load_from_yaml(
@@ -128,8 +125,6 @@ async fn upsert_plan(pool: &PgPool, plan: &YamlPlan) -> Result<(), MarketplaceEr
     Ok(())
 }
 
-/// The org's `id` is left to the table default on insert; the slug is the
-/// stable key, because it is what every projected rule row names.
 async fn upsert_organization(
     pool: &PgPool,
     org: &YamlOrganization,
@@ -158,12 +153,8 @@ async fn upsert_organization(
     Ok(())
 }
 
-/// Make this organization's rules exactly the set its plan grants.
-///
-/// The delete is scoped to `rule_value = <this org's slug>`, so a plan
-/// downgrade withdraws exactly the grants that customer lost and cannot touch
-/// another customer's rules, another dimension's rules, or the per-user
-/// overrides that are runtime state.
+// Why: the delete is scoped to `rule_value = <this org's slug>`, so a plan
+// downgrade cannot touch another customer's rules or the per-user overrides.
 async fn project_grants(
     pool: &PgPool,
     repo: &AccessControlRepository,
@@ -180,7 +171,7 @@ async fn project_grants(
         let access = Access::from_str(&grant.access)
             .map_err(|e| MarketplaceError::Internal(format!("{PLANS_FILE}: {slug}: {e}")))?;
 
-        // The FK on access_control_rules requires a catalog row. An earlier
+        // Why: the FK on access_control_rules requires a catalog row. An earlier
         // bootstrap pass will usually have registered it; a plan naming an
         // entity that pass did not see must still resolve, so register it here
         // rather than failing the whole load on ordering.
