@@ -1,14 +1,4 @@
-/*
- * Enterprise console: the portfolio list and one customer in detail.
- *
- * Colour here is semantic, never decorative. Green, amber, and red mean
- * healthy, at-risk, and over — the same bands the gateway enforces — so a
- * reader can scan the budget column without reading a number. The brand
- * accent is reserved for interactive elements and never used to say "good".
- */
-
 @layer components {
-
 .ent-kpis {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
@@ -24,8 +14,6 @@
     .ent-kpis { grid-template-columns: repeat(2, 1fr); }
 }
 
-/* A portfolio running at a loss is the one thing on this page that must not
-   be missed, so the tile changes colour rather than only its sign. */
 .stat-card--negative .value {
     color: var(--sp-danger);
 }
@@ -47,8 +35,6 @@
     color: var(--sp-text-tertiary);
 }
 
-/* Width comes from --ent-bar-pct, set per row in the template: the value is
-   data, and data belongs in the markup rather than in a generated stylesheet. */
 .ent-bar {
     display: block;
     width: 100%;

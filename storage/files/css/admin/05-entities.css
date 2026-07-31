@@ -1,6 +1,4 @@
 @layer components {
-
-/* Shared column + state helpers ------------------------------------------- */
 .col-num,
 .col-numeric {
     text-align: right;
@@ -35,7 +33,6 @@
     margin: 0;
 }
 
-/* mcp-badge — compact status pill used across entities tables --------------- */
 .mcp-badge {
     display: inline-flex;
     align-items: center;
@@ -69,7 +66,6 @@
     color: var(--sp-warning);
 }
 
-/* KPI strip / request charts ---------------------------------------------- */
 .requests-charts {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -147,7 +143,6 @@
     opacity: 0.85;
 }
 
-/* Requests audit table toolbar + rows ------------------------------------- */
 .audit-toolbar {
     display: flex;
     flex-wrap: wrap;
@@ -197,7 +192,6 @@
     color: var(--sp-text-tertiary);
 }
 
-/* Trace explorer stats ----------------------------------------------------- */
 .trace-stats {
     margin: var(--sp-space-4) 0;
 }
@@ -254,7 +248,6 @@
     margin: 0 var(--sp-space-3);
 }
 
-/* Trace waterfall ---------------------------------------------------------- */
 .waterfall {
     margin: var(--sp-space-4) 0;
 }
@@ -323,7 +316,7 @@
 
 .waterfall__dur {
     font-size: 10px;
-    color: var(--sp-text-on-accent, #fff);
+    color: var(--sp-text-on-accent);
     white-space: nowrap;
 }
 
@@ -342,7 +335,6 @@
 .waterfall__swatch--model { background: var(--sp-accent); }
 .waterfall__swatch--spawn { background: #a06bff; }
 
-/* Session / context detail bits ------------------------------------------- */
 .alert__title {
     font-weight: var(--sp-font-semibold);
     margin: 0 0 var(--sp-space-1);

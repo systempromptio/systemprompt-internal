@@ -58,7 +58,7 @@
   display: inline-flex;
   align-items: center;
   padding: var(--sp-space-xs) var(--sp-space-md);
-  border-radius: var(--sp-radius-round, 999px);
+  border-radius: var(--sp-radius-round);
   border: 1px solid var(--sp-color-border);
   background: var(--sp-color-surface);
   color: var(--sp-color-text-secondary);

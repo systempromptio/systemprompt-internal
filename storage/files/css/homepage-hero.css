@@ -66,7 +66,7 @@ body.has-video-hero .site-header .mobile-menu-overlay {
   min-height: 100svh;
   display: flex;
   overflow: hidden;
-  background: var(--sp-brand-950, #0a0a0a);
+  background: var(--sp-brand-950);
 }
 
 .hero-layout {
@@ -189,6 +189,6 @@ body.has-video-hero .site-header .mobile-menu-overlay {
   .hero {
     background:
       radial-gradient(ellipse 80% 60% at 20% 20%, rgba(255, 255, 255, 0.08), transparent 70%),
-      var(--sp-brand-950, #0a0a0a);
+      var(--sp-brand-950);
   }
 }

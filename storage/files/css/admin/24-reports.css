@@ -1,16 +1,4 @@
-/*
- * Month-end reports: the internal P&L and the customer usage report.
- *
- * Both pages exist to be printed. The PDF a customer receives is the browser's
- * own print of the page, so the print rules below are not a nicety — they are
- * the second half of the feature. Everything that is console chrome (sidebar,
- * header, month picker, the print button itself) is removed on paper, and a
- * header block that is hidden on screen takes its place so the sheet says what
- * it is and which month it covers.
- */
-
 @layer components {
-
 .report-toolbar {
     display: flex;
     flex-wrap: wrap;
@@ -47,12 +35,10 @@
 
 .report-section-title {
     margin: var(--sp-space-5) 0 var(--sp-space-2);
-    font-size: var(--sp-text-base, 1rem);
+    font-size: var(--sp-text-base);
     font-weight: 600;
 }
 
-/* Provider and model sit side by side on screen and stack on paper, where the
-   column width is fixed and two tables would each be unreadable. */
 .report-split {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
@@ -68,7 +54,6 @@
     font-size: var(--sp-text-sm);
 }
 
-/* The margin percentage under the margin figure: present, not competing. */
 .report-subvalue {
     display: block;
     color: var(--sp-text-tertiary);
@@ -81,7 +66,6 @@
     font-size: var(--sp-text-sm);
 }
 
-/* On screen the print header would repeat the page header above it. */
 .report-print-header {
     display: none;
 }
@@ -142,8 +126,6 @@
         box-shadow: none !important;
     }
 
-    /* A table that spills onto a second sheet reprints its headings, and no
-       row is cut in half across the fold. */
     .table-scroll {
         overflow: visible !important;
     }

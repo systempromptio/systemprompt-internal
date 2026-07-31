@@ -1,7 +1,5 @@
 @layer tokens {
 :root {
-
-  /* Astound Digital monochrome ramp — mirrors core/variables.css */
   --sp-primitive-brand-50:  #f8f7f3;
   --sp-primitive-brand-100: #f1efed;
   --sp-primitive-brand-200: #dddddd;
@@ -52,7 +50,6 @@
   --sp-primitive-accent-cyan:        oklch(0.79 0.13 200);
   --sp-primitive-accent-cyan-light:  oklch(0.87 0.10 200);
 
-  /* Fixed steps, shared with the public site (core/variables.css) */
   --sp-text-xs:   12px;
   --sp-text-sm:   14px;
   --sp-text-base: 15px;

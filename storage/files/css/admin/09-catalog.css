@@ -1,6 +1,4 @@
 @layer components {
-
-/* Plugin card grid --------------------------------------------------------- */
 .catalog-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -88,7 +86,6 @@
     color: var(--sp-accent);
 }
 
-/* Chips -------------------------------------------------------------------- */
 .chip {
     display: inline-flex;
     align-items: center;
@@ -118,7 +115,6 @@
     margin-left: auto;
 }
 
-/* Detail pages ------------------------------------------------------------- */
 .catalog-meta-bar {
     display: flex;
     flex-wrap: wrap;
@@ -219,7 +215,6 @@
     text-decoration: underline;
 }
 
-/* Key/value list ----------------------------------------------------------- */
 .kv-list {
     margin: 0;
     display: flex;

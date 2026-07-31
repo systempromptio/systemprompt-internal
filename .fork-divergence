@@ -107,3 +107,10 @@ extensions/web/admin/src/handlers/ssr/list_view.rs	# chip, preset and preserved-
 # DEBT - one side is simply ahead. Port it, then delete the line.
 # ---------------------------------------------------------------------
 # (empty)
+
+# Astound ships one theme. The template keeps the light/dark toggle, so it
+# still registers the theme module and still emits the colorScheme snippets
+# the inline-code gate has to excuse; neither exists here.
+extensions/web/site/src/assets/js_services.rs	# template registers theme.js for its light/dark toggle; astound has no theme module
+extensions/web/tests/asset_manifest.rs	# astound's flash guard is CSS-only, so the shell needs the critical-CSS carve-out and not the template's colorScheme-script one
+

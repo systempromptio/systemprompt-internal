@@ -49,8 +49,6 @@
     --sp-text-on-accent: #f8f7f3;
     --sp-text-on-dark:   #f8f7f3;
 
-    /* Red is the brand accent AND the danger hue. --sp-danger stays a distinct
-       red so "this will break something" never reads as branding. */
     --sp-interactive:   var(--sp-primitive-accent-red);
     --sp-accent:        var(--sp-primitive-accent-red);
     --sp-accent-hover:  #d41408;

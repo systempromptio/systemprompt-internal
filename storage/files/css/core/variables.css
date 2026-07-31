@@ -1,5 +1,5 @@
 :root {
-  /* Astound Digital monochrome ramp — neutral greys, literal hex (no hue ramp) */
+
   --sp-brand-50: #f8f7f3;
   --sp-brand-100: #f1efed;
   --sp-brand-200: #dddddd;
@@ -185,7 +185,6 @@
   --sp-client-grey: #f1efed;
   --sp-client-cards-card-bg: #f1efed;
 
-  /* Compatibility aliases for ported components from systemprompt-web */
   --sp-space-1: 4px;
   --sp-space-2: 8px;
   --sp-space-3: 12px;
@@ -205,19 +204,19 @@
   --sp-ease-out: ease-out;
   --sp-ease-in-out: ease-in-out;
 
-  --sp-color-surface-alt: var(--sp-color-surface-elevated, #f8f7f3);
+  --sp-color-surface-alt: var(--sp-color-surface-elevated);
   --sp-color-surface-hover: rgba(0, 0, 0, 0.04);
   --sp-color-primary-text: var(--sp-color-accent);
   --sp-color-border-subtle: var(--sp-color-border);
   --sp-color-header-bg: rgba(255, 255, 255, 0.85);
   --sp-color-header-border: var(--sp-color-border);
 
-  --sp-corners-card-brand: var(--sp-radius-lg, 12px);
+  --sp-corners-card-brand: var(--sp-radius-lg);
   --sp-corners-sm: var(--sp-radius-sm);
 
   --sp-z-dropdown: 100;
   --sp-z-toast: 9999;
-  --sp-z-header: var(--sp-z-navigation, 90);
+  --sp-z-header: var(--sp-z-navigation);
 
   --sp-text-xs: 0.75rem;
   --sp-text-sm: 0.875rem;

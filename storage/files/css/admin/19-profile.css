@@ -334,3 +334,64 @@
 .sp-tile--featured .sp-tile__value {
     color: var(--sp-accent);
 }
+
+/* ── Connect the bridge ──────────────────────────────────────────────────────
+   Sits directly under the hero: it is the first thing a newly signed-in user
+   needs, and the only place the exchange code is reachable. Accented so it
+   reads as an action rather than another statistics card. */
+
+.sp-profile-card--connect {
+    border-color: var(--sp-accent);
+}
+
+.sp-connect {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-space-4);
+    padding: var(--sp-space-5);
+    min-width: 0;
+}
+
+.sp-connect__lede {
+    margin: 0;
+    color: var(--sp-text-secondary);
+    font-size: var(--sp-text-sm);
+}
+
+.sp-connect__step {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-space-2);
+    min-width: 0;
+}
+
+.sp-connect__label {
+    font-size: var(--sp-text-xs);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--sp-text-tertiary);
+}
+
+/* The command is long and must stay copyable in one selection, so it scrolls
+   inside its own box rather than wrapping mid-token or widening the page. */
+.sp-connect__cmd {
+    margin: 0;
+    padding: var(--sp-space-3) var(--sp-space-4);
+    background: var(--sp-bg-code, var(--sp-bg-surface-alt));
+    border: 1px solid var(--sp-border-subtle);
+    border-radius: var(--sp-radius-sm, 6px);
+    overflow-x: auto;
+    font-family: var(--sp-font-mono);
+    font-size: var(--sp-text-sm);
+    line-height: 1.6;
+    color: var(--sp-text-primary);
+    user-select: all;
+}
+
+.sp-connect__raw summary {
+    cursor: pointer;
+    font-size: var(--sp-text-xs);
+    color: var(--sp-text-tertiary);
+    margin-bottom: var(--sp-space-2);
+}
