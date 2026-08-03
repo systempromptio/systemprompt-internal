@@ -8,23 +8,19 @@ kind: "guide"
 public: true
 tags: ["dashboard", "analytics", "admin"]
 published_at: "2026-02-18"
-updated_at: "2026-03-19"
+updated_at: "2026-07-31"
 after_reading_this:
   - "Understand the metrics displayed on the admin dashboard"
   - "Use time-range controls to analyze AI usage trends"
   - "Identify top users, popular skills, and department activity"
   - "Monitor error rates and system health"
 related_docs:
-  - title: "Events"
-    url: "/documentation/events"
-  - title: "Users"
-    url: "/documentation/users"
-  - title: "Jobs"
-    url: "/documentation/jobs"
-  - title: "Plugins"
-    url: "/documentation/plugins"
-  - title: "Integration: Claude Code"
-    url: "/documentation/integration-claude-code"
+  - title: "Standing Up the Gateway"
+    url: "/documentation/use-case-admin"
+  - title: "Authentication"
+    url: "/documentation/authentication"
+  - title: "Audit Trails & Costs"
+    url: "/documentation/demo-terminal-audit"
 ---
 
 # Dashboard

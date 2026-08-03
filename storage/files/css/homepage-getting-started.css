@@ -17,7 +17,17 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   text-decoration: none;
+  gap: 1.25rem;
   transition: background-color var(--sp-transition-fast), color var(--sp-transition-fast), transform var(--sp-transition-fast), box-shadow var(--sp-transition-fast);
+}
+
+.hero-cta::after {
+  content: "";
+  flex: none;
+  width: 0.25rem;
+  height: 0.25rem;
+  border-radius: 50%;
+  background: var(--sp-color-accent);
 }
 
 .hero-cta-primary {

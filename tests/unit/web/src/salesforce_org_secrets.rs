@@ -11,6 +11,9 @@ use systemprompt_web_admin::salesforce_org::TargetOrg;
 const PRIVATE_KEY: &str =
     "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADSECRETKEYMATERIAL\n-----END PRIVATE KEY-----";
 const CONSUMER_KEY: &str = "3MVG9SENSITIVECONSUMERKEY";
+/// Public material, so not a secret — but `Debug` still reports only whether it
+/// is present, because a full certificate in a log line is noise.
+const CERTIFICATE: &str = "-----BEGIN CERTIFICATE-----\nCERTBODYMARKER\n-----END CERTIFICATE-----";
 
 fn target() -> TargetOrg {
     TargetOrg {
@@ -18,6 +21,7 @@ fn target() -> TargetOrg {
         consumer_key: CONSUMER_KEY.to_owned(),
         jwt_subject: "admin@example.com".to_owned(),
         private_key_pem: PRIVATE_KEY.to_owned(),
+        certificate_pem: Some(CERTIFICATE.to_owned()),
     }
 }
 

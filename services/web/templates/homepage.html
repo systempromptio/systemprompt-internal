@@ -24,6 +24,7 @@
     <link rel="stylesheet" href="{{CSS_BASE_PATH}}/homepage-showreel.css">
     <link rel="stylesheet" href="{{CSS_BASE_PATH}}/homepage-sections-titles.css">
     <link rel="stylesheet" href="{{CSS_BASE_PATH}}/homepage-getting-started.css">
+    <script>document.documentElement.classList.add('has-motion');</script>
 </head>
 <body class="has-video-hero">
     {{{HEADER}}}
@@ -31,21 +32,20 @@
     <main>
 
         <section class="hero">
+            <div class="hero-frame">
             <video class="hero-bg-video" autoplay muted loop playsinline preload="metadata" aria-hidden="true" tabindex="-1">
                 <source src="/video/showreel.mp4" type="video/mp4">
             </video>
             <div class="hero-scrim" aria-hidden="true"></div>
             <div class="hero-layout">
                 <div class="hero-pane">
-                    <nav class="hero-pane-nav" aria-label="Primary">
-                        {{#each site.header_nav.items}}
-                        <a href="{{this.href}}"{{#if this.external}} target="_blank" rel="noopener noreferrer"{{/if}}>{{this.label}}</a>
-                        {{/each}}
-                    </nav>
-                    <p class="hero-eyebrow">{{#if site.homepage.hero.eyebrow}}{{site.homepage.hero.eyebrow}}{{else}}Astound Digital{{/if}}</p>
-                    <h1 class="hero-title">{{site.homepage.hero.title}} <span class="highlight">{{site.homepage.hero.title_highlight}}</span></h1>
-                    <p class="hero-subtitle">{{site.homepage.hero.subtitle}}</p>
-                    <div class="hero-ctas">
+                    <p class="hero-eyebrow" data-reveal style="--reveal-index: 0">{{#if site.homepage.hero.eyebrow}}{{site.homepage.hero.eyebrow}}{{else}}Astound Digital{{/if}}</p>
+                    <h1 class="hero-title">
+                        <span class="hero-title-line" data-reveal style="--reveal-index: 1"><span class="hero-title-inner">{{site.homepage.hero.title}}</span></span>
+                        <span class="hero-title-line" data-reveal style="--reveal-index: 2"><span class="hero-title-inner highlight">{{site.homepage.hero.title_highlight}}<span class="hero-title-dot">.</span></span></span>
+                    </h1>
+                    <p class="hero-subtitle" data-reveal style="--reveal-index: 3">{{site.homepage.hero.subtitle}}</p>
+                    <div class="hero-ctas" data-reveal style="--reveal-index: 4">
                         {{#if site.homepage.hero.cta_url}}
                         <a href="{{site.homepage.hero.cta_url}}" class="hero-cta hero-cta-primary">{{site.homepage.hero.cta}}</a>
                         {{/if}}
@@ -53,7 +53,7 @@
                         <a href="{{site.homepage.hero.cta_secondary_url}}" class="hero-cta hero-cta-secondary">{{site.homepage.hero.cta_secondary}}</a>
                         {{/if}}
                     </div>
-                    <div class="hero-downloads">
+                    <div class="hero-downloads" data-reveal style="--reveal-index: 4">
                         <a href="https://github.com/systempromptio/systemprompt-core/releases/latest/download/systemprompt-bridge-aarch64-apple-darwin" class="download-badge" download target="_blank" rel="noopener noreferrer">
                             <svg class="download-badge-logo" viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
                                 <path d="M16.365 12.86c-.02-2.06 1.68-3.05 1.76-3.1-0.96-1.4-2.45-1.6-2.98-1.62-1.27-.13-2.48.75-3.12.75-.64 0-1.64-.73-2.7-.71-1.39.02-2.67.81-3.38 2.05-1.44 2.5-.37 6.2 1.03 8.23.69.99 1.51 2.1 2.58 2.06 1.04-.04 1.43-.67 2.69-.67 1.26 0 1.61.67 2.71.65 1.12-.02 1.83-1.01 2.51-2.01.79-1.15 1.12-2.27 1.14-2.33-.02-.01-2.19-.84-2.21-3.33zM14.32 6.55c.56-.68.94-1.63.84-2.57-.81.03-1.79.54-2.37 1.22-.52.6-.98 1.56-.86 2.48.9.07 1.83-.46 2.39-1.13z"/>
@@ -69,12 +69,13 @@
                     </div>
                 </div>
             </div>
+            </div>
         </section>
 
 
     </main>
 
-    {{{FOOTER}}}
+    {{! No footer on the homepage: the video hero is a single full-screen frame. }}
     {{{SCRIPTS}}}
     <script src="{{JS_BASE_PATH}}/homepage.js" type="module"></script>
 </body>

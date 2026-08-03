@@ -3,7 +3,9 @@
 // reading only that variant lets it out; these tests pin the widened surface.
 
 use systemprompt::ai::SafetyScanner;
-use systemprompt::models::wire::canonical::{CanonicalContent, CanonicalResponse};
+use systemprompt::models::wire::canonical::{
+    CanonicalContent, CanonicalMessage, CanonicalRequest, CanonicalResponse, Role,
+};
 use systemprompt::models::wire::inspect::{SurfaceBudget, string_leaves};
 use systemprompt_web_admin::gateway_safety::SecretsScanner;
 
@@ -62,6 +64,24 @@ async fn credential_only_in_the_received_surface_is_flagged() {
 
     assert_eq!(findings.len(), 1, "got {findings:?}");
     assert_eq!(findings[0].category, "secret");
+}
+
+// Ingress is the `secret_scan` governance policy's job — it runs first and is
+// first-deny-wins, so scanning requests here as well produced two verdicts on
+// identical bytes under separate config. This pins the split: reintroducing a
+// request scan brings back the duplicate plane.
+#[tokio::test]
+async fn a_credential_in_a_request_is_left_to_the_governance_chain() {
+    let req = CanonicalRequest {
+        model: "test-model".to_owned(),
+        messages: vec![CanonicalMessage {
+            role: Role::User,
+            content: vec![CanonicalContent::Text(format!("my token is {TOKEN}"))],
+        }],
+        ..Default::default()
+    };
+
+    assert!(SecretsScanner::new().scan_request(&req).await.is_empty());
 }
 
 #[tokio::test]

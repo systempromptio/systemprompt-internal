@@ -17,8 +17,6 @@ after_reading_this:
 related_docs:
   - title: "Authentication"
     url: "/documentation/authentication"
-  - title: "Access Control"
-    url: "/documentation/access-control"
 ---
 
 # Gateway API

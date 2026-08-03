@@ -72,7 +72,15 @@ impl TargetOrg {
             private_key_pem: var("SF_TARGET_PRIVATE_KEY")?,
             // Why: optional here rather than required, so export and diff still
             // work without it. Apply checks for it and refuses.
-            certificate_pem: std::env::var("SF_TARGET_CERTIFICATE").ok(),
+            //
+            // Falls back to the platform's own certificate — env var, then the
+            // profile's secrets store — so configuring the org this deployment
+            // already talks to needs no extra plumbing. SF_TARGET_CERTIFICATE
+            // stays available for pointing at a *different* org, matching how
+            // the other SF_TARGET_* values work.
+            certificate_pem: std::env::var("SF_TARGET_CERTIFICATE")
+                .ok()
+                .or_else(crate::handlers::salesforce_auth::salesforce_certificate),
         })
     }
 

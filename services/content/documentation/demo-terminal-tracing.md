@@ -22,8 +22,6 @@ related_docs:
     url: "/documentation/demo-terminal-governance"
   - title: "Setup & Authentication"
     url: "/documentation/demo-terminal-setup"
-  - title: "Tool Governance"
-    url: "/documentation/tool-governance"
 ---
 
 ## Overview

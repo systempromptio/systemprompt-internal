@@ -18,10 +18,8 @@ related_docs:
     url: "/documentation/demo-refused-path"
   - title: "Detailed Breakdown"
     url: "/documentation/demo-breakdown"
-  - title: "Tool Governance"
-    url: "/documentation/tool-governance"
-  - title: "Hooks"
-    url: "/documentation/hooks"
+  - title: "Governance API"
+    url: "/documentation/demo-terminal-governance"
 ---
 
 ## Overview

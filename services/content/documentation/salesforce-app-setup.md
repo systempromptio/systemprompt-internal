@@ -8,13 +8,15 @@ kind: "guide"
 public: true
 tags: ["salesforce", "sso", "oauth", "setup"]
 published_at: "2026-07-29"
-updated_at: "2026-07-29"
+updated_at: "2026-07-31"
 after_reading_this:
   - "Create a Salesforce app with the correct OAuth scopes and callback URL"
   - "Configure services/web/config/salesforce.yaml against your own org"
   - "Provision SALESFORCE_CLIENT_SECRET without committing it"
   - "Diagnose every ?sso= failure reason on the login page"
 related_playbooks:
+  - title: "Start Here — Standing Up the Gateway"
+    url: "/documentation/use-case-admin"
   - title: "Overview"
     url: "/documentation/salesforce"
   - title: "Step 2 — JWT-Bearer and the Signing Certificate"

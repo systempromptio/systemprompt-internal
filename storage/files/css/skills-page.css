@@ -1,9 +1,54 @@
-.skills-hero .hero-subtitle {
-  max-width: 640px;
+.skills-header {
+  padding: var(--sp-space-3xl) 0 var(--sp-space-2xl);
+  border-bottom: 1px solid var(--sp-color-border-subtle);
+}
+
+.skills-header-eyebrow {
+  font-family: var(--sp-font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--sp-color-text-muted);
+  margin: 0 0 var(--sp-space-lg);
+}
+
+.skills-header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sp-space-lg);
+}
+
+.skills-header-title {
+  font-family: var(--sp-font-brand);
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--sp-color-text-primary);
+}
+
+.skills-header-dot {
+  color: var(--sp-color-accent);
+}
+
+.skills-header-row .hero-ctas {
+  margin-top: 0;
+}
+
+.skills-header-lede {
+  max-width: 60ch;
+  margin: var(--sp-space-lg) 0 0;
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: var(--sp-color-text-secondary);
 }
 
 .skills-catalogue {
-  padding: var(--sp-space-4xl) 0 var(--sp-space-2xl);
+  padding: var(--sp-space-3xl) 0 var(--sp-space-2xl);
 }
 
 .skills-category {

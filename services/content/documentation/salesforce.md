@@ -8,13 +8,15 @@ kind: "guide"
 public: true
 tags: ["salesforce", "integration", "sso", "bridge"]
 published_at: "2026-07-29"
-updated_at: "2026-07-29"
+updated_at: "2026-07-31"
 after_reading_this:
   - "Understand the trust chain that lets a Salesforce user reach their own Salesforce data through the bridge"
   - "Know the five setup steps and which team owns each one"
   - "Know what is configured in Salesforce Setup versus what is configured in this repo"
   - "Know the current known limits before planning a production rollout"
 related_playbooks:
+  - title: "Start Here — Standing Up the Gateway"
+    url: "/documentation/use-case-admin"
   - title: "Step 1 — Salesforce App Setup"
     url: "/documentation/salesforce-app-setup"
   - title: "Step 2 — JWT-Bearer and the Signing Certificate"
@@ -69,16 +71,29 @@ gateway, so a compromised laptop never yields a Salesforce token.
 
 ## What You Configure Where
 
-| In Salesforce Setup | In this repo |
-|---------------------|--------------|
-| External Client App (or Connected App) with OAuth enabled | `services/web/config/salesforce.yaml` |
-| Callback URL, OAuth scopes | `services/mcp/salesforce.yaml` |
-| Digital certificate for JWT signing | `services/access-control/plans.yaml` |
-| Pre-authorized profiles or permission sets | `services/access-control/roles.yaml` |
-| Hosted MCP server activation | `SALESFORCE_CLIENT_SECRET`, `SALESFORCE_PRIVATE_KEY` |
+The table reads across: each row is one thing, and the two columns are where its
+two halves live.
 
-Neither secret is ever committed. Both are read from the environment first,
-then from the active profile's gitignored `secrets.json`.
+| Thing | In Salesforce Setup | In this repo |
+|---|---|---|
+| The app itself | External Client App with OAuth enabled | `services/salesforce/org.yaml` — the desired state |
+| Who the platform is | Consumer key and secret | `client_id` in `services/web/config/salesforce.yaml`; the secret in `secrets.json` |
+| Where login returns to | Callback URL on the app | `redirect_uri` in `salesforce.yaml`, mirrored in `org.yaml` — they must match exactly |
+| What the app may do | OAuth scopes, including `mcp_api` | `org.yaml` |
+| How tokens are minted | Digital certificate uploaded to the app | The private key in `secrets.json` |
+| Who may use the app | Pre-authorized profiles or permission sets | Applied from `org.yaml` by `salesforce apply` |
+| Which MCP servers run | Hosted MCP server activation | `services/mcp/salesforce.yaml`, activated by `apply` |
+| Who may sign in | — | `allowed_email_domains` in `salesforce.yaml` |
+| Which organization they join | — | `email_domains` in `services/access-control/plans.yaml` |
+
+The last two rows are independent lists that are easy to confuse:
+`allowed_email_domains` decides **who may sign in at all**, `email_domains`
+decides **which organization they join**. Set the first and forget the second
+and the user signs in successfully to an empty platform.
+
+No secret is ever committed. `SALESFORCE_CLIENT_SECRET` and
+`SALESFORCE_PRIVATE_KEY` are read from the environment first, then from the
+active profile's gitignored `secrets.json`.
 
 ## The Five Steps
 

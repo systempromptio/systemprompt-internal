@@ -8,13 +8,15 @@ kind: "guide"
 public: true
 tags: ["salesforce", "mcp", "tools", "setup"]
 published_at: "2026-07-29"
-updated_at: "2026-07-29"
+updated_at: "2026-07-31"
 after_reading_this:
   - "Activate a Salesforce Hosted MCP server and copy its exact Server URL"
   - "Register the endpoint in services/mcp/salesforce.yaml"
   - "Understand the external_auth path that injects a per-user Salesforce bearer"
   - "Confirm a live tool call runs as the signed-in Salesforce user"
 related_playbooks:
+  - title: "Start Here — Standing Up the Gateway"
+    url: "/documentation/use-case-admin"
   - title: "Overview"
     url: "/documentation/salesforce"
   - title: "Step 2 — JWT-Bearer and the Signing Certificate"

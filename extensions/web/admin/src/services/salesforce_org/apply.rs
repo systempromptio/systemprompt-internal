@@ -431,20 +431,40 @@ pub async fn apply_assignments(
             ));
             continue;
         };
-        assign_one_user(conn, spec, &permsets, username, &user_id, report).await?;
+        let who = Assignee {
+            username,
+            user_id: &user_id,
+            permsets: &permsets,
+        };
+        assign_one_user(conn, spec, who, report).await?;
     }
     Ok(())
+}
+
+/// One user to assign to, plus the permission sets available to assign.
+///
+/// Grouped into a struct because the three travel together and always will —
+/// passing them separately pushed the function past the argument limit without
+/// making any call site clearer.
+struct Assignee<'a> {
+    username: &'a str,
+    user_id: &'a str,
+    /// The org's permission sets, queried once for the whole run.
+    permsets: &'a [serde_json::Value],
 }
 
 /// Give one user every permission set the spec names that they do not hold.
 async fn assign_one_user(
     conn: &Connection,
     spec: &OrgSpec,
-    permsets: &[serde_json::Value],
-    username: &str,
-    user_id: &str,
+    who: Assignee<'_>,
     report: &mut ApplyReport,
 ) -> Result<(), SalesforceError> {
+    let Assignee {
+        username,
+        user_id,
+        permsets,
+    } = who;
     let field = |v: &serde_json::Value, f: &str| {
         v.get(f)
             .and_then(serde_json::Value::as_str)

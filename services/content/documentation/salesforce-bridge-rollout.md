@@ -8,13 +8,15 @@ kind: "guide"
 public: true
 tags: ["salesforce", "bridge", "rollout", "setup"]
 published_at: "2026-07-29"
-updated_at: "2026-07-29"
+updated_at: "2026-07-31"
 after_reading_this:
   - "Install the bridge and point it at your deployed gateway"
   - "Complete the device-link flow using Sign in with Salesforce"
   - "Verify the first live Salesforce query and its audit record"
   - "Support a rollout without needing an admin step per user"
 related_playbooks:
+  - title: "Start Here — Standing Up the Gateway"
+    url: "/documentation/use-case-admin"
   - title: "Overview"
     url: "/documentation/salesforce"
   - title: "Step 3 — Hosted MCP Access"

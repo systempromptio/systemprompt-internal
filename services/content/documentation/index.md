@@ -1,45 +1,93 @@
 ---
-title: "How to Use the AI Salesforce Gateway"
-description: "How to get started with the AI Salesforce Gateway by Astound Digital: account setup, the desktop bridge, connecting your AI tools, and asking your first questions."
+title: "Get Started with the AI Salesforce Gateway"
+description: "Start here. Two paths: setting the Gateway up for your organization, or using it day to day in Salesforce. Pick the one that describes you."
 author: "Astound Digital"
 slug: ""
-keywords: "how to use, getting started, salesforce ai, desktop bridge, dashboard, authentication"
+keywords: "get started, how to use, getting started, salesforce ai, desktop bridge, admin setup, dashboard, authentication"
 kind: "guide"
 public: true
-tags: ["documentation"]
+tags: ["documentation", "getting-started"]
 published_at: "2026-02-18"
-updated_at: "2026-07-17"
+updated_at: "2026-07-31"
 after_reading_this:
-  - "Create your account and connect your AI tools"
+  - "Know which of the two setup paths applies to you"
+  - "Get connected and ask your first question"
   - "Know which skills to reach for and how to ask"
-  - "Log in to and navigate the admin dashboard"
+  - "Find the reference documentation for each step"
 ---
 
-# How to Use the AI Salesforce Gateway
+# Get Started
 
-The AI Salesforce Gateway puts your Salesforce, your documents, and Astound Digital's working practices inside Claude. You ask in plain English. It answers from live data, confirms before it changes anything, and records everything it does.
+The AI Salesforce Gateway puts your Salesforce inside Claude. You ask in plain
+English. It answers from live data, confirms with you before it changes
+anything, and records everything it does.
 
-## Get set up in four steps
+There are two ways to arrive here. Pick yours.
 
-1. **Create your account.** Sign up with your work email and register a passkey. No passwords. See [Authentication & Login](/documentation/authentication).
-2. **Download the desktop bridge.** It runs in your menu bar or system tray, signs you in, and keeps your skills in sync inside Claude Code, Cowork, and Codex. Downloads are on the [homepage](/#get-started).
-3. **Connect your AI tools.** Open your [dashboard](/documentation/dashboard), click **Connect**, and follow the one-step instructions. Signing in with Salesforce connects every source behind it.
-4. **Ask your first question.** Try *"Give me a full briefing on my biggest account"* or *"What is in my pipeline this quarter?"* The skills are already installed.
+## I need to set this up for my organization
 
-## What to ask
+**[Standing Up the Gateway →](/documentation/use-case-admin)**
 
-Browse the [full skills catalogue](/skills/) — every skill lists what it does and example
-questions covering pipeline, accounts, contacts, leads, activities, cases, consultancy,
-brand, and governance.
+You own the Salesforce org and the deployment. You will create a Salesforce app,
+point the repository at your org, apply the spec, and hand the bridge to your
+team.
 
-## Dashboard
+*Prerequisites: Salesforce admin access and shell access to the deployment.
+About an hour, once per organization.*
 
-- [Authentication & Login](/documentation/authentication) — Salesforce SSO, operator passkeys, and session management
+## I want to use Salesforce in plain English
+
+**[Your Salesforce Day →](/documentation/use-case-salesforce-user)**
+
+You work in Salesforce — sales, service, account management. You will install
+the bridge, sign in with your normal Salesforce credentials, and start asking.
+
+*Prerequisites: your Salesforce login, and someone to have done the path above.
+About two minutes.*
+
+## The Short Version
+
+For a user, getting connected is three steps and no account creation:
+
+1. **Install the desktop bridge.** Downloads are on the [homepage](/). It runs
+   in your menu bar or system tray and keeps your skills in sync inside Claude
+   Code, Cowork, and Codex.
+2. **Sign in with Salesforce.** There is no signup form and no password. Your
+   Salesforce login is your account — first sign-in creates it, provided your
+   admin has claimed your email domain and a seat is free. Platform operators
+   are a separate case, created from the CLI with a passkey; see
+   [Authentication](/documentation/authentication).
+3. **Approve the device link and ask.** Try *"Give me a full briefing on my
+   biggest account"* or *"What is in my pipeline this quarter?"* The skills are
+   already installed.
+
+## What to Ask
+
+Browse the [full skills catalogue](/skills/) — every skill lists what it does and
+example questions covering pipeline, accounts, contacts, leads, activities,
+cases, consultancy, brand, and governance.
+
+## Reference
+
+**Setting up the Salesforce connector** — the five steps in full:
+
+- [Overview](/documentation/salesforce) — the trust chain and what is configured where
+- [1. Salesforce App Setup](/documentation/salesforce-app-setup)
+- [2. JWT-Bearer & Certificate](/documentation/salesforce-jwt-bearer)
+- [3. Hosted MCP Access](/documentation/salesforce-hosted-mcp)
+- [4. Users, Seats & Roles](/documentation/salesforce-provisioning)
+- [5. Rolling Out the Bridge](/documentation/salesforce-bridge-rollout)
+
+**Running the platform:**
+
+- [Authentication](/documentation/authentication) — Salesforce SSO, operator passkeys, sessions and route protection
 - [Dashboard Usage](/documentation/dashboard) — real-time metrics, activity feed, and health indicators
+- [Gateway API](/documentation/gateway-api) — the `/v1/messages` endpoint and its governance
 
-## Under the hood
+## Under the Hood
 
-Step-by-step walkthroughs of the governance and tracing machinery, for technical readers:
+Step-by-step walkthroughs of the governance and tracing machinery, for technical
+readers:
 
 - [Setup & Authentication](/documentation/demo-terminal-setup) — bring the platform up and authenticate
 - [Governance Decisions](/documentation/demo-terminal-agents) — agents making governed tool calls
@@ -48,3 +96,6 @@ Step-by-step walkthroughs of the governance and tracing machinery, for technical
 - [MCP Access Tracking](/documentation/demo-terminal-mcp) — watch MCP tool access in real time
 - [Request Tracing & Benchmark](/documentation/demo-terminal-tracing) — trace requests end-to-end
 - [Agent Tracing](/documentation/demo-terminal-agent-tracing) — follow a single agent's lifecycle
+- [Detailed Breakdown](/documentation/demo-breakdown) — what happens under the hood on a single call
+- [An Allowed Call](/documentation/demo-happy-path) — a skill that passes governance
+- [A Refused Call](/documentation/demo-refused-path) — secret detection denying a tool call

@@ -198,11 +198,17 @@ async fn run_apply(
         report.manual_followups.push(note);
     }
 
-    // Order is load-bearing. Permission sets, grants and assignments all run
-    // BEFORE the metadata deploy, because the deploy is what flips the app to
-    // AdminApprovedPreAuthorized — from that moment only holders of the
-    // permission set can authenticate. Deploying first would open a window in
-    // which nobody holds it, including whoever is running this command.
+    // Order is load-bearing, and it runs on BOTH sides of the deploy.
+    //
+    // Before: the deploy flips the app to AdminApprovedPreAuthorized, and from
+    // that moment only holders of the permission set can authenticate. Nobody
+    // may be mid-air when that lands.
+    //
+    // After: the deploy *destroys* the SetupEntityAccess grants — observed on a
+    // live org, where a grant that existed before an apply was gone after it,
+    // leaving every user with `invalid_app_access: user is not admin approved`.
+    // Re-asserting afterwards repairs that. Both calls are idempotent, so the
+    // second is a no-op whenever the deploy leaves the grants alone.
     if dry_run {
         println!("  permission sets, grants and assignments: skipped (dry run)");
         println!("  hosted MCP servers: skipped (dry run)");
@@ -236,6 +242,30 @@ async fn run_apply(
         println!("  metadata deploy {}: {}", deploy.id, deploy.status);
     }
     report.deploy = Some(deploy);
+
+    // Why: see the ordering note above — the deploy drops SetupEntityAccess
+    // grants, so they are re-created here. Skipped when the deploy failed,
+    // because a rolled-back deploy has not changed the policy either.
+    if !dry_run && !failed {
+        let mut repair = ApplyReport::default();
+        apply::apply_permission_sets(conn, &desired, &mut repair)
+            .await
+            .map_err(|e| e.to_string())?;
+        apply::apply_assignments(conn, &desired, &assignees, &mut repair)
+            .await
+            .map_err(|e| e.to_string())?;
+        if repair.app_grants_created.is_empty() && repair.assignments_created.is_empty() {
+            println!("  post-deploy check: grants and assignments survived the deploy");
+        } else {
+            for grant in &repair.app_grants_created {
+                println!("  re-created app grant the deploy dropped: {grant}");
+            }
+            for assignment in &repair.assignments_created {
+                println!("  re-created assignment the deploy dropped: {assignment}");
+            }
+        }
+        report.manual_followups.extend(repair.manual_followups);
+    }
 
     if !report.manual_followups.is_empty() {
         println!("\nNeeds a human:");

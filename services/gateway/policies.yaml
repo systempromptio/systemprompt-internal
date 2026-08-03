@@ -10,19 +10,25 @@
 # safety.scanners names resolve against the gateway's SafetyScannerRegistry:
 # the built-in `heuristic` scanner plus any extension-registered scanner. The
 # admin extension registers `secrets` (extensions/web/admin/src/gateway_safety.rs).
-# A request whose content yields a finding in `block_categories` is denied with
-# 403 before the upstream call, with an `ai_safety_findings` audit row.
+# A request whose content yields a finding in `block_categories` is denied
+# before the upstream call, with an `ai_safety_findings` audit row.
 #
 # `block_response_categories` does the same for the reply, and applies to
 # buffered replies only — a streamed reply is already on the wire when the scan
 # runs, so its findings are recorded and never block. Leave the list empty to
 # keep every response scan audit-only.
+#
+# `secrets` is egress-only: it returns nothing for requests, because the
+# `secret_scan` governance policy already covers ingress and runs first. Listing
+# it under `block_categories` therefore does nothing — it belongs in
+# `block_response_categories`.
 
 # SAFETY SCANNING IS INTENTIONALLY OFF in this installation. The paragraphs
 # above describe the mechanism, not current behaviour: with `scanners` empty no
 # scan runs, so nothing is blocked and no `ai_safety_findings` rows are written.
 # The policy chain is disabled to match — see services/governance/config.yaml.
-# To restore: scanners: [heuristic, secrets] / block_categories: [secret].
+# To restore: scanners: [heuristic, secrets] with block_categories: [secret]
+# for the heuristic plane and block_response_categories: [secret] for `secrets`.
 
 policies:
   - name: default-quotas

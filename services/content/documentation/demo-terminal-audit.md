@@ -20,10 +20,6 @@ related_docs:
     url: "/documentation/demo-terminal-governance"
   - title: "Agent Tracing Demo"
     url: "/documentation/demo-terminal-agent-tracing"
-  - title: "Cost Tracking"
-    url: "/documentation/cost-tracking"
-  - title: "Events"
-    url: "/documentation/events"
 ---
 
 ## Overview

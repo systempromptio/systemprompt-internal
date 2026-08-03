@@ -3,9 +3,10 @@
 # This registers Salesforce's official Hosted MCP endpoint as an `external` MCP
 # server. The Hosted endpoint is an OAuth resource server: it requires a
 # Salesforce bearer carrying the `mcp_api` scope on every tool call. systemprompt
-# banks that per-user bearer at "Sign in with Salesforce" time (see
-# services/web/config/salesforce.yaml + the extension's token accessor at
-# GET /api/public/salesforce/token) and core's external-MCP client injects it.
+# banks nothing: the token accessor at GET /api/public/salesforce/token mints a
+# fresh per-user bearer on demand via the RFC 7523 JWT-bearer grant, keyed on the
+# Salesforce Username recorded at "Sign in with Salesforce" time (see
+# services/web/config/salesforce.yaml), and core's external-MCP client injects it.
 #
 # INTEGRATION GATE: enabling this requires (a) core's external-MCP client to
 # attach the per-user Salesforce bearer for a Salesforce-backed server instead

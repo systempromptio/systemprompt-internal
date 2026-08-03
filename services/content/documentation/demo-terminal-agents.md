@@ -21,10 +21,8 @@ related_docs:
     url: "/documentation/demo-terminal-audit"
   - title: "Agent Tracing Demo"
     url: "/documentation/demo-terminal-agent-tracing"
-  - title: "Agents"
-    url: "/documentation/agents"
-  - title: "Access Control"
-    url: "/documentation/access-control"
+  - title: "Authentication"
+    url: "/documentation/authentication"
 ---
 
 ## Overview

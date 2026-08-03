@@ -156,6 +156,24 @@ Months`. The rest (`ExtlClntAppDistState`, `PermittedUsersPolicyType`,
 parse error does not list valid values, and guessing them would be worse than
 letting Salesforce reject a bad one with a clear message.
 
+### The certificate is the sharpest edge
+
+`certificate` is in schema on `ExtlClntAppGlobalOauthSettings`, and it is not
+readable back through any query API — so a deploy cannot round-trip it and must
+be *given* it. A package that omits it clears the app's digital signature, the
+JWT-bearer grant fails with `invalid_grant: invalid assertion`, and the tool has
+just destroyed the credential it authenticates with. It cannot fix that itself;
+recovery is a manual certificate upload in Setup.
+
+The Setup UI couples "Enable JWT Bearer Flow" to the certificate, so the visible
+symptom is an unticked flow checkbox rather than a missing certificate. There is
+no separate metadata element for that checkbox — probed at 67.0,
+`isJwtBearerFlowEnabled` and every plausible spelling are out of schema on all
+four components. The certificate *is* the setting.
+
+`apply` therefore requires `SF_TARGET_CERTIFICATE` and refuses to build a package
+without it. That refusal is the guard; the emitted element is the fix.
+
 ### The version bump hazard
 
 A metadata deploy is **declarative**. An element that is in schema at the

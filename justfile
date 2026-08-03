@@ -903,6 +903,26 @@ alias cc := clean-client-ready
 clean-client-ready GATEWAY="http://host.docker.internal:8080":
     #!/usr/bin/env bash
     set -euo pipefail
+
+    # Already running (another terminal has it): open a second shell in it
+    # rather than failing on the name conflict.
+    if [ "$(docker inspect -f '{{{{.State.Running}}}}' astound-clean-client 2>/dev/null)" = "true" ]; then
+        echo "Container 'astound-clean-client' is already running — opening a shell in it."
+        exec docker exec -it astound-clean-client bash -l
+    fi
+
+    # Stopped leftover (a crashed run, or one started without --rm): restart it
+    # and shell in, so anything written outside the /home/tester volume survives.
+    # Only if it refuses to start do we reclaim the name.
+    if docker inspect astound-clean-client >/dev/null 2>&1; then
+        echo "Container 'astound-clean-client' is stopped — restarting it."
+        if docker start astound-clean-client >/dev/null 2>&1; then
+            exec docker exec -it astound-clean-client bash -l
+        fi
+        echo "warn: it would not restart — removing it and starting fresh." >&2
+        docker rm -f astound-clean-client >/dev/null
+    fi
+
     if ! docker image inspect astound-clean-client:local >/dev/null 2>&1; then
         echo "Image missing — building it first." >&2
         just clean-client-build

@@ -8,13 +8,15 @@ kind: "guide"
 public: true
 tags: ["salesforce", "jwt", "security", "setup"]
 published_at: "2026-07-29"
-updated_at: "2026-07-29"
+updated_at: "2026-07-31"
 after_reading_this:
   - "Generate an RSA keypair and upload the certificate to your Salesforce app"
   - "Pre-authorize the profiles or permission sets that may use the integration"
   - "Provision SALESFORCE_PRIVATE_KEY safely"
   - "Understand why the Salesforce Username, not the email, is what gets signed"
 related_playbooks:
+  - title: "Start Here — Standing Up the Gateway"
+    url: "/documentation/use-case-admin"
   - title: "Overview"
     url: "/documentation/salesforce"
   - title: "Step 1 — Salesforce App Setup"

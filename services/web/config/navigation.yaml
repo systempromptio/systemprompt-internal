@@ -12,8 +12,8 @@ header:
       href: "/skills/"
       dropdown: false
 
-    - id: how-to-use
-      label: "How to use"
+    - id: get-started
+      label: "Get started"
       href: "/documentation/"
       dropdown: false
 
@@ -89,7 +89,16 @@ social:
 
 # Docs sidebar - rendered dynamically via site.docs_sidebar in templates
 docs_sidebar:
-  - title: "Salesforce Integration"
+  - title: "Get Started"
+    links:
+      - label: "Start here"
+        href: "/documentation/"
+      - label: "For admins — set it up"
+        href: "/documentation/use-case-admin"
+      - label: "For Salesforce users"
+        href: "/documentation/use-case-salesforce-user"
+
+  - title: "Salesforce Setup (Admins)"
     links:
       - label: "Overview"
         href: "/documentation/salesforce"
@@ -106,8 +115,8 @@ docs_sidebar:
 
   - title: "Using the Gateway"
     links:
-      - label: "How to Use"
-        href: "/documentation/"
+      - label: "Your Salesforce Day"
+        href: "/documentation/use-case-salesforce-user"
       - label: "All Skills"
         href: "/skills/"
 
@@ -127,10 +136,18 @@ docs_sidebar:
         href: "/documentation/demo-terminal-tracing"
       - label: "Agent Tracing"
         href: "/documentation/demo-terminal-agent-tracing"
+      - label: "Detailed Breakdown"
+        href: "/documentation/demo-breakdown"
+      - label: "An Allowed Call"
+        href: "/documentation/demo-happy-path"
+      - label: "A Refused Call"
+        href: "/documentation/demo-refused-path"
 
-  - title: "Dashboard"
+  - title: "Running the Platform"
     links:
       - label: "Authentication & Login"
         href: "/documentation/authentication"
       - label: "Dashboard Usage"
         href: "/documentation/dashboard"
+      - label: "Gateway API"
+        href: "/documentation/gateway-api"

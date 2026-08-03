@@ -18,10 +18,8 @@ related_docs:
     url: "/documentation/demo-happy-path"
   - title: "Blocked Path"
     url: "/documentation/demo-refused-path"
-  - title: "Audit Trails & Events"
-    url: "/documentation/events"
-  - title: "Cost Tracking"
-    url: "/documentation/cost-tracking"
+  - title: "Audit Trails & Costs"
+    url: "/documentation/demo-terminal-audit"
 ---
 
 ## Overview

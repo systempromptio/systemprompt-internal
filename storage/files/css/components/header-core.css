@@ -223,35 +223,14 @@ a.download-badge:hover {
   }
 }
 
-body.has-video-hero .site-header:not(.is-scrolled) {
-  background: transparent;
+/* The video hero is an inset card on a white page, so the header sits on white,
+   not over the video. It keeps the standard solid treatment and the dark logo. */
+body.has-video-hero .site-header {
+  background: #fff;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   border-bottom-color: transparent;
   box-shadow: none;
-}
-
-body.has-video-hero .site-header:not(.is-scrolled) .logo-light {
-  display: none;
-}
-
-body.has-video-hero .site-header:not(.is-scrolled) .logo-dark {
-  display: block;
-}
-
-body.has-video-hero .site-header:not(.is-scrolled) .nav-links a:not(.cta-button):not(.download-badge),
-body.has-video-hero .site-header:not(.is-scrolled) .nav-dropdown-trigger {
-  color: rgba(255, 255, 255, 0.85);
-}
-
-body.has-video-hero .site-header:not(.is-scrolled) .nav-links a:not(.cta-button):not(.download-badge):hover,
-body.has-video-hero .site-header:not(.is-scrolled) .nav-dropdown-trigger:hover,
-body.has-video-hero .site-header:not(.is-scrolled) .nav-links a.nav-link--active {
-  color: #fff;
-}
-
-body.has-video-hero .site-header:not(.is-scrolled) .hamburger-line {
-  background: #fff;
 }
 
 .site-header {

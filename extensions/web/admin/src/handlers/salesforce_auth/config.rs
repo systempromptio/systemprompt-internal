@@ -29,6 +29,22 @@ pub(crate) fn salesforce_private_key() -> Option<String> {
     })
 }
 
+// Why: Resolve the public certificate paired with [`salesforce_private_key`].
+// Env var first, then the encrypted secrets store, mirroring the two above.
+//
+// Only `salesforce_org::apply` needs it, and it needs it badly: a metadata
+// deploy is declarative, so a package omitting `<certificate>` clears the app's
+// digital signature and the JWT-bearer grant that deployed it stops working.
+// Public material, so storing it beside the private key is about keeping the
+// pair together, not about secrecy.
+pub(crate) fn salesforce_certificate() -> Option<String> {
+    std::env::var("SALESFORCE_CERTIFICATE").ok().or_else(|| {
+        systemprompt::config::SecretsBootstrap::get()
+            .ok()
+            .and_then(|s| s.get("salesforce_certificate").cloned())
+    })
+}
+
 pub(super) fn default_scopes() -> String {
     "openid email profile api".to_owned()
 }

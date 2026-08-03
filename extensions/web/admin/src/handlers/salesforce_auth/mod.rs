@@ -33,7 +33,7 @@ use systemprompt::oauth::SessionCreationService;
 
 pub(crate) use callback::salesforce_callback;
 pub use config::SalesforceConfig;
-pub(crate) use config::{client_secret, salesforce_private_key};
+pub(crate) use config::{client_secret, salesforce_certificate, salesforce_private_key};
 pub use identity::select_sf_username;
 pub(crate) use start::salesforce_start;
 pub(crate) use tokens::{post_token_request, salesforce_token_handler};

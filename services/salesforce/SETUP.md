@@ -105,8 +105,20 @@ environment variables (`SALESFORCE_CLIENT_SECRET`, `SALESFORCE_PRIVATE_KEY`):
 ```json
 {
   "salesforce_client_secret": "<consumer secret>",
-  "salesforce_private_key": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
+  "salesforce_private_key": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
+  "salesforce_certificate": "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
 }
+```
+
+`salesforce_certificate` is the public half of the same key pair — the
+`salesforce.crt` uploaded in step 2. It is not secret; it lives here so the pair
+stays together, and because **`apply` refuses to run without it** (see step 4).
+Lose it and it can be regenerated from the private key without rotating
+anything:
+
+```bash
+openssl req -x509 -new -sha256 -nodes -days 730 \
+  -key salesforce.key -out salesforce.crt -subj "/CN=systemprompt-astound"
 ```
 
 ## 4. Apply the spec
@@ -116,11 +128,25 @@ export SF_TARGET_MY_DOMAIN="https://<your-org>.my.salesforce.com"
 export SF_TARGET_CONSUMER_KEY="<consumer key>"
 export SF_TARGET_JWT_SUBJECT="you@yourcompany.com"
 export SF_TARGET_PRIVATE_KEY="$(cat salesforce.key)"
+# Only when targeting an org other than this deployment's own — otherwise the
+# certificate comes from SALESFORCE_CERTIFICATE or the profile's secrets.json.
+export SF_TARGET_CERTIFICATE="$(cat salesforce.crt)"
 
 systemprompt plugins run salesforce diff              # what differs
 systemprompt plugins run salesforce apply --dry-run   # full validation, writes nothing
 systemprompt plugins run salesforce apply             # apply it
 ```
+
+The certificate paired with the private key — the same `salesforce.crt` uploaded
+in step 2 — must be resolvable, from `SF_TARGET_CERTIFICATE`,
+`SALESFORCE_CERTIFICATE`, or `salesforce_certificate` in the profile's
+`secrets.json` (step 3 stores it there, so targeting this deployment's own org
+needs nothing extra). **Apply refuses to run without it**, deliberately. A metadata deploy is declarative, so a
+package that omits `<certificate>` clears the app's digital signature; the
+JWT-bearer grant then fails with `invalid_grant: invalid assertion`, and because
+that grant is how this tool authenticates, it cannot repair the damage itself.
+Recovery costs a manual certificate upload in Setup. `export` and `diff` do not
+need it.
 
 `SF_TARGET_JWT_SUBJECT` is the Salesforce **Username**, not the email address.
 The two routinely differ (`you@company.com.dev`, `ed.aa5967144c6c@agentforce.com`),
@@ -199,6 +225,8 @@ to them.
 | Symptom | Cause |
 |---|---|
 | `apply` cannot authenticate | Certificate not uploaded, or `SF_TARGET_JWT_SUBJECT` is the email rather than the Username |
+| `invalid_grant: invalid assertion` after an apply | The deploy cleared the app's certificate — an apply that predates the `SF_TARGET_CERTIFICATE` requirement. Re-upload a certificate matching the private key in Setup; the "Enable JWT Bearer Flow" checkbox is coupled to it and unticks when the certificate goes, so tick it again on the way through |
+| `invalid_app_access: user is not admin approved` | The deploy dropped the `SetupEntityAccess` grant. Add the permission set on the app's Policies tab, or re-run `apply` |
 | Authentication worked, then stopped | An org configured before assignment was automated: the policy flipped to `AdminApprovedPreAuthorized` while nobody held the permission set. Set Permitted Users back to "All users may self-authorize" in Setup, then re-run `apply` — the current ordering assigns first and cannot reproduce it |
 | Login redirects with `?sso=not_provisioned` | `auto_provision: false` and no account exists |
 | Login redirects with `?sso=seat_limit` | The organization is full |

@@ -19,10 +19,8 @@ related_docs:
     url: "/documentation/demo-terminal-setup"
   - title: "MCP Access Tracking Demo"
     url: "/documentation/demo-terminal-mcp"
-  - title: "Tool Governance"
-    url: "/documentation/tool-governance"
-  - title: "Secrets"
-    url: "/documentation/secrets"
+  - title: "A Refused Call"
+    url: "/documentation/demo-refused-path"
   - title: "Request Tracing Demo"
     url: "/documentation/demo-terminal-tracing"
 ---

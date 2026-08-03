@@ -6,10 +6,10 @@
 
 hero:
   title: "The AI Salesforce Gateway,"
-  title_highlight: "by Astound."
+  title_highlight: "by Astound"
   subtitle: "Ask your Salesforce anything, in plain English, inside Claude. Pipeline, accounts, contacts, case studies, and client history answered in seconds. One login connects everything. Every change is confirmed with you first, and every action is audited."
   eyebrow: "Astound Digital · AI for Salesforce"
   cta: "Get started"
-  cta_url: "#get-started"
+  cta_url: "/documentation/"
   cta_secondary: "Explore the skills"
   cta_secondary_url: "/skills/"

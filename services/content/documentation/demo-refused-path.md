@@ -18,10 +18,8 @@ related_docs:
     url: "/documentation/demo-happy-path"
   - title: "Detailed Breakdown"
     url: "/documentation/demo-breakdown"
-  - title: "Tool Governance"
-    url: "/documentation/tool-governance"
-  - title: "Secrets"
-    url: "/documentation/secrets"
+  - title: "Governance API"
+    url: "/documentation/demo-terminal-governance"
 ---
 
 ## Overview

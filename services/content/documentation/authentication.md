@@ -8,13 +8,15 @@ kind: "guide"
 public: true
 tags: ["authentication", "security", "login"]
 published_at: "2026-03-02"
-updated_at: "2026-07-29"
+updated_at: "2026-07-31"
 after_reading_this:
   - "Sign in as an organization user with Salesforce SSO"
   - "Provision a platform operator from the CLI and enrol their passkey"
   - "Understand how session cookies and JWTs govern authenticated access"
   - "Know which admin routes are public and which require a session"
 related_playbooks:
+  - title: "Start Here — Standing Up the Gateway"
+    url: "/documentation/use-case-admin"
   - title: "Salesforce Integration Overview"
     url: "/documentation/salesforce"
   - title: "Users, Seats and Roles"
@@ -88,8 +90,12 @@ The third command prints a copy-paste URL of the form
 already trust; they open it, create a passkey, and sign in with that passkey
 from then on.
 
-The role is baked into the JWT at issue time, so an operator promoted while
-signed in must sign out and back in before the change takes effect.
+Roles are **not** carried in the session token. They are read from the user
+record on every request, so promoting or demoting an operator takes effect on
+their next request — no sign-out, no waiting for a token to refresh. That is
+deliberate: revocation is only worth having if it is immediate. The OAuth
+*scope* minted into the JWT is fixed at issue time, so a change that widens the
+scope itself still needs a fresh sign-in.
 
 ### Passkey Sign-In
 
@@ -133,11 +139,16 @@ To sign out, clear the `access_token` cookie.
 | `/admin/login` | Public |
 | `/admin/auth/salesforce/*` | Public — the SSO start and callback |
 | `/auth/link-passkey` | Public — consumes a one-shot setup token |
-| `/admin/*` (everything else) | Requires a valid session |
+| `/admin/profile`, `/admin/settings`, `/admin/setup` | Any valid session, including a plain `user` |
+| `/admin/*` (everything else) | Requires a valid session **and** the `admin` role |
+| `/admin/enterprises*`, `/admin/reports/internal` | Requires platform admin |
 | `/bridge-auth/*` | Requires a valid session |
 
-Pages requiring admin privileges perform an additional `is_admin` check and
-return HTTP 403 if the caller lacks the role.
+Anonymous requests to a protected route are redirected to
+`/admin/login?redirect=…`. A signed-in user **without** the `admin` role is not
+shown a 403 for console pages — they are redirected to `/admin/profile`, which
+is the only part of the console addressed to them. JSON admin API routes return
+HTTP 403 instead, and the platform-admin routes return an HTML 403.
 
 ## System-originated actions
 

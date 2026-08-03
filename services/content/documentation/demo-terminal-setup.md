@@ -21,8 +21,8 @@ related_docs:
     url: "/documentation/demo-terminal-governance"
   - title: "Authentication"
     url: "/documentation/authentication"
-  - title: "Installation"
-    url: "/documentation/installation"
+  - title: "Standing Up the Gateway"
+    url: "/documentation/use-case-admin"
   - title: "Request Tracing Demo"
     url: "/documentation/demo-terminal-tracing"
 ---

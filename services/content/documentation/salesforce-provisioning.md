@@ -8,13 +8,15 @@ kind: "guide"
 public: true
 tags: ["salesforce", "provisioning", "access-control", "setup"]
 published_at: "2026-07-29"
-updated_at: "2026-07-29"
+updated_at: "2026-07-31"
 after_reading_this:
   - "Claim your email domains so SSO arrivals join an organization and consume a seat"
   - "Choose a plan and set a seat limit that is actually enforced"
   - "Control which plugins, agents, and MCP servers a default user can reach"
   - "Offboard a user without destroying their audit trail"
 related_playbooks:
+  - title: "Start Here — Standing Up the Gateway"
+    url: "/documentation/use-case-admin"
   - title: "Overview"
     url: "/documentation/salesforce"
   - title: "Step 1 — Salesforce App Setup"

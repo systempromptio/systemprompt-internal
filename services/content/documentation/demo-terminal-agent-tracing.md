@@ -21,8 +21,6 @@ related_docs:
     url: "/documentation/demo-terminal-agents"
   - title: "Request Tracing Demo"
     url: "/documentation/demo-terminal-tracing"
-  - title: "Agents"
-    url: "/documentation/agents"
 ---
 
 ## Overview
