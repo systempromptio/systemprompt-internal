@@ -77,3 +77,10 @@ lto = "thin"
 codegen-units = 1
 strip = "symbols"
 panic = "abort"
+
+# Debuggable release variant: everything above minus strip, plus line tables.
+# Used to symbolicate crash reports without shipping a slower binary.
+[profile.release-debug]
+inherits = "release"
+strip = "none"
+debug = "line-tables-only"
