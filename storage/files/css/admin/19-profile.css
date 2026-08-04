@@ -335,10 +335,6 @@
     color: var(--sp-accent);
 }
 
-/* ── Connect the bridge ──────────────────────────────────────────────────────
-   Sits directly under the hero: it is the first thing a newly signed-in user
-   needs, and the only place the exchange code is reachable. Accented so it
-   reads as an action rather than another statistics card. */
 
 .sp-profile-card--connect {
     border-color: var(--sp-accent);
@@ -373,5 +369,3 @@
     color: var(--sp-text-tertiary);
 }
 
-/* `.sp-connect__cmd` / `.sp-connect__raw summary` live in
-   08-connect-command.css — the device-link code page needs them too. */

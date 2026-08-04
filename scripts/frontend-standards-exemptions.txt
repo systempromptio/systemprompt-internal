@@ -5,8 +5,8 @@ storage/files/js/components/sp-confirm-dialog.js:alert-confirm-prompt
 # not an admin API call. Routing it through services/api.js would attach a
 # Content-Type header, turning a simple GET into a preflighted request.
 storage/files/js/pages/admin-bridge-setup.js:raw-fetch
-# 24-reports.css is a print stylesheet, like the already-excluded
-# blog-print.css: @media print has to override screen rules that are more
-# specific, and the printed PDF is what the customer receives.
+# 24-reports.css is a print stylesheet: @media print has to override screen
+# rules that are more specific, and the printed PDF is what the customer
+# receives.
 storage/files/css/admin/24-reports.css:important
 

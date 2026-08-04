@@ -41,11 +41,12 @@ body.has-video-hero .site-header .mobile-menu-overlay {
 }
 
 .hero {
+  --sp-hero-frame-gutter: 0.75rem;
   position: relative;
   min-height: 100svh;
   display: flex;
-  padding: var(--sp-hero-frame-gutter, 0.75rem);
-  padding-top: calc(var(--sp-header-height) + var(--sp-hero-frame-gutter, 0.75rem));
+  padding: var(--sp-hero-frame-gutter);
+  padding-top: calc(var(--sp-header-height) + var(--sp-hero-frame-gutter));
   background: #fff;
 }
 
@@ -67,7 +68,7 @@ body.has-video-hero .site-header .mobile-menu-overlay {
   grid-template-columns: 1fr minmax(440px, 34vw);
   align-items: stretch;
   width: 100%;
-  min-height: calc(100svh - var(--sp-header-height) - (2 * var(--sp-hero-frame-gutter, 0.75rem)));
+  min-height: calc(100svh - var(--sp-header-height) - (2 * var(--sp-hero-frame-gutter)));
 }
 
 .hero-pane {
@@ -141,26 +142,9 @@ body.has-video-hero .site-header .mobile-menu-overlay {
   color: #fff;
 }
 
-.hero-pane .hero-cta:focus-visible,
-.hero-pane .hero-nav-chip:focus-visible {
+.hero-pane .hero-cta:focus-visible {
   outline: 2px solid #fff;
   outline-offset: 2px;
-}
-
-.hero-pane .hero-nav-chips {
-  justify-content: flex-start;
-  margin-top: var(--sp-space-xl);
-}
-
-.hero-pane .hero-nav-chip {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.25);
-  color: rgba(255, 255, 255, 0.85);
-}
-
-.hero-pane .hero-nav-chip:hover {
-  border-color: #fff;
-  color: #fff;
 }
 
 @media (max-width: 900px) {
@@ -182,10 +166,6 @@ body.has-video-hero .site-header .mobile-menu-overlay {
     background: rgba(10, 10, 10, 0.7);
   }
 }
-
-/* Motion timings mirror astounddigital.com's IX2 "Fade in" action lists (a-66..a-71):
-   the move runs 800ms outCubic while the opacity resolves in 500ms, so elements
-   finish fading before they finish settling. Stagger is 100ms per index. */
 .has-motion [data-reveal] {
   opacity: 0;
   transform: translateY(0.5rem);
@@ -200,9 +180,6 @@ body.has-video-hero .site-header .mobile-menu-overlay {
   transform: none;
   will-change: auto;
 }
-
-/* The headline rolls up out of a mask instead of drifting — the part
-   astounddigital.com does not do, and the reason the entrance reads as full-height. */
 .hero-title-line {
   display: block;
   padding-bottom: 0.14em;
@@ -227,8 +204,6 @@ body.has-video-hero .site-header .mobile-menu-overlay {
   transform: none;
   will-change: auto;
 }
-
-/* The video settles out of a slow push-in rather than just appearing. */
 .has-motion .hero-bg-video {
   opacity: 0;
   transform: scale(1.06);

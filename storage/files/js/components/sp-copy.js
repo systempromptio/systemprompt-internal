@@ -1,10 +1,3 @@
-// Adds a copy button to every command block on the page.
-//
-// Progressive enhancement: the blocks are readable and selectable without this,
-// so a failed load costs nothing. It exists because the alternative — select
-// the text by hand and paste it into a terminal — is where bracketed-paste
-// escapes and stray whitespace get into credentials.
-
 const RESET_MS = 1600;
 
 const ICON_COPY =
@@ -17,14 +10,12 @@ async function writeClipboard(text) {
         await navigator.clipboard.writeText(text);
         return;
     }
-    // Why: the async clipboard API needs a secure context. A gateway reached
-    // over plain http on a LAN address is exactly where this page gets used.
     const scratch = document.createElement('textarea');
     scratch.value = text;
     scratch.setAttribute('readonly', '');
     scratch.style.position = 'fixed';
     scratch.style.opacity = '0';
-    document.body.appendChild(scratch);
+    document.body.append(scratch);
     scratch.select();
     document.execCommand('copy');
     scratch.remove();
@@ -36,14 +27,14 @@ function enhance(block) {
     const wrap = document.createElement('div');
     wrap.className = 'sp-copy';
     block.parentNode.insertBefore(wrap, block);
-    wrap.appendChild(block);
+    wrap.append(block);
 
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'sp-copy__btn';
     button.innerHTML = ICON_COPY;
     button.setAttribute('aria-label', 'Copy to clipboard');
-    wrap.appendChild(button);
+    wrap.append(button);
 
     let timer = null;
     button.addEventListener('click', async () => {

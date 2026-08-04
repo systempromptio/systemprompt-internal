@@ -12,7 +12,6 @@ macro_rules! css {
 pub(super) fn css_assets(storage_css: &Path) -> Vec<AssetDefinition> {
     let mut v = core_css(storage_css);
     v.extend(homepage_css(storage_css));
-    v.extend(blog_css(storage_css));
     v.extend(docs_css(storage_css));
     v.extend(syntax_css(storage_css));
     v.extend(skills_css(storage_css));
@@ -28,7 +27,6 @@ fn core_css(p: &Path) -> Vec<AssetDefinition> {
         css!(p, "components/header-dropdown.css"),
         css!(p, "components/footer.css"),
         css!(p, "components/mobile-menu.css"),
-        css!(p, "components/cta-buttons.css"),
     ]
 }
 
@@ -37,60 +35,6 @@ fn homepage_css(p: &Path) -> Vec<AssetDefinition> {
         css!(p, "homepage-hero.css"),
         css!(p, "homepage-showreel.css"),
         css!(p, "homepage-getting-started.css"),
-        css!(p, "homepage-sections-titles.css"),
-        css!(p, "homepage-sections-features.css"),
-        css!(p, "homepage-sections-steps.css"),
-        css!(p, "homepage-sections-comparison.css"),
-        css!(p, "homepage-sections-technical.css"),
-        css!(p, "homepage-sections-traits.css"),
-        css!(p, "homepage-sections-faq.css"),
-        css!(p, "homepage-features.css"),
-        css!(p, "homepage-architecture.css"),
-    ]
-}
-
-fn blog_css(p: &Path) -> Vec<AssetDefinition> {
-    vec![
-        css!(p, "blog-background.css"),
-        css!(p, "blog-base.css"),
-        css!(p, "blog-post-header.css"),
-        css!(p, "blog-social-bar.css"),
-        css!(p, "blog-featured-image.css"),
-        css!(p, "blog-post-content.css"),
-        css!(p, "blog-breadcrumb.css"),
-        css!(p, "blog-page-header.css"),
-        css!(p, "blog-list-controls.css"),
-        css!(p, "blog-cards.css"),
-        css!(p, "blog-footer.css"),
-        css!(p, "blog-footer-meta.css"),
-        css!(p, "blog-references.css"),
-        css!(p, "blog-related.css"),
-        css!(p, "blog-banner.css"),
-        css!(p, "blog-chat-cta.css"),
-        css!(p, "blog-social-content.css"),
-        css!(p, "blog-hero.css"),
-        css!(p, "blog-homepage.css"),
-        css!(p, "blog-platforms.css"),
-        css!(p, "blog-platforms-links.css"),
-        css!(p, "blog-ai-badges.css"),
-        css!(p, "blog-content-sections.css"),
-        css!(p, "blog-content-sections-platforms.css"),
-        css!(p, "blog-content-cards.css"),
-        css!(p, "blog-content-cards-recent.css"),
-        css!(p, "blog-provenance-panel.css"),
-        css!(p, "blog-provenance-panel-content.css"),
-        css!(p, "blog-provenance-sections.css"),
-        css!(p, "blog-provenance-header.css"),
-        css!(p, "blog-workflow.css"),
-        css!(p, "blog-provenance-details.css"),
-        css!(p, "blog-responsive.css"),
-        css!(p, "blog-responsive-breakpoints.css"),
-        css!(p, "blog-code.css"),
-        css!(p, "blog-layout-structure.css"),
-        css!(p, "blog-layout-cards.css"),
-        css!(p, "blog-print.css"),
-        css!(p, "blog-typography-base.css"),
-        css!(p, "blog-typography-blocks.css"),
     ]
 }
 

@@ -1,6 +1,3 @@
-// Filenames must match the release assets: scripts/package-bridge-linux.sh
-// emits the Linux pair, and DOWNLOAD_BASE_URL lives in
-// extensions/web/admin/src/handlers/ssr/ssr_bridge_setup.rs.
 const ARTIFACTS = {
   macos: { label: 'Download for macOS', file: 'astound-bridge-macos.dmg' },
   windows: { label: 'Download for Windows', file: 'astound-bridge-windows.exe' },
@@ -8,8 +5,6 @@ const ARTIFACTS = {
   'linux-aarch64': { label: 'Download for Linux (aarch64)', file: 'astound-bridge-linux-aarch64.tar.gz' }
 };
 
-// Linux ships one tarball per architecture, so the CTA has to pick. The UA
-// string only advertises arm64 when it is not x86_64, so absence means x86_64.
 const detectPlatform = (ua) => {
   if (/Mac/i.test(ua)) return 'macos';
   if (/Win/i.test(ua)) return 'windows';
@@ -42,8 +37,6 @@ if (pill) {
     });
 }
 
-// Panels are derived from the buttons rather than listed, so adding a tab to
-// the template needs no change here.
 const tabs = [...document.querySelectorAll('.tabs button')];
 const selectTab = (name) => {
   for (const b of tabs) b.classList.toggle('active', b.dataset.tab === name);
@@ -54,7 +47,6 @@ const selectTab = (name) => {
 };
 for (const btn of tabs) btn.addEventListener('click', () => selectTab(btn.dataset.tab));
 
-// There is no tray app on Linux, so land Linux visitors on the one-line install.
 if (detectPlatform(navigator.userAgent).startsWith('linux') && tabs.some((b) => b.dataset.tab === 'linux')) {
   selectTab('linux');
 }

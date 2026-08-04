@@ -135,7 +135,7 @@ fn has_token_fallback(line: &str) -> bool {
 /// Files whose job is fetch/event wiring for the public site; mirrors the
 /// path excludes in the shell gate.
 fn is_site_entry(rel: &str) -> bool {
-    const TOP_LEVEL: &[&str] = &["analytics", "homepage", "blog-list", "docs", "mobile-menu"];
+    const TOP_LEVEL: &[&str] = &["analytics", "homepage", "docs", "mobile-menu"];
     rel.contains("services/api.js")
         || rel.contains("site/")
         || TOP_LEVEL.iter().any(|name| {
@@ -243,7 +243,6 @@ fn check_css_line(v: &mut Violations, rel: &str, line_no: usize, raw: &str) {
         "var(--sp-fill",
         "var(--sp-progress",
         "var(--sp-section-color",
-        "var(--sp-xp-pct",
     ];
     const IMPORTANT_OK: &[&str] = &[
         "prefers-reduced-motion",
@@ -252,10 +251,7 @@ fn check_css_line(v: &mut Violations, rel: &str, line_no: usize, raw: &str) {
         "transition-duration",
         "scroll-behavior",
     ];
-    if raw.contains("!important")
-        && !IMPORTANT_OK.iter().any(|ok| raw.contains(ok))
-        && !rel.contains("blog-print.css")
-    {
+    if raw.contains("!important") && !IMPORTANT_OK.iter().any(|ok| raw.contains(ok)) {
         v.report(rel, line_no, "important", raw);
     }
     if raw.contains("@import") {

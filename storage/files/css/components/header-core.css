@@ -223,8 +223,6 @@ a.download-badge:hover {
   }
 }
 
-/* The video hero is an inset card on a white page, so the header sits on white,
-   not over the video. It keeps the standard solid treatment and the dark logo. */
 body.has-video-hero .site-header {
   background: #fff;
   backdrop-filter: none;
