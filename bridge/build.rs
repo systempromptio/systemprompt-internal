@@ -17,6 +17,8 @@ fn main() {
     // compilation — without this, incremental/sccache builds keep the stale
     // bytes baked into the binary (the window/tray icons go stale while the
     // winresource exe icon, re-read each build, does not).
+    // Why: cargo always sets OUT_DIR for a build script, so an absent value means
+    // this ran outside cargo and no output path is guessable.
     let out_dir = std::env::var("OUT_DIR").expect("OUT_DIR set by cargo");
     for f in [
         "window-icon-1024.png",
@@ -26,6 +28,8 @@ fn main() {
         "theme.css",
     ] {
         let src = format!("assets/{f}");
+        // Why: a missing brand asset must stop the build — `main.rs` `include_bytes!`s
+        // this path, so continuing would fail later with no reference to the asset.
         std::fs::copy(&src, format!("{out_dir}/{f}")).expect("copy brand asset to OUT_DIR");
         println!("cargo:rerun-if-changed={src}");
     }

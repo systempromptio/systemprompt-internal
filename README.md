@@ -59,11 +59,12 @@ Running a second clone side-by-side? `just setup-local <keys> "" "" 8081 5433`. 
 | Requirement | Purpose | Install |
 |---|---|---|
 | **Docker** | PostgreSQL runs in a container; `just setup-local` starts it | [docker.com](https://docs.docker.com/get-docker/) |
-| **Rust 1.75+** | Compiles the workspace binary | [rustup.rs](https://rustup.rs/) |
+| **Rust 1.94+** | Compiles the workspace binary (`rust-version` in `Cargo.toml`) | [rustup.rs](https://rustup.rs/) |
 | **`just`** | Task runner | [just.systems](https://just.systems/) |
 | **`jq`, `yq`** | JSON and YAML processing in the scripts | `brew install jq yq` / `apt install jq yq` |
 | **AI API keys** | At least one of Anthropic, OpenAI, or Gemini. `setup-local` writes the chosen provider's key into the profile and sets it as `ai.default_provider` in `services/ai/config.yaml`, disabling the providers you didn't supply. Pass several keys to enable several providers. | Provider dashboards |
 | **Ports 8080 + 5432** | HTTP + PostgreSQL | Free on localhost |
+| **`../systemprompt-core` checkout** | Until core 0.28.0 is published to crates.io, the workspace builds against a sibling checkout of [systemprompt-core](https://github.com/systempromptio/systemprompt-core) via the `[patch.crates-io]` block in `Cargo.toml`. Clone it next to this repository. | `git clone` beside this repo |
 
 </details>
 

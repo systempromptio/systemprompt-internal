@@ -61,10 +61,9 @@ uuid = { version = "1.18", features = ["v4"] }
 # the manifest of the workspace being built, and tests/ is a separate
 # workspace, so without this the test crates resolve core from crates.io
 # while the extensions under test resolve it from the local checkout.
-# Keep commented for published builds and uncomment in lockstep with the
-# root patch block.
 #
-# DORMANT: core 0.26.0 is published — see the note on the root patch block.
+# ACTIVE: core 0.28.0 is unreleased — see the note on the root patch block.
+# Once core 0.28.0 is published, comment out in lockstep with the root block.
 [patch.crates-io]
 systemprompt = { path = "../../systemprompt-core/systemprompt" }
 systemprompt-models = { path = "../../systemprompt-core/crates/shared/models" }

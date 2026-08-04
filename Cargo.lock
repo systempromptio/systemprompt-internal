@@ -5058,6 +5058,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "systemprompt-cli-salesforce"
+version = "0.21.0"
+dependencies = [
+ "clap",
+ "serde_yaml_ng",
+ "systemprompt",
+ "systemprompt-web-admin",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "systemprompt-client"
 version = "0.28.0"
 dependencies = [
