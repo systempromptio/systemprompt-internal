@@ -6,8 +6,7 @@ guided tour of the enforcement spine: the same four stages run on every tool cal
 ## When to Use
 
 Use this skill to show, in one sitting, that the four governance policies actually fire and that every allow and deny
-lands an auditable row. The `use_dangerous_secret` skill shows a single deny case; this skill exercises all four
-stages and then reconstructs the audit trail behind them.
+lands an auditable row. This skill exercises all four stages and then reconstructs the audit trail behind them.
 
 ## The pipeline
 
@@ -42,8 +41,7 @@ systemprompt plugins mcp call systemprompt systemprompt --args '{"command":"admi
 
 Attempt to use a plaintext secret in a tool input. The `secret_scan` stage denies it before execution - even
 for an admin agent. For a runnable recipe, see the `secret_scan` curl under "Forcing a specific decision"
-below, or run `demo/governance/06-secret-breach.sh`; `use_dangerous_secret` covers the catalogued-but-denied
-capability angle.
+below, or run `demo/governance/06-secret-breach.sh`.
 
 ### 3. Read back the audited decisions
 

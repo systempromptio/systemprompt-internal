@@ -62,7 +62,6 @@ This skill is the index. For an actual task, jump to the skill that owns it:
 
 | You want to... | Skill |
 |----------------|-------|
-| See a dangerous capability refused by policy | `use_dangerous_secret` |
 | Exercise all four governance stages and read the audit | `demonstrate_governance` |
 | Edit a user's roles and watch a request flip allow/deny | `manage_permissions` |
 | Reconstruct the live conversation's structured data | `inspect_conversation` |

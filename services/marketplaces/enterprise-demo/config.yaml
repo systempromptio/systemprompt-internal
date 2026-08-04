@@ -48,6 +48,7 @@ marketplace:
       # Admin control plane. Listed here so marketplace scoping keeps them in
       # the catalogue; per-entity rules in services/access-control/roles.yaml
       # restrict them to the admin role.
+      - admin_workspace_setup
       - admin_user_report
       - admin_activity_report
       - analytics_dashboards

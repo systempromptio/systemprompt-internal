@@ -11,12 +11,6 @@ includes:
   - ../mcp/systemprompt.yaml
   - ../mcp/salesforce.yaml
 
-  # Slack inbound surface (Events API / slash commands / interactivity)
-  - ../slack/dev.yaml
-
-  # Teams inbound surface (Bot Framework activities)
-  - ../teams/dev.yaml
-
   # AI, scheduler, content
   # Note: ../web/config.yaml is NOT included here — the web domain validator
   # reads it directly as WebConfigRaw (branding at top level). Including it
