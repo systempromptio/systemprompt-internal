@@ -51,9 +51,11 @@ cli *ARGS:
 
 # Get DATABASE_URL from profile secrets (for sqlx compile-time checks)
 _db-url:
-    @if [ -n "$SYSTEMPROMPT_PROFILE" ] && [ -f "$SYSTEMPROMPT_PROFILE" ]; then \
-        PROFILE_DIR="$(dirname "$SYSTEMPROMPT_PROFILE")"; \
-        SECRETS_PATH="$(yq -r '.secrets.secrets_path // "./secrets.json"' "$SYSTEMPROMPT_PROFILE")"; \
+    @PROFILE="${SYSTEMPROMPT_PROFILE:-}"; \
+    [ -n "$PROFILE" ] || PROFILE="{{justfile_directory()}}/.systemprompt/profiles/local/profile.yaml"; \
+    if [ -f "$PROFILE" ]; then \
+        PROFILE_DIR="$(dirname "$PROFILE")"; \
+        SECRETS_PATH="$(yq -r '.secrets.secrets_path // "./secrets.json"' "$PROFILE")"; \
         if [ "${SECRETS_PATH#/}" = "$SECRETS_PATH" ]; then \
             SECRETS_FILE="$PROFILE_DIR/$SECRETS_PATH"; \
         else \
