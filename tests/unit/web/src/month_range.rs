@@ -6,7 +6,9 @@
 //! error — only as a total that does not reconcile.
 
 use chrono::{Datelike, Timelike};
-use systemprompt_web_admin::util::month_range::{MonthQuery, list_month_options, parse_month_range};
+use systemprompt_web_admin::util::month_range::{
+    MonthQuery, list_month_options, parse_month_range,
+};
 
 fn month(key: &str) -> systemprompt_web_admin::util::month_range::MonthRange {
     parse_month_range(&MonthQuery {
@@ -98,9 +100,11 @@ fn the_current_month_has_no_next() {
 
 #[test]
 fn options_mark_exactly_one_selection() {
-    let m = month(&(chrono::Utc::now() - chrono::Duration::days(40))
-        .format("%Y-%m")
-        .to_string());
+    let m = month(
+        &(chrono::Utc::now() - chrono::Duration::days(40))
+            .format("%Y-%m")
+            .to_string(),
+    );
     let options = list_month_options(&m);
     assert_eq!(options.iter().filter(|o| o.selected).count(), 1);
     assert!(options.len() > 1);

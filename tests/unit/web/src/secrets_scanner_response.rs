@@ -90,5 +90,10 @@ async fn a_clean_response_yields_nothing() {
         "here is the summary you asked for".to_owned(),
     )]);
 
-    assert!(SecretsScanner::new().scan_response_final(&resp).await.is_empty());
+    assert!(
+        SecretsScanner::new()
+            .scan_response_final(&resp)
+            .await
+            .is_empty()
+    );
 }

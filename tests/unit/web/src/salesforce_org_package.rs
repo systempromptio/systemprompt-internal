@@ -18,7 +18,8 @@ use systemprompt_web_admin::salesforce_org::spec::{
 
 /// A stand-in PEM. Only its framing matters here — the element carries the
 /// base64 body with the BEGIN/END lines stripped.
-const CERT: &str = "-----BEGIN CERTIFICATE-----\nMIIBderived\nQkJCQg==\n-----END CERTIFICATE-----\n";
+const CERT: &str =
+    "-----BEGIN CERTIFICATE-----\nMIIBderived\nQkJCQg==\n-----END CERTIFICATE-----\n";
 
 fn spec() -> OrgSpec {
     OrgSpec {

@@ -85,7 +85,11 @@ fn unreadable_fields_are_reported_but_are_not_drift() {
 fn a_scope_only_the_org_has_is_a_removal() {
     // The live dev org grants `full`; the committed spec deliberately does not.
     let mut actual = spec();
-    actual.external_client_app.oauth.scopes.push(OauthScope::Full);
+    actual
+        .external_client_app
+        .oauth
+        .scopes
+        .push(OauthScope::Full);
 
     let changes = diff(&actual, &spec());
     let drift = changes.drift();
@@ -137,7 +141,11 @@ fn refresh_token_validity_change_is_drift() {
 fn the_two_intended_dev_org_deltas_are_exactly_two_changes() {
     // The state the dev org is actually in today, against the committed spec.
     let mut actual = spec();
-    actual.external_client_app.oauth.scopes.push(OauthScope::Full);
+    actual
+        .external_client_app
+        .oauth
+        .scopes
+        .push(OauthScope::Full);
     actual.external_client_app.policies.refresh_token_validity = Some(Validity {
         period: 8760,
         unit: ValidityUnit::Days,
