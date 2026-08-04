@@ -76,7 +76,7 @@ async fn execute_inner(ctx: &JobContext) -> Result<JobResult, JobError> {
 
     let registered = bootstrap_gateway_entities(db_pool).await?;
 
-    let pool = db_pool.pool().ok_or(MarketplaceError::Internal(
+    let pool = db_pool.write_pool().ok_or(MarketplaceError::Internal(
         "PgPool not available from database".to_owned(),
     ))?;
     acl_yaml_loader::load_from_yaml(&pool, &services_path)
