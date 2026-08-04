@@ -69,13 +69,13 @@ pub(crate) async fn device_link_page(
     Extension(engine): Extension<AdminTemplateEngine>,
     Query(query): Query<DeviceLinkQuery>,
 ) -> AdminHtmlResult<Response> {
-    let mut redirect_host = None;
-    if let Some(redirect) = query.redirect.as_deref() {
-        let Some(host) = validate_loopback_redirect(redirect) else {
-            return Ok(bad_redirect_response(redirect));
-        };
-        redirect_host = Some(host);
-    }
+    let redirect_host = match query.redirect.as_deref() {
+        Some(redirect) => match validate_loopback_redirect(redirect) {
+            Some(host) => Some(host),
+            None => return Ok(bad_redirect_response(redirect)),
+        },
+        None => None,
+    };
 
     let branding = branding_context(&engine).branding;
 

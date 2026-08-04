@@ -54,12 +54,12 @@ struct Assertion {
 // fails.
 // - [`SalesforceError::TokenEndpoint`] / [`SalesforceError::Http`] on a failed
 // POST.
-pub(crate) async fn fetch_token(
+pub(crate) async fn get_token(
     cfg: &SalesforceConfig,
     username: &str,
 ) -> Result<FreshToken, SalesforceError> {
     let private_key_pem = salesforce_private_key().ok_or(SalesforceError::MissingPrivateKey)?;
-    fetch_token_with_key(
+    get_token_with_key(
         &cfg.consumer_key,
         username,
         cfg.jwt_bearer_audience(),
@@ -78,7 +78,7 @@ pub(crate) async fn fetch_token(
 // - [`SalesforceError::Internal`] if the key is not valid PEM or signing fails.
 // - [`SalesforceError::TokenEndpoint`] / [`SalesforceError::Http`] on a failed
 // POST.
-pub(crate) async fn fetch_token_with_key(
+pub(crate) async fn get_token_with_key(
     consumer_key: &str,
     username: &str,
     audience: &str,

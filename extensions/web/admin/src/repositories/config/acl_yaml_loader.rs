@@ -47,7 +47,7 @@ pub async fn load_from_yaml(
     // Why: last — a plan's grants name marketplaces and routes whose catalog
     // rows the passes above materialise, and its organization rules sit at the
     // outermost precedence band, so nothing earlier can depend on them.
-    let plans = super::plan_yaml_loader::load_from_yaml(pool, services_path).await?;
+    let plans = super::plan_yaml_loader::load_plans_from_yaml(pool, services_path).await?;
 
     tracing::info!(
         departments = report.departments_upserted,

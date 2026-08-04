@@ -10,7 +10,6 @@
 pub mod chain;
 pub mod counts;
 pub mod decisions;
-pub mod demo_trace;
 pub mod effective;
 pub mod filter_options;
 pub mod hook_events;

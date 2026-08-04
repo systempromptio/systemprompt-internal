@@ -46,12 +46,10 @@ pub(super) async fn resolve_identity(
             "error"
         })?;
 
-    let info = fetch_userinfo(cfg, &tokens.access_token)
-        .await
-        .map_err(|e| {
-            tracing::error!(error = %e, "Salesforce userinfo fetch failed");
-            "error"
-        })?;
+    let info = get_userinfo(cfg, &tokens.access_token).await.map_err(|e| {
+        tracing::error!(error = %e, "Salesforce userinfo fetch failed");
+        "error"
+    })?;
 
     let (sub, email, display_name, sf_username) = gate_claims(cfg, info)?;
 
@@ -129,7 +127,7 @@ pub fn select_sf_username(preferred_username: Option<&str>, email: &str) -> Stri
         .map_or_else(|| email.to_owned(), str::to_owned)
 }
 
-async fn fetch_userinfo(
+async fn get_userinfo(
     cfg: &SalesforceConfig,
     access_token: &str,
 ) -> Result<SalesforceUserInfo, super::SalesforceError> {

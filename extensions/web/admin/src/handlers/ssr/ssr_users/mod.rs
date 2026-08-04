@@ -120,7 +120,7 @@ pub(crate) async fn user_detail_page(
         None => None,
     };
 
-    let departments = data::fetch_departments(&pool, &user_department).await;
+    let departments = data::list_departments(&pool, &user_department).await;
 
     let has_effective_permissions = effective
         .as_ref()

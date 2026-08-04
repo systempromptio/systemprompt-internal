@@ -175,7 +175,7 @@ async fn collect_user_devices(pool: &PgPool, d: &crate::types::UserDetail) -> Ve
 // and the next save moves the user out of a department they were never
 // deliberately removed from. Degrading to a short list is survivable;
 // degrading to one that cannot represent the current value is not.
-pub(super) async fn fetch_departments(pool: &PgPool, current: &str) -> Vec<String> {
+pub(super) async fn list_departments(pool: &PgPool, current: &str) -> Vec<String> {
     let mut names = repositories::departments::list_department_names(pool)
         .await
         .inspect_err(|e| tracing::warn!(error = %e, "ssr_users: load departments failed"))

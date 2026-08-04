@@ -28,7 +28,7 @@ pub(super) struct UsageSections {
     pub(super) bridge_user: Option<BridgeUserRow>,
 }
 
-pub(super) async fn fetch_usage_sections(pool: &Arc<PgPool>, user_id: &UserId) -> UsageSections {
+pub(super) async fn load_usage_sections(pool: &Arc<PgPool>, user_id: &UserId) -> UsageSections {
     let pool_for_d1 = Arc::clone(pool);
     let pool_for_d7 = Arc::clone(pool);
     let pool_for_d30 = Arc::clone(pool);
@@ -168,10 +168,10 @@ pub(super) fn build_agents_block() -> AgentsBlock {
         Err(_) => return AgentsBlock::default(),
     };
 
-    let agents = match crate::repositories::config::agents::list_agents(&services_path) {
+    let agents = match crate::repositories::config::agents::list_configured_agents(&services_path) {
         Ok(a) => a,
         Err(e) => {
-            tracing::warn!(error = %e, "list_agents failed for profile pane");
+            tracing::warn!(error = %e, "list_configured_agents failed for profile pane");
             return AgentsBlock::default();
         },
     };

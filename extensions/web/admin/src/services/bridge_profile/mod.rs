@@ -15,7 +15,7 @@ use systemprompt::identifiers::{TenantId, UserId};
 use crate::types::UserContext;
 
 use assemble::{
-    build_agents_block, build_bridge_profile_block, build_usage, fetch_usage_sections,
+    build_agents_block, build_bridge_profile_block, build_usage, load_usage_sections,
     read_config_strings, read_tenant_id,
 };
 
@@ -138,7 +138,7 @@ pub(crate) async fn build_bridge_profile_data(
 ) -> BridgeProfilePageData {
     let user_id = user_ctx.user_id.clone();
 
-    let sections = fetch_usage_sections(&pool, &user_id).await;
+    let sections = load_usage_sections(&pool, &user_id).await;
     let display_name = sections
         .bridge_user
         .as_ref()

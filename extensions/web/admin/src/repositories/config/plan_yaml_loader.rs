@@ -34,7 +34,7 @@ const SOURCE_LABEL: &str = "plans.yaml";
 
 const MICRODOLLARS_PER_USD: f64 = 1_000_000.0;
 
-pub async fn load_from_yaml(
+pub async fn load_plans_from_yaml(
     pool: &PgPool,
     services_path: &Path,
 ) -> Result<PlanLoadReport, MarketplaceError> {

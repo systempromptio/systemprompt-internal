@@ -115,3 +115,5 @@ extensions/web/admin/src/handlers/ssr/list_view.rs	# chip, preset and preserved-
 extensions/web/site/src/assets/js_services.rs	# template registers theme.js for its light/dark toggle; astound has no theme module
 extensions/web/tests/asset_manifest.rs	# astound's flash guard is CSS-only, so the shell needs the critical-CSS carve-out and not the template's colorScheme-script one
 
+extensions/web/admin/src/repositories/governance/decisions.rs	# astound ships no decisions-ledger page, so list_decisions_filtered is removed here; the template still serves it
+extensions/web/tests/frontend_standards.rs	# astound ships no blog, so the blog-print !important carve-out and blog TOP_LEVEL entry are removed here; the template keeps both

@@ -55,7 +55,7 @@ pub(crate) async fn user_context_middleware(
         },
     };
 
-    let (roles, department) = fetch_user_roles_department(&pool, &session.user_id)
+    let (roles, department) = find_roles_department(&pool, &session.user_id)
         .await
         .unwrap_or_else(|| (vec!["user".to_owned()], String::new()));
 
@@ -89,10 +89,7 @@ async fn platform_member(pool: &PgPool, user_id: &UserId) -> bool {
         .unwrap_or(false)
 }
 
-async fn fetch_user_roles_department(
-    pool: &PgPool,
-    user_id: &UserId,
-) -> Option<(Vec<String>, String)> {
+async fn find_roles_department(pool: &PgPool, user_id: &UserId) -> Option<(Vec<String>, String)> {
     super::repositories::users::queries::find_user_roles_department(pool, user_id)
         .await
         .inspect_err(

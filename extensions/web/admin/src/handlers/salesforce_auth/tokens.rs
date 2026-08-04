@@ -105,7 +105,7 @@ pub(crate) async fn salesforce_token_handler(
     // Why: Why not `?`: a mint failure is an *upstream* fault. 502 tells the
     // accessor's caller that Salesforce refused, where a 500 would blame this
     // server for Salesforce being down.
-    let fresh = salesforce_jwt_bearer::fetch_token(&deps.config, &username)
+    let fresh = salesforce_jwt_bearer::get_token(&deps.config, &username)
         .await
         .map_err(|e| AdminError::Upstream(format!("Salesforce token mint failed: {e}")))?;
     Ok(Json(TokenResponse {

@@ -1,7 +1,6 @@
 //! Persistence for users: identity, access, activity, devices, and usage.
 
 pub mod access_control;
-pub mod access_tree;
 pub mod activity;
 pub mod devices;
 pub mod federated;
