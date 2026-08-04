@@ -6,96 +6,16 @@
 //! [`ChangeKind::AlwaysApplied`] rather than folded into "no changes". Calling
 //! them unchanged would be a claim the tool cannot support: it has not read
 //! them and does not know.
+//!
+//! The reporting vocabulary lives in [`change`].
 
-use std::fmt;
+mod change;
 
-use super::spec::{HostedMcpServer, OrgSpec, PermissionSetSpec};
+pub use change::{Change, ChangeKind, ChangeSet};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ChangeKind {
-    /// Present in both, with different values.
-    Update,
-    /// In the desired spec, absent from the org.
-    Add,
-    /// In the org, absent from the desired spec.
-    Remove,
-    /// Deployed on every apply because it cannot be read back to compare.
-    AlwaysApplied,
-}
+use change::{compare_str, push};
 
-impl fmt::Display for ChangeKind {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s = match self {
-            Self::Update => "update",
-            Self::Add => "add",
-            Self::Remove => "remove",
-            Self::AlwaysApplied => "always-applied",
-        };
-        f.write_str(s)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Change {
-    pub kind: ChangeKind,
-    /// Dotted path into the spec, e.g. `external_client_app.oauth.scopes`.
-    pub path: String,
-    pub actual: String,
-    pub desired: String,
-}
-
-impl fmt::Display for Change {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.kind {
-            ChangeKind::AlwaysApplied => {
-                write!(f, "  {} {} = {}", self.kind, self.path, self.desired)
-            },
-            _ => write!(
-                f,
-                "  {} {}: {} -> {}",
-                self.kind, self.path, self.actual, self.desired
-            ),
-        }
-    }
-}
-
-/// The full result of comparing two specs.
-#[derive(Debug, Clone, Default)]
-pub struct ChangeSet {
-    pub changes: Vec<Change>,
-}
-
-impl ChangeSet {
-    /// Changes that represent real, detected drift.
-    #[must_use]
-    pub fn drift(&self) -> Vec<&Change> {
-        self.changes
-            .iter()
-            .filter(|c| c.kind != ChangeKind::AlwaysApplied)
-            .collect()
-    }
-
-    /// Whether the org matches the spec on everything readable.
-    #[must_use]
-    pub fn is_clean(&self) -> bool {
-        self.drift().is_empty()
-    }
-}
-
-fn push(out: &mut Vec<Change>, kind: ChangeKind, path: &str, actual: &str, desired: &str) {
-    out.push(Change {
-        kind,
-        path: path.to_owned(),
-        actual: actual.to_owned(),
-        desired: desired.to_owned(),
-    });
-}
-
-fn compare_str(out: &mut Vec<Change>, path: &str, actual: &str, desired: &str) {
-    if actual != desired {
-        push(out, ChangeKind::Update, path, actual, desired);
-    }
-}
+use super::spec::{ExternalClientApp, HostedMcpServer, OrgSpec, PermissionSetSpec, Validity};
 
 /// Compare `actual` (as exported from an org) against `desired`.
 #[must_use]
@@ -181,12 +101,9 @@ pub fn diff(actual: &OrgSpec, desired: &OrgSpec) -> ChangeSet {
     ChangeSet { changes }
 }
 
-/// A server switched off in the org is real drift, not a note: `apply` can and
-/// does switch it back on through `McpServerAccess`.
-///
-/// Servers active in the org but absent from the spec are deliberately not
-/// reported. Apply is additive and would never deactivate one, so calling it
-/// drift would be reporting a difference nothing will ever resolve.
+// Why: servers active in the org but absent from the spec are deliberately not
+// reported. Apply is additive and would never deactivate one, so calling it
+// drift would be reporting a difference nothing will ever resolve.
 fn diff_hosted_mcp_servers(
     changes: &mut Vec<Change>,
     actual: &[HostedMcpServer],
@@ -217,11 +134,7 @@ fn diff_hosted_mcp_servers(
     }
 }
 
-fn diff_scopes(
-    changes: &mut Vec<Change>,
-    actual: &super::spec::ExternalClientApp,
-    desired: &super::spec::ExternalClientApp,
-) {
+fn diff_scopes(changes: &mut Vec<Change>, actual: &ExternalClientApp, desired: &ExternalClientApp) {
     let mut have = actual.oauth.scopes.clone();
     let mut want = desired.oauth.scopes.clone();
     have.sort_unstable();
@@ -262,8 +175,8 @@ fn diff_scopes(
 
 fn diff_policies(
     changes: &mut Vec<Change>,
-    actual: &super::spec::ExternalClientApp,
-    desired: &super::spec::ExternalClientApp,
+    actual: &ExternalClientApp,
+    desired: &ExternalClientApp,
 ) {
     let (a, d) = (&actual.policies, &desired.policies);
     compare_str(
@@ -284,7 +197,7 @@ fn diff_policies(
         &a.refresh_token_policy,
         &d.refresh_token_policy,
     );
-    let fmt_validity = |v: Option<&super::spec::Validity>| {
+    let fmt_validity = |v: Option<&Validity>| {
         v.map_or_else(
             || "none".to_owned(),
             |v| format!("{} {}", v.period, v.unit.metadata_token()),

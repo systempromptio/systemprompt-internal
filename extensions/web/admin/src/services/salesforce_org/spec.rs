@@ -171,17 +171,17 @@ pub struct PermissionSetSpec {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct HostedMcpServer {
-    /// `McpServerAccess.MasterLabel`, e.g. `sobject-all`. The human-facing name,
-    /// and what Setup shows.
+    /// `McpServerAccess.MasterLabel`, e.g. `sobject-all`. The human-facing
+    /// name, and what Setup shows.
     pub name: String,
     /// `McpServerAccess.DeveloperName`, e.g. `platform_sobject_all`. The stable
     /// key `apply` matches on — labels are translatable, developer names are
     /// not.
     pub developer_name: String,
     pub endpoint: String,
-    /// Desired `Active` state. Apply switches a server on; it never switches one
-    /// off, and a server absent from the org is an error rather than something
-    /// activation could fix.
+    /// Desired `Active` state. Apply switches a server on; it never switches
+    /// one off, and a server absent from the org is an error rather than
+    /// something activation could fix.
     #[serde(default = "default_true")]
     pub active: bool,
 }

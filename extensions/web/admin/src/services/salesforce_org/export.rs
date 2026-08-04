@@ -89,17 +89,11 @@ pub async fn export_org(
     })
 }
 
-/// Read the org's hosted MCP servers and their live `Active` state.
-///
-/// `McpServerAccess` (Tooling, from API version 67.0) is the activation record.
-/// The endpoint URL is not one of its fields, so that one value is carried from
-/// the baseline where there is one — everything else is read from the org.
-///
-/// Scoped to the baseline's servers when there is a baseline, for the same
-/// reason [`export_permission_sets`] is scoped to app-granting sets: an org
-/// offers standard servers this deployment does not manage, and reporting them
-/// would be drift no `apply` will ever resolve. With no baseline — exporting an
-/// org to clone it — the full inventory comes back instead.
+// Why: the endpoint URL is not a field on `McpServerAccess`, so that one value
+// is carried from the baseline where there is one. The result is also scoped to
+// the baseline's servers, because an org offers standard servers this
+// deployment does not manage and reporting them would be drift no `apply` will
+// ever resolve. With no baseline the full inventory comes back instead.
 async fn export_hosted_mcp_servers(
     conn: &Connection,
     baseline: Option<&OrgSpec>,
@@ -122,10 +116,8 @@ async fn export_hosted_mcp_servers(
             }
             Some(HostedMcpServer {
                 name: str_field(row, "MasterLabel").unwrap_or_else(|| developer_name.clone()),
-                endpoint: known.map_or_else(
-                    || UNREADABLE_PLACEHOLDER.to_owned(),
-                    |s| s.endpoint.clone(),
-                ),
+                endpoint: known
+                    .map_or_else(|| UNREADABLE_PLACEHOLDER.to_owned(), |s| s.endpoint.clone()),
                 developer_name,
                 active: bool_field(row, "Active"),
             })
@@ -269,4 +261,3 @@ async fn export_permission_sets(
     out.sort_by(|a, b| a.name.cmp(&b.name));
     Ok(out)
 }
-
