@@ -1,16 +1,16 @@
 {
-  "floor": 0.0,
-  "total": 74.53,
+  "floor": 80.0,
+  "total": 81.17,
   "per_crate": {
     "extensions/cli/salesforce": 100.0,
-    "extensions/mcp/knowledge-bank": 76.79,
+    "extensions/mcp/knowledge-bank": 77.04,
     "extensions/mcp/shared": 90.83,
-    "extensions/mcp/systemprompt": 36.8,
-    "extensions/web": 43.72,
-    "extensions/web/admin": 76.11,
-    "extensions/web/content": 70.15,
-    "extensions/web/jobs": 49.95,
-    "extensions/web/shared": 86.92,
-    "extensions/web/site": 81.8
+    "extensions/mcp/systemprompt": 54.47,
+    "extensions/web": 82.91,
+    "extensions/web/admin": 80.11,
+    "extensions/web/content": 96.24,
+    "extensions/web/jobs": 81.94,
+    "extensions/web/shared": 92.98,
+    "extensions/web/site": 83.1
   }
 }
