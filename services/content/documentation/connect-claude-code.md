@@ -25,8 +25,13 @@ everything before it stands up the server that command talks to.
 ## Prerequisites
 
 Docker, [`just`](https://github.com/casey/just), a Rust toolchain, and one
-provider API key. No checkout of `systemprompt-core` is required — the workspace
-resolves it from crates.io.
+provider API key.
+
+The server needs this repository alone — the workspace resolves `systemprompt`
+from crates.io. The client does not: `bridge/` depends on `systemprompt-bridge`
+by relative path and that crate is unpublished, so building it requires
+`systemprompt-core` checked out beside this repository. `just bridge-build`
+clones it.
 
 ## Setup
 
@@ -34,8 +39,12 @@ resolves it from crates.io.
 git clone https://github.com/systempromptio/systemprompt-astound.git && cd systemprompt-astound
 just setup-local     # profile, Docker Postgres, migrations, publish pipeline
 just build
+just bridge-build    # Claude Code client; clones systemprompt-core beside this repo
 just start           # :8080
 ```
+
+`bridge-build` belongs in setup rather than in the connect step: codes expire in
+ten minutes and a first client build takes longer than that.
 
 `setup-local` prompts for the provider when called with no key. Passing keys is
 non-interactive; the first becomes the default provider. Override the ports for
@@ -75,9 +84,11 @@ the command with it filled in:
 just claude <code>
 ```
 
-Builds the client, starts a container, redeems the code, execs `claude`. Host
-config is untouched. First run includes a client build; later runs start
-immediately. `just claude-reset` signs out.
+Starts a container, redeems the code, execs `claude`. Host config is untouched.
+`just claude-reset` signs out.
+
+If the client is missing, this builds it first — and that build can outlast the
+code. Run `just bridge-build` during setup and the connect step is immediate.
 
 ### The code
 
@@ -127,6 +138,7 @@ else is up.
 git clone https://github.com/systempromptio/systemprompt-astound.git fresh && cd fresh
 just setup-local <provider-key> "" "" 8081 5436
 just build
+just bridge-build
 just start
 ```
 
@@ -165,7 +177,7 @@ not during sync.
 
 | Symptom | Cause |
 |---------|-------|
-| `Client not built yet` | First run. The client is a separate workspace, so `just build` does not produce it; `just claude` builds it on demand. |
+| `Client not built yet` | The client is a separate workspace; `just build` does not produce it. `just bridge-build` does, and clones `systemprompt-core` beside this repo because the client depends on it by path. |
 | Code rejected | 10-minute TTL, single use. Reload the profile page. |
 | Session works, audit trail empty | Not routed through the gateway. Check `ANTHROPIC_BASE_URL` points at the loopback proxy and that `astound-bridge doctor` reports it running. |
 | Container cannot reach the gateway | Inside a container `localhost` is the container. `just claude` rewrites it; by hand, use `http://host.docker.internal:8080`. |

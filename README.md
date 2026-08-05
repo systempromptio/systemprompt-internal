@@ -43,15 +43,21 @@ git clone https://github.com/systempromptio/systemprompt-astound
 cd systemprompt-astound
 ```
 
-One repository. The workspace resolves `systemprompt` from crates.io; the `[patch.crates-io]` blocks in `Cargo.toml` and `tests/Cargo.toml` are commented out. Uncomment both — `[patch]` is per-workspace — to build against a sibling `systemprompt-core` checkout while a core change is unreleased.
+The **server** needs this repository alone: the workspace resolves `systemprompt` from crates.io, and the `[patch.crates-io]` blocks in `Cargo.toml` and `tests/Cargo.toml` are commented out. Uncomment both — `[patch]` is per-workspace — to build the server against a sibling core checkout while a core change is unreleased.
+
+The **client** is different. `bridge/` depends on `systemprompt-bridge` by relative path, and that crate is not published, so building it requires `systemprompt-core` checked out beside this repository. `just bridge-build` clones it for you; nothing else needs it.
 
 ### 3. Set up and start
 
 ```bash
 just setup-local     # builds the binary, writes .systemprompt/profiles/local/,
                      # starts Docker Postgres, runs the publish pipeline
+just bridge-build    # builds the Claude Code client; clones systemprompt-core
+                     # beside this repo, which the client depends on by path
 just start           # governance + agents + MCP + admin on :8080
 ```
+
+`bridge-build` is part of setup rather than part of connecting: connect codes expire in ten minutes, and a first client build takes longer than that.
 
 `setup-local` prompts for your provider and its key. Non-interactive instead — the first key given becomes the default provider:
 

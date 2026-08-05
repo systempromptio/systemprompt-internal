@@ -920,8 +920,28 @@ docker-run TAG="local":
 # Build the branded bridge. Its own standalone workspace, NOT the server
 # workspace — `just build` does not touch it, and a bare `cargo build` from the
 # repo root silently builds the server instead.
-bridge-build *ARGS:
+bridge-build *ARGS: core-checkout
     cd {{justfile_directory()}}/bridge && cargo build --release {{ARGS}}
+
+# The client depends on systemprompt-bridge by relative path, and that crate is
+# not published — so unlike the server, building the client needs the core
+# repository checked out beside this one. Clones it when absent, fast-forwards
+# it when present, and leaves local work alone.
+core-checkout:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    CORE="{{justfile_directory()}}/../systemprompt-core"
+    if [ -d "$CORE/.git" ]; then
+        if [ -n "$(git -C "$CORE" status --porcelain)" ]; then
+            echo "core checkout has local changes — leaving it as it is."
+        else
+            echo "Updating $CORE"
+            git -C "$CORE" pull --ff-only --quiet || echo "warn: could not fast-forward core; using it as it is." >&2
+        fi
+    else
+        echo "Cloning systemprompt-core beside this repo (the client needs it)."
+        git clone --quiet https://github.com/systempromptio/systemprompt-core "$CORE"
+    fi
 
 # Package the branded bridge as a Linux release tarball into dist/
 bridge-package-linux:
@@ -958,44 +978,17 @@ claude CODE GATEWAY="http://localhost:8080":
         just clean-client-build
     fi
 
-    # Resolve the client. A local release build wins when there is one — that
-    # is the developer iterating on the client itself. Otherwise take the
-    # published tarball off the gateway, the same asset the installer uses.
-    #
-    # Why not build it: bridge/ depends on systemprompt-bridge by relative path
-    # into a sibling systemprompt-core checkout, and that crate is not
-    # published. Building here would make this recipe need a second repository,
-    # and a multi-minute compile would routinely outlive the code's 10-minute
-    # TTL — the code would expire while the user waited for their own build.
+    # The client is a separate workspace and depends on systemprompt-bridge by
+    # relative path into a sibling core checkout, so building it needs that
+    # checkout present. `bridge-build` fetches it. Do this before the code is
+    # spent: a first-run compile can outlive the code's 10-minute TTL, so
+    # `just bridge-build` belongs in setup rather than here.
     BRIDGE="{{justfile_directory()}}/bridge/target/release/astound-bridge"
     if [ ! -f "$BRIDGE" ] || [ ! -x "$BRIDGE" ]; then
-        ASSET="astound-bridge-linux-x86_64.tar.gz"
-        CACHE="{{justfile_directory()}}/.build/client"
-        BRIDGE="$CACHE/astound-bridge"
-        # The download runs on the host, so it uses the gateway as given rather
-        # than the container-facing rewrite above.
-        BASE="{{GATEWAY}}/files/downloads"
-        if [ ! -x "$BRIDGE" ]; then
-            echo "Fetching the client from $BASE"
-            mkdir -p "$CACHE"
-            TMP="$(mktemp -d)"
-            trap 'rm -rf "$TMP"' EXIT
-            curl -fsSL -o "$TMP/$ASSET" "$BASE/$ASSET" \
-                || { echo "ERROR: client download failed: $BASE/$ASSET" >&2
-                     echo "       Is the gateway running? 'just start'" >&2; exit 1; }
-            curl -fsSL -o "$TMP/$ASSET.sha256" "$BASE/$ASSET.sha256" \
-                || { echo "ERROR: checksum file missing: $BASE/$ASSET.sha256" >&2; exit 1; }
-            EXPECTED="$(cut -d' ' -f1 < "$TMP/$ASSET.sha256")"
-            ACTUAL="$(sha256sum "$TMP/$ASSET" | cut -d' ' -f1)"
-            [ "$EXPECTED" = "$ACTUAL" ] \
-                || { echo "ERROR: checksum mismatch — refusing to run." >&2
-                     echo "       expected $EXPECTED" >&2
-                     echo "       actual   $ACTUAL" >&2; exit 1; }
-            tar xzf "$TMP/$ASSET" -C "$TMP"
-            mv "$TMP"/astound-bridge-*/astound-bridge "$BRIDGE"
-            chmod +x "$BRIDGE"
-            echo "    ok  $ACTUAL"
-        fi
+        echo "Client not built yet — fetching core and building it."
+        echo "warn: a first build takes minutes and the code expires in 10." >&2
+        echo "      If it is rejected as expired, issue a fresh one and re-run." >&2
+        just bridge-build
     fi
 
     PORTS=()
