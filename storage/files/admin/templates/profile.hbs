@@ -38,6 +38,26 @@
             </div>
         </header>
 
+        {{!-- ROLE BANNER — only for non-admins ─────────────── --}}
+        {{#unless identity.is_admin}}
+        <aside class="sp-banner sp-banner--warn" role="note">
+            <svg class="sp-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+            <div class="sp-banner__body">
+                <strong class="sp-banner__title">You have user permissions</strong>
+                <p class="sp-banner__text">
+                    Admin-only pages, the systemprompt MCP server, and the admin plugins are hidden.
+                    Promote this account from a terminal on the server:
+                </p>
+                <pre class="sp-connect__cmd"><code>systemprompt admin users role promote {{identity.email}}</code></pre>
+                <p class="sp-banner__text">
+                    Then sign out and back in — the admin scope is minted when the token is issued,
+                    so an existing session keeps the old one. Check it with
+                    <code>systemprompt admin users show {{identity.email}}</code>.
+                </p>
+            </div>
+        </aside>
+        {{/unless}}
+
         {{!-- CONNECT THE BRIDGE — first thing after sign-in ── --}}
         {{#if bridge_connect}}
         <article class="sp-profile-card sp-profile-card--connect" id="connect-bridge">
@@ -45,6 +65,7 @@
                 <div class="sp-profile-card__title">
                     <svg class="sp-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                     <h2>Connect Claude Code on your machine</h2>
+                    <span class="sp-chip">for developers</span>
                 </div>
                 <span class="sp-profile-card__hint">
                     one-shot code · expires in {{bridge_connect.expires_in_seconds}}s · reload this page for a fresh one
@@ -53,23 +74,34 @@
 
             <div class="sp-connect">
                 <p class="sp-connect__lede">
-                    You are signed in as <strong>{{identity.email}}</strong>. The code below is bound to
-                    that identity and can be used once.
+                    For developers running Claude Code from a terminal. You are signed in as
+                    <strong>{{identity.email}}</strong>. The code below is bound to that identity
+                    and can be used once.
                 </p>
 
                 <div class="sp-connect__step">
-                    <span class="sp-connect__label">New machine — installs the bridge and Claude Code</span>
-                    <pre class="sp-connect__cmd"><code>{{bridge_connect.install_command}}</code></pre>
-                </div>
-
-                <div class="sp-connect__step">
-                    <span class="sp-connect__label">Bridge already installed</span>
-                    <pre class="sp-connect__cmd"><code>{{bridge_connect.login_command}}</code></pre>
+                    <span class="sp-connect__label">Claude Code, connected, in a throwaway container — run it from this repo</span>
+                    <pre class="sp-connect__cmd"><code>{{bridge_connect.just_install_command}}</code></pre>
                 </div>
 
                 <details class="sp-connect__raw">
-                    <summary>Just the code</summary>
-                    <pre class="sp-connect__cmd"><code>{{bridge_connect.code}}</code></pre>
+                    <summary>Advanced — machine without this repo</summary>
+                    <div class="sp-connect__step">
+                        <span class="sp-connect__label">Configure this host directly — writes ~/.profile, managed settings, and a sync service</span>
+                        <pre class="sp-connect__cmd"><code>{{bridge_connect.just_login_command}}</code></pre>
+                    </div>
+                    <div class="sp-connect__step">
+                        <span class="sp-connect__label">Same thing, without the repo</span>
+                        <pre class="sp-connect__cmd"><code>{{bridge_connect.install_command}}</code></pre>
+                    </div>
+                    <div class="sp-connect__step">
+                        <span class="sp-connect__label">Bridge already installed</span>
+                        <pre class="sp-connect__cmd"><code>{{bridge_connect.login_command}}</code></pre>
+                    </div>
+                    <div class="sp-connect__step">
+                        <span class="sp-connect__label">Just the code</span>
+                        <pre class="sp-connect__cmd"><code>{{bridge_connect.code}}</code></pre>
+                    </div>
                 </details>
             </div>
         </article>

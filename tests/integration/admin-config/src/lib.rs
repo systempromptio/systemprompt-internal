@@ -35,6 +35,8 @@ mod marketplace_catalog;
 #[cfg(test)]
 mod marketplace_env;
 #[cfg(test)]
+mod marketplace_filter;
+#[cfg(test)]
 mod marketplace_usage;
 #[cfg(test)]
 mod reports_customer_lists;

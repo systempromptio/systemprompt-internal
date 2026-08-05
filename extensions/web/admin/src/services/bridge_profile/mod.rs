@@ -76,6 +76,11 @@ pub(crate) struct BridgeConnectBlock {
     pub install_command: String,
     /// For a machine that already has one.
     pub login_command: String,
+    /// The same two, for a developer who already has this repo checked out.
+    /// These are the ones the page leads with; the raw commands above are the
+    /// escape hatch for a machine without the repo.
+    pub just_install_command: String,
+    pub just_login_command: String,
 }
 
 // Why: not derivable here — `brand()` lives in the bridge crate, which the
@@ -132,6 +137,8 @@ async fn build_bridge_connect(
             "{BRIDGE_BINARY} login --code {code} --gateway {gateway}",
             code = issued.code
         ),
+        just_install_command: format!("just claude {code} {gateway}", code = issued.code),
+        just_login_command: format!("just connect {code} {gateway}", code = issued.code),
         code: issued.code,
         expires_in_seconds,
         gateway,

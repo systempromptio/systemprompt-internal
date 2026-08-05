@@ -42,7 +42,18 @@ An admin issues the user a one-shot enrolment code:
 systemprompt admin bridge issue-code --user-id <uuid>
 ```
 
-The user runs one command and pastes it (it prompts if omitted):
+A signed-in user can also mint their own code from `/admin/profile`, which
+prints the commands below with the code already filled in.
+
+From a checkout of this repo, the code is the only argument either recipe needs:
+
+```bash
+just claude <code>    # Claude Code, connected, in a throwaway container
+just connect <code>   # configure THIS host instead (writes ~/.profile etc.)
+```
+
+Without the repo, the installer does the same thing directly (it prompts for the
+code if omitted):
 
 ```bash
 curl -fsSL https://your-gateway/files/downloads/install.sh | sh -s -- \

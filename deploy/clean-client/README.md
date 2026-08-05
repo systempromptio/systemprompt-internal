@@ -14,6 +14,18 @@ just clean-client PERSIST=1  # keep the PAT across restarts
 just clean-client-reset      # wipe the persisted state
 ```
 
+The same image backs the user-facing recipe, which skips the shell and the
+interactive code prompt — it signs in with the code from `/admin/profile` and
+drops straight into Claude Code:
+
+```bash
+just claude <code>
+```
+
+It runs as container `astound-claude` (not `astound-clean-client`), so a testing
+shell and a working session can coexist. Both share the `astound-clean-home`
+volume, so whichever runs second reuses the stored PAT instead of burning a code.
+
 Point it somewhere other than this host's gateway:
 
 ```bash

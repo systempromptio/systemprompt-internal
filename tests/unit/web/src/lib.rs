@@ -39,6 +39,8 @@ mod config_errors;
 #[cfg(test)]
 mod content_api_types;
 #[cfg(test)]
+mod content_config_paths;
+#[cfg(test)]
 mod content_models;
 #[cfg(test)]
 mod content_short_code;
@@ -65,6 +67,8 @@ mod jobs_errors_stats;
 #[cfg(test)]
 mod jobs_governance_config;
 #[cfg(test)]
+mod jobs_metadata;
+#[cfg(test)]
 mod jobs_robots_llms;
 #[cfg(test)]
 mod link_models;
@@ -72,6 +76,8 @@ mod link_models;
 mod month_range;
 #[cfg(test)]
 mod page_window;
+#[cfg(test)]
+mod paper_metadata;
 #[cfg(test)]
 mod registry_completeness;
 #[cfg(test)]
@@ -82,6 +88,7 @@ mod salesforce_cli_logic;
 mod salesforce_cli_parse;
 #[cfg(test)]
 mod salesforce_org_diff;
+#[cfg(test)]
 mod salesforce_org_package;
 #[cfg(test)]
 mod salesforce_org_secrets;
@@ -104,6 +111,8 @@ mod site_configs;
 #[cfg(test)]
 mod site_docs_learning;
 #[cfg(test)]
+mod site_docs_page_data;
+#[cfg(test)]
 mod site_docs_provider;
 #[cfg(test)]
 mod site_format_date;
@@ -115,6 +124,8 @@ mod site_page_providers;
 mod site_partials;
 #[cfg(test)]
 mod site_skills_grouping;
+#[cfg(test)]
+mod site_skills_prerenderer;
 #[cfg(test)]
 mod web_extension_providers;
 #[cfg(test)]

@@ -28,6 +28,12 @@ fi
 # re-authenticating a working client would just burn a code.
 if [ -f "$HOME/.config/astound/astound-bridge.pat" ] && astound-bridge whoami >/dev/null 2>&1; then
     step "already signed in — reusing the stored PAT"
+elif [ -n "${ASTOUND_BRIDGE_CODE:-}" ]; then
+    # The caller already has the code (it came off the profile page as an
+    # argument), so there is nothing to ask for.
+    step "signing in with the supplied code"
+    astound-bridge login --code "$ASTOUND_BRIDGE_CODE" \
+        --gateway "$GATEWAY" --device-name clean-client
 else
     step "sign in"
     bold "  Open this in your browser:"
@@ -74,6 +80,13 @@ astound-bridge sync --allow-tofu
 
 step "verifying"
 astound-bridge doctor || warn "doctor reported problems — read them above before trusting the result"
+
+if [ -n "${CLEAN_CLIENT_EXEC_CLAUDE:-}" ]; then
+    step "starting Claude Code"
+    # A login shell so the managed block in ~/.profile is sourced — that
+    # sourcing is what puts ANTHROPIC_BASE_URL in front of claude.
+    exec bash -lc claude
+fi
 
 cat <<'DONE'
 

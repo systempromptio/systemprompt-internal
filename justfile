@@ -927,6 +927,67 @@ bridge-build *ARGS:
 bridge-package-linux:
     scripts/package-bridge-linux.sh
 
+# Installs the client if it is not there yet; re-running it with a fresh code
+# re-binds the machine to whoever that code belongs to.
+# Point Claude Code on THIS host at the gateway (CODE comes from /admin/profile)
+connect CODE GATEWAY="http://localhost:8080":
+    curl -fsSL {{GATEWAY}}/files/downloads/install.sh | sh -s -- \
+        --download-base {{GATEWAY}}/files/downloads --code {{CODE}}
+
+# Your host config is never touched: the container installs the client, signs in
+# with the code, and drops you straight into `claude`.
+# Claude Code, connected, in a throwaway container (CODE from /admin/profile)
+claude CODE GATEWAY="http://localhost:8080":
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    # The page prints the gateway as the browser sees it. From inside a
+    # container localhost is the container, so rewrite it to the host alias.
+    GATEWAY="{{GATEWAY}}"
+    GATEWAY="${GATEWAY//localhost/host.docker.internal}"
+    GATEWAY="${GATEWAY//127.0.0.1/host.docker.internal}"
+
+    if [ "$(docker inspect -f '{{{{.State.Running}}}}' astound-claude 2>/dev/null)" = "true" ]; then
+        echo "Already running — opening another Claude Code session in it."
+        exec docker exec -it astound-claude bash -lc claude
+    fi
+    docker rm -f astound-claude >/dev/null 2>&1 || true
+
+    if ! docker image inspect astound-clean-client:local >/dev/null 2>&1; then
+        echo "Image missing — building it first." >&2
+        just clean-client-build
+    fi
+
+    # The client is a separate workspace, so `just build` does not produce it.
+    # Build it here rather than telling the user to — it is a prerequisite of
+    # this recipe, not a decision they need to make.
+    BRIDGE="{{justfile_directory()}}/bridge/target/release/astound-bridge"
+    if [ ! -f "$BRIDGE" ] || [ ! -x "$BRIDGE" ]; then
+        echo "Client not built yet — building it (first run takes a few minutes)."
+        just bridge-build
+    fi
+
+    PORTS=()
+    if ss -ltn 2>/dev/null | grep -q ':8767 '; then
+        echo "warn: host port 8767 already in use — not publishing it." >&2
+    else
+        PORTS+=(-p 127.0.0.1:8767:8767)
+    fi
+
+    exec docker run -it --rm \
+        --name astound-claude \
+        --hostname astound-claude \
+        --add-host host.docker.internal:host-gateway \
+        -e ASTOUND_BRIDGE_GATEWAY_URL="$GATEWAY" \
+        -e ASTOUND_BRIDGE_CODE="{{CODE}}" \
+        -e CLEAN_CLIENT_EXEC_CLAUDE=1 \
+        -e CLEAN_CLIENT_ALLOW_STATE=1 \
+        -v astound-clean-home:/home/tester \
+        -v "$BRIDGE:/usr/local/bin/astound-bridge:ro" \
+        -v "{{justfile_directory()}}/deploy/clean-client/bootstrap.sh:/usr/local/bin/bootstrap.sh:ro" \
+        "${PORTS[@]}" \
+        astound-clean-client:local /usr/local/bin/bootstrap.sh
+
 # ──────────────────────────────────────────────────────────────────────────────
 # CLEAN CLIENT — a config-free Linux box for testing the Claude Code + bridge
 # integration. See deploy/clean-client/README.md.

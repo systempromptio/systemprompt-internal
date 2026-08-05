@@ -5,7 +5,8 @@
 #   scripts/sync-release-version.sh 0.21.0 --check  # verify only (CI guard)
 #
 # Covered pins:
-#   Cargo.toml            workspace version + systemprompt/-security core pins
+#   Cargo.toml            workspace version + systemprompt/-security/-extension pins
+#   tests/Cargo.toml      its own systemprompt/-security pins (separate workspace)
 #   helm/gateway/Chart.yaml  appVersion + artifacthub images annotation
 #                            (chart `version:` is bumped separately on apply)
 #   deploy/casaos/docker-compose.yml                exact image tag
@@ -59,6 +60,34 @@ check_or_apply Cargo.toml \
     "s|^systemprompt-security = { version = \"[0-9.]*\"|systemprompt-security = { version = \"$VERSION\"|" \
     "^systemprompt-security = \\{ version = \"$VERSION\"" \
     "systemprompt-security core pin"
+check_or_apply Cargo.toml \
+    "s|^systemprompt-extension = { version = \"[0-9.]*\"|systemprompt-extension = { version = \"$VERSION\"|" \
+    "^systemprompt-extension = \\{ version = \"$VERSION\"" \
+    "systemprompt-extension core pin"
+
+# tests/Cargo.toml — the test workspace is excluded from the root workspace and
+# carries its own copies of the same pins. Nothing else rewrites them, and a
+# stale pin here silently disables the test workspace's [patch.crates-io].
+check_or_apply tests/Cargo.toml \
+    "s|^systemprompt = { version = \"[0-9.]*\"|systemprompt = { version = \"$VERSION\"|" \
+    "^systemprompt = \\{ version = \"$VERSION\"" \
+    "systemprompt core pin (test workspace)"
+check_or_apply tests/Cargo.toml \
+    "s|^systemprompt-security = { version = \"[0-9.]*\"|systemprompt-security = { version = \"$VERSION\"|" \
+    "^systemprompt-security = \\{ version = \"$VERSION\"" \
+    "systemprompt-security core pin (test workspace)"
+
+# Residual sweep: any core pin in any manifest that the rules above do not
+# already move. A pin added to a new crate would otherwise sit stale forever,
+# because no gate distinguishes a forgotten pin from a deliberate one.
+stale=$(grep -rn '^systemprompt[a-z-]* = { version = "' --include=Cargo.toml . \
+    | grep -v '/target/' | grep -v "version = \"$VERSION\"" || true)
+if [ -n "$stale" ]; then
+    echo "DRIFT: core pins not on $VERSION and not covered by this script:"
+    echo "$stale"
+    fail=1
+    [ "$MODE" = "--check" ] || exit 1
+fi
 
 # Helm chart — appVersion + images annotation.
 check_or_apply helm/gateway/Chart.yaml \
