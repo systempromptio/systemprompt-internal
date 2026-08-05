@@ -2,7 +2,7 @@ marketplace:
   id: enterprise-demo
   name: "Astound Digital — Salesforce Productivity"
   description: "A Salesforce-first workspace: plain-English assistants for your deals, accounts, contacts, leads, cases, and to-dos. One plugin per common object, each bundling skills, dashboards, and the Salesforce MCP server."
-  version: "3.0.0"
+  version: "3.1.0"
   visibility: public
   author:
     name: Astound Digital
@@ -45,6 +45,12 @@ marketplace:
       - activities_find
       - activities_report
       - activities_update
+      # Development workflow (astound-dev plugin): plan → build → release → test
+      # for Commerce Cloud / Storefront Next engagements.
+      - dev_plan
+      - dev_build
+      - dev_release
+      - dev_test
       # Admin control plane. Listed here so marketplace scoping keeps them in
       # the catalogue; per-entity rules in services/access-control/roles.yaml
       # restrict them to the admin role.
@@ -65,6 +71,7 @@ marketplace:
       - astound-commons
       - astound-admin
       - astound-salesforce
+      - astound-dev
       - astound-salesforce-opportunities
       - astound-salesforce-accounts
       - astound-salesforce-contacts
@@ -76,6 +83,7 @@ marketplace:
     include:
       - salesforce
       - systemprompt
+      - knowledge-bank
     exclude: []
   # No agents are published by this marketplace. Plugins ship skills, the
   # Salesforce MCP server, and artifacts only.

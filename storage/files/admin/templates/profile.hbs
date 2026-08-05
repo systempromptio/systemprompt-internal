@@ -254,6 +254,40 @@
             {{/if}}
         </article>
 
+        {{!-- SALESFORCE CONNECTION ────────────────────────── --}}
+        <article class="sp-profile-card" id="salesforce-connection">
+            <header class="sp-profile-card__head">
+                <div class="sp-profile-card__title">
+                    <svg class="sp-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+                    <h2>Salesforce</h2>
+                </div>
+                {{#if salesforce.linked}}
+                <span class="sp-chip sp-chip--accent">connected</span>
+                {{else}}
+                <span class="sp-chip">not connected</span>
+                {{/if}}
+            </header>
+            {{#if salesforce.linked}}
+            <dl class="sp-deflist">
+                <dt>Salesforce username</dt><dd><code class="sp-deflist__break">{{salesforce.sf_username}}</code></dd>
+            </dl>
+            <p class="sp-muted">Salesforce sign-in and your Salesforce data tools use this identity.</p>
+            <div class="sp-profile-card__actions">
+                {{#if salesforce.has_passkey}}
+                <button type="button" id="sf-unlink-btn" class="btn btn-secondary">Disconnect Salesforce</button>
+                {{else}}
+                <button type="button" class="btn btn-secondary" disabled title="Add a passkey first — Salesforce is currently your only way to sign in.">Disconnect Salesforce</button>
+                <p class="sp-muted">To disconnect, first add a passkey so you can still sign in.</p>
+                {{/if}}
+            </div>
+            {{else}}
+            <p class="sp-muted">Optionally connect your Salesforce account to sign in with Salesforce and use your own Salesforce data inside your AI tools.</p>
+            <div class="sp-profile-card__actions">
+                <a class="btn btn-primary" href="/admin/auth/salesforce/start?mode=link&redirect=%2Fadmin%2Fprofile">Connect Salesforce</a>
+            </div>
+            {{/if}}
+        </article>
+
         {{!-- TWO-COL: IDENTITY DETAIL + PLAN & GATEWAY ────── --}}
         <div class="sp-profile-row sp-profile-row--2">
 
@@ -307,5 +341,6 @@
     {{/inline}}
     {{#*inline "scripts"}}
     <script src="/js/components/sp-copy.js?v={{css_version}}" defer></script>
+    <script src="/js/pages/profile-salesforce.js?v={{css_version}}" type="module"></script>
     {{/inline}}
 {{/layout}}

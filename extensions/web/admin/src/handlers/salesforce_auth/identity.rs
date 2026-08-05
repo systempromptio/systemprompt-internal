@@ -33,25 +33,8 @@ pub(super) async fn resolve_identity(
     code_verifier: &str,
 ) -> Result<federated::ResolvedFederatedUser, &'static str> {
     let cfg = &deps.config;
-
-    let client_secret = super::client_secret().ok_or_else(|| {
-        tracing::error!("SALESFORCE_CLIENT_SECRET is not set; cannot complete Salesforce login");
-        "unavailable"
-    })?;
-
-    let tokens = exchange_code(cfg, code, &client_secret, code_verifier)
-        .await
-        .map_err(|e| {
-            tracing::error!(error = %e, "Salesforce token exchange failed");
-            "error"
-        })?;
-
-    let info = get_userinfo(cfg, &tokens.access_token).await.map_err(|e| {
-        tracing::error!(error = %e, "Salesforce userinfo fetch failed");
-        "error"
-    })?;
-
-    let (sub, email, display_name, sf_username) = gate_claims(cfg, info)?;
+    let (sub, email, display_name, sf_username) =
+        fetch_gated_claims(deps, code, code_verifier).await?;
 
     let claims = federated::FederatedClaims {
         issuer: cfg.issuer(),
@@ -90,6 +73,74 @@ pub(super) async fn resolve_identity(
     }
 
     Ok(resolved)
+}
+
+// Why: Shared front half of both callback modes: exchange the code, read
+// verified claims, and gate them. Each failure logs once and collapses to a
+// redirect reason.
+async fn fetch_gated_claims(
+    deps: &SalesforceDeps,
+    code: &str,
+    code_verifier: &str,
+) -> Result<(String, String, String, String), &'static str> {
+    let cfg = &deps.config;
+
+    let client_secret = super::client_secret().ok_or_else(|| {
+        tracing::error!("SALESFORCE_CLIENT_SECRET is not set; cannot complete Salesforce login");
+        "unavailable"
+    })?;
+
+    let tokens = exchange_code(cfg, code, &client_secret, code_verifier)
+        .await
+        .map_err(|e| {
+            tracing::error!(error = %e, "Salesforce token exchange failed");
+            "error"
+        })?;
+
+    let info = get_userinfo(cfg, &tokens.access_token).await.map_err(|e| {
+        tracing::error!(error = %e, "Salesforce userinfo fetch failed");
+        "error"
+    })?;
+
+    gate_claims(cfg, info)
+}
+
+// Why: Attach the Salesforce identity behind `code` to the already-signed-in
+// `user_id` (the profile "Connect Salesforce" flow). Claims are gated exactly
+// as for login; no session is minted. Returns the `?sf=` outcome for the
+// profile redirect.
+pub(super) async fn link_identity(
+    deps: &SalesforceDeps,
+    code: &str,
+    code_verifier: &str,
+    user_id: &systemprompt::identifiers::UserId,
+) -> Result<&'static str, &'static str> {
+    let (sub, _email, _display_name, sf_username) =
+        fetch_gated_claims(deps, code, code_verifier).await?;
+
+    let outcome = federated::link_identity_to_user(
+        &deps.write_pool,
+        deps.config.issuer(),
+        &sub,
+        user_id,
+    )
+    .await
+    .map_err(|e| {
+        tracing::error!(error = %e, user_id = %user_id, "Failed to link Salesforce identity");
+        "error"
+    })?;
+
+    if outcome == federated::LinkOutcome::AlreadyLinkedElsewhere {
+        tracing::warn!(user_id = %user_id, "Salesforce identity already linked to another user");
+        return Ok("already_linked");
+    }
+
+    if let Err(e) = salesforce_identity::upsert(&deps.write_pool, user_id, &sf_username).await {
+        tracing::warn!(error = %e, user_id = %user_id, "Failed to persist Salesforce username");
+    }
+
+    tracing::info!(user_id = %user_id, "Salesforce identity linked from profile");
+    Ok("linked")
 }
 
 fn gate_claims(

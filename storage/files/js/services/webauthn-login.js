@@ -1,7 +1,7 @@
 import {
   getEmailInput, clearAccessToken, showError, showLoginForm,
-  showLoading, showPasskeyError, showEmailError, initMagicLinkUI
-} from '/js/services/webauthn-login-ui.js?v=3';
+  showLoading, showPasskeyError, showEmailError, initPaneToggles
+} from '/js/services/webauthn-login-ui.js?v=4';
 import { hasValidAdminToken } from '/js/services/admin-token.js';
 import { startPasskeyAuth, finishPasskeyAuth, redirectWithPkce } from '/js/services/webauthn-helpers.js?v=3';
 import {
@@ -93,5 +93,5 @@ signInBtn.addEventListener('click', authenticateWithPasskey);
 emailInput.addEventListener('keypress', (e) => {
   if (e.key === 'Enter') { e.preventDefault(); authenticateWithPasskey(); }
 });
-initMagicLinkUI();
+initPaneToggles();
 startLoginPage();

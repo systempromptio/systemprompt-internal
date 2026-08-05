@@ -24,6 +24,7 @@ pub fn admin_ssr_router(
         .merge(account_routes())
         .merge(api_routes())
         .layer(Extension(engine.clone()))
+        .layer(Extension(sf_deps.clone()))
         .layer(axum_middleware::from_fn(
             middleware::marketplace_context_middleware,
         ))
@@ -62,6 +63,10 @@ fn public_routes() -> Router<Arc<PgPool>> {
         .route(
             "/auth/salesforce/callback",
             get(handlers::salesforce_auth::salesforce_callback),
+        )
+        .route(
+            "/auth/passkey/register",
+            post(handlers::passkey_auth::passkey_register),
         )
 }
 
@@ -199,4 +204,8 @@ fn api_routes() -> Router<Arc<PgPool>> {
         )
         .route("/api/chain/{id}", get(handlers::ssr::chain_envelope))
         .route("/api/search/resolve", get(handlers::ssr::search_resolve))
+        .route(
+            "/api/profile/salesforce/unlink",
+            post(handlers::salesforce_auth::salesforce_unlink),
+        )
 }

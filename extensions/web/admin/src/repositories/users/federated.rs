@@ -125,6 +125,60 @@ async fn link_existing(
     Ok(())
 }
 
+/// Outcome of an explicit profile-driven link attempt.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LinkOutcome {
+    Linked,
+    /// The external identity already belongs to a different local user.
+    AlreadyLinkedElsewhere,
+}
+
+/// Attach an external identity to `user_id` (the profile "Connect" flow).
+/// Idempotent when the pair already points at this user; refuses to steal a
+/// mapping owned by another user.
+pub async fn link_identity_to_user(
+    pool: &PgPool,
+    issuer: &str,
+    external_sub: &str,
+    user_id: &UserId,
+) -> Result<LinkOutcome, sqlx::Error> {
+    let inserted = sqlx::query!(
+        "INSERT INTO federated_identities (issuer, external_sub, user_id) \
+         VALUES ($1, $2, $3) ON CONFLICT (issuer, external_sub) DO NOTHING",
+        issuer,
+        external_sub,
+        user_id.as_str()
+    )
+    .execute(pool)
+    .await?
+    .rows_affected();
+    if inserted > 0 {
+        return Ok(LinkOutcome::Linked);
+    }
+    match find_mapping(pool, issuer, external_sub).await? {
+        Some(owner) if owner == *user_id => Ok(LinkOutcome::Linked),
+        _ => Ok(LinkOutcome::AlreadyLinkedElsewhere),
+    }
+}
+
+/// Remove every mapping between `user_id` and `issuer` (the profile
+/// "Disconnect" flow). Returns the number of rows removed.
+pub async fn delete_federated_identities_for_issuer(
+    pool: &PgPool,
+    user_id: &UserId,
+    issuer: &str,
+) -> Result<u64, sqlx::Error> {
+    let deleted = sqlx::query!(
+        "DELETE FROM federated_identities WHERE user_id = $1 AND issuer = $2",
+        user_id.as_str(),
+        issuer
+    )
+    .execute(pool)
+    .await?
+    .rows_affected();
+    Ok(deleted)
+}
+
 // Why: `name` is set to the email to sidestep the `users.name` uniqueness
 // constraint; `display_name` carries the human-friendly form.
 async fn create_federated(

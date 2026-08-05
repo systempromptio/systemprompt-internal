@@ -19,8 +19,8 @@ use systemprompt::oauth::services::{
     JwtConfig, JwtSigningParams, generate_access_token_jti, generate_jwt,
 };
 
-use super::identity::resolve_identity;
-use super::{STATE_COOKIE, SalesforceDeps, login_error, read_state_cookie, secure_flag};
+use super::identity::{link_identity, resolve_identity};
+use super::{FlowMode, STATE_COOKIE, SalesforceDeps, login_error, read_state_cookie, secure_flag};
 use crate::repositories::users::federated;
 
 #[derive(Deserialize)]
@@ -47,20 +47,50 @@ pub(crate) async fn salesforce_callback(
     if !deps.config.is_usable() {
         return login_error("unavailable");
     }
-    match run_callback(&deps, &headers, params).await {
+    let (code, code_verifier, redirect_to, mode) = match validate_request(&headers, params) {
+        Ok(v) => v,
+        Err(reason) => return login_error(reason),
+    };
+    if mode == FlowMode::Link {
+        return run_link(&deps, &headers, &code, &code_verifier).await;
+    }
+    match run_callback(&deps, &headers, &code, &code_verifier, redirect_to).await {
         Ok(login) => success_response(&login),
         Err(reason) => login_error(reason),
     }
 }
 
+async fn run_link(
+    deps: &SalesforceDeps,
+    headers: &HeaderMap,
+    code: &str,
+    code_verifier: &str,
+) -> Response {
+    // Why: lint-ok: http-error — the link flow belongs to an already-signed-in
+    // user, so every outcome — including failure — is a redirect back to the
+    // profile page carrying `?sf=<reason>`, not an HTTP error.
+    let Ok(session) = crate::handlers::users::extract_user_from_cookie(headers) else {
+        return login_error("error");
+    };
+    let outcome = match link_identity(deps, code, code_verifier, &session.user_id).await {
+        Ok(outcome) => outcome,
+        Err(reason) => reason,
+    };
+    let mut out = HeaderMap::new();
+    if let Ok(val) = clear_state_cookie().parse() {
+        out.append(SET_COOKIE, val);
+    }
+    (out, Redirect::to(&format!("/admin/profile?sf={outcome}"))).into_response()
+}
+
 async fn run_callback(
     deps: &SalesforceDeps,
     headers: &HeaderMap,
-    params: CallbackParams,
+    code: &str,
+    code_verifier: &str,
+    redirect_to: String,
 ) -> Result<SuccessfulLogin, &'static str> {
-    let (code, code_verifier, redirect_to) = validate_request(headers, params)?;
-
-    let resolved = resolve_identity(deps, &code, &code_verifier).await?;
+    let resolved = resolve_identity(deps, code, code_verifier).await?;
 
     let (jwt, max_age) = mint_session(&deps.session_service, &resolved, headers)
         .await
@@ -81,7 +111,7 @@ async fn run_callback(
 fn validate_request(
     headers: &HeaderMap,
     params: CallbackParams,
-) -> Result<(String, String, String), &'static str> {
+) -> Result<(String, String, String, FlowMode), &'static str> {
     if let Some(err) = params.error {
         tracing::warn!(error = %err, detail = ?params.error_description, "Salesforce returned an OAuth error");
         return Err("denied");
@@ -91,12 +121,20 @@ fn validate_request(
         return Err("error");
     };
 
-    let (cookie_state, code_verifier, redirect_to) = read_state_cookie(headers).ok_or("error")?;
+    let (cookie_state, code_verifier, redirect_to, mode) =
+        read_state_cookie(headers).ok_or("error")?;
     if cookie_state != state {
         tracing::warn!("Salesforce OAuth state mismatch");
         return Err("error");
     }
-    Ok((code, code_verifier, redirect_to))
+    Ok((code, code_verifier, redirect_to, mode))
+}
+
+fn clear_state_cookie() -> String {
+    format!(
+        "{STATE_COOKIE}=; Path=/admin/auth/salesforce; HttpOnly; SameSite=Lax; Max-Age=0{}",
+        secure_flag()
+    )
 }
 
 /// Build the cookie-setting redirect for a successful login: clear the spent
@@ -104,12 +142,7 @@ fn validate_request(
 // Why: lint-ok: http-error — builds the success redirect, not an error.
 fn success_response(login: &SuccessfulLogin) -> Response {
     let mut out = HeaderMap::new();
-    if let Ok(val) = format!(
-        "{STATE_COOKIE}=; Path=/admin/auth/salesforce; HttpOnly; SameSite=Lax; Max-Age=0{}",
-        secure_flag()
-    )
-    .parse()
-    {
+    if let Ok(val) = clear_state_cookie().parse() {
         out.append(SET_COOKIE, val);
     }
     if let Ok(val) = format!(

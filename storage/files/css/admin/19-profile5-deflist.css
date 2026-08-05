@@ -117,3 +117,11 @@
 .sp-conv-section {
     min-width: 0;
 }
+
+.sp-profile-card__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-space-3);
+    margin-top: var(--sp-space-3);
+    flex-wrap: wrap;
+}

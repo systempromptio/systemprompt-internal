@@ -82,6 +82,14 @@ pub(crate) struct BridgeConnectBlock {
 // admin extension does not depend on.
 pub(crate) const BRIDGE_BINARY: &str = "astound-bridge";
 
+#[derive(Debug, Clone, Default, Serialize)]
+pub(crate) struct SalesforceLinkBlock {
+    pub linked: bool,
+    pub sf_username: Option<String>,
+    /// Whether disconnecting is safe — a passkey exists to sign in with.
+    pub has_passkey: bool,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct BridgeProfilePageData {
     pub page: &'static str,
@@ -91,6 +99,7 @@ pub(crate) struct BridgeProfilePageData {
     pub bridge_profile: Option<BridgeProfileBlock>,
     pub usage: ProfileUsage,
     pub agents: AgentsBlock,
+    pub salesforce: SalesforceLinkBlock,
 }
 
 async fn build_bridge_connect(
@@ -162,6 +171,7 @@ pub(crate) async fn build_bridge_profile_data(
 
     let usage = build_usage(sections);
     let agents = build_agents_block();
+    let salesforce = build_salesforce_block(&pool, &user_id).await;
 
     BridgeProfilePageData {
         page: "profile",
@@ -171,5 +181,30 @@ pub(crate) async fn build_bridge_profile_data(
         bridge_profile,
         usage,
         agents,
+        salesforce,
+    }
+}
+
+// Why: "linked" is keyed on the recorded Salesforce Username rather than
+// `federated_identities` so the card can show *which* Salesforce account is
+// connected; both rows are written together by the SSO/link flows.
+async fn build_salesforce_block(pool: &PgPool, user_id: &UserId) -> SalesforceLinkBlock {
+    use crate::repositories::users::{passkey, salesforce_identity};
+
+    let sf_username = salesforce_identity::find(pool, user_id)
+        .await
+        .map_err(|e| tracing::warn!(error = %e, "could not read Salesforce link status"))
+        .ok()
+        .flatten();
+    let has_passkey = passkey::count_webauthn_credentials(pool, user_id)
+        .await
+        .map_err(|e| tracing::warn!(error = %e, "could not count passkeys"))
+        .unwrap_or(0)
+        > 0;
+
+    SalesforceLinkBlock {
+        linked: sf_username.is_some(),
+        sf_username,
+        has_passkey,
     }
 }

@@ -55,6 +55,15 @@ rules:
     default_included: true
     roles: [user]
 
+  # Project knowledge bank (stub RAG MCP). Read tools for every user; the
+  # upload_document tool is additionally admin-gated inside the server (see
+  # services/mcp/knowledge-bank.yaml).
+  - entity_type: mcp_server
+    entity_id: knowledge-bank
+    access: allow
+    default_included: true
+    roles: [user]
+
   # Admin control plane (astound-admin plugin). These entities are members of
   # the enterprise-demo marketplace, so without a rule of their own they would
   # inherit its [user] grant. Declaring any rule on an entity opts it out of the

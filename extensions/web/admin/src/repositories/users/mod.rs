@@ -5,6 +5,7 @@ pub mod activity;
 pub mod devices;
 pub mod federated;
 pub mod mutations;
+pub mod passkey;
 pub mod queries;
 pub mod salesforce_identity;
 pub mod share_token;

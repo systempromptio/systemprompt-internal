@@ -18,6 +18,7 @@ mod config;
 mod identity;
 mod start;
 mod tokens;
+mod unlink;
 
 use std::sync::Arc;
 
@@ -37,6 +38,7 @@ pub(crate) use config::{client_secret, salesforce_certificate, salesforce_privat
 pub use identity::select_sf_username;
 pub(crate) use start::salesforce_start;
 pub(crate) use tokens::{post_token_request, salesforce_token_handler};
+pub(crate) use unlink::salesforce_unlink;
 
 pub(super) const STATE_COOKIE: &str = "sf_oauth_state";
 const DEFAULT_REDIRECT: &str = "/admin";
@@ -118,8 +120,18 @@ pub(super) fn random_url_safe() -> String {
     URL_SAFE_NO_PAD.encode(bytes)
 }
 
-// Why: Parse the state cookie into `(state, code_verifier, redirect_to)`.
-pub(super) fn read_state_cookie(headers: &HeaderMap) -> Option<(String, String, String)> {
+// Why: What the callback should do with the resolved Salesforce identity: mint
+// a session (`Login`) or attach it to the already-signed-in user (`Link`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum FlowMode {
+    Login,
+    Link,
+}
+
+// Why: Parse the state cookie into `(state, code_verifier, redirect_to, mode)`.
+// The mode segment is append-only: a cookie without it (set by an older binary
+// mid-flow) parses as a plain login.
+pub(super) fn read_state_cookie(headers: &HeaderMap) -> Option<(String, String, String, FlowMode)> {
     let raw = headers
         .get_all("cookie")
         .iter()
@@ -127,9 +139,13 @@ pub(super) fn read_state_cookie(headers: &HeaderMap) -> Option<(String, String, 
         .flat_map(|s| s.split(';'))
         .map(str::trim)
         .find_map(|kv| kv.strip_prefix(&format!("{STATE_COOKIE}=")))?;
-    let mut parts = raw.splitn(3, '|');
+    let mut parts = raw.splitn(4, '|');
     let state = parts.next()?.to_owned();
     let verifier = parts.next()?.to_owned();
     let redirect = parts.next()?.to_owned();
-    Some((state, verifier, sanitize_redirect(Some(redirect))))
+    let mode = match parts.next() {
+        Some("link") => FlowMode::Link,
+        _ => FlowMode::Login,
+    };
+    Some((state, verifier, sanitize_redirect(Some(redirect)), mode))
 }

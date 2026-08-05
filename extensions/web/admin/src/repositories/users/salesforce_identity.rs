@@ -43,6 +43,19 @@ pub async fn list_salesforce_usernames(pool: &PgPool) -> Result<Vec<String>, sql
     Ok(rows.into_iter().map(|r| r.sf_username).collect())
 }
 
+/// Remove the stored Salesforce Username for `user_id` (the profile
+/// "Disconnect" flow). Absent row is fine — the state is already what the
+/// caller asked for.
+pub async fn delete(pool: &PgPool, user_id: &UserId) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "DELETE FROM salesforce_user_identities WHERE user_id = $1",
+        user_id.as_str()
+    )
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
 /// The Salesforce Username for `user_id`, or `None` if this user never
 /// completed a Salesforce SSO login (in which case the caller falls back to the
 /// email).

@@ -4,7 +4,7 @@ import {
   assertRpIdMatchesOrigin, rpOriginUrl
 } from '/js/services/webauthn-utils.js?v=3';
 import { buildAuthCredentialPayload } from '/js/services/webauthn-passkey-helpers.js';
-import { showLoading } from '/js/services/webauthn-login-ui.js?v=3';
+import { showLoading } from '/js/services/webauthn-login-ui.js?v=4';
 
 const CLIENT_ID = 'marketplace-admin';
 const WEBAUTHN_BASE = '/api/v1/core/oauth/webauthn';

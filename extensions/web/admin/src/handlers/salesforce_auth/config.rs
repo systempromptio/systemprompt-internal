@@ -141,7 +141,7 @@ impl SalesforceConfig {
         self.base()
     }
 
-    pub(super) fn email_allowed(&self, email: &str) -> bool {
+    pub fn email_allowed(&self, email: &str) -> bool {
         email
             .rsplit('@')
             .next()

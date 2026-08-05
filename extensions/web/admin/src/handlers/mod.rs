@@ -13,6 +13,7 @@ pub(crate) mod gateway_access;
 pub(crate) mod gateway_catalog;
 pub(crate) mod hooks_track;
 mod jobs;
+pub(crate) mod passkey_auth;
 mod plugins;
 mod plugins_env;
 pub(crate) mod resources;

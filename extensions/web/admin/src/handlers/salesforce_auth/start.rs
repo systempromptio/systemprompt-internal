@@ -18,6 +18,7 @@ use super::{
 #[derive(Deserialize)]
 pub(crate) struct StartParams {
     redirect: Option<String>,
+    mode: Option<String>,
 }
 
 pub(crate) async fn salesforce_start(
@@ -42,11 +43,20 @@ pub(crate) async fn salesforce_start(
         URL_SAFE_NO_PAD.encode(digest)
     };
     let redirect_to = sanitize_redirect(params.redirect);
+    // Why: `mode=link` marks the flow as "attach to the signed-in user" — the
+    // callback enforces the session; carrying it in the state cookie rather
+    // than the OAuth `state` keeps it tamper-evident alongside the nonce.
+    let mode_segment = if params.mode.as_deref() == Some("link") {
+        "|link"
+    } else {
+        ""
+    };
 
-    // Why: The state cookie carries the CSRF nonce, the PKCE verifier, and the
-    // post-login target, '|'-separated (base64url values never contain '|').
+    // Why: The state cookie carries the CSRF nonce, the PKCE verifier, the
+    // post-login target, and the optional flow mode, '|'-separated (base64url
+    // values and same-site paths never contain '|').
     let cookie = format!(
-        "{STATE_COOKIE}={state_token}|{code_verifier}|{redirect_to}; Path=/admin/auth/salesforce; HttpOnly; SameSite=Lax; Max-Age=600{}",
+        "{STATE_COOKIE}={state_token}|{code_verifier}|{redirect_to}{mode_segment}; Path=/admin/auth/salesforce; HttpOnly; SameSite=Lax; Max-Age=600{}",
         secure_flag()
     );
 
