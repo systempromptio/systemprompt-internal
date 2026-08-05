@@ -114,7 +114,7 @@ just start
 The database has no users. Either register at `http://localhost:8081/admin/login` and take the code from the profile page, or stay headless — both write the same `bridge_exchange_codes` row:
 
 ```bash
-systemprompt admin users create --email you@example.com --if-not-exists
+systemprompt admin users create --name you --email you@example.com --if-not-exists
 systemprompt admin users role promote you@example.com
 systemprompt admin bridge issue-code --user-id you@example.com
 ```
