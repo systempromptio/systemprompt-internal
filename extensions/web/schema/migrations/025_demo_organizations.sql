@@ -100,7 +100,7 @@ ON CONFLICT (user_id) DO NOTHING;
 --                                      its margin is negative. Suspended,
 --                                      which is what stopped the overrun.
 INSERT INTO ai_requests (
-    id, request_id, user_id, provider, model, input_tokens, output_tokens,
+    id, request_id, user_id, context_id, provider, model, input_tokens, output_tokens,
     tokens_used, cost_microdollars, latency_ms, status, actor_kind, actor_id,
     created_at, updated_at, completed_at
 )
@@ -108,6 +108,7 @@ SELECT
     'demo-req-' || seed.user_id || '-' || g,
     'demo-req-' || seed.user_id || '-' || g,
     seed.user_id,
+    md5(seed.user_id)::uuid,
     'anthropic',
     seed.model,
     seed.input_tokens,

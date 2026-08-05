@@ -7,5 +7,14 @@
 # repo has no CI behind it.
 set -euo pipefail
 
-echo "pre-push: running preflight-static + preflight-lint (skip with --no-verify)"
-just preflight-static preflight-lint
+# DISABLED: the lint tier's clippy run is a full workspace compile, which is a
+# cold rebuild of everything under crates.io whenever the [patch.crates-io]
+# blocks are toggled — minutes of waiting on every push, on a hook people then
+# reach for --no-verify to escape. `just preflight` before merging is still the
+# mandatory gate; this only stops it running unbidden on each push.
+#
+# Re-enable by uncommenting:
+# echo "pre-push: running preflight-static + preflight-lint (skip with --no-verify)"
+# just preflight-static preflight-lint
+
+echo "pre-push: gates disabled — run 'just preflight' before merging."
