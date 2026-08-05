@@ -85,7 +85,18 @@ just claude <code>
 ```
 
 Starts a container, redeems the code, execs `claude`. Host config is untouched.
-`just claude-reset` signs out.
+
+The code is needed on the first run only — the credential it is exchanged for
+persists, so later runs are just:
+
+```bash
+just claude
+```
+
+Container and home are scoped to the clone and its gateway, so several
+checkouts pointing at different gateways coexist without inheriting each
+other's credential. `just claude-reset` signs this clone out;
+`just claude-reset ALL=1` signs out every clone on the host.
 
 If the client is missing, this builds it first — and that build can outlast the
 code. Run `just bridge-build` during setup and the connect step is immediate.
@@ -179,5 +190,6 @@ not during sync.
 |---------|-------|
 | `Client not built yet` | The client is a separate workspace; `just build` does not produce it. `just bridge-build` does, and clones `systemprompt-core` beside this repo because the client depends on it by path. |
 | Code rejected | 10-minute TTL, single use. Reload the profile page. |
+| Prompted for a code on a repeat run | The stored credential did not validate against this gateway — usually a different gateway from the one that issued it. `just claude-reset`, then connect with a fresh code. |
 | Session works, audit trail empty | Not routed through the gateway. Check `ANTHROPIC_BASE_URL` points at the loopback proxy and that `astound-bridge doctor` reports it running. |
 | Container cannot reach the gateway | Inside a container `localhost` is the container. `just claude` rewrites it; by hand, use `http://host.docker.internal:8080`. |

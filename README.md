@@ -87,7 +87,9 @@ Sign out and back in afterwards — the admin scope is minted when the token is 
 
 Builds the client, starts a container, redeems the code, execs `claude`. Host config is untouched: no installer runs, `~/.claude` and `~/.config` are not written.
 
-Container `astound-claude`, home volume `astound-claude-home` — a second run reuses the stored credential rather than burning a code. `just claude-reset` drops both.
+A code is needed the first time only. The credential it is exchanged for persists, so afterwards the command is just `just claude`.
+
+The container and its home are scoped to the clone and the gateway (`astound-claude-<repo>-<hash>-<gateway>`), so several checkouts pointing at different gateways coexist and never inherit each other's credential. `just claude-reset` signs this clone out; `just claude-reset ALL=1` signs out every clone on the host.
 
 Every request lands in the audit table with user, session, trace, tokens, and cost.
 

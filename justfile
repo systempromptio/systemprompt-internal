@@ -968,17 +968,27 @@ claude CODE="" GATEWAY="http://localhost:8080":
     GATEWAY="${GATEWAY//localhost/host.docker.internal}"
     GATEWAY="${GATEWAY//127.0.0.1/host.docker.internal}"
 
-    # One home per gateway. A credential is only valid for the gateway that
-    # issued it, so a single shared volume makes a second gateway look like a
-    # broken sign-in: the PAT is found, whoami fails against the wrong host, and
-    # bootstrap drops to asking for a code.
-    VOL="astound-claude-$(printf '%s' "$GATEWAY" | sed -e 's|^https\?://||' -e 's|[^A-Za-z0-9]|-|g')"
+    # Scope the session to this clone AND its gateway, the same way the Docker
+    # Postgres project name is scoped, so several checkouts coexist.
+    #
+    # Two things force it. A credential is only valid for the gateway that
+    # issued it, so sharing one home makes a second gateway look like a broken
+    # sign-in: the PAT is found, whoami fails against the wrong host, and
+    # bootstrap drops to asking for a code. And a fixed container name would
+    # make a second clone attach to the first clone's session instead of
+    # starting its own.
+    REPO_SLUG="$(basename "{{justfile_directory()}}" | sed 's|[^A-Za-z0-9]|-|g')"
+    REPO_HASH="$(printf '%s' "{{justfile_directory()}}" | sha256sum | cut -c1-8)"
+    GW_SLUG="$(printf '%s' "$GATEWAY" | sed -e 's|^https\?://||' -e 's|[^A-Za-z0-9]|-|g')"
+    SCOPE="${REPO_SLUG}-${REPO_HASH}-${GW_SLUG}"
+    VOL="astound-claude-${SCOPE}"
+    NAME="astound-claude-${SCOPE}"
 
-    if [ "$(docker inspect -f '{{{{.State.Running}}}}' astound-claude 2>/dev/null)" = "true" ]; then
-        echo "Already running — opening another Claude Code session in it."
-        exec docker exec -it astound-claude bash -lc claude
+    if [ "$(docker inspect -f '{{{{.State.Running}}}}' "$NAME" 2>/dev/null)" = "true" ]; then
+        echo "Already running for this repo — opening another session in it."
+        exec docker exec -it "$NAME" bash -lc claude
     fi
-    docker rm -f astound-claude >/dev/null 2>&1 || true
+    docker rm -f "$NAME" >/dev/null 2>&1 || true
 
     if ! docker image inspect astound-clean-client:local >/dev/null 2>&1; then
         echo "Image missing — building it first." >&2
@@ -1051,8 +1061,8 @@ claude CODE="" GATEWAY="http://localhost:8080":
     fi
 
     exec docker run -it --rm \
-        --name astound-claude \
-        --hostname astound-claude \
+        --name "$NAME" \
+        --hostname "${REPO_SLUG:0:24}" \
         --add-host host.docker.internal:host-gateway \
         -e ASTOUND_BRIDGE_GATEWAY_URL="$GATEWAY" \
         "${CODE_ENV[@]}" \
@@ -1192,17 +1202,31 @@ clean-client-ready GATEWAY="http://host.docker.internal:8080":
 clean-client-install PAT GATEWAY="http://host.docker.internal:8080":
     GATEWAY="{{GATEWAY}}" scripts/clean-client-install.sh "{{PAT}}"
 
-# Drops the container and the PAT it stored, so the next run redeems a fresh
-# code instead of reusing the old identity.
-# Sign out of `just claude`
-claude-reset:
+# Drops this clone's sessions and the credentials they stored, so the next run
+# redeems a fresh code. ALL=1 signs out every clone on this host.
+# Sign out of `just claude` (this repo; ALL=1 for every repo)
+claude-reset ALL="0":
     #!/usr/bin/env bash
-    docker rm -f astound-claude >/dev/null 2>&1 || true
-    # One volume per gateway, so sign out of all of them.
-    docker volume ls -q --filter 'name=^astound-claude-' | while read -r v; do
-        docker volume rm "$v" >/dev/null 2>&1 && echo "removed $v"
+    set -euo pipefail
+    # Scoped to this clone by default: signing every other checkout out because
+    # one of them wanted a clean slate is not what anyone means by "reset".
+    if [ "{{ALL}}" = "1" ]; then
+        FILTER='name=^astound-claude-'
+        echo "Signing out every repo on this host."
+    else
+        REPO_SLUG="$(basename "{{justfile_directory()}}" | sed 's|[^A-Za-z0-9]|-|g')"
+        REPO_HASH="$(printf '%s' "{{justfile_directory()}}" | sha256sum | cut -c1-8)"
+        FILTER="name=^astound-claude-${REPO_SLUG}-${REPO_HASH}-"
+    fi
+    docker ps -aq --filter "$FILTER" | while read -r c; do
+        docker rm -f "$c" >/dev/null 2>&1 && echo "removed container $c"
     done
-    echo "Signed out. 'just claude <code>' will start from nothing."
+    FOUND=0
+    for v in $(docker volume ls -q --filter "$FILTER"); do
+        docker volume rm "$v" >/dev/null 2>&1 && { echo "removed $v"; FOUND=1; }
+    done
+    [ "$FOUND" = "1" ] || echo "Nothing to sign out of."
+    echo "'just claude <code>' will start from nothing."
 
 # Wipe the persisted clean-client state volume
 clean-client-reset:

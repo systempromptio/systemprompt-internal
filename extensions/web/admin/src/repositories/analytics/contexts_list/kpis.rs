@@ -98,6 +98,7 @@ pub async fn get_context_list_kpis(
 }
 
 pub async fn list_distinct_models(pool: &PgPool) -> Result<Vec<String>, sqlx::Error> {
+    let legacy = ContextId::legacy();
     let rows = sqlx::query!(
         r#"
         SELECT DISTINCT model AS "model!"
@@ -105,7 +106,7 @@ pub async fn list_distinct_models(pool: &PgPool) -> Result<Vec<String>, sqlx::Er
         WHERE context_id <> $1
         ORDER BY model
         "#,
-        ContextId::legacy().as_str()
+        legacy.as_str()
     )
     .fetch_all(pool)
     .await?;
