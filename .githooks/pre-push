@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Tracked pre-push hook. Enable with `just init-hooks` (sets core.hooksPath).
+#
+# Runs the static and lint preflight tiers (fmt, sqlx cache, source gates,
+# clippy, doc-check, msrv-check). Tests and the coverage ratchet are too slow
+# for a push hook — `just preflight` is the mandatory pre-merge gate; this
+# repo has no CI behind it.
+set -euo pipefail
+
+echo "pre-push: running preflight-static + preflight-lint (skip with --no-verify)"
+just preflight-static preflight-lint

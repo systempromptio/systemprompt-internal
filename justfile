@@ -232,9 +232,9 @@ test-unit:
     @scripts/build-coordinator.sh run test-unit "" -- {{just_executable()}} _test-unit-uncoordinated
 
 _test-unit-uncoordinated:
-    cargo test -p systemprompt-web-admin --tests
-    cargo test -p systemprompt-web-extension --tests
-    cargo test --manifest-path tests/Cargo.toml -p mcp-unit-tests -p web-unit-tests
+    cargo nextest run -p systemprompt-web-admin --tests
+    cargo nextest run -p systemprompt-web-extension --tests
+    cargo nextest run --manifest-path tests/Cargo.toml -p mcp-unit-tests -p web-unit-tests
 
 # DB-backed integration tests. Creates/drops throwaway mcp_ext_test_*
 # databases on the maintenance DB; the harness guard refuses any database
@@ -253,7 +253,7 @@ _test-integration-uncoordinated:
     print(up.urlunsplit((u.scheme, u.netloc, '/postgres', '', '')))")
         export SYSTEMPROMPT_TEST_DATABASE_URL
     fi
-    cargo test --manifest-path tests/Cargo.toml -p mcp-integration-tests
+    cargo nextest run --manifest-path tests/Cargo.toml -p mcp-integration-tests -p web-integration-tests -p admin-db-core-tests -p admin-db-config-tests
 
 # HTTP contract suite: drives every admin route under three principals and
 # diffs the result against tests/contract/admin/baseline.txt. Same throwaway-
@@ -273,7 +273,7 @@ _test-contract-uncoordinated:
     print(up.urlunsplit((u.scheme, u.netloc, '/postgres', '', '')))")
         export SYSTEMPROMPT_TEST_DATABASE_URL
     fi
-    cargo test --manifest-path tests/Cargo.toml -p admin-contract-tests
+    cargo nextest run --manifest-path tests/Cargo.toml -p admin-contract-tests
 
 # All tests
 test: test-unit test-integration test-contract
@@ -337,19 +337,110 @@ _lint-gates-uncoordinated:
     echo "all ${#gates[@]} lint gates passed"
 
 # The whole gate, in one command. This repo runs no hosted CI, so nothing
-# else will catch what this misses: run it before you push.
-#
-# Order is cheapest-first so a formatting slip fails in seconds rather than
-# after a full clippy pass. `just clippy` pulls in lint-no-synthesis and the
-# 19 source gates, so they are not repeated here.
-verify:
-    #!/usr/bin/env bash
-    set -euo pipefail
+# else will catch what this misses: run it before you push. `preflight` adds
+# the coverage floor/ratchet on top; use it before merging.
+verify: preflight-static preflight-lint test
+    @echo "verify: format, sqlx cache, lint gates, clippy, docs, msrv, and tests all pass"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PREFLIGHT (local stand-in for CI — tiered, cheapest first)
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Everything: static gates → lint/doc/msrv → tests → coverage floor+ratchet.
+# This is the mandatory pre-merge gate; there is no CI behind it.
+preflight: preflight-static preflight-lint test coverage-check
+
+# Tier 0 — seconds. Formatting, sqlx cache freshness, and the source gates.
+preflight-static:
     cargo fmt --all -- --check
     bash scripts/check-sqlx-cache.sh
+    {{just_executable()}} lint-gates
+
+# Tier 1 — compilers. Clippy (both workspaces), rustdoc as errors, MSRV.
+preflight-lint:
     {{just_executable()}} clippy
-    {{just_executable()}} test
-    echo "verify: format, sqlx cache, lint gates, clippy, and tests all pass"
+    {{just_executable()}} doc-check
+    {{just_executable()}} msrv-check
+
+# Weekly deep pass: preflight plus the network-touching supply-chain gates.
+preflight-full: preflight deny audit machete
+
+# Rustdoc with warnings denied, across all three workspaces (root, tests/,
+# bridge/) — mirrors core's quality.yml docs job. Single-flight coordinated.
+doc-check:
+    @scripts/build-coordinator.sh run doc-check "" -- {{just_executable()}} _doc-check-uncoordinated
+
+_doc-check-uncoordinated:
+    SQLX_OFFLINE=true RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
+    SQLX_OFFLINE=true RUSTDOCFLAGS="-D warnings" cargo doc --manifest-path tests/Cargo.toml --workspace --no-deps
+    RUSTDOCFLAGS="-D warnings" cargo doc --manifest-path bridge/Cargo.toml --no-deps
+
+# The workspace must build on the declared minimum supported Rust version
+# (rust-version in Cargo.toml). Requires: rustup toolchain install 1.94.0
+msrv-check:
+    @scripts/build-coordinator.sh run msrv-check "" -- {{just_executable()}} _msrv-check-uncoordinated
+
+_msrv-check-uncoordinated:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! rustup toolchain list | grep -q '^1\.94\.0'; then
+        echo "msrv-check: toolchain 1.94.0 missing — run: rustup toolchain install 1.94.0" >&2
+        exit 1
+    fi
+    SQLX_OFFLINE=true cargo +1.94.0 check --workspace
+
+# ══════════════════════════════════════════════════════════════════════════════
+# COVERAGE (raw llvm-cov; floor + ratchet vs tracked coverage/baseline.json)
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Instrumented test run over all three workspaces; writes coverage-report/.
+# See scripts/coverage.sh for the sccache/mold neutralisation notes.
+coverage:
+    @scripts/build-coordinator.sh run coverage "" -- bash scripts/coverage.sh
+
+# Enforce the floor and ratchet recorded in coverage/baseline.json.
+coverage-check: coverage
+    bash scripts/coverage-check.sh
+
+# Re-record coverage/baseline.json at the measured value (deliberate act —
+# commit the result). Raise the "floor" field by hand as milestones land.
+coverage-baseline: coverage
+    UPDATE_BASELINE=1 bash scripts/coverage-check.sh
+
+# Browsable HTML tree from the last `just coverage` run.
+coverage-html:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ROOT="$(pwd)"
+    if [ ! -f "$ROOT/coverage-report/tests.profdata" ]; then
+        echo "Run 'just coverage' first" >&2
+        exit 1
+    fi
+    TOOLDIR="$(rustc --print sysroot)/lib/rustlib/$(rustc -vV | sed -n 's/^host: //p')/bin"
+    TBASE="${COVERAGE_TARGET_DIR:-$ROOT/coverage-report/target}"
+    BINS=$(for t in "$TBASE-root" "$TBASE-tests" "$TBASE-bridge"; do \
+        find "$t/debug/deps" -maxdepth 1 -executable -type f ! -name '*.d' ! -name '*.so' -printf '%T@ %p\n' 2>/dev/null; \
+    done | sort -rn | awk '{ base=$2; sub(".*/", "", base); sub(/-[0-9a-f]+$/, "", base); if (!seen[base]++) print $2 }')
+    OBJ_ARGS=""
+    for b in $BINS; do OBJ_ARGS="$OBJ_ARGS --object $b"; done
+    mkdir -p "$ROOT/coverage-report/html"
+    "$TOOLDIR/llvm-cov" show \
+        --instr-profile="$ROOT/coverage-report/tests.profdata" \
+        $OBJ_ARGS \
+        --ignore-filename-regex="(\.cargo|/rustc/|/registry/|/debug/build/|/tests/|/target/|systemprompt-core/|systemprompt-astound/src/(main|lib)\.rs|bridge/src/main\.rs|extensions/cli/salesforce/src/(main\.rs|commands/)|extensions/.*/extension\.rs|build\.rs)" \
+        --format=html \
+        --output-dir="$ROOT/coverage-report/html"
+    echo "Coverage report: coverage-report/html/index.html"
+
+# Remove all coverage artifacts (instrumented target dirs included)
+coverage-clean:
+    rm -rf coverage-report/
+
+# Point git at the tracked hooks (pre-commit patch-marker guard + fast gates,
+# pre-push static+lint tiers). Run once per clone.
+init-hooks:
+    git config core.hooksPath .githooks
+    @echo "git hooks now sourced from .githooks/"
 
 # Cross-file referential integrity for services/ (ACL entity ids, MCP ports)
 validate:
@@ -969,6 +1060,62 @@ clean-client-reset:
     -docker rm -f astound-clean-client 2>/dev/null
     -docker volume rm astound-clean-home
     @echo "Clean-client state wiped."
+
+# Isolated dev sandbox on a real project: clean client + the repo mounted at
+# /workspace/project. HOME stays virgin (device-link auth as usual); only the
+# project directory crosses into the container. The image ships Playwright +
+# Chromium so the dev_test skill works against the mounted project.
+dev-sandbox REPO PERSIST="0" GATEWAY="http://host.docker.internal:8080":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    REPO_ABS="$(readlink -f "{{REPO}}")"
+    if [ ! -d "$REPO_ABS" ]; then
+        echo "ERROR: {{REPO}} is not a directory" >&2
+        exit 1
+    fi
+    if ! docker image inspect astound-clean-client:local >/dev/null 2>&1; then
+        echo "Image missing — building it first." >&2
+        just clean-client-build
+    fi
+    BRIDGE="{{justfile_directory()}}/bridge/target/release/astound-bridge"
+    MOUNTS=(-v "$REPO_ABS:/workspace/project")
+    if [ -d "$BRIDGE" ]; then
+        echo "ERROR: $BRIDGE is a directory (docker created it from a stale -v mount)." >&2
+        echo "       Remove it with: sudo rmdir '$BRIDGE'" >&2
+        exit 1
+    fi
+    if [ -f "$BRIDGE" ] && [ -x "$BRIDGE" ]; then
+        MOUNTS+=(-v "$BRIDGE:/usr/local/bin/astound-bridge:ro")
+    else
+        echo "warn: $BRIDGE not found — run 'cd bridge && cargo build --release' for the full flow." >&2
+    fi
+    if [ "{{PERSIST}}" = "1" ]; then
+        MOUNTS+=(-v astound-clean-home:/home/tester -e CLEAN_CLIENT_ALLOW_STATE=1)
+        echo "State persists in volume 'astound-clean-home' — 'just clean-client-reset' wipes it."
+    fi
+    PORTS=()
+    if ss -ltn 2>/dev/null | grep -q ':8767 '; then
+        echo "warn: host port 8767 already in use — not publishing it. Plugin OAuth loopback will not work." >&2
+    else
+        PORTS+=(-p 127.0.0.1:8767:8767)
+    fi
+    exec docker run -it --rm \
+        --name astound-dev-sandbox \
+        --hostname dev-sandbox \
+        --add-host host.docker.internal:host-gateway \
+        -e ASTOUND_BRIDGE_GATEWAY_URL="{{GATEWAY}}" \
+        "${MOUNTS[@]}" "${PORTS[@]}" \
+        astound-clean-client:local
+
+# Install the Playwright e2e suite's dependencies (playwright/ directory)
+e2e-install:
+    cd playwright && npm install && npx playwright install chromium
+
+# Run the Playwright e2e suite against a running gateway (GATEWAY_URL env
+# overrides the default http://localhost:8080). Not part of `just validate` —
+# it needs a live stack: `just start` first.
+e2e *ARGS:
+    cd playwright && npx playwright test {{ARGS}}
 
 # Test build without pushing
 docker-test:

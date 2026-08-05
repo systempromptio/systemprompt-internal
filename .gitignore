@@ -212,5 +212,9 @@ rustc-ice-*.txt
 # Build coordinator ledger (shared build/lint/test state across agents)
 /.build/
 
+# Coverage run output (profraws, profdata, reports, instrumented target dirs).
+# The tracked ratchet baseline lives in coverage/baseline.json, not here.
+/coverage-report/
+
 # Generated at publish time by bundle_admin_css
 storage/files/css/admin-bundle.css

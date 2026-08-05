@@ -63,6 +63,8 @@ extensions/web/admin/src/middleware/gates.rs	# astound adds the platform-admin g
 extensions/web/admin/src/handlers/ssr/types/mod.rs	# declares astound's enterprise page context types
 extensions/web/admin/src/handlers/ssr/ssr_demo_help/mod.rs	# astound explains the enterprise console; the template has no such page
 extensions/web/admin/src/handlers/ssr/ssr_management/departments.rs	# astound derives department entitlement from the enterprise plan, so it has no access-matrix link to pass the template
+extensions/web/admin/tests/authz_marketplace_pure.rs	# astound tests the organization subject dimension at precedence 300; the template has one tenant and no such band
+extensions/web/admin/tests/util_ranges.rs	# astound covers util::month_range behind its enterprise reports; the template has only util::time_range
 extensions/web/admin/src/authz/mod.rs	# astound registers the organization subject dimension at precedence 300; the template has one tenant and no such band
 extensions/web/admin/src/repositories/config/acl_yaml_loader.rs	# astound reads a third bootstrap file, plans.yaml, and projects each plan's grants onto its organizations
 extensions/web/admin/src/repositories/users/mutations.rs	# astound resolves the new user's organization from their email domain and refuses a full plan, so creation returns MarketplaceError rather than sqlx::Error
@@ -107,7 +109,9 @@ extensions/web/admin/src/handlers/ssr/list_view.rs	# chip, preset and preserved-
 # ---------------------------------------------------------------------
 # DEBT - one side is simply ahead. Port it, then delete the line.
 # ---------------------------------------------------------------------
-# (empty)
+# (2026-08-05: the coverage-campaign seams and bug fixes were all ported to
+# the template and the files converged; only genuinely product-divergent test
+# files remain, listed under PRODUCT.)
 
 # Astound ships one theme. The template keeps the light/dark toggle, so it
 # still registers the theme module and still emits the colorScheme snippets

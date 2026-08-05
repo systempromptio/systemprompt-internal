@@ -81,6 +81,35 @@ re-creates the contention. Escape hatches when you truly need them:
 
 ---
 
+## Preflight (this repo has no CI — these gates ARE the CI)
+
+```bash
+just preflight          # the mandatory pre-merge gate: static → lint → tests → coverage
+just preflight-static   # seconds: fmt, sqlx cache, 20 source gates
+just preflight-lint     # clippy (both workspaces), doc-check, msrv-check
+just preflight-full     # weekly: preflight + deny + audit + machete
+just init-hooks         # once per clone: tracked .githooks/ (pre-commit + pre-push)
+```
+
+`verify` = preflight minus the coverage tier; use it mid-iteration, `preflight`
+before merging. The pre-push hook runs the static + lint tiers automatically
+after `just init-hooks`.
+
+**Coverage floor + ratchet.** `just coverage` runs an instrumented llvm-cov
+pass over all three workspaces (root, `tests/`, `bridge/`) into
+`coverage-report/` (gitignored); `just coverage-check` enforces the tracked
+`coverage/baseline.json` — a global floor, a 0.5pt total ratchet, and per-crate
+ratchets. If you raised coverage, re-record with `just coverage-baseline` and
+commit the file; lowering it is a review-visible act. Never use cargo-llvm-cov
+here (it re-injects the mold linker flags and silently produces zero profraws
+— see `scripts/coverage.sh`).
+
+Tests live in the `tests/` workspace (`unit/`, `integration/`, `contract/`) or
+in-crate `tests/` dirs — inline `#[cfg(test)]` modules are banned. DB-backed
+suites need Docker Postgres up (`just db-up`).
+
+---
+
 ## CLI Structure
 
 ```

@@ -7,6 +7,7 @@ members = [
     "extensions/web/site",
     "extensions/web/jobs",
     "extensions/mcp/systemprompt",
+    "extensions/mcp/knowledge-bank",
     "extensions/mcp/shared",
     "extensions/cli/salesforce",
 ]
@@ -102,6 +103,9 @@ zip = { version = "2", default-features = false, features = ["deflate"] }
 # MCP Protocol
 rmcp = { version = "=3.0.0", features = ["server", "client", "transport-io", "transport-streamable-http-server", "transport-streamable-http-server-session", "transport-streamable-http-client", "transport-streamable-http-client-reqwest", "macros", "auth"] }
 
+# The tests/ workspace deliberately relaxes a handful of these (unwrap/expect/
+# panic and the doc lints) in its own [workspace.lints.clippy] block — see
+# tests/Cargo.toml. Everything not relaxed there is enforced identically.
 [workspace.lints.clippy]
 all = { level = "deny", priority = -1 }
 pedantic = { level = "warn", priority = -1 }
