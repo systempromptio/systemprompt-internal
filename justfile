@@ -954,27 +954,25 @@ connect CODE GATEWAY="http://localhost:8080":
     curl -fsSL {{GATEWAY}}/files/downloads/install.sh | sh -s -- \
         --download-base {{GATEWAY}}/files/downloads --code {{CODE}}
 
-# Your host config is never touched: the container installs the client, signs in
-# with the code, and drops you straight into `claude`.
-# Claude Code, connected, in a throwaway container (CODE from /admin/profile)
-claude CODE GATEWAY="http://localhost:8080":
+# A code is needed the first time only: the credential it is exchanged for
+# persists in a per-gateway volume, so later runs are just `just
+# claude`. `just claude-reset` signs out and makes a code necessary again.
+# Claude Code, connected, in a container (CODE from /admin/profile, first run only)
+claude CODE="" GATEWAY="http://localhost:8080":
     #!/usr/bin/env bash
     set -euo pipefail
 
-    # A local gateway binds 127.0.0.1 by default, which no container can reach:
-    # host.docker.internal resolves to the docker bridge address, and nothing is
-    # listening there. Share the host's network namespace instead, so the URL
-    # the page printed works verbatim. A remote gateway needs none of this.
+    # The page prints the gateway as a browser sees it. Inside a container
+    # localhost is the container, so rewrite it to the host alias.
     GATEWAY="{{GATEWAY}}"
-    NET=()
-    case "$GATEWAY" in
-        *localhost*|*127.0.0.1*)
-            NET=(--network host)
-            ;;
-        *)
-            NET=(--add-host host.docker.internal:host-gateway)
-            ;;
-    esac
+    GATEWAY="${GATEWAY//localhost/host.docker.internal}"
+    GATEWAY="${GATEWAY//127.0.0.1/host.docker.internal}"
+
+    # One home per gateway. A credential is only valid for the gateway that
+    # issued it, so a single shared volume makes a second gateway look like a
+    # broken sign-in: the PAT is found, whoami fails against the wrong host, and
+    # bootstrap drops to asking for a code.
+    VOL="astound-claude-$(printf '%s' "$GATEWAY" | sed -e 's|^https\?://||' -e 's|[^A-Za-z0-9]|-|g')"
 
     if [ "$(docker inspect -f '{{{{.State.Running}}}}' astound-claude 2>/dev/null)" = "true" ]; then
         echo "Already running — opening another Claude Code session in it."
@@ -1000,26 +998,67 @@ claude CODE GATEWAY="http://localhost:8080":
         just bridge-build
     fi
 
-    # 8767 is the plugin-OAuth loopback port. With --network host it is already
-    # the host's, so publishing it is both unnecessary and an error.
     PORTS=()
-    if [ "${NET[0]}" != "--network" ]; then
-        if ss -ltn 2>/dev/null | grep -q ':8767 '; then
-            echo "warn: host port 8767 already in use — not publishing it." >&2
-        else
-            PORTS+=(-p 127.0.0.1:8767:8767)
-        fi
+    if ss -ltn 2>/dev/null | grep -q ':8767 '; then
+        echo "warn: host port 8767 already in use — not publishing it." >&2
+    else
+        PORTS+=(-p 127.0.0.1:8767:8767)
+    fi
+
+    # Prove the container can reach the gateway BEFORE the code is spent —
+    # otherwise an unroutable gateway surfaces as a connect error with the code
+    # already consumed. --entrypoint is required: the image's entrypoint would
+    # otherwise swallow this as its own arguments, print its banner, and exit 0,
+    # so the check would pass without making a request.
+    if ! docker run --rm --entrypoint curl \
+            --add-host host.docker.internal:host-gateway \
+            astound-clean-client:local \
+            -sf --max-time 5 "$GATEWAY/health" >/dev/null 2>&1; then
+        echo "ERROR: the container cannot reach the gateway at $GATEWAY" >&2
+        echo "" >&2
+        echo "  A gateway bound to 127.0.0.1 is reachable from this host and from" >&2
+        echo "  nowhere else — no container can route to it. Bind it to 0.0.0.0:" >&2
+        echo "" >&2
+        echo "      systemprompt admin config server set --host 0.0.0.0" >&2
+        echo "      just start          # restart for it to take effect" >&2
+        echo "" >&2
+        echo "  Your code has not been used. Re-run this once the gateway is bound." >&2
+        exit 1
+    fi
+
+    # No code on a repeat run: the stored credential is reused, and bootstrap
+    # only falls back to asking when there is neither. Passing an empty value
+    # would look like "a code was supplied" to that check.
+    # Look for the credential itself, not merely the volume: a volume left over
+    # from a run that never completed sign-in holds none, and bootstrap would
+    # then drop to an interactive code prompt — which is what a non-interactive
+    # caller sees as a hang.
+    CODE_ENV=()
+    if [ -n "{{CODE}}" ]; then
+        CODE_ENV=(-e ASTOUND_BRIDGE_CODE="{{CODE}}")
+    elif ! docker run --rm --entrypoint test \
+            -v "$VOL":/home/tester \
+            astound-clean-client:local \
+            -f /home/tester/.config/astound/astound-bridge.pat >/dev/null 2>&1; then
+        echo "ERROR: not signed in yet, and no code was given." >&2
+        echo "" >&2
+        echo "  A code is needed the first time. Take one from /admin/profile:" >&2
+        echo "" >&2
+        echo "      just claude <code>" >&2
+        echo "" >&2
+        echo "  Later runs need no code — the credential is kept." >&2
+        exit 1
     fi
 
     exec docker run -it --rm \
         --name astound-claude \
         --hostname astound-claude \
-        "${NET[@]}" \
+        --add-host host.docker.internal:host-gateway \
         -e ASTOUND_BRIDGE_GATEWAY_URL="$GATEWAY" \
-        -e ASTOUND_BRIDGE_CODE="{{CODE}}" \
+        "${CODE_ENV[@]}" \
         -e CLEAN_CLIENT_EXEC_CLAUDE=1 \
         -e CLEAN_CLIENT_ALLOW_STATE=1 \
-        -v astound-claude-home:/home/tester \
+        -v "$VOL":/home/tester \
         -v "$BRIDGE:/usr/local/bin/astound-bridge:ro" \
         -v "{{justfile_directory()}}/deploy/clean-client/bootstrap.sh:/usr/local/bin/bootstrap.sh:ro" \
         "${PORTS[@]}" \
@@ -1157,9 +1196,13 @@ clean-client-install PAT GATEWAY="http://host.docker.internal:8080":
 # code instead of reusing the old identity.
 # Sign out of `just claude`
 claude-reset:
-    -docker rm -f astound-claude 2>/dev/null
-    -docker volume rm astound-claude-home
-    @echo "Signed out. 'just claude <code>' will start from nothing."
+    #!/usr/bin/env bash
+    docker rm -f astound-claude >/dev/null 2>&1 || true
+    # One volume per gateway, so sign out of all of them.
+    docker volume ls -q --filter 'name=^astound-claude-' | while read -r v; do
+        docker volume rm "$v" >/dev/null 2>&1 && echo "removed $v"
+    done
+    echo "Signed out. 'just claude <code>' will start from nothing."
 
 # Wipe the persisted clean-client state volume
 clean-client-reset:

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT DISTINCT model AS \"model!\"\n        FROM ai_requests\n        WHERE context_id IS NOT NULL\n        ORDER BY model\n        ",
+  "query": "\n        SELECT DISTINCT model AS \"model!\"\n        FROM ai_requests\n        WHERE context_id <> $1\n        ORDER BY model\n        ",
   "describe": {
     "columns": [
       {
@@ -16,11 +16,13 @@
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Text"
+      ]
     },
     "nullable": [
       true
     ]
   },
-  "hash": "2c555872bf66aed62ac2e24d5ad0d7f7c4dcca25f30820df622750df0af4c21e"
+  "hash": "1bdefb6944d7ef6b21015a97e421707ab1341ec662cc8932646a704cc7c2547d"
 }
