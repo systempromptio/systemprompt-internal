@@ -88,6 +88,36 @@ for svc_path in root.glob("services/mcp/*.yaml"):
                 f"{manifest_path}: port {manifest_port}"
             )
 
+# The checked-in marketplace JSON under storage/files/plugins/.claude-plugin/
+# is generated from services config (core: plugins/generate/marketplace.rs).
+# It went stale once (phantom per-plugin agents survived a config rewrite), so
+# pin its plugin list and version to the marketplace config here.
+import json
+
+for mp_path in root.glob("services/marketplaces/*/config.yaml"):
+    mp = (load(mp_path) or {}).get("marketplace") or {}
+    mp_id = mp.get("id")
+    json_path = (
+        root / "storage/files/plugins/.claude-plugin" / f"marketplace-{mp_id}.json"
+    )
+    if not json_path.is_file():
+        continue
+    generated = json.loads(json_path.read_text())
+    declared = list((mp.get("plugins") or {}).get("include") or [])
+    emitted = [p.get("name") for p in generated.get("plugins") or []]
+    if declared != emitted:
+        errors.append(
+            f"{json_path}: plugin list {emitted} is stale — marketplace config "
+            f"declares {declared}; regenerate the marketplace JSON"
+        )
+    declared_version = mp.get("version")
+    emitted_version = (generated.get("metadata") or {}).get("version")
+    if declared_version != emitted_version:
+        errors.append(
+            f"{json_path}: version {emitted_version} is stale — marketplace "
+            f"config declares {declared_version}"
+        )
+
 if errors:
     print("services validation FAILED:")
     for e in errors:

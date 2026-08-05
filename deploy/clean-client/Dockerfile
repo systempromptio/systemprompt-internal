@@ -43,6 +43,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN npm install -g @anthropic-ai/claude-code@latest \
     && npm cache clean --force
 
+# Playwright + Chromium, so the dev_test skill ("no change is done until
+# Playwright proves it") works out of the box against a mounted project.
+# INSTALL_BROWSERS=0 gives the slim bridge-integration-only variant — the
+# browser layer is ~1GB. Browsers live in a shared path readable by the
+# unprivileged tester user created below.
+ARG INSTALL_BROWSERS=1
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
+RUN if [ "$INSTALL_BROWSERS" = "1" ]; then \
+      npm install -g playwright@latest \
+      && playwright install --with-deps chromium \
+      && chmod -R a+rX /opt/ms-playwright \
+      && npm cache clean --force \
+      && rm -rf /var/lib/apt/lists/*; \
+    fi
+
 # uid 1001 because the node base image already owns 1000. The whole point of
 # this container is a virgin HOME, so the user is created empty and never has
 # anything copied into it.

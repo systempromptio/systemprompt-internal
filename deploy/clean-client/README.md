@@ -23,8 +23,19 @@ just clean-client 0 https://gateway.astounddigital.com
 ## What it does and does not contain
 
 Baked in: Node 22, Claude Code (`@anthropic-ai/claude-code`), git, ripgrep, jq,
-curl. Bind-mounted read-only at run time: `bridge/target/release/astound-bridge`,
-so you test the binary you just built rather than a stale copy.
+curl, and Playwright + Chromium (build with `--build-arg INSTALL_BROWSERS=0`
+for the slim bridge-only variant — the browser layer is ~1GB). Bind-mounted
+read-only at run time: `bridge/target/release/astound-bridge`, so you test the
+binary you just built rather than a stale copy.
+
+### Dev sandbox variant
+
+`just dev-sandbox <repo>` runs this same image with the given project repo
+mounted read-write at `/workspace/project` (the session starts there). HOME
+stays virgin and all cleanliness assertions still apply — only the project
+directory crosses into the container, which is what lets the `dev_test` skill
+run `npx playwright test` against a real project through a fully governed
+Claude Code.
 
 Deliberately absent — do not add these:
 

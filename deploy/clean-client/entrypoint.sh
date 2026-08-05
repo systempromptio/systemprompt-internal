@@ -79,4 +79,15 @@ cat <<BANNER
 
 BANNER
 
+# ── Project mount (dev-sandbox flow) ─────────────────────────────────────────
+# `just dev-sandbox <repo>` mounts a project at /workspace/project. Start the
+# session there so Claude Code opens on the project, not the empty work dir.
+# Only the project directory is mounted — HOME stays virgin, so all the
+# cleanliness assertions above still hold.
+if [ -d /workspace/project ]; then
+    echo "  project   /workspace/project (mounted — session starts here)"
+    echo
+    cd /workspace/project
+fi
+
 exec "$@"
