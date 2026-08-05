@@ -85,7 +85,7 @@ systemprompt admin users role promote <email>
 
 Sign out and back in afterwards — the admin scope is minted when the token is issued, so an existing session keeps the old one.
 
-Builds the client, starts a container, redeems the code, execs `claude`. Host config is untouched: no installer runs, `~/.claude` and `~/.config` are not written.
+Starts a container, redeems the code, execs `claude`. Host config is untouched: no installer runs, `~/.claude` and `~/.config` are not written.
 
 A code is needed the first time only. The credential it is exchanged for persists, so afterwards the command is just `just claude`.
 
@@ -107,6 +107,7 @@ This section runs on `8081`/`5436` rather than the `8080`/`5432` defaults, so th
 git clone https://github.com/systempromptio/systemprompt-astound fresh && cd fresh
 just setup-local <provider-key> "" "" 8081 5436   # ports of its own
 just build
+just bridge-build
 just start
 ```
 
