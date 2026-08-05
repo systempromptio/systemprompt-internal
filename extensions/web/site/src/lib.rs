@@ -17,7 +17,8 @@ pub mod assets;
 pub mod config_loader;
 pub mod docs;
 pub mod extenders;
-mod format;
+#[doc(hidden)]
+pub mod format;
 pub mod homepage;
 pub mod navigation;
 pub mod partials;

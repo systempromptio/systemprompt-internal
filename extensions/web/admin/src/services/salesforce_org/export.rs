@@ -89,11 +89,6 @@ pub async fn export_org(
     })
 }
 
-// Why: the endpoint URL is not a field on `McpServerAccess`, so that one value
-// is carried from the baseline where there is one. The result is also scoped to
-// the baseline's servers, because an org offers standard servers this
-// deployment does not manage and reporting them would be drift no `apply` will
-// ever resolve. With no baseline the full inventory comes back instead.
 async fn export_hosted_mcp_servers(
     conn: &Connection,
     baseline: Option<&OrgSpec>,
@@ -101,7 +96,21 @@ async fn export_hosted_mcp_servers(
     let rows = conn
         .tooling_soql("SELECT DeveloperName,MasterLabel,Active FROM McpServerAccess")
         .await?;
+    Ok(hosted_mcp_from_rows(&rows, baseline))
+}
 
+/// Map queried `McpServerAccess` rows onto spec entries.
+///
+/// The endpoint URL is not a field on `McpServerAccess`, so that one value is
+/// carried from the baseline where there is one. The result is also scoped to
+/// the baseline's servers, because an org offers standard servers this
+/// deployment does not manage and reporting them would be drift no `apply` will
+/// ever resolve. With no baseline the full inventory comes back instead.
+#[must_use]
+pub fn hosted_mcp_from_rows(
+    rows: &[serde_json::Value],
+    baseline: Option<&OrgSpec>,
+) -> Vec<HostedMcpServer> {
     let mut out: Vec<HostedMcpServer> = rows
         .iter()
         .filter_map(|row| {
@@ -124,7 +133,7 @@ async fn export_hosted_mcp_servers(
         })
         .collect();
     out.sort_by(|a, b| a.developer_name.cmp(&b.developer_name));
-    Ok(out)
+    out
 }
 
 async fn export_oauth(
@@ -143,7 +152,13 @@ async fn export_oauth(
             "app {developer_name} has no ExtlClntAppOauthSettings"
         ))
     })?;
+    Ok(oauth_from_settings(settings, baseline))
+}
 
+/// Map an `ExtlClntAppOauthSettings` record onto the spec's OAuth block,
+/// carrying the write-only fields forward from `baseline`.
+#[must_use]
+pub fn oauth_from_settings(settings: &serde_json::Value, baseline: Option<&OrgSpec>) -> OauthSpec {
     let scopes: Vec<OauthScope> = OauthScope::all()
         .iter()
         .copied()
@@ -163,7 +178,7 @@ async fn export_oauth(
     }
 
     let base = baseline.map(|b| &b.external_client_app.oauth);
-    Ok(OauthSpec {
+    OauthSpec {
         callback_url: base.map_or_else(
             || UNREADABLE_PLACEHOLDER.to_owned(),
             |b| b.callback_url.clone(),
@@ -177,7 +192,7 @@ async fn export_oauth(
         consumer_secret_optional: base.is_some_and(|b| b.consumer_secret_optional),
         named_user_jwt: base.is_none_or(|b| b.named_user_jwt),
         single_logout_url: str_field(settings, "SingleLogoutUrl"),
-    })
+    }
 }
 
 async fn export_policies(conn: &Connection) -> Result<PolicySpec, SalesforceError> {
@@ -191,7 +206,16 @@ async fn export_policies(conn: &Connection) -> Result<PolicySpec, SalesforceErro
     let policy = rows.first().ok_or_else(|| {
         SalesforceError::Internal("app has no ExtlClntAppOauthPlcyCnfg".to_owned())
     })?;
+    Ok(policies_from_record(policy))
+}
 
+/// Map an `ExtlClntAppOauthPlcyCnfg` record onto the spec's policy block.
+///
+/// Unrecognised enum values fall back to the safe end of each axis rather than
+/// failing: an org can report a policy this build does not know about, and
+/// refusing to export would leave no way to see the rest of the drift.
+#[must_use]
+pub fn policies_from_record(policy: &serde_json::Value) -> PolicySpec {
     let ip_relaxation = match str_field(policy, "IpRelaxationPolicyType").as_deref() {
         Some("Bypass") => IpRelaxation::Bypass,
         Some("Bypass_2factor") => IpRelaxation::Bypass2Factor,
@@ -210,7 +234,7 @@ async fn export_policies(conn: &Connection) -> Result<PolicySpec, SalesforceErro
         .and_then(serde_json::Value::as_u64)
         .and_then(|v| u32::try_from(v).ok());
 
-    Ok(PolicySpec {
+    PolicySpec {
         permitted_users: str_field(policy, "PermittedUsersPolicyType").unwrap_or_default(),
         ip_relaxation,
         refresh_token_policy: str_field(policy, "RefreshTokenPolicyType").unwrap_or_default(),
@@ -219,7 +243,7 @@ async fn export_policies(conn: &Connection) -> Result<PolicySpec, SalesforceErro
             _ => None,
         },
         required_session_level: str_field(policy, "RequiredSessionLevel"),
-    })
+    }
 }
 
 async fn export_permission_sets(
@@ -237,9 +261,18 @@ async fn export_permission_sets(
     let apps = conn
         .soql("SELECT Id,DeveloperName FROM ExternalClientApplication")
         .await?;
+    Ok(permission_sets_from_rows(&grants, &apps))
+}
 
+/// Join `SetupEntityAccess` grant rows against the org's app rows to produce
+/// the spec's permission sets.
+#[must_use]
+pub fn permission_sets_from_rows(
+    grants: &[serde_json::Value],
+    apps: &[serde_json::Value],
+) -> Vec<PermissionSetSpec> {
     let mut out = Vec::new();
-    for grant in &grants {
+    for grant in grants {
         let Some(parent) = grant.get("Parent") else {
             continue;
         };
@@ -259,5 +292,5 @@ async fn export_permission_sets(
         });
     }
     out.sort_by(|a, b| a.name.cmp(&b.name));
-    Ok(out)
+    out
 }

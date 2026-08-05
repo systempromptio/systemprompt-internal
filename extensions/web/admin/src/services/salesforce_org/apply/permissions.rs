@@ -7,16 +7,13 @@
 //! it, which is not something a config apply should do implicitly.
 
 use super::ApplyReport;
+use super::lookup::{
+    find_app_id, find_permission_set_id, find_user_id, grant_exists, holds_permission_set,
+    soql_list, str_field,
+};
 use crate::handlers::salesforce_auth::SalesforceError;
 use crate::services::salesforce_org::client::Connection;
 use crate::services::salesforce_org::spec::OrgSpec;
-
-fn str_field(value: &serde_json::Value, field: &str) -> Option<String> {
-    value
-        .get(field)
-        .and_then(serde_json::Value::as_str)
-        .map(str::to_owned)
-}
 
 /// Create the permission sets and app-access grants the spec calls for.
 ///
@@ -62,11 +59,7 @@ pub async fn apply_permission_sets(
         let (Some(permset_id), Some(app_name)) = (permset_id, wanted.grants_app.as_ref()) else {
             continue;
         };
-        let Some(app_id) = apps
-            .iter()
-            .find(|a| str_field(a, "DeveloperName").as_ref() == Some(app_name))
-            .and_then(|a| str_field(a, "Id"))
-        else {
+        let Some(app_id) = find_app_id(&apps, app_name) else {
             report.manual_followups.push(format!(
                 "permission set {} grants app {app_name}, which does not exist in this org",
                 wanted.name
@@ -74,11 +67,7 @@ pub async fn apply_permission_sets(
             continue;
         };
 
-        let already = grants.iter().any(|g| {
-            str_field(g, "ParentId").as_ref() == Some(&permset_id)
-                && str_field(g, "SetupEntityId").as_deref() == Some(app_id.as_str())
-        });
-        if !already {
+        if !grant_exists(&grants, &permset_id, &app_id) {
             conn.create_sobject(
                 "SetupEntityAccess",
                 &serde_json::json!({ "ParentId": permset_id, "SetupEntityId": app_id }),
@@ -138,11 +127,7 @@ pub async fn apply_assignments(
         .await?;
 
     for username in usernames {
-        let Some(user_id) = users
-            .iter()
-            .find(|u| str_field(u, "Username").as_ref() == Some(username))
-            .and_then(|u| str_field(u, "Id"))
-        else {
+        let Some(user_id) = find_user_id(&users, username) else {
             report.manual_followups.push(format!(
                 "no active Salesforce user with username {username} — cannot assign a \
                  permission set to them"
@@ -185,26 +170,16 @@ async fn assign_one_user(
     // limits an org with many users would otherwise breach.
     let held = conn
         .soql(&format!(
-            "SELECT PermissionSet.Name FROM PermissionSetAssignment WHERE AssigneeId = '{}'",
-            soql_escape(user_id)
+            "SELECT PermissionSet.Name FROM PermissionSetAssignment WHERE AssigneeId = {}",
+            soql_list(&[user_id])
         ))
         .await?;
 
     for permset in &spec.permission_sets {
-        let already = held.iter().any(|h| {
-            h.get("PermissionSet")
-                .and_then(|p| str_field(p, "Name"))
-                .as_ref()
-                == Some(&permset.name)
-        });
-        if already {
+        if holds_permission_set(&held, &permset.name) {
             continue;
         }
-        let Some(permset_id) = permsets
-            .iter()
-            .find(|p| str_field(p, "Name").as_ref() == Some(&permset.name))
-            .and_then(|p| str_field(p, "Id"))
-        else {
+        let Some(permset_id) = find_permission_set_id(permsets, &permset.name) else {
             report.manual_followups.push(format!(
                 "permission set {} does not exist in this org — cannot assign it",
                 permset.name
@@ -229,20 +204,4 @@ async fn assign_one_user(
         }
     }
     Ok(())
-}
-
-// Why: SOQL string literals are single-quoted with backslash escapes. These
-// values are Salesforce usernames and permission set API names rather than free
-// text, but building a query by concatenation without escaping is the kind of
-// thing that stops being true later.
-fn soql_escape(raw: &str) -> String {
-    raw.replace('\\', "\\\\").replace('\'', "\\'")
-}
-
-fn soql_list(values: &[&str]) -> String {
-    values
-        .iter()
-        .map(|v| format!("'{}'", soql_escape(v)))
-        .collect::<Vec<_>>()
-        .join(",")
 }

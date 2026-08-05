@@ -1,7 +1,7 @@
 //! Authenticated Salesforce client: REST, Tooling and Metadata deploy.
 //!
 //! Auth is the RFC 7523 JWT-bearer grant, reusing
-//! [`salesforce_jwt_bearer`](crate::services::salesforce_jwt_bearer). No
+//! `crate::services::salesforce_jwt_bearer`. No
 //! browser, no refresh token, nothing to rotate but the certificate.
 //!
 //! The Metadata *deploy* REST resource accepts JWT-format access tokens, which
@@ -10,8 +10,8 @@
 //! instead of shelling out to the `sf` CLI: deploy over REST keeps the whole
 //! loop headless with the credentials the platform already holds.
 //!
-//! [`TargetOrg`] and its credentials live in [`target`]; the sObject write
-//! methods live in [`sobject`].
+//! [`TargetOrg`] and its credentials live in the private `target` module; the
+//! sObject write methods live in the private `sobject` module.
 
 mod sobject;
 mod target;
@@ -61,7 +61,7 @@ impl Connection {
     ///
     /// # Errors
     /// Propagates signing and token-endpoint failures from
-    /// [`salesforce_jwt_bearer::get_token_with_key`].
+    /// `salesforce_jwt_bearer::get_token_with_key`.
     pub async fn connect(target: &TargetOrg) -> Result<Self, SalesforceError> {
         let token = salesforce_jwt_bearer::get_token_with_key(
             &target.consumer_key,

@@ -98,15 +98,20 @@ async fn execute_inner(ctx: &JobContext) -> Result<JobResult, JobError> {
     Ok(JobResult::success().with_duration(duration_ms))
 }
 
-struct GovernanceStatus {
-    active: usize,
+#[doc(hidden)]
+#[derive(Debug, Clone, Copy)]
+pub struct GovernanceStatus {
+    pub active: usize,
 }
 
 // Why: `GovernanceConfig::load` cannot fail, so without this the request path
 // silently restores the built-in defaults when the file is unparseable — an
 // operator who edited it to relax a policy gets stricter enforcement than
 // before and no signal. Boot is the last point that can still refuse.
-fn check_governance_config(services_path: &std::path::Path) -> Result<GovernanceStatus, JobError> {
+#[doc(hidden)]
+pub fn check_governance_config(
+    services_path: &std::path::Path,
+) -> Result<GovernanceStatus, JobError> {
     use systemprompt::security::policy::GovernanceConfig;
 
     let path = services_path.join("governance/config.yaml");

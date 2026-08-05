@@ -9,6 +9,10 @@ repository.workspace = true
 homepage.workspace = true
 publish = false
 
+[lib]
+name = "systemprompt_cli_salesforce"
+path = "src/lib.rs"
+
 [[bin]]
 name = "systemprompt-cli-salesforce"
 path = "src/main.rs"

@@ -1,30 +1,25 @@
 //! `systemprompt plugins run salesforce` — Salesforce org configuration as
 //! code.
 //!
-//! Argument parsing only. Everything substantive lives in
-//! `systemprompt_web_admin::salesforce_org`, next to the rest of the Salesforce
-//! code it reuses (JWT-bearer token minting in particular).
+//! Process shell only: install logging, start a runtime, hand the parsed
+//! arguments to the library. The parse surface and the subcommands live in
+//! [`systemprompt_cli_salesforce`].
 //!
 //! Credentials come from `SF_TARGET_*` environment variables so the same binary
 //! can target any org, including one this deployment has never talked to.
 
-// Why: stdout is this binary's entire interface — it is a CLI, and the
-// workspace lints deny printing by default because most crates here are
-// libraries.
+// Why: stderr is how this binary reports a failure before the library's
+// printing takes over; the workspace lints deny printing by default.
 #![allow(
-    clippy::print_stdout,
     clippy::print_stderr,
-    reason = "CLI binary: stdout and stderr are the user-facing output"
+    reason = "CLI binary: stderr is the user-facing error channel"
 )]
-
-mod cli;
-mod commands;
 
 use std::process::ExitCode;
 
 use clap::Parser;
-
-use crate::cli::Cli;
+use systemprompt_cli_salesforce::cli::Cli;
+use systemprompt_cli_salesforce::commands;
 
 fn main() -> ExitCode {
     // Why: core's initializer, not a hand-rolled tracing_subscriber. It also

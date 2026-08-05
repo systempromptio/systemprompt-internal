@@ -69,6 +69,8 @@ async-trait = { workspace = true }
 
 [dev-dependencies]
 anyhow = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
 tempfile = { workspace = true }
 tower = { workspace = true, features = ["util"] }
 

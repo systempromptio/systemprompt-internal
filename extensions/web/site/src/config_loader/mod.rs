@@ -12,7 +12,8 @@ use systemprompt::config::ProfileBootstrap;
 use systemprompt::models::AppPaths;
 use thiserror::Error;
 
-mod skills;
+#[doc(hidden)]
+pub mod skills;
 
 pub(crate) use skills::load_skills_page_config;
 
@@ -175,7 +176,8 @@ pub fn salesforce_config() -> Option<Arc<systemprompt_web_admin::SalesforceConfi
     )
 }
 
-fn log_and_discard_err<T: Clone>(
+#[doc(hidden)]
+pub fn log_and_discard_err<T: Clone>(
     lock: &OnceLock<Result<Option<T>, String>>,
     init: fn() -> Result<Option<T>, ConfigError>,
     msg: &str,

@@ -13,7 +13,7 @@ use systemprompt_web_admin::salesforce_org::{Connection, OrgSpec, TargetOrg, dif
 
 use super::print_changes;
 
-pub(crate) async fn run_apply(
+pub async fn run_apply(
     conn: &Connection,
     spec_path: &Path,
     target: &TargetOrg,
@@ -142,21 +142,33 @@ async fn repair_after_deploy(
 // apply. The metadata half is independently useful, and refusing to configure
 // an org because a Postgres container is down would be the wrong trade.
 async fn collect_assignees(extra: Vec<String>) -> (Vec<String>, Option<String>) {
-    let (mut names, note) = match load_db_usernames().await {
-        Ok(names) => (names, None),
+    match load_db_usernames().await {
+        Ok(names) => (merge_assignees(names, extra), None),
         Err(e) => (
-            Vec::new(),
-            Some(format!(
-                "could not read Salesforce usernames from the platform database ({e}). \
-                 Only the --user values were assigned; re-run this apply once the \
-                 database is reachable to assign everyone else."
-            )),
+            merge_assignees(Vec::new(), extra),
+            Some(db_unreachable_note(&e)),
         ),
-    };
-    names.extend(extra);
-    names.sort();
-    names.dedup();
-    (names, note)
+    }
+}
+
+/// Combine the database usernames with the `--user` values into the assignment
+/// list: one entry per username, in a stable order.
+#[doc(hidden)]
+pub fn merge_assignees(mut from_db: Vec<String>, extra: Vec<String>) -> Vec<String> {
+    from_db.extend(extra);
+    from_db.sort();
+    from_db.dedup();
+    from_db
+}
+
+/// The follow-up printed when the database could not be read.
+#[doc(hidden)]
+pub fn db_unreachable_note(error: &str) -> String {
+    format!(
+        "could not read Salesforce usernames from the platform database ({error}). \
+         Only the --user values were assigned; re-run this apply once the \
+         database is reachable to assign everyone else."
+    )
 }
 
 async fn load_db_usernames() -> Result<Vec<String>, String> {

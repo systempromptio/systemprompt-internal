@@ -51,6 +51,7 @@ pub use services::salesforce_org;
 pub use types::{CreateUserRequest, MarketplaceContext, UserContext, UserSummary, UserUsageEvent};
 
 pub mod test_support {
+    pub use crate::handlers::hooks_track::ai_summary_types::SessionAnalysis;
     pub use crate::handlers::resolve_principal;
     pub use crate::handlers::salesforce_auth::select_sf_username;
 }

@@ -24,6 +24,7 @@
 //! nobody — including the operator running this command — holds it yet.
 
 pub mod hosted_mcp;
+pub mod lookup;
 pub mod package;
 pub mod permissions;
 

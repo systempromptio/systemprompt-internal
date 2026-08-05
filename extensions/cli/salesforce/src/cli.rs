@@ -1,35 +1,37 @@
 //! Command-line surface: the clap types and the default spec location.
 //!
 //! Shape only. Every subcommand's behaviour lives in
-//! [`crate::commands`](crate::commands).
+//! [`crate::commands`].
 
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 use systemprompt_web_admin::salesforce_org::spec::SPEC_RELATIVE_PATH;
 
-#[derive(Parser)]
+#[derive(Debug, Parser)]
 #[command(
     name = "salesforce",
     about = "Export, diff and apply Salesforce org configuration as code",
     long_about = "Reads SF_TARGET_MY_DOMAIN, SF_TARGET_CONSUMER_KEY, SF_TARGET_JWT_SUBJECT \
                   and SF_TARGET_PRIVATE_KEY to authenticate via the RFC 7523 JWT-bearer grant."
 )]
-pub(crate) struct Cli {
+/// The parsed command line: a spec path plus one subcommand.
+pub struct Cli {
     #[arg(
         long,
         global = true,
         default_value_t = default_spec_path(),
         help = "Path to the desired-state spec."
     )]
-    pub(crate) spec: String,
+    pub spec: String,
 
     #[command(subcommand)]
-    pub(crate) command: Command,
+    pub command: Command,
 }
 
-#[derive(Subcommand)]
-pub(crate) enum Command {
+/// What to do with the target org.
+#[derive(Debug, Subcommand)]
+pub enum Command {
     /// Read the target org and print it as an org spec.
     Export {
         /// Write to this file instead of stdout.
@@ -59,6 +61,7 @@ pub(crate) enum Command {
     },
 }
 
-fn default_spec_path() -> String {
+/// Where the committed spec lives, relative to the repository root.
+pub fn default_spec_path() -> String {
     format!("services/{SPEC_RELATIVE_PATH}")
 }

@@ -3,7 +3,7 @@
 //! `export` and `diff` are read-only and live here; `apply` is the write path
 //! and lives in [`apply`].
 
-pub(crate) mod apply;
+pub mod apply;
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -13,7 +13,7 @@ use systemprompt_web_admin::salesforce_org::{Connection, OrgSpec, TargetOrg, exp
 
 use crate::cli::{Cli, Command};
 
-pub(crate) async fn run(cli: Cli) -> Result<ExitCode, String> {
+pub async fn run(cli: Cli) -> Result<ExitCode, String> {
     let spec_path = PathBuf::from(&cli.spec);
     let target = TargetOrg::from_env().map_err(|e| e.to_string())?;
     let conn = Connection::connect(&target)
@@ -75,7 +75,7 @@ async fn run_diff(
     })
 }
 
-pub(crate) fn print_changes(changes: &diff::ChangeSet) {
+pub fn print_changes(changes: &diff::ChangeSet) {
     let drift = changes.drift();
     if drift.is_empty() {
         println!("No drift: the org matches the spec on every readable field.");

@@ -90,10 +90,37 @@ secrets:
   source: file
 extensions:
   disabled: []
-providers: []
+# One provider, because a gateway route naming a provider outside this list is
+# refused at profile load. Nothing here is reachable: the suite issues no
+# inference, and `gateway.enabled` is false.
+providers:
+- name: anthropic
+  wire: anthropic
+  surface: anthropic
+  endpoint: https://api.anthropic.com/v1
+  api_key_secret: anthropic
+  models:
+  - id: claude-contract-model
+    pricing:
+      input_per_million: 1.0
+      output_per_million: 1.0
+      cache_read_per_million: 0.1
+      cache_write_per_million: 1.0
+      per_image_cents: null
 gateway:
   enabled: false
-  routes: []
+  # Two routes so the per-user catalog and the after-the-fact ACL detector
+  # have something to iterate: with an empty list both loops run zero times
+  # and every case against them passes vacuously. `claude-*` is the wildcard
+  # the detector matches recorded requests against; the second route proves
+  # a rule on one does not silently apply to the other.
+  routes:
+  - id: contract-claude
+    model_pattern: claude-*
+    provider: anthropic
+  - id: contract-gpt
+    model_pattern: gpt-*
+    provider: anthropic
   default_provider: null
   allow_unlisted_models: false
   auth_scheme: bearer

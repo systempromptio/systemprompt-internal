@@ -7,7 +7,7 @@
 //! them unchanged would be a claim the tool cannot support: it has not read
 //! them and does not know.
 //!
-//! The reporting vocabulary lives in [`change`].
+//! The reporting vocabulary lives in the private `change` module.
 
 mod change;
 

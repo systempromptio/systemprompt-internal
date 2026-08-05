@@ -1,0 +1,85 @@
+//! Pure lookups over the query results [`permissions`](super::permissions)
+//! joins.
+//!
+//! Apply decides what to create by matching rows it already read against the
+//! spec. Those matches are ordinary functions over JSON, so they live here
+//! rather than being buried inside the `async` functions that hold the
+//! connection.
+
+/// Read a string field, treating a missing field and a non-string field alike.
+#[must_use]
+pub fn str_field(value: &serde_json::Value, field: &str) -> Option<String> {
+    value
+        .get(field)
+        .and_then(serde_json::Value::as_str)
+        .map(str::to_owned)
+}
+
+/// Escape a value for interpolation into a SOQL string literal.
+///
+/// SOQL literals are single-quoted with backslash escapes. These values are
+/// Salesforce usernames and permission set API names rather than free text, but
+/// building a query by concatenation without escaping is the kind of thing that
+/// stops being true later.
+#[must_use]
+pub fn soql_escape(raw: &str) -> String {
+    raw.replace('\\', "\\\\").replace('\'', "\\'")
+}
+
+/// Render values as a quoted, comma-separated SOQL `IN` list.
+#[must_use]
+pub fn soql_list(values: &[&str]) -> String {
+    values
+        .iter()
+        .map(|v| format!("'{}'", soql_escape(v)))
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+/// The record id of the External Client App with this developer name.
+#[must_use]
+pub fn find_app_id(apps: &[serde_json::Value], developer_name: &str) -> Option<String> {
+    apps.iter()
+        .find(|a| str_field(a, "DeveloperName").as_deref() == Some(developer_name))
+        .and_then(|a| str_field(a, "Id"))
+}
+
+/// The record id of the permission set with this API name.
+#[must_use]
+pub fn find_permission_set_id(permsets: &[serde_json::Value], name: &str) -> Option<String> {
+    permsets
+        .iter()
+        .find(|p| str_field(p, "Name").as_deref() == Some(name))
+        .and_then(|p| str_field(p, "Id"))
+}
+
+/// The record id of the user with this username.
+#[must_use]
+pub fn find_user_id(users: &[serde_json::Value], username: &str) -> Option<String> {
+    users
+        .iter()
+        .find(|u| str_field(u, "Username").as_deref() == Some(username))
+        .and_then(|u| str_field(u, "Id"))
+}
+
+/// Whether a `SetupEntityAccess` row already grants this app to this
+/// permission set.
+#[must_use]
+pub fn grant_exists(grants: &[serde_json::Value], permset_id: &str, app_id: &str) -> bool {
+    grants.iter().any(|g| {
+        str_field(g, "ParentId").as_deref() == Some(permset_id)
+            && str_field(g, "SetupEntityId").as_deref() == Some(app_id)
+    })
+}
+
+/// Whether the queried `PermissionSetAssignment` rows already include this
+/// permission set.
+#[must_use]
+pub fn holds_permission_set(held: &[serde_json::Value], name: &str) -> bool {
+    held.iter().any(|h| {
+        h.get("PermissionSet")
+            .and_then(|p| str_field(p, "Name"))
+            .as_deref()
+            == Some(name)
+    })
+}

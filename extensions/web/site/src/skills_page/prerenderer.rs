@@ -32,14 +32,16 @@ const CATEGORY_ORDER: [&str; 5] = [
     "Platform & Operations",
 ];
 
-fn category_rank(name: &str) -> usize {
+#[doc(hidden)]
+pub fn category_rank(name: &str) -> usize {
     CATEGORY_ORDER
         .iter()
         .position(|c| *c == name)
         .unwrap_or(CATEGORY_ORDER.len())
 }
 
-fn group_by_category(skills: &[SkillEntry]) -> Vec<serde_json::Value> {
+#[doc(hidden)]
+pub fn group_by_category(skills: &[SkillEntry]) -> Vec<serde_json::Value> {
     let mut grouped: BTreeMap<String, Vec<&SkillEntry>> = BTreeMap::new();
     for skill in skills {
         let category = skill

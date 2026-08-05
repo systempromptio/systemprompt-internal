@@ -42,7 +42,10 @@ pub(crate) fn load_skills_page_config() -> Result<Option<Arc<SkillsPageConfig>>,
     Ok(Some(Arc::new(SkillsPageConfig { skills })))
 }
 
-fn read_skills_dir(skills_dir: &std::path::Path) -> Result<Option<std::fs::ReadDir>, ConfigError> {
+#[doc(hidden)]
+pub fn read_skills_dir(
+    skills_dir: &std::path::Path,
+) -> Result<Option<std::fs::ReadDir>, ConfigError> {
     match std::fs::read_dir(skills_dir) {
         Ok(entries) => Ok(Some(entries)),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
@@ -59,7 +62,8 @@ fn read_skills_dir(skills_dir: &std::path::Path) -> Result<Option<std::fs::ReadD
     }
 }
 
-fn parse_skill_entries(entries: std::fs::ReadDir) -> Vec<SkillEntry> {
+#[doc(hidden)]
+pub fn parse_skill_entries(entries: std::fs::ReadDir) -> Vec<SkillEntry> {
     entries
         .flatten()
         .filter(|entry| entry.path().is_dir())
