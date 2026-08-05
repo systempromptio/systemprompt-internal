@@ -958,13 +958,44 @@ claude CODE GATEWAY="http://localhost:8080":
         just clean-client-build
     fi
 
-    # The client is a separate workspace, so `just build` does not produce it.
-    # Build it here rather than telling the user to — it is a prerequisite of
-    # this recipe, not a decision they need to make.
+    # Resolve the client. A local release build wins when there is one — that
+    # is the developer iterating on the client itself. Otherwise take the
+    # published tarball off the gateway, the same asset the installer uses.
+    #
+    # Why not build it: bridge/ depends on systemprompt-bridge by relative path
+    # into a sibling systemprompt-core checkout, and that crate is not
+    # published. Building here would make this recipe need a second repository,
+    # and a multi-minute compile would routinely outlive the code's 10-minute
+    # TTL — the code would expire while the user waited for their own build.
     BRIDGE="{{justfile_directory()}}/bridge/target/release/astound-bridge"
     if [ ! -f "$BRIDGE" ] || [ ! -x "$BRIDGE" ]; then
-        echo "Client not built yet — building it (first run takes a few minutes)."
-        just bridge-build
+        ASSET="astound-bridge-linux-x86_64.tar.gz"
+        CACHE="{{justfile_directory()}}/.build/client"
+        BRIDGE="$CACHE/astound-bridge"
+        # The download runs on the host, so it uses the gateway as given rather
+        # than the container-facing rewrite above.
+        BASE="{{GATEWAY}}/files/downloads"
+        if [ ! -x "$BRIDGE" ]; then
+            echo "Fetching the client from $BASE"
+            mkdir -p "$CACHE"
+            TMP="$(mktemp -d)"
+            trap 'rm -rf "$TMP"' EXIT
+            curl -fsSL -o "$TMP/$ASSET" "$BASE/$ASSET" \
+                || { echo "ERROR: client download failed: $BASE/$ASSET" >&2
+                     echo "       Is the gateway running? 'just start'" >&2; exit 1; }
+            curl -fsSL -o "$TMP/$ASSET.sha256" "$BASE/$ASSET.sha256" \
+                || { echo "ERROR: checksum file missing: $BASE/$ASSET.sha256" >&2; exit 1; }
+            EXPECTED="$(cut -d' ' -f1 < "$TMP/$ASSET.sha256")"
+            ACTUAL="$(sha256sum "$TMP/$ASSET" | cut -d' ' -f1)"
+            [ "$EXPECTED" = "$ACTUAL" ] \
+                || { echo "ERROR: checksum mismatch — refusing to run." >&2
+                     echo "       expected $EXPECTED" >&2
+                     echo "       actual   $ACTUAL" >&2; exit 1; }
+            tar xzf "$TMP/$ASSET" -C "$TMP"
+            mv "$TMP"/astound-bridge-*/astound-bridge "$BRIDGE"
+            chmod +x "$BRIDGE"
+            echo "    ok  $ACTUAL"
+        fi
     fi
 
     PORTS=()

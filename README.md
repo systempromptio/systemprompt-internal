@@ -130,6 +130,25 @@ just publish          # rebuild templates, CSS, JS, assets
 systemprompt --help   # discover the CLI
 ```
 
+## Upgrading core
+
+Two ways to depend on `systemprompt-core`, chosen by the `[patch.crates-io]`
+blocks in `Cargo.toml` and `tests/Cargo.toml`:
+
+```bash
+# Published release from crates.io — patch blocks commented out.
+just core-bump X.Y.Z
+
+# Local sibling checkout, for a core change that is not released yet —
+# patch blocks uncommented in BOTH manifests, pins set to the core version.
+just build && just prepare && just verify
+```
+
+Either way the core version in both manifests must match the version you are
+building against; a mismatch drops the patch silently. Core ships its own
+migrations, so run the new binary once against your database. Details and the
+release procedure: [docs/RELEASING.md](docs/RELEASING.md).
+
 ---
 
 <div align="center">

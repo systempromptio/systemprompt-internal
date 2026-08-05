@@ -44,6 +44,7 @@ Every tool call passes through four synchronous stages before execution: **scope
 - MCP-native — governance is the transport, not a proxy.
 - Identity: `users.roles` is a free-text `TEXT[]` array; `admin` is just a role string. System-originated work (scheduled jobs, hooks, MCP) runs under an explicit `owner:` declared per resource in `services/scheduler/config.yaml`. The owner is a real admin user — there is no separate "system" user. Every governance audit row carries `(user_id, actor_kind, actor_id)`: see `services/content/documentation/authentication.md`.
 - Compile-time extension model via the [`inventory`](https://docs.rs/inventory) crate.
+- Core pins live in **two** manifests (`Cargo.toml`, `tests/Cargo.toml`). A stale pin silently disables `[patch.crates-io]` and builds against crates.io instead — see `docs/RELEASING.md` Step A0 before upgrading core.
 - Configuration is YAML under `services/`, not a database UI.
 - Air-gap capable.
 

@@ -40,9 +40,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       libdbus-1-3 \
     && rm -rf /var/lib/apt/lists/*
 
-RUN npm install -g @anthropic-ai/claude-code@latest \
-    && npm cache clean --force
-
 # Playwright + Chromium, so the dev_test skill ("no change is done until
 # Playwright proves it") works out of the box against a mounted project.
 # INSTALL_BROWSERS=0 gives the slim bridge-integration-only variant — the
@@ -77,7 +74,29 @@ RUN apt-get update && apt-get install -y --no-install-recommends sudo \
 
 COPY --chmod=0755 entrypoint.sh /usr/local/bin/entrypoint.sh
 
+# Claude Code installs as tester, into a tester-owned npm prefix, because its
+# auto-updater writes the new version into that prefix at run time. Installed as
+# root it lands in a root-owned prefix and every session opens with "Auto-update
+# failed: no write permission to npm prefix".
+#
+# The prefix is /opt, not $HOME: /home/tester is a named volume at run time
+# (`just claude`), and a volume that already exists shadows whatever the image
+# put there — so a HOME install would silently disappear on the second run.
+#
+# /etc/profile.d because the session is entered through a login shell
+# (`bash -lc claude`), and /etc/profile resets PATH unconditionally, dropping
+# the ENV set below.
+ENV NPM_CONFIG_PREFIX=/opt/npm-global \
+    PATH=/opt/npm-global/bin:$PATH
+RUN install -d -o tester -g tester /opt/npm-global \
+    && printf 'export NPM_CONFIG_PREFIX=/opt/npm-global\nexport PATH=/opt/npm-global/bin:$PATH\n' \
+       > /etc/profile.d/npm-global.sh
+
 USER tester
+
+RUN npm install -g @anthropic-ai/claude-code@latest \
+    && npm cache clean --force
+
 WORKDIR /home/tester/work
 
 # ASTOUND_BRIDGE_GATEWAY_URL is the one setting that must point back out of the
