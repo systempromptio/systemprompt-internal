@@ -86,6 +86,3 @@ just record-svgs infra                             # all infrastructure scenes
 
 ---
 
-## License
-
-MIT - See [LICENSE](https://github.com/systempromptio/systemprompt-template/blob/main/LICENSE) for details.

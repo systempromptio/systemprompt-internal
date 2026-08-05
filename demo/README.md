@@ -546,6 +546,3 @@ SVG terminal recordings and video recording infrastructure are in `recording/`. 
 
 ---
 
-## License
-
-MIT — see [LICENSE](https://github.com/systempromptio/systemprompt-template/blob/main/LICENSE) for details.

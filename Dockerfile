@@ -43,8 +43,7 @@ LABEL org.opencontainers.image.title="systemprompt" \
       org.opencontainers.image.source="https://github.com/systempromptio/systemprompt-template" \
       org.opencontainers.image.url="https://systemprompt.io" \
       org.opencontainers.image.documentation="https://github.com/systempromptio/systemprompt-template/tree/main/docs" \
-      org.opencontainers.image.vendor="systemprompt.io" \
-      org.opencontainers.image.licenses="MIT AND BUSL-1.1"
+      org.opencontainers.image.vendor="systemprompt.io"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \

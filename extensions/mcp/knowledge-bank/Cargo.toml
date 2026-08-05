@@ -3,7 +3,6 @@ name = "systemprompt-mcp-knowledge-bank"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
-license.workspace = true
 description = "Stub knowledge-bank MCP server: project-context search over seeded transcript/Jira/Confluence fixtures, standing in for Astound's RAG MCP until the real endpoint is connected."
 repository.workspace = true
 homepage.workspace = true

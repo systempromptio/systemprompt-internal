@@ -11,8 +11,6 @@
 The Astound Digital branded AI governance platform. One self-hosted binary governs inference, auditing, and every tool call across your AI fleet. Any agent, any model, any provider.
 
 [![Built on systemprompt-core](https://img.shields.io/badge/built%20on-systemprompt--core-2b6cb0?style=flat-square)](https://github.com/systempromptio/systemprompt-core)
-[![Template · MIT](https://img.shields.io/badge/template-MIT-16a34a?style=flat-square)](LICENSE)
-[![Core · BSL--1.1](https://img.shields.io/badge/core-BSL--1.1-2b6cb0?style=flat-square)](https://github.com/systempromptio/systemprompt-core/blob/main/LICENSE)
 [![Rust 1.94+](https://img.shields.io/badge/rust-1.94+-f97316?style=flat-square&logo=rust&logoColor=white)](https://www.rust-lang.org/)
 [![PostgreSQL 18](https://img.shields.io/badge/postgres-18-336791?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 
@@ -61,7 +59,7 @@ just start           # governance + agents + MCP + admin on :8080
 just setup-local <anthropic_key> [openai_key] [gemini_key]
 ```
 
-Second clone on the same host? Override the ports: `just setup-local <key> "" "" 8081 5433`.
+Defaults are `8080` and `5432`. A second clone on the same host overrides both: `just setup-local <key> "" "" 8081 5436`.
 
 ### 4. Connect Claude Code
 
@@ -94,6 +92,8 @@ To configure the host instead of a container: `just connect <code>`. That writes
 ### Verifying from a clean state
 
 Run after any change to the connect path. The failure mode is silent — a machine holding a valid credential skips sign-in and still exits 0.
+
+This section runs on `8081`/`5436` rather than the `8080`/`5432` defaults, so the test instance coexists with a gateway already running. Substitute the defaults if nothing else is up.
 
 ```bash
 git clone https://github.com/systempromptio/systemprompt-astound fresh && cd fresh
@@ -129,14 +129,6 @@ just preflight        # the CI gate: static → lint → tests → coverage
 just publish          # rebuild templates, CSS, JS, assets
 systemprompt --help   # discover the CLI
 ```
-
----
-
-## License
-
-**This template** is [MIT](LICENSE). Fork it, modify it, use it however you like.
-
-**[systemprompt-core](https://github.com/systempromptio/systemprompt-core)** is [BSL-1.1](https://github.com/systempromptio/systemprompt-core/blob/main/LICENSE): free for evaluation, testing, and non-production use. Production use requires a commercial license. Each version converts to Apache 2.0 four years after publication. Licensing enquiries: [ed@systemprompt.io](mailto:ed@systemprompt.io).
 
 ---
 

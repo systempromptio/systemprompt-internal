@@ -2,8 +2,6 @@
 # Verify every production extension source opens with a `//!` module head.
 #
 # The head is where a module states its purpose and its place in the layering.
-# Unlike systemprompt-core, the template carries no per-file license reference
-# (the repo is MIT and licenses at the root), so only the doc head is asserted.
 #
 # Inner attributes (`#![allow(...)]`) may precede the head, so the check scans
 # the first few lines rather than only line 1.

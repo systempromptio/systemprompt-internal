@@ -1,6 +1,6 @@
 # AGENTS.md — systemprompt-astound
 
-Astound Digital's branded fork of the [systemprompt.io](https://systemprompt.io) evaluation template. Stand up a complete AI governance binary with demo data in under 10 minutes. MIT licensed.
+Astound Digital's branded fork of the [systemprompt.io](https://systemprompt.io) evaluation template. Stand up a complete AI governance binary with demo data in under 10 minutes.
 
 ## What this is
 
@@ -49,7 +49,7 @@ Every tool call passes through four synchronous stages before execution: **scope
 
 ## Licensing
 
-This template is **MIT licensed**. Fork it, modify it, ship it. The underlying `systemprompt-core` crate is BSL-1.1 (source-available, free for evaluation, commercial licence for production).
+Fork it, modify it, ship it.
 
 ## Links
 

@@ -3,7 +3,6 @@ name = "systemprompt-cli-salesforce"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
-license.workspace = true
 description = "CLI extension for the systemprompt.io template: export, diff and apply Salesforce org configuration as code."
 repository.workspace = true
 homepage.workspace = true

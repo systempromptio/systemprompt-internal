@@ -35,6 +35,3 @@ Run `../00-preflight.sh` first.
 
 ---
 
-## License
-
-MIT - See [LICENSE](https://github.com/systempromptio/systemprompt-template/blob/main/LICENSE) for details.

@@ -36,12 +36,6 @@
           meta = with pkgs.lib; {
             description = "AI governance gateway for Claude, OpenAI, and Gemini";
             homepage = "https://systemprompt.io";
-            # Template package is MIT (this flake builds the template's source).
-            # The compiled artifact links systemprompt-core which is BSL-1.1;
-            # see CONFLICT IN BINARY DISTRIBUTION below — production users need
-            # a commercial licence for systemprompt-core, but Nix's `meta.license`
-            # tracks source licence only, so MIT here is correct.
-            license = licenses.mit;
             platforms = platforms.unix;
           };
         };

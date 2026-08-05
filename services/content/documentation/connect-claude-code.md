@@ -118,8 +118,10 @@ curl -fsSL https://your-gateway/files/downloads/install.sh | sh -s -- \
 Run after any change to the connect path. The failure mode is silent — a machine
 holding a valid credential skips sign-in and still exits 0.
 
-Clone to a new directory with no profile and no sibling checkout, on its own
-ports:
+Clone to a new directory with no profile and no sibling checkout. The commands
+below use `8081`/`5436` rather than the `8080`/`5432` defaults so the test
+instance coexists with a running gateway; substitute the defaults if nothing
+else is up.
 
 ```bash
 git clone https://github.com/systempromptio/systemprompt-astound.git fresh && cd fresh

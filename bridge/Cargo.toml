@@ -10,7 +10,6 @@ name = "astound-bridge"
 version = "0.1.0"
 edition = "2024"
 authors = ["Astound Digital <ed@tyingshoelaces.com>"]
-license = "MIT"
 description = "Astound Digital desktop bridge — branded build of the systemprompt bridge."
 publish = false
 build = "build.rs"
