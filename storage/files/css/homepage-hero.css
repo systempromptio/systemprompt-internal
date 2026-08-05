@@ -6,7 +6,10 @@ body.has-video-hero .site-header {
   pointer-events: none;
 }
 
-body.has-video-hero .site-header .logo-link {
+body.has-video-hero .site-header .logo-link,
+body.has-video-hero .site-header .nav-links,
+body.has-video-hero .site-header .mobile-menu-toggle,
+body.has-video-hero .site-header .mobile-menu-overlay {
   pointer-events: auto;
 }
 
@@ -17,12 +20,6 @@ body.has-video-hero .site-nav {
 
 body.has-video-hero .logo-link {
   padding: var(--sp-space-2) 0;
-}
-
-body.has-video-hero .site-header .nav-links,
-body.has-video-hero .site-header .mobile-menu-toggle,
-body.has-video-hero .site-header .mobile-menu-overlay {
-  display: none;
 }
 
 .hero-pane .hero-eyebrow {
