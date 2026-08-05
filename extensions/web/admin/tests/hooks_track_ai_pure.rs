@@ -1,3 +1,11 @@
+#![allow(
+    clippy::expect_used,
+    clippy::panic,
+    clippy::needless_pass_by_value,
+    clippy::redundant_clone,
+    reason = "test code: panics are the assertion mechanism and clones keep fixtures readable"
+)]
+
 //! The parts of `/hooks/track`'s AI analysis that never reach a model: the
 //! request context it stamps, the context block it assembles, the tool schema
 //! it advertises, and the clamping every model response is put through before
