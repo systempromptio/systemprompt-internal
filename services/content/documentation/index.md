@@ -35,6 +35,16 @@ team.
 *Prerequisites: Salesforce admin access and shell access to the deployment.
 About an hour, once per organization.*
 
+## I am a developer running this locally
+
+**[Connect Claude Code →](/documentation/connect-claude-code)**
+
+You want the gateway on your own machine and Claude Code talking through it.
+Clone, build, start, then one command with a one-shot code from your profile
+page. Includes how to verify the whole flow from a genuinely clean state.
+
+*Prerequisites: Docker, just, a Rust toolchain, and one provider API key.*
+
 ## I want to use Salesforce in plain English
 
 **[Your Salesforce Day →](/documentation/use-case-salesforce-user)**

@@ -40,13 +40,12 @@ Ports `8080` (HTTP) and `5432` (Postgres) must be free.
 
 ### 2. Clone
 
-The workspace builds against a sibling checkout of core via the `[patch.crates-io]` block in `Cargo.toml`. Clone both, side by side:
-
 ```bash
-git clone https://github.com/systempromptio/systemprompt-core
 git clone https://github.com/systempromptio/systemprompt-astound
 cd systemprompt-astound
 ```
+
+One repository is enough: the workspace builds against the published `systemprompt` release from crates.io. The `[patch.crates-io]` blocks in `Cargo.toml` and `tests/Cargo.toml` are commented out and are only uncommented — in lockstep, since `[patch]` applies per-workspace — to work against a sibling checkout of core while a change to it is unreleased.
 
 ### 3. Set up and start
 
@@ -77,6 +76,38 @@ That builds the client, starts a clean container, signs it in with your code, an
 Every request from that session lands in your audit table with user, session, trace, tokens, and cost.
 
 The container is `astound-claude`, and its home lives in the `astound-claude-home` Docker volume so a second run reuses the stored credential instead of burning a code. Sign out with `just claude-reset`.
+
+### Verifying the flow from a clean state
+
+Worth running after any change to the connect path. The failure mode is silent: a machine that already holds a valid credential skips the sign-in entirely and still reports success.
+
+Clone into a new directory — no profile, no sibling checkout — on ports of its own so it cannot collide with a gateway you already run:
+
+```bash
+git clone https://github.com/systempromptio/systemprompt-astound fresh && cd fresh
+just setup-local <provider-key> "" "" 8081 5436
+just build
+just start
+```
+
+The fresh database has no users. Make one, promote it, and issue it a code — the same one-shot code the profile page mints, so this needs no browser:
+
+```bash
+systemprompt admin users create --email you@example.com --if-not-exists
+systemprompt admin users role promote you@example.com
+systemprompt admin bridge issue-code --user-id you@example.com
+```
+
+Clear any stored session before connecting. **This is the step that makes the test meaningful** — skip it and a surviving credential from an earlier run will carry the test:
+
+```bash
+just claude-reset
+just claude <code> http://localhost:8081
+```
+
+Read the output rather than trusting the exit code. It must say **"signing in with the supplied code"**. If it says *"already signed in — reusing the stored PAT"*, the sign-in never ran and the result proves nothing.
+
+`astound-bridge doctor` runs at the end with a pass/fail line per check. One warning is expected: the hook-token check reports no OAuth client yet, because provisioning is lazy — it happens on the first plugin hook request, not during sync.
 
 ### 5. Day-to-day
 
