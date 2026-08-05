@@ -50,15 +50,18 @@ pub async fn load_plans_from_yaml(
 
     let repo = AccessControlRepository::from_pool(Arc::new(pool.clone()));
     for org in &doc.organizations {
-        upsert_organization(pool, org).await?;
-        report.organizations_upserted += 1;
-
+        // Why: the plan must resolve before the insert, or the organizations
+        // FK fails first and the operator gets a constraint name instead of
+        // the line of YAML that is wrong.
         let Some(plan) = doc.plans.iter().find(|p| p.id == org.plan) else {
             return Err(MarketplaceError::Internal(format!(
                 "{PLANS_FILE}: organization '{}' references unknown plan '{}'",
                 org.slug, org.plan
             )));
         };
+
+        upsert_organization(pool, org).await?;
+        report.organizations_upserted += 1;
         report.grants_projected += project_grants(pool, &repo, &org.slug, &plan.grants).await?;
     }
 

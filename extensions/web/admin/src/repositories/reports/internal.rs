@@ -71,8 +71,8 @@ impl OrganizationMonthPnl {
     }
 }
 
-/// Every organization's month, ordered by margin so the accounts costing more
-/// than they pay sort to the top of the page.
+/// Every organization's month, with the operator's own tenant first and the
+/// customers after it in name order.
 pub async fn list_organization_month_pnl(
     pool: &PgPool,
     from: DateTime<Utc>,
@@ -110,7 +110,7 @@ pub async fn list_organization_month_pnl(
             WHERE m.org_id = o.id
               AND r.created_at >= $1 AND r.created_at < $2
         ) usage ON TRUE
-        ORDER BY o.is_platform, o.name
+        ORDER BY o.is_platform DESC, o.name
         "#,
         from,
         to,
