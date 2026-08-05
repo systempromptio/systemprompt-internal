@@ -22,9 +22,12 @@ drops straight into Claude Code:
 just claude <code>
 ```
 
-It runs as container `astound-claude` (not `astound-clean-client`), so a testing
-shell and a working session can coexist. Both share the `astound-clean-home`
-volume, so whichever runs second reuses the stored PAT instead of burning a code.
+It runs as container `astound-claude` with its own `astound-claude-home` volume,
+deliberately separate from this suite's `astound-clean-home`: a test run must
+not inherit a real session's PAT (it would skip the sign-in the test exists to
+exercise), and wiping the test state must not sign a user out. `just
+claude-reset` drops the session volume; `just clean-client-reset` drops the
+testing one.
 
 Point it somewhere other than this host's gateway:
 

@@ -982,7 +982,7 @@ claude CODE GATEWAY="http://localhost:8080":
         -e ASTOUND_BRIDGE_CODE="{{CODE}}" \
         -e CLEAN_CLIENT_EXEC_CLAUDE=1 \
         -e CLEAN_CLIENT_ALLOW_STATE=1 \
-        -v astound-clean-home:/home/tester \
+        -v astound-claude-home:/home/tester \
         -v "$BRIDGE:/usr/local/bin/astound-bridge:ro" \
         -v "{{justfile_directory()}}/deploy/clean-client/bootstrap.sh:/usr/local/bin/bootstrap.sh:ro" \
         "${PORTS[@]}" \
@@ -1115,6 +1115,14 @@ clean-client-ready GATEWAY="http://host.docker.internal:8080":
 # End-to-end: run the published installer with a PAT and assert managed MCP (see script header for how to mint the PAT)
 clean-client-install PAT GATEWAY="http://host.docker.internal:8080":
     GATEWAY="{{GATEWAY}}" scripts/clean-client-install.sh "{{PAT}}"
+
+# Drops the container and the PAT it stored, so the next run redeems a fresh
+# code instead of reusing the old identity.
+# Sign out of `just claude`
+claude-reset:
+    -docker rm -f astound-claude 2>/dev/null
+    -docker volume rm astound-claude-home
+    @echo "Signed out. 'just claude <code>' will start from nothing."
 
 # Wipe the persisted clean-client state volume
 clean-client-reset:
