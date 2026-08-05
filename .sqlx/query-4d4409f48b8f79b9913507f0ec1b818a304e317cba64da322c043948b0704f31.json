@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT\n            id                                  AS \"id!: AiRequestId\",\n            context_id                          AS \"context_id?: ContextId\",\n            trace_id                            AS \"trace_id?: TraceId\",\n            model                               AS \"model!\",\n            status                              AS \"status!\",\n            latency_ms                          AS \"latency_ms?\",\n            cost_microdollars                   AS \"cost_microdollars!\",\n            created_at                          AS \"created_at!\"\n        FROM ai_requests\n        WHERE session_id = $1\n        ORDER BY created_at DESC\n        LIMIT 200\n        ",
+  "query": "\n        SELECT\n            id                                  AS \"id!: AiRequestId\",\n            NULLIF(context_id, $2)              AS \"context_id?: ContextId\",\n            trace_id                            AS \"trace_id?: TraceId\",\n            model                               AS \"model!\",\n            status                              AS \"status!\",\n            latency_ms                          AS \"latency_ms?\",\n            cost_microdollars                   AS \"cost_microdollars!\",\n            created_at                          AS \"created_at!\"\n        FROM ai_requests\n        WHERE session_id = $1\n        ORDER BY created_at DESC\n        LIMIT 200\n        ",
   "describe": {
     "columns": [
       {
@@ -17,13 +17,8 @@
       {
         "ordinal": 1,
         "name": "context_id?: ContextId",
-        "type_info": "Varchar",
-        "origin": {
-          "Table": {
-            "table": "ai_requests",
-            "name": "context_id"
-          }
-        }
+        "type_info": "Text",
+        "origin": "Expression"
       },
       {
         "ordinal": 2,
@@ -94,12 +89,13 @@
     ],
     "parameters": {
       "Left": [
+        "Text",
         "Text"
       ]
     },
     "nullable": [
       false,
-      false,
+      null,
       true,
       true,
       false,
@@ -108,5 +104,5 @@
       false
     ]
   },
-  "hash": "782ad9af7c57486ab239e9b24e29820ae61389819c34cb4191dc7af7d4d2e2d5"
+  "hash": "4d4409f48b8f79b9913507f0ec1b818a304e317cba64da322c043948b0704f31"
 }
