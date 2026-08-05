@@ -961,11 +961,20 @@ claude CODE GATEWAY="http://localhost:8080":
     #!/usr/bin/env bash
     set -euo pipefail
 
-    # The page prints the gateway as the browser sees it. From inside a
-    # container localhost is the container, so rewrite it to the host alias.
+    # A local gateway binds 127.0.0.1 by default, which no container can reach:
+    # host.docker.internal resolves to the docker bridge address, and nothing is
+    # listening there. Share the host's network namespace instead, so the URL
+    # the page printed works verbatim. A remote gateway needs none of this.
     GATEWAY="{{GATEWAY}}"
-    GATEWAY="${GATEWAY//localhost/host.docker.internal}"
-    GATEWAY="${GATEWAY//127.0.0.1/host.docker.internal}"
+    NET=()
+    case "$GATEWAY" in
+        *localhost*|*127.0.0.1*)
+            NET=(--network host)
+            ;;
+        *)
+            NET=(--add-host host.docker.internal:host-gateway)
+            ;;
+    esac
 
     if [ "$(docker inspect -f '{{{{.State.Running}}}}' astound-claude 2>/dev/null)" = "true" ]; then
         echo "Already running — opening another Claude Code session in it."
@@ -991,17 +1000,21 @@ claude CODE GATEWAY="http://localhost:8080":
         just bridge-build
     fi
 
+    # 8767 is the plugin-OAuth loopback port. With --network host it is already
+    # the host's, so publishing it is both unnecessary and an error.
     PORTS=()
-    if ss -ltn 2>/dev/null | grep -q ':8767 '; then
-        echo "warn: host port 8767 already in use — not publishing it." >&2
-    else
-        PORTS+=(-p 127.0.0.1:8767:8767)
+    if [ "${NET[0]}" != "--network" ]; then
+        if ss -ltn 2>/dev/null | grep -q ':8767 '; then
+            echo "warn: host port 8767 already in use — not publishing it." >&2
+        else
+            PORTS+=(-p 127.0.0.1:8767:8767)
+        fi
     fi
 
     exec docker run -it --rm \
         --name astound-claude \
         --hostname astound-claude \
-        --add-host host.docker.internal:host-gateway \
+        "${NET[@]}" \
         -e ASTOUND_BRIDGE_GATEWAY_URL="$GATEWAY" \
         -e ASTOUND_BRIDGE_CODE="{{CODE}}" \
         -e CLEAN_CLIENT_EXEC_CLAUDE=1 \
