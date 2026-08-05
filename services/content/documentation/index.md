@@ -39,9 +39,9 @@ About an hour, once per organization.*
 
 **[Connect Claude Code →](/documentation/connect-claude-code)**
 
-You want the gateway on your own machine and Claude Code talking through it.
-Clone, build, start, then one command with a one-shot code from your profile
-page. Includes how to verify the whole flow from a genuinely clean state.
+Clone, build, start the gateway, register at `/admin/login`, then one command
+with the one-shot code from your profile page. Includes the clean-state
+verification procedure for the connect path.
 
 *Prerequisites: Docker, just, a Rust toolchain, and one provider API key.*
 

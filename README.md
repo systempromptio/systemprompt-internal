@@ -45,7 +45,7 @@ git clone https://github.com/systempromptio/systemprompt-astound
 cd systemprompt-astound
 ```
 
-One repository is enough: the workspace builds against the published `systemprompt` release from crates.io. The `[patch.crates-io]` blocks in `Cargo.toml` and `tests/Cargo.toml` are commented out and are only uncommented — in lockstep, since `[patch]` applies per-workspace — to work against a sibling checkout of core while a change to it is unreleased.
+One repository. The workspace resolves `systemprompt` from crates.io; the `[patch.crates-io]` blocks in `Cargo.toml` and `tests/Cargo.toml` are commented out. Uncomment both — `[patch]` is per-workspace — to build against a sibling `systemprompt-core` checkout while a core change is unreleased.
 
 ### 3. Set up and start
 
@@ -65,32 +65,44 @@ Second clone on the same host? Override the ports: `just setup-local <key> "" ""
 
 ### 4. Connect Claude Code
 
-Open **http://localhost:8080/admin/profile** and copy your connect code, then:
+Create an account at **http://localhost:8080/admin/login** — registration is passkey-based and gated on the configured email domain; there is no password. The code is bound to the signed-in identity, so this comes first.
+
+Then open **/admin/profile** and copy the connect code:
 
 ```bash
 just claude <code>
 ```
 
-That builds the client, starts a clean container, signs it in with your code, and drops you straight into Claude Code. Your host config is never touched — no installer runs on your machine, nothing in `~/.claude` or `~/.config` is modified.
+A new account has user permissions. Admin-only pages, the systemprompt MCP server, and the admin plugins stay hidden until it is promoted:
 
-Every request from that session lands in your audit table with user, session, trace, tokens, and cost.
+```bash
+systemprompt admin users role promote <email>
+```
 
-The container is `astound-claude`, and its home lives in the `astound-claude-home` Docker volume so a second run reuses the stored credential instead of burning a code. Sign out with `just claude-reset`.
+Sign out and back in afterwards — the admin scope is minted when the token is issued, so an existing session keeps the old one.
 
-### Verifying the flow from a clean state
+Builds the client, starts a container, redeems the code, execs `claude`. Host config is untouched: no installer runs, `~/.claude` and `~/.config` are not written.
 
-Worth running after any change to the connect path. The failure mode is silent: a machine that already holds a valid credential skips the sign-in entirely and still reports success.
+Container `astound-claude`, home volume `astound-claude-home` — a second run reuses the stored credential rather than burning a code. `just claude-reset` drops both.
 
-Clone into a new directory — no profile, no sibling checkout — on ports of its own so it cannot collide with a gateway you already run:
+Every request lands in the audit table with user, session, trace, tokens, and cost.
+
+Codes are 32 random bytes, stored hashed, 10-minute TTL, single use. The client redeems one for a durable PAT held on the machine it was issued to. `systemprompt admin bridge issue-code --user-id <email>` issues the same code without a browser.
+
+To configure the host instead of a container: `just connect <code>`. That writes `~/.config/astound/`, a managed block in `~/.profile`, `~/.claude/managed-settings.json`, `~/.local/share/Claude/org-plugins/`, and two systemd user units.
+
+### Verifying from a clean state
+
+Run after any change to the connect path. The failure mode is silent — a machine holding a valid credential skips sign-in and still exits 0.
 
 ```bash
 git clone https://github.com/systempromptio/systemprompt-astound fresh && cd fresh
-just setup-local <provider-key> "" "" 8081 5436
+just setup-local <provider-key> "" "" 8081 5436   # ports of its own
 just build
 just start
 ```
 
-The fresh database has no users. Make one, promote it, and issue it a code — the same one-shot code the profile page mints, so this needs no browser:
+The database has no users. Either register at `http://localhost:8081/admin/login` and take the code from the profile page, or stay headless — both write the same `bridge_exchange_codes` row:
 
 ```bash
 systemprompt admin users create --email you@example.com --if-not-exists
@@ -98,16 +110,16 @@ systemprompt admin users role promote you@example.com
 systemprompt admin bridge issue-code --user-id you@example.com
 ```
 
-Clear any stored session before connecting. **This is the step that makes the test meaningful** — skip it and a surviving credential from an earlier run will carry the test:
+`claude-reset` is load-bearing — without it a surviving credential carries the test:
 
 ```bash
 just claude-reset
 just claude <code> http://localhost:8081
 ```
 
-Read the output rather than trusting the exit code. It must say **"signing in with the supplied code"**. If it says *"already signed in — reusing the stored PAT"*, the sign-in never ran and the result proves nothing.
+Assert on the output, not the exit code. Pass: `signing in with the supplied code`. Fail: `already signed in — reusing the stored PAT` — sign-in never ran.
 
-`astound-bridge doctor` runs at the end with a pass/fail line per check. One warning is expected: the hook-token check reports no OAuth client yet, because provisioning is lazy — it happens on the first plugin hook request, not during sync.
+`astound-bridge doctor` runs last, one line per check. The hook-token warning is expected: OAuth client provisioning is lazy, on first plugin hook request, not during sync.
 
 ### 5. Day-to-day
 
