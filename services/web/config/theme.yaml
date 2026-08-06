@@ -12,7 +12,7 @@ branding:
   themeColor: "#f79938"
   platform_name: "Systemprompt Internal"
   support_email: "ed@tyingshoelaces.com"
-  logo_light: "/files/images/logo.svg"
+  logo_light: "/files/images/logo-dark.svg"
   logo_dark: "/files/images/logo-white.svg"
   favicon: "/files/images/favicon.ico"
   twitter_handle: "@systemprompt"

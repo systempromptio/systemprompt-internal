@@ -17,12 +17,6 @@ pub(crate) const PRIORITY_MID: u32 = 50;
 pub(crate) const PRIORITY_LOW: u32 = 90;
 pub(crate) const PRIORITY_LAST: u32 = 95;
 
-pub use super::partials_animations::{
-    AgenticMeshAnimationPartialRenderer, ArchitectureDiagramPartialRenderer,
-    CliRemoteAnimationPartialRenderer, MemoryLoopAnimationPartialRenderer,
-    RustMeshAnimationPartialRenderer,
-};
-
 #[derive(Debug, Clone, Copy)]
 pub struct HeadAssetsPartialRenderer;
 
