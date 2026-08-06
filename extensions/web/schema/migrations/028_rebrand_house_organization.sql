@@ -10,10 +10,10 @@
 -- not the rows. The name is matched explicitly so an operator who has already
 -- renamed the org keeps their choice.
 
-UPDATE marketplace.organizations
+UPDATE organizations
 SET name = 'Systemprompt Internal'
 WHERE id = 'house' AND name = 'Astound Digital';
 
-UPDATE marketplace.plans
+UPDATE plans
 SET description = 'Internal. Unlimited seats, no spend cap.'
 WHERE id = 'house' AND description = 'Astound-internal. Unlimited seats, no spend cap.';

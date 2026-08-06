@@ -126,13 +126,25 @@ async fn linking_reports_an_unconfigured_deployment_rather_than_storing_anything
         ))
         .await;
 
-    // The contract suite runs with no ODOO_URL / ODOO_DB, which is exactly the
-    // state a fresh install is in.
-    assert_eq!(
-        status,
-        StatusCode::SERVICE_UNAVAILABLE,
-        "an unconfigured server is unavailable, not a bad request: {body}"
-    );
+    // With no ODOO_URL / ODOO_DB — a fresh install — the link is refused as
+    // unavailable. A dev shell may have both set (a live local Odoo); the
+    // credentials above are bogus there, so Odoo itself refuses them. Either
+    // way the invariant below holds: nothing is stored.
+    let configured =
+        std::env::var("ODOO_URL").is_ok_and(|v| !v.is_empty()) && std::env::var("ODOO_DB").is_ok();
+    if configured {
+        assert_eq!(
+            status,
+            StatusCode::UNAUTHORIZED,
+            "a configured server must refuse bogus credentials via Odoo: {body}"
+        );
+    } else {
+        assert_eq!(
+            status,
+            StatusCode::SERVICE_UNAVAILABLE,
+            "an unconfigured server is unavailable, not a bad request: {body}"
+        );
+    }
 
     let (_, status_body) = app.call(Call::get(STATUS_PATH, Principal::NonAdmin)).await;
     let parsed: serde_json::Value =
@@ -142,8 +154,9 @@ async fn linking_reports_an_unconfigured_deployment_rather_than_storing_anything
         "a failed link must leave no credential behind: {status_body}"
     );
     assert_eq!(
-        parsed["configured"], false,
-        "and the page needs to know why the form cannot work"
+        parsed["configured"],
+        serde_json::Value::Bool(configured),
+        "and the page needs to know whether the form can work"
     );
     db.cleanup().await;
 }

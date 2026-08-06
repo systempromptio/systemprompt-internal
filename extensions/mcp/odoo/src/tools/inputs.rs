@@ -113,10 +113,17 @@ pub struct ActivityListInput {
     pub limit: Option<u32>,
 }
 
-/// `business_overview_data` takes no arguments — the briefing is defined by who
-/// is asking, not by what they ask for.
+/// `business_overview_data` takes no arguments.
+///
+/// The briefing is defined by who is asking, not by what they ask for. Braces
+/// rather than a unit struct: every MCP client sends `{}` for "no arguments",
+/// and serde refuses to read a map into a unit.
+#[expect(
+    clippy::empty_structs_with_brackets,
+    reason = "serde must accept the `{}` every MCP client sends; a unit struct rejects it"
+)]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
-pub struct OverviewInput;
+pub struct OverviewInput {}
 
 /// Clamp a caller-supplied limit into the allowed range.
 #[must_use]
