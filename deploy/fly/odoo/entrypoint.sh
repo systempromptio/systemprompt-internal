@@ -10,7 +10,7 @@ envsubst < /etc/odoo/odoo.conf.template > /tmp/odoo.conf
 MARKER=/var/lib/odoo/.sp-db-initialized
 if [ ! -f "$MARKER" ]; then
   echo "[sp-entrypoint] first boot: initializing database ${ODOO_DB_NAME}"
-  odoo -c /tmp/odoo.conf -d "${ODOO_DB_NAME}" -i base --stop-after-init
+  odoo -c /tmp/odoo.conf -d "${ODOO_DB_NAME}" -i base --without-demo=all --stop-after-init
   touch "$MARKER"
 fi
 
