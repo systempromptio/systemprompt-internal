@@ -155,7 +155,7 @@ systemprompt core skills show --help
 - `src/main.rs` is a thin entry point that delegates to the published `systemprompt` core crates (sibling checkout at `../systemprompt-core`, patched in via `[patch.crates-io]` for cross-repo work). All customization is **compile-time** via the [`inventory`](https://docs.rs/inventory) crate — there is no dynamic plugin loader.
 - Rust code lives in `extensions/`: `extensions/mcp/*` for MCP server extensions, `extensions/web` for page data and template rendering. Each MCP extension has its own crate with `Cargo.toml` + `.sqlx/` offline cache.
 - Configuration is YAML under `services/`, loaded through `services/config/config.yaml`'s explicit `includes:` list. Unknown keys error loudly (`#[serde(deny_unknown_fields)]`).
-- Governance runs as a four-stage synchronous pipeline on every tool call: **scope check → secret scan (35+ patterns) → blocklist → rate limit**. Every decision is audited to Postgres with a trace_id linking identity → agent → tool → result → cost.
+- Governance is a four-stage synchronous pipeline on every tool call: **scope check → secret scan (35+ patterns) → blocklist → rate limit**. Every decision is audited to Postgres with a trace_id linking identity → agent → tool → result → cost. **All four stages are disabled in this installation** (`services/governance/config.yaml`), as are the gateway safety scanners (`services/gateway/policies.yaml`) — both files carry the reason and the instructions to switch them back on. The chain still runs and still audits: calls are recorded as `decision=allow, policy=governance_disabled`. Authentication is separate and is *not* disabled — an invalid or expired token is still denied, with `policy=authentication`. Do not disable governance by deleting the config file: a missing file falls back to defaults, which is all four stages **enabled**.
 - Per-clone Docker Postgres: `just db-up / db-down / db-logs [tenant=local]`. Project name is derived from a hash of the repo path, so multiple clones on one host get isolated containers and volumes. There is no destructive reset recipe — recover migration checksum drift in place with `just repair-migrations`.
 - Deploy flow: `just build-all` (release binary + MCP servers + web assets) then `just deploy`. The `publish_pipeline` job also runs automatically at server startup.
 
@@ -221,16 +221,17 @@ For live tailing while reproducing an issue: `infra logs view --follow --since 3
 
 ## Services Configuration
 
-All runtime configuration lives as flat YAML files under `services/`. The root `services/config/config.yaml` is a thin aggregator with an explicit `includes:` list — every resource file must be listed.
+All runtime configuration lives as YAML under `services/`. The root `services/config/config.yaml` is a thin aggregator with an explicit `includes:` list — every **flat** resource file must be listed there. Skills and plugins are the exception: they are auto-discovered from their nested directories and must *not* be added to `includes:`.
 
 ```
 services/
-  config/config.yaml        Root aggregator (includes all resource files)
-  agents/<id>.yaml          Flat agent definitions
+  config/config.yaml        Root aggregator (includes the flat resource files)
+  agents/<id>.yaml          Flat agent definitions (none ship here — see below)
   mcp/<name>.yaml           Flat MCP server definitions
-  skills/<id>.yaml          Flat skill definitions
-  skills/<id>.md            Skill instruction bodies (referenced via !include)
-  plugins/<name>.yaml       Flat plugin binding descriptors
+  skills/<id>/config.yaml   Skill definitions (nested dir, auto-discovered)
+  plugins/<id>/config.yaml  Plugin binding descriptors (nested dir, auto-discovered)
+  governance/config.yaml    Policy chain (disabled here — see Architecture)
+  gateway/policies.yaml     Gateway quotas + safety scanners (scanners off here)
   ai/config.yaml            AI provider config
   scheduler/config.yaml     Job scheduler
   web/config.yaml           Web frontend config (full WebConfig)
@@ -238,6 +239,8 @@ services/
 ```
 
 Unknown YAML keys cause loud errors at load time (`#[serde(deny_unknown_fields)]`). Nested `includes:` resolve recursively. Plugin YAMLs are binding descriptors that reference top-level agents, skills, mcp servers, and content sources by id — never inline copies.
+
+**This instance ships no A2A agents.** `services/config/config.yaml` says so explicitly: nothing under `services/agents/`, nothing spawned on the agent port range, and no `agents/<id>.md` in any plugin bundle. Skills, MCP servers and artifacts carry the capability instead — so `admin agents list` returning nothing is the correct answer here, not a fault.
 
 ---
 
@@ -314,23 +317,27 @@ This runs (in order): `bundle_admin_css` -> `copy_extension_assets` -> `content_
 
 ## Plugins
 
-Plugins are flat YAML files under `services/plugins/<name>.yaml` that aggregate agents, skills, mcp servers, and content sources by reference:
+Each plugin is a directory holding one `config.yaml` — `services/plugins/<id>/config.yaml` — auto-discovered, so it is **not** listed in the root aggregator's `includes:`. The file's root key is `plugin:` (singular; one plugin per file). It aggregates agents, skills, mcp servers, and content sources by reference:
 
 ```yaml
-plugins:
-  enterprise-demo:
-    id: enterprise-demo
-    name: "Astound Digital"
-    version: "2.0.0"
-    enabled: true
-    agents:
-      include: []
-    skills:
-      include:
-        - example_web_search
-        - use_dangerous_secret
-    mcp_servers: []
-    content_sources: []
+plugin:
+  id: astound-commons
+  name: "Astound Commons — Workspace Setup"
+  version: "2.0.0"
+  enabled: true
+  skills:
+    source: explicit
+    include:
+      - cowork_setup
+      - apply_brand_voice
+  agents:
+    source: explicit
+    include: []
+  mcp_servers: {}
 ```
 
+`source:` selects where members come from — keep it `explicit` and list ids under `include:`. Leaving it to default to `Instance` makes the plugin claim every skill and agent on the instance, which is how the marketplace once showed every plugin with all 230 skills.
+
 Every id listed must resolve to a real top-level resource in `services/`. `ServicesConfig::validate()` enforces this at load time.
+
+Skills follow the same nested shape: `services/skills/<id>/config.yaml`, with the instruction body beside it.

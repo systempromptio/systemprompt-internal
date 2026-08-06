@@ -81,7 +81,7 @@ Organised by the three pillars of [systemprompt.io](https://systemprompt.io): **
 | Integrations | [web/](web/) | 2 | Content types, templates, sitemaps, validation | Free |
 | Integrations | [performance/](performance/) | 2 | Request tracing, 2000-request load test | Free |
 
-**Total: 43 category scripts + 2 setup scripts. 42 free, 1 costs ~$0.01.** Plus two multi-container scenarios — see [Scenarios](#scenarios--factsheet-proofs).
+**Total: 46 category scripts + 2 setup scripts. 45 free, 1 costs ~$0.01.** Plus two multi-container scenarios — see [Scenarios](#scenarios--factsheet-proofs).
 
 ---
 
@@ -520,23 +520,44 @@ Empty analytics / governance tables:
 
 ## Verification status
 
-All 43 category demos + 2 setup scripts + both scenario stacks were run end-to-end on **2026-06-04** against template `v0.15.0`. Every script exited `0`, and every demo's structured-data assertions (`✓ PASS` lines) held against live seeded data.
+The free suite (45 category demos + 2 setup scripts) was run end-to-end on
+**2026-08-06** against core `0.29.0` — on a *fresh clone*, provisioned from
+nothing by `just setup-local`, so the run proves the first-time path and not an
+already-warm working copy. Every script exited `0` with 51 passing assertions
+and no failures. The paid `agents/03-agent-messaging.sh` was not re-run. The
+counts below are the scripts on disk.
+
+**What the governance demos prove here.** Governance is disabled in this
+installation — all four stages are `enabled: false` in
+`services/governance/config.yaml`, and `services/gateway/policies.yaml` lists no
+safety scanners. Both files carry the reason and the instructions to switch them
+back on. So these demos do **not** prove denial; they prove the audit spine —
+every call is recorded against its caller as
+`decision=allow, policy=governance_disabled`. Enable the stages and the same
+scripts assert the denials instead. Authentication is separate and still
+enforced: an invalid or expired token is denied with `policy=authentication`.
 
 | Set | Count | Result |
 |-----|------:|--------|
 | Setup (preflight, seed) | 2 | All pass |
 | infrastructure/ | 5 | All pass |
-| governance/ | 9 | All pass |
+| governance/ | 11 | All pass (denial demos assert the disabled-chain audit) |
 | mcp/ | 3 | All pass |
 | analytics/ | 8 | All pass |
-| agents/ | 5 | All pass (incl. paid `03-agent-messaging.sh`) |
+| agents/ | 5 | 4 pass; paid `03-agent-messaging.sh` not re-run |
 | users/ | 4 | All pass |
-| skills/ | 5 | All pass |
+| skills/ | 6 | All pass |
 | web/ | 2 | All pass |
 | performance/ | 2 | All pass (incl. 2000-request load test) |
-| scenarios/airgap (just airgap-test) | 3 | All pass |
-| scenarios/scaled (just scaled-test) | 3 | All pass — long soak (`02-soak.sh`) excluded by design |
-| **Total** | **51** | **All pass** |
+| **Total (free suite + setup)** | **47** | **All pass** |
+| scenarios/airgap (just airgap-test) | 3 | Not re-run since 2026-06-04 |
+| scenarios/scaled (just scaled-test) | 3 | Not re-run since 2026-06-04 |
+
+`agents/01` and `agents/02` read the A2A registry rather than naming
+`developer_agent` / `associate_agent`: this instance ships no A2A agents, so
+they report an empty registry and exit clean. `skills/01` likewise shows
+whichever skill the registry lists first, because the `use_dangerous_secret`
+example skill no longer ships.
 
 ---
 
