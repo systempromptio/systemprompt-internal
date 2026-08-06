@@ -14,10 +14,9 @@ pub(crate) struct UnlinkResponse {
     unlinked: bool,
 }
 
-// Why: unlinking Odoo cannot lock anyone out — it is not a sign-in method, only
-// a CRM credential — so unlike the old Salesforce disconnect there is no
-// passkey precondition here. It does stop every odoo tool call for this user,
-// which the profile page says before it posts.
+// Why: no passkey precondition here. An Odoo credential is not a sign-in
+// method, so dropping it cannot lock anyone out. It does stop every odoo tool
+// call for this user, which the profile page says before it posts.
 pub(crate) async fn odoo_unlink(
     Extension(user_ctx): Extension<UserContext>,
     Extension(deps): Extension<AuthDeps>,
