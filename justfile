@@ -757,6 +757,21 @@ setup-local ANTHROPIC_KEY="" OPENAI_KEY="" GEMINI_KEY="" HTTP_PORT="8080" PG_POR
             # chosen port so the gateway's govern callback reaches this server.
             "$BIN" admin config governance set --mode webhook \
                 --url "http://localhost:${HTTP_PORT}/api/public/govern/authz"
+            # jwt_issuer is baked on the default port too, and it is not
+            # cosmetic: it is the base a client resolves
+            # `{iss}/.well-known/jwks.json` against. Left at :8080 on a
+            # non-default port, every external verifier (the bridge, Claude
+            # Code) fetches the signing keys of whatever else is on :8080 —
+            # or nothing — and rejects this server's tokens as minted under an
+            # unknown authority.
+            "$BIN" admin config security set \
+                --jwt-issuer "http://localhost:${HTTP_PORT}"
+            # Same for CORS: the seeded origins name :8080, so the admin UI
+            # served from the chosen port is refused by its own API.
+            "$BIN" admin config server cors add "http://localhost:${HTTP_PORT}" || true
+            "$BIN" admin config server cors add "http://127.0.0.1:${HTTP_PORT}" || true
+            "$BIN" admin config server cors remove "http://localhost:8080" || true
+            "$BIN" admin config server cors remove "http://127.0.0.1:8080" || true
         fi
     elif [ "$HAS_KEY" = true ]; then
         # Profile generation is one-shot, guarded on profile.yaml. `just db-down`
@@ -829,13 +844,14 @@ profiles:
 # Content and skills are ingested from services/ at server startup and by
 # `just publish` (publish_pipeline job); there is no separate local sync command.
 
-# Push to cloud
-sync-push *ARGS:
-    {{CLI}} cloud sync push "$@"
+# Core 0.29.0 removed `cloud sync`. Pushing is `just deploy` (cloud deploy),
+# and pulling is `cloud backup`, which downloads the tenant's runtime services/
+# tree. The old sync-push / sync-pull recipes called a command that no longer
+# exists, so they are gone rather than aliased to something they never were.
 
-# Pull from cloud
-sync-pull *ARGS:
-    {{CLI}} cloud sync pull "$@"
+# Download the tenant's runtime services/ tree (--list to inspect first)
+backup *ARGS:
+    {{CLI}} cloud backup "$@"
 
 # ══════════════════════════════════════════════════════════════════════════════
 # DEPLOY
@@ -963,7 +979,10 @@ claude CODE="" GATEWAY="http://localhost:8080":
     set -euo pipefail
 
     # The page prints the gateway as a browser sees it. Inside a container
-    # localhost is the container, so rewrite it to the host alias.
+    # localhost is the container, so rewrite it to the host alias. Keep the
+    # original too: reaching it from the host is what separates "the gateway is
+    # down" from "the gateway is up but the container cannot route to it".
+    HOST_GATEWAY="{{GATEWAY}}"
     GATEWAY="{{GATEWAY}}"
     GATEWAY="${GATEWAY//localhost/host.docker.internal}"
     GATEWAY="${GATEWAY//127.0.0.1/host.docker.internal}"
@@ -1020,19 +1039,92 @@ claude CODE="" GATEWAY="http://localhost:8080":
     # already consumed. --entrypoint is required: the image's entrypoint would
     # otherwise swallow this as its own arguments, print its banner, and exit 0,
     # so the check would pass without making a request.
-    if ! docker run --rm --entrypoint curl \
+    gateway_reachable() {
+        docker run --rm --entrypoint curl \
             --add-host host.docker.internal:host-gateway \
             astound-clean-client:local \
-            -sf --max-time 5 "$GATEWAY/health" >/dev/null 2>&1; then
+            -sf --max-time 5 "$GATEWAY/health" >/dev/null 2>&1
+    }
+
+    if ! gateway_reachable; then
+        # Separate the two causes before touching anything. If the gateway does
+        # not answer on the host either, it is down or on another port, and
+        # rebinding it would be treating the wrong illness — Docker Desktop and
+        # WSL2 proxy host.docker.internal to host loopback, so a 127.0.0.1 bind
+        # is genuinely reachable there and the bind is often not the problem.
+        if ! curl -sf --max-time 5 "$HOST_GATEWAY/health" >/dev/null 2>&1; then
+            echo "ERROR: the gateway is not answering at $HOST_GATEWAY" >&2
+            echo "" >&2
+            echo "  It is not reachable from this host either, so it is down or" >&2
+            echo "  listening on another port — not a container routing problem." >&2
+            echo "  Start it, then re-run:" >&2
+            echo "" >&2
+            echo "      just start" >&2
+            echo "      just server-status" >&2
+            echo "" >&2
+            echo "  Your code has not been used." >&2
+            exit 1
+        fi
+
+        # The gateway is up on the host but the container cannot route to it.
+        # On native Linux Docker that is exactly what a loopback bind causes,
+        # and widening it is the documented remedy. Any other bind is left
+        # alone rather than guessed at.
+        if [ -x target/release/systemprompt ]; then
+            SP="{{ justfile_directory() }}/target/release/systemprompt"
+        else
+            SP="{{ justfile_directory() }}/target/debug/systemprompt"
+        fi
+        # `show` prints its labels on stderr and its values on stdout, so the
+        # human-readable form cannot be parsed by name. The JSON artifact can.
+        # A parse failure yields an empty host, which matches nothing below and
+        # so declines to remediate rather than guessing.
+        BOUND_HOST="$("$SP" --json admin config server show --profile local 2>/dev/null \
+            | python3 -c "import json,sys; d=json.load(sys.stdin); print(next((s.get('content','') for s in d.get('sections',[]) if s.get('heading')=='host'),''))" \
+            2>/dev/null || true)"
+
+        if [ "$BOUND_HOST" = "127.0.0.1" ] || [ "$BOUND_HOST" = "localhost" ]; then
+            echo "notice: the gateway is bound to $BOUND_HOST, which no container can" >&2
+            echo "        route to. Rebinding it to 0.0.0.0 and restarting." >&2
+            echo "        This widens the gateway to your LAN — revert with:" >&2
+            echo "            systemprompt admin config server set --host 127.0.0.1" >&2
+            # Two things about this restart. `restart` needs an explicit target
+            # — a bare `restart` exits 1 with "Must specify target (api, agent,
+            # mcp)" — and the bind only affects the API listener, so restarting
+            # `api` leaves the MCP servers up. And it SERVES in the foreground
+            # rather than returning, so it has to be detached or it would hang
+            # here forever; readiness is established by polling below, not by
+            # the command exiting.
+            "$SP" admin config server set --host 0.0.0.0 --profile local >/dev/null
+            nohup "$SP" infra services restart api --profile local \
+                >/dev/null 2>&1 &
+
+            READY=0
+            for _ in $(seq 1 45); do
+                if gateway_reachable; then READY=1; break; fi
+                sleep 1
+            done
+            if [ "$READY" -eq 0 ]; then
+                echo "warn: the API server did not come back within 45s." >&2
+                echo "      Check it with: just server-status" >&2
+            fi
+        fi
+    fi
+
+    if ! gateway_reachable; then
         echo "ERROR: the container cannot reach the gateway at $GATEWAY" >&2
         echo "" >&2
-        echo "  A gateway bound to 127.0.0.1 is reachable from this host and from" >&2
-        echo "  nowhere else — no container can route to it. Bind it to 0.0.0.0:" >&2
+        echo "  The gateway answers on this host, so it is running — but the" >&2
+        echo "  container cannot route to it, and it is bound to" >&2
+        echo "  ${BOUND_HOST:-an unspecified host}, which rebinding did not fix." >&2
+        echo "  Something between the two is in the way: a firewall on the" >&2
+        echo "  docker bridge, or a docker network without host-gateway." >&2
         echo "" >&2
-        echo "      systemprompt admin config server set --host 0.0.0.0" >&2
-        echo "      just start          # restart for it to take effect" >&2
+        echo "      just server-status" >&2
+        echo "      curl -sf $HOST_GATEWAY/health      # from this host" >&2
         echo "" >&2
-        echo "  Your code has not been used. Re-run this once the gateway is bound." >&2
+        echo "  Your code has not been used. Re-run this once the container can" >&2
+        echo "  reach the gateway." >&2
         exit 1
     fi
 
