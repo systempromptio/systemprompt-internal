@@ -28,7 +28,17 @@ for cfg in "$SKILLS_DIR"/*/config.yaml; do
 done
 echo ""
 
-subheader "STEP 3: Show use_dangerous_secret (full config + instructions)"
-run_cli_head 40 core skills show use_dangerous_secret
+# Show whichever skill the registry reports first rather than a hard-coded id.
+# The old `use_dangerous_secret` example skill no longer ships — the catalogue
+# was rebuilt Salesforce-first — and naming any single skill here just means
+# this demo breaks again the next time the catalogue changes.
+subheader "STEP 3: Show one skill in full (config + instructions)"
+# The list rows key the skill as `skill_id`; `name` is the display title
+# ("Find Accounts"), which `skills show` does not resolve.
+SKILL_ID="$(cli_json core skills list | jq -r '.items[0] | (.skill_id // .id) // empty')"
+assert_nonempty "$SKILL_ID" "a skill is registered to show"
+echo "  showing: $SKILL_ID"
+echo ""
+run_cli_head 40 core skills show "$SKILL_ID"
 
 header "SKILL LIFECYCLE DEMO COMPLETE" "Showed: list, nested config layout"

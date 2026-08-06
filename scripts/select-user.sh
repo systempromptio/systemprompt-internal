@@ -33,9 +33,18 @@ fi
 # Rows for one role as TSV: id, email, name, roles. `--status active` keeps
 # deleted and suspended accounts out of the menu — `--role` matches on role
 # alone, so without it a deleted admin is offered as a valid pick.
+#
+# Non-UUID ids are dropped. The demo-organizations migration seeds fixture
+# users with string ids (`demo-nw-1`, `demo-co-1`, …) and marks two of them
+# admin, so on a fresh database they sort into the admin block and get picked
+# first — and then `admin keys issue-plugin-token` refuses the id outright
+# ("is not a valid UUID"), taking the whole demo suite down at preflight. They
+# are display fixtures for the reports, never identities to act as.
 _sel_list_role() { # $1=role
   "$CLI" --json admin users list --role "$1" --status active --limit 200 --profile "$PROFILE" 2>/dev/null \
-    | jq -r '.items[]? | [.id, .email, (.name // .display_name // ""), ((.roles // []) | join(","))] | @tsv' \
+    | jq -r '.items[]?
+        | select(.id | test("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"))
+        | [.id, .email, (.name // .display_name // ""), ((.roles // []) | join(","))] | @tsv' \
     || true
 }
 
