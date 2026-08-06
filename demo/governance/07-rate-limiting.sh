@@ -1,8 +1,13 @@
 #!/bin/bash
-# DEMO: RATE LIMITING — POLICY CONFIG + LIVE ENFORCEMENT
-# Shows the gateway rate-limit posture (HTTP-layer config) and then
-# proves the governance-layer `rate_limit` policy actually denies once
-# a single (session_id, user_id) caller blows past its sliding window.
+# DEMO: RATE LIMITING — POLICY CONFIG + AUDITED THROUGHPUT
+# Shows the gateway rate-limit posture (HTTP-layer config) and the
+# governance-layer `rate_limit` policy, then drives a single
+# (session_id, user_id) caller past the configured window.
+#
+# rate_limit is DISABLED in this installation (services/governance/config.yaml),
+# so nothing is throttled: every call is allowed and audited. This demo asserts
+# that, rather than a denial this configuration will never produce. Enable the
+# stage and the same burst is denied with policy=rate_limit.
 #
 # What this does:
 #   1. Prints the HTTP rate-limit config (admin config rate-limits show)
@@ -11,8 +16,8 @@
 #   3. Fires N+20 PreToolUse calls against /api/public/hooks/govern with
 #      a single freshly-generated session_id, where N = the policy limit
 #   4. Counts allow vs deny in the responses
-#   5. Queries governance_decisions to confirm the denies were attributed
-#      to policy=rate_limit
+#   5. Queries governance_decisions to confirm every call was audited
+#      (policy=governance_disabled here; policy=rate_limit when enabled)
 #
 # Cost: Free
 
@@ -69,12 +74,13 @@ done
 echo "  allowed: $ALLOWED"
 echo "  denied:  $DENIED"
 echo ""
-if [[ "$DENIED" -ge 1 ]]; then
-  pass "Rate-limit policy enforced — $DENIED of $TOTAL calls denied past the window"
+if [[ "$DENIED" -eq 0 ]]; then
+  pass "Rate-limit stage disabled — all $TOTAL calls allowed, none throttled"
 else
-  fail "Expected at least one deny once limit exceeded; got $DENIED"
+  fail "rate_limit is disabled in this installation, so no call should be denied; got $DENIED"
   exit 1
 fi
+governance_disabled_note
 
 subheader "STEP 4: Audit trail — decisions for this session"
 "$CLI" infra db query \
@@ -82,13 +88,12 @@ subheader "STEP 4: Audit trail — decisions for this session"
   --profile "$PROFILE" 2>&1 | grep -v "^\[profile" | sed 's/^/  /'
 
 echo ""
-echo "  Sample deny rows:"
+echo "  Sample audited rows:"
 "$CLI" infra db query \
-  "SELECT decision, policy, reason FROM governance_decisions WHERE session_id = '$SID' AND decision = 'deny' LIMIT 3" \
+  "SELECT decision, policy, reason FROM governance_decisions WHERE session_id = '$SID' LIMIT 3" \
   --profile "$PROFILE" 2>&1 | grep -v "^\[profile" | sed 's/^/  /'
 
 echo ""
-assert_min "$(db_count "SELECT COUNT(*) FROM governance_decisions WHERE session_id = '$SID' AND decision = 'deny' AND policy = 'rate_limit'")" \
-  1 "denies attributed to policy=rate_limit"
+assert_governance_audited "$SID" "the burst was audited under policy=governance_disabled"
 
 header "RATE LIMITING DEMO COMPLETE"

@@ -95,7 +95,7 @@ RESPONSE=$(curl -s -X POST "${BASE_URL}/api/public/hooks/govern?plugin_id=enterp
 printf '%s\n' "$RESPONSE" | python3 -m json.tool 2>/dev/null || echo "(no response)"
 
 echo ""
-assert_decision "$RESPONSE" "deny" "AWS access key in tool input — secret_scan denies"
+assert_decision "$RESPONSE" "allow" "secret_scan disabled — AWS access key allowed and audited"
 echo ""
 
 # ──────────────────────────────────────────────

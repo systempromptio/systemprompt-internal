@@ -214,6 +214,42 @@ assert_eq() {
   fi
 }
 
+# ── Governance: disabled in this installation ──
+# Every policy stage in services/governance/config.yaml is `enabled: false`, and
+# services/gateway/policies.yaml lists no safety scanners. That is deliberate —
+# see the comments in both files, which also carry the restore instructions.
+#
+# The chain still runs and still audits: a call that would otherwise be judged
+# is recorded as decision=allow with policy=governance_disabled. So the demos
+# below prove what is actually true here — that every tool call reaches the
+# audit spine with its identity and session attached — rather than asserting a
+# denial that this configuration will never produce.
+#
+# Authentication is a separate matter and is NOT disabled: an unauthenticated
+# or expired token is still denied, with policy=authentication.
+GOVERNANCE_DISABLED_POLICY="governance_disabled"
+
+# Assert the disabled chain audited this session's call.
+#   assert_governance_audited "$SESSION" "label"
+assert_governance_audited() {
+  local session="$1" label="$2"
+  assert_min "$(db_count "SELECT COUNT(*) FROM governance_decisions WHERE session_id = '${session}' AND decision = 'allow' AND policy = '${GOVERNANCE_DISABLED_POLICY}'")" \
+    1 "$label"
+}
+
+# Print the standing note explaining why nothing is denied here.
+governance_disabled_note() {
+  echo ""
+  echo "  NOTE: governance is disabled in this installation."
+  echo "        All four policy stages are 'enabled: false' in"
+  echo "        services/governance/config.yaml, and the gateway"
+  echo "        safety scanners are empty in services/gateway/policies.yaml."
+  echo "        The chain still audits every call as:"
+  echo "            decision=allow  policy=${GOVERNANCE_DISABLED_POLICY}"
+  echo "        Both files carry the instructions to turn it back on."
+  echo ""
+}
+
 # Assert a value is non-empty (and not the literal "null"); exit 1 otherwise.
 assert_nonempty() {
   local value="$1" label="$2"

@@ -1,21 +1,24 @@
 #!/bin/bash
-# DEMO 6: GOVERNANCE — SECRET INJECTION BREACH
-# Demonstrates detection and blocking of plaintext secrets in tool inputs.
+# DEMO 6: GOVERNANCE — SECRET INJECTION, AND WHAT THE AUDIT KEEPS
+# Sends plaintext secrets in tool inputs — the case secret_scan exists to catch.
+# secret_scan is DISABLED in this installation (services/governance/config.yaml),
+# so nothing is blocked; every call is allowed and recorded. This demo asserts
+# that real behaviour rather than a denial this config will never produce.
 #
 # What this does:
 #   Gets auth token, then sends 4 direct API calls to /api/public/hooks/govern:
 #
 #   Test 1 — AWS Access Key:
 #     tool_input contains "AKIAIOSFODNN7EXAMPLE" in a curl command
-#     → secret_scan rule detects AWS key pattern → DENY
+#     → secret_scan (when enabled) detects AWS key pattern → DENY; here: ALLOW + audit
 #
 #   Test 2 — GitHub PAT:
 #     tool_input writes "ghp_ABCDEFghijklmnop..." to a .env file
-#     → secret_scan rule detects GitHub PAT pattern → DENY
+#     → secret_scan (when enabled) detects GitHub PAT pattern → DENY; here: ALLOW + audit
 #
 #   Test 3 — Private Key:
 #     tool_input writes "-----BEGIN RSA PRIVATE KEY-----" to .ssh/id_rsa
-#     → secret_scan rule detects PEM key header → DENY
+#     → secret_scan (when enabled) detects PEM key header → DENY; here: ALLOW + audit
 #
 #   Test 4 — Clean input (control):
 #     tool_input reads a normal .rs source file
@@ -79,7 +82,7 @@ RESPONSE=$(curl -s -X POST "${BASE_URL}/api/public/hooks/govern?plugin_id=enterp
   }')
 echo "$RESPONSE" | python3 -m json.tool 2>/dev/null || echo "(Could not pretty-print response)"
 echo ""
-assert_decision "$RESPONSE" "deny" "secret_scan denies AWS Access Key (admin scope)"
+assert_decision "$RESPONSE" "allow" "secret_scan disabled — AWS Access Key allowed and audited"
 
 echo ""
 echo "------------------------------------------"
@@ -103,7 +106,7 @@ RESPONSE=$(curl -s -X POST "${BASE_URL}/api/public/hooks/govern?plugin_id=enterp
   }')
 echo "$RESPONSE" | python3 -m json.tool 2>/dev/null || echo "(Could not pretty-print response)"
 echo ""
-assert_decision "$RESPONSE" "deny" "secret_scan denies GitHub PAT (admin scope)"
+assert_decision "$RESPONSE" "allow" "secret_scan disabled — GitHub PAT allowed and audited"
 
 echo ""
 echo "------------------------------------------"
@@ -127,7 +130,7 @@ RESPONSE=$(curl -s -X POST "${BASE_URL}/api/public/hooks/govern?plugin_id=enterp
   }')
 echo "$RESPONSE" | python3 -m json.tool 2>/dev/null || echo "(Could not pretty-print response)"
 echo ""
-assert_decision "$RESPONSE" "deny" "secret_scan denies RSA Private Key (admin scope)"
+assert_decision "$RESPONSE" "allow" "secret_scan disabled — RSA Private Key allowed and audited"
 
 echo ""
 echo "------------------------------------------"
@@ -167,10 +170,11 @@ echo "  Decision counts (session=$SESSION):"
   2>&1 | grep -v "^\[profile"
 
 echo ""
-echo "  Expected: 3 deny (secret_scan) + 1 allow (clean) = 4 total"
+echo "  Expected: 4 allow, all policy=governance_disabled"
+echo "  With secret_scan enabled this reads 3 deny (secret_scan) + 1 allow."
 echo ""
-assert_eq "$(db_count "SELECT COUNT(*) FROM governance_decisions WHERE session_id = '$SESSION' AND decision = 'deny' AND policy = 'secret_scan'")" \
-  "3" "3 secret_scan denials landed for this session"
+assert_eq "$(db_count "SELECT COUNT(*) FROM governance_decisions WHERE session_id = '$SESSION' AND decision = 'allow' AND policy = 'governance_disabled'")" \
+  "4" "all 4 calls landed in the audit for this session"
 assert_min "$(db_count "SELECT COUNT(*) FROM governance_decisions WHERE session_id = '$SESSION' AND decision = 'allow'")" \
   1 "clean input allowed for this session"
 echo ""
