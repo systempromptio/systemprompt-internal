@@ -36,7 +36,7 @@ clones it.
 ## Setup
 
 ```bash
-git clone https://github.com/systempromptio/systemprompt-astound.git && cd systemprompt-astound
+git clone https://github.com/systempromptio/systemprompt-internal.git && cd systemprompt-internal
 just setup-local     # profile, Docker Postgres, migrations, publish pipeline
 just build
 just bridge-build    # Claude Code client; clones systemprompt-core beside this repo
@@ -146,7 +146,7 @@ instance coexists with a running gateway; substitute the defaults if nothing
 else is up.
 
 ```bash
-git clone https://github.com/systempromptio/systemprompt-astound.git fresh && cd fresh
+git clone https://github.com/systempromptio/systemprompt-internal.git fresh && cd fresh
 just setup-local <provider-key> "" "" 8081 5436
 just build
 just bridge-build

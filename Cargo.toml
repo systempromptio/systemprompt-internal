@@ -31,9 +31,9 @@ opt-level = "z"
 edition = "2024"
 rust-version = "1.94"
 version = "0.21.0"
-authors = ["Astound Digital <ed@tyingshoelaces.com>"]
-repository = "https://github.com/systempromptio/systemprompt-astound"
-homepage = "https://astounddigital.com"
+authors = ["systemprompt.io <ed@tyingshoelaces.com>"]
+repository = "https://github.com/systempromptio/systemprompt-internal"
+homepage = "https://systemprompt.io"
 documentation = "https://systemprompt.io/documentation"
 
 [workspace.dependencies]
@@ -208,14 +208,14 @@ single_use_lifetimes = "warn"
 # ROOT PACKAGE (Template Application)
 # ============================================
 [package]
-name = "systemprompt-astound"
+name = "systemprompt-internal"
 version.workspace = true
 edition.workspace = true
-description = "Astound Digital branded AI governance platform — local evaluation. A single compiled Rust binary that authenticates, authorises, rate-limits, logs, and costs every AI interaction. Self-hosted, air-gap capable, provider-agnostic. Built on systemprompt-core."
+description = "Systemprompt Internal — AI business management on Odoo. A single compiled Rust binary that authenticates, authorises, rate-limits, logs, and costs every AI interaction. Self-hosted, air-gap capable, provider-agnostic. Built on systemprompt-core."
 readme = "README.md"
-repository = "https://github.com/systempromptio/systemprompt-astound"
-homepage = "https://astounddigital.com"
-documentation = "https://astounddigital.com"
+repository = "https://github.com/systempromptio/systemprompt-internal"
+homepage = "https://systemprompt.io"
+documentation = "https://systemprompt.io/documentation"
 keywords = ["ai", "governance", "mcp", "agents", "claude"]
 categories = ["command-line-utilities", "web-programming"]
 

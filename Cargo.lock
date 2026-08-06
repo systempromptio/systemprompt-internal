@@ -4998,7 +4998,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "systemprompt-astound"
+name = "systemprompt-internal"
 version = "0.21.0"
 dependencies = [
  "anyhow",

@@ -32,77 +32,77 @@ extensions/web/src/lib.rs	# brand: crate doc names the product
 # not drift. Converging these would mean shipping one product's pages
 # from the other's binary.
 # ---------------------------------------------------------------------
-extensions/web/admin/src/handlers/users.rs	# astound adds extract_mcp_accessor_user, accepting an Mcp-audience JWT for the Salesforce token accessor
-extensions/web/admin/src/lib.rs	# astound mounts the Salesforce token + Slack alert surface; template mounts the bridge plugin-file plane
-extensions/mcp/systemprompt/src/server/mod.rs	# astound serves artifact resources by URI (parse/read/shell template); template serves only the viewer resource
-extensions/web/src/schemas.rs	# astound ships the Salesforce identity schema
-extensions/web/jobs/src/llms_txt.rs	# template emits a blog section; astound has no blog
-extensions/web/site/src/lib.rs	# template ships blog + features sections; astound ships the skills page
+extensions/web/admin/src/handlers/users.rs	# internal adds extract_mcp_accessor_user, accepting an Mcp-audience JWT for the Salesforce token accessor
+extensions/web/admin/src/lib.rs	# internal mounts the Salesforce token + Slack alert surface; template mounts the bridge plugin-file plane
+extensions/mcp/systemprompt/src/server/mod.rs	# internal serves artifact resources by URI (parse/read/shell template); template serves only the viewer resource
+extensions/web/src/schemas.rs	# internal ships the Salesforce identity schema
+extensions/web/jobs/src/llms_txt.rs	# template emits a blog section; internal has no blog
+extensions/web/site/src/lib.rs	# template ships blog + features sections; internal ships the skills page
 extensions/web/site/src/navigation/provider.rs	# the blog nav link exists in the template only
-extensions/web/site/src/assets/css.rs	# template ships feature-page CSS; astound ships skills-page and showreel CSS
-extensions/web/site/src/assets/mod.rs	# astound serves the homepage showreel video
-extensions/web/site/src/homepage/mod.rs	# the template homepage renders the demo showcase; astound's does not, so the scanner and its config types are gone
-extensions/web/site/src/homepage/config/mod.rs	# no `demos` section: astound's homepage has no demo showcase to configure
+extensions/web/site/src/assets/css.rs	# template ships feature-page CSS; internal ships skills-page and showreel CSS
+extensions/web/site/src/assets/mod.rs	# internal serves the homepage showreel video
+extensions/web/site/src/homepage/mod.rs	# the template homepage renders the demo showcase; internal's does not, so the scanner and its config types are gone
+extensions/web/site/src/homepage/config/mod.rs	# no `demos` section: internal's homepage has no demo showcase to configure
 
-# The template ships an SSR governance policy editor that astound does not. It
+# The template ships an SSR governance policy editor that internal does not. It
 # needs every policy to declare the file it is defined in so the page can link
-# to it "as code"; in astound the field and its accessors would be dead code.
-extensions/web/admin/src/handlers/ssr/mod.rs	# template ships the SSR governance policy editor; astound does not
+# to it "as code"; in internal the field and its accessors would be dead code.
+extensions/web/admin/src/handlers/ssr/mod.rs	# template ships the SSR governance policy editor; internal does not
 extensions/web/admin/src/handlers/webhook/governance/mod.rs	# re-exports the policy editor the template alone mounts
-extensions/web/src/extension.rs	# astound loads a Salesforce SSO config and a skills-page config; template loads a feature-pages config
-extensions/web/src/extension_impl.rs	# astound mounts the Salesforce router and skills-page prerenderer; template mounts blog providers, feature prerenderers, the bridge router and an oauth-client seed
-extensions/web/admin/src/routes/ssr.rs	# astound mounts the Salesforce auth routes and the enterprise console, and opens platform admins on /admin/enterprises; template mounts the governance routes and always redirects to /admin/profile
+extensions/web/src/extension.rs	# internal loads a Salesforce SSO config and a skills-page config; template loads a feature-pages config
+extensions/web/src/extension_impl.rs	# internal mounts the Salesforce router and skills-page prerenderer; template mounts blog providers, feature prerenderers, the bridge router and an oauth-client seed
+extensions/web/admin/src/routes/ssr.rs	# internal mounts the Salesforce auth routes and the enterprise console, and opens platform admins on /admin/enterprises; template mounts the governance routes and always redirects to /admin/profile
 
-# Astound is a pooled multi-tenant instance: its console is a cross-customer
+# Internal is a pooled multi-tenant instance: its console is a cross-customer
 # view of organizations, plans, and margin, gated on membership of the platform
 # tenant. The template is single-tenant, has no such tenant to belong to, and
 # gates on the admin role alone.
-extensions/web/admin/src/types/user_context.rs	# astound carries is_platform_admin alongside is_admin
-extensions/web/admin/src/handlers/ssr/context.rs	# astound exposes is_platform_admin to the page shell, which is what the nav renders on
-extensions/web/admin/src/middleware/gates.rs	# astound adds the platform-admin gate guarding the cross-customer pages
-extensions/web/admin/src/handlers/ssr/types/mod.rs	# declares astound's enterprise page context types
-extensions/web/admin/src/handlers/ssr/ssr_demo_help/mod.rs	# astound explains the enterprise console; the template has no such page
-extensions/web/admin/src/handlers/ssr/ssr_management/departments.rs	# astound derives department entitlement from the enterprise plan, so it has no access-matrix link to pass the template
-extensions/web/admin/tests/authz_marketplace_pure.rs	# astound tests the organization subject dimension at precedence 300; the template has one tenant and no such band
-extensions/web/admin/tests/util_ranges.rs	# astound covers util::month_range behind its enterprise reports; the template has only util::time_range
-extensions/web/admin/src/authz/mod.rs	# astound registers the organization subject dimension at precedence 300; the template has one tenant and no such band
-extensions/web/admin/src/repositories/config/acl_yaml_loader.rs	# astound reads a third bootstrap file, plans.yaml, and projects each plan's grants onto its organizations
-extensions/web/admin/src/repositories/users/mutations.rs	# astound resolves the new user's organization from their email domain and refuses a full plan, so creation returns MarketplaceError rather than sqlx::Error
+extensions/web/admin/src/types/user_context.rs	# internal carries is_platform_admin alongside is_admin
+extensions/web/admin/src/handlers/ssr/context.rs	# internal exposes is_platform_admin to the page shell, which is what the nav renders on
+extensions/web/admin/src/middleware/gates.rs	# internal adds the platform-admin gate guarding the cross-customer pages
+extensions/web/admin/src/handlers/ssr/types/mod.rs	# declares internal's enterprise page context types
+extensions/web/admin/src/handlers/ssr/ssr_demo_help/mod.rs	# internal explains the enterprise console; the template has no such page
+extensions/web/admin/src/handlers/ssr/ssr_management/departments.rs	# internal derives department entitlement from the enterprise plan, so it has no access-matrix link to pass the template
+extensions/web/admin/tests/authz_marketplace_pure.rs	# internal tests the organization subject dimension at precedence 300; the template has one tenant and no such band
+extensions/web/admin/tests/util_ranges.rs	# internal covers util::month_range behind its enterprise reports; the template has only util::time_range
+extensions/web/admin/src/authz/mod.rs	# internal registers the organization subject dimension at precedence 300; the template has one tenant and no such band
+extensions/web/admin/src/repositories/config/acl_yaml_loader.rs	# internal reads a third bootstrap file, plans.yaml, and projects each plan's grants onto its organizations
+extensions/web/admin/src/repositories/users/mutations.rs	# internal resolves the new user's organization from their email domain and refuses a full plan, so creation returns MarketplaceError rather than sqlx::Error
 
 
 
 # ---------------------------------------------------------------------
-# BRIDGE - astound ships a white-label desktop client (bridge/) that signs
+# BRIDGE - internal ships a white-label desktop client (bridge/) that signs
 # in over /bridge-auth/device-link. The template retired that plane and
 # renamed its credentials to access tokens. Converging would delete the
-# endpoint astound's own binary calls at runtime.
+# endpoint internal's own binary calls at runtime.
 # ---------------------------------------------------------------------
-extensions/web/admin/src/error.rs	# astound carries a BridgeRepo error variant; the template's is AccessTokenRepo
-extensions/web/admin/src/routes/mod.rs	# astound exports bridge_auth_ssr_router alongside the admin router
-extensions/web/admin/src/routes/admin.rs	# astound issues per-device PATs under /users/:id/devices; the template issues account access tokens
-extensions/web/admin/src/middleware/mod.rs	# astound keeps auth_me_handler, which the bridge polls to confirm a linked session
-extensions/web/admin/src/handlers/ssr/ssr_management/mod.rs	# astound's fleet page lists devices and their online state; the template lists access tokens
-extensions/web/admin/src/handlers/ssr/ssr_profile/mod.rs	# astound assembles a bridge profile block (device certs, exchange codes)
-extensions/web/admin/src/handlers/ssr/ssr_users/data.rs	# astound loads each user's devices and per-device PATs
-extensions/web/admin/src/handlers/ssr/ssr_users/mod.rs	# astound's user detail reports device connectivity, not request counts
-extensions/web/admin/src/handlers/ssr/ssr_users/view.rs	# astound renders device freshness from last heartbeat, not last request
+extensions/web/admin/src/error.rs	# internal carries a BridgeRepo error variant; the template's is AccessTokenRepo
+extensions/web/admin/src/routes/mod.rs	# internal exports bridge_auth_ssr_router alongside the admin router
+extensions/web/admin/src/routes/admin.rs	# internal issues per-device PATs under /users/:id/devices; the template issues account access tokens
+extensions/web/admin/src/middleware/mod.rs	# internal keeps auth_me_handler, which the bridge polls to confirm a linked session
+extensions/web/admin/src/handlers/ssr/ssr_management/mod.rs	# internal's fleet page lists devices and their online state; the template lists access tokens
+extensions/web/admin/src/handlers/ssr/ssr_profile/mod.rs	# internal assembles a bridge profile block (device certs, exchange codes)
+extensions/web/admin/src/handlers/ssr/ssr_users/data.rs	# internal loads each user's devices and per-device PATs
+extensions/web/admin/src/handlers/ssr/ssr_users/mod.rs	# internal's user detail reports device connectivity, not request counts
+extensions/web/admin/src/handlers/ssr/ssr_users/view.rs	# internal renders device freshness from last heartbeat, not last request
 extensions/web/admin/src/handlers/ssr/types/users.rs	# UserDeviceView has no counterpart in the template
-extensions/web/admin/src/repositories/users/mod.rs	# astound persists devices, federated identities and salesforce identities
-extensions/web/admin/src/repositories/users/queries/runtime.rs	# astound sources per-user runtime from bridge_sessions; the template sources it from ai_requests
-extensions/web/admin/src/repositories/departments/aggregates.rs	# astound counts devices per department; the template counts tokens
-extensions/web/src/router/mod.rs	# astound nests /bridge-auth and builds the Salesforce deps the API plane needs
-extensions/web/src/router/admin_ssr.rs	# astound builds the bridge sign-in router beside the dashboard, from the same engine
-extensions/web/src/router/api.rs	# astound merges the Salesforce token accessor into the public API plane
+extensions/web/admin/src/repositories/users/mod.rs	# internal persists devices, federated identities and salesforce identities
+extensions/web/admin/src/repositories/users/queries/runtime.rs	# internal sources per-user runtime from bridge_sessions; the template sources it from ai_requests
+extensions/web/admin/src/repositories/departments/aggregates.rs	# internal counts devices per department; the template counts tokens
+extensions/web/src/router/mod.rs	# internal nests /bridge-auth and builds the Salesforce deps the API plane needs
+extensions/web/src/router/admin_ssr.rs	# internal builds the bridge sign-in router beside the dashboard, from the same engine
+extensions/web/src/router/api.rs	# internal merges the Salesforce token accessor into the public API plane
 
 # ---------------------------------------------------------------------
 # SALESFORCE / CATALOG - surface the template does not ship.
 # ---------------------------------------------------------------------
-extensions/web/admin/src/assets.rs	# astound registers the devices and entities page scripts; the template registers access-tokens and models
+extensions/web/admin/src/assets.rs	# internal registers the devices and entities page scripts; the template registers access-tokens and models
 extensions/web/admin/src/repositories/users/access_control/mod.rs	# re-exports count_assignments_by_entity_type for the catalog pages below
-extensions/web/admin/src/repositories/users/access_control/rules.rs	# count_assignments_by_entity_type backs the astound-only catalog counts
-extensions/web/admin/src/repositories/users/user_queries.rs	# astound's department rollup labels the unassigned bucket, which its access matrix reads back
-extensions/web/site/src/config_loader/mod.rs	# astound loads the Salesforce SSO and skills-page configs; the template loads a feature-pages config
-extensions/web/admin/src/handlers/mod.rs	# astound mounts the catalog and device handlers; the template mounts access tokens
+extensions/web/admin/src/repositories/users/access_control/rules.rs	# count_assignments_by_entity_type backs the internal-only catalog counts
+extensions/web/admin/src/repositories/users/user_queries.rs	# internal's department rollup labels the unassigned bucket, which its access matrix reads back
+extensions/web/site/src/config_loader/mod.rs	# internal loads the Salesforce SSO and skills-page configs; the template loads a feature-pages config
+extensions/web/admin/src/handlers/mod.rs	# internal mounts the catalog and device handlers; the template mounts access tokens
 extensions/web/admin/src/handlers/ssr/format.rs	# span and local-time helpers back the template-only evals and sessions pages
 extensions/web/admin/src/handlers/ssr/list_view.rs	# chip, preset and preserved-query helpers back the template-only list pages
 
@@ -113,11 +113,11 @@ extensions/web/admin/src/handlers/ssr/list_view.rs	# chip, preset and preserved-
 # the template and the files converged; only genuinely product-divergent test
 # files remain, listed under PRODUCT.)
 
-# Astound ships one theme. The template keeps the light/dark toggle, so it
+# Internal ships one theme. The template keeps the light/dark toggle, so it
 # still registers the theme module and still emits the colorScheme snippets
 # the inline-code gate has to excuse; neither exists here.
-extensions/web/site/src/assets/js_services.rs	# template registers theme.js for its light/dark toggle; astound has no theme module
-extensions/web/tests/asset_manifest.rs	# astound's flash guard is CSS-only, so the shell needs the critical-CSS carve-out and not the template's colorScheme-script one
+extensions/web/site/src/assets/js_services.rs	# template registers theme.js for its light/dark toggle; internal has no theme module
+extensions/web/tests/asset_manifest.rs	# internal's flash guard is CSS-only, so the shell needs the critical-CSS carve-out and not the template's colorScheme-script one
 
-extensions/web/admin/src/repositories/governance/decisions.rs	# astound ships no decisions-ledger page, so list_decisions_filtered is removed here; the template still serves it
-extensions/web/tests/frontend_standards.rs	# astound ships no blog, so the blog-print !important carve-out and blog TOP_LEVEL entry are removed here; the template keeps both
+extensions/web/admin/src/repositories/governance/decisions.rs	# internal ships no decisions-ledger page, so list_decisions_filtered is removed here; the template still serves it
+extensions/web/tests/frontend_standards.rs	# internal ships no blog, so the blog-print !important carve-out and blog TOP_LEVEL entry are removed here; the template keeps both

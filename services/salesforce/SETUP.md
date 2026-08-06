@@ -36,7 +36,7 @@ the private key; Salesforce holds the certificate.
 ```bash
 openssl req -x509 -sha256 -nodes -days 730 -newkey rsa:2048 \
   -keyout salesforce.key -out salesforce.crt \
-  -subj "/CN=systemprompt-astound"
+  -subj "/CN=systemprompt-internal"
 ```
 
 Keep `salesforce.key` out of the repository. It goes in the profile's
@@ -118,7 +118,7 @@ anything:
 
 ```bash
 openssl req -x509 -new -sha256 -nodes -days 730 \
-  -key salesforce.key -out salesforce.crt -subj "/CN=systemprompt-astound"
+  -key salesforce.key -out salesforce.crt -subj "/CN=systemprompt-internal"
 ```
 
 ## 4. Apply the spec

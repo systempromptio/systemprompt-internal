@@ -1,4 +1,4 @@
-# systemprompt-astound
+# systemprompt-internal
 set dotenv-load
 # Without this, `just cli ... --full-name "Test User"` word-splits the quoted
 # value into two arguments before the CLI ever parses it.
@@ -427,7 +427,7 @@ coverage-html:
     "$TOOLDIR/llvm-cov" show \
         --instr-profile="$ROOT/coverage-report/tests.profdata" \
         $OBJ_ARGS \
-        --ignore-filename-regex="(\.cargo|/rustc/|/registry/|/debug/build/|/tests/|/target/|systemprompt-core/|systemprompt-astound/src/(main|lib)\.rs|bridge/src/main\.rs|extensions/cli/salesforce/src/(main\.rs|commands/)|extensions/.*/extension\.rs|build\.rs)" \
+        --ignore-filename-regex="(\.cargo|/rustc/|/registry/|/debug/build/|/tests/|/target/|systemprompt-core/|systemprompt-internal/src/(main|lib)\.rs|bridge/src/main\.rs|extensions/cli/salesforce/src/(main\.rs|commands/)|extensions/.*/extension\.rs|build\.rs)" \
         --format=html \
         --output-dir="$ROOT/coverage-report/html"
     echo "Coverage report: coverage-report/html/index.html"

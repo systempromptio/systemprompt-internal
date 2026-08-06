@@ -3,18 +3,18 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="storage/files/images/logo-white.svg">
   <source media="(prefers-color-scheme: light)" srcset="storage/files/images/logo.svg">
-  <img src="storage/files/images/logo.svg" alt="Astound Digital" width="380">
+  <img src="storage/files/images/logo.svg" alt="systemprompt.io" width="380">
 </picture>
 
-# Transformation That Endures.
+# Systemprompt Internal
 
-The Astound Digital branded AI governance platform. One self-hosted binary governs inference, auditing, and every tool call across your AI fleet. Any agent, any model, any provider.
+Systemprompt Internal — AI business management on Odoo. Odoo is the system of record; this platform is the AI and communication layer. One self-hosted binary governs inference, auditing, and every tool call across your AI fleet. Any agent, any model, any provider.
 
 [![Built on systemprompt-core](https://img.shields.io/badge/built%20on-systemprompt--core-2b6cb0?style=flat-square)](https://github.com/systempromptio/systemprompt-core)
 [![Rust 1.94+](https://img.shields.io/badge/rust-1.94+-f97316?style=flat-square&logo=rust&logoColor=white)](https://www.rust-lang.org/)
 [![PostgreSQL 18](https://img.shields.io/badge/postgres-18-336791?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 
-[**astounddigital.com**](https://astounddigital.com) · [**Platform documentation**](https://systemprompt.io/documentation/) · [**Guides**](https://systemprompt.io/guides) · [**Discord**](https://discord.gg/wkAbSuPWpr)
+[**systemprompt.io**](https://systemprompt.io) · [**Platform documentation**](https://systemprompt.io/documentation/) · [**Guides**](https://systemprompt.io/guides) · [**Discord**](https://discord.gg/wkAbSuPWpr)
 
 </div>
 
@@ -39,8 +39,8 @@ Ports `8080` (HTTP) and `5432` (Postgres) must be free.
 ### 2. Clone
 
 ```bash
-git clone https://github.com/systempromptio/systemprompt-astound
-cd systemprompt-astound
+git clone https://github.com/systempromptio/systemprompt-internal
+cd systemprompt-internal
 ```
 
 The **server** needs this repository alone: the workspace resolves `systemprompt` from crates.io, and the `[patch.crates-io]` blocks in `Cargo.toml` and `tests/Cargo.toml` are commented out. Uncomment both — `[patch]` is per-workspace — to build the server against a sibling core checkout while a core change is unreleased.
@@ -104,7 +104,7 @@ Run after any change to the connect path. The failure mode is silent — a machi
 This section runs on `8081`/`5436` rather than the `8080`/`5432` defaults, so the test instance coexists with a gateway already running. Substitute the defaults if nothing else is up.
 
 ```bash
-git clone https://github.com/systempromptio/systemprompt-astound fresh && cd fresh
+git clone https://github.com/systempromptio/systemprompt-internal fresh && cd fresh
 just setup-local <provider-key> "" "" 8081 5436   # ports of its own
 just build
 just bridge-build

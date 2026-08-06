@@ -1,5 +1,5 @@
 #!/bin/sh
-# Container entrypoint for systemprompt-astound.
+# Container entrypoint for systemprompt-internal.
 # Authors a profile via `systemprompt admin setup` on first boot,
 # waits for Postgres, runs migrations, starts the server.
 set -eu

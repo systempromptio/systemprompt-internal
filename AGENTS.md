@@ -1,6 +1,6 @@
-# AGENTS.md — systemprompt-astound
+# AGENTS.md — systemprompt-internal
 
-Astound Digital's branded fork of the [systemprompt.io](https://systemprompt.io) evaluation template. Stand up a complete AI governance binary with demo data in under 10 minutes.
+Systemprompt Internal — the systemprompt.io business-management fork of the [systemprompt.io](https://systemprompt.io) evaluation template. Stand up a complete AI governance binary with demo data in under 10 minutes.
 
 ## What this is
 
@@ -11,8 +11,8 @@ It wraps [`systemprompt-core`](https://github.com/systempromptio/systemprompt-co
 ## Try it
 
 ```bash
-git clone https://github.com/systempromptio/systemprompt-astound
-cd systemprompt-astound
+git clone https://github.com/systempromptio/systemprompt-internal
+cd systemprompt-internal
 just setup-local <your-anthropic-api-key>   # builds, runs migrations, starts Postgres
 just start                                  # serves on http://localhost:8080
 ```
@@ -54,7 +54,7 @@ Fork it, modify it, ship it.
 
 ## Links
 
-- This fork: https://github.com/systempromptio/systemprompt-astound
+- This fork: https://github.com/systempromptio/systemprompt-internal
 - Upstream template: https://github.com/systempromptio/systemprompt-template
 - Core: https://github.com/systempromptio/systemprompt-core
 - Astound Digital: https://astounddigital.com

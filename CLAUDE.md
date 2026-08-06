@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-# Astound Digital
+# Systemprompt Internal
 
 **Use the CLI to discover commands.** `systemprompt --help` is your starting point.
 
