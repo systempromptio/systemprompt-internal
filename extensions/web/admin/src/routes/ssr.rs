@@ -9,12 +9,12 @@ use tower_http::normalize_path::NormalizePathLayer;
 
 use super::super::templates::AdminTemplateEngine;
 use super::super::{handlers, middleware};
-use crate::handlers::salesforce_auth::SalesforceDeps;
+use crate::handlers::auth_deps::AuthDeps;
 
 pub fn admin_ssr_router(
     pool: Arc<PgPool>,
     engine: AdminTemplateEngine,
-    sf_deps: SalesforceDeps,
+    auth_deps: AuthDeps,
 ) -> Router {
     let inner = root_routes()
         .merge(enterprise_routes())
@@ -24,7 +24,7 @@ pub fn admin_ssr_router(
         .merge(account_routes())
         .merge(api_routes())
         .layer(Extension(engine.clone()))
-        .layer(Extension(sf_deps.clone()))
+        .layer(Extension(auth_deps.clone()))
         .layer(axum_middleware::from_fn(
             middleware::marketplace_context_middleware,
         ))
@@ -42,7 +42,7 @@ pub fn admin_ssr_router(
 
     let combined = public_routes()
         .layer(Extension(engine))
-        .layer(Extension(sf_deps))
+        .layer(Extension(auth_deps))
         .with_state(pool)
         .fallback_service(inner);
 
@@ -56,14 +56,6 @@ pub fn admin_ssr_router(
 fn public_routes() -> Router<Arc<PgPool>> {
     Router::new()
         .route("/login", get(handlers::ssr::login_page))
-        .route(
-            "/auth/salesforce/start",
-            get(handlers::salesforce_auth::salesforce_start),
-        )
-        .route(
-            "/auth/salesforce/callback",
-            get(handlers::salesforce_auth::salesforce_callback),
-        )
         .route(
             "/auth/passkey/register",
             post(handlers::passkey_auth::passkey_register),
@@ -205,7 +197,15 @@ fn api_routes() -> Router<Arc<PgPool>> {
         .route("/api/chain/{id}", get(handlers::ssr::chain_envelope))
         .route("/api/search/resolve", get(handlers::ssr::search_resolve))
         .route(
-            "/api/profile/salesforce/unlink",
-            post(handlers::salesforce_auth::salesforce_unlink),
+            "/api/profile/odoo",
+            get(handlers::odoo_auth::odoo_identity_status),
+        )
+        .route(
+            "/api/profile/odoo/link",
+            post(handlers::odoo_auth::odoo_link),
+        )
+        .route(
+            "/api/profile/odoo/unlink",
+            post(handlers::odoo_auth::odoo_unlink),
         )
 }

@@ -5,17 +5,17 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleExecutable</key>
-    <string>astound-bridge</string>
+    <string>systemprompt-internal-bridge</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
-    <string>com.astounddigital.bridge</string>
+    <string>com.systempromptdigital.bridge</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>Astound Bridge</string>
+    <string>Systemprompt Internal Bridge</string>
     <key>CFBundleDisplayName</key>
-    <string>Astound Bridge</string>
+    <string>Systemprompt Internal Bridge</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
@@ -35,6 +35,6 @@
     <key>NSSupportsAutomaticGraphicsSwitching</key>
     <true/>
     <key>NSHumanReadableCopyright</key>
-    <string>© Astound Digital</string>
+    <string>© systemprompt.io</string>
 </dict>
 </plist>

@@ -1,7 +1,7 @@
 #!/bin/bash
 # SEED REPORT DATA — realistic history behind the two month-end reports.
 #
-# Fills the existing Astound Digital and systemprompt organizations with
+# Fills the existing systemprompt.io and systemprompt organizations with
 # departments, ~50 users, and six complete calendar months of ai_requests
 # spread across models, so /admin/reports/internal and
 # /admin/reports/customer render something a human can judge.
@@ -36,7 +36,7 @@ fi
 # about nobody.
 MISSING=$(psql "$DB_URL" -t -A -c \
   "SELECT string_agg(want.slug, ', ')
-     FROM (VALUES ('astound-digital'), ('systemprompt')) AS want(slug)
+     FROM (VALUES ('systemprompt-digital'), ('systemprompt')) AS want(slug)
      LEFT JOIN organizations o ON o.slug = want.slug
     WHERE o.id IS NULL;")
 if [[ -n "${MISSING// /}" ]]; then
@@ -62,23 +62,23 @@ SELECT 'rptseed-dept-' || lower(replace(d.name, ' ', '-')) || '-' || d.slug,
        d.name, 'Seeded for the month-end report demo.', o.id
 FROM (
   VALUES
-    ('Engineering', 'astound-digital'),
-    ('Product',     'astound-digital'),
-    ('Design',      'astound-digital'),
-    ('Sales',       'astound-digital'),
-    ('Support',     'astound-digital'),
+    ('Engineering', 'systemprompt-digital'),
+    ('Product',     'systemprompt-digital'),
+    ('Design',      'systemprompt-digital'),
+    ('Sales',       'systemprompt-digital'),
+    ('Support',     'systemprompt-digital'),
     ('Growth',      'systemprompt')
 ) AS d(name, slug)
 JOIN organizations o ON o.slug = d.slug
 WHERE NOT EXISTS (SELECT 1 FROM departments x WHERE x.name = d.name);
 
--- 40 Astound users across five departments, 12 systemprompt users across two.
+-- 40 Systemprompt Internal users across five departments, 12 systemprompt users across two.
 -- The department a user sits in is derived from their index, so the split is
 -- stable across re-seeds and the by-department table is reproducible.
 WITH spec AS (
-  SELECT 'astound-digital' AS slug, 'astound' AS tag, 40 AS headcount,
+  SELECT 'systemprompt-digital' AS slug, 'systemprompt' AS tag, 40 AS headcount,
          ARRAY['Engineering','Engineering','Engineering','Product','Design','Sales','Support']::TEXT[] AS depts,
-         'astound-seed.example' AS domain
+         'systemprompt-seed.example' AS domain
   UNION ALL
   SELECT 'systemprompt', 'sp', 12,
          ARRAY['Engineering','Growth']::TEXT[],
@@ -116,7 +116,7 @@ SELECT id, department FROM people;
 
 COMMIT;
 SQL
-pass "52 users across Astound Digital and systemprompt"
+pass "52 users across systemprompt.io and systemprompt"
 echo ""
 
 subheader "STEP 3: Six complete months of inference requests"
@@ -155,7 +155,7 @@ calls AS (
   -- slopes instead of sitting flat.
   CROSS JOIN LATERAL generate_series(
     1,
-    CASE WHEN mb.slug = 'astound-digital'
+    CASE WHEN mb.slug = 'systemprompt-digital'
          THEN 34 + (6 - back) * 4 + (mb.seat % 7)::INT
          ELSE 18 + (6 - back) * 2 + (mb.seat % 5)::INT
     END
@@ -213,5 +213,5 @@ echo ""
 
 info "Open the reports:"
 info "  $ADMIN_URL/admin/reports/internal"
-info "  $ADMIN_URL/admin/reports/customer?org=astound-digital"
+info "  $ADMIN_URL/admin/reports/customer?org=systemprompt-digital"
 info "Reset with: demo/reports/02-unseed-report-data.sh"

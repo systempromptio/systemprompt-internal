@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1.7
 #
-# A clean Linux client for testing the Claude Code + Astound Bridge integration.
+# A clean Linux client for testing the Claude Code + Systemprompt Internal Bridge integration.
 #
-# This image deliberately contains NO Astound config. It exists to prove the
+# This image deliberately contains NO Systemprompt Internal config. It exists to prove the
 # integration works from a machine that has never been set up: bridge login,
 # bridge install, credential helper, plugin/MCP sync, then a real Claude Code
 # session routed through the gateway.
@@ -33,7 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # its help ("error while loading shared libraries: libdbus-1.so.3"). `dbus`
 # itself provides dbus-run-session, needed because keyring writes require a
 # session bus and a container has none:
-#   dbus-run-session -- astound-bridge <cmd>
+#   dbus-run-session -- systemprompt-internal-bridge <cmd>
 # Any Linux tarball we ship has the same runtime dependency — see README.
 RUN apt-get update && apt-get install -y --no-install-recommends \
       dbus \
@@ -99,11 +99,11 @@ RUN npm install -g @anthropic-ai/claude-code@latest \
 
 WORKDIR /home/tester/work
 
-# ASTOUND_BRIDGE_GATEWAY_URL is the one setting that must point back out of the
+# SYSTEMPROMPT_BRIDGE_GATEWAY_URL is the one setting that must point back out of the
 # container; `just clean-client` overrides it. host.docker.internal resolves to
 # the WSL host via --add-host, so a gateway running in your primary distro on
 # :8080 is reachable without publishing anything.
-ENV ASTOUND_BRIDGE_GATEWAY_URL=http://host.docker.internal:8080 \
+ENV SYSTEMPROMPT_BRIDGE_GATEWAY_URL=http://host.docker.internal:8080 \
     TERM=xterm-256color
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

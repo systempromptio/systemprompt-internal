@@ -151,7 +151,7 @@ export class SpSetup extends SpElement {
             <div class="sp-setup__step" data-step="connect" ${step !== "connect" ? "hidden" : ""}>
               <h1 id="setup-heading">Sign in</h1>
               <p class="sp-setup__lede">
-                Use your Astound Salesforce account. Your bridge account is created
+                Use your Systemprompt Internal account. Your bridge account is created
                 automatically the first time you sign in.
               </p>
               <sp-setup-gateway></sp-setup-gateway>

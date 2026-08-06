@@ -1,14 +1,14 @@
-# Astound Bridge
+# Systemprompt Internal Bridge
 
 A branded, white-label build of the **systemprompt bridge** (credential helper +
-plugin/MCP sync agent + local inference proxy) for Astound Digital. The desktop
+plugin/MCP sync agent + local inference proxy) for systemprompt.io. The desktop
 app for Windows and macOS that connects Claude Desktop / Claude Code / Codex to
-the Astound governance gateway.
+the Systemprompt Internal governance gateway.
 
 This crate is intentionally tiny. All behaviour lives in the shared core library
 (`systemprompt-core/bin/bridge`); here we only supply a `Brand` value and the
 brand assets. The crate is a **standalone workspace** (its own `[workspace]`),
-not a member of the main Astound server workspace, because it carries GUI
+not a member of the main Systemprompt Internal server workspace, because it carries GUI
 dependencies and ships on its own release cadence — exactly like core's bridge.
 
 ## Build & run
@@ -16,17 +16,17 @@ dependencies and ships on its own release cadence — exactly like core's bridge
 ```bash
 cd bridge
 cargo build --release                 # host target
-cargo run -- help                     # show Astound-branded help
+cargo run -- help                     # show Systemprompt Internal-branded help
 cargo run -- gui                      # native settings UI (macOS/Windows only)
 ```
 
 The GUI (winit + wry) compiles only on macOS/Windows; on Linux the crate builds
 in headless/proxy mode.
 
-Config, PAT, cache, and logs are isolated under the `astound` / `astound-bridge`
-paths (e.g. `~/.config/astound/astound-bridge.toml`), and all env overrides use
-the `ASTOUND_BRIDGE_` prefix (`ASTOUND_BRIDGE_GATEWAY_URL`, `ASTOUND_BRIDGE_PAT`,
-`ASTOUND_BRIDGE_CONFIG`, …).
+Config, PAT, cache, and logs are isolated under the `systemprompt` / `systemprompt-internal-bridge`
+paths (e.g. `~/.config/systemprompt-internal/systemprompt-internal-bridge.toml`), and all env overrides use
+the `SYSTEMPROMPT_BRIDGE_` prefix (`SYSTEMPROMPT_BRIDGE_GATEWAY_URL`, `SYSTEMPROMPT_BRIDGE_PAT`,
+`SYSTEMPROMPT_BRIDGE_CONFIG`, …).
 
 ## Linux
 
@@ -73,19 +73,19 @@ instead, and `--pubkey <base64>` pins the manifest signing key out of band
 
 | What | Where |
 |---|---|
-| `ANTHROPIC_BASE_URL`, `ANTHROPIC_AUTH_TOKEN` | `~/.config/astound/env.sh` |
+| `ANTHROPIC_BASE_URL`, `ANTHROPIC_AUTH_TOKEN` | `~/.config/systemprompt-internal/env.sh` |
 | a marker-delimited block sourcing that file | `~/.profile` |
-| periodic plugin/MCP sync | `astound-bridge-sync.{service,timer}` (systemd user) |
-| the loopback proxy, restarted on failure | `astound-bridge-proxy.service` (systemd user) |
+| periodic plugin/MCP sync | `systemprompt-internal-bridge-sync.{service,timer}` (systemd user) |
+| the loopback proxy, restarted on failure | `systemprompt-internal-bridge-proxy.service` (systemd user) |
 
-The token is read from `~/.config/astound/bridge-loopback.key` when the file is
+The token is read from `~/.config/systemprompt-internal/bridge-loopback.key` when the file is
 sourced, not baked in, so a rotated secret needs no rewrite. Re-running install
 replaces the `~/.profile` block rather than appending a second one, and
-`astound-bridge uninstall` removes both units, `env.sh`, and the block.
+`systemprompt-internal-bridge uninstall` removes both units, `env.sh`, and the block.
 
 Where there is no systemd user bus (a container, WSL without systemd) the units
 are still written and `--apply-schedule` warns instead of failing; run the proxy
-by hand with `astound-bridge proxy`.
+by hand with `systemprompt-internal-bridge proxy`.
 
 After a new login shell, `claude` works with no manual exports.
 
@@ -96,13 +96,13 @@ a browser, which a device-link grant cannot. Name the certificate in the config:
 
 ```toml
 [mtls]
-cert_keystore_ref = "~/.config/astound/device.pem"
+cert_keystore_ref = "~/.config/systemprompt-internal/device.pem"
 ```
 
 `cert_keystore_ref` carries a *path* on Linux only. macOS addresses certificates
 by Keychain label and Windows by cert-store thumbprint, and both ignore the
 value — there, its presence just means "use mTLS".
-`ASTOUND_BRIDGE_DEVICE_CERT` still works and takes precedence where both are set.
+`SYSTEMPROMPT_BRIDGE_DEVICE_CERT` still works and takes precedence where both are set.
 
 **Credential storage tiers down.** The OAuth client secret behind plugin hooks
 prefers the freedesktop Secret Service, falls back to the kernel keyutils keyring
@@ -110,7 +110,7 @@ when no provider is present (headless servers, containers, CI), and finally to
 this process's memory. Never a plaintext file — the secret is re-mintable, so
 disk persistence would add an exfiltration target and buy nothing. Docker's
 default seccomp profile denies `keyctl`/`add_key`, so keyutils is probed with a
-real write/read round-trip before being accepted. `astound-bridge doctor` reports
+real write/read round-trip before being accepted. `systemprompt-internal-bridge doctor` reports
 which tier is in use — along with whether the proxy is listening and whether its
 systemd unit is active.
 
@@ -126,7 +126,7 @@ sudo apt-get install -y libdbus-1-3 libcap2 libgcrypt20 libsystemd0   # Debian/U
 ### Release tarball
 
 ```bash
-just bridge-package-linux     # → dist/astound-bridge-linux-<arch>.tar.gz + .sha256
+just bridge-package-linux     # → dist/systemprompt-internal-bridge-linux-<arch>.tar.gz + .sha256
 ```
 
 The recipe also publishes the tarball, its `.sha256`, and
@@ -143,12 +143,12 @@ with no config using `just clean-client` (see `deploy/clean-client/`).
 
 ```bash
 cargo build --release --target aarch64-apple-darwin
-scripts/make-mac-app.sh --target aarch64-apple-darwin   # → AstoundBridge.app
+scripts/make-mac-app.sh --target aarch64-apple-darwin   # → Systemprompt InternalBridge.app
 ```
 
 ## Icons
 
-`assets/icon.svg` is the master Astound "A" mark (white on a near-black rounded
+`assets/icon.svg` is the master Systemprompt Internal "A" mark (white on a near-black rounded
 square, matching `storage/files/images/favicon-*`). The raster icons consumed by
 the build are generated from it by `scripts/render-icons.py` (cairosvg + Pillow):
 
@@ -166,10 +166,10 @@ This regenerates, idempotently:
   the icon so the new `.ico` is re-embedded.
 
 Edit `assets/icon.svg` and rerun the script to change the mark. `assets/logo.svg`
-is the full Astound wordmark, used by the GUI chrome.
+is the full Systemprompt Internal wordmark, used by the GUI chrome.
 
-> ⚠️ Still pre-release: set `default_gateway_url` in `src/main.rs` to the real Astound gateway host
-(currently a `https://gateway.astounddigital.com` placeholder).
+> ⚠️ Still pre-release: set `default_gateway_url` in `src/main.rs` to the real Systemprompt Internal gateway host
+(currently a `https://gateway.systemprompt.io` placeholder).
 
 ## Recipe: a new client bridge
 

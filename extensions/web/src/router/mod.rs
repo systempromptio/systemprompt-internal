@@ -25,21 +25,19 @@ pub(crate) fn build(ctx: &dyn ExtensionContext) -> Option<ExtensionRouter> {
     let db = DbHandles::from_context(ctx)?;
     let session_service = pools::build_session_service(&db)?;
 
-    let sf_deps = admin::SalesforceDeps {
-        config: crate::extension::WebExtension::salesforce_config()
-            .unwrap_or_else(|| Arc::new(admin::SalesforceConfig::disabled())),
+    let auth_deps = admin::AuthDeps {
         write_pool: Arc::clone(&db.write),
-        session_service: Arc::clone(&session_service),
+        allowed_email_domains: Arc::new(admin::allowed_domains_from_env()),
     };
 
-    let api_router = api::build(&db, &session_service, sf_deps.clone());
+    let api_router = api::build(&db, &session_service);
     let share_api = api::share(&db);
 
     let mut combined = Router::new()
         .merge(share_api)
         .nest("/api/public", api_router);
 
-    match admin_ssr::build(&db, sf_deps) {
+    match admin_ssr::build(&db, auth_deps) {
         Some(ssr) => {
             combined = Router::new()
                 .nest_service("/admin", ssr.admin)

@@ -1,56 +1,35 @@
 marketplace:
   id: enterprise-demo
-  name: "Astound Digital — Salesforce Productivity"
-  description: "A Salesforce-first workspace: plain-English assistants for your deals, accounts, contacts, leads, cases, and to-dos. One plugin per common object, each bundling skills, dashboards, and the Salesforce MCP server."
-  version: "3.1.0"
+  name: "Systemprompt Internal — Business on Odoo"
+  description: "The AI and communication layer for running the business, with Odoo as the system of record: plain-English assistants for CRM leads, notes and business reporting, shared brand skills, and the admin control plane."
+  version: "4.0.0"
   visibility: public
   author:
-    name: Astound Digital
+    name: systemprompt.io
     email: ed@tyingshoelaces.com
   keywords:
-    - salesforce
-    - sales
+    - odoo
     - crm
+    - leads
+    - sales
     - productivity
   license: proprietary
-  category: salesforce
+  category: crm
   access:
     default_included: true
     roles: [user]
-    justification: "Public Salesforce productivity workspace for signed-in users"
+    justification: "Public Odoo CRM productivity workspace for signed-in users"
   skills:
     include:
-      - cowork_setup
       - apply_brand_voice
       - format_client_document
       - draft_client_email
       - company_boilerplate
-      - astound_glossary
-      - salesforce_essentials
-      - opportunities_find
-      - opportunities_report
-      - opportunities_update
-      - accounts_find
-      - accounts_report
-      - accounts_update
-      - contacts_find
-      - contacts_report
-      - contacts_update
-      - leads_find
-      - leads_report
-      - leads_update
-      - cases_find
-      - cases_report
-      - cases_update
-      - activities_find
-      - activities_report
-      - activities_update
-      # Development workflow (astound-dev plugin): plan → build → release → test
-      # for Commerce Cloud / Storefront Next engagements.
-      - dev_plan
-      - dev_build
-      - dev_release
-      - dev_test
+      # Odoo CRM (systemprompt-crm plugin): leads and pipeline, notes onto
+      # records, and the live business overview.
+      - crm
+      - business_overview
+      - add_note
       # Admin control plane. Listed here so marketplace scoping keeps them in
       # the catalogue; per-entity rules in services/access-control/roles.yaml
       # restrict them to the admin role.
@@ -68,24 +47,17 @@ marketplace:
       - systemprompt_cli
   plugins:
     include:
-      - astound-commons
-      - astound-admin
-      - astound-salesforce
-      - astound-dev
-      - astound-salesforce-opportunities
-      - astound-salesforce-accounts
-      - astound-salesforce-contacts
-      - astound-salesforce-leads
-      - astound-salesforce-cases
-      - astound-salesforce-activities
+      - systemprompt-commons
+      - systemprompt-admin
+      - systemprompt-crm
   mcp_servers:
     source: explicit
     include:
-      - salesforce
+      - odoo
       - systemprompt
       - knowledge-bank
     exclude: []
   # No agents are published by this marketplace. Plugins ship skills, the
-  # Salesforce MCP server, and artifacts only.
+  # Odoo MCP server, and artifacts only.
   agents:
     include: []

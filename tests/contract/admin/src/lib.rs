@@ -49,7 +49,7 @@ mod principal;
 #[cfg(test)]
 mod route_source;
 #[cfg(test)]
-mod salesforce_auth_contract;
+mod odoo_auth_contract;
 #[cfg(test)]
 mod secrets_contract;
 #[cfg(test)]

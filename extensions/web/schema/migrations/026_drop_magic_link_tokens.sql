@@ -3,8 +3,9 @@
 -- Self-service registration and magic-link sign-in are gone. There are exactly
 -- two ways an account comes into existence now, and neither uses this table:
 --
---   * an ordinary user arrives through Salesforce SSO, which provisions them
---     just-in-time against their organization's seat allocation;
+--   * an ordinary user self-registers with an allow-listed work email and a
+--     passkey, provisioned just-in-time against their organization's seat
+--     allocation;
 --   * an operator is created out-of-band with `admin users create`, then enrols
 --     a passkey through the setup link `admin users webauthn
 --     generate-setup-token` prints.

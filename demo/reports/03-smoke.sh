@@ -60,7 +60,7 @@ echo ""
 
 subheader "Render the customer report"
 CUSTOMER=$(curl -s -w '\n%{http_code}' -H "Authorization: Bearer $TOKEN" \
-  "$BASE_URL/admin/reports/customer?org=astound-digital")
+  "$BASE_URL/admin/reports/customer?org=systemprompt-digital")
 CUSTOMER_CODE="${CUSTOMER##*$'\n'}"
 CUSTOMER_BODY="${CUSTOMER%$'\n'*}"
 
@@ -71,7 +71,7 @@ else
   FAILURES=$((FAILURES + 1))
 fi
 
-for expected in "Astound Digital" "By department" "By model" "By user"; do
+for expected in "systemprompt.io" "By department" "By model" "By user"; do
   if grep -qF "$expected" <<<"$CUSTOMER_BODY"; then
     pass "Customer report has '$expected'"
   else

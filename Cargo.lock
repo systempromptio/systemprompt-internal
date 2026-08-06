@@ -110,15 +110,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
 
 [[package]]
-name = "arbitrary"
-version = "1.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3d036a3c4ab069c7b410a2ce876bd74808d2d0888a82667669f8e783a898bf1"
-dependencies = [
- "derive_arbitrary",
-]
-
-[[package]]
 name = "arrayvec"
 version = "0.7.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1046,17 +1037,6 @@ name = "deranged"
 version = "0.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7cd812cc2bc1d69d4764bd80df88b4317eaef9e773c75226407d9bc0876b211c"
-
-[[package]]
-name = "derive_arbitrary"
-version = "1.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e567bd82dcff979e4b03460c307b3cdc9e96fde3d73bed1496d2bc75d9dd62a"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.119",
-]
 
 [[package]]
 name = "derive_builder"
@@ -4998,16 +4978,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "systemprompt-internal"
-version = "0.21.0"
-dependencies = [
- "anyhow",
- "systemprompt",
- "systemprompt-web-extension",
- "tokio",
-]
-
-[[package]]
 name = "systemprompt-cli"
 version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5068,18 +5038,6 @@ dependencies = [
  "url",
  "uuid",
  "walkdir",
-]
-
-[[package]]
-name = "systemprompt-cli-salesforce"
-version = "0.21.0"
-dependencies = [
- "clap",
- "serde_yaml_ng",
- "systemprompt",
- "systemprompt-web-admin",
- "tokio",
- "tracing",
 ]
 
 [[package]]
@@ -5343,6 +5301,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "systemprompt-internal"
+version = "0.21.0"
+dependencies = [
+ "anyhow",
+ "systemprompt",
+ "systemprompt-web-extension",
+ "tokio",
+]
+
+[[package]]
 name = "systemprompt-loader"
 version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5474,6 +5442,28 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
+ "systemprompt",
+ "systemprompt-mcp-shared",
+ "thiserror 2.0.19",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "systemprompt-mcp-odoo"
+version = "0.21.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "chacha20poly1305",
+ "chrono",
+ "hex",
+ "reqwest 0.13.4",
+ "rmcp",
+ "schemars",
+ "serde",
+ "serde_json",
+ "sqlx",
  "systemprompt",
  "systemprompt-mcp-shared",
  "thiserror 2.0.19",
@@ -5813,7 +5803,6 @@ dependencies = [
  "handlebars",
  "hex",
  "inventory",
- "jsonwebtoken",
  "rand 0.9.5",
  "reqwest 0.13.4",
  "serde",
@@ -5833,7 +5822,6 @@ dependencies = [
  "url",
  "urlencoding",
  "uuid",
- "zip",
 ]
 
 [[package]]
@@ -5920,7 +5908,6 @@ dependencies = [
  "serde_yaml_ng",
  "sqlx",
  "systemprompt",
- "systemprompt-web-admin",
  "systemprompt-web-shared",
  "thiserror 2.0.19",
  "tracing",
@@ -7135,39 +7122,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "zip"
-version = "2.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fabe6324e908f85a1c52063ce7aa26b68dcb7eb6dbc83a2d148403c9bc3eba50"
-dependencies = [
- "arbitrary",
- "crc32fast",
- "crossbeam-utils",
- "displaydoc",
- "flate2",
- "indexmap",
- "memchr",
- "thiserror 2.0.19",
- "zopfli",
-]
-
-[[package]]
 name = "zmij"
 version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
-
-[[package]]
-name = "zopfli"
-version = "0.8.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f05cd8797d63865425ff89b5c4a48804f35ba0ce8d125800027ad6017d2b5249"
-dependencies = [
- "bumpalo",
- "crc32fast",
- "log",
- "simd-adler32",
-]
 
 [[package]]
 name = "zune-core"

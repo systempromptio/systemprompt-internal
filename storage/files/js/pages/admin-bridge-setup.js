@@ -1,8 +1,8 @@
 const ARTIFACTS = {
-  macos: { label: 'Download for macOS', file: 'astound-bridge-macos.dmg' },
-  windows: { label: 'Download for Windows', file: 'astound-bridge-windows.exe' },
-  'linux-x86_64': { label: 'Download for Linux (x86_64)', file: 'astound-bridge-linux-x86_64.tar.gz' },
-  'linux-aarch64': { label: 'Download for Linux (aarch64)', file: 'astound-bridge-linux-aarch64.tar.gz' }
+  macos: { label: 'Download for macOS', file: 'systemprompt-internal-bridge-macos.dmg' },
+  windows: { label: 'Download for Windows', file: 'systemprompt-internal-bridge-windows.exe' },
+  'linux-x86_64': { label: 'Download for Linux (x86_64)', file: 'systemprompt-internal-bridge-linux-x86_64.tar.gz' },
+  'linux-aarch64': { label: 'Download for Linux (aarch64)', file: 'systemprompt-internal-bridge-linux-aarch64.tar.gz' }
 };
 
 const detectPlatform = (ua) => {

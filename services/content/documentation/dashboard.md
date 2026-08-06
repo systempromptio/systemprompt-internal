@@ -1,7 +1,7 @@
 ---
 title: "Dashboard"
 description: "Monitor AI usage across your organization with the admin dashboard. View real-time activity, metrics, top users, popular skills, model usage, and department breakdowns."
-author: "Astound Digital"
+author: "systemprompt.io"
 slug: "dashboard"
 keywords: "dashboard, analytics, metrics, usage, monitoring, activity, events, sessions"
 kind: "guide"

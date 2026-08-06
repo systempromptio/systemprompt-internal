@@ -95,7 +95,7 @@ steps:
   - script: 09-ema-id-jag-loop.sh
     label: Run the Enterprise-Managed Authorization (ID-JAG) loop end-to-end
     narrative: >
-      With a real Salesforce id_token and a registered token-exchange client,
+      With a real Odoo id_token and a registered token-exchange client,
       walks the full EMA loop on the one RFC 8693 /token endpoint: issue
       (requested_token_type=id-jag mints a client-bound ID-JAG from the SF
       id_token), consume (subject_token_type=id-jag returns a delegated access

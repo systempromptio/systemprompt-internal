@@ -1,0 +1,46 @@
+[package]
+name = "systemprompt-mcp-odoo"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description = "Odoo MCP server: CRM leads, partners, notes and activities over Odoo's JSON-RPC API, executed as the calling user."
+repository.workspace = true
+homepage.workspace = true
+publish = false
+
+[[bin]]
+name = "systemprompt-mcp-odoo"
+path = "src/main.rs"
+
+[dependencies]
+# Audit: uses database, identifiers, logging, mcp, models, system (api) — requires `full`.
+systemprompt = { workspace = true, features = ["full"] }
+
+anyhow.workspace = true
+chrono.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+
+rmcp.workspace = true
+
+axum.workspace = true
+
+schemars.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+# Odoo speaks JSON-RPC over HTTP; there is no vendor SDK.
+reqwest.workspace = true
+
+# Per-user API keys are read back from `odoo_identity`, sealed under the
+# deployment master key.
+sqlx.workspace = true
+chacha20poly1305.workspace = true
+hex.workspace = true
+
+tracing.workspace = true
+
+systemprompt-mcp-shared.workspace = true
+
+[lints]
+workspace = true

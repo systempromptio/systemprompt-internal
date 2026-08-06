@@ -61,16 +61,16 @@
 plans:
   - id: house
     name: House
-    description: Astound-internal. Unlimited seats, no spend cap, everything on.
+    description: systemprompt.io-internal. Unlimited seats, no spend cap, everything on.
     grants:
       - entity_type: marketplace
         entity_id: enterprise-demo
       - entity_type: marketplace
-        entity_id: astound-admin
+        entity_id: systemprompt-admin
 
   - id: standard
     name: Standard
-    description: Salesforce plugins and the default model tier.
+    description: Odoo CRM plugins and the default model tier.
     seat_limit: 25
     monthly_cost_cap_usd: 2500
     monthly_price_usd: 4000
@@ -88,21 +88,15 @@ plans:
       - entity_type: marketplace
         entity_id: enterprise-demo
       - entity_type: marketplace
-        entity_id: astound-admin
+        entity_id: systemprompt-admin
 
 organizations:
-  - slug: astound-digital
-    name: Astound Digital
-    plan: enterprise
-    email_domains:
-      - astounddigital.com
-      - astoundcommerce.com
-
   - slug: systemprompt
     name: systemprompt.io
     plan: enterprise
     email_domains:
       - systemprompt.io
+      - tyingshoelaces.com
 
   # Demo customers. They exist so the enterprise console has more than one
   # tenant to show — a cross-customer view with a single row proves nothing.

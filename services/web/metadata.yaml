@@ -3,19 +3,19 @@
 # ===== CUSTOMIZE THESE =====
 
 site:
-  name: "Astound Digital"
-  title: "Astound Digital — AI-Powered Commerce & Experience Solutions"
-  description: "Astound Digital delivers end-to-end digital commerce, data-driven strategy, AI solutions, marketing & CRM services for global brands seeking growth and transformation."
-  author: "Astound Digital"
-  baseUrl: "https://astounddigital.com"
+  name: "systemprompt.io"
+  title: "Systemprompt Internal — AI Business Management on Odoo"
+  description: "Systemprompt Internal is the AI and communication layer for running the business. Odoo is the system of record; one self-hosted binary governs every AI interaction."
+  author: "systemprompt.io"
+  baseUrl: "https://systemprompt.io"
 
 seo:
-  defaultImage: "/files/images/logo.png"
-  twitterHandle: "@astounddigital"
-  keywords: "Astound Digital, digital commerce, AI solutions, composable commerce, experience design, intelligent automation, CRM, data strategy, AI governance"
+  defaultImage: "/files/images/og-image.jpg"
+  twitterHandle: "@systemprompt"
+  keywords: "systemprompt.io, Systemprompt Internal, Odoo, AI business management, self-hosted AI, AI governance, MCP, audit trail, Claude Code, CRM automation"
 
 copyright:
-  holder: "Astound Digital"
+  holder: "systemprompt.io"
   year: 2026
-  link: "https://astounddigital.com"
-  notice: "2026 Astound Digital"
+  link: "https://systemprompt.io"
+  notice: "2026 systemprompt.io. All rights reserved."

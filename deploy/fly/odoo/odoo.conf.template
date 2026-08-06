@@ -1,0 +1,25 @@
+[options]
+; Rendered by entrypoint.sh (envsubst) at boot — do not put secrets here.
+db_host = ${ODOO_DB_HOST}
+; Direct 5432, never PgBouncer 5433: Odoo needs session-level Postgres
+; (SET, advisory locks, LISTEN/NOTIFY) and breaks under transaction pooling.
+db_port = ${ODOO_DB_PORT}
+db_user = ${ODOO_DB_USER}
+db_password = ${ODOO_DB_PASSWORD}
+db_name = ${ODOO_DB_NAME}
+dbfilter = ^${ODOO_DB_NAME}$
+; Never expose the database manager on a shared cluster.
+list_db = False
+admin_passwd = ${ODOO_ADMIN_PASSWD}
+; Behind Fly's HTTPS proxy.
+proxy_mode = True
+; Bind dual-stack: Fly's private network (.internal) is IPv6-only, and the
+; default 0.0.0.0 bind refuses those connections.
+http_interface = ::
+; Filestore lives on the Fly volume (daily snapshots).
+data_dir = /var/lib/odoo
+; workers = 0 → threaded mode: everything (HTTP + websocket) on one port
+; (8069), which is all fly.toml routes. Moving to multi-worker later means
+; workers>0 + gevent_port 8072 + a second Fly service for it.
+workers = 0
+max_cron_threads = 1

@@ -1,4 +1,4 @@
-//! Build script: embed the Astound icon + metadata into the Windows executable.
+//! Build script: embed the Systemprompt icon + metadata into the Windows executable.
 //! No-op on non-Windows targets. Mirrors systemprompt-core/bin/bridge/build.rs.
 #![allow(
     clippy::print_stdout,
@@ -38,12 +38,12 @@ fn main() {
     if target_os == "windows" {
         let mut res = winresource::WindowsResource::new();
         res.set_icon("assets/app-icon.ico");
-        res.set("FileDescription", "Astound Bridge");
-        res.set("ProductName", "Astound Bridge");
-        res.set("CompanyName", "Astound Digital");
-        res.set("LegalCopyright", "Copyright (C) 2026 Astound Digital.");
-        res.set("OriginalFilename", "astound-bridge.exe");
-        res.set("InternalName", "astound-bridge");
+        res.set("FileDescription", "Systemprompt Internal Bridge");
+        res.set("ProductName", "Systemprompt Internal Bridge");
+        res.set("CompanyName", "systemprompt.io");
+        res.set("LegalCopyright", "Copyright (C) 2026 systemprompt.io.");
+        res.set("OriginalFilename", "systemprompt-internal-bridge.exe");
+        res.set("InternalName", "systemprompt-internal-bridge");
         if std::env::var("CARGO_CFG_TARGET_ENV").as_deref() == Ok("gnu") {
             res.set_toolkit_path("/usr/x86_64-w64-mingw32/bin");
             res.set_windres_path("x86_64-w64-mingw32-windres");

@@ -1,8 +1,8 @@
 #![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
-//! Astound Digital desktop bridge.
+//! Systemprompt Internal desktop bridge.
 //!
 //! A thin white-label wrapper over the systemprompt bridge: it defines the
-//! Astound [`Brand`] (chrome, on-disk paths, env prefix, default gateway, and
+//! Systemprompt [`Brand`] (chrome, on-disk paths, env prefix, default gateway, and
 //! embedded GUI assets) and hands it to [`systemprompt_bridge::run_with_brand`].
 //! All behaviour lives in the shared core library — this file is intentionally
 //! tiny so a new client bridge is "copy this crate, swap `assets/`, edit the
@@ -18,29 +18,29 @@ use systemprompt_bridge::brand::{Brand, BrandAssets};
 #[cfg(any(target_os = "windows", target_os = "macos"))]
 mod registry;
 
-static ASTOUND_BRAND: Brand = Brand {
-    app_name: "Astound Bridge",
-    binary_name: "astound-bridge",
-    vendor: "Astound Digital",
-    config_dir: "astound",
-    config_file: "astound-bridge.toml",
-    pat_file: "astound-bridge.pat",
-    working_dir_name: "astound-bridge",
-    workspace_dir_name: "Astound",
-    keyring_service: "astound-bridge.oauth-client",
-    env_prefix: "ASTOUND_BRIDGE",
+static SYSTEMPROMPT_BRAND: Brand = Brand {
+    app_name: "Systemprompt Internal Bridge",
+    binary_name: "systemprompt-internal-bridge",
+    vendor: "systemprompt.io",
+    config_dir: "systemprompt-internal",
+    config_file: "systemprompt-internal-bridge.toml",
+    pat_file: "systemprompt-internal-bridge.pat",
+    working_dir_name: "systemprompt-internal-bridge",
+    workspace_dir_name: "Systemprompt",
+    keyring_service: "systemprompt-internal-bridge.oauth-client",
+    env_prefix: "SYSTEMPROMPT_BRIDGE",
     default_gateway_url: "http://localhost:8080",
     // Why: the gateway mounts this page under /bridge-auth (see
     // extensions/web/src/extension_impl.rs), not the upstream default /bridge.
     device_link_path: "/bridge-auth/device-link",
-    tray_tooltip: "Astound Bridge",
-    window_title: "Astound Bridge",
-    app_menu_name: "Astound Bridge",
-    sign_in_label: "Sign in with Salesforce",
+    tray_tooltip: "Systemprompt Bridge",
+    window_title: "Systemprompt Bridge",
+    app_menu_name: "Systemprompt Bridge",
+    sign_in_label: "Sign in with systemprompt",
     sign_in_hint: "Opens your browser. This device is linked automatically once you approve.",
-    schedule_label: "com.astounddigital.bridge-sync",
-    schedule_unit: "astound-bridge-sync",
-    schedule_task_name: "AstoundBridgeSync",
+    schedule_label: "io.systemprompt.internal-bridge-sync",
+    schedule_unit: "systemprompt-internal-bridge-sync",
+    schedule_task_name: "SystempromptBridgeSync",
     // Why: embedded from OUT_DIR (build.rs copies them there) so a regenerated
     // asset re-embeds under incremental/sccache builds.
     assets: BrandAssets {
@@ -53,5 +53,5 @@ static ASTOUND_BRAND: Brand = Brand {
 };
 
 fn main() -> ExitCode {
-    systemprompt_bridge::run_with_brand(&ASTOUND_BRAND)
+    systemprompt_bridge::run_with_brand(&SYSTEMPROMPT_BRAND)
 }

@@ -57,5 +57,5 @@ Fork it, modify it, ship it.
 - This fork: https://github.com/systempromptio/systemprompt-internal
 - Upstream template: https://github.com/systempromptio/systemprompt-template
 - Core: https://github.com/systempromptio/systemprompt-core
-- Astound Digital: https://astounddigital.com
+- systemprompt.io: https://systemprompt.io
 - Feedback: open a `feedback`-labelled issue, or email `ed@tyingshoelaces.com`

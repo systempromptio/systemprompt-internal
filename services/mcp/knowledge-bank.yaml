@@ -1,25 +1,27 @@
 # Project knowledge bank MCP server (STUB).
 #
-# Stands in for Astound's project-context RAG MCP (workshop transcripts, Jira
-# tickets, Confluence pages) until access to the real server is granted (owner:
-# Roman/Viktor). The stub is a local `internal` server serving keyword search
-# over seeded fixtures; its tool surface (search_project_context,
-# list_documents, upload_document) is the contract the real server replaces.
+# Stands in for a real project-context RAG MCP (workshop transcripts, Jira
+# tickets, Confluence pages) until one is connected. The stub is a local
+# `internal` server serving keyword search over seeded fixtures; its tool
+# surface (search_project_context, list_documents, upload_document) is the
+# contract the real server replaces.
 #
 # SWAP PATH — connecting the real server is a config-only change to THIS file:
 #   type: external
 #   binary: ""
-#   endpoint: "https://<astound-rag-host>/mcp"
+#   endpoint: "https://<rag-host>/mcp"
 #   # plus, ONLY if the real server needs a per-user bearer, an external_auth
-#   # block pointing at a token accessor (see services/mcp/salesforce.yaml for
-#   # the worked example). A static/shared-credential server omits external_auth.
+#   # block pointing at a token accessor. Nothing in this deployment uses that
+#   # shape today — the odoo server does per-user credentials in process
+#   # instead (services/mcp/odoo.yaml) — so there is no worked example to copy.
+#   # A static/shared-credential server omits external_auth entirely.
 # The server id stays `knowledge-bank`, so plugin includes, marketplace
 # includes, and the roles.yaml rule all carry over untouched.
 #
 # RBAC: read tools are open to the `user` role (roles.yaml grant); the
 # upload_document tool additionally requires the admin role, enforced inside
 # the server against the authenticated user — the same double-gate pattern the
-# astound-admin surface uses.
+# admin surface uses.
 
 mcp_servers:
   knowledge-bank:

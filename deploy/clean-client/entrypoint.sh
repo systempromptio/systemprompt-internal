@@ -15,7 +15,7 @@ warn() { printf '\033[33mwarn:\033[0m %s\n' "$1" >&2; }
 for leaked in \
     "$HOME/.claude.json" \
     "$HOME/.claude/settings.json" \
-    "$HOME/.config/astound/astound-bridge.toml"
+    "$HOME/.config/systemprompt-internal/systemprompt-internal-bridge.toml"
 do
     if [ -e "$leaked" ] && [ "${CLEAN_CLIENT_ALLOW_STATE:-0}" != "1" ]; then
         fail "$leaked already exists — this container is not clean.
@@ -32,48 +32,48 @@ if [ -n "${ANTHROPIC_API_KEY:-}" ]; then
 fi
 
 # ── Bridge availability ───────────────────────────────────────────────────────
-if command -v astound-bridge >/dev/null 2>&1; then
-    BRIDGE_STATUS="$(astound-bridge --version 2>/dev/null || echo 'present (version unavailable)')"
+if command -v systemprompt-internal-bridge >/dev/null 2>&1; then
+    BRIDGE_STATUS="$(systemprompt-internal-bridge --version 2>/dev/null || echo 'present (version unavailable)')"
 else
     BRIDGE_STATUS="NOT MOUNTED — build it with: cd bridge && cargo build --release"
 fi
 
 cat <<BANNER
 
-  Astound clean client — no config, no host state.
+  Systemprompt Internal clean client — no config, no host state.
 
-  gateway   ${ASTOUND_BRIDGE_GATEWAY_URL:-<unset>}
+  gateway   ${SYSTEMPROMPT_BRIDGE_GATEWAY_URL:-<unset>}
   bridge    ${BRIDGE_STATUS}
   home      ${HOME}
 
   Integration test sequence (device cert = the supported headless path):
 
-    mkdir -p ~/.config/astound
+    mkdir -p ~/.config/systemprompt-internal
     openssl req -x509 -newkey rsa:2048 -nodes -days 730 \
-      -keyout ~/.config/astound/device.key \
-      -out    ~/.config/astound/device.pem -subj "/CN=$(hostname)"
-    openssl x509 -in ~/.config/astound/device.pem -outform der | sha256sum
+      -keyout ~/.config/systemprompt-internal/device.key \
+      -out    ~/.config/systemprompt-internal/device.pem -subj "/CN=$(hostname)"
+    openssl x509 -in ~/.config/systemprompt-internal/device.pem -outform der | sha256sum
 
     # admin enrols that fingerprint:
     #   systemprompt admin bridge enroll-cert --user-id <uuid> --fingerprint <hex>
 
-    printf '\n[mtls]\ncert_keystore_ref = "%s/.config/astound/device.pem"\n' "$HOME" \
-      >> ~/.config/astound/astound-bridge.toml
+    printf '\n[mtls]\ncert_keystore_ref = "%s/.config/systemprompt-internal/device.pem"\n' "$HOME" \
+      >> ~/.config/systemprompt-internal/systemprompt-internal-bridge.toml
 
-    astound-bridge whoami                  # your identity, no PAT needed
-    astound-bridge install --apply --apply-schedule
-    astound-bridge sync --allow-tofu       # plugins, skills, agents, MCP
-    astound-bridge proxy &                 # no systemd here, so start it by hand
+    systemprompt-internal-bridge whoami                  # your identity, no PAT needed
+    systemprompt-internal-bridge install --apply --apply-schedule
+    systemprompt-internal-bridge sync --allow-tofu       # plugins, skills, agents, MCP
+    systemprompt-internal-bridge proxy &                 # no systemd here, so start it by hand
     bash -l -c claude                      # org skills load, no manual exports
 
-  'install --apply' writes ~/.config/astound/env.sh (ANTHROPIC_BASE_URL and
+  'install --apply' writes ~/.config/systemprompt-internal/env.sh (ANTHROPIC_BASE_URL and
   ANTHROPIC_AUTH_TOKEN) plus a managed block in ~/.profile that sources it, so a
   login shell needs no exports. '--apply-schedule' writes the systemd user units
   for sync and the proxy; this container has no systemd, so it warns and you run
-  'astound-bridge proxy' yourself. That degradation is part of what this
+  'systemprompt-internal-bridge proxy' yourself. That degradation is part of what this
   container tests.
 
-  Run 'astound-bridge doctor' if anything looks wrong — it names the cause,
+  Run 'systemprompt-internal-bridge doctor' if anything looks wrong — it names the cause,
   including whether the proxy is listening. With no Secret Service provider the
   bridge tiers down to the kernel keyring, then to process memory, and says so.
 

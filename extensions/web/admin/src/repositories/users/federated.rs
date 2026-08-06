@@ -1,4 +1,4 @@
-//! Federated-identity resolution for external SSO (e.g. Salesforce).
+//! Federated-identity resolution for external SSO.
 //!
 //! Bridges an externally-issued identity (`issuer`, `external_sub`) to a local
 //! `users` row, honouring the "merge by verified email" rule that core's own

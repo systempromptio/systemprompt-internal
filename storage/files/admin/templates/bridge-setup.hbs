@@ -19,10 +19,10 @@
                     <details class="download-other">
                         <summary>Other platforms</summary>
                         <ul>
-                            <li><a href="{{download_base_url}}/astound-bridge-macos.dmg">macOS (.dmg)</a></li>
-                            <li><a href="{{download_base_url}}/astound-bridge-windows.exe">Windows (.exe)</a></li>
-                            <li><a href="{{download_base_url}}/astound-bridge-linux-x86_64.tar.gz">Linux (.tar.gz, x86_64)</a></li>
-                            <li><a href="{{download_base_url}}/astound-bridge-linux-aarch64.tar.gz">Linux (.tar.gz, aarch64)</a></li>
+                            <li><a href="{{download_base_url}}/systemprompt-internal-bridge-macos.dmg">macOS (.dmg)</a></li>
+                            <li><a href="{{download_base_url}}/systemprompt-internal-bridge-windows.exe">Windows (.exe)</a></li>
+                            <li><a href="{{download_base_url}}/systemprompt-internal-bridge-linux-x86_64.tar.gz">Linux (.tar.gz, x86_64)</a></li>
+                            <li><a href="{{download_base_url}}/systemprompt-internal-bridge-linux-aarch64.tar.gz">Linux (.tar.gz, aarch64)</a></li>
                         </ul>
                     </details>
                 </div>
@@ -66,7 +66,7 @@
                             <button type="button" class="btn btn-sm copy-btn" id="linux-copy-btn">Copy</button>
                             <pre><code id="linux-snippet">curl -fsSL {{download_base_url}}/install.sh | sh -s -- --download-base {{download_base_url}} --gateway {{gateway_url}}</code></pre>
                         </div>
-                        <p class="text-tertiary text-sm">Then open a new login shell and run <code>claude</code>. No manual exports: the installer writes <code>~/.config/astound/env.sh</code> and a managed block in <code>~/.profile</code>, and registers the systemd user units for sync and the loopback proxy.</p>
+                        <p class="text-tertiary text-sm">Then open a new login shell and run <code>claude</code>. No manual exports: the installer writes <code>~/.config/systemprompt-internal/env.sh</code> and a managed block in <code>~/.profile</code>, and registers the systemd user units for sync and the loopback proxy.</p>
                     </div>
                 </div>
             </div>

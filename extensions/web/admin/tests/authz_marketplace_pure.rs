@@ -89,18 +89,18 @@ fn owned_by(artifact: &str, plugin: &str) -> (LibraryArtifactId, BTreeSet<Plugin
 fn candidate() -> MarketplaceCandidate {
     MarketplaceCandidate::new(
         vec![
-            plugin_entry("astound-admin"),
-            plugin_entry("astound-commons"),
+            plugin_entry("systemprompt-admin"),
+            plugin_entry("systemprompt-commons"),
         ],
         vec![skill_entry("skill-a"), skill_entry("skill-b")],
         vec![agent_entry("agent-a")],
         vec![hook_entry("hook-a")],
-        vec![mcp_entry("salesforce"), mcp_entry("systemprompt")],
+        vec![mcp_entry("odoo"), mcp_entry("systemprompt")],
         vec![artifact_entry("art-admin"), artifact_entry("art-common")],
     )
     .with_artifact_owners(BTreeMap::from([
-        owned_by("art-admin", "astound-admin"),
-        owned_by("art-common", "astound-commons"),
+        owned_by("art-admin", "systemprompt-admin"),
+        owned_by("art-common", "systemprompt-commons"),
     ]))
 }
 
@@ -158,12 +158,12 @@ fn keep(ids: &[&str]) -> KeepSet {
 #[test]
 fn candidate_ids_are_read_off_every_entry_list() {
     let ids = CandidateEntityIds::from_candidate(&candidate());
-    assert_eq!(ids.plugins, ["astound-admin", "astound-commons"]);
+    assert_eq!(ids.plugins, ["systemprompt-admin", "systemprompt-commons"]);
     assert_eq!(ids.skills, ["skill-a", "skill-b"]);
     assert_eq!(ids.agents, ["agent-a"]);
     assert_eq!(ids.hooks, ["hook-a"]);
     // Why: an MCP server is keyed by its name, not an id field.
-    assert_eq!(ids.mcp, ["salesforce", "systemprompt"]);
+    assert_eq!(ids.mcp, ["odoo", "systemprompt"]);
 }
 
 #[test]
@@ -171,21 +171,21 @@ fn keep_sets_shrink_every_list_to_what_survived() {
     let kept = apply_keep_sets(
         candidate(),
         &KeepSets {
-            plugins: keep(&["astound-commons"]),
+            plugins: keep(&["systemprompt-commons"]),
             skills: keep(&["skill-b"]),
             agents: KeepSet::new(),
             hooks: keep(&["hook-a"]),
-            mcp: keep(&["salesforce"]),
+            mcp: keep(&["odoo"]),
         },
     );
     assert_eq!(kept.plugins.len(), 1);
-    assert_eq!(kept.plugins[0].id.as_str(), "astound-commons");
+    assert_eq!(kept.plugins[0].id.as_str(), "systemprompt-commons");
     assert_eq!(kept.skills.len(), 1);
     assert_eq!(kept.skills[0].id.as_str(), "skill-b");
     assert!(kept.agents.is_empty());
     assert_eq!(kept.hooks.len(), 1);
     assert_eq!(kept.managed_mcp_servers.len(), 1);
-    assert_eq!(kept.managed_mcp_servers[0].name.as_str(), "salesforce");
+    assert_eq!(kept.managed_mcp_servers[0].name.as_str(), "odoo");
 }
 
 #[test]
@@ -193,7 +193,7 @@ fn an_artifact_survives_only_while_one_of_its_owning_plugins_does() {
     let kept = apply_keep_sets(
         candidate(),
         &KeepSets {
-            plugins: keep(&["astound-commons"]),
+            plugins: keep(&["systemprompt-commons"]),
             skills: KeepSet::new(),
             agents: KeepSet::new(),
             hooks: KeepSet::new(),
@@ -231,7 +231,7 @@ fn an_unowned_artifact_is_dropped_rather_than_defaulting_to_visible() {
     let kept = apply_keep_sets(
         input,
         &KeepSets {
-            plugins: keep(&["astound-admin", "astound-commons"]),
+            plugins: keep(&["systemprompt-admin", "systemprompt-commons"]),
             skills: KeepSet::new(),
             agents: KeepSet::new(),
             hooks: KeepSet::new(),
@@ -244,13 +244,13 @@ fn an_unowned_artifact_is_dropped_rather_than_defaulting_to_visible() {
 #[test]
 fn the_owner_map_and_marketplace_scope_pass_through_untouched() {
     let mut input = candidate();
-    input.marketplace_id = Some(systemprompt::identifiers::MarketplaceId::new("astound"));
+    input.marketplace_id = Some(systemprompt::identifiers::MarketplaceId::new("systemprompt"));
     let owners = input.artifact_owners.clone();
 
     let kept = apply_keep_sets(
         input,
         &KeepSets {
-            plugins: keep(&["astound-admin"]),
+            plugins: keep(&["systemprompt-admin"]),
             skills: KeepSet::new(),
             agents: KeepSet::new(),
             hooks: KeepSet::new(),
@@ -260,7 +260,7 @@ fn the_owner_map_and_marketplace_scope_pass_through_untouched() {
     assert_eq!(kept.artifact_owners, owners);
     assert_eq!(
         kept.marketplace_id.map(|id| id.to_string()),
-        Some("astound".to_owned())
+        Some("systemprompt".to_owned())
     );
 }
 
@@ -269,11 +269,11 @@ fn keeping_everything_is_the_identity() {
     let kept = apply_keep_sets(
         candidate(),
         &KeepSets {
-            plugins: keep(&["astound-admin", "astound-commons"]),
+            plugins: keep(&["systemprompt-admin", "systemprompt-commons"]),
             skills: keep(&["skill-a", "skill-b"]),
             agents: keep(&["agent-a"]),
             hooks: keep(&["hook-a"]),
-            mcp: keep(&["salesforce", "systemprompt"]),
+            mcp: keep(&["odoo", "systemprompt"]),
         },
     );
     assert_eq!(kept.plugins.len(), 2);

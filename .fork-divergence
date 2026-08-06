@@ -32,10 +32,9 @@ extensions/web/src/lib.rs	# brand: crate doc names the product
 # not drift. Converging these would mean shipping one product's pages
 # from the other's binary.
 # ---------------------------------------------------------------------
-extensions/web/admin/src/handlers/users.rs	# internal adds extract_mcp_accessor_user, accepting an Mcp-audience JWT for the Salesforce token accessor
-extensions/web/admin/src/lib.rs	# internal mounts the Salesforce token + Slack alert surface; template mounts the bridge plugin-file plane
+extensions/web/admin/src/lib.rs	# internal mounts the Odoo account-linking deps + Slack alert surface; template mounts the bridge plugin-file plane
 extensions/mcp/systemprompt/src/server/mod.rs	# internal serves artifact resources by URI (parse/read/shell template); template serves only the viewer resource
-extensions/web/src/schemas.rs	# internal ships the Salesforce identity schema
+extensions/web/src/schemas.rs	# internal ships the Odoo identity schema
 extensions/web/jobs/src/llms_txt.rs	# template emits a blog section; internal has no blog
 extensions/web/site/src/lib.rs	# template ships blog + features sections; internal ships the skills page
 extensions/web/site/src/navigation/provider.rs	# the blog nav link exists in the template only
@@ -49,9 +48,9 @@ extensions/web/site/src/homepage/config/mod.rs	# no `demos` section: internal's 
 # to it "as code"; in internal the field and its accessors would be dead code.
 extensions/web/admin/src/handlers/ssr/mod.rs	# template ships the SSR governance policy editor; internal does not
 extensions/web/admin/src/handlers/webhook/governance/mod.rs	# re-exports the policy editor the template alone mounts
-extensions/web/src/extension.rs	# internal loads a Salesforce SSO config and a skills-page config; template loads a feature-pages config
-extensions/web/src/extension_impl.rs	# internal mounts the Salesforce router and skills-page prerenderer; template mounts blog providers, feature prerenderers, the bridge router and an oauth-client seed
-extensions/web/admin/src/routes/ssr.rs	# internal mounts the Salesforce auth routes and the enterprise console, and opens platform admins on /admin/enterprises; template mounts the governance routes and always redirects to /admin/profile
+extensions/web/src/extension.rs	# internal loads a skills-page config; template loads a feature-pages config
+extensions/web/src/extension_impl.rs	# internal mounts the skills-page prerenderer; template mounts blog providers, feature prerenderers, the bridge router and an oauth-client seed
+extensions/web/admin/src/routes/ssr.rs	# internal mounts the Odoo account-linking routes and the enterprise console, and opens platform admins on /admin/enterprises; template mounts the governance routes and always redirects to /admin/profile
 
 # Internal is a pooled multi-tenant instance: its console is a cross-customer
 # view of organizations, plans, and margin, gated on membership of the platform
@@ -87,21 +86,23 @@ extensions/web/admin/src/handlers/ssr/ssr_users/data.rs	# internal loads each us
 extensions/web/admin/src/handlers/ssr/ssr_users/mod.rs	# internal's user detail reports device connectivity, not request counts
 extensions/web/admin/src/handlers/ssr/ssr_users/view.rs	# internal renders device freshness from last heartbeat, not last request
 extensions/web/admin/src/handlers/ssr/types/users.rs	# UserDeviceView has no counterpart in the template
-extensions/web/admin/src/repositories/users/mod.rs	# internal persists devices, federated identities and salesforce identities
 extensions/web/admin/src/repositories/users/queries/runtime.rs	# internal sources per-user runtime from bridge_sessions; the template sources it from ai_requests
 extensions/web/admin/src/repositories/departments/aggregates.rs	# internal counts devices per department; the template counts tokens
-extensions/web/src/router/mod.rs	# internal nests /bridge-auth and builds the Salesforce deps the API plane needs
+extensions/web/src/router/mod.rs	# internal nests /bridge-auth and builds the auth deps the SSR plane needs
 extensions/web/src/router/admin_ssr.rs	# internal builds the bridge sign-in router beside the dashboard, from the same engine
-extensions/web/src/router/api.rs	# internal merges the Salesforce token accessor into the public API plane
+extensions/web/admin/src/repositories/users/mod.rs	# internal persists devices, federated identities and Odoo credentials
+extensions/web/src/router/api.rs	# internal's public API plane carries the bridge and slack surfaces the template has no counterpart for
 
 # ---------------------------------------------------------------------
-# SALESFORCE / CATALOG - surface the template does not ship.
+# ODOO / CATALOG - surface the template does not ship.
 # ---------------------------------------------------------------------
-extensions/web/admin/src/assets.rs	# internal registers the devices and entities page scripts; the template registers access-tokens and models
+extensions/web/admin/src/handlers/users.rs	# internal's token extraction is Api-audience only; the template additionally accepts an Mcp-audience accessor token
+extensions/web/admin/src/assets.rs	# internal registers the devices, entities and Odoo-profile page scripts; the template registers access-tokens and models
+extensions/web/admin/tests/activity_constructors.rs	# internal's activity fixtures name the Odoo MCP server; the template names its own
 extensions/web/admin/src/repositories/users/access_control/mod.rs	# re-exports count_assignments_by_entity_type for the catalog pages below
 extensions/web/admin/src/repositories/users/access_control/rules.rs	# count_assignments_by_entity_type backs the internal-only catalog counts
 extensions/web/admin/src/repositories/users/user_queries.rs	# internal's department rollup labels the unassigned bucket, which its access matrix reads back
-extensions/web/site/src/config_loader/mod.rs	# internal loads the Salesforce SSO and skills-page configs; the template loads a feature-pages config
+extensions/web/site/src/config_loader/mod.rs	# internal loads the skills-page config; the template loads a feature-pages config
 extensions/web/admin/src/handlers/mod.rs	# internal mounts the catalog and device handlers; the template mounts access tokens
 extensions/web/admin/src/handlers/ssr/format.rs	# span and local-time helpers back the template-only evals and sessions pages
 extensions/web/admin/src/handlers/ssr/list_view.rs	# chip, preset and preserved-query helpers back the template-only list pages

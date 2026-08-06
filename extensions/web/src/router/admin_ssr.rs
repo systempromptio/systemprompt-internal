@@ -21,7 +21,7 @@ pub(crate) struct SsrRouters {
     pub bridge_auth: Router,
 }
 
-pub(crate) fn build(db: &DbHandles, sf_deps: admin::SalesforceDeps) -> Option<SsrRouters> {
+pub(crate) fn build(db: &DbHandles, auth_deps: admin::AuthDeps) -> Option<SsrRouters> {
     let admin_dir = admin_template_dir()?;
     let branding = config_loader::branding_config();
     let engine = admin::templates::AdminTemplateEngine::new(&admin_dir)
@@ -30,7 +30,7 @@ pub(crate) fn build(db: &DbHandles, sf_deps: admin::SalesforceDeps) -> Option<Ss
         .with_branding(branding);
     Some(SsrRouters {
         bridge_auth: admin::bridge_auth_ssr_router(Arc::clone(&db.read), engine.clone()),
-        admin: admin::admin_ssr_router(Arc::clone(&db.read), engine, sf_deps),
+        admin: admin::admin_ssr_router(Arc::clone(&db.read), engine, auth_deps),
     })
 }
 

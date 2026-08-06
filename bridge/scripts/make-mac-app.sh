@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Wrap the astound-bridge binary in a macOS .app bundle.
+# Wrap the systemprompt-internal-bridge binary in a macOS .app bundle.
 #
 # Usage: bridge/scripts/make-mac-app.sh [--target <triple>]
 #
 # Reads version from bridge/Cargo.toml, picks the matching release binary,
 # generates an .icns from bridge/assets/window-icon-1024.png, and emits
-# bridge/target/<triple>/release/AstoundBridge.app (or target/release/... when
+# bridge/target/<triple>/release/Systemprompt InternalBridge.app (or target/release/... when
 # no target is given). Must run on macOS (uses sips + iconutil).
 set -euo pipefail
 
@@ -20,10 +20,10 @@ ASSETS="assets"
 PLIST_TEMPLATE="macos/Info.plist"
 
 if [[ -n "$TARGET" ]]; then
-    BIN="target/$TARGET/release/astound-bridge"
+    BIN="target/$TARGET/release/systemprompt-internal-bridge"
     OUT_DIR="target/$TARGET/release"
 else
-    BIN="target/release/astound-bridge"
+    BIN="target/release/systemprompt-internal-bridge"
     OUT_DIR="target/release"
 fi
 
@@ -33,7 +33,7 @@ if [[ ! -f "$BIN" ]]; then
 fi
 
 VERSION="$(awk -F'"' '/^version/ { print $2; exit }' "Cargo.toml")"
-APP="$OUT_DIR/AstoundBridge.app"
+APP="$OUT_DIR/Systemprompt InternalBridge.app"
 CONTENTS="$APP/Contents"
 MACOS_DIR="$CONTENTS/MacOS"
 RES_DIR="$CONTENTS/Resources"
@@ -41,8 +41,8 @@ RES_DIR="$CONTENTS/Resources"
 rm -rf "$APP"
 mkdir -p "$MACOS_DIR" "$RES_DIR"
 
-cp "$BIN" "$MACOS_DIR/astound-bridge"
-chmod +x "$MACOS_DIR/astound-bridge"
+cp "$BIN" "$MACOS_DIR/systemprompt-internal-bridge"
+chmod +x "$MACOS_DIR/systemprompt-internal-bridge"
 
 sed "s/__VERSION__/$VERSION/g" "$PLIST_TEMPLATE" > "$CONTENTS/Info.plist"
 
@@ -59,4 +59,4 @@ iconutil -c icns -o "$RES_DIR/AppIcon.icns" "$ICONSET"
 rm -rf "$(dirname "$ICONSET")"
 
 echo "built: $APP (v$VERSION)"
-echo "run with: open '$APP'  or  '$MACOS_DIR/astound-bridge' gui"
+echo "run with: open '$APP'  or  '$MACOS_DIR/systemprompt-internal-bridge' gui"

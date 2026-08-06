@@ -1,7 +1,7 @@
 ---
 title: "Demo: Blocked Skill — Secret Detection Denies Tool Call"
 description: "Live demo showing the use-dangerous-secret skill being blocked by the PreToolUse governance hook when a plaintext API key is detected in the tool input."
-author: "Astound Digital"
+author: "systemprompt.io"
 slug: "demo-refused-path"
 keywords: "demo, refused path, denied, secret detection, governance, hook"
 kind: "guide"

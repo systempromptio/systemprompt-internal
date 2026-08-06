@@ -1,98 +1,73 @@
 ---
 title: "Authentication"
-description: "The two ways into the platform: Salesforce SSO for organization users, and CLI-provisioned passkeys for platform operators. Covers sessions, JWTs, and route protection."
-author: "Astound Digital"
+description: "How identity works: CLI-provisioned accounts with passkeys for platform sign-in, and per-user Odoo credentials for CRM access. Covers sessions, JWTs, and route protection."
+author: "systemprompt.io"
 slug: "authentication"
-keywords: "authentication, login, salesforce sso, passkey, webauthn, session, JWT, security, provisioning"
+keywords: "authentication, login, passkey, webauthn, session, JWT, security, provisioning, odoo identity, api key"
 kind: "guide"
 public: true
 tags: ["authentication", "security", "login"]
 published_at: "2026-03-02"
-updated_at: "2026-07-31"
+updated_at: "2026-08-06"
 after_reading_this:
-  - "Sign in as an organization user with Salesforce SSO"
-  - "Provision a platform operator from the CLI and enrol their passkey"
+  - "Provision a user from the CLI and enrol their passkey"
+  - "Link an Odoo login and API key so tool calls run as that person"
   - "Understand how session cookies and JWTs govern authenticated access"
   - "Know which admin routes are public and which require a session"
 related_playbooks:
   - title: "Start Here — Standing Up the Gateway"
     url: "/documentation/use-case-admin"
-  - title: "Salesforce Integration Overview"
-    url: "/documentation/salesforce"
-  - title: "Users, Seats and Roles"
-    url: "/documentation/salesforce-provisioning"
-  - title: "Rolling Out the Bridge"
-    url: "/documentation/salesforce-bridge-rollout"
+  - title: "Connect Claude Code"
+    url: "/documentation/connect-claude-code"
+  - title: "Dashboard Usage"
+    url: "/documentation/dashboard"
+  - title: "Gateway API"
+    url: "/documentation/gateway-api"
 ---
 
 # Authentication
 
-**TL;DR:** There are exactly two ways into the platform, and no self-service
-registration. Organization users sign in with **Salesforce SSO**, which
-provisions their account on first login. Platform operators are created from the
-**CLI** and enrol a **passkey** through a setup link. No passwords are created
-or stored anywhere.
+**TL;DR:** There is one way into the platform and no self-service registration.
+Accounts are created from the **CLI** and each one enrols a **passkey** through
+a one-shot setup link. No passwords are created or stored anywhere. Access to
+CRM data is a separate, second credential: each user links their own **Odoo
+login and API key** on their profile page, and every tool call runs as that
+person in Odoo.
 
 ## Why There Is No Registration Page
 
-Self-service registration was removed. It created a third way for an account to
-exist, and every account it made had to be reconciled against an organization,
-a seat, and a Salesforce identity afterwards — reconciliation that had no
+Self-service registration was removed. It created a way for an account to exist
+with no authority behind it, and every account it made had to be reconciled
+against an organization and a seat afterwards — reconciliation that had no
 automatic path and no owner.
 
-The two remaining doors each have a clear authority behind them. Salesforce
-decides who is an employee; a platform operator decides who operates the
-platform. Neither requires a signup form.
+Provisioning is now an explicit act by someone who already operates the
+platform. That is one door, with one authority behind it.
 
-## Path 1 — Organization Users: Salesforce SSO
+## Platform Sign-In: CLI + Passkey
 
-This is how everyone who is not a platform operator signs in.
-
-The user clicks **Sign in with Salesforce** on `/admin/login`. The platform runs
-an OAuth 2.0 authorization-code flow with PKCE against your Salesforce org, so
-your org's own login policies — including MFA — apply unchanged.
-
-On the callback, the platform:
-
-1. Exchanges the code and reads verified `userinfo` claims.
-2. Gates them: the email must be present, `email_verified`, and on an
-   allow-listed domain. A failure never creates an account.
-3. Resolves the identity — returning login, merge onto an existing account by
-   verified email, or just-in-time provisioning against the organization's seat
-   allocation.
-4. Records the Salesforce Username, which later authorizes per-user Salesforce
-   tool calls.
-5. Mints a session JWT and sets it as the `access_token` cookie.
-
-First login creates the account with no admin step, provided the domain is
-allow-listed and a seat is free. Failures return to
-`/admin/login?sso=<reason>`; the reasons are tabulated in
-[Salesforce App Setup](/documentation/salesforce-app-setup).
-
-## Path 2 — Platform Operators: CLI + Passkey
-
-Operators are created out-of-band. There is no way to self-provision one.
+Accounts are created out-of-band. There is no way to self-provision one.
 
 ```bash
 # 1. Create the account
-systemprompt admin users create --name "Jane" --email jane@astounddigital.com
+systemprompt admin users create --name "Jane" --email jane@systemprompt.io
 
-# 2. Grant the admin role
-systemprompt admin users role promote jane@astounddigital.com admin
+# 2. Grant the admin role (omit for a plain user)
+systemprompt admin users role promote jane@systemprompt.io admin
 
 # 3. Mint a one-shot passkey setup link
-systemprompt admin users webauthn generate-setup-token --email jane@astounddigital.com
+systemprompt admin users webauthn generate-setup-token --email jane@systemprompt.io
 ```
 
 The third command prints a copy-paste URL of the form
 `{api_external_url}/auth/link-passkey?token=…`, valid for 15 minutes by default
-(`--expires-minutes` to change). Send it to the operator through a channel you
-already trust; they open it, create a passkey, and sign in with that passkey
-from then on.
+(`--expires-minutes` to change). Send it through a channel you already trust;
+the user opens it, creates a passkey, and signs in with that passkey from then
+on.
 
 Roles are **not** carried in the session token. They are read from the user
-record on every request, so promoting or demoting an operator takes effect on
-their next request — no sign-out, no waiting for a token to refresh. That is
+record on every request, so promoting or demoting someone takes effect on their
+next request — no sign-out, no waiting for a token to refresh. That is
 deliberate: revocation is only worth having if it is immediate. The OAuth
 *scope* minted into the JWT is fixed at issue time, so a change that widens the
 scope itself still needs a fresh sign-in.
@@ -107,10 +82,49 @@ challenge, and issues an OAuth 2.0 session token via PKCE.
 ### Lost Passkey
 
 There is no self-service recovery — magic links were removed, and no email
-service is configured to deliver them. An operator who loses passkey access
-needs another operator to mint a fresh setup link with the same
-`generate-setup-token` command. Keep more than one operator account so this is
+service is configured to deliver them. Someone who loses passkey access needs
+another operator to mint a fresh setup link with the same
+`generate-setup-token` command. Keep more than one admin account so this is
 never a single point of failure.
+
+## CRM Access: Linking an Odoo Identity
+
+Signing in to the platform does not grant access to business data. Odoo is the
+system of record, and the Odoo MCP server holds **no service account**. Every
+JSON-RPC call it makes is issued with the calling user's own Odoo login and API
+key.
+
+Each user links their own credential once, from `/admin/profile`:
+
+1. In Odoo, open **Preferences → Account Security** and generate an API key.
+2. On the profile page, enter the Odoo login and that key, and submit.
+3. The platform calls `common.authenticate` against the configured database
+   before storing anything. A credential Odoo rejects is never persisted.
+4. On success the row lands in `odoo_identity`: the login, the `odoo_uid`
+   returned by Odoo, and the API key encrypted with ChaCha20-Poly1305 under the
+   deployment master key.
+
+Connection settings — `ODOO_URL` and `ODOO_DB` — come from the deployment
+environment, not from a user. A database name and a host belong with the
+install; the keys that authenticate against them are per person.
+
+Three consequences worth stating plainly:
+
+- **Odoo's record rules decide what an agent can see.** A salesperson's agent
+  sees that salesperson's pipeline because Odoo says so, not because the server
+  filtered anything.
+- **Odoo's audit log names a real person** against every note posted and every
+  lead changed. There is no shared integration user to hide behind.
+- **A user who has not linked Odoo gets a clear error** naming the profile page,
+  not an empty result set.
+
+Unlinking removes the row. The user keeps their platform account and loses CRM
+tool access until they link again.
+
+| Credential | Created by | Grants |
+|---|---|---|
+| Passkey | An operator, via CLI setup link | Sign-in to the console and the gateway |
+| Odoo login + API key | The user, in Odoo, linked on their profile | Whatever Odoo already lets that person do |
 
 ## Session Management
 
@@ -137,8 +151,9 @@ To sign out, clear the `access_token` cookie.
 | Route | Access |
 |-------|--------|
 | `/admin/login` | Public |
-| `/admin/auth/salesforce/*` | Public — the SSO start and callback |
+| `/admin/auth/passkey/*` | Public — passkey registration and authentication |
 | `/auth/link-passkey` | Public — consumes a one-shot setup token |
+| `/admin/api/profile/odoo*` | Any valid session — link, unlink, status |
 | `/admin/profile`, `/admin/settings`, `/admin/setup` | Any valid session, including a plain `user` |
 | `/admin/*` (everything else) | Requires a valid session **and** the `admin` role |
 | `/admin/enterprises*`, `/admin/reports/internal` | Requires platform admin |

@@ -58,7 +58,7 @@ steps:
     label: Prove central skill updates propagate
     narrative: >
       Stamps a unique marker into the dev_plan skill on disk, re-runs the
-      publish pipeline, and fetches the astound-dev plugin bundle over the
+      publish pipeline, and fetches the systemprompt-dev plugin bundle over the
       authenticated bridge endpoint to prove the marker appears in what
       developers are served — then restores the file. This is the POC's
       central promise: edit a skill once at the gateway and every assigned

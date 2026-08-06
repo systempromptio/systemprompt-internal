@@ -38,14 +38,14 @@ categories:
     name: Pages
     slug: pages
 metadata:
-  default_author: Astound Digital
+  default_author: systemprompt.io
   language: en
   structured_data:
     organization:
-      name: Astound Digital
-      url: https://astounddigital.com
-      logo: https://astounddigital.com/files/images/logo.png
-      description: Global digital commerce and AI-powered experience consultancy
+      name: systemprompt.io
+      url: https://systemprompt.io
+      logo: https://systemprompt.io/files/images/logo.png
+      description: Self-hosted AI governance infrastructure. Systemprompt Internal is the AI and communication layer over Odoo.
     article:
       type: BlogPosting
       language: en-US

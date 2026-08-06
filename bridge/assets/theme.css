@@ -1,18 +1,18 @@
-/* Astound Digital brand override for the bridge GUI.
+/* systemprompt.io brand override for the bridge GUI.
  *
  * Injected by the core GUI as the last <style> in <head> (see
  * gui/assets.rs::render_index), so these :root values win the cascade over the
- * bundled tokens.css. Astound is monochrome (neutral greys) with a single
- * vivid red accent (#fe190a ≈ oklch(0.63 0.25 28)). We retune the accent and
+ * bundled tokens.css. systemprompt.io pairs neutral greys with a single warm
+ * orange accent (#f79938 ≈ oklch(0.755 0.154 61)). We retune the accent and
  * neutralise the warm-grey backgrounds to true neutral; everything else
  * inherits the core dark theme. */
 :root {
-  /* Red accent (#fe190a and tints) */
-  --sp-accent:        oklch(0.63 0.25 28);
-  --sp-accent-hover:  oklch(0.58 0.25 28);
-  --sp-accent-soft:   oklch(0.63 0.25 28 / 0.12);
-  --sp-accent-ring:   oklch(0.63 0.25 28 / 0.40);
-  --sp-accent-deep:   oklch(0.54 0.24 28);
+  /* Orange accent (#f79938 and tints, deepening to #f38318) */
+  --sp-accent:        oklch(0.755 0.154 61);
+  --sp-accent-hover:  oklch(0.710 0.169 55);
+  --sp-accent-soft:   oklch(0.755 0.154 61 / 0.12);
+  --sp-accent-ring:   oklch(0.755 0.154 61 / 0.40);
+  --sp-accent-deep:   oklch(0.650 0.165 52);
 
   /* Neutral (hue-less) greys */
   --sp-bg:            oklch(0.17 0 0);
@@ -26,10 +26,11 @@
   --sp-muted:         oklch(0.68 0 0);
   --sp-muted-strong:  oklch(0.80 0 0);
 
-  --sp-shadow-accent: 0 12px 40px oklch(0.58 0.25 28 / 0.22);
+  --sp-shadow-accent: 0 12px 40px oklch(0.710 0.169 55 / 0.22);
 
-  /* Core defaults --sp-info to a vivid blue for "changed/updated" chips. Astound
-   * is monochrome, so desaturate it to a faint cool grey — still distinct from
-   * the red accent and the ok/err/warn hues, without introducing a second colour. */
+  /* Core defaults --sp-info to a vivid blue for "changed/updated" chips. The
+   * palette is a single accent over neutrals, so desaturate it to a faint cool
+   * grey — still distinct from the orange accent and the ok/err/warn hues,
+   * without introducing a second colour. */
   --sp-info:          oklch(0.72 0.02 240);
 }

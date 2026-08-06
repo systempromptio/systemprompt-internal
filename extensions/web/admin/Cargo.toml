@@ -49,16 +49,8 @@ rand = { workspace = true }
 # Templating
 handlebars = { workspace = true }
 
-# Archive
-tempfile = { workspace = true }
-# Salesforce metadata deploys ship as a zipped package over the REST resource.
-zip = { workspace = true }
-
-# HTTP client
+# HTTP client — Odoo JSON-RPC credential validation
 reqwest = { workspace = true }
-
-# RFC 7523 JWT-bearer assertion signing for outbound Salesforce token requests
-jsonwebtoken = { version = "10", features = ["rust_crypto"] }
 
 # Utilities
 url = { workspace = true }

@@ -87,7 +87,7 @@ fn only_enabled_skills_with_a_parseable_config_are_loaded() {
     write_skill(
         root,
         "good",
-        "id: good\nname: Good\ndescription: Loads.\ncategory: Salesforce\n",
+        "id: good\nname: Good\ndescription: Loads.\ncategory: Odoo\n",
     );
     write_skill(
         root,
@@ -106,5 +106,5 @@ fn only_enabled_skills_with_a_parseable_config_are_loaded() {
 
     let ids: Vec<&str> = skills.iter().map(|s| s.id.as_str()).collect();
     assert_eq!(ids, vec!["good"]);
-    assert_eq!(skills[0].category.as_deref(), Some("Salesforce"));
+    assert_eq!(skills[0].category.as_deref(), Some("Odoo"));
 }

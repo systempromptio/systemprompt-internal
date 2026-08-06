@@ -1,27 +1,23 @@
-const SSO_MESSAGES = {
-  unavailable: 'Salesforce sign-in is not available right now. Use a passkey, or contact the platform team.',
-  denied: 'Salesforce sign-in was cancelled.',
-  forbidden: 'That Salesforce account is not permitted. Use your Astound work email.',
-  unverified: 'Your Salesforce email is not verified. Verify it in Salesforce, then try again.',
-  no_email: 'Salesforce did not return an email address for your account.',
-  not_provisioned: 'No account exists for that Salesforce identity yet. Ask an administrator to create your account, then sign in again.',
+// Renders a sign-in failure explanation when the server bounces the browser
+// back to /admin/login with an `?auth=<code>` query parameter. Sign-in itself
+// is passkey-based and lives in /js/services/webauthn-login.js; this file only
+// surfaces the server's reason for refusing before the passkey step is reached.
+const AUTH_MESSAGES = {
+  not_provisioned: 'No account exists for that email yet. Ask an administrator to create your account, then sign in again.',
   seat_limit: 'Your organization has used all of its seats. Ask your administrator to free a seat or raise your plan limit.',
-  error: 'Salesforce sign-in failed. Please try again.'
+  forbidden: 'That email address is not permitted. Use your work email.',
+  unverified: 'Your email address is not verified. Verify it, then try again.',
+  expired: 'Your session expired. Sign in again to continue.',
+  error: 'Sign-in failed. Please try again.'
 };
 
 const params = new URLSearchParams(window.location.search);
 
-const sso = document.getElementById('salesforce-login');
-const redirect = params.get('redirect');
-if (sso && redirect) {
-  sso.href = `/admin/auth/salesforce/start?redirect=${encodeURIComponent(redirect)}`;
-}
-
-const ssoStatus = params.get('sso');
-if (ssoStatus) {
+const authStatus = params.get('auth');
+if (authStatus) {
   const errEl = document.getElementById('error');
   if (errEl) {
-    errEl.textContent = SSO_MESSAGES[ssoStatus] || SSO_MESSAGES.error;
+    errEl.textContent = AUTH_MESSAGES[authStatus] || AUTH_MESSAGES.error;
     errEl.removeAttribute('hidden');
   }
 }

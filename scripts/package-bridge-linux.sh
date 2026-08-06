@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Package the branded bridge as a Linux release tarball.
 #
-# Produces dist/astound-bridge-linux-x86_64.tar.gz plus a .sha256, matching the
+# Produces dist/systemprompt-internal-bridge-linux-x86_64.tar.gz plus a .sha256, matching the
 # asset name the admin Bridge Setup page links to. Keep the two in lockstep:
 # extensions/web/admin/src/handlers/ssr/ssr_bridge_setup.rs (DOWNLOAD_BASE_URL)
 # and storage/files/admin/templates/bridge-setup.hbs (asset filenames).
@@ -12,7 +12,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BRIDGE_DIR="$REPO_ROOT/bridge"
 DIST_DIR="$REPO_ROOT/dist"
-BIN_NAME="astound-bridge"
+BIN_NAME="systemprompt-internal-bridge"
 
 ARCH="$(uname -m)"
 case "$ARCH" in
@@ -58,7 +58,7 @@ VERSION="$(cd "$BRIDGE_DIR" && cargo metadata --no-deps --format-version 1 \
 COMMIT="$(git -C "$REPO_ROOT" rev-parse --short HEAD 2>/dev/null || echo unknown)"
 
 cat > "$PKG/INSTALL.md" <<EOF
-# Astound Bridge for Linux
+# Systemprompt Internal Bridge for Linux
 
 Version ${VERSION} (${COMMIT}, ${ASSET_ARCH})
 
@@ -104,7 +104,7 @@ one it chose in \`${BIN_NAME} doctor\`.
     ${BIN_NAME} sync                # pull plugins, skills, agents
     ${BIN_NAME} doctor              # confirm
 
-\`install --apply\` writes \`~/.config/astound/env.sh\` (ANTHROPIC_BASE_URL and
+\`install --apply\` writes \`~/.config/systemprompt-internal/env.sh\` (ANTHROPIC_BASE_URL and
 ANTHROPIC_AUTH_TOKEN) and a managed block in \`~/.profile\` that sources it.
 \`--apply-schedule\` registers two systemd user units: the periodic sync timer
 and \`${BIN_NAME}-proxy.service\`, which keeps the loopback inference proxy
@@ -119,9 +119,9 @@ Device certificates are the supported unattended credential. Generate one,
 have an admin enrol its fingerprint, then name it in the config:
 
     [mtls]
-    cert_keystore_ref = "~/.config/astound/device.pem"
+    cert_keystore_ref = "~/.config/systemprompt-internal/device.pem"
 
-\`ASTOUND_BRIDGE_DEVICE_CERT\` still works and takes precedence.
+\`SYSTEMPROMPT_BRIDGE_DEVICE_CERT\` still works and takes precedence.
 
 ## Uninstall
 

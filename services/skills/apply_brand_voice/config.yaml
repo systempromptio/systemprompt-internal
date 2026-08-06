@@ -1,6 +1,6 @@
 id: apply_brand_voice
 name: Apply Brand Voice
-description: "Rewrite or QA content against Astound Digital's voice and tone rules - confident, plain-spoken, client-outcome led"
+description: "Rewrite or QA content against systemprompt.io's voice and tone rules - plain, direct, technical, no marketing hype"
 enabled: true
 file: SKILL.md
 tags:

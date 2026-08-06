@@ -78,7 +78,7 @@ impl ServerHandler for KnowledgeBankServer {
                     format!("Knowledge Bank ({})", self.service_id),
                     env!("CARGO_PKG_VERSION"),
                 )
-                .with_title("Astound Project Knowledge Bank"),
+                .with_title("Project Knowledge Bank"),
             )
             .with_instructions(
                 "Project context for the current engagement: workshop transcripts, Jira tickets, \

@@ -85,14 +85,16 @@ pub(crate) struct BridgeConnectBlock {
 
 // Why: not derivable here — `brand()` lives in the bridge crate, which the
 // admin extension does not depend on.
-pub(crate) const BRIDGE_BINARY: &str = "astound-bridge";
+pub(crate) const BRIDGE_BINARY: &str = "systemprompt-internal-bridge";
 
 #[derive(Debug, Clone, Default, Serialize)]
-pub(crate) struct SalesforceLinkBlock {
+pub(crate) struct OdooLinkBlock {
     pub linked: bool,
-    pub sf_username: Option<String>,
-    /// Whether disconnecting is safe — a passkey exists to sign in with.
-    pub has_passkey: bool,
+    pub odoo_login: Option<String>,
+    /// Whether this deployment has an Odoo server configured at all. Without
+    /// one there is nothing to link against, and the card says so instead of
+    /// offering a form that cannot succeed.
+    pub configured: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -104,7 +106,7 @@ pub(crate) struct BridgeProfilePageData {
     pub bridge_profile: Option<BridgeProfileBlock>,
     pub usage: ProfileUsage,
     pub agents: AgentsBlock,
-    pub salesforce: SalesforceLinkBlock,
+    pub odoo: OdooLinkBlock,
 }
 
 async fn build_bridge_connect(
@@ -178,7 +180,7 @@ pub(crate) async fn build_bridge_profile_data(
 
     let usage = build_usage(sections);
     let agents = build_agents_block();
-    let salesforce = build_salesforce_block(&pool, &user_id).await;
+    let odoo = build_odoo_block(&pool, &user_id).await;
 
     BridgeProfilePageData {
         page: "profile",
@@ -188,30 +190,27 @@ pub(crate) async fn build_bridge_profile_data(
         bridge_profile,
         usage,
         agents,
-        salesforce,
+        odoo,
     }
 }
 
-// Why: "linked" is keyed on the recorded Salesforce Username rather than
-// `federated_identities` so the card can show *which* Salesforce account is
-// connected; both rows are written together by the SSO/link flows.
-async fn build_salesforce_block(pool: &PgPool, user_id: &UserId) -> SalesforceLinkBlock {
-    use crate::repositories::users::{passkey, salesforce_identity};
+// Why: the card shows *which* Odoo account is connected, because a user with
+// access to two Odoo logins needs to know which one their agents are acting as
+// — that is what Odoo's audit log will show against the records they change.
+// The stored API key is never read here.
+async fn build_odoo_block(pool: &PgPool, user_id: &UserId) -> OdooLinkBlock {
+    use crate::handlers::odoo_auth::OdooConnection;
+    use crate::repositories::users::odoo_identity;
 
-    let sf_username = salesforce_identity::find(pool, user_id)
+    let identity = odoo_identity::find(pool, user_id)
         .await
-        .map_err(|e| tracing::warn!(error = %e, "could not read Salesforce link status"))
+        .map_err(|e| tracing::warn!(error = %e, "could not read Odoo link status"))
         .ok()
         .flatten();
-    let has_passkey = passkey::count_webauthn_credentials(pool, user_id)
-        .await
-        .map_err(|e| tracing::warn!(error = %e, "could not count passkeys"))
-        .unwrap_or(0)
-        > 0;
 
-    SalesforceLinkBlock {
-        linked: sf_username.is_some(),
-        sf_username,
-        has_passkey,
+    OdooLinkBlock {
+        linked: identity.is_some(),
+        odoo_login: identity.map(|i| i.odoo_login),
+        configured: OdooConnection::from_env().is_some(),
     }
 }

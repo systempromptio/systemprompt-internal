@@ -3,7 +3,7 @@
 //! `Extension::router` is the only public way in: it takes the type-erased
 //! `ExtensionContext`, so the stub below hands it a real `Database` built on a
 //! throwaway pool. That exercises the whole assembly — pool extraction, the
-//! session service the Salesforce and webhook planes need, and the JSON/API
+//! session service the webhook plane needs, and the JSON/API
 //! plane — and pins where each plane is mounted by driving requests through the
 //! returned `axum::Router`.
 //!

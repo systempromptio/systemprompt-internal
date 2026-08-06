@@ -98,8 +98,8 @@ fn an_empty_homepage_document_yields_every_section_absent() {
 fn a_skill_entry_is_enabled_unless_the_yaml_says_otherwise() {
     let enabled: SkillEntry = serde_yaml::from_str(
         r"
-id: salesforce_account
-name: Salesforce Account
+id: odoo_lead
+name: Odoo Lead
 description: Work an account end to end.
 ",
     )
@@ -145,7 +145,7 @@ skills:
   - id: a
     name: A
     description: First
-    category: Salesforce
+    category: Odoo
     tags: [crm, sales]
 ",
     )
@@ -159,6 +159,6 @@ skills:
     assert_eq!(round_tripped.skills[0].tags, vec!["crm", "sales"]);
     assert_eq!(
         round_tripped.skills[0].category.as_deref(),
-        Some("Salesforce")
+        Some("Odoo")
     );
 }

@@ -50,7 +50,7 @@ fn set_master_key() {
 // and `Config` is a process-wide `OnceLock` — so all tests in this binary must
 // agree on the value, or the first installer would silently decide it for the
 // rest. Fixing it here makes the assertions below independent of test order.
-const BASE_URL: &str = "https://astound.test";
+const BASE_URL: &str = "https://systemprompt.test";
 
 const DOCUMENTATION_SOURCE_ENABLED: &str = "\
 content_sources:\n\
@@ -81,7 +81,7 @@ pub(crate) fn install_config() {
     let _ = Config::install(Config {
         instance_id: "jobs-context-tests".to_owned(),
         max_concurrent_streams: 16,
-        sitename: "astound-test".to_owned(),
+        sitename: "systemprompt-test".to_owned(),
         database_type: "postgres".to_owned(),
         database_url: "postgres://unused".to_owned(),
         database_write_url: None,

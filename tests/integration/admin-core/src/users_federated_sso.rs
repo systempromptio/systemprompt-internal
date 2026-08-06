@@ -13,7 +13,7 @@ use crate::fixtures::{
 };
 use crate::tempdb::TempDb;
 
-pub const ISSUER: &str = "https://login.salesforce.test";
+pub const ISSUER: &str = "https://idp.federated.test";
 
 fn claims<'a>(external_sub: &'a str, email: &'a str) -> FederatedClaims<'a> {
     FederatedClaims {

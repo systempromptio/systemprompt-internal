@@ -6,7 +6,7 @@ import { test, expect } from '@playwright/test';
 test('login page renders with sign-in options', async ({ page }) => {
   const response = await page.goto('/admin/login');
   expect(response?.status()).toBe(200);
-  await expect(page).toHaveTitle(/sign in|log in|astound/i);
+  await expect(page).toHaveTitle(/sign in|log in|systemprompt/i);
   await expect(page.locator('form, [data-testid], main').first()).toBeVisible();
 });
 

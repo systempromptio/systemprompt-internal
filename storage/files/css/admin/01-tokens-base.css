@@ -49,9 +49,9 @@
     --sp-text-on-accent: #f8f7f3;
     --sp-text-on-dark:   #f8f7f3;
 
-    --sp-interactive:   var(--sp-primitive-accent-red);
-    --sp-accent:        var(--sp-primitive-accent-red);
-    --sp-accent-hover:  #d41408;
+    --sp-interactive:   var(--sp-primitive-accent-brand);
+    --sp-accent:        var(--sp-primitive-accent-brand);
+    --sp-accent-hover:  #d96f10;
     --sp-accent-dim:    color-mix(in oklch, var(--sp-accent) 10%, transparent);
     --sp-accent-strong: color-mix(in oklch, var(--sp-accent) 18%, transparent);
 
@@ -61,7 +61,7 @@
     --sp-sidebar-text-muted: #707070;
     --sp-sidebar-text-hover: #171717;
     --sp-sidebar-hover-bg: #f1efed;
-    --sp-sidebar-active-bg: rgba(254, 25, 10, 0.08);
+    --sp-sidebar-active-bg: rgba(243, 131, 24, 0.08);
     --sp-sidebar-active-color: var(--sp-accent);
 
     --sp-success: #22c55e;

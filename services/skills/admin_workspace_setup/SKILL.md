@@ -5,8 +5,8 @@ any that are missing, leave the ones already there alone, and report a clear "in
 result. Safe to run on every new session — it reconciles rather than seeds, so re-running is the
 point, not a waste.
 
-This is the admin counterpart to "Set Up My Workspace", which installs the client-facing Salesforce
-dashboards. The two do not overlap: each installs only what its own plugin ships.
+This is the admin counterpart to the workspace setup skills that install the Odoo CRM dashboards
+(leads, activities, pipeline). The two do not overlap: each installs only what its own plugin ships.
 
 ## Ask me things like
 
@@ -51,7 +51,7 @@ never need their contents: they get copied, not retyped.
 **If `assets/artifacts/` is missing or empty:** fall back to the plugin bundle — the plugin root
 (two levels up from this skill: `../../artifacts/`) carries one `<id>.json` per artifact with the
 HTML embedded in a `content` field. If that is missing too, stop and tell the user to open the
-Astound Bridge app, sign in, run a sync, then start a **new** Cowork session. An empty directory
+Systemprompt Internal bridge app, sign in, run a sync, then start a **new** Cowork session. An empty directory
 means the sync has not happened — it is never "nothing to do".
 
 ## Step 2 — Diff bundled against installed

@@ -1,0 +1,34 @@
+plugin:
+  id: systemprompt-crm
+  name: "Systemprompt CRM — Business on Odoo"
+  description: "Run the business from the conversation with Odoo as the system of record: create, update, and report on CRM leads, log notes onto records, and pull a live business overview — every action executed in Odoo as the acting user."
+  version: "1.0.0"
+  enabled: true
+  author:
+    name: systemprompt.io
+    email: ed@tyingshoelaces.com
+  keywords: [crm, odoo, leads, pipeline, notes, activities, briefing]
+  license: proprietary
+  category: crm
+  skills:
+    source: explicit
+    include:
+      - crm
+      - business_overview
+      - add_note
+  agents:
+    source: explicit
+    include: []
+  # The native Odoo MCP server. Per-user: each caller's odoo_identity link
+  # (Odoo login + personal API key) is resolved in-process, so every tool call
+  # executes in Odoo as the real user and Odoo's ACLs and audit trail apply.
+  mcp_servers:
+    source: explicit
+    include:
+      - odoo
+  content_sources: {}
+  artifacts:
+    source: explicit
+    include:
+      - leads-inbound-prospects
+      - pipeline-open-deals

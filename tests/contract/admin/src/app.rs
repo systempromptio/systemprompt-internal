@@ -54,29 +54,13 @@ fn session_service(pool: &Arc<PgPool>) -> Arc<SessionCreationService> {
 
 impl App {
     pub fn new(pool: &Arc<PgPool>, credentials: Credentials) -> Self {
-        Self::build(pool, credentials, admin::SalesforceConfig::disabled())
-    }
-
-    /// The same router with Salesforce SSO configured.
-    ///
-    /// `new` disables it, which pins every SSO route at the "unavailable"
-    /// redirect and leaves the flow itself — PKCE, the state cookie, the
-    /// callback's validation ladder — unexercised. The config passed here
-    /// points at an address that refuses connections, so the branches before
-    /// and around the network call are reachable without a live org and
-    /// without the suite ever talking to Salesforce.
-    pub fn with_salesforce(
-        pool: &Arc<PgPool>,
-        credentials: Credentials,
-        config: admin::SalesforceConfig,
-    ) -> Self {
-        Self::build(pool, credentials, config)
+        Self::build(pool, credentials, admin::default_allowed_domains())
     }
 
     fn build(
         pool: &Arc<PgPool>,
         credentials: Credentials,
-        salesforce: admin::SalesforceConfig,
+        allowed_email_domains: Vec<String>,
     ) -> Self {
         let admin_dir = globals::repo_root().join("storage/files/admin");
         // Branding is not decoration here: the templates read `branding.*`
@@ -88,14 +72,11 @@ impl App {
             .with_branding(branding);
 
         let api = Router::new().nest("/admin", admin::admin_router(Arc::clone(pool)));
-        // Salesforce SSO is disabled by default: the suite drives routes, and a
-        // configured IdP would make every sign-in path depend on a live org.
-        let sf_deps = admin::SalesforceDeps {
-            config: Arc::new(salesforce),
+        let auth_deps = admin::AuthDeps {
             write_pool: Arc::clone(pool),
-            session_service: session_service(pool),
+            allowed_email_domains: Arc::new(allowed_email_domains),
         };
-        let ssr = admin::admin_ssr_router(Arc::clone(pool), engine.clone(), sf_deps.clone());
+        let ssr = admin::admin_ssr_router(Arc::clone(pool), engine.clone(), auth_deps);
         let bridge_auth = admin::bridge_auth_ssr_router(Arc::clone(pool), engine);
 
         // The hook endpoints are mounted at the root by
@@ -214,17 +195,12 @@ impl App {
         (status, headers.location.unwrap_or_default())
     }
 
-    pub async fn response_headers(&self, call: Call<'_>) -> (StatusCode, ResponseHeaders) {
-        self.response_headers_with(call, &[]).await
-    }
-
-    /// Status plus the two response headers the redirect-driven flows are
-    /// specified in terms of.
+    /// Status plus the response header the redirect-driven flows are specified
+    /// in terms of.
     ///
-    /// `call` reads the body, which is empty on a redirect: for the SSO flows
-    /// the entire outcome — where the browser goes, and what state it carries
-    /// there — lives in `Location` and `Set-Cookie`.
-    pub async fn response_headers_with(
+    /// `call` reads the body, which is empty on a redirect: the entire outcome
+    /// of a redirect — where the browser goes next — lives in `Location`.
+    async fn response_headers_with(
         &self,
         call: Call<'_>,
         extra_headers: &[(&str, &str)],
@@ -242,19 +218,7 @@ impl App {
             .get("location")
             .and_then(|v| v.to_str().ok())
             .map(ToOwned::to_owned);
-        let set_cookie = headers
-            .get_all("set-cookie")
-            .iter()
-            .filter_map(|v| v.to_str().ok())
-            .map(ToOwned::to_owned)
-            .collect();
-        (
-            status,
-            ResponseHeaders {
-                location,
-                set_cookie,
-            },
-        )
+        (status, ResponseHeaders { location })
     }
 
     async fn dispatch(
@@ -312,10 +276,9 @@ impl App {
     }
 }
 
-/// The response headers the redirect-driven flows are specified in terms of.
-pub struct ResponseHeaders {
-    pub location: Option<String>,
-    pub set_cookie: Vec<String>,
+/// The response header the redirect-driven flows are specified in terms of.
+struct ResponseHeaders {
+    location: Option<String>,
 }
 
 // One request, spelled out.

@@ -1,6 +1,6 @@
 //! In-memory document store seeded from bundled fixtures.
 //!
-//! The fixtures model the three source shapes Astound's real knowledge bank
+//! The fixtures model the three source shapes a real knowledge bank
 //! aggregates (workshop transcripts, Jira tickets, Confluence pages). Uploads
 //! land in the same in-memory list, so within a server process an uploaded
 //! document is immediately searchable; persistence is deliberately out of

@@ -14,7 +14,6 @@ use crate::{admin, api};
 pub(crate) fn build(
     db: &DbHandles,
     session_service: &Arc<SessionCreationService>,
-    sf_deps: admin::SalesforceDeps,
 ) -> Router {
     let admin_api = admin::admin_router(Arc::clone(&db.read));
     let webhook_api =
@@ -30,7 +29,6 @@ pub(crate) fn build(
         .merge(links_router)
         .merge(webhook_api)
         .merge(secrets_api)
-        .merge(admin::salesforce_api_router(sf_deps))
         .nest("/admin", admin_api)
 }
 

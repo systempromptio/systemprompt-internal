@@ -1,6 +1,6 @@
 id: company_boilerplate
 name: Company Boilerplate
-description: "Insert approved Astound Digital company descriptions, capability statements, and legal disclaimers into documents"
+description: "Insert approved systemprompt.io company descriptions, product descriptions, capability statements, and legal disclaimers into documents"
 enabled: true
 file: SKILL.md
 tags:

@@ -1,7 +1,7 @@
 ---
 title: "Demo: Detailed Breakdown — What Happens Under the Hood"
 description: "Step-by-step technical breakdown of the governance pipeline for both the allowed and blocked demo paths, with CLI commands to inspect every layer."
-author: "Astound Digital"
+author: "systemprompt.io"
 slug: "demo-breakdown"
 keywords: "demo, breakdown, audit, trace, analytics, governance, cli"
 kind: "guide"

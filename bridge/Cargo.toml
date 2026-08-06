@@ -1,4 +1,4 @@
-# Astound Digital desktop bridge — a white-label build of the systemprompt
+# Systemprompt Internal desktop bridge — a white-label build of the systemprompt
 # bridge. This is a STANDALONE crate (its own `[workspace]`), mirroring
 # systemprompt-core/bin/bridge: it must not be pulled into the main server
 # workspace (it carries GUI deps for Windows/macOS) and ships on its own
@@ -6,16 +6,16 @@
 [workspace]
 
 [package]
-name = "astound-bridge"
+name = "systemprompt-internal-bridge"
 version = "0.1.0"
 edition = "2024"
-authors = ["Astound Digital <ed@tyingshoelaces.com>"]
-description = "Astound Digital desktop bridge — branded build of the systemprompt bridge."
+authors = ["systemprompt.io <ed@tyingshoelaces.com>"]
+description = "Systemprompt Internal desktop bridge — branded build of the systemprompt bridge."
 publish = false
 build = "build.rs"
 
 [[bin]]
-name = "astound-bridge"
+name = "systemprompt-internal-bridge"
 path = "src/main.rs"
 
 [dependencies]
@@ -70,7 +70,7 @@ opt-level = "z"
 # `thin` not `fat`: the bridge host/sync/marketplace registries are populated at
 # link time via the `inventory` crate, and this standalone profile links the
 # final white-label binary. Fat LTO strips inventory's static initializers, so
-# the Astound registrations in src/registry.rs would silently vanish. Mirrors
+# the Systemprompt registrations in src/registry.rs would silently vanish. Mirrors
 # core's bin/bridge profile. Costs a small size increase.
 lto = "thin"
 codegen-units = 1

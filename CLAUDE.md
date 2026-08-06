@@ -251,7 +251,7 @@ Unknown YAML keys cause loud errors at load time (`#[serde(deny_unknown_fields)]
 2. **Rust code -> `extensions/`** — All `.rs` files live here.
 3. **Config only -> `services/`** — YAML/Markdown only. No Rust code.
 4. **CSS files -> `storage/files/css/`** — NEVER put CSS in `extensions/*/assets/css/`.
-5. **Brand name is `Astound Digital`** — Use "Astound Digital" for display, "astounddigital.com" for URLs.
+5. **Brand name is `systemprompt.io`** — Use "Systemprompt Internal" for the product, "systemprompt.io" for the brand and URLs.
 6. **It's a library, not a framework** — Embedded code you own and extend. NEVER call it a "framework".
 7. **Demo scripts must work on macOS and Linux** — BSD vs GNU differ on `grep -oP`, `head -n -1`, `sha256sum`, `sed -i`, and binary downloads (pick `hey_darwin_amd64` vs `hey_linux_amd64`). `demo/_common.sh` provides `install_hey()` for the last case; prefer `grep -oE` + `sed -n 's/.../\1/p'` over `grep -oP … \K …`.
 8. **No Co-Authored-By in commits** — `coauthorAttribution: false` is set in `.claude/settings.json`. Never add `Co-Authored-By:` trailers to commit messages.
@@ -321,8 +321,8 @@ Each plugin is a directory holding one `config.yaml` — `services/plugins/<id>/
 
 ```yaml
 plugin:
-  id: astound-commons
-  name: "Astound Commons — Workspace Setup"
+  id: systemprompt-commons
+  name: "Systemprompt Commons — Workspace Setup"
   version: "2.0.0"
   enabled: true
   skills:

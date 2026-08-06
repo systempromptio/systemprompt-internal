@@ -102,7 +102,7 @@ impl Extension for WebExtension {
         Some(SiteAuthConfig {
             login_path: "/admin/login",
             protected_prefixes: &["/admin", "/bridge-auth"],
-            public_prefixes: &["/admin/login", "/admin/auth/salesforce"],
+            public_prefixes: &["/admin/login"],
             required_scope: "user",
         })
     }

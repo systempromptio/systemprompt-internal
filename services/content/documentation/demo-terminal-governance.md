@@ -1,7 +1,7 @@
 ---
 title: "Terminal Demo: Governance API — Allow, Deny & Secret Detection"
 description: "Call the governance endpoint directly with curl. Test scope-based rules, secret detection against AWS keys, GitHub PATs, and private keys, and see every decision on the dashboard."
-author: "Astound Digital"
+author: "systemprompt.io"
 slug: "demo-terminal-governance"
 keywords: "demo, terminal, governance, api, curl, secrets, scope, allow, deny"
 kind: "guide"

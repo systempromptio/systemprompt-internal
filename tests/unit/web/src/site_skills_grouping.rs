@@ -1,5 +1,5 @@
 //! The skills page groups entries into a curated category order rather than an
-//! alphabetical one, so Salesforce leads and unrecognised categories sort last.
+//! alphabetical one, so Odoo leads and unrecognised categories sort last.
 //! `display_category` overrides `category`, and an entry with neither still has
 //! to land somewhere — "General" — instead of vanishing from the page.
 
@@ -29,8 +29,8 @@ fn category_names(grouped: &[Value]) -> Vec<String> {
 
 #[test]
 fn the_curated_categories_rank_ahead_of_everything_else() {
-    assert_eq!(category_rank("Salesforce"), 0);
-    assert!(category_rank("Salesforce") < category_rank("Consultancy Workflows"));
+    assert_eq!(category_rank("Odoo"), 0);
+    assert!(category_rank("Odoo") < category_rank("Consultancy Workflows"));
     assert!(category_rank("Platform & Operations") < category_rank("General"));
     assert_eq!(category_rank("General"), category_rank("Anything Unlisted"));
 }
@@ -40,12 +40,12 @@ fn categories_render_in_curated_order_with_unlisted_ones_last() {
     let grouped = group_by_category(&[
         entry("z", Some("Zebra Tools"), None),
         entry("p", Some("Platform & Operations"), None),
-        entry("s", Some("Salesforce"), None),
+        entry("s", Some("Odoo"), None),
     ]);
 
     assert_eq!(
         category_names(&grouped),
-        vec!["Salesforce", "Platform & Operations", "Zebra Tools"]
+        vec!["Odoo", "Platform & Operations", "Zebra Tools"]
     );
 }
 
@@ -63,7 +63,7 @@ fn unlisted_categories_tie_break_alphabetically() {
 #[test]
 fn display_category_wins_and_a_categoryless_skill_lands_in_general() {
     let grouped = group_by_category(&[
-        entry("override", Some("Salesforce"), Some("Brand & Workspace")),
+        entry("override", Some("Odoo"), Some("Brand & Workspace")),
         entry("bare", None, None),
     ]);
 

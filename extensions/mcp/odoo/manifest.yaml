@@ -1,0 +1,8 @@
+extension:
+  type: mcp
+  name: odoo
+  binary: systemprompt-mcp-odoo
+  description: Odoo CRM - search and manage leads, partners, notes and activities as the calling user
+  port: 5040
+  build_type: workspace
+  enabled: true

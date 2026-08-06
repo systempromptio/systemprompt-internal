@@ -13,7 +13,7 @@ export SIBLING_REPO := env("SIBLING_REPO", if path_exists("../systemprompt-templ
 CLI_RELEASE := "target/release/systemprompt"
 
 # Cloud profile every deploy targets: tenant a2f658d8bc5f, Fly app
-# sp-a2f658d8bc5f, served at https://astound.systemprompt.io.
+# sp-a2f658d8bc5f, served at https://internal.systemprompt.io.
 # See .systemprompt/profiles/production/.
 DEPLOY_PROFILE := "production"
 
@@ -427,7 +427,7 @@ coverage-html:
     "$TOOLDIR/llvm-cov" show \
         --instr-profile="$ROOT/coverage-report/tests.profdata" \
         $OBJ_ARGS \
-        --ignore-filename-regex="(\.cargo|/rustc/|/registry/|/debug/build/|/tests/|/target/|systemprompt-core/|systemprompt-internal/src/(main|lib)\.rs|bridge/src/main\.rs|extensions/cli/salesforce/src/(main\.rs|commands/)|extensions/.*/extension\.rs|build\.rs)" \
+        --ignore-filename-regex="(\.cargo|/rustc/|/registry/|/debug/build/|/tests/|/target/|systemprompt-core/|systemprompt-internal/src/(main|lib)\.rs|bridge/src/main\.rs|extensions/.*/extension\.rs|build\.rs)" \
         --format=html \
         --output-dir="$ROOT/coverage-report/html"
     echo "Coverage report: coverage-report/html/index.html"
@@ -880,16 +880,10 @@ status:
 build-mcp:
     DATABASE_URL="$(just _db-url)" {{CLI}} build mcp --release
 
-# Build CLI extensions. `systemprompt build mcp` only walks type: mcp manifests,
-# so these need their own recipe or `plugins run <name>` finds no binary.
-build-cli:
-    cargo build --release -p systemprompt-cli-salesforce
-
 # Build everything for deployment (Rust binary + MCP servers + web assets)
 build-all:
     just build --release
     just build-mcp
-    just build-cli
     just bridge-package-linux
     just web-build
     {{CLI_RELEASE}} infra jobs run publish_pipeline
@@ -911,10 +905,6 @@ publish:
         export SYSTEMPROMPT_PROFILE="{{justfile_directory()}}/.systemprompt/profiles/local/profile.yaml"
     fi
     {{CLI}} infra jobs run publish_pipeline
-
-# Stage setup-skill dashboard assets (skill assets ride into the Cowork VM)
-cowork-setup-assets *ARGS:
-    scripts/generate-cowork-setup-assets.py {{ARGS}}
 
 # Build web assets only (templates + CSS + JS + copy to dist)
 web-build:
@@ -1000,8 +990,8 @@ claude CODE="" GATEWAY="http://localhost:8080":
     REPO_HASH="$(printf '%s' "{{justfile_directory()}}" | sha256sum | cut -c1-8)"
     GW_SLUG="$(printf '%s' "$GATEWAY" | sed -e 's|^https\?://||' -e 's|[^A-Za-z0-9]|-|g')"
     SCOPE="${REPO_SLUG}-${REPO_HASH}-${GW_SLUG}"
-    VOL="astound-claude-${SCOPE}"
-    NAME="astound-claude-${SCOPE}"
+    VOL="systemprompt-claude-${SCOPE}"
+    NAME="systemprompt-claude-${SCOPE}"
 
     if [ "$(docker inspect -f '{{{{.State.Running}}}}' "$NAME" 2>/dev/null)" = "true" ]; then
         echo "Already running for this repo — opening another session in it."
@@ -1009,7 +999,7 @@ claude CODE="" GATEWAY="http://localhost:8080":
     fi
     docker rm -f "$NAME" >/dev/null 2>&1 || true
 
-    if ! docker image inspect astound-clean-client:local >/dev/null 2>&1; then
+    if ! docker image inspect systemprompt-clean-client:local >/dev/null 2>&1; then
         echo "Image missing — building it first." >&2
         just clean-client-build
     fi
@@ -1019,7 +1009,7 @@ claude CODE="" GATEWAY="http://localhost:8080":
     # checkout present. `bridge-build` fetches it. Do this before the code is
     # spent: a first-run compile can outlive the code's 10-minute TTL, so
     # `just bridge-build` belongs in setup rather than here.
-    BRIDGE="{{justfile_directory()}}/bridge/target/release/astound-bridge"
+    BRIDGE="{{justfile_directory()}}/bridge/target/release/systemprompt-internal-bridge"
     if [ ! -f "$BRIDGE" ] || [ ! -x "$BRIDGE" ]; then
         echo "Client not built yet — fetching core and building it."
         echo "warn: a first build takes minutes and the code expires in 10." >&2
@@ -1042,7 +1032,7 @@ claude CODE="" GATEWAY="http://localhost:8080":
     gateway_reachable() {
         docker run --rm --entrypoint curl \
             --add-host host.docker.internal:host-gateway \
-            astound-clean-client:local \
+            systemprompt-clean-client:local \
             -sf --max-time 5 "$GATEWAY/health" >/dev/null 2>&1
     }
 
@@ -1137,11 +1127,11 @@ claude CODE="" GATEWAY="http://localhost:8080":
     # caller sees as a hang.
     CODE_ENV=()
     if [ -n "{{CODE}}" ]; then
-        CODE_ENV=(-e ASTOUND_BRIDGE_CODE="{{CODE}}")
+        CODE_ENV=(-e SYSTEMPROMPT_BRIDGE_CODE="{{CODE}}")
     elif ! docker run --rm --entrypoint test \
             -v "$VOL":/home/tester \
-            astound-clean-client:local \
-            -f /home/tester/.config/astound/astound-bridge.pat >/dev/null 2>&1; then
+            systemprompt-clean-client:local \
+            -f /home/tester/.config/systemprompt-internal/systemprompt-internal-bridge.pat >/dev/null 2>&1; then
         echo "ERROR: not signed in yet, and no code was given." >&2
         echo "" >&2
         echo "  A code is needed the first time. Take one from /admin/profile:" >&2
@@ -1156,15 +1146,15 @@ claude CODE="" GATEWAY="http://localhost:8080":
         --name "$NAME" \
         --hostname "${REPO_SLUG:0:24}" \
         --add-host host.docker.internal:host-gateway \
-        -e ASTOUND_BRIDGE_GATEWAY_URL="$GATEWAY" \
+        -e SYSTEMPROMPT_BRIDGE_GATEWAY_URL="$GATEWAY" \
         "${CODE_ENV[@]}" \
         -e CLEAN_CLIENT_EXEC_CLAUDE=1 \
         -e CLEAN_CLIENT_ALLOW_STATE=1 \
         -v "$VOL":/home/tester \
-        -v "$BRIDGE:/usr/local/bin/astound-bridge:ro" \
+        -v "$BRIDGE:/usr/local/bin/systemprompt-internal-bridge:ro" \
         -v "{{justfile_directory()}}/deploy/clean-client/bootstrap.sh:/usr/local/bin/bootstrap.sh:ro" \
         "${PORTS[@]}" \
-        astound-clean-client:local /usr/local/bin/bootstrap.sh
+        systemprompt-clean-client:local /usr/local/bin/bootstrap.sh
 
 # ──────────────────────────────────────────────────────────────────────────────
 # CLEAN CLIENT — a config-free Linux box for testing the Claude Code + bridge
@@ -1173,21 +1163,21 @@ claude CODE="" GATEWAY="http://localhost:8080":
 
 # Build the clean-client image (context is deploy/clean-client only — no repo state)
 clean-client-build *ARGS:
-    docker build {{ARGS}} -f deploy/clean-client/Dockerfile -t astound-clean-client:local deploy/clean-client
+    docker build {{ARGS}} -f deploy/clean-client/Dockerfile -t systemprompt-clean-client:local deploy/clean-client
 
 # Shell into a clean client. PERSIST=1 keeps the login across runs.
 # GATEWAY overrides the gateway URL (default: this WSL host on :8080).
 clean-client PERSIST="0" GATEWAY="http://host.docker.internal:8080":
     #!/usr/bin/env bash
     set -euo pipefail
-    if ! docker image inspect astound-clean-client:local >/dev/null 2>&1; then
+    if ! docker image inspect systemprompt-clean-client:local >/dev/null 2>&1; then
         echo "Image missing — building it first." >&2
         just clean-client-build
     fi
 
     # Mount the bridge you just built, read-only. Absent is not fatal: you can
     # still test Claude Code against the gateway without the bridge installed.
-    BRIDGE="{{justfile_directory()}}/bridge/target/release/astound-bridge"
+    BRIDGE="{{justfile_directory()}}/bridge/target/release/systemprompt-internal-bridge"
     MOUNTS=()
     # -f as well as -x: a bare `docker run -v` against a missing path makes
     # docker create a root-owned DIRECTORY there, and `[ -x dir ]` is true, so
@@ -1199,16 +1189,16 @@ clean-client PERSIST="0" GATEWAY="http://host.docker.internal:8080":
         exit 1
     fi
     if [ -f "$BRIDGE" ] && [ -x "$BRIDGE" ]; then
-        MOUNTS+=(-v "$BRIDGE:/usr/local/bin/astound-bridge:ro")
+        MOUNTS+=(-v "$BRIDGE:/usr/local/bin/systemprompt-internal-bridge:ro")
     else
         echo "warn: $BRIDGE not found — run 'cd bridge && cargo build --release' for the full flow." >&2
     fi
 
-    # PERSIST keeps ~/.config/astound and ~/.claude in a named volume so a PAT
+    # PERSIST keeps ~/.config/systemprompt-internal and ~/.claude in a named volume so a PAT
     # survives a restart. Off by default: a throwaway HOME is the point.
     if [ "{{PERSIST}}" = "1" ]; then
-        MOUNTS+=(-v astound-clean-home:/home/tester -e CLEAN_CLIENT_ALLOW_STATE=1)
-        echo "State persists in volume 'astound-clean-home' — 'just clean-client-reset' wipes it."
+        MOUNTS+=(-v systemprompt-clean-home:/home/tester -e CLEAN_CLIENT_ALLOW_STATE=1)
+        echo "State persists in volume 'systemprompt-clean-home' — 'just clean-client-reset' wipes it."
     fi
 
     # 8767 is the bridge's plugin-OAuth loopback port; it must be reachable from
@@ -1224,12 +1214,12 @@ clean-client PERSIST="0" GATEWAY="http://host.docker.internal:8080":
     # Note what is deliberately NOT here: no --env-file, no $HOME mounts, no
     # repo mount. The container must start from nothing.
     exec docker run -it --rm \
-        --name astound-clean-client \
+        --name systemprompt-clean-client \
         --hostname clean-client \
         --add-host host.docker.internal:host-gateway \
-        -e ASTOUND_BRIDGE_GATEWAY_URL="{{GATEWAY}}" \
+        -e SYSTEMPROMPT_BRIDGE_GATEWAY_URL="{{GATEWAY}}" \
         "${MOUNTS[@]}" "${PORTS[@]}" \
-        astound-clean-client:local
+        systemprompt-clean-client:local
 
 alias cc := clean-client-ready
 
@@ -1240,29 +1230,29 @@ clean-client-ready GATEWAY="http://host.docker.internal:8080":
 
     # Already running (another terminal has it): open a second shell in it
     # rather than failing on the name conflict.
-    if [ "$(docker inspect -f '{{{{.State.Running}}}}' astound-clean-client 2>/dev/null)" = "true" ]; then
-        echo "Container 'astound-clean-client' is already running — opening a shell in it."
-        exec docker exec -it astound-clean-client bash -l
+    if [ "$(docker inspect -f '{{{{.State.Running}}}}' systemprompt-clean-client 2>/dev/null)" = "true" ]; then
+        echo "Container 'systemprompt-clean-client' is already running — opening a shell in it."
+        exec docker exec -it systemprompt-clean-client bash -l
     fi
 
     # Stopped leftover (a crashed run, or one started without --rm): restart it
     # and shell in, so anything written outside the /home/tester volume survives.
     # Only if it refuses to start do we reclaim the name.
-    if docker inspect astound-clean-client >/dev/null 2>&1; then
-        echo "Container 'astound-clean-client' is stopped — restarting it."
-        if docker start astound-clean-client >/dev/null 2>&1; then
-            exec docker exec -it astound-clean-client bash -l
+    if docker inspect systemprompt-clean-client >/dev/null 2>&1; then
+        echo "Container 'systemprompt-clean-client' is stopped — restarting it."
+        if docker start systemprompt-clean-client >/dev/null 2>&1; then
+            exec docker exec -it systemprompt-clean-client bash -l
         fi
         echo "warn: it would not restart — removing it and starting fresh." >&2
-        docker rm -f astound-clean-client >/dev/null
+        docker rm -f systemprompt-clean-client >/dev/null
     fi
 
-    if ! docker image inspect astound-clean-client:local >/dev/null 2>&1; then
+    if ! docker image inspect systemprompt-clean-client:local >/dev/null 2>&1; then
         echo "Image missing — building it first." >&2
         just clean-client-build
     fi
 
-    BRIDGE="{{justfile_directory()}}/bridge/target/release/astound-bridge"
+    BRIDGE="{{justfile_directory()}}/bridge/target/release/systemprompt-internal-bridge"
     if [ ! -f "$BRIDGE" ] || [ ! -x "$BRIDGE" ]; then
         echo "ERROR: $BRIDGE not found — run 'just bridge-build' first." >&2
         exit 1
@@ -1279,16 +1269,16 @@ clean-client-ready GATEWAY="http://host.docker.internal:8080":
     # CLEAN_CLIENT_ALLOW_STATE tells the entrypoint that reuse is deliberate
     # here rather than host config leaking in.
     exec docker run -it --rm \
-        --name astound-clean-client \
+        --name systemprompt-clean-client \
         --hostname clean-client \
         --add-host host.docker.internal:host-gateway \
-        -e ASTOUND_BRIDGE_GATEWAY_URL="{{GATEWAY}}" \
+        -e SYSTEMPROMPT_BRIDGE_GATEWAY_URL="{{GATEWAY}}" \
         -e CLEAN_CLIENT_ALLOW_STATE=1 \
-        -v astound-clean-home:/home/tester \
-        -v "$BRIDGE:/usr/local/bin/astound-bridge:ro" \
+        -v systemprompt-clean-home:/home/tester \
+        -v "$BRIDGE:/usr/local/bin/systemprompt-internal-bridge:ro" \
         -v "{{justfile_directory()}}/deploy/clean-client/bootstrap.sh:/usr/local/bin/bootstrap.sh:ro" \
         "${PORTS[@]}" \
-        astound-clean-client:local /usr/local/bin/bootstrap.sh
+        systemprompt-clean-client:local /usr/local/bin/bootstrap.sh
 
 # End-to-end: run the published installer with a PAT and assert managed MCP (see script header for how to mint the PAT)
 clean-client-install PAT GATEWAY="http://host.docker.internal:8080":
@@ -1303,12 +1293,12 @@ claude-reset ALL="0":
     # Scoped to this clone by default: signing every other checkout out because
     # one of them wanted a clean slate is not what anyone means by "reset".
     if [ "{{ALL}}" = "1" ]; then
-        FILTER='name=^astound-claude-'
+        FILTER='name=^systemprompt-claude-'
         echo "Signing out every repo on this host."
     else
         REPO_SLUG="$(basename "{{justfile_directory()}}" | sed 's|[^A-Za-z0-9]|-|g')"
         REPO_HASH="$(printf '%s' "{{justfile_directory()}}" | sha256sum | cut -c1-8)"
-        FILTER="name=^astound-claude-${REPO_SLUG}-${REPO_HASH}-"
+        FILTER="name=^systemprompt-claude-${REPO_SLUG}-${REPO_HASH}-"
     fi
     docker ps -aq --filter "$FILTER" | while read -r c; do
         docker rm -f "$c" >/dev/null 2>&1 && echo "removed container $c"
@@ -1322,8 +1312,8 @@ claude-reset ALL="0":
 
 # Wipe the persisted clean-client state volume
 clean-client-reset:
-    -docker rm -f astound-clean-client 2>/dev/null
-    -docker volume rm astound-clean-home
+    -docker rm -f systemprompt-clean-client 2>/dev/null
+    -docker volume rm systemprompt-clean-home
     @echo "Clean-client state wiped."
 
 # Isolated dev sandbox on a real project: clean client + the repo mounted at
@@ -1338,11 +1328,11 @@ dev-sandbox REPO PERSIST="0" GATEWAY="http://host.docker.internal:8080":
         echo "ERROR: {{REPO}} is not a directory" >&2
         exit 1
     fi
-    if ! docker image inspect astound-clean-client:local >/dev/null 2>&1; then
+    if ! docker image inspect systemprompt-clean-client:local >/dev/null 2>&1; then
         echo "Image missing — building it first." >&2
         just clean-client-build
     fi
-    BRIDGE="{{justfile_directory()}}/bridge/target/release/astound-bridge"
+    BRIDGE="{{justfile_directory()}}/bridge/target/release/systemprompt-internal-bridge"
     MOUNTS=(-v "$REPO_ABS:/workspace/project")
     if [ -d "$BRIDGE" ]; then
         echo "ERROR: $BRIDGE is a directory (docker created it from a stale -v mount)." >&2
@@ -1350,13 +1340,13 @@ dev-sandbox REPO PERSIST="0" GATEWAY="http://host.docker.internal:8080":
         exit 1
     fi
     if [ -f "$BRIDGE" ] && [ -x "$BRIDGE" ]; then
-        MOUNTS+=(-v "$BRIDGE:/usr/local/bin/astound-bridge:ro")
+        MOUNTS+=(-v "$BRIDGE:/usr/local/bin/systemprompt-internal-bridge:ro")
     else
         echo "warn: $BRIDGE not found — run 'cd bridge && cargo build --release' for the full flow." >&2
     fi
     if [ "{{PERSIST}}" = "1" ]; then
-        MOUNTS+=(-v astound-clean-home:/home/tester -e CLEAN_CLIENT_ALLOW_STATE=1)
-        echo "State persists in volume 'astound-clean-home' — 'just clean-client-reset' wipes it."
+        MOUNTS+=(-v systemprompt-clean-home:/home/tester -e CLEAN_CLIENT_ALLOW_STATE=1)
+        echo "State persists in volume 'systemprompt-clean-home' — 'just clean-client-reset' wipes it."
     fi
     PORTS=()
     if ss -ltn 2>/dev/null | grep -q ':8767 '; then
@@ -1365,12 +1355,12 @@ dev-sandbox REPO PERSIST="0" GATEWAY="http://host.docker.internal:8080":
         PORTS+=(-p 127.0.0.1:8767:8767)
     fi
     exec docker run -it --rm \
-        --name astound-dev-sandbox \
+        --name systemprompt-dev-sandbox \
         --hostname dev-sandbox \
         --add-host host.docker.internal:host-gateway \
-        -e ASTOUND_BRIDGE_GATEWAY_URL="{{GATEWAY}}" \
+        -e SYSTEMPROMPT_BRIDGE_GATEWAY_URL="{{GATEWAY}}" \
         "${MOUNTS[@]}" "${PORTS[@]}" \
-        astound-clean-client:local
+        systemprompt-clean-client:local
 
 # Install the Playwright e2e suite's dependencies (playwright/ directory)
 e2e-install:
@@ -1715,3 +1705,53 @@ release version:
     git tag "v{{version}}"
     git push origin "v{{version}}"
     @echo "v{{version}} tagged and pushed. No CI will pick it up — build artifacts locally with 'just build-all'."
+
+# --- Odoo companion app (Fly) --------------------------------------------
+# Odoo CE runs as its own Fly app (sp-88906bfd0afd-odoo) with a volume for
+# the filestore and a dedicated DB on systemprompt-db-prod. Tenant deploys
+# never touch it. See deploy/fly/odoo/.
+
+ODOO_APP := "sp-88906bfd0afd-odoo"
+ODOO_DB_NAME := "odoo_88906bfd0afd"
+
+# Deploy the Odoo companion app (single machine → brief downtime, immediate strategy)
+odoo-deploy:
+    flyctl deploy deploy/fly/odoo --strategy immediate
+
+odoo-status:
+    flyctl status -a {{ODOO_APP}}
+
+odoo-logs *FLAGS:
+    flyctl logs -a {{ODOO_APP}} {{FLAGS}}
+
+# Set the two Odoo secrets: just odoo-secrets <db_password> <admin_passwd>
+odoo-secrets DB_PASSWORD ADMIN_PASSWD:
+    flyctl secrets set -a {{ODOO_APP}} ODOO_DB_PASSWORD='{{DB_PASSWORD}}' ODOO_ADMIN_PASSWD='{{ADMIN_PASSWD}}'
+
+# One-time: create the odoo role + database on systemprompt-db-prod.
+# Needs the cluster superuser password: just odoo-provision-db <role_pw>
+# (connects via db.systemprompt.io:5432; prompts for the postgres password)
+odoo-provision-db ROLE_PASSWORD:
+    psql -h db.systemprompt.io -p 5432 -U postgres -d postgres \
+      -v pw='{{ROLE_PASSWORD}}' -f deploy/fly/odoo/provision-db.sql
+
+# Backup: volume snapshot (filestore) + pg_dump (database) → backups/odoo/
+# pg_dump/pg_restore auth: export PGPASSWORD=<odoo role pw> (or use ~/.pgpass)
+odoo-backup:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    mkdir -p backups/odoo
+    vol=$(flyctl volumes list -a {{ODOO_APP}} --json | python3 -c "import json,sys;print(json.load(sys.stdin)[0]['id'])")
+    flyctl volumes snapshots create "$vol" -a {{ODOO_APP}}
+    out="backups/odoo/{{ODOO_DB_NAME}}_$(date +%Y%m%d_%H%M%S).dump"
+    pg_dump -h db.systemprompt.io -p 5432 -U {{ODOO_DB_NAME}} -d {{ODOO_DB_NAME}} -Fc -f "$out"
+    echo "wrote $out"
+
+# Restore a pg_dump made by odoo-backup: just odoo-restore backups/odoo/<file>.dump
+odoo-restore DUMP:
+    pg_restore -h db.systemprompt.io -p 5432 -U {{ODOO_DB_NAME}} -d {{ODOO_DB_NAME}} --clean --if-exists --no-owner "{{DUMP}}"
+
+# Local: create the odoo role + DB on the local dev postgres (after db-up)
+odoo-local-init:
+    PGPASSWORD=123 psql -h localhost -p 5448 -U systemprompt -d systemprompt \
+      -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='odoo') THEN CREATE USER odoo WITH PASSWORD 'odoo' CREATEDB; END IF; END \$\$;"

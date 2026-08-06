@@ -1,18 +1,17 @@
 branding:
-  name: Astound Digital
-  title: "The AI Salesforce Gateway by Astound Digital"
-  description: Ask your Salesforce anything in plain English, inside Claude.
-    Pipeline, accounts, contacts, and client history answered in seconds,
-    with every change confirmed and every action audited. AI for Salesforce,
-    by Astound Digital.
-  copyright: 2026 Astound Digital
-  themeColor: '#171717'
+  name: systemprompt.io
+  title: "Systemprompt Internal — AI Business Management on Odoo"
+  description: Systemprompt Internal is the AI and communication layer for
+    running the business. Odoo is the system of record; one self-hosted binary
+    governs every AI interaction, and every call is confirmed and audited.
+  copyright: 2026 systemprompt.io. All rights reserved.
+  themeColor: '#f79938'
   display_sitename: true
-  twitter_handle: '@astounddigital'
+  twitter_handle: '@systemprompt'
   image: /files/images/logo.png
   logo:
     primary:
-      svg: /files/images/logo.svg
+      svg: /files/images/logo-dark.svg
       webp: /files/images/logo.webp
       png: /files/images/logo.png
     dark:
@@ -39,74 +38,74 @@ fonts:
 colors:
   light:
     primary:
-      hsl: hsl(0, 0%, 9%)
+      hsl: hsl(28, 91%, 50%)
       rgb:
-      - 23
-      - 23
-      - 23
+      - 243
+      - 131
+      - 24
     secondary:
-      hsl: hsl(0, 0%, 30%)
+      hsl: hsl(28, 91%, 40%)
       rgb:
-      - 77
-      - 77
-      - 77
-    accent: '#fe190a'
+      - 195
+      - 105
+      - 19
+    accent: '#f79938'
     success: '#10b981'
     warning: '#f59e0b'
     error: '#ef4444'
     surface:
       default: '#FFFFFF'
-      dark: '#f8f7f3'
-      variant: '#f1efed'
-      secondaryContainer: '#f1efed'
+      dark: '#F8FAFC'
+      variant: '#F1F5F9'
+      secondaryContainer: '#FEF3E2'
       errorContainer: '#FEE2E2'
     text:
-      primary: '#171717'
-      secondary: '#4d4d4d'
-      inverted: '#f8f7f3'
-      disabled: '#b6b6b6'
+      primary: '#0F172A'
+      secondary: '#475569'
+      inverted: '#FFFFFF'
+      disabled: '#94A3B8'
     background:
-      default: '#f8f7f3'
-      dark: '#f1efed'
+      default: '#FFFFFF'
+      dark: '#F8FAFC'
     border:
-      default: '#dddddd'
-      dark: '#b6b6b6'
-      outline: '#b6b6b6'
+      default: '#E2E8F0'
+      dark: '#CBD5E1'
+      outline: '#94A3B8'
   dark:
     primary:
-      hsl: hsl(48, 26%, 96%)
+      hsl: hsl(28, 91%, 60%)
       rgb:
-      - 248
       - 247
-      - 243
+      - 153
+      - 56
     secondary:
-      hsl: hsl(0, 0%, 71%)
+      hsl: hsl(28, 91%, 70%)
       rgb:
-      - 182
-      - 182
-      - 182
-    accent: '#fe190a'
+      - 250
+      - 186
+      - 115
+    accent: '#f79938'
     success: '#34d399'
     warning: '#fbbf24'
     error: '#f87171'
     surface:
-      default: '#171717'
-      dark: '#0a0a0a'
-      variant: '#292929'
-      secondaryContainer: rgba(254, 25, 10, 0.1)
+      default: '#1A1A1A'
+      dark: '#0A0A0A'
+      variant: '#2A2A2A'
+      secondaryContainer: rgba(247, 153, 56, 0.1)
       errorContainer: rgba(248, 113, 113, 0.1)
     text:
-      primary: '#f8f7f3'
-      secondary: '#b6b6b6'
-      inverted: '#171717'
-      disabled: '#707070'
+      primary: '#FFFFFF'
+      secondary: '#A0A0A0'
+      inverted: '#000000'
+      disabled: '#666666'
     background:
-      default: '#0f0f0f'
-      dark: '#0a0a0a'
+      default: '#000000'
+      dark: '#000000'
     border:
       default: rgba(255, 255, 255, 0.1)
-      dark: '#292929'
-      outline: '#707070'
+      dark: '#333333'
+      outline: '#666666'
 typography:
   sizes:
     xs: 12px
@@ -140,12 +139,12 @@ shadows:
     sm: 0 1px 2px rgba(0, 0, 0, 0.04)
     md: 0 4px 6px rgba(0, 0, 0, 0.07)
     lg: 0 10px 15px rgba(0, 0, 0, 0.1)
-    accent: 0 4px 14px rgba(10, 10, 10, 0.15)
+    accent: 0 4px 14px rgba(247, 153, 56, 0.15)
   dark:
     sm: 0 2px 4px rgba(0, 0, 0, 0.3)
     md: 0 4px 8px rgba(0, 0, 0, 0.4)
     lg: 0 10px 20px rgba(0, 0, 0, 0.5)
-    accent: 0 4px 14px rgba(0, 0, 0, 0.45)
+    accent: 0 4px 14px rgba(247, 153, 56, 0.25)
 animation:
   fast: 150ms
   normal: 250ms
@@ -177,9 +176,9 @@ card:
     md: 16px
     lg: 24px
   gradient:
-    start: rgba(23, 23, 23, 0.05)
-    mid: rgba(23, 23, 23, 0.025)
-    end: rgba(23, 23, 23, 0.01)
+    start: rgba(247, 153, 56, 0.05)
+    mid: rgba(247, 153, 56, 0.025)
+    end: rgba(247, 153, 56, 0.01)
 mobile:
   spacing:
     xs: 4px

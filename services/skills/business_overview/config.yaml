@@ -1,0 +1,13 @@
+id: business_overview
+name: Business Overview
+description: "One briefing on everything going on: pipeline by stage, new leads, recent notes, and overdue activities — pulled live from Odoo, the system of record."
+enabled: true
+file: SKILL.md
+tags:
+  - odoo
+  - briefing
+  - pipeline
+  - activities
+  - notes
+category: crm
+display_category: "Business on Odoo"

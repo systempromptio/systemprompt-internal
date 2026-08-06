@@ -1,0 +1,41 @@
+# Odoo Community — permanent companion app for tenant sp-88906bfd0afd.
+# Deployed independently of the tenant (`just odoo-deploy`); tenant deploys
+# never touch this app, its volume, or its database.
+app = "sp-88906bfd0afd-odoo"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  # Non-secret config. Secrets (ODOO_DB_PASSWORD, ODOO_ADMIN_PASSWD) are set
+  # with `just odoo-secrets` / `flyctl secrets set`.
+  ODOO_DB_HOST = "systemprompt-db-prod.internal"
+  # Direct Postgres, NOT PgBouncer (5433): Odoo relies on session state
+  # (SET, advisory locks, LISTEN/NOTIFY) and breaks under transaction pooling.
+  ODOO_DB_PORT = "5432"
+  ODOO_DB_USER = "odoo_88906bfd0afd"
+  ODOO_DB_NAME = "odoo_88906bfd0afd"
+
+[[mounts]]
+  source = "odoo_data"
+  destination = "/var/lib/odoo"
+
+[http_service]
+  internal_port = 8069
+  force_https = true
+  # Permanent companion: the tenant's MCP server may call at any time.
+  auto_stop_machines = "off"
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    grace_period = "60s"
+    interval = "30s"
+    timeout = "5s"
+    method = "GET"
+    path = "/web/health"
+
+[[vm]]
+  memory = "2048mb"
+  cpu_kind = "shared"
+  cpus = 2

@@ -25,7 +25,7 @@ impl SkillsPagePrerenderer {
 }
 
 const CATEGORY_ORDER: [&str; 5] = [
-    "Salesforce",
+    "Odoo",
     "Consultancy Workflows",
     "Brand & Workspace",
     "Governance & Analytics",

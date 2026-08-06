@@ -1,14 +1,14 @@
 # Homepage Configuration
 #
-# Front page for the AI Salesforce Gateway by Astound Digital. The hero below
-# is authoritative. Body sections (value pillars, department grid, integrations,
-# how to use) live in services/web/templates/homepage.html.
+# Front page for Systemprompt Internal — AI business management on Odoo. The
+# hero below is authoritative. Body sections (value pillars, department grid,
+# integrations, how to use) live in services/web/templates/homepage.html.
 
 hero:
-  title: "The AI Salesforce Gateway,"
-  title_highlight: "by Astound"
-  subtitle: "Ask your Salesforce anything, in plain English, inside Claude. Pipeline, accounts, contacts, case studies, and client history answered in seconds. One login connects everything. Every change is confirmed with you first, and every action is audited."
-  eyebrow: "Astound Digital · AI for Salesforce"
+  title: "AI business management,"
+  title_highlight: "on Odoo"
+  subtitle: "Ask the business anything in plain English, inside Claude. Pipeline, leads, activities, notes, and customer history come straight from Odoo. Odoo stays the system of record; one self-hosted binary governs every AI interaction, confirms every write with you first, and audits every call."
+  eyebrow: "Systemprompt Internal · AI on Odoo"
   cta: "Get started"
   cta_url: "/documentation/"
   cta_secondary: "Explore the skills"

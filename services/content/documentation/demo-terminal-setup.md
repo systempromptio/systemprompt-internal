@@ -1,7 +1,7 @@
 ---
 title: "Terminal Demo: Setup & Authentication"
 description: "Verify platform services, obtain authentication tokens, and access the admin dashboard. Required before running any terminal demo."
-author: "Astound Digital"
+author: "systemprompt.io"
 slug: "demo-terminal-setup"
 keywords: "demo, terminal, setup, authentication, token, preflight"
 kind: "guide"
@@ -13,7 +13,7 @@ after_reading_this:
   - "Verify all platform services are running"
   - "Obtain an authentication token for API calls"
   - "Obtain a plugin token for MCP access tracking"
-  - "Access the admin dashboard via Salesforce SSO or an operator passkey"
+  - "Access the admin dashboard via Odoo SSO or an operator passkey"
 related_docs:
   - title: "Agent Messaging Demo"
     url: "/documentation/demo-terminal-agents"
@@ -71,7 +71,7 @@ systemprompt infra services start --kill-port-process
 
 ## Step 2: Access the Admin Dashboard
 
-Navigate to [/admin/login](/admin/login) in your browser and sign in with Salesforce, or with your passkey if you are a platform operator. After authentication, the dashboard shows real-time metrics for every action you run from the terminal.
+Navigate to [/admin/login](/admin/login) in your browser and sign in with Odoo, or with your passkey if you are a platform operator. After authentication, the dashboard shows real-time metrics for every action you run from the terminal.
 
 Key pages to keep open during demos:
 

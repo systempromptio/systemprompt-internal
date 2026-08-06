@@ -40,13 +40,13 @@ missing_errors_doc = "allow"
 systemprompt-mcp-shared = { path = "../extensions/mcp/shared" }
 systemprompt-mcp-agent = { path = "../extensions/mcp/systemprompt" }
 systemprompt-mcp-knowledge-bank = { path = "../extensions/mcp/knowledge-bank" }
+systemprompt-mcp-odoo = { path = "../extensions/mcp/odoo" }
 systemprompt-web-shared = { path = "../extensions/web/shared" }
 systemprompt-web-admin = { path = "../extensions/web/admin" }
 systemprompt-web-content = { path = "../extensions/web/content" }
 systemprompt-web-jobs = { path = "../extensions/web/jobs" }
 systemprompt-web-extension = { path = "../extensions/web" }
 systemprompt-web-site = { path = "../extensions/web/site" }
-systemprompt-cli-salesforce = { path = "../extensions/cli/salesforce" }
 
 # Core facade — DbPool / Database / identifiers for the integration crate.
 # The contract crate additionally enables `full`, which links the core

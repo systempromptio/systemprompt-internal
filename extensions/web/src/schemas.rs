@@ -14,8 +14,7 @@ pub(crate) const SCHEMA_MANAGEMENT: &str = include_str!("../schema/12_management
 pub(crate) const SCHEMA_WEB_SIDE_TABLES: &str = include_str!("../schema/13_web_side_tables.sql");
 pub(crate) const SCHEMA_AUDIT_EVENT_NOTIFY: &str =
     include_str!("../schema/14_audit_event_notify.sql");
-pub(crate) const SCHEMA_SALESFORCE_IDENTITY: &str =
-    include_str!("../schema/15_salesforce_identity.sql");
+pub(crate) const SCHEMA_ODOO_IDENTITY: &str = include_str!("../schema/15_odoo_identity.sql");
 pub(crate) const SCHEMA_ORGANIZATIONS: &str = include_str!("../schema/16_organizations.sql");
 
 #[doc(hidden)]
@@ -28,7 +27,7 @@ pub fn schema_definitions() -> Vec<SchemaDefinition> {
         SchemaDefinition::new("", SCHEMA_MANAGEMENT),
         SchemaDefinition::new("", SCHEMA_WEB_SIDE_TABLES),
         SchemaDefinition::new("", SCHEMA_AUDIT_EVENT_NOTIFY),
-        SchemaDefinition::new("", SCHEMA_SALESFORCE_IDENTITY),
+        SchemaDefinition::new("", SCHEMA_ODOO_IDENTITY),
         SchemaDefinition::new("", SCHEMA_ORGANIZATIONS),
     ]
 }

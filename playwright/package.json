@@ -1,7 +1,7 @@
 {
   "name": "internal-e2e",
   "private": true,
-  "description": "Playwright e2e suite for the Astound gateway's browser surfaces (admin login, catalog, device-link). Needs a running stack: `just start`, then `just e2e`.",
+  "description": "Playwright e2e suite for the Systemprompt Internal gateway's browser surfaces (admin login, catalog, device-link). Needs a running stack: `just start`, then `just e2e`.",
   "scripts": {
     "test": "playwright test"
   },

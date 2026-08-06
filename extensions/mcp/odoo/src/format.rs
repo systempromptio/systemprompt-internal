@@ -1,0 +1,65 @@
+//! Rendering Odoo records as the markdown the model reads.
+//!
+//! Odoo's JSON has two habits that make raw output hard to read. Empty values
+//! come back as `false` rather than null, and a many2one relation comes back as
+//! `[id, "Display Name"]`. Passing either through unfiltered wastes context and
+//! invites a model to report "false" as a customer's phone number.
+
+use systemprompt::models::artifacts::{CliArtifact, TextArtifact};
+
+/// A field value as prose. `false`, null and empty string all collapse to
+/// `None` — in Odoo they mean the same thing.
+#[must_use]
+pub fn field(record: &serde_json::Value, key: &str) -> Option<String> {
+    match record.get(key)? {
+        serde_json::Value::Bool(_) | serde_json::Value::Null => None,
+        serde_json::Value::String(s) if s.trim().is_empty() => None,
+        serde_json::Value::String(s) => Some(s.clone()),
+        serde_json::Value::Number(n) => Some(n.to_string()),
+        // Why: the many2one shape. The display name is the second element;
+        // the id alone is rarely what a reader wants to see.
+        serde_json::Value::Array(items) => items
+            .get(1)
+            .and_then(|v| v.as_str())
+            .map(ToOwned::to_owned),
+        other @ serde_json::Value::Object(_) => Some(other.to_string()),
+    }
+}
+
+/// The id side of a many2one, for follow-up calls.
+#[must_use]
+pub fn relation_id(record: &serde_json::Value, key: &str) -> Option<i64> {
+    record.get(key)?.as_array()?.first()?.as_i64()
+}
+
+/// A field value, or an em dash. Used in list rows where a missing value still
+/// needs a column.
+#[must_use]
+pub fn field_or_dash(record: &serde_json::Value, key: &str) -> String {
+    field(record, key).unwrap_or_else(|| "—".to_owned())
+}
+
+/// Render `keys` as a markdown definition list, skipping absent values.
+#[must_use]
+pub fn detail_lines(record: &serde_json::Value, keys: &[(&str, &str)]) -> String {
+    keys.iter()
+        .filter_map(|(key, label)| field(record, key).map(|value| format!("- **{label}:** {value}")))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// Wrap a rendered body as the artifact returned to the model.
+#[must_use]
+pub fn text_artifact(title: &str, body: &str) -> CliArtifact {
+    CliArtifact::text(TextArtifact::new(body).with_title(title))
+}
+
+/// The sentinel for a query that ran fine and matched nothing.
+///
+/// Said explicitly rather than returned as an empty string, because "no
+/// results" and "the call failed" must not look alike to a model deciding
+/// whether to retry.
+#[must_use]
+pub fn empty_result(what: &str) -> String {
+    format!("No {what} matched. This is Odoo's answer for your account, not an error.")
+}

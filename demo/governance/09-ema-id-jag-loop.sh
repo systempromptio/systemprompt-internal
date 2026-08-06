@@ -2,7 +2,7 @@
 # EMA / ID-JAG END-TO-END LOOP (Okta-independent)
 #
 # Exercises the full Enterprise-Managed Authorization loop with our own client,
-# using a real Salesforce id_token as the upstream assertion — no Claude/Okta
+# using a real Odoo id_token as the upstream assertion — no Claude/Okta
 # dependency:
 #
 #   1. ISSUE   POST /token  requested_token_type=id-jag  subject=<SF id_token>
@@ -14,10 +14,10 @@
 #   3. CALL    GET  the protected MCP with the access token → assert reachable.
 #
 # This is a guided harness: the SF id_token comes from a real "Sign in with
-# Salesforce" flow, and the token-exchange client must already be registered.
+# Odoo" flow, and the token-exchange client must already be registered.
 # Provide them via the environment:
 #
-#   SF_ID_TOKEN        an OIDC id_token from the trusted Salesforce issuer
+#   ODOO_ID_TOKEN      an OIDC id_token from the trusted Odoo issuer
 #   EMA_CLIENT_ID      a registered OAuth client id (token-exchange capable)
 #   EMA_CLIENT_SECRET  that client's secret
 #   EMA_MCP_SERVER     protected MCP to call (default: systemprompt)
@@ -36,11 +36,11 @@ ID_JAG_TYPE="urn:ietf:params:oauth:token-type:id-jag"
 ID_TOKEN_TYPE="urn:ietf:params:oauth:token-type:id_token"
 TOKEN_EXCHANGE_GRANT="urn:ietf:params:oauth:grant-type:token-exchange"
 
-if [[ -z "${SF_ID_TOKEN:-}" || -z "${EMA_CLIENT_ID:-}" || -z "${EMA_CLIENT_SECRET:-}" ]]; then
+if [[ -z "${ODOO_ID_TOKEN:-}" || -z "${EMA_CLIENT_ID:-}" || -z "${EMA_CLIENT_SECRET:-}" ]]; then
   warn "Prerequisites not set — skipping the live EMA loop."
-  info "Obtain a Salesforce id_token by completing 'Sign in with Salesforce'"
+  info "Obtain an Odoo id_token by completing 'Sign in with Odoo'"
   info "and reading the id_token from the OAuth callback, then export:"
-  info "  export SF_ID_TOKEN=<oidc id_token>"
+  info "  export ODOO_ID_TOKEN=<oidc id_token>"
   info "  export EMA_CLIENT_ID=<registered client id>"
   info "  export EMA_CLIENT_SECRET=<client secret>"
   info "The trusted issuer is configured in profile.yaml (security.trusted_issuers)."
@@ -60,10 +60,10 @@ post_token() {
 split_body() { printf '%s' "$1" | sed '$d'; }
 split_code() { printf '%s' "$1" | tail -n1; }
 
-step "1/3  ISSUE — mint an ID-JAG from the Salesforce id_token"
+step "1/3  ISSUE — mint an ID-JAG from the Odoo id_token"
 issue_resp="$(post_token \
   --data-urlencode "requested_token_type=$ID_JAG_TYPE" \
-  --data-urlencode "subject_token=$SF_ID_TOKEN" \
+  --data-urlencode "subject_token=$ODOO_ID_TOKEN" \
   --data-urlencode "subject_token_type=$ID_TOKEN_TYPE")"
 issue_code="$(split_code "$issue_resp")"
 issue_body="$(split_body "$issue_resp")"

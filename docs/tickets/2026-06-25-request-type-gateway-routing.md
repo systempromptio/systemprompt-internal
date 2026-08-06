@@ -1,6 +1,6 @@
 # Ticket: Request-type-aware gateway routing in core
 
-**Component:** `systemprompt-core` — gateway / inference routing (consumed by astound via `[patch.crates-io]`)
+**Component:** `systemprompt-core` — gateway / inference routing (consumed by systemprompt via `[patch.crates-io]`)
 **Type:** Feature / RFC (planning)
 **Priority:** Medium — forward-compatibility seam; no user-visible behavior change on landing
 **Status:** Proposed
@@ -92,7 +92,7 @@ Core fork (`../systemprompt-core`):
 - `crates/entry/api/src/services/gateway/service/resolve.rs` — pass `request` (1 line)
 - (phase 2) new `RouteSelector` trait + inventory call in `resolve_upstream`
 
-Astound (`extensions/web/admin`):
+Systemprompt Internal (`extensions/web/admin`):
 - `GatewayRouteView` + `yaml_io` round-trip so the admin UI and profile serializer carry `when`
 
 Unchanged: `is_model_exposed` stays model-only (exposure ≠ variant selection); authz hook still

@@ -8,13 +8,13 @@ use systemprompt_web_shared::{MarketplaceId, RankTier, RequestId, TierLevel};
 
 #[test]
 fn marketplace_id_round_trips_through_every_accessor() {
-    let id = MarketplaceId::new("astound-commons");
-    assert_eq!(id.as_str(), "astound-commons");
-    assert_eq!(id.to_string(), "astound-commons");
-    assert_eq!(AsRef::<str>::as_ref(&id), "astound-commons");
+    let id = MarketplaceId::new("systemprompt-commons");
+    assert_eq!(id.as_str(), "systemprompt-commons");
+    assert_eq!(id.to_string(), "systemprompt-commons");
+    assert_eq!(AsRef::<str>::as_ref(&id), "systemprompt-commons");
     // Deref to `str` means str methods apply directly to the newtype.
-    assert!(id.starts_with("astound"));
-    assert_eq!(id.into_inner(), "astound-commons");
+    assert!(id.starts_with("systemprompt"));
+    assert_eq!(id.into_inner(), "systemprompt-commons");
 }
 
 #[test]

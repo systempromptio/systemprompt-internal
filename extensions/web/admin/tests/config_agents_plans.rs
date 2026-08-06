@@ -16,7 +16,7 @@ fn write_skill(root: &Path, id: &str, body: &str) {
     std::fs::write(dir.join("config.yaml"), body).expect("write skill config");
 }
 
-const RICH_AGENT: &str = "agents:\n  auditor:\n    card:\n      displayName: Auditor\n      description: reviews decisions\n    enabled: false\n    is_primary: true\n    show_in_ui: true\n    port: 8123\n    endpoint: http://localhost:8123\n    mcp_servers:\n      - systemprompt\n      - salesforce\n    metadata:\n      systemPrompt: You audit.\n      skills:\n        - review\n        - missing_skill\n";
+const RICH_AGENT: &str = "agents:\n  auditor:\n    card:\n      displayName: Auditor\n      description: reviews decisions\n    enabled: false\n    is_primary: true\n    show_in_ui: true\n    port: 8123\n    endpoint: http://localhost:8123\n    mcp_servers:\n      - systemprompt\n      - odoo\n    metadata:\n      systemPrompt: You audit.\n      skills:\n        - review\n        - missing_skill\n";
 
 #[test]
 fn absent_agents_directory_yields_empty() -> anyhow::Result<()> {
@@ -188,7 +188,7 @@ fn plan_optional_fields_default_and_grant_access_defaults_to_allow() -> anyhow::
 #[test]
 fn explicit_plan_values_are_preserved() -> anyhow::Result<()> {
     let doc: PlansDoc = serde_yaml::from_str(
-        "plans:\n  - id: pro\n    name: Pro\n    description: paid\n    seat_limit: 25\n    monthly_cost_cap_usd: 500.5\n    monthly_price_usd: 1200.0\n    grants:\n      - entity_type: mcp_server\n        entity_id: salesforce\n        access: deny\n",
+        "plans:\n  - id: pro\n    name: Pro\n    description: paid\n    seat_limit: 25\n    monthly_cost_cap_usd: 500.5\n    monthly_price_usd: 1200.0\n    grants:\n      - entity_type: mcp_server\n        entity_id: odoo\n        access: deny\n",
     )?;
     let plan = &doc.plans[0];
     assert_eq!(plan.seat_limit, Some(25));
@@ -213,11 +213,11 @@ fn organization_defaults_status_active_and_non_platform() -> anyhow::Result<()> 
 #[test]
 fn organization_overrides_are_read() -> anyhow::Result<()> {
     let doc: PlansDoc = serde_yaml::from_str(
-        "organizations:\n  - slug: house\n    name: House\n    plan: internal\n    seat_limit_override: 3\n    email_domains:\n      - astounddigital.com\n    status: suspended\n    platform: true\n",
+        "organizations:\n  - slug: house\n    name: House\n    plan: internal\n    seat_limit_override: 3\n    email_domains:\n      - systemprompt.io\n    status: suspended\n    platform: true\n",
     )?;
     let org = &doc.organizations[0];
     assert_eq!(org.seat_limit_override, Some(3));
-    assert_eq!(org.email_domains, vec!["astounddigital.com".to_owned()]);
+    assert_eq!(org.email_domains, vec!["systemprompt.io".to_owned()]);
     assert_eq!(org.status, "suspended");
     assert!(org.platform);
     Ok(())

@@ -1,7 +1,7 @@
 # Bug: Loopback secret rotation leaves host profiles stale → persistent `403 bad loopback secret`, with misleading remediation
 
 **Component:** `systemprompt-bridge` (core `bin/bridge`) — local inference proxy + host integration
-**Affected white-label:** astound-bridge 0.14.0 (commit `bad1b596`, windows x86_64)
+**Affected white-label:** systemprompt-internal-bridge 0.14.0 (commit `bad1b596`, windows x86_64)
 **Severity:** High — blocks Cowork/Claude sign-in entirely; advertised fix does not work
 **Status:** Open
 **Reporter:** Ed (ed@tyingshoelaces.com), 2026-06-25
@@ -38,14 +38,14 @@ fingerprints — the proxy logs an 8-char SHA of both the presented and expected
 
 | fingerprint | value | source |
 |---|---|---|
-| `expected_fp` | **`2d738a69`** | proxy's live key file `…\astound\bridge-loopback.key` |
+| `expected_fp` | **`2d738a69`** | proxy's live key file `…\systemprompt-internal\bridge-loopback.key` |
 | `presented_fp` | **`a6ee3c83`** | secret the Claude/Cowork client sends (`presented_len=43` — a valid 32-byte secret, just the **wrong** one) |
 
 Key file provenance (`bridge.2026-06-24.log`):
 
 ```
-INFO loopback secret file not present; will mint on proxy_init  path=…\astound\bridge-loopback.key
-INFO minted fresh loopback secret; restart Claude Desktop to pick it up  path=…\astound\bridge-loopback.key fp=2d738a69
+INFO loopback secret file not present; will mint on proxy_init  path=…\systemprompt-internal\bridge-loopback.key
+INFO minted fresh loopback secret; restart Claude Desktop to pick it up  path=…\systemprompt-internal\bridge-loopback.key fp=2d738a69
 ```
 
 So the proxy's key (`2d738a69`) was minted on 2026-06-24, but the client is still presenting an
@@ -85,10 +85,10 @@ endpoint:     http://127.0.0.1:48217/
 checkedAt:    2026-06-25T07:33:02Z
 ```
 
-Bridge log around the triggering login (from `astound-bridge-diagnostics-20260625T071334Z.zip`):
+Bridge log around the triggering login (from `systemprompt-internal-bridge-diagnostics-20260625T071334Z.zip`):
 
 ```
-INFO login: PAT and config written config_file=…\astound\astound-bridge.toml
+INFO login: PAT and config written config_file=…\systemprompt-internal\systemprompt-internal-bridge.toml
 INFO runtime config swapped
 INFO first-run trust-on-first-use: fetching manifest pubkey from gateway
 …
@@ -109,7 +109,7 @@ The loopback secret has **two independent consumers that are never reconciled**:
    secret via `secret::for_profile()` and bakes it into the host config as `api_key`
    (`ProfileGenInputs { api_key: loopback_secret, … }`, line 480). This runs **only** when a host
    profile is generated/applied (`on_profile_generate_requested`, line 178) — a manual/GUI action,
-   or `astound-bridge install --apply`.
+   or `systemprompt-internal-bridge install --apply`.
 
 There is **no path that re-runs (2) when (1) changes the secret.** So any event that rotates the key
 (first run, re-mint after the key file is removed, fresh login / runtime-config swap) leaves every
@@ -154,9 +154,9 @@ client, which never resolves it.
 
 ## Workaround (current)
 
-In the **Astound Bridge** app, regenerate the host profile for Cowork/Claude
+In the **Systemprompt Internal Bridge** app, regenerate the host profile for Cowork/Claude
 (`on_profile_generate_requested` — "Generate / Re-apply / Reconnect"), **or** run
-`astound-bridge install --apply`. *Then* restart the client so it re-reads the rewritten profile.
+`systemprompt-internal-bridge install --apply`. *Then* restart the client so it re-reads the rewritten profile.
 Restarting the client alone does nothing.
 
 ## Suggested fixes
@@ -181,7 +181,7 @@ Restarting the client alone does nothing.
 
 ## Evidence / references
 
-- Diagnostics bundles: `astound-bridge-diagnostics-20260625T071334Z.zip` and
+- Diagnostics bundles: `systemprompt-internal-bridge-diagnostics-20260625T071334Z.zip` and
   `…20260625T073800Z.zip` — the second (`bridge.2026-06-25.log`, `bridge.2026-06-24.log`,
   `activity.jsonl`) carries the fingerprint evidence (`expected_fp=2d738a69`,
   `presented_fp=a6ee3c83`) and the 2026-06-24 mint line.

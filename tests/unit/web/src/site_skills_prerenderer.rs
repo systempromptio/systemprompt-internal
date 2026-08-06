@@ -96,8 +96,8 @@ fn an_empty_skill_list_still_renders_a_page() {
 #[test]
 fn the_count_is_the_flat_skill_total_not_the_category_total() {
     let spec = prepare(skills(&[
-        ("a", Some("Salesforce")),
-        ("b", Some("Salesforce")),
+        ("a", Some("Odoo")),
+        ("b", Some("Odoo")),
         ("c", Some("Governance & Analytics")),
     ]));
 
@@ -130,7 +130,7 @@ fn items_carries_every_skill_in_its_declared_order() {
 fn the_curated_category_order_survives_into_the_render_data() {
     let spec = prepare(skills(&[
         ("ops", Some("Platform & Operations")),
-        ("sf", Some("Salesforce")),
+        ("odoo", Some("Odoo")),
     ]));
 
     let names: Vec<&str> = spec.base_data["skills"]["categories"]
@@ -142,7 +142,7 @@ fn the_curated_category_order_survives_into_the_render_data() {
 
     assert_eq!(
         names,
-        vec!["Salesforce", "Platform & Operations"],
+        vec!["Odoo", "Platform & Operations"],
         "the curated order wins over the alphabetical grouping order"
     );
 }

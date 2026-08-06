@@ -2,7 +2,7 @@ steps:
   - script: 01-seed-report-data.sh
     label: Seed two enterprises and six months of usage
     narrative: >
-      Creates Astound Digital and systemprompt as customer organizations on
+      Creates systemprompt.io and systemprompt as customer organizations on
       priced plans, fills them with departments and users, and writes six
       complete calendar months of metered requests across four models. Nothing
       pre-existing is touched — every row carries an rptseed- id.

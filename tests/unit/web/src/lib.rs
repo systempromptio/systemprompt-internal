@@ -5,10 +5,6 @@
 //! - admin display formatting bands and `PageWindow` pagination arithmetic
 //! - inventory registry completeness for jobs, renderers, and providers
 //! - calendar-month resolution and the month-end P&L's derived figures
-//! - Salesforce org drift detection, including the fields no API can read back
-//! - the `salesforce` CLI extension: its clap surface (spec default, each
-//!   subcommand's flags, repeatable `--user`, rejected input) and the pure
-//!   assignee merge behind `apply`
 //! - the `secrets` gateway scanner's response surface, which must cover tool
 //!   calls and unmodelled blocks, not only `Text`
 //! - the shared value layer the other web crates agree on: id newtypes, the
@@ -82,16 +78,6 @@ mod paper_metadata;
 mod registry_completeness;
 #[cfg(test)]
 mod report_pnl;
-#[cfg(test)]
-mod salesforce_cli_logic;
-#[cfg(test)]
-mod salesforce_cli_parse;
-#[cfg(test)]
-mod salesforce_org_diff;
-#[cfg(test)]
-mod salesforce_org_package;
-#[cfg(test)]
-mod salesforce_org_secrets;
 #[cfg(test)]
 mod secrets_scanner_response;
 #[cfg(test)]

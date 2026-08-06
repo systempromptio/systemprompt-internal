@@ -74,26 +74,6 @@ fn load_homepage_config() -> Result<Option<Arc<HomepageConfig>>, ConfigError> {
     Ok(Some(Arc::new(homepage_config)))
 }
 
-pub(crate) fn load_salesforce_config()
--> Result<Option<Arc<systemprompt_web_admin::SalesforceConfig>>, ConfigError> {
-    let Some(value) = load_config_section("salesforce.yaml")? else {
-        return Ok(None);
-    };
-
-    let config: systemprompt_web_admin::SalesforceConfig =
-        serde_yaml::from_value(value).map_err(|e| ConfigError::Parse {
-            config_name: "salesforce.yaml".to_owned(),
-            message: e.to_string(),
-        })?;
-
-    tracing::info!(
-        enabled = config.enabled,
-        "Loaded Salesforce SSO config from config/salesforce.yaml"
-    );
-
-    Ok(Some(Arc::new(config)))
-}
-
 fn load_branding_config() -> Result<Option<BrandingConfig>, ConfigError> {
     let Some(theme_value) = load_config_section("theme.yaml")? else {
         return Ok(None);
@@ -136,9 +116,6 @@ static NAVIGATION_CONFIG: OnceLock<Result<Option<Arc<NavigationConfig>>, String>
 static HOMEPAGE_CONFIG: OnceLock<Result<Option<Arc<HomepageConfig>>, String>> = OnceLock::new();
 static SKILLS_PAGE_CONFIG: OnceLock<Result<Option<Arc<SkillsPageConfig>>, String>> =
     OnceLock::new();
-static SALESFORCE_CONFIG: OnceLock<
-    Result<Option<Arc<systemprompt_web_admin::SalesforceConfig>>, String>,
-> = OnceLock::new();
 
 #[must_use]
 pub fn navigation_config() -> Option<Arc<NavigationConfig>> {
@@ -164,15 +141,6 @@ pub fn skills_page_config() -> Option<Arc<SkillsPageConfig>> {
         &SKILLS_PAGE_CONFIG,
         load_skills_page_config,
         "Skills page config error",
-    )
-}
-
-#[must_use]
-pub fn salesforce_config() -> Option<Arc<systemprompt_web_admin::SalesforceConfig>> {
-    log_and_discard_err(
-        &SALESFORCE_CONFIG,
-        load_salesforce_config,
-        "Salesforce config error",
     )
 }
 

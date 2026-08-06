@@ -32,7 +32,7 @@ mutating it.
 
 ## What the seed produces
 
-- **Astound Digital** — enterprise plan, 40 users across Engineering, Product,
+- **systemprompt.io** — enterprise plan, 40 users across Engineering, Product,
   Design, Sales, and Support
 - **systemprompt** — team plan, 12 users across Engineering and Growth
 - Six complete months of requests across `claude-opus-4`, `claude-sonnet-4`,

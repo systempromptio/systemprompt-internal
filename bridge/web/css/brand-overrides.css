@@ -1,14 +1,13 @@
-/* Astound Digital brand overrides for the bridge GUI.
+/* systemprompt.io brand overrides for the bridge GUI.
  *
  * This file overrides core's empty web/css/brand-overrides.css via the build
  * overlay (SYSTEMPROMPT_BRIDGE_WEB_OVERLAY). main.css imports it last, so these
  * rules win the cascade over every component sheet — no forking required. Keep
- * this to genuine Astound-specific cosmetic choices; universal fixes belong in
+ * this to genuine brand-specific cosmetic choices; universal fixes belong in
  * core, and pure token re-values belong in theme.css. */
 
-/* Astound is a monochrome, enterprise identity: dial the sign-in screen's
- * coloured accent glow down to a neutral elevation shadow so it reads as
- * restrained rather than "candy". */
+/* The identity is one warm accent over neutrals: keep the sign-in screen's
+ * glow as a restrained orange wash rather than a saturated halo. */
 .sp-setup__brand {
-  box-shadow: 12px 0 40px oklch(0 0 0 / 0.28);
+  box-shadow: 12px 0 40px oklch(0.710 0.169 55 / 0.18);
 }

@@ -218,3 +218,4 @@ rustc-ice-*.txt
 
 # Generated at publish time by bundle_admin_css
 storage/files/css/admin-bundle.css
+backups/odoo/

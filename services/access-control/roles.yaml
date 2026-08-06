@@ -47,10 +47,11 @@ rules:
   # No `entity_type: agent` rules — this instance defines no A2A agents, so
   # there is nothing for a user-role member to list or invoke.
 
-  # Salesforce Hosted MCP server — the one server shipped to users. Per-user
-  # Salesforce bearer is injected at call time (see services/mcp/salesforce.yaml).
+  # Odoo CRM MCP server — the one business server shipped to users. Every call
+  # is executed as the calling user with their own Odoo login and API key (see
+  # services/mcp/odoo.yaml); Odoo's own record rules decide what they can see.
   - entity_type: mcp_server
-    entity_id: salesforce
+    entity_id: odoo
     access: allow
     default_included: true
     roles: [user]
@@ -64,7 +65,7 @@ rules:
     default_included: true
     roles: [user]
 
-  # Admin control plane (astound-admin plugin). These entities are members of
+  # Admin control plane (systemprompt-admin plugin). These entities are members of
   # the enterprise-demo marketplace, so without a rule of their own they would
   # inherit its [user] grant. Declaring any rule on an entity opts it out of the
   # marketplace cascade — the resolver falls back to a parent only when the
@@ -79,7 +80,7 @@ rules:
     default_included: false
     roles: [admin]
   - entity_type: plugin
-    entity_id: astound-admin
+    entity_id: systemprompt-admin
     access: allow
     default_included: false
     roles: [admin]

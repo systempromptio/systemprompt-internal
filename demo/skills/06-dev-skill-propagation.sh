@@ -4,7 +4,7 @@
 # developer assigned to the profile, with nothing to pull or reconfigure.
 #
 # What this does:
-#   1. Fetches the astound-dev plugin manifest over the bridge plugin endpoint
+#   1. Fetches the systemprompt-dev plugin manifest over the bridge plugin endpoint
 #   2. Stamps a unique marker into services/skills/dev-plan/SKILL.md
 #   3. Re-runs the publish pipeline (the same job that runs at server startup)
 #   4. Fetches the served dev_plan skill body and asserts the marker appears
@@ -20,7 +20,7 @@ load_token
 header "SKILLS: CENTRAL UPDATE PROPAGATION" "Edit once at the gateway, every developer gets it"
 
 SKILL_FILE="$PROJECT_DIR/services/skills/dev_plan/SKILL.md"
-PLUGIN_URL="$BASE_URL/v1/bridge/plugins/astound-dev"
+PLUGIN_URL="$BASE_URL/v1/bridge/plugins/systemprompt-dev"
 MARKER="propagation-check-$$-$(date +%s)"
 
 # The bridge plugin endpoint takes a first-party (web/api/a2a/mcp) JWT; the
@@ -32,7 +32,7 @@ if [[ -z "$BRIDGE_TOKEN" ]]; then
 fi
 
 if [[ ! -f "$SKILL_FILE" ]]; then
-  echo "  ERROR: $SKILL_FILE not found — is the astound-dev plugin present?"
+  echo "  ERROR: $SKILL_FILE not found — is the systemprompt-dev plugin present?"
   exit 1
 fi
 

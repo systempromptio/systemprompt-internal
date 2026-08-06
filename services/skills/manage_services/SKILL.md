@@ -1,6 +1,6 @@
 # Manage Services
 
-Operate the running Astound Digital platform stack: services, the Postgres database, and scheduled jobs.
+Operate the running Systemprompt Internal platform stack: services, the Postgres database, and scheduled jobs.
 
 ## When to Use
 

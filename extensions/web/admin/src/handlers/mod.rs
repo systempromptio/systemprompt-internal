@@ -4,6 +4,7 @@
 //! webhook intake. Handlers own status mapping and call repositories for data.
 
 pub(crate) mod access_control;
+pub(crate) mod auth_deps;
 pub(crate) mod catalog;
 pub(crate) mod departments;
 pub(crate) mod devices;
@@ -13,12 +14,12 @@ pub(crate) mod gateway_access;
 pub(crate) mod gateway_catalog;
 pub(crate) mod hooks_track;
 mod jobs;
+pub(crate) mod odoo_auth;
 pub(crate) mod passkey_auth;
 mod plugins;
 mod plugins_env;
 pub(crate) mod resources;
 pub(crate) mod responses;
-pub(crate) mod salesforce_auth;
 pub(crate) mod secrets;
 pub(crate) mod share;
 pub(crate) mod shared;

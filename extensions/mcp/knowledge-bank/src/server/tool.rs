@@ -4,7 +4,7 @@
 //! Read tools (`search_project_context`, `list_documents`) are open to any
 //! role the registry grants the server to; `upload_document` additionally
 //! requires the admin role on the authenticated user — the same double-gate
-//! pattern the astound-admin surface uses, and the contract the real RAG
+//! pattern the admin surface uses, and the contract the real RAG
 //! server inherits.
 
 use crate::store::{Document, KnowledgeStore};

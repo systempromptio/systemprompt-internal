@@ -1,0 +1,41 @@
+# Odoo CRM MCP server.
+#
+# Odoo (self-hosted Community) is the system of record for leads, customers and
+# sales activity. This server is the only way an agent reaches it.
+#
+# PER-USER EXECUTION is the whole design. The server holds no service account.
+# Every JSON-RPC call is issued with the *calling* user's own Odoo login and
+# API key, read from the `odoo_identity` table they populated by linking their
+# account on /admin/profile. Consequences worth stating plainly:
+#
+#   * Odoo's record rules decide what an agent can see. A salesperson's agent
+#     sees that salesperson's pipeline, because Odoo says so — not because this
+#     server filtered anything.
+#   * Odoo's audit log names a real person against every note posted and every
+#     lead changed. There is no shared "integration user" for anyone to hide
+#     behind.
+#   * A user who has not linked Odoo gets a clear error naming the profile
+#     page, not an empty result set.
+#
+# Connection settings come from the environment (ODOO_URL, ODOO_DB), not from
+# this file — a database name and host belong with the deployment, and the API
+# keys they authenticate are per user anyway.
+#
+# RBAC: granted to the `user` role in roles.yaml. There is no admin-only tool
+# here; the authorization that matters is Odoo's, per credential.
+
+mcp_servers:
+  odoo:
+    type: internal
+    binary: systemprompt-mcp-odoo
+    package: odoo
+    port: 5040
+    enabled: true
+    display_in_web: true
+    description: "Odoo CRM — leads, partners, notes and activities, executed as the calling user"
+    oauth:
+      required: true
+      scopes:
+      - user
+      audience: mcp
+      client_id: null

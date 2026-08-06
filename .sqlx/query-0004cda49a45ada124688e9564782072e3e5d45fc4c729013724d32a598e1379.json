@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT odoo_login FROM odoo_identity ORDER BY odoo_login",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "odoo_login",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "odoo_identity",
+            "name": "odoo_login"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0004cda49a45ada124688e9564782072e3e5d45fc4c729013724d32a598e1379"
+}

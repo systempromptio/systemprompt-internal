@@ -7,7 +7,7 @@
 # the point of the flow rather than an obstacle to it.
 set -euo pipefail
 
-GATEWAY="${ASTOUND_BRIDGE_GATEWAY_URL:?gateway URL not set}"
+GATEWAY="${SYSTEMPROMPT_BRIDGE_GATEWAY_URL:?gateway URL not set}"
 
 # The container reaches the gateway at host.docker.internal; a browser on the
 # host reaches the same server at localhost. Printing the container's view would
@@ -18,21 +18,21 @@ bold() { printf '\033[1m%s\033[0m\n' "$*"; }
 step() { printf '\n\033[1m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[33mwarn:\033[0m %s\n' "$*" >&2; }
 
-if ! command -v astound-bridge >/dev/null 2>&1; then
-    printf '\033[31mERROR:\033[0m astound-bridge is not mounted. Run `just bridge-build` first.\n' >&2
+if ! command -v systemprompt-internal-bridge >/dev/null 2>&1; then
+    printf '\033[31mERROR:\033[0m systemprompt-internal-bridge is not mounted. Run `just bridge-build` first.\n' >&2
     exit 1
 fi
 
 # ── 1. Credentials ────────────────────────────────────────────────────────────
 # Skip the prompt when the state volume already carries a PAT that still works;
 # re-authenticating a working client would just burn a code.
-if [ -f "$HOME/.config/astound/astound-bridge.pat" ] && astound-bridge whoami >/dev/null 2>&1; then
+if [ -f "$HOME/.config/systemprompt-internal/systemprompt-internal-bridge.pat" ] && systemprompt-internal-bridge whoami >/dev/null 2>&1; then
     step "already signed in — reusing the stored PAT"
-elif [ -n "${ASTOUND_BRIDGE_CODE:-}" ]; then
+elif [ -n "${SYSTEMPROMPT_BRIDGE_CODE:-}" ]; then
     # The caller already has the code (it came off the profile page as an
     # argument), so there is nothing to ask for.
     step "signing in with the supplied code"
-    astound-bridge login --code "$ASTOUND_BRIDGE_CODE" \
+    systemprompt-internal-bridge login --code "$SYSTEMPROMPT_BRIDGE_CODE" \
         --gateway "$GATEWAY" --device-name clean-client
 else
     step "sign in"
@@ -56,30 +56,30 @@ else
 
     # Tolerant on purpose: the page shows a command as well as a bare code, and
     # the CLI accepts either. Refusing a paste here would be gratuitous.
-    astound-bridge login --code "$CODE" --gateway "$GATEWAY" --device-name clean-client
+    systemprompt-internal-bridge login --code "$CODE" --gateway "$GATEWAY" --device-name clean-client
 fi
 
 # ── 2. Policy + plugins ───────────────────────────────────────────────────────
 step "installing integration"
-astound-bridge install --apply --apply-schedule
+systemprompt-internal-bridge install --apply --apply-schedule
 
 step "starting the loopback proxy"
 # No systemd in this container, which is why --apply-schedule warned above.
-if astound-bridge doctor 2>/dev/null | grep -q '^\[OK  \] inference proxy'; then
+if systemprompt-internal-bridge doctor 2>/dev/null | grep -q '^\[OK  \] inference proxy'; then
     echo "    already running"
 else
-    astound-bridge proxy >"$HOME/.cache/bridge-proxy.log" 2>&1 &
+    systemprompt-internal-bridge proxy >"$HOME/.cache/bridge-proxy.log" 2>&1 &
     for _ in $(seq 1 20); do
-        astound-bridge doctor 2>/dev/null | grep -q '^\[OK  \] inference proxy' && break
+        systemprompt-internal-bridge doctor 2>/dev/null | grep -q '^\[OK  \] inference proxy' && break
         sleep 0.5
     done
 fi
 
 step "syncing plugins, skills, agents, MCP"
-astound-bridge sync --allow-tofu
+systemprompt-internal-bridge sync --allow-tofu
 
 step "verifying"
-astound-bridge doctor || warn "doctor reported problems — read them above before trusting the result"
+systemprompt-internal-bridge doctor || warn "doctor reported problems — read them above before trusting the result"
 
 if [ -n "${CLEAN_CLIENT_EXEC_CLAUDE:-}" ]; then
     step "starting Claude Code"
@@ -95,7 +95,7 @@ cat <<'DONE'
       claude
 
   This shell is a login shell, so ANTHROPIC_BASE_URL and ANTHROPIC_AUTH_TOKEN
-  are already set from ~/.config/astound/env.sh. Proxy log: ~/.cache/bridge-proxy.log
+  are already set from ~/.config/systemprompt-internal/env.sh. Proxy log: ~/.cache/bridge-proxy.log
 
 DONE
 

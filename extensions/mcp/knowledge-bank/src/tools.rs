@@ -1,6 +1,6 @@
 //! Tool definitions exposed by the `knowledge-bank` MCP server.
 //!
-//! Three tools mirror the contract Astound's real RAG server must satisfy:
+//! Three tools mirror the contract a real RAG server must satisfy:
 //! `search_project_context` and `list_documents` for any signed-in user, and
 //! `upload_document` restricted to admins (enforced in `server::tool`).
 

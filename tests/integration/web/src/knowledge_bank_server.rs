@@ -70,7 +70,7 @@ async fn get_info_advertises_tools_and_names_the_service_id() {
     );
     assert_eq!(
         info.server_info.title.as_deref(),
-        Some("Astound Project Knowledge Bank")
+        Some("Project Knowledge Bank")
     );
     assert!(
         !info.server_info.version.is_empty(),

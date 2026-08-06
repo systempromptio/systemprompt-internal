@@ -10,7 +10,7 @@ use systemprompt::oauth::services::webauthn::generate_setup_token;
 use systemprompt_web_shared::error::MarketplaceError;
 
 use crate::error::{AdminError, AdminResult};
-use crate::handlers::salesforce_auth::SalesforceDeps;
+use crate::handlers::auth_deps::AuthDeps;
 use crate::repositories::users::passkey;
 
 const SETUP_TOKEN_TTL_MINUTES: i64 = 10;
@@ -28,7 +28,7 @@ pub(crate) struct RegisterResponse {
 }
 
 pub(crate) async fn passkey_register(
-    Extension(deps): Extension<SalesforceDeps>,
+    Extension(deps): Extension<AuthDeps>,
     Json(req): Json<RegisterRequest>,
 ) -> AdminResult<Json<RegisterResponse>> {
     let email = req.email.trim().to_lowercase();
@@ -37,7 +37,7 @@ pub(crate) async fn passkey_register(
             "A valid email address is required".to_owned(),
         ));
     }
-    if !deps.config.email_allowed(&email) {
+    if !deps.email_allowed(&email) {
         return Err(AdminError::Forbidden(
             "This email domain is not eligible for self-registration. \
              Use your work email or contact the platform team."
@@ -72,7 +72,7 @@ pub(crate) async fn passkey_register(
 // in with it — handing out enrolment tokens for it would let anyone who knows
 // an email add their own credential to that account.
 async fn resolve_user(
-    deps: &SalesforceDeps,
+    deps: &AuthDeps,
     email: &str,
     display_name: &str,
 ) -> AdminResult<UserId> {

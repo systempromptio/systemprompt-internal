@@ -1,7 +1,7 @@
 ---
 title: "Terminal Demo: Request Tracing & Benchmark"
 description: "Trace typed data flow through the governance pipeline, inspect all newtype IDs, use CLI log commands, and run a 200-request production benchmark with latency percentiles."
-author: "Astound Digital"
+author: "systemprompt.io"
 slug: "demo-terminal-tracing"
 keywords: "demo, terminal, tracing, benchmark, typed, ids, performance, latency"
 kind: "guide"

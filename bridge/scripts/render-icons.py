@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Regenerate the Astound Bridge raster icons from the master `assets/icon.svg`.
+"""Regenerate the Systemprompt Internal Bridge raster icons from the master `assets/icon.svg`.
 
-Produces, idempotently, from the single Astound "A" master:
+Produces, idempotently, from the single Systemprompt Internal "A" master:
   - window-icon-1024.png  (1024x1024, GUI window + macOS .icns source)
-  - tray-icon.png         (44x44, A on the rounded dark square, for the system tray)
+  - tray-icon.png         (44x44, the mark on the rounded orange square, for the system tray)
   - app-icon.ico          (multi-resolution 16/32/48/256, embedded into the .exe)
 
 Requires cairosvg and Pillow (both already present in this environment):
@@ -29,7 +29,7 @@ def main() -> None:
     master = MASTER.read_bytes()
 
     render(master, 1024).save(ASSETS / "window-icon-1024.png")
-    # Render the tray icon from the same master (A on the rounded dark square) so
+    # Render the tray icon from the same master (the mark on the rounded orange square) so
     # it stays legible on both the dark macOS menu bar and a light Windows tray —
     # a bare monochrome glyph would vanish against one or the other.
     render(master, 44).save(ASSETS / "tray-icon.png")

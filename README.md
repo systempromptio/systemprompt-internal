@@ -89,13 +89,13 @@ Starts a container, redeems the code, execs `claude`. Host config is untouched: 
 
 A code is needed the first time only. The credential it is exchanged for persists, so afterwards the command is just `just claude`.
 
-The container and its home are scoped to the clone and the gateway (`astound-claude-<repo>-<hash>-<gateway>`), so several checkouts pointing at different gateways coexist and never inherit each other's credential. `just claude-reset` signs this clone out; `just claude-reset ALL=1` signs out every clone on the host.
+The container and its home are scoped to the clone and the gateway (`systemprompt-claude-<repo>-<hash>-<gateway>`), so several checkouts pointing at different gateways coexist and never inherit each other's credential. `just claude-reset` signs this clone out; `just claude-reset ALL=1` signs out every clone on the host.
 
 Every request lands in the audit table with user, session, trace, tokens, and cost.
 
 Codes are 32 random bytes, stored hashed, 10-minute TTL, single use. The client redeems one for a durable PAT held on the machine it was issued to. `systemprompt admin bridge issue-code --user-id <email>` issues the same code without a browser.
 
-To configure the host instead of a container: `just connect <code>`. That writes `~/.config/astound/`, a managed block in `~/.profile`, `~/.claude/managed-settings.json`, `~/.local/share/Claude/org-plugins/`, and two systemd user units.
+To configure the host instead of a container: `just connect <code>`. That writes `~/.config/systemprompt-internal/`, a managed block in `~/.profile`, `~/.claude/managed-settings.json`, `~/.local/share/Claude/org-plugins/`, and two systemd user units.
 
 ### Verifying from a clean state
 
@@ -128,7 +128,7 @@ just claude <code> http://localhost:8081
 
 Assert on the output, not the exit code. Pass: `signing in with the supplied code`. Fail: `already signed in — reusing the stored PAT` — sign-in never ran.
 
-`astound-bridge doctor` runs last, one line per check. The hook-token warning is expected: OAuth client provisioning is lazy, on first plugin hook request, not during sync.
+`systemprompt-internal-bridge doctor` runs last, one line per check. The hook-token warning is expected: OAuth client provisioning is lazy, on first plugin hook request, not during sync.
 
 ### 5. Day-to-day
 

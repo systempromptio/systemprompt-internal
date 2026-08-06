@@ -85,13 +85,11 @@ export function showRegisterError(msg) {
 }
 
 export function initPaneToggles() {
-  const ssoBlock = document.querySelector('.sso-block');
   const showPane = (showRegister) => (e) => {
     e.preventDefault();
     errorDiv.hidden = true;
     if (registerForm) registerForm.hidden = !showRegister;
     loginForm.hidden = showRegister;
-    if (ssoBlock) ssoBlock.hidden = showRegister;
   };
   document.getElementById('show-register')?.addEventListener('click', showPane(true));
   document.getElementById('show-signin')?.addEventListener('click', showPane(false));

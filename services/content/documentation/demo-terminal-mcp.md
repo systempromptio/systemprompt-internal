@@ -1,7 +1,7 @@
 ---
 title: "Terminal Demo: MCP Access Tracking & Database Audit"
 description: "Combine governance API calls, live MCP tool execution, and direct database queries. See governance decisions, MCP access events, and tool call tracking on the dashboard."
-author: "Astound Digital"
+author: "systemprompt.io"
 slug: "demo-terminal-mcp"
 keywords: "demo, terminal, mcp, governance, database, audit, tracking"
 kind: "guide"

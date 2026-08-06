@@ -1,6 +1,6 @@
 id: format_client_document
-name: Format Client Document
-description: "Apply Astound Digital's standard document structure and formatting conventions to client deliverables"
+name: Format Customer Document
+description: "Apply systemprompt.io's standard document structure, brand furniture, and formatting conventions to customer-facing documents"
 enabled: true
 file: SKILL.md
 tags:

@@ -1,0 +1,12 @@
+id: add_note
+name: Add Note
+description: "Log a note onto any Odoo record — lead, contact, or otherwise — authored as the acting user, so context and permissions live in Odoo where the business reads them."
+enabled: true
+file: SKILL.md
+tags:
+  - odoo
+  - notes
+  - activities
+  - crm
+category: crm
+display_category: "Business on Odoo"

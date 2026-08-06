@@ -9,7 +9,7 @@ members = [
     "extensions/mcp/systemprompt",
     "extensions/mcp/knowledge-bank",
     "extensions/mcp/shared",
-    "extensions/cli/salesforce",
+    "extensions/mcp/odoo",
 ]
 # The test workspace under tests/ is a separate workspace so it never compiles
 # when these extension crates are consumed as dependencies. Run it explicitly:
@@ -97,7 +97,6 @@ base64 = "0.22"
 handlebars = "6"
 
 # Archive
-zip = { version = "2", default-features = false, features = ["deflate"] }
 
 # MCP Protocol
 rmcp = { version = "=3.0.0", features = ["server", "client", "transport-io", "transport-streamable-http-server", "transport-streamable-http-server-session", "transport-streamable-http-client", "transport-streamable-http-client-reqwest", "macros", "auth"] }

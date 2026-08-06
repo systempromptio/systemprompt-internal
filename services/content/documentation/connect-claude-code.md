@@ -1,7 +1,7 @@
 ---
 title: "Connect Claude Code"
 description: "Developer setup: clone, build, start the gateway, and connect Claude Code with a one-shot code. Includes the clean-state verification procedure for the connect path."
-author: "Astound Digital"
+author: "systemprompt.io"
 slug: "connect-claude-code"
 keywords: "claude code, connect, bridge, one-shot code, exchange code, just claude, setup local, developer setup, clean state"
 kind: "guide"
@@ -120,7 +120,7 @@ rather than a container. It writes:
 
 | Path | Contents |
 |------|----------|
-| `~/.config/astound/` | Client config, PAT (0600), loopback key |
+| `~/.config/systemprompt-internal/` | Client config, PAT (0600), loopback key |
 | `~/.profile` | Managed block setting `ANTHROPIC_BASE_URL` and the auth token |
 | `~/.claude/managed-settings.json` | Base URL, `apiKeyHelper`, model discovery |
 | `~/.local/share/Claude/org-plugins/` | Organization plugins, skills, MCP servers |
@@ -180,7 +180,7 @@ Assert on the output, not the exit code.
 | `signing in with the supplied code` | Pass — the code was redeemed |
 | `already signed in — reusing the stored PAT` | Fail — sign-in never ran |
 
-`astound-bridge doctor` runs last, one line per check. The hook-token warning is
+`systemprompt-internal-bridge doctor` runs last, one line per check. The hook-token warning is
 expected: OAuth client provisioning is lazy, on the first plugin hook request,
 not during sync.
 
@@ -191,5 +191,5 @@ not during sync.
 | `Client not built yet` | The client is a separate workspace; `just build` does not produce it. `just bridge-build` does, and clones `systemprompt-core` beside this repo because the client depends on it by path. |
 | Code rejected | 10-minute TTL, single use. Reload the profile page. |
 | Prompted for a code on a repeat run | The stored credential did not validate against this gateway — usually a different gateway from the one that issued it. `just claude-reset`, then connect with a fresh code. |
-| Session works, audit trail empty | Not routed through the gateway. Check `ANTHROPIC_BASE_URL` points at the loopback proxy and that `astound-bridge doctor` reports it running. |
+| Session works, audit trail empty | Not routed through the gateway. Check `ANTHROPIC_BASE_URL` points at the loopback proxy and that `systemprompt-internal-bridge doctor` reports it running. |
 | Container cannot reach the gateway | Inside a container `localhost` is the container. `just claude` rewrites it; by hand, use `http://host.docker.internal:8080`. |

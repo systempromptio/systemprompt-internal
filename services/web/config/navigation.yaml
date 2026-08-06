@@ -1,7 +1,7 @@
 # Navigation Configuration
 # Header, footer, and documentation sidebar
 #
-# External links point to https://astounddigital.com.
+# External links point to https://systemprompt.io.
 # Local routes (/skills, /documentation, /admin/login) target the running
 # template instance.
 
@@ -20,70 +20,70 @@ header:
 
 footer:
   capabilities:
-    - path: "https://astounddigital.com/industries/retail-consumer-products"
-      label: "Retail & Consumer Products"
+    - path: "https://systemprompt.io/features/governance"
+      label: "AI Governance"
       external: true
-    - path: "https://astounddigital.com/industries/travel-hospitality"
-      label: "Travel & Hospitality"
+    - path: "https://systemprompt.io/features/audit"
+      label: "Audit & Cost Tracking"
       external: true
-    - path: "https://astounddigital.com/industries/manufacturing"
-      label: "Manufacturing"
+    - path: "https://systemprompt.io/features/mcp"
+      label: "MCP Servers"
       external: true
-    - path: "https://astounddigital.com/industries/medtech-life-sciences"
-      label: "MedTech & Life Sciences"
+    - path: "https://systemprompt.io/features/skills"
+      label: "Skills & Agents"
       external: true
-    - path: "https://astounddigital.com/industries/consumer-business-services"
-      label: "Consumer & Business Services"
+    - path: "https://systemprompt.io/features/self-hosting"
+      label: "Self-Hosted Deployment"
       external: true
   integrations:
-    - path: "https://astounddigital.com/about"
+    - path: "https://systemprompt.io/about"
       label: "About"
       external: true
-    - path: "https://astounddigital.com/partners"
-      label: "Partners"
+    - path: "https://systemprompt.io/integrations/odoo"
+      label: "Odoo"
       external: true
-    - path: "https://astounddigital.com/client-success"
-      label: "Client Success"
+    - path: "https://systemprompt.io/integrations"
+      label: "Integrations"
       external: true
-    - path: "https://careers.astounddigital.com/"
-      label: "Careers"
+    - path: "https://systemprompt.io/security"
+      label: "Security"
       external: true
-    - path: "https://trust.astounddigital.com/"
-      label: "Trust Center"
+    - path: "https://systemprompt.io/contact"
+      label: "Contact"
       external: true
   resources:
     - path: "/skills/"
       label: "Skills"
     - path: "/documentation/"
       label: "Documentation"
-    - path: "https://astounddigital.com/ai-hub"
-      label: "AI Hub"
+    - path: "https://systemprompt.io/blog"
+      label: "Blog"
       external: true
-    - path: "https://astounddigital.com/reports"
-      label: "Reports"
+    - path: "https://systemprompt.io/guides"
+      label: "Guides"
       external: true
     - path: "/sitemap.xml"
       label: "Sitemap"
     - path: "/admin/login"
       label: "Login"
   legal:
-    - path: "https://astounddigital.com/legal/privacy-policy"
+    - path: "https://systemprompt.io/legal/privacy-policy"
       label: "Privacy Policy"
       external: true
-    - path: "https://astounddigital.com/legal/privacy-policy-us"
-      label: "Privacy Policy (US)"
+    - path: "https://systemprompt.io/legal/cookie-policy"
+      label: "Cookie Policy"
       external: true
-    - path: "https://astounddigital.com/legal/terms-of-use"
+    - path: "https://systemprompt.io/legal/terms-of-use"
       label: "Terms of Use"
       external: true
   contact:
-    - href: "https://astounddigital.com/contact-us"
-      label: "Contact Us"
-    - href: "https://www.linkedin.com/company/astound-digital/"
+    - href: "https://systemprompt.io/contact"
+      label: "Contact"
+    - href: "https://www.linkedin.com/company/systemprompt/"
       label: "LinkedIn"
 
 social:
-  - href: "https://www.linkedin.com/company/astound-digital/"
+  - href: "https://www.linkedin.com/company/systemprompt/"
     type: "linkedin"
     label: "LinkedIn"
 
@@ -95,28 +95,17 @@ docs_sidebar:
         href: "/documentation/"
       - label: "For admins — set it up"
         href: "/documentation/use-case-admin"
-      - label: "For Salesforce users"
-        href: "/documentation/use-case-salesforce-user"
+      - label: "Connect Claude Code"
+        href: "/documentation/connect-claude-code"
 
-  - title: "Salesforce Setup (Admins)"
+  - title: "Using the Platform"
     links:
-      - label: "Overview"
-        href: "/documentation/salesforce"
-      - label: "1. Salesforce App Setup"
-        href: "/documentation/salesforce-app-setup"
-      - label: "2. JWT-Bearer & Certificate"
-        href: "/documentation/salesforce-jwt-bearer"
-      - label: "3. Hosted MCP Access"
-        href: "/documentation/salesforce-hosted-mcp"
-      - label: "4. Users, Seats & Roles"
-        href: "/documentation/salesforce-provisioning"
-      - label: "5. Rolling Out the Bridge"
-        href: "/documentation/salesforce-bridge-rollout"
-
-  - title: "Using the Gateway"
-    links:
-      - label: "Your Salesforce Day"
-        href: "/documentation/use-case-salesforce-user"
+      - label: "Authentication & Login"
+        href: "/documentation/authentication"
+      - label: "Dashboard Usage"
+        href: "/documentation/dashboard"
+      - label: "Gateway API"
+        href: "/documentation/gateway-api"
       - label: "All Skills"
         href: "/skills/"
 
@@ -142,12 +131,3 @@ docs_sidebar:
         href: "/documentation/demo-happy-path"
       - label: "A Refused Call"
         href: "/documentation/demo-refused-path"
-
-  - title: "Running the Platform"
-    links:
-      - label: "Authentication & Login"
-        href: "/documentation/authentication"
-      - label: "Dashboard Usage"
-        href: "/documentation/dashboard"
-      - label: "Gateway API"
-        href: "/documentation/gateway-api"

@@ -30,7 +30,7 @@ echo ""
 
 # Show whichever skill the registry reports first rather than a hard-coded id.
 # The old `use_dangerous_secret` example skill no longer ships — the catalogue
-# was rebuilt Salesforce-first — and naming any single skill here just means
+# was rebuilt Odoo-first — and naming any single skill here just means
 # this demo breaks again the next time the catalogue changes.
 subheader "STEP 3: Show one skill in full (config + instructions)"
 # The list rows key the skill as `skill_id`; `name` is the display title

@@ -3,7 +3,7 @@
 #
 #     scripts/clean-client-install.sh sp-live-...
 #
-# Takes a PAT and proves the whole claim: a machine that has never seen Astound
+# Takes a PAT and proves the whole claim: a machine that has never seen Systemprompt Internal
 # ends up running Claude Code against the gateway with the managed MCP servers
 # already authenticated. Everything between those two points is automated —
 # repackage the tarball, boot a config-free container, run the published
@@ -21,8 +21,8 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-IMAGE="astound-clean-client:local"
-CONTAINER="astound-clean-client-install"
+IMAGE="systemprompt-clean-client:local"
+CONTAINER="systemprompt-clean-client-install"
 
 # The gateway is reached from inside the container, so it cannot be localhost.
 GATEWAY="${GATEWAY:-http://host.docker.internal:8080}"
@@ -32,7 +32,7 @@ say()  { printf '\033[1m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[33mwarn:\033[0m %s\n' "$*" >&2; }
 fail() { printf '\033[31mERROR:\033[0m %s\n' "$*" >&2; exit 1; }
 
-PAT="${1:-${ASTOUND_BRIDGE_PAT:-}}"
+PAT="${1:-${SYSTEMPROMPT_BRIDGE_PAT:-}}"
 case "$PAT" in
     sp-live-*) ;;
     "") fail "usage: $0 sp-live-...
@@ -86,7 +86,7 @@ say "running the published installer in a config-free container"
 docker run --rm --name "$CONTAINER" \
     --hostname clean-client \
     --add-host host.docker.internal:host-gateway \
-    -e ASTOUND_BRIDGE_GATEWAY_URL="$GATEWAY" \
+    -e SYSTEMPROMPT_BRIDGE_GATEWAY_URL="$GATEWAY" \
     --entrypoint bash \
     "$IMAGE" -lc '
 set -euo pipefail

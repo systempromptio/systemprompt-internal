@@ -58,10 +58,6 @@ impl WebExtension {
         config_loader::skills_page_config()
     }
 
-    #[must_use]
-    pub fn salesforce_config() -> Option<Arc<systemprompt_web_admin::SalesforceConfig>> {
-        config_loader::salesforce_config()
-    }
 }
 
 register_extension!(WebExtension);
