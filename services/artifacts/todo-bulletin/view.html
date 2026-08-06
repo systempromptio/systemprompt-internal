@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>To-Do Bulletin</title>
+<style>
+:root { color-scheme: light dark;
+  --bg: light-dark(#ffffff, #0f0f0f); --ink: light-dark(#0F172A, #f5f5f5);
+  --dim: light-dark(#475569, #a0a0a0); --line: light-dark(#E2E8F0, #333333);
+  --card: light-dark(#F8FAFC, #1a1a1a); --accent: #f38318;
+  --ok: light-dark(#10b981, #34d399); --warn: light-dark(#dc2626, #f87171);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font: 14px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg); color: var(--ink); padding: 1.25rem; }
+h1 { font-size: 1.15rem; margin-bottom: .25rem; }
+h1::after { content: ""; display: block; width: 2.25rem; height: 2px; margin-top: .4rem;
+  border-radius: 999px; background: var(--accent); }
+.sub { color: var(--dim); font-size: .8rem; margin-bottom: 1rem; }
+.grid { display: grid; gap: 1rem; grid-template-columns: 1fr; max-width: 860px; }
+section { border: 1px solid var(--line); border-radius: .6rem; background: var(--card); padding: .9rem 1rem; }
+section h2 { font-size: .95rem; margin-bottom: .5rem; display: flex; justify-content: space-between; align-items: baseline; }
+section h2 .n { color: var(--dim); font-size: .75rem; font-weight: 400; }
+ul { list-style: none; }
+li { display: flex; gap: .55rem; align-items: flex-start; padding: .4rem 0; border-top: 1px solid var(--line); }
+li:first-child { border-top: 0; }
+li input[type=checkbox] { margin-top: .22rem; accent-color: var(--accent); cursor: pointer; }
+.t { flex: 1; }
+.t .name { font-weight: 600; }
+.t .meta { color: var(--dim); font-size: .75rem; }
+.due { font-variant-numeric: tabular-nums; font-size: .75rem; white-space: nowrap; }
+.due.over { color: var(--warn); font-weight: 700; }
+.due.today { color: var(--accent); font-weight: 700; }
+.done .t { text-decoration: line-through; opacity: .55; }
+.empty { color: var(--dim); font-style: italic; padding: .4rem 0; }
+.err { border: 1px solid var(--warn); border-radius: .5rem; padding: .6rem .8rem; margin-bottom: 1rem; display: none; }
+.foot { color: var(--dim); font-size: .72rem; margin-top: 1rem; }
+button.reload { float: right; font: inherit; font-size: .78rem; padding: .25rem .7rem; cursor: pointer;
+  border: 1px solid var(--line); border-radius: .45rem; background: transparent; color: var(--ink); }
+button.reload:hover { border-color: var(--accent); }
+</style>
+</head>
+<body>
+<button class="reload" id="reload">Reload</button>
+<h1>To-Do Bulletin</h1>
+<p class="sub">Live from Odoo, as you: activities (tick to complete) and open project tasks. Overdue first.</p>
+<div class="err" id="err"></div>
+<div class="grid">
+  <section>
+    <h2>Activities — follow-ups on records <span class="n" id="act-n"></span></h2>
+    <ul id="acts"><li class="empty">Loading…</li></ul>
+  </section>
+  <section>
+    <h2>Open project tasks <span class="n" id="task-n"></span></h2>
+    <ul id="tasks"><li class="empty">Loading…</li></ul>
+  </section>
+</div>
+<p class="foot">Data via <code>mcp__odoo__activity_list</code> + <code>mcp__odoo__task_list</code>, executed as you ·
+ticking an activity runs <code>mcp__odoo__activity_complete</code> · tasks are read-only here — update them in chat or Odoo</p>
+
+<!-- Data contract: two reads on load; one write per ticked activity. -->
+<script type="application/json" id="odoo-query">
+{"reads": [
+  {"tool": "mcp__odoo__activity_list", "arguments": {"limit": 100}, "target": "acts"},
+  {"tool": "mcp__odoo__task_list", "arguments": {"open_only": true, "limit": 100}, "target": "tasks"}
+], "complete": {"tool": "mcp__odoo__activity_complete"}}
+</script>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var NAME = function (v) { return Array.isArray(v) ? (v.length > 1 ? v[1] : v[0]) : v; };
+  var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+    return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]; }); };
+  var contract = JSON.parse($("odoo-query").textContent);
+  var today = new Date().toISOString().slice(0, 10);
+
+  var dueClass = function (d) { if (!d) return ""; if (d < today) return "over"; if (d === today) return "today"; return ""; };
+  var dueLabel = function (d) { if (!d) return "no deadline"; if (d < today) return d + " · overdue"; if (d === today) return "today"; return d; };
+
+  var showErr = function (msg) { var e = $("err"); e.style.display = "block"; e.textContent = msg; };
+
+  var records = function (r) {
+    var payload = r && r.structuredContent;
+    if (payload == null) { try { payload = JSON.parse(r.content[0].text); } catch (e) { return null; } }
+    if (Array.isArray(payload)) return payload;
+    for (var k in payload) if (Array.isArray(payload[k])) return payload[k];
+    return null;
+  };
+
+  var renderActs = function (rows) {
+    var ul = $("acts"); ul.innerHTML = "";
+    $("act-n").textContent = rows.length + " open";
+    if (!rows.length) { ul.innerHTML = '<li class="empty">Nothing waiting — clear board.</li>'; return; }
+    rows.sort(function (a, b) { return String(a.date_deadline || "9999") < String(b.date_deadline || "9999") ? -1 : 1; });
+    rows.forEach(function (a) {
+      var li = document.createElement("li");
+      var rec = a.record_name || (NAME(a.res_model) ? NAME(a.res_model) + " #" + a.res_id : "");
+      li.innerHTML = '<input type="checkbox" title="Mark done"><div class="t"><div class="name">' + esc(a.summary || a.display_name || "Activity") +
+        '</div><div class="meta">' + esc([rec, NAME(a.user_id)].filter(Boolean).join(" · ")) + "</div></div>" +
+        '<span class="due ' + dueClass(a.date_deadline) + '">' + esc(dueLabel(a.date_deadline)) + "</span>";
+      li.querySelector("input").addEventListener("change", function (ev) {
+        var box = ev.target;
+        if (!box.checked) return;
+        var fb = window.prompt("Completion feedback (lands in the record's chatter):", "");
+        if (fb === null) { box.checked = false; return; }
+        box.disabled = true;
+        window.cowork.callMcpTool(contract.complete.tool, { activity_id: a.id, feedback: fb || undefined })
+          .then(function (r) {
+            if (r && r.isError) { box.checked = false; box.disabled = false; showErr("Could not complete the activity."); return; }
+            li.classList.add("done");
+          })
+          .catch(function () { box.checked = false; box.disabled = false; showErr("Could not complete the activity."); });
+      });
+      ul.appendChild(li);
+    });
+  };
+
+  var renderTasks = function (rows) {
+    var ul = $("tasks"); ul.innerHTML = "";
+    $("task-n").textContent = rows.length + " open";
+    if (!rows.length) { ul.innerHTML = '<li class="empty">No open tasks.</li>'; return; }
+    rows.sort(function (a, b) { return String(a.date_deadline || "9999") < String(b.date_deadline || "9999") ? -1 : 1; });
+    rows.forEach(function (t) {
+      var li = document.createElement("li");
+      li.innerHTML = '<div class="t"><div class="name">' + esc(t.name || "Task") +
+        '</div><div class="meta">' + esc([NAME(t.project_id), NAME(t.stage_id),
+          (t.user_ids && t.user_ids.length ? "assigned" : "unassigned")].filter(Boolean).join(" · ")) + "</div></div>" +
+        '<span class="due ' + dueClass(t.date_deadline) + '">' + esc(dueLabel(t.date_deadline)) + "</span>";
+      ul.appendChild(li);
+    });
+  };
+
+  var load = function () {
+    if (!window.cowork || typeof window.cowork.callMcpTool !== "function") {
+      showErr("This bulletin needs the live MCP connection; open it inside the workspace.");
+      return;
+    }
+    $("err").style.display = "none";
+    contract.reads.forEach(function (read) {
+      window.cowork.callMcpTool(read.tool, read.arguments).then(function (r) {
+        var rows = records(r);
+        if (rows == null) { showErr("The " + read.tool + " response had no record list."); rows = []; }
+        (read.target === "acts" ? renderActs : renderTasks)(rows);
+      }).catch(function (e) { showErr(String((e && e.message) || e)); });
+    });
+  };
+
+  $("reload").addEventListener("click", load);
+  load();
+})();
+</script>
+</body>
+</html>

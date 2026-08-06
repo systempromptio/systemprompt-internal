@@ -1,8 +1,5 @@
 @layer tokens {
 :root {
-  /* Dark-only admin: ramps run dark→light so step 50 sits nearest the
-   * page background and step 950 nearest the text, mirroring how the
-   * light theme used them. */
   --sp-primitive-brand-50:  #1c1917;
   --sp-primitive-brand-100: #292524;
   --sp-primitive-brand-200: #37322f;

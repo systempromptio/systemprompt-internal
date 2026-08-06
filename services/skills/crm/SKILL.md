@@ -25,6 +25,8 @@ key). Unlinked users get a clear error from every Odoo tool — link first, then
 | `crm_lead_update` | Change any field, including `stage_id` for stage moves |
 | `crm_lead_report` | Pipeline aggregates: count + expected revenue grouped by stage or owner, optional date range |
 | `partner_search` / `partner_get` | Resolve companies/contacts (`res.partner`) to link or dedupe against |
+| `note_list` | Read a lead's full chatter history before acting on it |
+| `attachment_list` | See what documents are already on the record |
 
 ## How to Work
 

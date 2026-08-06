@@ -1,12 +1,20 @@
-//! Stub knowledge-bank MCP server.
+//! The company knowledge-bank MCP server.
 //!
-//! Stands in for a real project-context RAG MCP (workshop transcripts, Jira
-//! tickets, Confluence pages) until that endpoint is connected. Serves
-//! keyword search over seeded fixtures via [`store::KnowledgeStore`]; the tool
-//! surface ([`tools`]) is the contract the real server replaces — swapping to
-//! it is a config-only change in `services/mcp/knowledge-bank.yaml`.
+//! A persistent store of meeting transcripts, documents and notes on the
+//! tenant Postgres, searchable over Postgres full text. The bank starts empty
+//! and grows only by `upload_document`; there are no seeded fixtures, because
+//! a knowledge bank that answers with invented context is worse than one that
+//! answers with nothing.
+//!
+//! - [`schema`] — the `knowledge_documents` DDL and its registration.
+//! - [`store`] — every query the tools run, plus the pure query-shaping
+//!   helpers (mode selection, limit clamp, size cap) they depend on.
+//! - [`tools`] — the wire contract: `search_project_context`,
+//!   `list_documents`, `upload_document`.
+//! - [`server`] — the rmcp handler, RBAC, and the admin gate on uploads.
 
 pub mod error;
+pub mod schema;
 pub mod server;
 pub mod store;
 pub mod tools;

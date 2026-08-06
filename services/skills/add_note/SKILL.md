@@ -17,6 +17,8 @@ Odoo's own access rules. If the user can't write to a record in Odoo, the note i
 | `note_add` | Post the note: `model` (e.g. `crm.lead`, `res.partner`), `res_id`, `body` |
 | `crm_lead_search` / `partner_search` | Resolve which record the user means before posting |
 | `activity_list` | When the note implies a follow-up, check what's already scheduled |
+| `note_list` | Read the record's recent chatter so the note adds, not repeats |
+| `attachment_add` | When the user hands you a file (or a recording URL) for the record |
 
 ## How to Work
 

@@ -50,6 +50,14 @@ async fn main() -> Result<()> {
         },
     );
 
+    // Why: the knowledge bank is its own process against the tenant database,
+    // so it cannot assume anything else has created its table. The DDL is
+    // `IF NOT EXISTS` throughout, so this is a no-op on every boot after the
+    // first.
+    systemprompt_mcp_knowledge_bank::schema::ensure_installed(ctx.db_pool())
+        .await
+        .context("Failed to install the knowledge_documents schema")?;
+
     let server = KnowledgeBankServer::new(
         Arc::clone(ctx.db_pool()),
         service_id.clone(),

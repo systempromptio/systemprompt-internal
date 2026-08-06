@@ -1,8 +1,12 @@
 //! Tool definitions exposed by the `knowledge-bank` MCP server.
 //!
-//! Three tools mirror the contract a real RAG server must satisfy:
-//! `search_project_context` and `list_documents` for any signed-in user, and
-//! `upload_document` restricted to admins (enforced in `server::tool`).
+//! Three tools: `search_project_context` and `list_documents` for any
+//! signed-in user, and `upload_document` restricted to admins (enforced in
+//! `server::tool`).
+//!
+//! The input field names mirror the `knowledge_documents` columns — `source`,
+//! `project` — so a caller reading a search result already knows what to pass
+//! back to narrow the next one.
 
 use rmcp::model::{MetaObject, Tool};
 use schemars::JsonSchema;
@@ -18,32 +22,33 @@ pub const TOOL_UPLOAD: &str = "upload_document";
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct SearchInput {
-    /// Free-text query over project context (transcripts, Jira tickets,
-    /// Confluence pages).
+    /// Free-text query. Supports quoted phrases and `-exclusions`. Leave it
+    /// empty to see the most recently uploaded documents instead.
     pub query: String,
-    /// Optional project id to scope the search (e.g. "acme-storefront").
-    pub project_id: Option<String>,
-    /// Maximum number of documents to return (default 5).
+    /// Optional project tag to scope the search to one collection.
+    pub project: Option<String>,
+    /// Maximum number of documents to return (default 10, maximum 50).
     pub limit: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ListInput {
-    /// Optional project id to scope the listing.
-    pub project_id: Option<String>,
-    /// Optional document type filter: "transcript", "jira", or "confluence".
-    pub doc_type: Option<String>,
+    /// Optional project tag to scope the listing.
+    pub project: Option<String>,
+    /// Optional source filter, e.g. "meeting-transcript", "document", "email".
+    pub source: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct UploadInput {
-    /// Document type: "transcript", "jira", or "confluence".
-    pub doc_type: String,
-    /// Project id the document belongs to.
-    pub project_id: String,
     /// Human-readable document title.
     pub title: String,
-    /// Full document text.
+    /// Where the document came from, e.g. "meeting-transcript", "document",
+    /// "email". Freeform — reuse an existing value so listings stay filterable.
+    pub source: String,
+    /// Optional project tag grouping this document with related ones.
+    pub project: Option<String>,
+    /// Full document text. At most 2 MB.
     pub content: String,
 }
 
@@ -85,24 +90,27 @@ pub fn list_tools() -> Vec<Tool> {
         create_tool(&ToolDef {
             name: TOOL_SEARCH,
             title: "Search Project Context",
-            description: "Search the project knowledge bank (workshop transcripts, Jira tickets, \
-                          Confluence pages) for prior decisions and context. Use this before \
-                          proposing an approach — prior project decisions outrank general best \
-                          practice.",
+            description: "Full-text search across the company knowledge bank — meeting \
+                          transcripts, documents and notes — for prior decisions and context. \
+                          Returns ranked snippets, not whole documents. Use this before \
+                          proposing an approach: prior decisions recorded here outrank general \
+                          best practice.",
             input_schema: schemars::schema_for!(SearchInput).to_value(),
         }),
         create_tool(&ToolDef {
             name: TOOL_LIST,
             title: "List Knowledge Bank Documents",
-            description: "List documents in the project knowledge bank, optionally filtered by \
-                          project and document type (transcript, jira, confluence).",
+            description: "List knowledge bank documents newest first, optionally filtered by \
+                          project and source. Returns titles and sizes, not content — search \
+                          for the content.",
             input_schema: schemars::schema_for!(ListInput).to_value(),
         }),
         create_tool(&ToolDef {
             name: TOOL_UPLOAD,
             title: "Upload Document",
-            description: "Upload a document (meeting transcript, ticket summary, or page) to the \
-                          project knowledge bank. Admin role required.",
+            description: "Add a document (meeting transcript, note, or page) to the company \
+                          knowledge bank, where it becomes searchable immediately. Admin role \
+                          required.",
             input_schema: schemars::schema_for!(UploadInput).to_value(),
         }),
     ]

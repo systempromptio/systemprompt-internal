@@ -118,8 +118,6 @@ body.has-video-hero .site-nav {
   outline-offset: 2px;
 }
 
-/* Stacked hero below 900px: the video becomes a framed 16:9 media block
- * above the copy instead of a background the pane would cover. */
 @media (max-width: 900px) {
   .hero {
     --sp-hero-frame-gutter: 0.5rem;

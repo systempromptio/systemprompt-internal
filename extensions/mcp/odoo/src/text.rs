@@ -52,6 +52,9 @@ pub fn html_to_text(html: &str) -> String {
     let mut tag = String::new();
     let mut in_tag = false;
 
+    // Why: an unterminated `<` means the body was truncated mid-tag. Leaving
+    // `in_tag` set discards the partial tag and keeps the text before it,
+    // which is the half worth returning.
     for ch in html.chars() {
         match ch {
             '<' => {
@@ -69,8 +72,6 @@ pub fn html_to_text(html: &str) -> String {
         }
     }
 
-    // Why: an unterminated `<` means the body was truncated mid-tag; the text
-    // before it is still worth returning, and the partial tag is not.
     for (entity, replacement) in ENTITIES {
         if out.contains(entity) {
             out = out.replace(entity, replacement);
@@ -81,10 +82,11 @@ pub fn html_to_text(html: &str) -> String {
 
 /// An excerpt of `text` centred on the first case-insensitive hit for `query`.
 ///
-/// Returns at most [`SNIPPET_CHARS`] characters, with a leading or trailing
-/// ellipsis when text was dropped. A query that does not appear — which happens
-/// when Odoo matched on the subject rather than the body — falls back to the
-/// head of the text, because an empty snippet would read as an empty record.
+/// Capped at [`SNIPPET_CHARS`]; an ellipsis marks each end where text was
+/// dropped. A query that does not appear falls back to the head of the text
+/// rather than to nothing — Odoo matches on subject as well as body, so a hit
+/// with no body match is normal, and an empty snippet would read as an empty
+/// record.
 #[must_use]
 pub fn snippet_around(text: &str, query: &str) -> String {
     let chars: Vec<char> = text.chars().collect();

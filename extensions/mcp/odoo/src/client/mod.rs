@@ -10,6 +10,7 @@ pub mod rpc;
 
 use serde::Serialize;
 
+use crate::apps::map_missing_app;
 use crate::error::OdooError;
 pub use rpc::{OdooConnection, ODOO_DB_ENV, ODOO_URL_ENV};
 
@@ -114,7 +115,12 @@ impl OdooClient {
             call.args,
             call.kwargs,
         ];
-        rpc::call(&self.http, &self.conn, "object", "execute_kw", &rpc_args).await
+        // Why: every model call funnels through here, so this is the one place
+        // a missing-app fault can be recognised while the model name is still
+        // in hand. Callers get an error naming the app, not the table.
+        rpc::call(&self.http, &self.conn, "object", "execute_kw", &rpc_args)
+            .await
+            .map_err(|e| map_missing_app(call.model, e))
     }
 
     /// `search_read` — the list form. Returns the raw record array.

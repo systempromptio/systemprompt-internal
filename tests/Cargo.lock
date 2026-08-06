@@ -2526,6 +2526,8 @@ name = "mcp-unit-tests"
 version = "0.0.0"
 dependencies = [
  "axum",
+ "base64 0.22.1",
+ "chrono",
  "rmcp",
  "serde_json",
  "systemprompt",
@@ -2534,6 +2536,7 @@ dependencies = [
  "systemprompt-mcp-odoo",
  "systemprompt-mcp-shared",
  "systemprompt-web-admin",
+ "uuid",
 ]
 
 [[package]]
@@ -5508,15 +5511,18 @@ dependencies = [
  "anyhow",
  "axum",
  "chrono",
+ "inventory",
  "rmcp",
  "schemars",
  "serde",
  "serde_json",
+ "sqlx",
  "systemprompt",
  "systemprompt-mcp-shared",
  "thiserror 2.0.19",
  "tokio",
  "tracing",
+ "uuid",
 ]
 
 [[package]]
@@ -5525,6 +5531,7 @@ version = "0.21.0"
 dependencies = [
  "anyhow",
  "axum",
+ "base64 0.22.1",
  "chacha20poly1305",
  "chrono",
  "hex",

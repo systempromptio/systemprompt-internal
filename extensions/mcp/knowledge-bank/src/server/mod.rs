@@ -34,7 +34,7 @@ pub struct KnowledgeBankServer {
     db_pool: DbPool,
     executor: McpToolExecutor,
     authz_hook: SharedAuthzHook,
-    store: Arc<KnowledgeStore>,
+    store: KnowledgeStore,
 }
 
 impl KnowledgeBankServer {
@@ -52,12 +52,7 @@ impl KnowledgeBankServer {
                 .map_err(|e| KnowledgeBankError::Internal(e.to_string()))?,
         );
         let executor = McpToolExecutor::new(tool_usage_repo, artifact_repo, SERVER_NAME);
-        let store = Arc::new(KnowledgeStore::seeded()?);
-
-        tracing::info!(
-            documents = store.count(),
-            "Knowledge bank seeded from fixtures"
-        );
+        let store = KnowledgeStore::new(Arc::clone(&db_pool));
 
         Ok(Self {
             service_id,
@@ -78,13 +73,14 @@ impl ServerHandler for KnowledgeBankServer {
                     format!("Knowledge Bank ({})", self.service_id),
                     env!("CARGO_PKG_VERSION"),
                 )
-                .with_title("Project Knowledge Bank"),
+                .with_title("Company Knowledge Bank"),
             )
             .with_instructions(
-                "Project context for the current engagement: workshop transcripts, Jira tickets, \
-                 and Confluence pages. Search with search_project_context before proposing an \
-                 approach; prior project decisions outrank general best practice. Uploading is \
-                 admin-only."
+                "The company knowledge bank: meeting transcripts, documents and notes, \
+                 full-text searchable. Search with search_project_context before proposing an \
+                 approach; decisions recorded here outrank general best practice. The bank \
+                 starts empty and grows only by upload, so an empty result means nothing has \
+                 been added yet, not that the search failed. Uploading is admin-only."
                     .to_owned(),
             )
     }

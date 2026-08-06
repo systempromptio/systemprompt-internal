@@ -29,7 +29,7 @@ fn all_jobs_registered() {
 
 #[test]
 fn stateless_provider_registries_are_complete() {
-    assert_eq!(registry::component_renderers().len(), 9);
+    assert_eq!(registry::component_renderers().len(), 4);
     // Docs only: the template also registers the blog list and post providers,
     // and this fork ships no blog.
     assert_eq!(registry::page_data_providers().len(), 1);

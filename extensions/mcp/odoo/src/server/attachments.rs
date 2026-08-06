@@ -17,8 +17,9 @@ use systemprompt::models::execution::context::RequestContext;
 
 use super::call::OdooCall;
 use crate::attachment::{
-    ATTACHMENT_FIELDS, ATTACHMENT_LABELS, MAX_INLINE_BYTES, attachment_domain, attachment_fields,
-    attachment_row, check_upload, too_large_notice,
+    ATTACHMENT_FIELDS, ATTACHMENT_LABELS, MAX_INLINE_BYTES, Upload, attachment_domain,
+    attachment_fields, attachment_row, classify_upload, create_values, is_url_attachment,
+    too_large_notice,
 };
 use crate::client::SearchOptions;
 use crate::format::{detail_lines, empty_result, text_artifact};
@@ -41,7 +42,7 @@ impl McpToolHandler for AttachmentAddHandler {
     }
 
     fn description(&self) -> &'static str {
-        "Attach a file to an Odoo record."
+        "Attach a file, or a link to one, to an Odoo record."
     }
 
     fn handle(
@@ -59,32 +60,20 @@ impl McpToolHandler for AttachmentAddHandler {
                     None,
                 ));
             }
-            let size = check_upload(&input.content_base64)?;
-
-            let mut values = serde_json::Map::new();
-            values.insert("name".to_owned(), serde_json::json!(filename));
-            values.insert("res_model".to_owned(), serde_json::json!(input.model));
-            values.insert("res_id".to_owned(), serde_json::json!(input.res_id));
-            values.insert(
-                "datas".to_owned(),
-                serde_json::json!(input.content_base64.trim()),
-            );
-            if let Some(mimetype) = input.mimetype.map(|m| m.trim().to_owned()).filter(|m| !m.is_empty())
-            {
-                values.insert("mimetype".to_owned(), serde_json::json!(mimetype));
-            }
+            let upload = classify_upload(&input)?;
+            let values = create_values(&input, &filename, &upload);
 
             let id = call
                 .client
-                .create(
-                    &call.creds,
-                    "ir.attachment",
-                    serde_json::Value::Object(values),
-                )
+                .create(&call.creds, "ir.attachment", values)
                 .await?;
 
+            let what = match &upload {
+                Upload::Binary { size, .. } => format!("{filename} ({size} bytes)"),
+                Upload::Url(url) => format!("link {filename} → {url}"),
+            };
             let summary = format!(
-                "Attached {filename} ({size} bytes) to {} {} as attachment {id}",
+                "Attached {what} to {} {} as attachment {id}",
                 input.model, input.res_id
             );
             Ok((text_artifact("Attachment Created", &summary), summary))
@@ -161,7 +150,7 @@ impl McpToolHandler for AttachmentGetHandler {
     }
 
     fn description(&self) -> &'static str {
-        "Read one Odoo attachment, with its content when the file is small."
+        "Read one Odoo attachment: its metadata, and its content when small."
     }
 
     fn handle(
@@ -183,7 +172,17 @@ impl McpToolHandler for AttachmentGetHandler {
                 .unwrap_or_default();
 
             let mut body = detail_lines(&metadata, &ATTACHMENT_LABELS);
-            let summary = if file_size > MAX_INLINE_BYTES {
+            let summary = if is_url_attachment(&metadata) {
+                // Why: a url row stores no bytes at all, so there is nothing to
+                // withhold and nothing to fetch — the pointer above *is* the
+                // content, and reading `datas` would return an empty string
+                // that looks like an empty file.
+                body.push_str(
+                    "\n\nThis attachment is a link, not a stored file. Fetch the URL above to \
+                     retrieve the content.",
+                );
+                format!("Attachment {} is a link", input.id)
+            } else if file_size > MAX_INLINE_BYTES {
                 body.push_str(&too_large_notice(file_size));
                 format!("Attachment {} metadata read; content withheld", input.id)
             } else {

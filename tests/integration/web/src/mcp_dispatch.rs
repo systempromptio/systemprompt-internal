@@ -20,7 +20,7 @@ use systemprompt::mcp::repository::ToolUsageRepository;
 use systemprompt::mcp::{McpArtifactRepository, McpToolExecutor};
 use systemprompt::models::auth::{AuthenticatedUser, Permission};
 use systemprompt::models::execution::context::RequestContext as SysRequestContext;
-use systemprompt_mcp_knowledge_bank::store::KnowledgeStore;
+use systemprompt_mcp_knowledge_bank::store::{KnowledgeStore, NewDocument};
 use systemprompt_mcp_knowledge_bank::tools::{TOOL_LIST, TOOL_SEARCH, TOOL_UPLOAD};
 
 use crate::tempdb::TempDb;
@@ -85,7 +85,6 @@ fn summary_of(result: &rmcp::model::CallToolResult) -> String {
 
 async fn dispatch_kb(
     db: &TempDb,
-    store: &Arc<KnowledgeStore>,
     ctx: &SysRequestContext,
     tool: &'static str,
     arguments: serde_json::Value,
@@ -93,7 +92,7 @@ async fn dispatch_kb(
     let executor = executor(&db.pool, "knowledge-bank");
     systemprompt_mcp_knowledge_bank::server::tool::dispatch_tool(
         &executor,
-        store,
+        &store(&db.pool),
         tool,
         &call(tool, arguments),
         ctx,
@@ -101,8 +100,26 @@ async fn dispatch_kb(
     .await
 }
 
-fn seeded_store() -> Arc<KnowledgeStore> {
-    Arc::new(KnowledgeStore::seeded().expect("the bundled fixtures parse"))
+fn store(pool: &Arc<PgPool>) -> KnowledgeStore {
+    KnowledgeStore::new(Arc::new(Database::from_pools(
+        Arc::clone(pool),
+        Some(Arc::clone(pool)),
+    )))
+}
+
+/// The bank starts empty, so every knowledge-bank case here puts its own
+/// document in first. There are no fixtures to lean on.
+async fn given_a_document(db: &TempDb, title: &str, source: &str, content: &str) {
+    store(&db.pool)
+        .insert(NewDocument {
+            title,
+            source,
+            project: Some("acme"),
+            content,
+            uploaded_by: "dispatch-seed",
+        })
+        .await
+        .expect("seed insert");
 }
 
 #[tokio::test]
@@ -110,26 +127,27 @@ async fn search_dispatch_returns_the_matching_documents_as_text() {
     let Some(db) = TempDb::create().await else {
         return;
     };
-    let store = seeded_store();
-    let any_document = store
-        .list_documents(None, None)
-        .first()
-        .expect("the bundled fixtures seed at least one document")
-        .clone();
+    given_a_document(
+        &db,
+        "Checkout workshop",
+        "meeting-transcript",
+        "Guest checkout was agreed.",
+    )
+    .await;
 
     let result = dispatch_kb(
         &db,
-        &store,
         &request_context(),
         TOOL_SEARCH,
-        serde_json::json!({ "query": any_document.title }),
+        serde_json::json!({ "query": "checkout workshop" }),
     )
     .await
     .expect("search dispatches to its handler");
 
     assert!(
-        body_of(&result).contains(&any_document.title),
-        "the matched document's title is rendered into the response body"
+        body_of(&result).contains("Checkout workshop"),
+        "the matched document's title is rendered into the response body: {}",
+        body_of(&result)
     );
 
     db.cleanup().await;
@@ -141,9 +159,10 @@ async fn search_dispatch_returns_the_sentinel_when_nothing_matches() {
         return;
     };
 
+    given_a_document(&db, "Checkout workshop", "meeting-transcript", "Body.").await;
+
     let result = dispatch_kb(
         &db,
-        &seeded_store(),
         &request_context(),
         TOOL_SEARCH,
         serde_json::json!({ "query": "zzzz-no-document-mentions-this-zzzz" }),
@@ -164,18 +183,13 @@ async fn list_dispatch_renders_one_line_per_document() {
     let Some(db) = TempDb::create().await else {
         return;
     };
-    let store = seeded_store();
-    let expected = store.list_documents(None, None).len();
+    given_a_document(&db, "First", "document", "Body one.").await;
+    given_a_document(&db, "Second", "document", "Body two.").await;
+    let expected = 2;
 
-    let result = dispatch_kb(
-        &db,
-        &store,
-        &request_context(),
-        TOOL_LIST,
-        serde_json::json!({}),
-    )
-    .await
-    .expect("list dispatches to its handler");
+    let result = dispatch_kb(&db, &request_context(), TOOL_LIST, serde_json::json!({}))
+        .await
+        .expect("list dispatches to its handler");
 
     assert_eq!(
         body_of(&result).lines().count(),
@@ -197,12 +211,13 @@ async fn list_dispatch_reports_the_empty_filter_sentinel() {
         return;
     };
 
+    given_a_document(&db, "First", "document", "Body one.").await;
+
     let result = dispatch_kb(
         &db,
-        &seeded_store(),
         &request_context(),
         TOOL_LIST,
-        serde_json::json!({ "project_id": "no-such-project" }),
+        serde_json::json!({ "project": "no-such-project" }),
     )
     .await
     .expect("a filter that matches nothing is still a successful call");
@@ -224,13 +239,12 @@ async fn upload_dispatch_is_refused_without_the_admin_role() {
 
     let error = dispatch_kb(
         &db,
-        &seeded_store(),
         &ctx,
         TOOL_UPLOAD,
         serde_json::json!({
-            "doc_type": "workshop",
-            "project_id": "acme",
             "title": "Rejected",
+            "source": "meeting-transcript",
+            "project": "acme",
             "content": "should never be stored",
         }),
     )
@@ -254,13 +268,12 @@ async fn upload_dispatch_is_refused_when_the_context_carries_no_user() {
 
     let error = dispatch_kb(
         &db,
-        &seeded_store(),
         &request_context(),
         TOOL_UPLOAD,
         serde_json::json!({
-            "doc_type": "workshop",
-            "project_id": "acme",
             "title": "Rejected",
+            "source": "meeting-transcript",
+            "project": "acme",
             "content": "should never be stored",
         }),
     )
@@ -277,19 +290,18 @@ async fn upload_dispatch_stores_the_document_for_an_admin() {
     let Some(db) = TempDb::create().await else {
         return;
     };
-    let store = seeded_store();
-    let before = store.count();
+    let store = store(&db.pool);
+    let before = store.count().await.expect("count the empty bank");
     let ctx = request_context().with_user(user_with(Permission::Admin));
 
     let result = dispatch_kb(
         &db,
-        &store,
         &ctx,
         TOOL_UPLOAD,
         serde_json::json!({
-            "doc_type": "workshop",
-            "project_id": "acme",
             "title": "Kickoff Notes",
+            "source": "meeting-transcript",
+            "project": "acme",
             "content": "Decisions from the kickoff.",
         }),
     )
@@ -297,13 +309,13 @@ async fn upload_dispatch_stores_the_document_for_an_admin() {
     .expect("an admin may upload");
 
     assert_eq!(
-        store.count(),
+        store.count().await.expect("count after the upload"),
         before + 1,
-        "the uploaded document joins the store"
+        "the uploaded document is persisted"
     );
     assert!(
-        body_of(&result).contains("workshop-kickoff-notes"),
-        "the response reports the slugified id it assigned: {}",
+        body_of(&result).contains("Kickoff Notes"),
+        "the response names the document it stored: {}",
         body_of(&result)
     );
 
@@ -316,13 +328,7 @@ async fn an_unknown_knowledge_bank_tool_lists_the_three_it_serves() {
         return;
     };
 
-    let error = dispatch_kb(
-        &db,
-        &seeded_store(),
-        &request_context(),
-        "delete_everything",
-        serde_json::json!({}),
-    )
+    let error = dispatch_kb(&db, &request_context(), "delete_everything", serde_json::json!({}))
     .await
     .expect_err("an unknown tool name is refused");
 

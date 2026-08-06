@@ -16,6 +16,15 @@ pub enum OdooError {
     #[error("Not linked: {0}")]
     NotLinked(String),
 
+    /// The Odoo app backing this model is not installed on the instance.
+    ///
+    /// Distinct from [`Self::Odoo`] because it is neither a permission problem
+    /// nor a bad request: the tool is sound, the deployment simply lacks the
+    /// module. Only an Odoo administrator can change that, and the message says
+    /// so rather than leaving a model to retry.
+    #[error("Odoo app not installed: {0}")]
+    AppMissing(String),
+
     /// Odoo answered, and the answer was a refusal or a fault.
     #[error("Odoo rejected the call: {0}")]
     Odoo(String),
@@ -35,6 +44,7 @@ impl ExtensionError for OdooError {
         match self {
             Self::NotConfigured(_) => "NOT_CONFIGURED",
             Self::NotLinked(_) => "NOT_LINKED",
+            Self::AppMissing(_) => "APP_NOT_INSTALLED",
             Self::Odoo(_) => "ODOO_REJECTED",
             Self::Transport(_) => "UPSTREAM_UNAVAILABLE",
             Self::Serialization(_) => "SERIALIZATION_ERROR",
@@ -46,6 +56,7 @@ impl ExtensionError for OdooError {
         match self {
             Self::NotConfigured(_) | Self::Transport(_) => StatusCode::SERVICE_UNAVAILABLE,
             Self::NotLinked(_) => StatusCode::FORBIDDEN,
+            Self::AppMissing(_) => StatusCode::NOT_IMPLEMENTED,
             Self::Odoo(_) => StatusCode::BAD_GATEWAY,
             Self::Serialization(_) | Self::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
@@ -62,9 +73,9 @@ impl ExtensionError for OdooError {
 impl From<OdooError> for rmcp::ErrorData {
     fn from(err: OdooError) -> Self {
         match err {
-            OdooError::NotLinked(msg) | OdooError::NotConfigured(msg) => {
-                Self::invalid_request(msg, None)
-            },
+            OdooError::NotLinked(msg)
+            | OdooError::NotConfigured(msg)
+            | OdooError::AppMissing(msg) => Self::invalid_request(msg, None),
             other => Self::internal_error(other.to_string(), None),
         }
     }

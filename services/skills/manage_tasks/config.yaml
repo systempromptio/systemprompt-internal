@@ -1,0 +1,8 @@
+id: manage_tasks
+name: Manage Tasks
+description: "Create, list, and update project tasks in Odoo — delivery work, internal projects, and to-dos — with deadlines and assignees the whole team can see."
+enabled: true
+file: SKILL.md
+tags: [odoo, project, tasks, todos]
+category: collaboration
+display_category: "Business on Odoo"

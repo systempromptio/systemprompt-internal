@@ -25,11 +25,13 @@
 //! concerns. [`server::notes`] and [`server::attachments`] read that as the
 //! knowledge plane it effectively is.
 
+pub mod apps;
 pub mod attachment;
 pub mod client;
 pub mod error;
 pub mod format;
 pub mod identity;
+pub mod resolve;
 pub mod server;
 pub mod text;
 pub mod tools;

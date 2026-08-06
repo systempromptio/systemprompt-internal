@@ -20,8 +20,6 @@
     linear-gradient(to top, oklch(0 0 0 / 0.35) 0%, transparent 25%);
 }
 
-/* Stacked hero below 900px: the video is a framed 16:9 media block above
- * the copy, not a background (layout counterpart in homepage-hero.css). */
 @media (max-width: 900px) {
   .hero-bg-video {
     position: relative;

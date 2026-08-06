@@ -146,9 +146,6 @@
   --sp-bp-md: 48rem;
   --sp-bp-lg: 64rem;
   --sp-bp-xl: 80rem;
-
-  
-  --sp-card-radius: var(--sp-corners-md);
 }
 
 [data-theme="dark"] {

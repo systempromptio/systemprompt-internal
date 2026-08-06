@@ -38,6 +38,7 @@ extensions/web/src/schemas.rs	# internal ships the Odoo identity schema
 extensions/web/jobs/src/llms_txt.rs	# template emits a blog section; internal has no blog
 extensions/web/site/src/lib.rs	# template ships blog + features sections; internal ships the skills page
 extensions/web/site/src/navigation/provider.rs	# the blog nav link exists in the template only
+extensions/web/site/src/partials.rs	# internal dropped the mid-priority partial along with the animation partials, so PRIORITY_MID has no user here
 extensions/web/site/src/assets/css.rs	# template ships feature-page CSS; internal ships skills-page and showreel CSS
 extensions/web/site/src/assets/mod.rs	# internal serves the homepage showreel video
 extensions/web/site/src/homepage/mod.rs	# the template homepage renders the demo showcase; internal's does not, so the scanner and its config types are gone

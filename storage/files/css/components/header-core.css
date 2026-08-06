@@ -118,9 +118,6 @@ button.cta-button:hover {
   }
 }
 
-/* The homepage hero frame starts below the header, so the header sits on
- * the page background: keep the normal themed treatment, drop the hairline
- * until the page scrolls (data-scrolled is stamped on <html> by homepage.js). */
 html:not([data-scrolled]) body.has-video-hero .site-header {
   border-bottom-color: transparent;
   box-shadow: none;

@@ -3,6 +3,23 @@
 //! Field names match Odoo's own (`partner_name`, `email_from`, `stage_id`) so
 //! that a model reading Odoo documentation, or an error message quoting a
 //! field, does not have to translate.
+//!
+//! Split by plane: the CRM record inputs live here, the record-anchored
+//! knowledge bank in [`knowledge`], and the scheduling and collaboration
+//! surfaces in [`work`].
+
+pub mod knowledge;
+pub mod work;
+
+pub use knowledge::{
+    AttachmentAddInput, AttachmentGetInput, AttachmentListInput, NoteAddInput, NoteListInput,
+    NoteSearchInput,
+};
+pub use work::{
+    ActivityCompleteInput, ActivityCreateInput, ActivityListInput, CalendarEventCreateInput,
+    CalendarEventListInput, ChannelListInput, ChannelPostInput, TaskCreateInput, TaskListInput,
+    TaskUpdateInput,
+};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -90,84 +107,6 @@ pub struct PartnerSearchInput {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
 pub struct PartnerGetInput {
     /// Odoo id of the partner.
-    pub id: i64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct NoteAddInput {
-    /// Odoo model to log the note against, e.g. "crm.lead" or "res.partner".
-    pub model: String,
-    /// Odoo id of the record.
-    pub res_id: i64,
-    /// Note body. Plain text or simple HTML; Odoo renders it in the chatter.
-    pub body: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct ActivityListInput {
-    /// Restrict to activities on one model, e.g. "crm.lead". Omit for all.
-    pub model: Option<String>,
-    /// Only activities whose deadline has passed.
-    pub overdue_only: Option<bool>,
-    /// Maximum activities to return (default 20, capped at 100).
-    pub limit: Option<u32>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct NoteListInput {
-    /// Odoo model the record belongs to, e.g. "crm.lead" or "res.partner".
-    pub model: String,
-    /// Odoo id of the record whose chatter you want.
-    pub res_id: i64,
-    /// Maximum messages to return, newest first (default 20, capped at 100).
-    pub limit: Option<u32>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct NoteSearchInput {
-    /// Free text matched against message bodies and subjects.
-    pub query: String,
-    /// Restrict to notes on one model, e.g. "crm.lead". Omit to search every
-    /// record type at once, which is usually what you want.
-    pub model: Option<String>,
-    /// Only notes written on or after this date (YYYY-MM-DD).
-    pub date_from: Option<String>,
-    /// Only notes written on or before this date (YYYY-MM-DD).
-    pub date_to: Option<String>,
-    /// Maximum notes to return, newest first (default 20, capped at 100).
-    pub limit: Option<u32>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct AttachmentAddInput {
-    /// Odoo model to attach the file to, e.g. "crm.lead".
-    pub model: String,
-    /// Odoo id of the record to attach the file to.
-    pub res_id: i64,
-    /// Filename as it should appear in Odoo, including its extension.
-    pub filename: String,
-    /// File content, base64-encoded. Decoded size must be 5 MB or less.
-    pub content_base64: String,
-    /// MIME type. Odoo infers one from the filename when this is omitted.
-    pub mimetype: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct AttachmentListInput {
-    /// Restrict to attachments on one model, e.g. "crm.lead".
-    pub model: Option<String>,
-    /// Restrict to one record. Requires `model` to be meaningful, since ids
-    /// are only unique within a model.
-    pub res_id: Option<i64>,
-    /// Free text matched against the filename.
-    pub query: Option<String>,
-    /// Maximum attachments to return (default 20, capped at 100).
-    pub limit: Option<u32>,
-}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
-pub struct AttachmentGetInput {
-    /// Odoo id of the attachment.
     pub id: i64,
 }
 

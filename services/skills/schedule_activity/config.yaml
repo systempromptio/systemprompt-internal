@@ -1,0 +1,8 @@
+id: schedule_activity
+name: Schedule Activity
+description: "Turn commitments into scheduled, assigned Odoo activities on the record they belong to — and close them with feedback when done. The delegation loop of the business."
+enabled: true
+file: SKILL.md
+tags: [odoo, activities, followups, delegation]
+category: collaboration
+display_category: "Business on Odoo"

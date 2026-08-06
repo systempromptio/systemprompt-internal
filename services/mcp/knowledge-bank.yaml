@@ -1,27 +1,27 @@
-# Project knowledge bank MCP server (STUB).
+# Company knowledge bank MCP server.
 #
-# Stands in for a real project-context RAG MCP (workshop transcripts, Jira
-# tickets, Confluence pages) until one is connected. The stub is a local
-# `internal` server serving keyword search over seeded fixtures; its tool
-# surface (search_project_context, list_documents, upload_document) is the
-# contract the real server replaces.
+# A persistent, first-party knowledge bank — not a stub and not a proxy. Its
+# documents live in `knowledge_documents` on the tenant Postgres, one row per
+# uploaded meeting transcript, document or note, indexed by a stored
+# `tsvector` generated from title + content. `search_project_context` ranks
+# with `websearch_to_tsquery` / `ts_rank_cd` and returns `ts_headline`
+# snippets; it falls back to substring matching when the English tokenizer
+# yields no lexemes, and to a newest-first listing when the query is empty.
 #
-# SWAP PATH — connecting the real server is a config-only change to THIS file:
-#   type: external
-#   binary: ""
-#   endpoint: "https://<rag-host>/mcp"
-#   # plus, ONLY if the real server needs a per-user bearer, an external_auth
-#   # block pointing at a token accessor. Nothing in this deployment uses that
-#   # shape today — the odoo server does per-user credentials in process
-#   # instead (services/mcp/odoo.yaml) — so there is no worked example to copy.
-#   # A static/shared-credential server omits external_auth entirely.
-# The server id stays `knowledge-bank`, so plugin includes, marketplace
-# includes, and the roles.yaml rule all carry over untouched.
+# The bank starts EMPTY. There are no seeded fixtures: a knowledge bank that
+# answers with invented context is worse than one that answers with nothing.
+# Everything in it arrived through `upload_document`.
+#
+# Schema ownership lives with the crate — `extensions/mcp/knowledge-bank/
+# schema/01_knowledge_documents.sql`, registered via `register_extension!` and
+# additionally applied at server startup, since this server is its own process
+# and cannot assume the host binary has migrated on its behalf.
 #
 # RBAC: read tools are open to the `user` role (roles.yaml grant); the
 # upload_document tool additionally requires the admin role, enforced inside
 # the server against the authenticated user — the same double-gate pattern the
-# admin surface uses.
+# admin surface uses. Uploads are attributed to the authenticated caller
+# (`uploaded_by`), never to a value taken from the payload.
 
 mcp_servers:
   knowledge-bank:
@@ -31,7 +31,7 @@ mcp_servers:
     port: 5030
     enabled: true
     display_in_web: true
-    description: "Project knowledge bank (stub) — search workshop transcripts, Jira tickets, and Confluence pages"
+    description: "Company knowledge bank — meeting transcripts, documents and notes with full-text search"
     oauth:
       required: true
       scopes:

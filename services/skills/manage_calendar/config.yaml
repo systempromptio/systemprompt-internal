@@ -1,0 +1,8 @@
+id: manage_calendar
+name: Manage Calendar
+description: "Read and book meetings in the Odoo calendar, linked to the leads and customers they concern — and feed finished meetings into the knowledge bank."
+enabled: true
+file: SKILL.md
+tags: [odoo, calendar, meetings, scheduling]
+category: collaboration
+display_category: "Business on Odoo"

@@ -1,9 +1,3 @@
-/*
- * Legacy-name aliases for docs-*.css, skills-page.css and
- * syntax-highlight.css, which predate the token port from
- * systemprompt-web. New CSS must use the token names directly;
- * remove an alias here once its last consumer is migrated.
- */
 :root {
   --sp-animation-fast: var(--sp-transition-fast);
 

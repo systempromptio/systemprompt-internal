@@ -1,10 +1,9 @@
 //! `KnowledgeBankServer` constructed against a real pool.
 //!
 //! Construction is the part worth a database: it builds a `ToolUsageRepository`
-//! and an `McpArtifactRepository` off the pool, and seeds the in-memory store
-//! from the bundled fixtures. The advertised surface (`get_info`, the tool
-//! list) is asserted alongside it so a capability or tool-name change cannot
-//! land silently.
+//! and an `McpArtifactRepository` off the pool and opens the document store
+//! over it. The advertised surface (`get_info`, the tool list) is asserted
+//! alongside it so a capability or tool-name change cannot land silently.
 
 use std::sync::Arc;
 
@@ -70,7 +69,7 @@ async fn get_info_advertises_tools_and_names_the_service_id() {
     );
     assert_eq!(
         info.server_info.title.as_deref(),
-        Some("Project Knowledge Bank")
+        Some("Company Knowledge Bank")
     );
     assert!(
         !info.server_info.version.is_empty(),
@@ -175,21 +174,52 @@ async fn every_advertised_tool_carries_a_description_and_an_object_schema() {
 }
 
 #[tokio::test]
-async fn the_store_is_seeded_before_the_server_is_returned() {
+async fn the_store_the_server_opens_starts_empty() {
     let Some(db) = TempDb::create().await else {
         return;
     };
     let _built = server(&db.pool);
 
-    let store = KnowledgeStore::seeded().expect("the bundled fixtures parse");
+    let store = KnowledgeStore::new(Arc::new(Database::from_pools(
+        Arc::clone(&db.pool),
+        Some(Arc::clone(&db.pool)),
+    )));
+
+    // Deliberate: there are no fixtures. A knowledge bank that answers with
+    // invented context is worse than one that answers with nothing.
+    assert_eq!(store.count().await.expect("count the new bank"), 0);
+    assert!(
+        store
+            .list_documents(None, None)
+            .await
+            .expect("list the new bank")
+            .is_empty()
+    );
+
+    db.cleanup().await;
+}
+
+#[tokio::test]
+async fn the_registered_schema_reaches_the_database() {
+    let Some(db) = TempDb::create().await else {
+        return;
+    };
+
+    // TempDb installs schemas from the extension registrations linked into
+    // this binary. If the knowledge bank's `register_extension!` stopped being
+    // picked up, every query below would fail on a missing relation rather
+    // than returning zero rows.
+    let indexed: bool = sqlx::query_scalar(
+        "SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE tablename = 'knowledge_documents' \
+         AND indexdef ILIKE '%gin%')",
+    )
+    .fetch_one(db.pool.as_ref())
+    .await
+    .expect("query pg_indexes");
 
     assert!(
-        store.count() > 0,
-        "construction seeds the store from the bundled fixtures"
-    );
-    assert!(
-        !store.list_documents(None, None).is_empty(),
-        "the seeded documents are listable"
+        indexed,
+        "the GIN index on content_tsv is what makes ranked search a search rather than a scan"
     );
 
     db.cleanup().await;

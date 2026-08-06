@@ -1,8 +1,9 @@
-//! `list_tools` is the wire contract the real RAG server must satisfy when it
-//! replaces the stub: exactly three tools with stable names and titles, an
-//! input schema that makes `query` mandatory on search and everything optional
-//! on list, a `ToolResponse` output schema on every tool, and UI meta so the
-//! client knows which server rendered the call.
+//! `list_tools` is the knowledge bank's wire contract: exactly three tools
+//! with stable names and titles, an input schema that makes `query` mandatory
+//! on search and everything optional on list, a `ToolResponse` output schema
+//! on every tool, and UI meta so the client knows which server rendered the
+//! call. The input field names mirror the `knowledge_documents` columns, so a
+//! caller can feed a search result straight back into the next call.
 
 use systemprompt_mcp_knowledge_bank::tools::{
     ListInput, SearchInput, TOOL_LIST, TOOL_SEARCH, TOOL_UPLOAD, UploadInput, list_tools,
@@ -53,7 +54,7 @@ fn search_requires_query_and_leaves_the_other_inputs_optional() {
 }
 
 #[test]
-fn upload_requires_all_four_fields_and_list_requires_none() {
+fn upload_requires_everything_but_project_and_list_requires_none() {
     let tools = list_tools();
     let upload = tools
         .iter()
@@ -61,7 +62,9 @@ fn upload_requires_all_four_fields_and_list_requires_none() {
         .expect("upload tool listed");
     let mut required = required_fields(&upload.input_schema);
     required.sort();
-    assert_eq!(required, vec!["content", "doc_type", "project_id", "title"]);
+    // `project` is a collection tag, not a foreign key: a document that
+    // belongs to no project is still worth banking.
+    assert_eq!(required, vec!["content", "source", "title"]);
 
     let list = tools
         .iter()
@@ -95,27 +98,27 @@ fn search_input_omits_optional_fields_on_the_wire() {
     let input: SearchInput =
         serde_json::from_value(serde_json::json!({ "query": "checkout" })).expect("minimal search");
     assert_eq!(input.query, "checkout");
-    assert!(input.project_id.is_none());
+    assert!(input.project.is_none());
     assert!(input.limit.is_none());
 }
 
 #[test]
 fn list_input_accepts_an_empty_object() {
     let input: ListInput = serde_json::from_value(serde_json::json!({})).expect("empty list input");
-    assert!(input.project_id.is_none());
-    assert!(input.doc_type.is_none());
+    assert!(input.project.is_none());
+    assert!(input.source.is_none());
 }
 
 #[test]
 fn upload_input_round_trips_and_rejects_a_missing_field() {
     let payload = serde_json::json!({
-        "doc_type": "jira",
-        "project_id": "acme-storefront",
         "title": "ACME-9: Spike",
+        "source": "meeting-transcript",
+        "project": "acme-storefront",
         "content": "Spike outcome recorded.",
     });
     let input: UploadInput = serde_json::from_value(payload.clone()).expect("full upload input");
-    assert_eq!(input.doc_type, "jira");
+    assert_eq!(input.source, "meeting-transcript");
     assert_eq!(serde_json::to_value(&input).expect("serializes"), payload);
 
     let mut missing = payload;

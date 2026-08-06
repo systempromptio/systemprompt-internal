@@ -47,10 +47,6 @@ body.menu-open {
 }
 
 @media (max-width: 900px) {
-  /* No backdrop blur on mobile: a blurred header becomes the containing
-   * block for its fixed children (.mobile-menu-overlay, .nav-links), which
-   * would pin the scrim inside the 72px header strip. Solid is also
-   * cheaper to composite on phones. */
   .site-header {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;

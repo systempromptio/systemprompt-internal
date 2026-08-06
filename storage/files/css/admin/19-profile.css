@@ -240,6 +240,14 @@
 
 .sp-profile-card__stats b { color: var(--sp-text-primary); font-weight: 700; }
 
+.sp-profile-card__form {
+    max-width: 32rem;
+}
+
+.sp-profile-card__form .form-group:last-of-type {
+    margin-bottom: 0;
+}
+
 .sp-stat-sep { color: var(--sp-text-tertiary); }
 
 .sp-profile-card > *:not(.sp-profile-card__head) {

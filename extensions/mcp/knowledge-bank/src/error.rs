@@ -12,6 +12,12 @@ pub enum KnowledgeBankError {
     #[error("Forbidden: {0}")]
     Forbidden(String),
 
+    #[error("Invalid request: {0}")]
+    Invalid(String),
+
+    #[error("Too large: {0}")]
+    TooLarge(String),
+
     #[error("Serialization error: {0}")]
     Serialization(#[from] serde_json::Error),
 
@@ -24,6 +30,8 @@ impl ExtensionError for KnowledgeBankError {
         match self {
             Self::NotFound(_) => "NOT_FOUND",
             Self::Forbidden(_) => "FORBIDDEN",
+            Self::Invalid(_) => "INVALID_REQUEST",
+            Self::TooLarge(_) => "PAYLOAD_TOO_LARGE",
             Self::Serialization(_) => "SERIALIZATION_ERROR",
             Self::Internal(_) => "INTERNAL_ERROR",
         }
@@ -33,6 +41,8 @@ impl ExtensionError for KnowledgeBankError {
         match self {
             Self::NotFound(_) => StatusCode::NOT_FOUND,
             Self::Forbidden(_) => StatusCode::FORBIDDEN,
+            Self::Invalid(_) => StatusCode::BAD_REQUEST,
+            Self::TooLarge(_) => StatusCode::PAYLOAD_TOO_LARGE,
             Self::Serialization(_) | Self::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }

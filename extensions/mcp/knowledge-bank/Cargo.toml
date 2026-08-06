@@ -3,10 +3,15 @@ name = "systemprompt-mcp-knowledge-bank"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
-description = "Stub knowledge-bank MCP server: project-context search over seeded transcript/Jira/Confluence fixtures, standing in for a real RAG MCP until the endpoint is connected."
+description = "Company knowledge-bank MCP server: meeting transcripts, documents and notes persisted on the tenant Postgres with full-text search."
 repository.workspace = true
 homepage.workspace = true
 publish = false
+
+# register_extension!() expands to `::inventory::submit!`; machete cannot see
+# macro-expansion usage.
+[package.metadata.cargo-machete]
+ignored = ["inventory"]
 
 [[bin]]
 name = "systemprompt-mcp-knowledge-bank"
@@ -30,6 +35,15 @@ serde.workspace = true
 serde_json.workspace = true
 
 tracing.workspace = true
+
+# Documents live in `knowledge_documents`; every query is a compile-checked
+# sqlx macro against the .sqlx offline cache.
+sqlx.workspace = true
+uuid.workspace = true
+
+# The `knowledge_documents` DDL is registered with the host runtime through
+# `register_extension!`, which submits to the inventory registry.
+inventory.workspace = true
 
 systemprompt-mcp-shared.workspace = true
 

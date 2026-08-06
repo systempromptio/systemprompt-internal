@@ -21,3 +21,7 @@ axum = { workspace = true }
 rmcp = { workspace = true }
 base64 = { workspace = true }
 serde_json = { workspace = true }
+# The knowledge bank's rendering helpers take rows carrying a uuid id and a
+# timestamptz, so building one in a test needs both types.
+uuid = { workspace = true }
+chrono = { workspace = true }
