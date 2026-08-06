@@ -1,24 +1,24 @@
 :root {
 
-  --sp-brand-50: #f8f7f3;
-  --sp-brand-100: #f1efed;
-  --sp-brand-200: #dddddd;
-  --sp-brand-300: #b6b6b6;
-  --sp-brand-400: #707070;
-  --sp-brand-500: #4d4d4d;
-  --sp-brand-600: #292929;
-  --sp-brand-700: #171717;
-  --sp-brand-800: #0f0f0f;
-  --sp-brand-900: #0a0a0a;
-  --sp-brand-950: #050505;
+  --sp-brand-50: #fdf3e7;
+  --sp-brand-100: #fbe3c8;
+  --sp-brand-200: #f8c48d;
+  --sp-brand-300: #f7a95c;
+  --sp-brand-400: #f79938;
+  --sp-brand-500: #f38318;
+  --sp-brand-600: #d96f10;
+  --sp-brand-700: #a8560d;
+  --sp-brand-800: #7a3f0b;
+  --sp-brand-900: #4f2a09;
+  --sp-brand-950: #2b1705;
 
-  --sp-color-primary: #171717;
-  --sp-color-primary-hover: #000000;
-  --sp-color-primary-dark: #0a0a0a;
-  --sp-color-primary-rgb: 23, 23, 23;
-  --sp-color-accent: #fe190a;
-  --sp-color-accent-rgb: 254, 25, 10;
-  --sp-color-text-on-primary: #f8f7f3;
+  --sp-color-primary: #f38318;
+  --sp-color-primary-hover: #d96f10;
+  --sp-color-primary-dark: #a8560d;
+  --sp-color-primary-rgb: 243, 131, 24;
+  --sp-color-accent: #f79938;
+  --sp-color-accent-rgb: 247, 153, 56;
+  --sp-color-text-on-primary: #ffffff;
   --sp-color-background: #f8f7f3;
   --sp-color-surface: #f1efed;
   --sp-color-surface-elevated: #f8f7f3;
@@ -93,12 +93,12 @@
   --sp-syntax-bg: #0a0a0a;
   --sp-syntax-fg: #f8f7f3;
   --sp-syntax-comment: #707070;
-  --sp-syntax-keyword: #fe190a;
+  --sp-syntax-keyword: #f38318;
   --sp-syntax-string: #22c55e;
   --sp-syntax-number: #b6b6b6;
   --sp-syntax-function: #f1efed;
   --sp-syntax-variable: #dddddd;
-  --sp-syntax-operator: #fe190a;
+  --sp-syntax-operator: #f38318;
   --sp-syntax-class: #b6b6b6;
 
   --sp-font-size-xs: 12px;
