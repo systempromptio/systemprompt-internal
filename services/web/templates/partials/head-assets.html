@@ -1,35 +1,46 @@
 <link rel="preload" href="/files/fonts/Inter/Inter-Regular.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="/files/fonts/RobotoMono/roboto-mono-v31-latin-regular.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/files/fonts/OpenSans/OpenSans-Regular.woff2" as="font" type="font/woff2" crossorigin>
+
+<script>(function(){let t;try{t=localStorage.getItem('sp-admin-theme')}catch(e){}if(!t){t='dark';}document.documentElement.setAttribute('data-theme',t);})();</script>
 
 <style>
+/* Prevent flash of unstyled content — hex mirrors of core/tokens.css */
 :root {
-  --sp-color-bg: #f8f7f3;
-  --sp-color-surface: #f1efed;
-  --sp-color-text: #171717;
-  --sp-color-text-secondary: #707070;
-  --sp-brand-500: var(--sp-color-primary, #171717);
-  --sp-brand-600: var(--sp-color-primary-hover, #000000);
+  --sp-color-bg: #ffffff;
+  --sp-color-surface: #faf9f7;
+  --sp-color-text: #292524;
+  --sp-color-text-secondary: #57534e;
+  --sp-orange-500: #f97316;
+  --sp-orange-600: #ea580c;
+}
+[data-theme="dark"] {
+  --sp-color-bg: #1c1917;
+  --sp-color-surface: #292524;
+  --sp-color-text: #fafaf9;
+  --sp-color-text-secondary: #d6d3d1;
 }
 html {
-  background-color: var(--sp-color-background);
+  background-color: var(--sp-color-bg);
   color: var(--sp-color-text);
 }
 body {
   margin: 0;
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: "OpenSans", "OpenSans Fallback", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background-color: var(--sp-color-bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-.header, .site-header {
-  min-height: 64px;
+.site-header {
+  min-height: 4.5rem;
 }
 </style>
 
-<link rel="stylesheet" href="{{CSS_BASE_PATH}}/core/variables.css">
+<link rel="stylesheet" href="{{CSS_BASE_PATH}}/core/tokens-primitives.css">
+<link rel="stylesheet" href="{{CSS_BASE_PATH}}/core/tokens.css">
+<link rel="stylesheet" href="{{CSS_BASE_PATH}}/core/page-tokens.css">
+<link rel="stylesheet" href="{{CSS_BASE_PATH}}/core/compat.css">
 <link rel="stylesheet" href="{{CSS_BASE_PATH}}/core/fonts.css">
 <link rel="stylesheet" href="{{CSS_BASE_PATH}}/core/reset.css">
 <link rel="stylesheet" href="{{CSS_BASE_PATH}}/components/header-core.css">
-<link rel="stylesheet" href="{{CSS_BASE_PATH}}/components/header-dropdown.css">
 <link rel="stylesheet" href="{{CSS_BASE_PATH}}/components/footer.css">
 <link rel="stylesheet" href="{{CSS_BASE_PATH}}/components/mobile-menu.css">

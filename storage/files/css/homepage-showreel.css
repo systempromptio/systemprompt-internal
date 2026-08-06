@@ -12,16 +12,27 @@
   inset: 0;
   z-index: 1;
   pointer-events: none;
+  backdrop-filter: blur(2px) saturate(1.05);
+  -webkit-backdrop-filter: blur(2px) saturate(1.05);
   background:
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.15) 22%, transparent 40%),
-    linear-gradient(to right, transparent 35%, rgba(0, 0, 0, 0.35) 70%, rgba(0, 0, 0, 0.55) 100%),
-    linear-gradient(to top, rgba(0, 0, 0, 0.35) 0%, transparent 25%);
+    linear-gradient(to bottom, oklch(0 0 0 / 0.55) 0%, oklch(0 0 0 / 0.15) 22%, transparent 40%),
+    linear-gradient(to right, transparent 35%, oklch(0 0 0 / 0.35) 70%, oklch(0 0 0 / 0.55) 100%),
+    linear-gradient(to top, oklch(0 0 0 / 0.35) 0%, transparent 25%);
 }
 
+/* Stacked hero below 900px: the video is a framed 16:9 media block above
+ * the copy, not a background (layout counterpart in homepage-hero.css). */
 @media (max-width: 900px) {
+  .hero-bg-video {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    flex: none;
+  }
+
   .hero-scrim {
-    background:
-      linear-gradient(to bottom, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.15) 22%, transparent 40%),
-      linear-gradient(to top, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.2) 45%, transparent 65%);
+    display: none;
   }
 }

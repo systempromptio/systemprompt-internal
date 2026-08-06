@@ -1,0 +1,171 @@
+:root {
+  color-scheme: dark light;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root {
+
+  
+  --sp-color-primary: light-dark(var(--sp-primitive-orange-600), var(--sp-primitive-orange-500));
+  --sp-color-primary-hover: light-dark(var(--sp-primitive-orange-500), var(--sp-primitive-orange-400));
+  --sp-color-primary-dark: light-dark(var(--sp-primitive-orange-700), var(--sp-primitive-orange-600));
+  --sp-color-primary-text: light-dark(var(--sp-primitive-orange-800), var(--sp-primitive-orange-300));
+  --sp-color-primary-rgb: 243, 131, 24;
+  --sp-color-text-on-primary: var(--sp-primitive-white);
+  --sp-color-bg: light-dark(var(--sp-primitive-white), var(--sp-primitive-warm-900));
+  --sp-color-surface: light-dark(oklch(0.985 0.004 70), oklch(0.25 0.01 50));
+  --sp-color-surface-elevated: light-dark(oklch(1.0 0 0), oklch(0.29 0.01 50));
+  --sp-color-surface-variant: light-dark(var(--sp-primitive-warm-100), var(--sp-primitive-warm-700));
+  --sp-color-surface-dark: light-dark(var(--sp-primitive-warm-200), var(--sp-primitive-warm-600));
+  --sp-color-surface-alt: light-dark(oklch(0.97 0.005 70), oklch(0.27 0.01 50));
+  --sp-color-text: light-dark(var(--sp-primitive-warm-900), var(--sp-primitive-warm-50));
+  --sp-color-text-primary: light-dark(var(--sp-primitive-warm-900), var(--sp-primitive-warm-50));
+  --sp-color-text-secondary: light-dark(var(--sp-primitive-warm-600), var(--sp-primitive-warm-300));
+  --sp-color-text-muted: light-dark(var(--sp-primitive-warm-500), var(--sp-primitive-warm-400));
+  --sp-color-text-disabled: light-dark(var(--sp-primitive-warm-400), var(--sp-primitive-warm-600));
+  --sp-color-border: light-dark(var(--sp-primitive-warm-200), var(--sp-primitive-warm-700));
+  --sp-color-border-subtle: light-dark(var(--sp-primitive-warm-100), var(--sp-primitive-warm-800));
+  --sp-color-success: light-dark(var(--sp-primitive-green-500), var(--sp-primitive-green-400));
+  --sp-color-warning: light-dark(var(--sp-primitive-amber-500), var(--sp-primitive-amber-400));
+  --sp-color-error: light-dark(var(--sp-primitive-red-500), var(--sp-primitive-red-400));
+  --sp-color-info: light-dark(var(--sp-primitive-blue-500), var(--sp-primitive-blue-400));
+
+  --sp-orange-50:  light-dark(var(--sp-primitive-orange-50),  var(--sp-primitive-orange-950));
+  --sp-orange-100: light-dark(var(--sp-primitive-orange-100), oklch(0.31 0.07 46));
+  --sp-orange-200: light-dark(var(--sp-primitive-orange-200), oklch(0.42 0.11 47));
+  --sp-orange-300: light-dark(var(--sp-primitive-orange-300), oklch(0.52 0.14 48));
+  --sp-orange-400: light-dark(var(--sp-primitive-orange-400), var(--sp-primitive-orange-600));
+  --sp-orange-500: light-dark(var(--sp-primitive-orange-500), var(--sp-primitive-orange-500));
+  --sp-orange-600: light-dark(var(--sp-primitive-orange-600), var(--sp-primitive-orange-400));
+  --sp-orange-700: light-dark(var(--sp-primitive-orange-700), var(--sp-primitive-orange-300));
+  --sp-orange-800: light-dark(var(--sp-primitive-orange-800), var(--sp-primitive-orange-200));
+  --sp-orange-900: light-dark(var(--sp-primitive-orange-900), var(--sp-primitive-orange-100));
+  --sp-orange-950: light-dark(var(--sp-primitive-orange-950), var(--sp-primitive-orange-50));
+
+  
+  --sp-font-sans: "OpenSans", "OpenSans Fallback", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --sp-font-heading: "Inter", "Inter Fallback", system-ui, sans-serif;
+  --sp-font-brand: "Inter", "Inter Fallback", system-ui, sans-serif;
+  --sp-font-mono: ui-monospace, "Cascadia Code", "Fira Code", monospace;
+  --sp-font-body: var(--sp-font-sans);
+
+  --sp-font-weight-regular: var(--sp-font-normal);
+  --sp-font-weight-medium: var(--sp-font-medium);
+  --sp-font-weight-semibold: var(--sp-font-semibold);
+  --sp-font-weight-bold: var(--sp-font-bold);
+
+  
+  --sp-space-3xl: var(--sp-space-16);
+  --sp-space-4xl: var(--sp-space-24);
+
+  
+  --sp-shadow-sm: 0 1px 3px oklch(0.20 0.01 50 / 0.04), 0 1px 2px oklch(0.20 0.01 50 / 0.06);
+  --sp-shadow-md: 0 4px 6px oklch(0.20 0.01 50 / 0.04), 0 2px 4px oklch(0.20 0.01 50 / 0.06);
+  --sp-shadow-lg: 0 10px 25px oklch(0.20 0.01 50 / 0.06), 0 4px 10px oklch(0.20 0.01 50 / 0.04);
+  --sp-shadow-xl: 0 20px 40px oklch(0.20 0.01 50 / 0.08), 0 8px 16px oklch(0.20 0.01 50 / 0.04);
+  --sp-shadow-card: 0 1px 3px oklch(0.20 0.01 50 / 0.06), 0 1px 2px oklch(0.20 0.01 50 / 0.04);
+  --sp-shadow-card-hover: 0 12px 28px oklch(0.20 0.01 50 / 0.08), 0 4px 12px oklch(0.67 0.18 50 / 0.08);
+  --sp-shadow-elevated: 0 4px 12px oklch(0.20 0.01 50 / 0.06), 0 2px 6px oklch(0.20 0.01 50 / 0.04);
+  --sp-shadow-float: 0 8px 24px oklch(0.20 0.01 50 / 0.10), 0 4px 8px oklch(0.20 0.01 50 / 0.06);
+  --sp-shadow-hero: 0 24px 48px oklch(0.20 0.01 50 / 0.12), 0 8px 16px oklch(0.20 0.01 50 / 0.06);
+  --sp-shadow-inset-sm: inset 0 1px 2px oklch(0.20 0.01 50 / 0.06);
+  --sp-shadow-accent-sm: 0 2px 8px oklch(0.67 0.18 50 / 0.15);
+  --sp-shadow-accent-md: 0 4px 16px oklch(0.67 0.18 50 / 0.20);
+  --sp-shadow-inner-glow: inset 0 0 12px oklch(0.67 0.18 50 / 0.08);
+  --sp-shadow-lift: 0 4px 12px oklch(0.20 0.01 50 / 0.08), 0 2px 4px oklch(0.20 0.01 50 / 0.04);
+
+  
+  --sp-z-behind: -1;
+  --sp-z-zero: 0;
+  --sp-z-base: 1;
+  --sp-z-sticky: 10;
+  --sp-z-header: 100;
+  --sp-z-dropdown: 200;
+  --sp-z-sidebar: 300;
+  --sp-z-panel: 400;
+  --sp-z-modal: 500;
+  --sp-z-toast: 600;
+  --sp-z-sticky-header: 20;
+  --sp-z-dropdown-menu: 30;
+  --sp-z-panel-overlay: 40;
+  --sp-z-sidebar-nav: 50;
+  --sp-z-sidebar-toggle: 60;
+  --sp-z-sidebar-drawer: 70;
+  --sp-z-mobile-menu: 150;
+  --sp-z-navigation: var(--sp-z-header);
+
+  
+  --sp-sidebar-bg: light-dark(var(--sp-primitive-warm-50), oklch(0.25 0.01 50));
+  --sp-sidebar-border: light-dark(var(--sp-primitive-warm-200), var(--sp-primitive-warm-700));
+  --sp-sidebar-text: light-dark(var(--sp-primitive-warm-600), var(--sp-primitive-warm-300));
+  --sp-sidebar-text-muted: light-dark(var(--sp-primitive-warm-500), var(--sp-primitive-warm-400));
+  --sp-sidebar-text-hover: light-dark(var(--sp-primitive-warm-900), var(--sp-primitive-warm-50));
+  --sp-sidebar-hover-bg: light-dark(var(--sp-primitive-warm-100), oklch(0.30 0.01 50));
+  --sp-sidebar-active-bg: light-dark(oklch(0.95 0.015 55), oklch(0.34 0.02 52));
+  --sp-sidebar-active-color: light-dark(var(--sp-primitive-orange-600), var(--sp-primitive-orange-400));
+
+  
+  --sp-color-brand-linkedin: oklch(0.51 0.14 250);
+  --sp-color-brand-twitter: oklch(0 0 0);
+  --sp-color-brand-substack: oklch(0.65 0.20 40);
+  --sp-color-brand-whatsapp: oklch(0.75 0.18 160);
+
+  
+  --sp-color-accent-blue: light-dark(var(--sp-primitive-accent-blue), var(--sp-primitive-accent-blue-light));
+  --sp-color-accent-purple: light-dark(var(--sp-primitive-accent-purple), var(--sp-primitive-accent-purple-light));
+  --sp-color-accent-green: light-dark(var(--sp-primitive-accent-green), var(--sp-primitive-accent-green-light));
+  --sp-color-accent-pink: light-dark(var(--sp-primitive-accent-pink), var(--sp-primitive-accent-pink-light));
+  --sp-color-accent-cyan: light-dark(var(--sp-primitive-accent-cyan), var(--sp-primitive-accent-cyan-light));
+
+  
+  --sp-color-terminal-bg: oklch(0.18 0 0);
+  --sp-color-terminal-header: oklch(0.23 0 0);
+  --sp-color-terminal-border: oklch(0.28 0 0);
+  --sp-color-terminal-text: var(--sp-primitive-white);
+  --sp-color-terminal-text-dim: oklch(0.70 0 0);
+
+  
+  --sp-transition-fast: 150ms ease;
+  --sp-transition-normal: 250ms ease;
+  --sp-transition-slow: 400ms ease;
+
+  
+  --sp-container-max: 1200px;
+  --sp-header-height: 4.5rem;
+  --sp-sidebar-left-width: 280px;
+  --sp-sidebar-right-width: 220px;
+
+  
+  --sp-bp-sm: 40rem;
+  --sp-bp-md: 48rem;
+  --sp-bp-lg: 64rem;
+  --sp-bp-xl: 80rem;
+
+  
+  --sp-card-radius: var(--sp-corners-md);
+}
+
+[data-theme="dark"] {
+  --sp-color-primary-rgb: 243, 152, 56;
+
+  --sp-shadow-sm: 0 1px 3px oklch(0 0 0 / 0.3), 0 1px 2px oklch(0 0 0 / 0.2);
+  --sp-shadow-md: 0 4px 6px oklch(0 0 0 / 0.3), 0 2px 4px oklch(0 0 0 / 0.2);
+  --sp-shadow-lg: 0 10px 25px oklch(0 0 0 / 0.4), 0 4px 10px oklch(0 0 0 / 0.25);
+  --sp-shadow-xl: 0 20px 40px oklch(0 0 0 / 0.5), 0 8px 16px oklch(0 0 0 / 0.3);
+  --sp-shadow-card: 0 1px 3px oklch(0 0 0 / 0.25), 0 1px 2px oklch(0 0 0 / 0.15);
+  --sp-shadow-card-hover: 0 12px 28px oklch(0 0 0 / 0.35), 0 4px 12px oklch(0.67 0.18 50 / 0.10);
+  --sp-shadow-elevated: 0 4px 12px oklch(0 0 0 / 0.30), 0 2px 6px oklch(0 0 0 / 0.20);
+  --sp-shadow-float: 0 8px 24px oklch(0 0 0 / 0.40), 0 4px 8px oklch(0 0 0 / 0.25);
+  --sp-shadow-hero: 0 24px 48px oklch(0 0 0 / 0.50), 0 8px 16px oklch(0 0 0 / 0.30);
+  --sp-shadow-inset-sm: inset 0 1px 2px oklch(0 0 0 / 0.20);
+  --sp-shadow-accent-sm: 0 2px 8px oklch(0.72 0.17 52 / 0.20);
+  --sp-shadow-accent-md: 0 4px 16px oklch(0.72 0.17 52 / 0.25);
+  --sp-shadow-inner-glow: inset 0 0 12px oklch(0.72 0.17 52 / 0.12);
+  --sp-shadow-lift: 0 4px 12px oklch(0 0 0 / 0.30), 0 2px 4px oklch(0 0 0 / 0.15);
+}
