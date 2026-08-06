@@ -14,7 +14,7 @@ use systemprompt::models::execution::context::RequestContext;
 
 use super::call::{OdooCall, lead_fields};
 use super::crm::lead_row;
-use super::notes::{activity_fields, activity_row};
+use super::activity::{activity_fields, activity_row};
 use super::report::group_row;
 use crate::client::{GroupQuery, SearchOptions};
 use crate::format::{field_or_dash, text_artifact};
@@ -29,11 +29,12 @@ const RECENT_NOTES: u32 = 20;
 const RECENT_LEADS: u32 = 25;
 // Why: chatter rows carry the record they hang off, so the briefing can say
 // which lead a note was about without a second query.
-const NOTE_FIELDS: [&str; 6] = [
+const NOTE_FIELDS: [&str; 7] = [
     "id",
     "subject",
     "record_name",
     "model",
+    "res_id",
     "author_id",
     "date",
 ];
@@ -199,10 +200,15 @@ fn render(briefing: &Briefing) -> String {
     sections.join("\n\n")
 }
 
+// Why: the briefing names each note's model and id, not just the record's
+// display name. A reader who wants the rest of the thread needs an anchor they
+// can pass straight to note_list; a display name alone is not one.
 fn note_row(record: &serde_json::Value) -> String {
     format!(
-        "- {} on {} by {} — {}",
+        "- {} on {} {} ({}) by {} — {}",
         field_or_dash(record, "date"),
+        field_or_dash(record, "model"),
+        field_or_dash(record, "res_id"),
         field_or_dash(record, "record_name"),
         field_or_dash(record, "author_id"),
         field_or_dash(record, "subject")

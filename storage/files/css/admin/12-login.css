@@ -97,8 +97,6 @@
     height: auto;
 }
 
-.login-logo .logo-dark { display: none; }
-
 .login-container .form-group input:focus-visible,
 .login-container .form-group select:focus-visible,
 .login-container .form-group textarea:focus-visible {
@@ -248,22 +246,14 @@ main.login-container {
 
 @layer components {
 
-.auth-light {
+.auth-page {
     margin: 0;
     background: var(--sp-bg-base);
     color: var(--sp-text-primary);
     font-family: var(--sp-font-family);
 }
 
-.auth-light .login-logo .logo-light {
-    display: block;
-}
-
-.auth-light .login-logo .logo-dark {
-    display: none;
-}
-
-.auth-light .card {
+.auth-page .card {
     background: linear-gradient(
         180deg,
         var(--sp-bg-surface) 0%,
@@ -272,7 +262,7 @@ main.login-container {
     );
 }
 
-.auth-light .login-container .card {
+.auth-page .login-container .card {
     background: var(--sp-bg-surface);
     backdrop-filter: none;
     border: 1px solid var(--sp-border-subtle);
@@ -284,7 +274,7 @@ main.login-container {
     background: none;
 }
 
-body.auth-light {
+body:has(.auth-page) {
     margin: 0;
     background: var(--sp-bg-base);
     color: var(--sp-text-primary);

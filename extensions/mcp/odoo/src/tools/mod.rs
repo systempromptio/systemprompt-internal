@@ -1,10 +1,17 @@
 //! Tool definitions exposed by the `odoo` MCP server.
 //!
-//! Ten tools over four Odoo models: `crm.lead` (search, get, create, update,
-//! report), `res.partner` (search, get), `mail.message` (`note_add`) and
-//! `mail.activity` (`activity_list`), plus one composite briefing
-//! (`business_overview_data`) that exists so a morning summary is one call
-//! rather than five.
+//! Fifteen tools over five Odoo models: `crm.lead` (search, get, create,
+//! update, report), `res.partner` (search, get), `mail.message` (`note_add`,
+//! `note_list`, `note_search`), `ir.attachment` (`attachment_add`,
+//! `attachment_list`, `attachment_get`) and `mail.activity` (`activity_list`),
+//! plus one composite briefing (`business_overview_data`) that exists so a
+//! morning summary is one call rather than five.
+//!
+//! Odoo Community ships no Knowledge app, so the knowledge bank is the chatter
+//! and attachments already anchored to business records. `note_search` is the
+//! way into it and the descriptions below say so explicitly: a model choosing
+//! between tools needs to know that `crm_lead_search` finds records by their
+//! fields while `note_search` finds what people wrote.
 //!
 //! Descriptions say what the tool does *and* whose data it sees, because the
 //! answer is not obvious: every call runs as the calling user's own Odoo
@@ -18,8 +25,9 @@ use systemprompt::mcp::{default_tool_visibility, tool_ui_meta};
 use systemprompt::models::artifacts::{CliArtifact, ToolResponse};
 
 use inputs::{
-    ActivityListInput, LeadCreateInput, LeadGetInput, LeadReportInput, LeadSearchInput,
-    LeadUpdateInput, NoteAddInput, OverviewInput, PartnerGetInput, PartnerSearchInput,
+    ActivityListInput, AttachmentAddInput, AttachmentGetInput, AttachmentListInput,
+    LeadCreateInput, LeadGetInput, LeadReportInput, LeadSearchInput, LeadUpdateInput, NoteAddInput,
+    NoteListInput, NoteSearchInput, OverviewInput, PartnerGetInput, PartnerSearchInput,
 };
 
 pub const SERVER_NAME: &str = "odoo";
@@ -32,11 +40,16 @@ pub const TOOL_LEAD_REPORT: &str = "crm_lead_report";
 pub const TOOL_PARTNER_SEARCH: &str = "partner_search";
 pub const TOOL_PARTNER_GET: &str = "partner_get";
 pub const TOOL_NOTE_ADD: &str = "note_add";
+pub const TOOL_NOTE_LIST: &str = "note_list";
+pub const TOOL_NOTE_SEARCH: &str = "note_search";
+pub const TOOL_ATTACHMENT_ADD: &str = "attachment_add";
+pub const TOOL_ATTACHMENT_LIST: &str = "attachment_list";
+pub const TOOL_ATTACHMENT_GET: &str = "attachment_get";
 pub const TOOL_ACTIVITY_LIST: &str = "activity_list";
 pub const TOOL_OVERVIEW: &str = "business_overview_data";
 
 /// Every tool name this server answers to, for the unknown-tool error.
-pub const ALL_TOOLS: [&str; 10] = [
+pub const ALL_TOOLS: [&str; 15] = [
     TOOL_LEAD_SEARCH,
     TOOL_LEAD_GET,
     TOOL_LEAD_CREATE,
@@ -45,6 +58,11 @@ pub const ALL_TOOLS: [&str; 10] = [
     TOOL_PARTNER_SEARCH,
     TOOL_PARTNER_GET,
     TOOL_NOTE_ADD,
+    TOOL_NOTE_LIST,
+    TOOL_NOTE_SEARCH,
+    TOOL_ATTACHMENT_ADD,
+    TOOL_ATTACHMENT_LIST,
+    TOOL_ATTACHMENT_GET,
     TOOL_ACTIVITY_LIST,
     TOOL_OVERVIEW,
 ];
@@ -126,8 +144,71 @@ fn lead_tools() -> Vec<Tool> {
     ]
 }
 
-// Why: everything that is not a lead — partners, chatter, activities, and the
-// composite briefing.
+// Why: the record-anchored knowledge bank — chatter and attachments. These are
+// the retrieval tools, and their descriptions carry the routing advice a model
+// needs to pick between them and the structured record searches.
+fn knowledge_tools() -> Vec<Tool> {
+    vec![
+        create_tool(&ToolDef {
+            name: TOOL_NOTE_SEARCH,
+            title: "Search Notes",
+            description: "Search every note written in Odoo for what is known about a subject, \
+                          across leads, partners and any other record type at once. Reach for \
+                          this when the question is about knowledge — \"what do we know about \
+                          X\", \"what was agreed\", \"has anyone dealt with this before\" — \
+                          rather than about a record's fields. Use crm_lead_search instead when \
+                          you want leads by stage, owner or revenue. Each hit names the record \
+                          it is attached to, so you can follow it with crm_lead_get, \
+                          partner_get or note_list.",
+            input_schema: schemars::schema_for!(NoteSearchInput).to_value(),
+        }),
+        create_tool(&ToolDef {
+            name: TOOL_NOTE_LIST,
+            title: "Read a Record's Chatter",
+            description: "Read the full note history on one record, newest first, once you know \
+                          which record you care about. This is the follow-up to note_search or \
+                          crm_lead_search — it gives the whole conversation rather than a \
+                          snippet.",
+            input_schema: schemars::schema_for!(NoteListInput).to_value(),
+        }),
+        create_tool(&ToolDef {
+            name: TOOL_NOTE_ADD,
+            title: "Log a Note",
+            description: "Post a note to a record's chatter in Odoo — a lead, a partner, or any \
+                          record with a message thread. This is how knowledge gets *into* the \
+                          bank, so write what a colleague would need later, not a restatement \
+                          of the record's fields. The note is attributed to you in Odoo's audit \
+                          trail, so write it as yourself.",
+            input_schema: schemars::schema_for!(NoteAddInput).to_value(),
+        }),
+        create_tool(&ToolDef {
+            name: TOOL_ATTACHMENT_LIST,
+            title: "List Attachments",
+            description: "List files attached to Odoo records, optionally scoped to one model, \
+                          one record, or a filename fragment. Attachment ids are global; res_id \
+                          is only meaningful alongside model.",
+            input_schema: schemars::schema_for!(AttachmentListInput).to_value(),
+        }),
+        create_tool(&ToolDef {
+            name: TOOL_ATTACHMENT_GET,
+            title: "Get Attachment",
+            description: "Read one attachment's metadata, plus its base64 content when the file \
+                          is 1 MB or smaller. Larger files return metadata and a pointer to the \
+                          Odoo web UI, because the content would not usefully fit in context.",
+            input_schema: schemars::schema_for!(AttachmentGetInput).to_value(),
+        }),
+        create_tool(&ToolDef {
+            name: TOOL_ATTACHMENT_ADD,
+            title: "Attach a File",
+            description: "Attach a base64-encoded file to an Odoo record, up to 5 MB decoded. \
+                          The upload is made by your Odoo user, so your name is on it.",
+            input_schema: schemars::schema_for!(AttachmentAddInput).to_value(),
+        }),
+    ]
+}
+
+// Why: everything that is not a lead or a knowledge record — partners,
+// activities, and the composite briefing.
 fn context_tools() -> Vec<Tool> {
     vec![
         create_tool(&ToolDef {
@@ -143,14 +224,6 @@ fn context_tools() -> Vec<Tool> {
             description: "Read one partner in full by Odoo id: contact details, address, company \
                           and category.",
             input_schema: schemars::schema_for!(PartnerGetInput).to_value(),
-        }),
-        create_tool(&ToolDef {
-            name: TOOL_NOTE_ADD,
-            title: "Log a Note",
-            description: "Post a note to a record's chatter in Odoo — a lead, a partner, or any \
-                          record with a message thread. The note is attributed to you in Odoo's \
-                          audit trail, so write it as yourself.",
-            input_schema: schemars::schema_for!(NoteAddInput).to_value(),
         }),
         create_tool(&ToolDef {
             name: TOOL_ACTIVITY_LIST,
@@ -174,6 +247,7 @@ fn context_tools() -> Vec<Tool> {
 #[must_use]
 pub fn list_tools() -> Vec<Tool> {
     let mut tools = lead_tools();
+    tools.extend(knowledge_tools());
     tools.extend(context_tools());
     tools
 }

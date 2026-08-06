@@ -19,12 +19,13 @@ use systemprompt::security::authz::SharedAuthzHook;
 use systemprompt_mcp_shared::{record_mcp_access, record_mcp_access_rejected};
 
 use super::call::OdooCall;
-use super::{crm, notes, overview, partner, report};
+use super::{activity, attachments, crm, notes, overview, partner, report};
 use crate::client::OdooClient;
 use crate::identity::resolve_credentials;
 use crate::tools::{
-    ALL_TOOLS, TOOL_ACTIVITY_LIST, TOOL_LEAD_CREATE, TOOL_LEAD_GET, TOOL_LEAD_REPORT,
-    TOOL_LEAD_SEARCH, TOOL_LEAD_UPDATE, TOOL_NOTE_ADD, TOOL_OVERVIEW, TOOL_PARTNER_GET,
+    ALL_TOOLS, TOOL_ACTIVITY_LIST, TOOL_ATTACHMENT_ADD, TOOL_ATTACHMENT_GET, TOOL_ATTACHMENT_LIST,
+    TOOL_LEAD_CREATE, TOOL_LEAD_GET, TOOL_LEAD_REPORT, TOOL_LEAD_SEARCH, TOOL_LEAD_UPDATE,
+    TOOL_NOTE_ADD, TOOL_NOTE_LIST, TOOL_NOTE_SEARCH, TOOL_OVERVIEW, TOOL_PARTNER_GET,
     TOOL_PARTNER_SEARCH,
 };
 
@@ -109,8 +110,26 @@ pub async fn dispatch_tool(
             run(executor, &partner::PartnerGetHandler { call }, request, request_context).await
         },
         TOOL_NOTE_ADD => run(executor, &notes::NoteAddHandler { call }, request, request_context).await,
+        TOOL_NOTE_LIST => {
+            run(executor, &notes::NoteListHandler { call }, request, request_context).await
+        },
+        TOOL_NOTE_SEARCH => {
+            run(executor, &notes::NoteSearchHandler { call }, request, request_context).await
+        },
+        TOOL_ATTACHMENT_ADD => {
+            run(executor, &attachments::AttachmentAddHandler { call }, request, request_context)
+                .await
+        },
+        TOOL_ATTACHMENT_LIST => {
+            run(executor, &attachments::AttachmentListHandler { call }, request, request_context)
+                .await
+        },
+        TOOL_ATTACHMENT_GET => {
+            run(executor, &attachments::AttachmentGetHandler { call }, request, request_context)
+                .await
+        },
         TOOL_ACTIVITY_LIST => {
-            run(executor, &notes::ActivityListHandler { call }, request, request_context).await
+            run(executor, &activity::ActivityListHandler { call }, request, request_context).await
         },
         TOOL_OVERVIEW => {
             run(executor, &overview::OverviewHandler { call }, request, request_context).await

@@ -1,22 +1,22 @@
 @layer tokens {
 :root {
-    --sp-shadow-xs: 0 1px 2px rgba(23, 23, 23, 0.04);
-    --sp-shadow-sm: 0 1px 3px rgba(23, 23, 23, 0.07), 0 1px 2px rgba(23, 23, 23, 0.04);
-    --sp-shadow-md: 0 4px 8px rgba(23, 23, 23, 0.07), 0 2px 4px rgba(23, 23, 23, 0.04);
-    --sp-shadow-lg: 0 10px 25px rgba(23, 23, 23, 0.10), 0 4px 10px rgba(23, 23, 23, 0.07);
-    --sp-shadow-xl: 0 20px 40px rgba(23, 23, 23, 0.10), 0 8px 16px rgba(23, 23, 23, 0.07);
-    --sp-shadow-inset-sm: inset 0 1px 2px rgba(23, 23, 23, 0.04);
-    --sp-shadow-card: 0 1px 3px rgba(23, 23, 23, 0.07), 0 1px 2px rgba(23, 23, 23, 0.04), 0 0 0 1px rgba(23, 23, 23, 0.04);
-    --sp-shadow-card-hover: 0 8px 24px rgba(23, 23, 23, 0.10), 0 2px 6px rgba(23, 23, 23, 0.07), 0 0 0 1px rgba(23, 23, 23, 0.04);
-    --sp-shadow-elevated: 0 4px 16px rgba(23, 23, 23, 0.10), 0 2px 6px rgba(23, 23, 23, 0.07), 0 0 1px rgba(23, 23, 23, 0.10);
-    --sp-shadow-float: 0 12px 40px rgba(23, 23, 23, 0.10), 0 4px 12px rgba(23, 23, 23, 0.07);
-    --sp-shadow-drawer-panel: -8px 0 32px -12px rgba(23, 23, 23, 0.10);
-    --sp-shadow-login-card: 0 8px 32px rgba(23, 23, 23, 0.10), 0 2px 8px rgba(23, 23, 23, 0.07);
-    --sp-text-shadow-badge: 0 1px 2px rgba(23, 23, 23, 0.10);
-    --sp-shadow-accent-sm: 0 2px 8px color-mix(in oklch, var(--sp-accent) 16%, transparent);
-    --sp-shadow-accent-md: 0 4px 16px color-mix(in oklch, var(--sp-accent) 20%, transparent);
-    --sp-shadow-inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
-    --sp-shadow-hero: 0 4px 16px rgba(23, 23, 23, 0.07), 0 2px 4px rgba(23, 23, 23, 0.04), 0 0 0 1px rgba(23, 23, 23, 0.04);
-    --sp-shadow-lift: 0 6px 20px rgba(23, 23, 23, 0.10), 0 2px 6px rgba(23, 23, 23, 0.07), 0 0 0 1px rgba(23, 23, 23, 0.04);
+    --sp-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.25);
+    --sp-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.30), 0 1px 2px rgba(0, 0, 0, 0.20);
+    --sp-shadow-md: 0 4px 8px rgba(0, 0, 0, 0.30), 0 2px 4px rgba(0, 0, 0, 0.20);
+    --sp-shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.40), 0 4px 10px rgba(0, 0, 0, 0.25);
+    --sp-shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.50), 0 8px 16px rgba(0, 0, 0, 0.30);
+    --sp-shadow-inset-sm: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+    --sp-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(250, 250, 249, 0.04);
+    --sp-shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(250, 250, 249, 0.06);
+    --sp-shadow-elevated: 0 4px 16px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.25), 0 0 1px rgba(250, 250, 249, 0.08);
+    --sp-shadow-float: 0 12px 40px rgba(0, 0, 0, 0.45), 0 4px 12px rgba(0, 0, 0, 0.30);
+    --sp-shadow-drawer-panel: -8px 0 32px -12px rgba(0, 0, 0, 0.50);
+    --sp-shadow-login-card: 0 8px 32px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.30);
+    --sp-text-shadow-badge: 0 1px 2px rgba(0, 0, 0, 0.40);
+    --sp-shadow-accent-sm: 0 2px 8px color-mix(in oklch, var(--sp-accent) 20%, transparent);
+    --sp-shadow-accent-md: 0 4px 16px color-mix(in oklch, var(--sp-accent) 25%, transparent);
+    --sp-shadow-inner-glow: inset 0 1px 0 rgba(250, 250, 249, 0.06);
+    --sp-shadow-hero: 0 4px 16px rgba(0, 0, 0, 0.30), 0 2px 4px rgba(0, 0, 0, 0.20), 0 0 0 1px rgba(250, 250, 249, 0.04);
+    --sp-shadow-lift: 0 6px 20px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(250, 250, 249, 0.04);
 }
 }

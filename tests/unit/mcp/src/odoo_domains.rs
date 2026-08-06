@@ -6,7 +6,7 @@
 //! caller's.
 
 use systemprompt_mcp_odoo::server::crm::lead_domain;
-use systemprompt_mcp_odoo::server::notes::activity_domain;
+use systemprompt_mcp_odoo::server::activity::activity_domain;
 use systemprompt_mcp_odoo::server::partner::partner_domain;
 use systemprompt_mcp_odoo::tools::inputs::{
     ActivityListInput, LeadReportInput, LeadSearchInput, ReportGroupBy, resolve_limit,

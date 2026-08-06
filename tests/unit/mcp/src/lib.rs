@@ -11,6 +11,9 @@
 //!   it builds (including the acting-uid filter that makes "my activities"
 //!   mean the caller's), its record rendering, its sealed-credential framing,
 //!   its tool contract, and its error mapping
+//! - the odoo knowledge plane: chatter HTML reduced to readable text,
+//!   query-centred snippets, the note-search domain's OR-over-AND shape, and
+//!   the attachment size gates on both the upload and the inline-return side
 
 #[cfg(test)]
 mod audit_metadata;
@@ -27,6 +30,8 @@ mod knowledge_store;
 #[cfg(test)]
 mod knowledge_store_scoring;
 #[cfg(test)]
+mod odoo_attachments;
+#[cfg(test)]
 mod odoo_credentials;
 #[cfg(test)]
 mod odoo_domains;
@@ -35,7 +40,11 @@ mod odoo_error;
 #[cfg(test)]
 mod odoo_format;
 #[cfg(test)]
+mod odoo_notes;
+#[cfg(test)]
 mod odoo_rpc;
+#[cfg(test)]
+mod odoo_text;
 #[cfg(test)]
 mod odoo_tools;
 #[cfg(test)]

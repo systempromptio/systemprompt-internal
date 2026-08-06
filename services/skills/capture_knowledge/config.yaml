@@ -1,0 +1,13 @@
+id: capture_knowledge
+name: Capture Knowledge
+description: "Ingest a meeting transcript, document, or email thread into the company knowledge bank — full text searchable forever — and anchor a summary note onto the Odoo record it concerns."
+enabled: true
+file: SKILL.md
+tags:
+  - knowledge
+  - transcripts
+  - documents
+  - odoo
+  - ingestion
+category: knowledge
+display_category: "Business on Odoo"

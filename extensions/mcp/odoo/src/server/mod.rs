@@ -3,8 +3,11 @@
 //!
 //! Per-call logic — platform authentication, per-user Odoo credential
 //! resolution, and routing — lives in the [`tool`] submodule; the handlers
-//! themselves in [`crm`], [`report`], [`partner`], [`notes`] and [`overview`].
+//! themselves in [`crm`], [`report`], [`partner`], [`notes`], [`attachments`],
+//! [`activity`] and [`overview`].
 
+pub mod activity;
+pub mod attachments;
 pub mod call;
 pub mod crm;
 pub mod notes;

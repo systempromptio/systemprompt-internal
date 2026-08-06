@@ -16,6 +16,7 @@ plugin:
       - crm
       - business_overview
       - add_note
+      - capture_knowledge
   agents:
     source: explicit
     include: []
@@ -26,6 +27,7 @@ plugin:
     source: explicit
     include:
       - odoo
+      - knowledge-bank
   content_sources: {}
   artifacts:
     source: explicit

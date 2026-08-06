@@ -21,8 +21,8 @@
     --sp-z-lightbox: 2000;
     --sp-z-toast: 2500;
 
-    --sp-overlay-light:  rgba(23, 23, 23, 0.3);
-    --sp-overlay-medium: rgba(23, 23, 23, 0.5);
-    --sp-overlay-heavy:  rgba(23, 23, 23, 0.7);
+    --sp-overlay-light:  rgba(0, 0, 0, 0.4);
+    --sp-overlay-medium: rgba(0, 0, 0, 0.6);
+    --sp-overlay-heavy:  rgba(0, 0, 0, 0.75);
 }
 }

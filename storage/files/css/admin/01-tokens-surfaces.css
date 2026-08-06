@@ -1,31 +1,31 @@
 @layer tokens {
 :root {
-    --sp-bg-surface-gradient: linear-gradient(180deg, #ffffff 0%, #f8f7f3 60%, #f1efed 100%);
-    --sp-bg-surface-raised-gradient: linear-gradient(135deg, #ffffff 0%, #f8f7f3 100%);
-    --sp-bg-card-header: linear-gradient(180deg, #f8f7f3 0%, #f1efed 100%);
-    --sp-bg-accent-wash: linear-gradient(135deg, color-mix(in oklch, var(--sp-accent) 6%, #f8f7f3) 0%, #f8f7f3 100%);
-    --sp-bg-main: #f1efed;
+    --sp-bg-surface-gradient: linear-gradient(180deg, #262220 0%, #211d1b 60%, #1c1917 100%);
+    --sp-bg-surface-raised-gradient: linear-gradient(135deg, #2a2724 0%, #211d1b 100%);
+    --sp-bg-card-header: linear-gradient(180deg, #262220 0%, #1f1c19 100%);
+    --sp-bg-accent-wash: linear-gradient(135deg, color-mix(in oklch, var(--sp-accent) 10%, #1c1917) 0%, #1c1917 100%);
+    --sp-bg-main: #171412;
     --sp-bg-main-gradient: var(--sp-bg-main);
     --sp-bg-main-accent-tl: none;
     --sp-bg-main-accent-br: none;
-    --sp-bg-glass: rgba(255, 255, 255, 0.65);
-    --sp-bg-glass-border: rgba(23, 23, 23, 0.08);
-    --sp-bg-hero-gradient: linear-gradient(180deg, #ffffff 0%, #f8f7f3 100%);
+    --sp-bg-glass: rgba(28, 25, 23, 0.65);
+    --sp-bg-glass-border: rgba(250, 250, 249, 0.08);
+    --sp-bg-hero-gradient: linear-gradient(180deg, #262220 0%, #1c1917 100%);
 
     --sp-scrollbar-width: 6px;
     --sp-scrollbar-track: transparent;
     --sp-scrollbar-thumb: var(--sp-warm-300);
     --sp-scrollbar-thumb-hover: var(--sp-warm-400);
-    --sp-sidebar-control-bg: #dddddd;
-    --sp-sidebar-control-bg-hover: #b6b6b6;
-    --sp-sidebar-scrollbar-thumb: #b6b6b6;
-    --sp-sidebar-edge-line: rgba(23, 23, 23, 0.04);
-    --sp-sidebar-brand-glow: rgba(23, 23, 23, 0.03);
-    --sp-drawer-overlay: rgba(23, 23, 23, 0.32);
+    --sp-sidebar-control-bg: #322d29;
+    --sp-sidebar-control-bg-hover: #453f3b;
+    --sp-sidebar-scrollbar-thumb: #453f3b;
+    --sp-sidebar-edge-line: rgba(250, 250, 249, 0.04);
+    --sp-sidebar-brand-glow: rgba(250, 250, 249, 0.03);
+    --sp-drawer-overlay: rgba(0, 0, 0, 0.55);
     --sp-login-glow: var(--sp-accent);
-    --sp-toggle-knob: #ffffff;
+    --sp-toggle-knob: #fafaf9;
     --sp-shimmer-from: var(--sp-warm-100);
-    --sp-shimmer-via:  var(--sp-warm-50);
+    --sp-shimmer-via:  var(--sp-warm-200);
     --sp-shimmer-to:   var(--sp-warm-100);
 }
 }

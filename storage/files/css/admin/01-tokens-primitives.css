@@ -1,28 +1,31 @@
 @layer tokens {
 :root {
-  --sp-primitive-brand-50:  #f8f7f3;
-  --sp-primitive-brand-100: #f1efed;
-  --sp-primitive-brand-200: #dddddd;
-  --sp-primitive-brand-300: #b6b6b6;
-  --sp-primitive-brand-400: #707070;
-  --sp-primitive-brand-500: #4d4d4d;
-  --sp-primitive-brand-600: #292929;
-  --sp-primitive-brand-700: #171717;
-  --sp-primitive-brand-800: #0f0f0f;
-  --sp-primitive-brand-900: #0a0a0a;
-  --sp-primitive-brand-950: #050505;
+  /* Dark-only admin: ramps run dark→light so step 50 sits nearest the
+   * page background and step 950 nearest the text, mirroring how the
+   * light theme used them. */
+  --sp-primitive-brand-50:  #1c1917;
+  --sp-primitive-brand-100: #292524;
+  --sp-primitive-brand-200: #37322f;
+  --sp-primitive-brand-300: #57534e;
+  --sp-primitive-brand-400: #79716b;
+  --sp-primitive-brand-500: #a8a29e;
+  --sp-primitive-brand-600: #d6d3d1;
+  --sp-primitive-brand-700: #e7e5e4;
+  --sp-primitive-brand-800: #f0efee;
+  --sp-primitive-brand-900: #f5f5f4;
+  --sp-primitive-brand-950: #fafaf9;
 
-  --sp-primitive-warm-50:  #f8f7f3;
-  --sp-primitive-warm-100: #f1efed;
-  --sp-primitive-warm-200: #dddddd;
-  --sp-primitive-warm-300: #b6b6b6;
-  --sp-primitive-warm-400: #b6b6b6;
-  --sp-primitive-warm-500: #707070;
-  --sp-primitive-warm-600: #4d4d4d;
-  --sp-primitive-warm-700: #292929;
-  --sp-primitive-warm-800: #171717;
-  --sp-primitive-warm-900: #171717;
-  --sp-primitive-warm-950: #0a0a0a;
+  --sp-primitive-warm-50:  #1c1917;
+  --sp-primitive-warm-100: #292524;
+  --sp-primitive-warm-200: #37322f;
+  --sp-primitive-warm-300: #453f3b;
+  --sp-primitive-warm-400: #57534e;
+  --sp-primitive-warm-500: #79716b;
+  --sp-primitive-warm-600: #a8a29e;
+  --sp-primitive-warm-700: #d6d3d1;
+  --sp-primitive-warm-800: #e7e5e4;
+  --sp-primitive-warm-900: #f5f5f4;
+  --sp-primitive-warm-950: #fafaf9;
 
   --sp-primitive-accent-brand: #f38318;
 

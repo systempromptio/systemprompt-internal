@@ -26,9 +26,6 @@
     height: auto;
 }
 
-.admin-logo--light { display: inline; }
-.admin-logo--dark { display: none; }
-
 .admin-sidebar nav {
     flex: 1;
     padding: var(--sp-space-3) 0;

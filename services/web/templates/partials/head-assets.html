@@ -1,23 +1,18 @@
 <link rel="preload" href="/files/fonts/Inter/Inter-Regular.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/files/fonts/OpenSans/OpenSans-Regular.woff2" as="font" type="font/woff2" crossorigin>
 
-<script>(function(){let t;try{t=localStorage.getItem('sp-admin-theme')}catch(e){}if(!t){t='dark';}document.documentElement.setAttribute('data-theme',t);})();</script>
+<script>document.documentElement.setAttribute('data-theme','dark');</script>
 
 <style>
-/* Prevent flash of unstyled content — hex mirrors of core/tokens.css */
+/* Prevent flash of unstyled content — hex mirrors of core/tokens.css.
+ * The site is dark-only: data-theme is hardcoded above. */
 :root {
-  --sp-color-bg: #ffffff;
-  --sp-color-surface: #faf9f7;
-  --sp-color-text: #292524;
-  --sp-color-text-secondary: #57534e;
-  --sp-orange-500: #f97316;
-  --sp-orange-600: #ea580c;
-}
-[data-theme="dark"] {
   --sp-color-bg: #1c1917;
   --sp-color-surface: #292524;
   --sp-color-text: #fafaf9;
   --sp-color-text-secondary: #d6d3d1;
+  --sp-orange-500: #f97316;
+  --sp-orange-600: #ea580c;
 }
 html {
   background-color: var(--sp-color-bg);

@@ -32,6 +32,10 @@ serde_json.workspace = true
 # Odoo speaks JSON-RPC over HTTP; there is no vendor SDK.
 reqwest.workspace = true
 
+# Attachment payloads cross the wire base64-encoded; decoding is how the upload
+# size gate measures what it is about to send.
+base64.workspace = true
+
 # Per-user API keys are read back from `odoo_identity`, sealed under the
 # deployment master key.
 sqlx.workspace = true
