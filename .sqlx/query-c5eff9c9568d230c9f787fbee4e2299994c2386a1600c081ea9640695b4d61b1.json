@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "WITH ranked AS (\n            SELECT\n              context_id,\n              MAX(created_at) AS last_activity,\n              COUNT(*)::bigint AS ai_requests,\n              MAX(model) AS model\n            FROM ai_requests\n            WHERE user_id = $1\n              AND context_id IS NOT NULL\n              AND created_at >= NOW() - INTERVAL '30 days'\n            GROUP BY context_id\n          )\n          SELECT\n            ranked.context_id AS \"context_id!: ContextId\",\n            uc.name           AS \"context_name?\",\n            ranked.last_activity AS \"last_activity!\",\n            ranked.ai_requests AS \"ai_requests!\",\n            ranked.model\n          FROM ranked\n          LEFT JOIN user_contexts uc ON uc.context_id = ranked.context_id\n          ORDER BY ranked.last_activity DESC\n          LIMIT 5",
+  "query": "WITH ranked AS (\n            SELECT\n              context_id,\n              MAX(created_at) AS last_activity,\n              COUNT(*)::bigint AS ai_requests,\n              MAX(model) AS model\n            FROM ai_requests\n            WHERE user_id = $1\n              AND context_id <> $2\n              AND created_at >= NOW() - INTERVAL '30 days'\n            GROUP BY context_id\n          )\n          SELECT\n            ranked.context_id AS \"context_id!: ContextId\",\n            uc.name           AS \"context_name?\",\n            ranked.last_activity AS \"last_activity!\",\n            ranked.ai_requests AS \"ai_requests!\",\n            ranked.model\n          FROM ranked\n          LEFT JOIN user_contexts uc ON uc.context_id = ranked.context_id\n          ORDER BY ranked.last_activity DESC\n          LIMIT 5",
   "describe": {
     "columns": [
       {
@@ -46,6 +46,7 @@
     ],
     "parameters": {
       "Left": [
+        "Text",
         "Text"
       ]
     },
@@ -57,5 +58,5 @@
       null
     ]
   },
-  "hash": "a0a4c2e9bc269ecabf86c7f20b260328ace30eda767104c2d6ae004558dea4cc"
+  "hash": "c5eff9c9568d230c9f787fbee4e2299994c2386a1600c081ea9640695b4d61b1"
 }

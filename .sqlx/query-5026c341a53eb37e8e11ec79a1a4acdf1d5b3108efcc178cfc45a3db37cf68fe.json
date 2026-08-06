@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n            model AS \"model!\",\n            COUNT(DISTINCT context_id)::bigint AS \"conversations!\",\n            COUNT(*)::bigint AS \"ai_requests!\"\n          FROM ai_requests\n          WHERE user_id = $1\n            AND context_id IS NOT NULL\n            AND created_at >= NOW() - INTERVAL '30 days'\n          GROUP BY model\n          ORDER BY COUNT(*) DESC\n          LIMIT 5",
+  "query": "SELECT\n            model AS \"model!\",\n            COUNT(DISTINCT context_id)::bigint AS \"conversations!\",\n            COUNT(*)::bigint AS \"ai_requests!\"\n          FROM ai_requests\n          WHERE user_id = $1\n            AND context_id <> $2\n            AND created_at >= NOW() - INTERVAL '30 days'\n          GROUP BY model\n          ORDER BY COUNT(*) DESC\n          LIMIT 5",
   "describe": {
     "columns": [
       {
@@ -29,6 +29,7 @@
     ],
     "parameters": {
       "Left": [
+        "Text",
         "Text"
       ]
     },
@@ -38,5 +39,5 @@
       null
     ]
   },
-  "hash": "99e67c0879bf54dca73002b91065788a292f682b9c620694bb3e94e3ec4b95d0"
+  "hash": "5026c341a53eb37e8e11ec79a1a4acdf1d5b3108efcc178cfc45a3db37cf68fe"
 }

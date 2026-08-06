@@ -166,6 +166,10 @@ pub async fn insert_context(
     .expect("insert user context");
 }
 
+/// `ai_requests.context_id` is NOT NULL; core's sentinel stands in for a row
+/// that belongs to no known context.
+pub const LEGACY_CONTEXT_ID: &str = "00000000-0000-0000-0000-4c4547414359";
+
 pub struct RequestSpec<'a> {
     pub id: String,
     pub user_id: &'a UserId,
@@ -182,7 +186,7 @@ pub async fn insert_request(pool: &PgPool, spec: &RequestSpec<'_>) {
              provider, model, input_tokens, output_tokens, tokens_used,
              cost_microdollars, latency_ms, status, actor_kind, actor_id,
              created_at, updated_at)
-         VALUES ($1, $1, $2, $3, $4, $5, 'anthropic', 'claude-contract-model',
+         VALUES ($1, $1, $2, $3, $4, COALESCE($5, $7), 'anthropic', 'claude-contract-model',
                  100, 20, 120, 5000, 250, $6, 'user', $2, NOW(), NOW())",
     )
     .bind(&spec.id)
@@ -191,6 +195,7 @@ pub async fn insert_request(pool: &PgPool, spec: &RequestSpec<'_>) {
     .bind(spec.trace_id)
     .bind(spec.context_id)
     .bind(spec.status)
+    .bind(LEGACY_CONTEXT_ID)
     .execute(pool)
     .await
     .expect("insert ai_request");
@@ -210,9 +215,9 @@ pub struct DecisionSpec<'a> {
 pub async fn insert_decision(pool: &PgPool, spec: &DecisionSpec<'_>) {
     sqlx::query(
         "INSERT INTO governance_decisions (
-             id, user_id, session_id, tool_name, decision, policy, reason,
+             id, user_id, session_id, context_id, tool_name, decision, policy, reason,
              actor_kind, actor_id, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, 'contract fixture', 'user', $2, NOW())",
+         VALUES ($1, $2, $3, $7, $4, $5, $6, 'contract fixture', 'user', $2, NOW())",
     )
     .bind(&spec.id)
     .bind(spec.user_id.as_str())
@@ -220,6 +225,7 @@ pub async fn insert_decision(pool: &PgPool, spec: &DecisionSpec<'_>) {
     .bind(spec.tool_name)
     .bind(spec.decision)
     .bind(spec.policy)
+    .bind(LEGACY_CONTEXT_ID)
     .execute(pool)
     .await
     .expect("insert governance decision");

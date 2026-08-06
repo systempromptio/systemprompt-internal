@@ -108,7 +108,7 @@ SELECT
     'demo-req-' || seed.user_id || '-' || g,
     'demo-req-' || seed.user_id || '-' || g,
     seed.user_id,
-    md5(seed.user_id)::uuid,
+    '00000000-0000-0000-0000-4c4547414359',
     'anthropic',
     seed.model,
     seed.input_tokens,
