@@ -72,9 +72,15 @@ impl App {
             .with_branding(branding);
 
         let api = Router::new().nest("/admin", admin::admin_router(Arc::clone(pool)));
+        let oauth_repo = systemprompt::oauth::OAuthRepository::new(&Arc::new(
+            systemprompt::database::Database::from_pools(Arc::clone(pool), Some(Arc::clone(pool))),
+        ))
+        .expect("build the OAuth repository for the contract app");
         let auth_deps = admin::AuthDeps {
             write_pool: Arc::clone(pool),
             allowed_email_domains: Arc::new(allowed_email_domains),
+            oauth_repo: Arc::new(oauth_repo),
+            login_throttle: Arc::new(admin::LoginThrottle::new()),
         };
         let ssr = admin::admin_ssr_router(Arc::clone(pool), engine.clone(), auth_deps);
         let bridge_auth = admin::bridge_auth_ssr_router(Arc::clone(pool), engine);

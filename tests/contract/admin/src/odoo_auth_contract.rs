@@ -182,3 +182,147 @@ async fn unlinking_when_nothing_is_linked_succeeds() {
     );
     db.cleanup().await;
 }
+
+// The sign-in endpoint. Unlike linking, this one is reachable by an anonymous
+// caller by design — it is the front door — so what has to hold is that it
+// refuses everything it cannot prove, and that it refuses locally, before any
+// Odoo round trip, whenever the request is malformed.
+
+const LOGIN_PATH: &str = "/admin/auth/odoo/login";
+
+fn login_body(login: &str, credential: &str) -> String {
+    format!(
+        r#"{{"login":"{login}","credential":"{credential}",
+            "client_id":"marketplace-admin",
+            "redirect_uri":"http://localhost/admin/login",
+            "code_challenge":"E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
+            "code_challenge_method":"S256"}}"#
+    )
+}
+
+#[tokio::test]
+async fn signing_in_without_both_halves_is_refused_before_any_network_call() {
+    if !globals::init() {
+        return;
+    }
+    let Some(db) = TempDb::create().await else {
+        return;
+    };
+    let app = app(&db).await;
+
+    for body in [
+        login_body("", "secret"),
+        login_body("jo@example.com", "   "),
+    ] {
+        let (status, response) = app
+            .call(Call::json("post", LOGIN_PATH, Principal::Anonymous, &body))
+            .await;
+        assert_eq!(
+            status,
+            StatusCode::BAD_REQUEST,
+            "an empty credential half must be rejected here, not sent to Odoo: {response}"
+        );
+    }
+    db.cleanup().await;
+}
+
+#[tokio::test]
+async fn a_login_that_is_not_an_email_is_refused() {
+    if !globals::init() {
+        return;
+    }
+    let Some(db) = TempDb::create().await else {
+        return;
+    };
+    let app = app(&db).await;
+
+    // Odoo happily authenticates a bare "admin", but resolution keys on email
+    // and every consumer of users.email assumes a real address.
+    let (status, body) = app
+        .call(Call::json(
+            "post",
+            LOGIN_PATH,
+            Principal::Anonymous,
+            &login_body("admin", "an-api-key"),
+        ))
+        .await;
+
+    assert_eq!(
+        status,
+        StatusCode::BAD_REQUEST,
+        "a non-email Odoo login has nothing to provision against: {body}"
+    );
+    db.cleanup().await;
+}
+
+#[tokio::test]
+async fn signing_in_without_a_pkce_challenge_is_refused() {
+    if !globals::init() {
+        return;
+    }
+    let Some(db) = TempDb::create().await else {
+        return;
+    };
+    let app = app(&db).await;
+
+    // Without PKCE the issued code would be redeemable by anyone who
+    // intercepted it, so a request that omits the challenge must not proceed
+    // to Odoo, let alone mint one.
+    let (status, body) = app
+        .call(Call::json(
+            "post",
+            LOGIN_PATH,
+            Principal::Anonymous,
+            r#"{"login":"jo@example.com","credential":"an-api-key",
+                "client_id":"marketplace-admin",
+                "redirect_uri":"http://localhost/admin/login",
+                "code_challenge":"","code_challenge_method":""}"#,
+        ))
+        .await;
+
+    assert_eq!(
+        status,
+        StatusCode::BAD_REQUEST,
+        "a code minted without a PKCE challenge is a bearer token: {body}"
+    );
+    db.cleanup().await;
+}
+
+#[tokio::test]
+async fn signing_in_never_provisions_a_user_from_an_unproven_credential() {
+    if !globals::init() {
+        return;
+    }
+    let Some(db) = TempDb::create().await else {
+        return;
+    };
+    let app = app(&db).await;
+
+    let email = "never-provisioned@example.com";
+    let (status, body) = app
+        .call(Call::json(
+            "post",
+            LOGIN_PATH,
+            Principal::Anonymous,
+            &login_body(email, "not-a-real-key"),
+        ))
+        .await;
+
+    // Unconfigured deployment: 503. Configured one (a dev shell with a live
+    // Odoo): the bogus credential is refused, 401. Never a session.
+    assert!(
+        status == StatusCode::SERVICE_UNAVAILABLE || status == StatusCode::UNAUTHORIZED,
+        "an unproven credential must not sign anyone in, got {status}: {body}"
+    );
+
+    let provisioned: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM users WHERE LOWER(email) = $1")
+        .bind(email)
+        .fetch_one(&*db.pool)
+        .await
+        .unwrap_or_else(|e| panic!("count users: {e}"));
+    assert_eq!(
+        provisioned, 0,
+        "auto-provisioning must happen only after Odoo confirms the credential"
+    );
+    db.cleanup().await;
+}
