@@ -11,6 +11,11 @@ name: Release — build & publish bridge binaries
 # storage/files/admin/templates/bridge-setup.hbs, and
 # scripts/package-bridge-linux.sh.
 #
+# They are also the `assets:` map in the gateway's `bridge_releases` config,
+# which is what the in-app self-updater resolves through. macOS publishes two
+# artifacts: the .dmg humans download, and a .zip of the same signed bundle
+# that the updater consumes.
+#
 # The bridge crate depends on systemprompt-bridge by path
 # (../../systemprompt-core/bin/bridge), which is not on crates.io — so every
 # job checks out systempromptio/systemprompt-core as a sibling directory,
@@ -87,6 +92,8 @@ jobs:
             arch: aarch64
           - runner: macos-14
             asset: systemprompt-internal-bridge-macos.dmg
+            # What the in-app updater downloads; the dmg stays the human one.
+            updater_asset: systemprompt-internal-bridge-macos.zip
             rust_targets: aarch64-apple-darwin,x86_64-apple-darwin
           - runner: windows-latest
             asset: systemprompt-internal-bridge-windows.exe
@@ -236,6 +243,20 @@ jobs:
             systemprompt-internal/bridge/scripts/sign-mac-app.sh \
             "systemprompt-internal/bridge/target/release/Systemprompt Internal Bridge.app"
 
+      # The self-updater's artifact. It consumes a zip rather than the dmg
+      # because mounting a disk image from a background process is slow and
+      # needs cleanup, whereas this unpacks straight into a staging directory.
+      # Built from the same signed+stapled bundle as the dmg, and with ditto so
+      # the symlinks, xattrs, and notarization ticket the signature covers all
+      # survive the round trip — a plain `zip` strips them and the result fails
+      # Gatekeeper on the other side.
+      - name: Zip .app for the updater (macos)
+        if: runner.os == 'macOS'
+        run: |
+          ditto -c -k --keepParent \
+            "systemprompt-internal/bridge/target/release/Systemprompt Internal Bridge.app" \
+            "${{ matrix.updater_asset }}"
+
       # Stage the app next to an /Applications symlink and image the staging dir,
       # not the .app itself. Imaging the bundle directly puts it alone at the
       # volume root with nothing to drag it onto, so users run the app straight
@@ -280,6 +301,16 @@ jobs:
         with:
           name: ${{ matrix.asset }}
           path: ${{ matrix.asset }}
+          if-no-files-found: error
+          retention-days: 7
+
+      # Separate upload rather than a second path on the step above: only the
+      # macOS leg sets `updater_asset`, and an empty path fails `if-no-files-found`.
+      - uses: actions/upload-artifact@v4
+        if: matrix.updater_asset != ''
+        with:
+          name: ${{ matrix.updater_asset }}
+          path: ${{ matrix.updater_asset }}
           if-no-files-found: error
           retention-days: 7
 

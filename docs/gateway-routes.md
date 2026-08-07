@@ -83,3 +83,51 @@ inventory::submit! {
 ```
 
 The `GatewayUpstream` trait (`async fn proxy(&self, ctx: UpstreamCtx<'_>)`) is the single integration seam. Built-in tags seeded automatically; extension tags may shadow built-ins (logged as a warning). Full detail: [`core/CHANGELOG.md`](https://github.com/systempromptio/systemprompt-core/blob/main/CHANGELOG.md#030---2026-04-22).
+
+## Bridge self-update feed
+
+The desktop bridge updates itself through this gateway. Release assets live in a
+private GitHub repository that the bridge holds no credential for, so the
+gateway resolves the newest `bridge-v*` release and proxies the bytes:
+
+| Route | Purpose |
+|-------|---------|
+| `GET /v1/bridge/latest?platform=<slug>` | Version, SHA-256, size, and release-notes URL for the newest published build |
+| `GET /v1/bridge/download/{platform}` | Streams that platform's asset |
+
+Both are authenticated exactly like the other `/v1/bridge/*` routes. Platform
+slugs are `macos`, `windows`, `linux-x86_64`, and `linux-aarch64`.
+
+```yaml
+gateway:
+  enabled: true
+  bridge_releases:
+    repo: systempromptio/systemprompt-internal
+    # Named, not inlined, so the token never lands in a config file or a
+    # profile dump. Needs `contents: read` on the repo.
+    token_env: SYSTEMPROMPT_BRIDGE_RELEASES_TOKEN
+    tag_prefix: bridge-v
+    assets:
+      macos: systemprompt-internal-bridge-macos.zip
+      windows: systemprompt-internal-bridge-windows.exe
+      linux-x86_64: systemprompt-internal-bridge-linux-x86_64.tar.gz
+      linux-aarch64: systemprompt-internal-bridge-linux-aarch64.tar.gz
+```
+
+macOS points at the `.zip`, not the `.dmg`: the updater unpacks it with `ditto`
+and verifies the bundle's signature before swapping it into `/Applications`.
+The `.dmg` remains what the admin Bridge Setup page hands to humans. Asset names
+must match `.github/workflows/bridge-release.yml` exactly.
+
+The advertised `sha256` is read from the release's `SHA256SUMS` — generated and
+cosign-signed by the release workflow — rather than computed here, so the digest
+the updater enforces is the one that was signed at publish time. A download that
+does not match it is discarded and never executed.
+
+**Omitting `bridge_releases` disables updates rather than breaking them.** The
+endpoints answer `404`, and the bridge treats a failed check as a debug log:
+the button stays as it is and no error reaches the user.
+
+**Staged rollouts and pinning** are config, not a client release. Set
+`pinned_version: 0.1.6` to hold a fleet on one build; remove it to resume
+tracking the newest release.
