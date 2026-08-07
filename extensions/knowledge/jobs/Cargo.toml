@@ -32,10 +32,12 @@ webpki-roots = "0.26"
 [build-dependencies]
 systemprompt-extension = { workspace = true }
 
-# Job registration macros expand to ::inventory::submit! paths; machete
-# cannot see macro-expansion usage.
+# Job registration macros expand to ::inventory::submit! paths, and the
+# migrations.rs that build.rs generates into OUT_DIR names
+# ::systemprompt_extension. Machete sees neither macro expansion nor generated
+# code, so both read as unused here.
 [package.metadata.cargo-machete]
-ignored = ["inventory"]
+ignored = ["inventory", "systemprompt-extension"]
 
 [lints]
 workspace = true
