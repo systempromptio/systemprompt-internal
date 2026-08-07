@@ -141,9 +141,14 @@ jobs:
           path: .core-sibling
       - name: Link sibling core beside the workspace
         run: ln -sfn "$GITHUB_WORKSPACE/.core-sibling" "$GITHUB_WORKSPACE/../systemprompt-core"
-      - uses: EmbarkStudios/cargo-deny-action@v2
+      # Plain runner invocation, not cargo-deny-action: the action runs in a
+      # container that mounts only the workspace, so the sibling link above
+      # does not exist inside it and the patched graph cannot resolve.
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: taiki-e/install-action@v2
         with:
-          command: check
+          tool: cargo-deny
+      - run: cargo deny check
 
   machete:
     name: Unused dependency check
