@@ -23,6 +23,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # The root workspace's [patch.crates-io] is ACTIVE and points at
+      # ../systemprompt-core (core release with the wire-shape work is not on
+      # crates.io yet). Materialise the sibling at the ref bridge/CORE_REF
+      # pins: checkout must land inside the workspace, so link it into place.
+      - name: Read pinned core ref
+        id: core
+        run: echo "ref=$(tr -d '[:space:]' < bridge/CORE_REF)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: systempromptio/systemprompt-core
+          ref: ${{ steps.core.outputs.ref }}
+          path: .core-sibling
+      - name: Link sibling core beside the workspace
+        run: ln -sfn "$GITHUB_WORKSPACE/.core-sibling" "$GITHUB_WORKSPACE/../systemprompt-core"
       # Clippy runs on the pinned toolchain declared in rust-toolchain.toml,
       # which `rustup show` installs — so lint results match local `just clippy`
       # with no channel duplicated here.
@@ -41,6 +55,20 @@ jobs:
       RUSTDOCFLAGS: "-D warnings"
     steps:
       - uses: actions/checkout@v4
+      # The root workspace's [patch.crates-io] is ACTIVE and points at
+      # ../systemprompt-core (core release with the wire-shape work is not on
+      # crates.io yet). Materialise the sibling at the ref bridge/CORE_REF
+      # pins: checkout must land inside the workspace, so link it into place.
+      - name: Read pinned core ref
+        id: core
+        run: echo "ref=$(tr -d '[:space:]' < bridge/CORE_REF)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: systempromptio/systemprompt-core
+          ref: ${{ steps.core.outputs.ref }}
+          path: .core-sibling
+      - name: Link sibling core beside the workspace
+        run: ln -sfn "$GITHUB_WORKSPACE/.core-sibling" "$GITHUB_WORKSPACE/../systemprompt-core"
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: cargo doc --workspace --no-deps
@@ -64,6 +92,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # The root workspace's [patch.crates-io] is ACTIVE and points at
+      # ../systemprompt-core (core release with the wire-shape work is not on
+      # crates.io yet). Materialise the sibling at the ref bridge/CORE_REF
+      # pins: checkout must land inside the workspace, so link it into place.
+      - name: Read pinned core ref
+        id: core
+        run: echo "ref=$(tr -d '[:space:]' < bridge/CORE_REF)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: systempromptio/systemprompt-core
+          ref: ${{ steps.core.outputs.ref }}
+          path: .core-sibling
+      - name: Link sibling core beside the workspace
+        run: ln -sfn "$GITHUB_WORKSPACE/.core-sibling" "$GITHUB_WORKSPACE/../systemprompt-core"
       - uses: dtolnay/rust-toolchain@1.94.0
       - uses: Swatinem/rust-cache@v2
       - run: cargo check --workspace
@@ -85,6 +127,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # The root workspace's [patch.crates-io] is ACTIVE and points at
+      # ../systemprompt-core (core release with the wire-shape work is not on
+      # crates.io yet). Materialise the sibling at the ref bridge/CORE_REF
+      # pins: checkout must land inside the workspace, so link it into place.
+      - name: Read pinned core ref
+        id: core
+        run: echo "ref=$(tr -d '[:space:]' < bridge/CORE_REF)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: systempromptio/systemprompt-core
+          ref: ${{ steps.core.outputs.ref }}
+          path: .core-sibling
+      - name: Link sibling core beside the workspace
+        run: ln -sfn "$GITHUB_WORKSPACE/.core-sibling" "$GITHUB_WORKSPACE/../systemprompt-core"
       - uses: EmbarkStudios/cargo-deny-action@v2
         with:
           command: check
