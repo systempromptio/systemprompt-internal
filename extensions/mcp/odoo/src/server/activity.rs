@@ -71,8 +71,15 @@ pub fn activity_domain(uid: i32, input: &ActivityListInput, today: &str) -> serd
 
 #[must_use]
 pub fn activity_row(record: &serde_json::Value) -> String {
+    // Why: the id leads the row, same as task_row — it is the handle
+    // activity_complete needs, and the text row is the only place a
+    // plain-wire client (the To-Do Bulletin artifact) can read it from.
+    let id = record
+        .get("id")
+        .and_then(serde_json::Value::as_i64)
+        .unwrap_or_default();
     format!(
-        "- **{}** — {} on {} ({}), due {}",
+        "- **[{id}] {}** — {} on {} ({}), due {}",
         field_or_dash(record, "summary"),
         field_or_dash(record, "activity_type_id"),
         field_or_dash(record, "res_name"),

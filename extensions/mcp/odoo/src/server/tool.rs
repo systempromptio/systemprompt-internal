@@ -23,6 +23,7 @@ use super::{
     activity, attachments, calendar, channels, crm, notes, overview, partner, report, tasks,
 };
 use crate::client::OdooClient;
+use crate::error::OdooError;
 use crate::identity::resolve_credentials;
 use crate::tools::{
     ALL_TOOLS, TOOL_ACTIVITY_COMPLETE, TOOL_ACTIVITY_CREATE, TOOL_ACTIVITY_LIST,
@@ -73,12 +74,14 @@ pub(super) async fn authenticate_tool_request(
 
 // Why: builds the per-request call bundle. A caller with no linked Odoo
 // account fails here, before any handler runs, with a message naming the
-// profile page — never with an empty result.
+// profile page — never with an empty result. The error stays an `OdooError`
+// so `call_tool` can turn link/setup problems into an `isError` tool result
+// that artifact UIs render, instead of a protocol error they cannot.
 pub(super) async fn build_call(
     db_pool: &DbPool,
     client: &Arc<OdooClient>,
     request_context: &SysRequestContext,
-) -> Result<OdooCall, McpError> {
+) -> Result<OdooCall, OdooError> {
     let creds = resolve_credentials(db_pool, request_context.user_id()).await?;
     Ok(OdooCall {
         client: Arc::clone(client),

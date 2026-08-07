@@ -23,10 +23,10 @@ pub mod tasks;
 pub mod tool;
 
 use rmcp::model::{
-    CallToolRequestParams, CallToolResponse, Implementation, InitializeRequestParams,
-    InitializeResult, ListResourcesResult, ListToolsResult, PaginatedRequestParams,
-    ProtocolVersion, ReadResourceRequestParams, ReadResourceResponse, ServerCapabilities,
-    ServerInfo,
+    CallToolRequestParams, CallToolResponse, CallToolResult, ContentBlock, Implementation,
+    InitializeRequestParams, InitializeResult, ListResourcesResult, ListToolsResult,
+    PaginatedRequestParams, ProtocolVersion, ReadResourceRequestParams, ReadResourceResponse,
+    ServerCapabilities, ServerInfo,
 };
 use rmcp::service::{MaybeSendFuture, RequestContext, RoleServer};
 use rmcp::{ErrorData as McpError, ServerHandler};
@@ -99,6 +99,58 @@ impl OdooServer {
     }
 }
 
+/// Reduce a tool result to the plain `CallToolResult` shape every MCP client
+/// validates: text content only, no `structuredContent`, no `_meta`, no
+/// embedded `ui://` resource.
+///
+/// The rich shape the shared response builder emits is consumed by the
+/// gateway chat surface, but strict hosts — the Claude Cowork artifact bridge
+/// among them — reject it wholesale, so every artifact shows a validation
+/// error instead of data. Artifact persistence is unaffected: the structured
+/// output is already in Postgres by the time this runs, and the `ui://`
+/// resource remains resolvable via `resources/read`. Set
+/// `ODOO_MCP_PLAIN_RESULTS=0` to restore the rich wire shape.
+///
+/// Exposed (behind `#[doc(hidden)]`) so the external test workspace can
+/// assert the stripped shape; not part of the public API.
+#[doc(hidden)]
+#[must_use]
+pub fn plain_wire_result(mut result: CallToolResult) -> CallToolResult {
+    let plain = std::env::var("ODOO_MCP_PLAIN_RESULTS")
+        .map_or(true, |v| !matches!(v.trim(), "0" | "false" | "off"));
+    if !plain {
+        return result;
+    }
+
+    // Why: in the rich shape, content[0] is only the one-line summary — the
+    // markdown body rides inside structuredContent.artifact.content. A plain
+    // client gets exactly one shot at the data, so the body is promoted into
+    // the text block before the envelope is dropped.
+    let body = result
+        .structured_content
+        .as_ref()
+        .and_then(|sc| sc.pointer("/artifact/content"))
+        .and_then(serde_json::Value::as_str)
+        .map(str::to_owned);
+    let summary = result
+        .content
+        .iter()
+        .find_map(|block| block.as_text().map(|t| t.text.clone()));
+
+    let text = match (summary, body) {
+        (Some(s), Some(b)) if s != b => format!("{s}\n\n{b}"),
+        (_, Some(b)) => b,
+        (Some(s), None) => s,
+        (None, None) => String::new(),
+    };
+
+    result.content = vec![ContentBlock::text(text)];
+    result.structured_content = None;
+    result.meta = None;
+    result.result_type = None;
+    result
+}
+
 impl ServerHandler for OdooServer {
     fn get_info(&self) -> ServerInfo {
         ServerInfo::new(
@@ -107,7 +159,7 @@ impl ServerHandler for OdooServer {
                 .enable_resources()
                 .build(),
         )
-            .with_protocol_version(ProtocolVersion::V_2024_11_05)
+            .with_protocol_version(ProtocolVersion::V_2025_06_18)
             .with_server_info(
                 Implementation::new(
                     format!("Odoo ({})", self.service_id),
@@ -152,7 +204,23 @@ impl ServerHandler for OdooServer {
         )
         .await?;
 
-        let call = build_call(&self.db_pool, &self.client, &request_context).await?;
+        let call = match build_call(&self.db_pool, &self.client, &request_context).await {
+            Ok(call) => call,
+            // Why: "no linked account" and "deployment not set up" are states
+            // the calling UI must render, not protocol faults — as a JSON-RPC
+            // error the Cowork artifact bridge rejects the whole response and
+            // the user sees a validation failure instead of the fix.
+            Err(
+                err @ (OdooError::NotLinked(_)
+                | OdooError::NotConfigured(_)
+                | OdooError::AppMissing(_)),
+            ) => {
+                return Ok(
+                    CallToolResult::error(vec![ContentBlock::text(err.to_string())]).into(),
+                );
+            },
+            Err(other) => return Err(other.into()),
+        };
 
         record_mcp_access(
             &self.db_pool,
@@ -165,7 +233,7 @@ impl ServerHandler for OdooServer {
 
         dispatch_tool(&self.executor, call, &tool_name, &request, &request_context)
             .await
-            .map(Into::into)
+            .map(|result| plain_wire_result(result).into())
     }
 
     fn list_resources(

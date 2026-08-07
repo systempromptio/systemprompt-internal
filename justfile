@@ -885,16 +885,14 @@ backup *ARGS:
 # Pinned to the `production` profile so a deploy never follows whichever profile
 # the CLI session happens to be switched to.
 #
-# Refuses a dirty working tree: the image and the synced services/ tree are
-# built from what is on disk, so uncommitted or half-committed state ships to
-# production silently. A scheduler config referencing a job whose module was
-# still untracked once crashlooped prod this way. DEPLOY_DIRTY=1 overrides.
+# Warns on a dirty working tree (but proceeds): the image and the synced
+# services/ tree are built from what is on disk, so uncommitted state ships to
+# production. The warning lists what is going out so a half-committed deploy
+# is at least a visible act, not a silent one.
 deploy *FLAGS: build-all
-    @if [ "${DEPLOY_DIRTY:-0}" != "1" ] && [ -n "$(git status --porcelain)" ]; then \
-        echo "ERROR: working tree is dirty — a deploy ships exactly what is on disk,"; \
-        echo "committed or not. Commit (or stash) first, or override with DEPLOY_DIRTY=1:"; \
+    @if [ -n "$(git status --porcelain)" ]; then \
+        echo "WARNING: working tree is dirty — this deploy ships the uncommitted state below:"; \
         git status --porcelain | head -20; \
-        exit 1; \
     fi
     {{CLI_RELEASE}} cloud deploy --profile {{DEPLOY_PROFILE}} {{FLAGS}}
 

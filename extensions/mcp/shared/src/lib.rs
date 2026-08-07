@@ -32,6 +32,53 @@ use repositories::insert_mcp_access_rejection;
 
 const ACTION_USED: &str = "used";
 
+/// Reduce a tool result to the plain `CallToolResult` shape every MCP client
+/// validates: a single text block, no `structuredContent`, no `_meta`, no
+/// embedded `ui://` resource.
+///
+/// The rich shape core's response builder emits is consumed by the gateway
+/// chat surface, but strict hosts — the Claude Cowork artifact bridge among
+/// them — reject it wholesale, and every artifact then shows a validation
+/// error instead of data. In the rich shape `content[0]` is only a one-line
+/// summary; the markdown body rides inside `structuredContent.artifact.content`,
+/// so the body is promoted into the text block before the envelope is
+/// dropped. Artifact persistence is unaffected: the structured output is in
+/// Postgres before this runs, and the `ui://` resource stays resolvable via
+/// `resources/read`. Set `MCP_PLAIN_RESULTS=0` to restore the rich wire
+/// shape (it must also be in the server's `env_vars` passthrough allowlist).
+#[must_use]
+pub fn plain_wire_result(mut result: rmcp::model::CallToolResult) -> rmcp::model::CallToolResult {
+    let plain = std::env::var("MCP_PLAIN_RESULTS")
+        .map_or(true, |v| !matches!(v.trim(), "0" | "false" | "off"));
+    if !plain {
+        return result;
+    }
+
+    let body = result
+        .structured_content
+        .as_ref()
+        .and_then(|sc| sc.pointer("/artifact/content"))
+        .and_then(serde_json::Value::as_str)
+        .map(str::to_owned);
+    let summary = result
+        .content
+        .iter()
+        .find_map(|block| block.as_text().map(|t| t.text.clone()));
+
+    let text = match (summary, body) {
+        (Some(s), Some(b)) if s != b => format!("{s}\n\n{b}"),
+        (_, Some(b)) => b,
+        (Some(s), None) => s,
+        (None, None) => String::new(),
+    };
+
+    result.content = vec![rmcp::model::ContentBlock::text(text)];
+    result.structured_content = None;
+    result.meta = None;
+    result.result_type = None;
+    result
+}
+
 /// Maximum length (in bytes) of the reason text kept in a rejection
 /// description before it is truncated. Truncated text gains a "..." suffix, so
 /// the reason portion never exceeds `MAX_REASON_LEN + 3` bytes.
