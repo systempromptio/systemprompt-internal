@@ -105,3 +105,43 @@ editing them by hand.
 
 To codesign and notarize a local build, see `bridge/scripts/sign-mac-app.sh`
 (run it on the `.app` before building the dmg, then again on the finished dmg).
+
+## Installing the hosts the Bridge pairs with
+
+### Codex
+
+The Bridge installs managed configuration for Codex across all three of its
+surfaces — CLI, desktop app, and IDE extension — under the bundle identifier
+`com.openai.codex`.
+
+```bash
+npm install -g @openai/codex     # CLI
+codex app                        # desktop app: downloads and runs the installer
+```
+
+`codex app` detects the processor and fetches the matching build, so it is the
+reliable install path — do **not** hand-pick a dmg from the download page. The
+Codex desktop app shipped Apple-Silicon-only at first and Intel support landed
+later; a manually chosen `arm64` dmg fails on an Intel Mac with "you can't open
+the application … not supported on this Mac", which looks like a corrupt
+download but is an architecture mismatch.
+
+The Bridge probes for the desktop app at `/Applications/Codex.app`. Note that
+some builds install with a different display name on disk while keeping the
+`com.openai.codex` identifier — check the bundle identifier, not the filename,
+when diagnosing a host the Bridge reports as not installed:
+
+```bash
+/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" /Applications/Codex.app/Contents/Info.plist
+lipo -archs /Applications/Codex.app/Contents/MacOS/*
+```
+
+### Gateway wire format
+
+Codex must be pointed at the gateway's **Responses** surface. The gateway serves
+`POST /v1/messages` (Anthropic) and `POST /v1/responses` (OpenAI Responses); it
+does **not** serve `/v1/chat/completions`. So the provider profile needs
+`wire_api = "responses"` — the `"chat"` setting that most third-party
+OpenAI-compatible gateways expect will 404 here. The Bridge writes this for you
+under `model_providers.systemprompt.*`; set it by hand only when configuring a
+host the Bridge does not manage.
