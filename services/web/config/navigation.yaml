@@ -17,9 +17,19 @@ header:
       href: "/documentation/"
       dropdown: false
 
-    - id: download
-      label: "Download"
-      href: "https://github.com/systempromptio/systemprompt-internal/releases/latest"
+    - id: download-macos
+      label: "Download for Mac"
+      href: "/documentation/download-macos"
+      dropdown: false
+
+    - id: download-windows
+      label: "Download for Windows"
+      href: "/documentation/download-windows"
+      dropdown: false
+
+    - id: download-linux
+      label: "Download for Linux"
+      href: "/documentation/download-linux"
       dropdown: false
 
 

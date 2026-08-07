@@ -120,6 +120,17 @@ pub struct HeroConfig {
     pub cta_secondary: String,
     #[serde(default)]
     pub cta_secondary_url: Option<String>,
+    /// Per-platform download CTAs rendered as a row under the primary CTAs.
+    #[serde(default)]
+    pub download_ctas: Vec<DownloadCta>,
+}
+
+/// One "Download for <OS>" link in the hero. Kept as label + url rather than
+/// an OS enum so the YAML alone decides what platforms appear.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DownloadCta {
+    pub label: String,
+    pub url: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -52,6 +52,13 @@
                         <a href="{{site.homepage.hero.cta_secondary_url}}" class="hero-cta hero-cta-secondary">{{site.homepage.hero.cta_secondary}}</a>
                         {{/if}}
                     </div>
+                    {{#if site.homepage.hero.download_ctas}}
+                    <div class="hero-ctas hero-ctas-downloads" data-reveal style="--reveal-index: 5">
+                        {{#each site.homepage.hero.download_ctas}}
+                        <a href="{{this.url}}" class="hero-cta hero-cta-secondary">{{this.label}}</a>
+                        {{/each}}
+                    </div>
+                    {{/if}}
                 </div>
             </div>
             </div>

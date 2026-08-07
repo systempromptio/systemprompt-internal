@@ -13,3 +13,10 @@ hero:
   cta_url: "/documentation/"
   cta_secondary: "Explore the skills"
   cta_secondary_url: "/skills/"
+  download_ctas:
+    - label: "Download for Mac"
+      url: "/documentation/download-macos"
+    - label: "Download for Windows"
+      url: "/documentation/download-windows"
+    - label: "Download for Linux"
+      url: "/documentation/download-linux"
