@@ -19,6 +19,9 @@ includes:
   - ../ai/config.yaml
   - ../scheduler/config.yaml
 
+  # Managed-client policy carried in the signed bridge manifest
+  - ../bridge/config.yaml
+
   # No A2A agents. This instance ships skills, MCP servers, and artifacts only —
   # nothing under services/agents/, nothing spawned on the agent port range, and
   # no agents/<id>.md emitted into any plugin bundle.

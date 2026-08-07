@@ -13,17 +13,9 @@ plugin:
   skills:
     source: explicit
     include:
-      - systemprompt-setup
       - systemprompt-setup-cowork
-      - systemprompt-setup-codex
       - crm
-      - business_overview
-      - add_note
-      - capture_knowledge
-      - team_chat
       - schedule_activity
-      - manage_calendar
-      - manage_tasks
   agents:
     source: explicit
     include: []

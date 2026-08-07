@@ -5632,9 +5632,7 @@ dependencies = [
 name = "systemprompt-mcp-shared"
 version = "0.21.0"
 dependencies = [
- "rmcp",
  "serde",
- "serde_json",
  "sqlx",
  "systemprompt",
  "tracing",

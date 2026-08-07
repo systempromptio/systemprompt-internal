@@ -2,8 +2,8 @@
 //! the whole contract: the model has to learn from the description alone that
 //! the `systemprompt` prefix must be omitted, and `command` has to be the one
 //! required argument or a call with no command reaches the CLI. The output
-//! schema is the shared `ToolResponse<CliArtifact>` shape, so the client can
-//! render the artifact rather than a blob of stdout.
+//! schema is the typed `CliArtifact` shape, so the client can render the
+//! artifact rather than a blob of stdout.
 
 use systemprompt_mcp_agent::tools::{
     CliInput, CliOutput, SERVER_NAME, input_schema, list_tools, output_schema,

@@ -1,0 +1,16 @@
+# Bridge policy for managed client installations.
+#
+# Included from services/config/config.yaml. The `bridge_policy:` section only
+# parses on core >= 0.29.0 (ServicesConfig is deny_unknown_fields), so this file
+# and the core pin move together — dropping back to an older core means dropping
+# this out of the aggregator's includes too.
+#
+# allow_claude_ai_connectors: the signed bridge manifest carries this flag and
+# the bridge's Claude Code managed-MCP policy writes `allowAllClaudeAiMcps`
+# into managed-settings.json, re-allowing claude.ai first-party connectors
+# (Gmail, Calendar, ...) that `managed-mcp.json` otherwise suppresses. Each
+# user still connects their own account on claude.ai; no Google token ever
+# reaches this instance. Requires Claude Code >= 2.1.149 on the client.
+
+bridge_policy:
+  allow_claude_ai_connectors: true
