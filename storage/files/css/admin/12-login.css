@@ -12,8 +12,6 @@
         linear-gradient(180deg, var(--sp-bg-canvas) 0%, var(--sp-bg-base) 100%);
 }
 
-/* Same dark surface as .auth-card: this card hosts the white brand logo and
-   light theme text, so a light background renders both invisible. */
 .login-container .card {
     width: 100%;
     max-width: 420px;
@@ -115,8 +113,6 @@ main.login-container {
     display: flex;
 }
 
-/* Sign-in pages: one centred card, nothing else. Both doors (Odoo and the
-   operator passkey route) share it, so they cannot drift apart visually. */
 .auth-page {
     display: grid;
     place-items: center;
@@ -222,7 +218,6 @@ body:has(.auth-page) {
     font-size: var(--sp-text-xs);
 }
 
-/* Retained for bridge-setup.hbs, which numbers its own steps. */
 .step-num {
     display: inline-flex;
     align-items: center;

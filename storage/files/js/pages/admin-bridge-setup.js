@@ -1,5 +1,3 @@
-// Human downloads only. macOS also publishes systemprompt-internal-bridge-macos.zip,
-// which exists purely for the in-app self-updater — never offer it here.
 const ARTIFACTS = {
   macos: { label: 'Download for macOS', file: 'systemprompt-internal-bridge-macos.dmg' },
   windows: { label: 'Download for Windows', file: 'systemprompt-internal-bridge-windows.exe' },

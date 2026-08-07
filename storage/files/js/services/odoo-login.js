@@ -55,9 +55,6 @@ const signIn = async (event) => {
   setBusy('Signing in…');
 
   try {
-    // PKCE is generated here and the verifier never leaves the browser; the
-    // server only ever sees the challenge, so a code intercepted in transit is
-    // not redeemable.
     const codeVerifier = generateRandomString(64);
     const codeChallenge = await generateCodeChallenge(codeVerifier);
     const params = new URLSearchParams(window.location.search);

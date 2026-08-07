@@ -8,10 +8,6 @@ const LOGIN_PATH = '/admin/login';
 
 export const DEFAULT_REDIRECT = '/admin/profile';
 
-// Mirrors the server-side `sanitize_login_redirect`: any same-origin absolute
-// path is a valid post-login target (e.g. /bridge-auth/device-link), while
-// protocol-relative `//host` and absolute URLs are open-redirect vectors and
-// fall back to the default.
 export const resolveRedirect = async (target) => {
   if (!target || !target.startsWith('/') || target.startsWith('//')) return DEFAULT_REDIRECT;
   try {
@@ -23,10 +19,6 @@ export const resolveRedirect = async (target) => {
   return target;
 };
 
-// `redirectUri` must be byte-identical to the one the code was issued against,
-// or the token endpoint rejects the exchange. Odoo sign-in issues against
-// /admin/login and the passkey ceremony against /admin/login/operator, so the
-// caller passes its own rather than sharing one constant.
 export const exchangeToken = async (code, codeVerifier, redirectUri) => {
   const tokenResponse = await rawResponse(OAUTH_BASE + '/token', {
     method: 'POST',

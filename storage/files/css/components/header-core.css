@@ -137,10 +137,6 @@ html:not([data-scrolled]) body.has-video-hero .site-header {
   }
 }
 
-/* ── Download nav items: OS glyph before the label ──────────────────────────
-   The header partial emits no per-item classes, so the glyphs key off the
-   href. Keep these in lockstep with services/web/config/navigation.yaml and
-   the --os-glyph masks in homepage-hero.css. */
 .nav-links a[href^="/documentation/download-"] {
   display: inline-flex;
   align-items: center;
@@ -164,18 +160,18 @@ html:not([data-scrolled]) body.has-video-hero .site-header {
   margin-right: 0.4em;
   vertical-align: -0.12em;
   background-color: currentColor;
-  -webkit-mask: var(--os-glyph) center / contain no-repeat;
-  mask: var(--os-glyph) center / contain no-repeat;
+  -webkit-mask: var(--sp-os-glyph) center / contain no-repeat;
+  mask: var(--sp-os-glyph) center / contain no-repeat;
 }
 
 .nav-links a[href="/documentation/download-macos"] {
-  --os-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M16.36 12.76c-.02-2.05 1.68-3.03 1.75-3.08-.95-1.39-2.43-1.58-2.96-1.6-1.26-.13-2.46.74-3.1.74-.64 0-1.63-.72-2.68-.7-1.38.02-2.65.8-3.36 2.03-1.43 2.48-.37 6.15 1.03 8.16.68.99 1.49 2.1 2.56 2.06 1.03-.04 1.42-.66 2.66-.66 1.24 0 1.59.66 2.68.64 1.11-.02 1.81-1 2.48-1.99.78-1.14 1.1-2.24 1.12-2.3-.02-.01-2.15-.82-2.18-3.3zM14.32 6.7c.57-.69.95-1.65.85-2.6-.82.03-1.8.54-2.39 1.23-.52.61-.98 1.58-.86 2.51.91.07 1.84-.46 2.4-1.14z'/%3E%3C/svg%3E");
+  --sp-os-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M16.36 12.76c-.02-2.05 1.68-3.03 1.75-3.08-.95-1.39-2.43-1.58-2.96-1.6-1.26-.13-2.46.74-3.1.74-.64 0-1.63-.72-2.68-.7-1.38.02-2.65.8-3.36 2.03-1.43 2.48-.37 6.15 1.03 8.16.68.99 1.49 2.1 2.56 2.06 1.03-.04 1.42-.66 2.66-.66 1.24 0 1.59.66 2.68.64 1.11-.02 1.81-1 2.48-1.99.78-1.14 1.1-2.24 1.12-2.3-.02-.01-2.15-.82-2.18-3.3zM14.32 6.7c.57-.69.95-1.65.85-2.6-.82.03-1.8.54-2.39 1.23-.52.61-.98 1.58-.86 2.51.91.07 1.84-.46 2.4-1.14z'/%3E%3C/svg%3E");
 }
 
 .nav-links a[href="/documentation/download-windows"] {
-  --os-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 5.5 10.5 4.4v7.1H3V5.5zm0 13 7.5 1.1v-7H3v5.9zm8.5 1.2L21 21V12.5h-9.5v7.2zm0-15.4v7.2H21V3l-9.5 1.3z'/%3E%3C/svg%3E");
+  --sp-os-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 5.5 10.5 4.4v7.1H3V5.5zm0 13 7.5 1.1v-7H3v5.9zm8.5 1.2L21 21V12.5h-9.5v7.2zm0-15.4v7.2H21V3l-9.5 1.3z'/%3E%3C/svg%3E");
 }
 
 .nav-links a[href="/documentation/download-linux"] {
-  --os-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4zm2 .5v15h14v-15H5zm2.2 3.3 4.2 4.2-4.2 4.2 1.4 1.4 5.6-5.6-5.6-5.6-1.4 1.4zM12 16h5v2h-5v-2z'/%3E%3C/svg%3E");
+  --sp-os-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4zm2 .5v15h14v-15H5zm2.2 3.3 4.2 4.2-4.2 4.2 1.4 1.4 5.6-5.6-5.6-5.6-1.4 1.4zM12 16h5v2h-5v-2z'/%3E%3C/svg%3E");
 }

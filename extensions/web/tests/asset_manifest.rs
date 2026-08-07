@@ -293,6 +293,7 @@ const SCOPED_PROPERTIES: &[&str] = &[
     "--sp-fill",
     "--sp-gutter",
     "--sp-header-height",
+    "--sp-os-glyph",
 ];
 
 #[test]
