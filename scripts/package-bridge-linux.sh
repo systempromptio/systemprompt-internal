@@ -1,10 +1,20 @@
 #!/usr/bin/env bash
 # Package the branded bridge as a Linux release tarball.
 #
-# Produces dist/systemprompt-internal-bridge-linux-x86_64.tar.gz plus a .sha256, matching the
-# asset name the admin Bridge Setup page links to. Keep the two in lockstep:
-# extensions/web/admin/src/handlers/ssr/ssr_bridge_setup.rs (DOWNLOAD_BASE_URL)
-# and storage/files/admin/templates/bridge-setup.hbs (asset filenames).
+# Produces dist/systemprompt-internal-bridge-linux-<arch>.tar.gz plus a .sha256, matching the
+# asset name the admin Bridge Setup page links to. Keep asset names in lockstep
+# with: extensions/web/admin/src/handlers/ssr/ssr_bridge_setup.rs
+# (DOWNLOAD_BASE_URL), the ARTIFACTS map in
+# storage/files/js/pages/admin-bridge-setup.js, and the build matrix in
+# .github/workflows/bridge-release.yml.
+#
+# Releases are produced by that workflow (GitHub Releases is the download
+# source of truth); this script is the shared packaging step and a local dev
+# path. Overrides:
+#   SKIP_BUILD=1        use an existing binary instead of building
+#   BRIDGE_BIN=<path>   path to a prebuilt binary (implies SKIP_BUILD)
+#   ASSET_ARCH=<arch>   override the arch suffix (defaults to uname -m)
+#   PUBLISH=0           skip copying into storage/files/downloads/
 #
 # Verify the result on a machine with no config using: just clean-client
 set -euo pipefail
@@ -14,14 +24,21 @@ BRIDGE_DIR="$REPO_ROOT/bridge"
 DIST_DIR="$REPO_ROOT/dist"
 BIN_NAME="systemprompt-internal-bridge"
 
-ARCH="$(uname -m)"
-case "$ARCH" in
-    x86_64)  ASSET_ARCH="x86_64" ;;
-    aarch64) ASSET_ARCH="aarch64" ;;
-    *) echo "ERROR: unsupported host arch '$ARCH' — build on x86_64 or aarch64." >&2; exit 1 ;;
-esac
+if [ -z "${ASSET_ARCH:-}" ]; then
+    ARCH="$(uname -m)"
+    case "$ARCH" in
+        x86_64)  ASSET_ARCH="x86_64" ;;
+        aarch64|arm64) ASSET_ARCH="aarch64" ;;
+        *) echo "ERROR: unsupported host arch '$ARCH' — build on x86_64 or aarch64." >&2; exit 1 ;;
+    esac
+fi
 ASSET="${BIN_NAME}-linux-${ASSET_ARCH}.tar.gz"
-BIN="$BRIDGE_DIR/target/release/$BIN_NAME"
+if [ -n "${BRIDGE_BIN:-}" ]; then
+    BIN="$BRIDGE_BIN"
+    SKIP_BUILD=1
+else
+    BIN="$BRIDGE_DIR/target/release/$BIN_NAME"
+fi
 
 # ── Build ─────────────────────────────────────────────────────────────────────
 # The bridge is a standalone workspace (GUI deps, own release cadence), so it is
@@ -31,7 +48,7 @@ if [ "${SKIP_BUILD:-0}" != "1" ]; then
     echo "==> building $BIN_NAME (release)"
     (cd "$BRIDGE_DIR" && cargo build --release)
 fi
-[ -f "$BIN" ] || { echo "ERROR: $BIN missing. Run without SKIP_BUILD=1." >&2; exit 1; }
+[ -f "$BIN" ] || { echo "ERROR: $BIN missing. Run without SKIP_BUILD=1/BRIDGE_BIN." >&2; exit 1; }
 
 # ── Record runtime dependencies ───────────────────────────────────────────────
 # The binary dynamically links libdbus-1 (keyring-core's secret-service store),
@@ -67,8 +84,7 @@ Version ${VERSION} (${COMMIT}, ${ASSET_ARCH})
 Prefer the installer — it verifies the checksum, installs to the right place,
 and writes the environment for you:
 
-    curl -fsSL https://your-gateway/files/downloads/install.sh | sh -s -- \\
-      --download-base https://your-gateway/files/downloads
+    curl -fsSL https://github.com/systempromptio/systemprompt-internal/releases/latest/download/install.sh | sh
 
 The rest of this file is the manual equivalent.
 
@@ -143,16 +159,16 @@ echo
 echo "==> $DIST_DIR/$ASSET"
 echo "    $(cd "$DIST_DIR" && cut -d' ' -f1 "$ASSET.sha256")"
 echo "    version ${VERSION} (${COMMIT})  size $(du -h "$DIST_DIR/$ASSET" | cut -f1)"
-# ── Publish the installer next to the tarball ─────────────────────────────────
-# The admin Bridge Setup page serves both from storage/files/downloads/, so the
-# installer's default download base and the tarball it fetches stay same-origin.
-PUBLISH_DIR="$REPO_ROOT/storage/files/downloads"
-mkdir -p "$PUBLISH_DIR"
-install -m 0644 "$DIST_DIR/$ASSET" "$PUBLISH_DIR/$ASSET"
-install -m 0644 "$DIST_DIR/$ASSET.sha256" "$PUBLISH_DIR/$ASSET.sha256"
-install -m 0644 "$REPO_ROOT/scripts/install-bridge.sh" "$PUBLISH_DIR/install.sh"
-echo "==> published to $PUBLISH_DIR (tarball, .sha256, install.sh)"
-
-echo
-echo "Publish so the admin Bridge Setup links resolve:"
-echo "    gh release create v${VERSION} $DIST_DIR/$ASSET $DIST_DIR/$ASSET.sha256"
+# ── Optional local publish (dev only) ────────────────────────────────────────
+# Real releases are the GitHub Release assets uploaded by
+# .github/workflows/bridge-release.yml; this same-origin copy exists so a dev
+# server's Bridge Setup page can serve a locally built tarball. PUBLISH=0 (CI)
+# skips it.
+if [ "${PUBLISH:-1}" = "1" ]; then
+    PUBLISH_DIR="$REPO_ROOT/storage/files/downloads"
+    mkdir -p "$PUBLISH_DIR"
+    install -m 0644 "$DIST_DIR/$ASSET" "$PUBLISH_DIR/$ASSET"
+    install -m 0644 "$DIST_DIR/$ASSET.sha256" "$PUBLISH_DIR/$ASSET.sha256"
+    install -m 0644 "$REPO_ROOT/scripts/install-bridge.sh" "$PUBLISH_DIR/install.sh"
+    echo "==> published to $PUBLISH_DIR (tarball, .sha256, install.sh)"
+fi

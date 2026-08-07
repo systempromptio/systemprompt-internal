@@ -5,7 +5,7 @@
 #
 # Reads version from bridge/Cargo.toml, picks the matching release binary,
 # generates an .icns from bridge/assets/window-icon-1024.png, and emits
-# bridge/target/<triple>/release/Systemprompt InternalBridge.app (or target/release/... when
+# bridge/target/<triple>/release/Systemprompt Internal Bridge.app (or target/release/... when
 # no target is given). Must run on macOS (uses sips + iconutil).
 set -euo pipefail
 
@@ -33,7 +33,7 @@ if [[ ! -f "$BIN" ]]; then
 fi
 
 VERSION="$(awk -F'"' '/^version/ { print $2; exit }' "Cargo.toml")"
-APP="$OUT_DIR/Systemprompt InternalBridge.app"
+APP="$OUT_DIR/Systemprompt Internal Bridge.app"
 CONTENTS="$APP/Contents"
 MACOS_DIR="$CONTENTS/MacOS"
 RES_DIR="$CONTENTS/Resources"

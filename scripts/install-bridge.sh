@@ -1,9 +1,10 @@
 #!/bin/sh
 # Systemprompt Internal Bridge client installer for Linux.
 #
-# Published as storage/files/downloads/install.sh and run as:
+# Published as a GitHub Release asset (and same-origin for dev servers) and
+# run as:
 #
-#     curl -fsSL https://your-gateway/files/downloads/install.sh | sh
+#     curl -fsSL https://github.com/systempromptio/systemprompt-internal/releases/latest/download/install.sh | sh
 #
 # NOT to be confused with scripts/install.sh, which installs the *gateway*
 # server. This one takes a bare Linux box to a working `claude`:
@@ -23,8 +24,10 @@ warn() { printf '\033[33mwarn:\033[0m %s\n' "$*" >&2; }
 fail() { printf '\033[31mERROR:\033[0m %s\n' "$*" >&2; exit 1; }
 
 # ── Arguments ─────────────────────────────────────────────────────────────────
-# Default the download base to the origin this script was served from so a piped
-# install needs no arguments beyond the gateway.
+# Defaults target the production release + gateway so a piped install needs no
+# arguments; both are overridable for dev servers and forks.
+DEFAULT_DOWNLOAD_BASE="https://github.com/systempromptio/systemprompt-internal/releases/latest/download"
+DEFAULT_GATEWAY_URL="https://internal.systemprompt.io"
 DOWNLOAD_BASE="${SYSTEMPROMPT_DOWNLOAD_BASE:-}"
 GATEWAY_URL="${SYSTEMPROMPT_GATEWAY_URL:-}"
 PAT="${SYSTEMPROMPT_BRIDGE_PAT:-}"
@@ -40,7 +43,7 @@ while [ $# -gt 0 ]; do
         --pubkey)        PUBKEY="$2"; shift 2 ;;
         --no-claude-code) SKIP_CLAUDE=1; shift ;;
         -h|--help)
-            say "usage: install.sh --download-base URL [--gateway URL]"
+            say "usage: install.sh [--download-base URL] [--gateway URL]"
             say "                  [--code <exchange-code> | --pat sp-live-...]"
             say "                  [--pubkey <base64>] [--no-claude-code]"
             say ""
@@ -61,11 +64,16 @@ while [ $# -gt 0 ]; do
         *) fail "unknown argument: $1" ;;
     esac
 done
-[ -n "$DOWNLOAD_BASE" ] || fail "no download base — re-run with --download-base https://your-gateway/files/downloads"
+[ -n "$DOWNLOAD_BASE" ] || DOWNLOAD_BASE="$DEFAULT_DOWNLOAD_BASE"
 DOWNLOAD_BASE="${DOWNLOAD_BASE%/}"
-# The tarball lives under the gateway that serves this script, so the gateway
-# URL is derivable: strip the /files/downloads suffix.
-[ -n "$GATEWAY_URL" ] || GATEWAY_URL="${DOWNLOAD_BASE%/files/downloads}"
+if [ -z "$GATEWAY_URL" ]; then
+    # A same-origin download base (a dev gateway serving /files/downloads)
+    # implies the gateway; the GitHub default does not, so fall back to prod.
+    case "$DOWNLOAD_BASE" in
+        */files/downloads) GATEWAY_URL="${DOWNLOAD_BASE%/files/downloads}" ;;
+        *)                 GATEWAY_URL="$DEFAULT_GATEWAY_URL" ;;
+    esac
+fi
 
 # ── Preconditions ─────────────────────────────────────────────────────────────
 command -v curl >/dev/null 2>&1 || fail "curl is required"
@@ -102,8 +110,15 @@ trap "rm -rf '$WORK'" EXIT INT TERM
 step "downloading $ASSET"
 curl -fsSL -o "$WORK/$ASSET" "$DOWNLOAD_BASE/$ASSET" \
     || fail "download failed: $DOWNLOAD_BASE/$ASSET"
-curl -fsSL -o "$WORK/$ASSET.sha256" "$DOWNLOAD_BASE/$ASSET.sha256" \
-    || fail "checksum file missing: $DOWNLOAD_BASE/$ASSET.sha256"
+# GitHub Releases publish one SHA256SUMS covering every asset; dev gateways
+# publish a per-asset .sha256. Accept either.
+if curl -fsSL -o "$WORK/SHA256SUMS" "$DOWNLOAD_BASE/SHA256SUMS" 2>/dev/null; then
+    grep " $ASSET\$" "$WORK/SHA256SUMS" > "$WORK/$ASSET.sha256" \
+        || fail "SHA256SUMS does not list $ASSET"
+else
+    curl -fsSL -o "$WORK/$ASSET.sha256" "$DOWNLOAD_BASE/$ASSET.sha256" \
+        || fail "checksum file missing: $DOWNLOAD_BASE/SHA256SUMS and $DOWNLOAD_BASE/$ASSET.sha256"
+fi
 
 step "verifying checksum"
 EXPECTED="$(cut -d' ' -f1 < "$WORK/$ASSET.sha256")"

@@ -29,7 +29,10 @@ static SYSTEMPROMPT_BRAND: Brand = Brand {
     workspace_dir_name: "Systemprompt",
     keyring_service: "systemprompt-internal-bridge.oauth-client",
     env_prefix: "SYSTEMPROMPT_BRIDGE",
-    default_gateway_url: "http://localhost:8080",
+    // Why: shipped binaries must point at the production gateway out of the
+    // box; local development overrides via SYSTEMPROMPT_BRIDGE_* env or the
+    // explicit gateway argument (`just claude <code> http://localhost:8081`).
+    default_gateway_url: "https://internal.systemprompt.io",
     // Why: the gateway mounts this page under /bridge-auth (see
     // extensions/web/src/extension_impl.rs), not the upstream default /bridge.
     device_link_path: "/bridge-auth/device-link",

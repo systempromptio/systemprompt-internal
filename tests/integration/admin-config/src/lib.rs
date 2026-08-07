@@ -19,6 +19,8 @@ mod bridge_api_keys;
 #[cfg(test)]
 mod bridge_identity;
 #[cfg(test)]
+mod bridge_odoo_chain;
+#[cfg(test)]
 mod config_acl_detect;
 #[cfg(test)]
 mod config_gateway_acl;

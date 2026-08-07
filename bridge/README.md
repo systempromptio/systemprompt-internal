@@ -56,9 +56,11 @@ Without the repo, the installer does the same thing directly (it prompts for the
 code if omitted):
 
 ```bash
-curl -fsSL https://your-gateway/files/downloads/install.sh | sh -s -- \
-  --download-base https://your-gateway/files/downloads --code <code>
+curl -fsSL https://github.com/systempromptio/systemprompt-internal/releases/latest/download/install.sh | sh -s -- --code <code>
 ```
+
+Against a dev server, add `--gateway http://localhost:8081` and, to use a
+locally packaged tarball, `--download-base https://your-gateway/files/downloads`.
 
 The installer verifies the tarball checksum (refusing to proceed on a mismatch),
 installs to `~/.local/bin` (or `/usr/local/bin` as root), installs Claude Code if
@@ -123,27 +125,61 @@ minimal host these must be installed or the binary fails at exec with
 sudo apt-get install -y libdbus-1-3 libcap2 libgcrypt20 libsystemd0   # Debian/Ubuntu
 ```
 
-### Release tarball
+### Release tarball (local dev)
 
 ```bash
 just bridge-package-linux     # → dist/systemprompt-internal-bridge-linux-<arch>.tar.gz + .sha256
 ```
 
-The recipe also publishes the tarball, its `.sha256`, and
+Real releases come from CI (see **Releases** below); this recipe is the local
+path. It also publishes the tarball, its `.sha256`, and
 `scripts/install-bridge.sh` (as `install.sh`) into `storage/files/downloads/`,
-which the admin Bridge Setup page serves same-origin. The archive carries the
-binary plus an `INSTALL.md` stating the above. Asset
-names are load-bearing — they must match `DOWNLOAD_BASE_URL` in
+which the admin Bridge Setup page can serve same-origin on a dev server. The
+archive carries the binary plus an `INSTALL.md` stating the above. Asset names
+are load-bearing — they must match `DOWNLOAD_BASE_URL` in
 `extensions/web/admin/src/handlers/ssr/ssr_bridge_setup.rs`, the links in
-`storage/files/admin/templates/bridge-setup.hbs`, and `ARTIFACTS` in
-`storage/files/js/pages/admin-bridge-setup.js`. Test the result on a machine
-with no config using `just clean-client` (see `deploy/clean-client/`).
+`storage/files/admin/templates/bridge-setup.hbs`, `ARTIFACTS` in
+`storage/files/js/pages/admin-bridge-setup.js`, and the build matrix in
+`.github/workflows/bridge-release.yml`. Test the result on a machine with no
+config using `just clean-client` (see `deploy/clean-client/`).
+
+## Releases
+
+Versioned binaries for Linux (x86_64 + aarch64 tarballs), macOS (Apple Silicon
+`.dmg`), and Windows (`.exe`) are built and published to GitHub Releases by
+`.github/workflows/bridge-release.yml`. Assets carry version-less names so
+`releases/latest/download/<asset>` URLs stay stable across releases.
+
+To cut a release:
+
+1. Bump `version` in `bridge/Cargo.toml`.
+2. If core moved, update `bridge/CORE_REF` to the new `systemprompt-core`
+   commit SHA — CI checks core out at that ref to resolve the path dependency.
+3. Tag and push:
+
+   ```bash
+   git tag bridge-v0.1.0 && git push origin bridge-v0.1.0
+   ```
+
+Binaries carry **no OS code signature** (no Apple notarisation, no Windows
+Authenticode) for now: macOS users must clear the quarantine flag
+(`xattr -dr com.apple.quarantine "/Applications/Systemprompt Internal Bridge.app"`)
+and Windows users get a SmartScreen prompt ("More info → Run anyway").
+Supply-chain integrity is covered separately: every release asset is
+cosign-signed (keyless, GitHub OIDC) with a `SHA256SUMS` manifest; verify with:
+
+```bash
+cosign verify-blob \
+  --certificate-identity-regexp='https://github.com/systempromptio/systemprompt-internal/' \
+  --certificate-oidc-issuer='https://token.actions.githubusercontent.com' \
+  --signature SHA256SUMS.sig --certificate SHA256SUMS.pem SHA256SUMS
+```
 
 ## macOS .app bundle
 
 ```bash
 cargo build --release --target aarch64-apple-darwin
-scripts/make-mac-app.sh --target aarch64-apple-darwin   # → Systemprompt InternalBridge.app
+scripts/make-mac-app.sh --target aarch64-apple-darwin   # → Systemprompt Internal Bridge.app
 ```
 
 ## Icons
@@ -168,8 +204,20 @@ This regenerates, idempotently:
 Edit `assets/icon.svg` and rerun the script to change the mark. `assets/logo.svg`
 is the full Systemprompt Internal wordmark, used by the GUI chrome.
 
-> ⚠️ Still pre-release: set `default_gateway_url` in `src/main.rs` to the real Systemprompt Internal gateway host
-(currently a `https://gateway.systemprompt.io` placeholder).
+## Gateway selection
+
+Shipped binaries default to `https://internal.systemprompt.io` (the `Brand`
+const in `src/main.rs`). That default is only a fallback — it is overridden, in
+precedence order (highest first), by:
+
+1. `SYSTEMPROMPT_BRIDGE_GATEWAY_URL` in the environment.
+2. `gateway_url = "…"` in `~/.config/systemprompt-internal/systemprompt-internal-bridge.toml` —
+   which is what the GUI writes via the setup screen's gateway field or
+   Settings → "Change gateway".
+
+For local development, point it at your dev server:
+`SYSTEMPROMPT_BRIDGE_GATEWAY_URL=http://localhost:8081`, or pass the gateway
+argument the dev recipes already use (`just claude <code> http://localhost:8081`).
 
 ## Recipe: a new client bridge
 
@@ -185,9 +233,9 @@ no forking of the bridge source:
    brand-level plugin-name field to set.
 4. Update `build.rs` (Windows metadata), `macos/Info.plist` (bundle id + names),
    and `scripts/make-mac-app.sh` (bundle/app name).
-5. Build and sign the per-platform artifacts locally — this repo runs no
-   hosted CI, so `scripts/make-mac-app.sh` and a Windows/Linux `cargo build
-   --release` are the release process.
+5. Copy `.github/workflows/bridge-release.yml` (and `bridge/CORE_REF`) and
+   adjust the repo names — tagging `bridge-v*` then builds and publishes the
+   per-platform artifacts to GitHub Releases.
 
 Everything else — auth, sync, proxy, GUI, host integrations — is inherited from
 core and stays in lockstep across all brands.

@@ -1,0 +1,225 @@
+name: Release — build & publish bridge binaries
+
+# Builds the desktop bridge for Linux (x86_64 + aarch64), macOS (Apple
+# Silicon), and Windows, and publishes them as GitHub Release assets.
+#
+# Asset names are load-bearing and version-less so that
+# releases/latest/download/<asset> URLs stay stable. Keep them in lockstep
+# with: DOWNLOAD_BASE_URL in
+# extensions/web/admin/src/handlers/ssr/ssr_bridge_setup.rs, the ARTIFACTS map
+# in storage/files/js/pages/admin-bridge-setup.js, the links in
+# storage/files/admin/templates/bridge-setup.hbs, and
+# scripts/package-bridge-linux.sh.
+#
+# The bridge crate depends on systemprompt-bridge by path
+# (../../systemprompt-core/bin/bridge), which is not on crates.io — so every
+# job checks out systempromptio/systemprompt-core as a sibling directory,
+# pinned to the ref in bridge/CORE_REF. Bump that file when adopting a new
+# core version.
+
+on:
+  push:
+    tags: ["bridge-v*"]
+  workflow_dispatch:
+    inputs:
+      bridge_tag:
+        description: "Bridge release tag (e.g. bridge-v0.1.0) — for re-runs without retagging"
+        required: true
+
+concurrency:
+  group: bridge-release-${{ github.event.inputs.bridge_tag || github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  id-token: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  checks:
+    name: Quality gate
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: systemprompt-internal
+      - name: Read pinned core ref
+        id: core
+        run: echo "ref=$(tr -d '[:space:]' < systemprompt-internal/bridge/CORE_REF)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: systempromptio/systemprompt-core
+          ref: ${{ steps.core.outputs.ref }}
+          path: systemprompt-core
+      # keyring → dbus-secret-service → libdbus-sys builds from pkg-config.
+      - run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rustfmt
+      # Scope the gate to the bridge crate: it is a standalone workspace, and
+      # unrelated churn elsewhere must not block a bridge release.
+      - run: cargo fmt --manifest-path systemprompt-internal/bridge/Cargo.toml -p systemprompt-internal-bridge -- --check
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: systemprompt-internal/bridge
+      - run: cargo clippy --manifest-path systemprompt-internal/bridge/Cargo.toml --all-targets -- -D warnings
+
+  build:
+    name: Build ${{ matrix.asset }}
+    needs: checks
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # ubuntu-22.04: oldest supported runner glibc, so the binaries run
+          # on as many distributions as possible.
+          - runner: ubuntu-22.04
+            asset: systemprompt-internal-bridge-linux-x86_64.tar.gz
+            arch: x86_64
+          - runner: ubuntu-22.04-arm
+            asset: systemprompt-internal-bridge-linux-aarch64.tar.gz
+            arch: aarch64
+          - runner: macos-14
+            asset: systemprompt-internal-bridge-macos.dmg
+          - runner: windows-latest
+            asset: systemprompt-internal-bridge-windows.exe
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: systemprompt-internal
+      - name: Read pinned core ref
+        id: core
+        shell: bash
+        run: echo "ref=$(tr -d '[:space:]' < systemprompt-internal/bridge/CORE_REF)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: systempromptio/systemprompt-core
+          ref: ${{ steps.core.outputs.ref }}
+          path: systemprompt-core
+      - name: Install libdbus (linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: systemprompt-internal/bridge
+          key: ${{ matrix.runner }}
+
+      - name: Build release binary
+        shell: bash
+        run: cargo build --manifest-path systemprompt-internal/bridge/Cargo.toml --release --locked
+
+      - name: Package tarball (linux)
+        if: runner.os == 'Linux'
+        run: |
+          ASSET_ARCH=${{ matrix.arch }} SKIP_BUILD=1 PUBLISH=0 \
+            systemprompt-internal/scripts/package-bridge-linux.sh
+          cp systemprompt-internal/dist/${{ matrix.asset }} "${{ matrix.asset }}"
+
+      - name: Package .app + dmg (macos)
+        if: runner.os == 'macOS'
+        run: |
+          systemprompt-internal/bridge/scripts/make-mac-app.sh
+          hdiutil create -volname "Systemprompt Internal Bridge" \
+            -srcfolder "systemprompt-internal/bridge/target/release/Systemprompt Internal Bridge.app" \
+            -format UDZO "${{ matrix.asset }}"
+
+      - name: Rename output (windows)
+        if: runner.os == 'Windows'
+        run: Copy-Item "systemprompt-internal\bridge\target\release\systemprompt-internal-bridge.exe" "${{ matrix.asset }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: ${{ matrix.asset }}
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Sign & publish
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve tag
+        id: tag
+        run: echo "tag=${{ github.event.inputs.bridge_tag || github.ref_name }}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        with:
+          path: systemprompt-internal
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Add installer
+        run: install -m 0755 systemprompt-internal/scripts/install-bridge.sh dist/install.sh
+
+      - name: Generate checksums
+        working-directory: dist
+        run: sha256sum systemprompt-internal-bridge-* install.sh > SHA256SUMS
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign artifacts (keyless)
+        working-directory: dist
+        run: |
+          for f in systemprompt-internal-bridge-* install.sh SHA256SUMS; do
+            cosign sign-blob --yes \
+              --output-signature "${f}.sig" \
+              --output-certificate "${f}.pem" \
+              "${f}"
+          done
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: ${{ steps.tag.outputs.tag }}
+          body: |
+            ## Systemprompt Internal Bridge ${{ steps.tag.outputs.tag }}
+
+            Desktop bridge for Claude Code, Claude Desktop, and Codex CLI —
+            connects them to the Systemprompt Internal governance gateway.
+
+            ### Install (Linux)
+
+            ```bash
+            curl -fsSL https://github.com/systempromptio/systemprompt-internal/releases/latest/download/install.sh | sh -s -- --code <code>
+            ```
+
+            ### macOS / Windows
+
+            Binaries are unsigned for now. On macOS, clear the quarantine flag
+            after mounting the dmg: `xattr -dr com.apple.quarantine "/Applications/Systemprompt Internal Bridge.app"`.
+            On Windows, choose "More info → Run anyway" at the SmartScreen prompt.
+
+            ### Verifying a signature (cosign keyless)
+
+            ```bash
+            cosign verify-blob \
+              --certificate-identity-regexp='https://github.com/systempromptio/systemprompt-internal/' \
+              --certificate-oidc-issuer='https://token.actions.githubusercontent.com' \
+              --signature systemprompt-internal-bridge-linux-x86_64.tar.gz.sig \
+              --certificate systemprompt-internal-bridge-linux-x86_64.tar.gz.pem \
+              systemprompt-internal-bridge-linux-x86_64.tar.gz
+            ```
+          files: |
+            dist/systemprompt-internal-bridge-*
+            dist/install.sh
+            dist/install.sh.sig
+            dist/install.sh.pem
+            dist/SHA256SUMS
+            dist/SHA256SUMS.sig
+            dist/SHA256SUMS.pem
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

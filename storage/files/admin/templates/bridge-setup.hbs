@@ -25,8 +25,21 @@
                             <li><a href="{{download_base_url}}/systemprompt-internal-bridge-linux-aarch64.tar.gz">Linux (.tar.gz, aarch64)</a></li>
                         </ul>
                     </details>
+                    <p class="text-tertiary text-sm">Binaries are served from GitHub Releases and are unsigned for now. macOS: after installing, run <code>xattr -dr com.apple.quarantine "/Applications/Systemprompt Internal Bridge.app"</code>. Windows: choose &ldquo;More info &rarr; Run anyway&rdquo; at the SmartScreen prompt.</p>
                 </div>
             </div>
+
+            {{#unless odoo_linked}}
+            <div class="setup-step">
+                <div class="step-num">!</div>
+                <div>
+                    <h2>Link your Odoo account</h2>
+                    <p>Your bridge signs in as you, and the Odoo tools act with <em>your</em> Odoo credential &mdash; but you haven't linked one yet, so every Odoo tool call will fail.</p>
+                    <p><a href="/admin/profile" class="download-cta">Link Odoo on your profile &rarr;</a></p>
+                    <p class="text-tertiary text-sm">Generate an API key in your Odoo preferences, then paste it into the Odoo card on the profile page.</p>
+                </div>
+            </div>
+            {{/unless}}
 
             <div class="setup-step">
                 <div class="step-num">2</div>

@@ -17,6 +17,11 @@ header:
       href: "/documentation/"
       dropdown: false
 
+    - id: download
+      label: "Download"
+      href: "https://github.com/systempromptio/systemprompt-internal/releases/latest"
+      dropdown: false
+
 
 footer:
   capabilities:
@@ -52,6 +57,9 @@ footer:
       label: "Contact"
       external: true
   resources:
+    - path: "https://github.com/systempromptio/systemprompt-internal/releases/latest"
+      label: "Bridge Downloads"
+      external: true
     - path: "/skills/"
       label: "Skills"
     - path: "/documentation/"
