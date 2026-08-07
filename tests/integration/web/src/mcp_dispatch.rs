@@ -211,8 +211,12 @@ async fn list_dispatch_renders_one_line_per_document() {
     );
     assert_eq!(
         summary_of(&result),
-        format!("{expected} document(s) in the knowledge bank"),
-        "the summary the model reads counts the same documents the body lists"
+        format!(
+            "{expected} document(s) in the knowledge bank\n\n{}",
+            body_of(&result)
+        ),
+        "the text block leads with the document count and folds the listing \
+         under it for hosts without the UI extension"
     );
 
     db.cleanup().await;
