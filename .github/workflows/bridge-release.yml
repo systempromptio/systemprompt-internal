@@ -87,6 +87,7 @@ jobs:
             arch: aarch64
           - runner: macos-14
             asset: systemprompt-internal-bridge-macos.dmg
+            rust_targets: aarch64-apple-darwin,x86_64-apple-darwin
           - runner: windows-latest
             asset: systemprompt-internal-bridge-windows.exe
     steps:
@@ -106,14 +107,28 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_targets }}
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: systemprompt-internal/bridge
           key: ${{ matrix.runner }}
 
       - name: Build release binary
+        if: runner.os != 'macOS'
         shell: bash
         run: cargo build --manifest-path systemprompt-internal/bridge/Cargo.toml --release --locked
+
+      # Both slices, so make-mac-app.sh --universal can lipo them into one
+      # universal2 executable: the runner is Apple Silicon, but the .dmg has to
+      # run on Intel Macs too.
+      - name: Build release binaries (macos, universal2)
+        if: runner.os == 'macOS'
+        run: |
+          for target in aarch64-apple-darwin x86_64-apple-darwin; do
+            cargo build --manifest-path systemprompt-internal/bridge/Cargo.toml \
+              --release --locked --target "$target"
+          done
 
       - name: Package tarball (linux)
         if: runner.os == 'Linux'
@@ -122,13 +137,91 @@ jobs:
             systemprompt-internal/scripts/package-bridge-linux.sh
           cp systemprompt-internal/dist/${{ matrix.asset }} "${{ matrix.asset }}"
 
-      - name: Package .app + dmg (macos)
+      # A fork, or this repo before the Apple secrets were configured, still
+      # produces a working (if unsigned) dmg rather than a red build.
+      - name: Detect Apple signing credentials (macos)
+        id: signing
+        if: runner.os == 'macOS'
+        env:
+          APPLE_CERT_P12_BASE64: ${{ secrets.APPLE_CERT_P12_BASE64 }}
+        run: |
+          if [[ -n "$APPLE_CERT_P12_BASE64" ]]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Apple signing secrets are absent — publishing an UNSIGNED macOS build."
+          fi
+
+      - name: Import signing identity (macos)
+        if: steps.signing.outputs.enabled == 'true'
+        env:
+          APPLE_CERT_P12_BASE64: ${{ secrets.APPLE_CERT_P12_BASE64 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          APPLE_API_KEY_P8_BASE64: ${{ secrets.APPLE_API_KEY_P8_BASE64 }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          # Default is a 5-minute idle lock, which expires mid-notarization.
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+
+          echo "$APPLE_CERT_P12_BASE64" | base64 -d > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" \
+            -P "$APPLE_CERT_PASSWORD" -f pkcs12 -T /usr/bin/codesign
+          rm -f "$RUNNER_TEMP/cert.p12"
+
+          # Without this codesign blocks on a GUI prompt for the private key.
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" > /dev/null
+
+          # Prepend, keeping the system keychains searchable for the Apple roots.
+          security list-keychains -d user -s "$KEYCHAIN" \
+            $(security list-keychains -d user | tr -d '"')
+          security find-identity -v -p codesigning "$KEYCHAIN"
+
+          echo "$APPLE_API_KEY_P8_BASE64" | base64 -d > "$RUNNER_TEMP/notary.p8"
+          chmod 600 "$RUNNER_TEMP/notary.p8"
+
+      - name: Package .app (macos)
+        if: runner.os == 'macOS'
+        run: systemprompt-internal/bridge/scripts/make-mac-app.sh --universal
+
+      # Sign and staple the bundle before it goes into the dmg, so the ticket
+      # travels with the app itself and first launch works offline.
+      - name: Sign & notarize .app (macos)
+        if: steps.signing.outputs.enabled == 'true'
+        env:
+          SIGN_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          NOTARY_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          NOTARY_ISSUER: ${{ secrets.APPLE_API_ISSUER_ID }}
+        run: |
+          NOTARY_KEY="$RUNNER_TEMP/notary.p8" \
+            systemprompt-internal/bridge/scripts/sign-mac-app.sh \
+            "systemprompt-internal/bridge/target/release/Systemprompt Internal Bridge.app"
+
+      - name: Build dmg (macos)
         if: runner.os == 'macOS'
         run: |
-          systemprompt-internal/bridge/scripts/make-mac-app.sh
           hdiutil create -volname "Systemprompt Internal Bridge" \
             -srcfolder "systemprompt-internal/bridge/target/release/Systemprompt Internal Bridge.app" \
             -format UDZO "${{ matrix.asset }}"
+
+      - name: Sign & notarize dmg (macos)
+        if: steps.signing.outputs.enabled == 'true'
+        env:
+          SIGN_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          NOTARY_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          NOTARY_ISSUER: ${{ secrets.APPLE_API_ISSUER_ID }}
+        run: |
+          NOTARY_KEY="$RUNNER_TEMP/notary.p8" \
+            systemprompt-internal/bridge/scripts/sign-mac-app.sh "${{ matrix.asset }}"
+
+      - name: Tear down signing keychain (macos)
+        if: always() && runner.os == 'macOS'
+        run: |
+          rm -f "$RUNNER_TEMP/notary.p8" "$RUNNER_TEMP/cert.p12"
+          security delete-keychain "$RUNNER_TEMP/signing.keychain-db" 2>/dev/null || true
 
       - name: Rename output (windows)
         if: runner.os == 'Windows'
@@ -197,11 +290,23 @@ jobs:
             curl -fsSL https://github.com/systempromptio/systemprompt-internal/releases/latest/download/install.sh | sh -s -- --code <code>
             ```
 
-            ### macOS / Windows
+            ### macOS
 
-            Binaries are unsigned for now. On macOS, clear the quarantine flag
-            after mounting the dmg: `xattr -dr com.apple.quarantine "/Applications/Systemprompt Internal Bridge.app"`.
-            On Windows, choose "More info → Run anyway" at the SmartScreen prompt.
+            The dmg is a universal2 build (Apple Silicon + Intel), signed with
+            our Developer ID, notarized by Apple and stapled — mount it, drag
+            the app to Applications, and open it. No quarantine flag to clear.
+
+            Check the signature yourself:
+
+            ```bash
+            spctl --assess --type open --context context:primary-signature -vv systemprompt-internal-bridge-macos.dmg
+            codesign -dv --verbose=4 "/Applications/Systemprompt Internal Bridge.app"
+            ```
+
+            ### Windows
+
+            Binaries are unsigned. Choose "More info → Run anyway" at the
+            SmartScreen prompt.
 
             ### Verifying a signature (cosign keyless)
 
