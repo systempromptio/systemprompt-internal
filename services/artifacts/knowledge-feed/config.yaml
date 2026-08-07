@@ -1,0 +1,23 @@
+id: knowledge-feed
+name: "Knowledge Feed — brain@ Activity"
+description: "Everything the brain@ pipeline has captured into the knowledge bank as a live feed — each document with its source, pipeline status, category, and summary, newest first. Refresh re-runs list_documents against the knowledge bank."
+version: "1.0.0"
+enabled: true
+starred: true
+# `category`, `tags` and `query` are forward-compatible metadata — the core
+# loader ignores them today; the call also lives in `description` and view.html.
+category: knowledge
+tags:
+  - knowledge
+  - brain
+  - email
+  - pipeline
+  - feed
+# The knowledge-bank MCP server (services/mcp/knowledge-bank.yaml).
+mcp_tools:
+  - "mcp__knowledge-bank__list_documents"
+query: |
+  list_documents
+  arguments: {}
+  table: knowledge_documents (newest first, capped at 200 in the store)
+file: view.html

@@ -64,15 +64,26 @@ pub fn listing_summary(documents: &[DocumentSummary]) -> String {
     documents
         .iter()
         .map(|d| {
-            format!(
-                "- {} — {} ({}, {}, {}, {} chars)",
+            let mut line = format!(
+                "- {} — {} ({}, {}, {}, {} chars, {}",
                 d.id,
                 d.title,
                 d.source,
                 project_label(d.project.as_deref()),
                 d.created_at.format("%Y-%m-%d"),
-                d.size
-            )
+                d.size,
+                d.status
+            );
+            if let Some(category) = d.category.as_deref() {
+                line.push_str(", ");
+                line.push_str(category);
+            }
+            line.push(')');
+            if let Some(summary) = d.summary.as_deref() {
+                line.push_str("\n  ");
+                line.push_str(summary);
+            }
+            line
         })
         .collect::<Vec<_>>()
         .join("\n")

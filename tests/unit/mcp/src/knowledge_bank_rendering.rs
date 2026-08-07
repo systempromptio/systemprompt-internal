@@ -39,6 +39,9 @@ fn row(title: &str, project: Option<&str>, size: i32) -> DocumentSummary {
         project: project.map(str::to_owned),
         created_at: created_at(),
         size,
+        status: "raw".to_owned(),
+        category: None,
+        summary: None,
     }
 }
 
@@ -101,6 +104,26 @@ fn a_listing_row_reports_a_size_and_withholds_the_content() {
     assert!(out.contains("4096 chars"), "{out}");
     assert!(out.contains("Architecture decision record"));
     assert!(out.contains(&Uuid::nil().to_string()));
+}
+
+#[test]
+fn a_listing_row_reports_its_pipeline_status() {
+    let out = listing_summary(&[row("Inbound email", None, 512)]);
+    assert!(out.contains("512 chars, raw)"), "{out}");
+}
+
+#[test]
+fn a_categorized_row_carries_its_category_and_summary() {
+    let mut categorized = row("Northwind order", Some("acme"), 900);
+    categorized.status = "categorized".to_owned();
+    categorized.category = Some("sales-order".to_owned());
+    categorized.summary = Some("An order for 40 crates of aniseed syrup.".to_owned());
+    let out = listing_summary(&[categorized]);
+    assert!(out.contains("900 chars, categorized, sales-order)"), "{out}");
+    assert!(
+        out.contains("\n  An order for 40 crates of aniseed syrup."),
+        "the summary renders as an indented follow-on line: {out}"
+    );
 }
 
 #[test]

@@ -56,9 +56,7 @@ fn open_session(config: &ImapConfig) -> Result<TlsSession, KnowledgeJobError> {
 
 // Why: BODY.PEEK[] keeps the \Seen flag untouched, so a crash between fetch
 // and database commit leaves the mailbox exactly as it was.
-pub(crate) fn fetch_unseen(
-    config: &ImapConfig,
-) -> Result<Vec<FetchedMessage>, KnowledgeJobError> {
+pub(crate) fn fetch_unseen(config: &ImapConfig) -> Result<Vec<FetchedMessage>, KnowledgeJobError> {
     let mut session = open_session(config)?;
 
     let mut uids: Vec<u32> = session

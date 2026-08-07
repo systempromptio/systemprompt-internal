@@ -205,7 +205,10 @@ impl KnowledgeStore {
                 source,
                 project,
                 created_at,
-                char_length(content) AS "size!"
+                char_length(content) AS "size!",
+                status,
+                category,
+                structured->>'summary' AS summary
             FROM knowledge_documents
             WHERE ($1::text IS NULL OR project = $1)
               AND ($2::text IS NULL OR source = $2)

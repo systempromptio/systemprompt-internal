@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                id,\n                title,\n                source,\n                project,\n                created_at,\n                char_length(content) AS \"size!\"\n            FROM knowledge_documents\n            WHERE ($1::text IS NULL OR project = $1)\n              AND ($2::text IS NULL OR source = $2)\n            ORDER BY created_at DESC\n            LIMIT $3\n            ",
+  "query": "\n            SELECT\n                id,\n                title,\n                source,\n                project,\n                created_at,\n                char_length(content) AS \"size!\",\n                status,\n                category,\n                structured->>'summary' AS summary\n            FROM knowledge_documents\n            WHERE ($1::text IS NULL OR project = $1)\n              AND ($2::text IS NULL OR source = $2)\n            ORDER BY created_at DESC\n            LIMIT $3\n            ",
   "describe": {
     "columns": [
       {
@@ -63,6 +63,34 @@
         "name": "size!",
         "type_info": "Int4",
         "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "knowledge_documents",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "category",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "knowledge_documents",
+            "name": "category"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "summary",
+        "type_info": "Text",
+        "origin": "Expression"
       }
     ],
     "parameters": {
@@ -78,8 +106,11 @@
       false,
       true,
       false,
+      null,
+      false,
+      true,
       null
     ]
   },
-  "hash": "353aba0a957a271f65240d8ad6f8d7da52e2f40508795a72098916fd7ee0040f"
+  "hash": "fb494dd4f2d573ec1755b770d852601ecaf82f188fd49b9bd06b14af349dc4e3"
 }

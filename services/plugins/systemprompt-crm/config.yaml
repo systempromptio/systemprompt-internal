@@ -46,3 +46,4 @@ plugin:
       - pipeline-open-deals
       - recent-activity
       - todo-bulletin
+      - knowledge-feed

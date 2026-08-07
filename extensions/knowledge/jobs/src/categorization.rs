@@ -129,7 +129,12 @@ impl Job for KnowledgeCategorizationJob {
         }
 
         let duration_ms = u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX);
-        tracing::info!(success, failed, duration_ms, "knowledge_categorization: run complete");
+        tracing::info!(
+            success,
+            failed,
+            duration_ms,
+            "knowledge_categorization: run complete"
+        );
         Ok(JobResult::success()
             .with_stats(success, failed)
             .with_duration(duration_ms))

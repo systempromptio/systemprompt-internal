@@ -33,6 +33,9 @@ pub struct DocumentSummary {
     pub project: Option<String>,
     pub created_at: DateTime<Utc>,
     pub size: i32,
+    pub status: String,
+    pub category: Option<String>,
+    pub summary: Option<String>,
 }
 
 /// What a successful upload tells the caller: the identity of the row and when
