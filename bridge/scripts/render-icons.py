@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """Regenerate the Systemprompt Internal Bridge raster icons from the master `assets/icon.svg`.
 
-Produces, idempotently, from the single Systemprompt Internal "A" master:
+Produces, idempotently, from the single Systemprompt Internal "</" master:
   - window-icon-1024.png  (1024x1024, GUI window + macOS .icns source)
   - tray-icon.png         (44x44, the mark on the rounded orange square, for the system tray)
   - app-icon.ico          (multi-resolution 16/32/48/256, embedded into the .exe)
 
-Requires cairosvg and Pillow (both already present in this environment):
-    python3 bridge/scripts/render-icons.py
+Requires cairosvg and Pillow, plus the native cairo library (brew install cairo):
+    python3 -m venv .venv && .venv/bin/pip install cairosvg Pillow
+    DYLD_FALLBACK_LIBRARY_PATH=/usr/local/lib .venv/bin/python bridge/scripts/render-icons.py
 """
 
 import io

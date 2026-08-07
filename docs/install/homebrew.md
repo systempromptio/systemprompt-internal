@@ -35,7 +35,7 @@ brew services stop gateway
 
 ## Configuration
 
-The formula installs `systemprompt` and `systemprompt-mcp-agent` to `$(brew --prefix)/bin` (macOS Apple silicon, Linux amd64/arm64).
+The formula installs `systemprompt` and `systemprompt-mcp-agent` to `$(brew --prefix)/bin`. Platforms with a bottle are listed in the [tap](https://github.com/systempromptio/homebrew-tap); on an Intel Mac, use the `darwin-amd64` tarball from [install/binary.md](binary.md) if the tap has no bottle for it.
 
 Before starting, export required env vars or set them in `$(brew --prefix)/etc/systemprompt.env`:
 

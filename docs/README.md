@@ -7,6 +7,7 @@ User-facing docs for the gateway published out of this repository.
 | | What it is | Where it runs | Tag series |
 |---|---|---|---|
 | **systemprompt-gateway** (server) | AI governance gateway — Rust HTTP server + Postgres + MCP extensions | Kubernetes / Docker / Linux VM / PaaS | `v*` |
+| **Systemprompt Internal Bridge** (client) | Desktop app + local inference proxy; holds gateway credentials and syncs plugins, skills and MCP servers into Claude Desktop, Cowork and Codex CLI | macOS / Windows / Linux workstation | `bridge-v*` |
 
 Clients authenticate with a personal access token issued on
 `/admin/access/tokens`; see [`examples/pi/`](../examples/pi/) for a worked
@@ -37,6 +38,19 @@ Choose the channel that fits your environment. Each doc is a copy-paste recipe.
 | DigitalOcean 1-Click | [install/digitalocean.md](install/digitalocean.md) | Single-VM droplet (bundled Postgres) |
 
 Maintainers: the release process (versioning, tag scheme, retention, rollback) is documented in [RELEASING.md](RELEASING.md).
+
+## Install the Bridge (client)
+
+The desktop app that authenticates a workstation against a gateway and syncs
+plugins, skills and MCP servers into Claude Desktop, Cowork and Codex CLI.
+
+| Platform | Doc | Asset |
+|---|---|---|
+| macOS (Apple Silicon **and** Intel — one universal dmg) | [install/bridge-macos.md](install/bridge-macos.md) | `systemprompt-internal-bridge-macos.dmg` |
+
+Linux (`-linux-x86_64.tar.gz`, `-linux-aarch64.tar.gz`) and Windows
+(`-windows.exe`) assets ship on the same `bridge-v*` release; see the macOS doc
+for the download and login flow, which is otherwise identical.
 
 ### Running a second clone side-by-side
 
