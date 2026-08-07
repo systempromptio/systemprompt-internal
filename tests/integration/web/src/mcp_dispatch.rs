@@ -328,7 +328,12 @@ async fn an_unknown_knowledge_bank_tool_lists_the_three_it_serves() {
         return;
     };
 
-    let error = dispatch_kb(&db, &request_context(), "delete_everything", serde_json::json!({}))
+    let error = dispatch_kb(
+        &db,
+        &request_context(),
+        "delete_everything",
+        serde_json::json!({}),
+    )
     .await
     .expect_err("an unknown tool name is refused");
 

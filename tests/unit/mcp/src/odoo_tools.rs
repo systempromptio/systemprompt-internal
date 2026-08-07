@@ -60,8 +60,7 @@ fn the_search_tool_takes_only_optional_filters() {
     let schema = serde_json::to_value(&*tool.input_schema).expect("schema serializes");
 
     assert!(
-        schema.get("required").is_none()
-            || schema["required"].as_array().is_none_or(Vec::is_empty),
+        schema.get("required").is_none() || schema["required"].as_array().is_none_or(Vec::is_empty),
         "\"show me the pipeline\" must not require the caller to invent a filter: {schema}"
     );
 }

@@ -6,12 +6,15 @@
 //! subject-only matches or drops the model filter — no error, just wrong
 //! answers.
 
-use systemprompt_mcp_odoo::server::notes::{
-    search_domain, search_row, thread_domain, thread_row,
-};
+use systemprompt_mcp_odoo::server::notes::{search_domain, search_row, thread_domain, thread_row};
 use systemprompt_mcp_odoo::tools::inputs::NoteSearchInput;
 
-fn search(query: &str, model: Option<&str>, from: Option<&str>, to: Option<&str>) -> NoteSearchInput {
+fn search(
+    query: &str,
+    model: Option<&str>,
+    from: Option<&str>,
+    to: Option<&str>,
+) -> NoteSearchInput {
     NoteSearchInput {
         query: query.to_owned(),
         model: model.map(str::to_owned),
@@ -68,7 +71,10 @@ fn the_model_filter_ands_onto_the_text_group() {
     let domain = search_domain(&search("pricing", Some("crm.lead"), None, None));
     let leaves = domain.as_array().expect("a domain is an array");
 
-    assert_eq!(leaves[0], "|", "the OR still governs only the two text leaves");
+    assert_eq!(
+        leaves[0], "|",
+        "the OR still governs only the two text leaves"
+    );
     assert_eq!(
         leaves.last(),
         Some(&serde_json::json!(["model", "=", "crm.lead"])),
@@ -109,7 +115,10 @@ fn a_thread_row_renders_the_body_as_text_not_html() {
     let row = thread_row(&record);
 
     assert!(row.contains("Customer wants net 60"), "got: {row}");
-    assert!(!row.contains("<p>"), "markup must not reach the model: {row}");
+    assert!(
+        !row.contains("<p>"),
+        "markup must not reach the model: {row}"
+    );
     assert!(row.contains("Jo Salesperson") && row.contains("2026-08-01 09:00:00"));
 }
 
@@ -137,10 +146,16 @@ fn a_search_row_carries_the_anchor_needed_to_follow_it() {
 
     let row = search_row(&record, "pricing");
 
-    assert!(row.contains("crm.lead"), "the model is half the anchor: {row}");
+    assert!(
+        row.contains("crm.lead"),
+        "the model is half the anchor: {row}"
+    );
     assert!(row.contains("42"), "the id is the other half: {row}");
     assert!(row.contains("Acme rollout"));
-    assert!(row.contains("pricing tiers"), "the snippet shows the match: {row}");
+    assert!(
+        row.contains("pricing tiers"),
+        "the snippet shows the match: {row}"
+    );
 }
 
 #[test]
@@ -154,5 +169,8 @@ fn a_search_row_snippet_is_plain_text() {
     let row = search_row(&record, "beta");
 
     assert!(row.contains("alpha beta"), "got: {row}");
-    assert!(!row.contains('<'), "no markup survives into a snippet: {row}");
+    assert!(
+        !row.contains('<'),
+        "no markup survives into a snippet: {row}"
+    );
 }

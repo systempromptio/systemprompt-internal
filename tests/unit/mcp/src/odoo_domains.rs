@@ -5,13 +5,13 @@
 //! activities, the acting-uid filter that makes "list my activities" mean the
 //! caller's.
 
-use systemprompt_mcp_odoo::server::crm::lead_domain;
 use systemprompt_mcp_odoo::server::activity::activity_domain;
+use systemprompt_mcp_odoo::server::crm::lead_domain;
 use systemprompt_mcp_odoo::server::partner::partner_domain;
+use systemprompt_mcp_odoo::server::report::report_domain;
 use systemprompt_mcp_odoo::tools::inputs::{
     ActivityListInput, LeadReportInput, LeadSearchInput, ReportGroupBy, resolve_limit,
 };
-use systemprompt_mcp_odoo::server::report::report_domain;
 
 fn lead_input(query: Option<&str>, stage: Option<&str>, user: Option<&str>) -> LeadSearchInput {
     LeadSearchInput {
@@ -166,7 +166,11 @@ fn report_domain_covers_all_four_date_window_combinations() {
 fn resolve_limit_defaults_and_caps() {
     assert_eq!(resolve_limit(None), 20);
     assert_eq!(resolve_limit(Some(5)), 5);
-    assert_eq!(resolve_limit(Some(0)), 1, "zero would return nothing at all");
+    assert_eq!(
+        resolve_limit(Some(0)),
+        1,
+        "zero would return nothing at all"
+    );
     assert_eq!(
         resolve_limit(Some(5000)),
         100,

@@ -126,7 +126,10 @@ async fn a_user_with_no_row_is_rejected_rather_than_filtered_to_nothing() {
 
     let err = h
         .filter
-        .filter(&UserId::new(unique("ghost")), MarketplaceCandidate::default())
+        .filter(
+            &UserId::new(unique("ghost")),
+            MarketplaceCandidate::default(),
+        )
         .await
         .expect_err("unknown user must not resolve");
 
@@ -321,8 +324,13 @@ async fn one_marketplace_rule_covers_members_that_declare_none_of_their_own() {
     let marketplace = unique("mp");
     let skill = unique("skill");
     h.entity(EntityKind::Marketplace, &marketplace, false).await;
-    h.rule(EntityKind::Marketplace, &marketplace, "staff", Access::Allow)
-        .await;
+    h.rule(
+        EntityKind::Marketplace,
+        &marketplace,
+        "staff",
+        Access::Allow,
+    )
+    .await;
 
     let kept = h
         .filter
@@ -363,8 +371,13 @@ async fn a_member_that_declares_a_rule_owns_its_decision_over_the_marketplace() 
     let marketplace = unique("mp");
     let skill = unique("skill");
     h.entity(EntityKind::Marketplace, &marketplace, false).await;
-    h.rule(EntityKind::Marketplace, &marketplace, "staff", Access::Allow)
-        .await;
+    h.rule(
+        EntityKind::Marketplace,
+        &marketplace,
+        "staff",
+        Access::Allow,
+    )
+    .await;
     h.entity(EntityKind::Skill, &skill, false).await;
     h.rule(EntityKind::Skill, &skill, "staff", Access::Deny)
         .await;

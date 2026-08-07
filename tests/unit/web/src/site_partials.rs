@@ -8,8 +8,7 @@
 use std::sync::Arc;
 use systemprompt::template_provider::{ComponentRenderer, PartialSource};
 use systemprompt_web_site::partials::{
-    FooterPartialRenderer, HeadAssetsPartialRenderer, HeaderPartialRenderer,
-    ScriptsPartialRenderer,
+    FooterPartialRenderer, HeadAssetsPartialRenderer, HeaderPartialRenderer, ScriptsPartialRenderer,
 };
 
 fn all_renderers() -> Vec<Arc<dyn ComponentRenderer>> {

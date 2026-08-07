@@ -30,7 +30,8 @@ fn a_valid_payload_reports_its_decoded_length() {
     let size = check_upload(&encoded).expect("valid base64 is accepted");
 
     assert_eq!(
-        size, 11,
+        size,
+        11,
         "the gate measures decoded bytes, not the {} characters of base64",
         encoded.len()
     );
@@ -178,7 +179,10 @@ fn an_attachment_row_leads_with_the_id_and_names_its_record() {
 fn the_withheld_notice_gives_the_size_and_the_alternative() {
     let notice = too_large_notice(9_000_000);
 
-    assert!(notice.contains("9000000"), "state the actual size: {notice}");
+    assert!(
+        notice.contains("9000000"),
+        "state the actual size: {notice}"
+    );
     assert!(
         notice.contains(&MAX_INLINE_BYTES.to_string()),
         "and the limit it exceeded: {notice}"

@@ -97,7 +97,10 @@ fn a_long_body_is_centred_on_the_match() {
         "the whole point is to show the match: {snippet}"
     );
     assert!(snippet.starts_with('…') && snippet.ends_with('…'));
-    assert!(snippet.contains('a') && snippet.contains('b'), "context on both sides");
+    assert!(
+        snippet.contains('a') && snippet.contains('b'),
+        "context on both sides"
+    );
 }
 
 #[test]
@@ -119,7 +122,10 @@ fn a_match_at_the_very_start_yields_a_full_width_snippet() {
 
     let snippet = snippet_around(&text, "needle");
 
-    assert!(snippet.starts_with("NEEDLE"), "no leading ellipsis is needed");
+    assert!(
+        snippet.starts_with("NEEDLE"),
+        "no leading ellipsis is needed"
+    );
     let content = snippet.chars().filter(|c| *c != '…').count();
     assert_eq!(
         content, SNIPPET_CHARS,

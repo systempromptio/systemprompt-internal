@@ -177,7 +177,9 @@ async fn search_ranks_by_term_density_rather_than_insertion_order() {
     .expect("search dispatches to its handler");
 
     let body = body_of(&result);
-    let workshop = body.find("Checkout workshop").expect("the workshop matched");
+    let workshop = body
+        .find("Checkout workshop")
+        .expect("the workshop matched");
     let decision = body
         .find("Payment provider decision")
         .expect("the decision matched too");

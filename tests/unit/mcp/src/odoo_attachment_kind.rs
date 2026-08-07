@@ -80,7 +80,11 @@ fn giving_neither_is_refused() {
 fn blank_strings_count_as_absent() {
     let err = classify_upload(&input(Some("   "), Some(""))).expect_err("both blank is neither");
 
-    assert!(err.message.contains("Provide content_base64"), "got: {}", err.message);
+    assert!(
+        err.message.contains("Provide content_base64"),
+        "got: {}",
+        err.message
+    );
 }
 
 #[test]

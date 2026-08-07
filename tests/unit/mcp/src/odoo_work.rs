@@ -38,8 +38,14 @@ fn tasks(project: Option<&str>, query: Option<&str>, open_only: Option<bool>) ->
 
 #[test]
 fn iso_datetimes_are_rewritten_into_odoos_form() {
-    assert_eq!(normalize_datetime("2026-08-07T10:00:00"), "2026-08-07 10:00:00");
-    assert_eq!(normalize_datetime("2026-08-07T10:00:00Z"), "2026-08-07 10:00:00");
+    assert_eq!(
+        normalize_datetime("2026-08-07T10:00:00"),
+        "2026-08-07 10:00:00"
+    );
+    assert_eq!(
+        normalize_datetime("2026-08-07T10:00:00Z"),
+        "2026-08-07 10:00:00"
+    );
     assert_eq!(
         normalize_datetime("2026-08-07T10:00:00.123Z"),
         "2026-08-07 10:00:00",
@@ -49,7 +55,10 @@ fn iso_datetimes_are_rewritten_into_odoos_form() {
 
 #[test]
 fn a_datetime_already_in_odoos_form_is_untouched() {
-    assert_eq!(normalize_datetime("2026-08-07 10:00:00"), "2026-08-07 10:00:00");
+    assert_eq!(
+        normalize_datetime("2026-08-07 10:00:00"),
+        "2026-08-07 10:00:00"
+    );
 }
 
 #[test]
@@ -76,7 +85,10 @@ fn an_event_with_no_end_gets_the_default_duration() {
 fn a_duration_in_hours_sets_the_end() {
     let values = event_values(&event("2026-08-07T09:00:00", None, Some(2.5)));
 
-    assert_eq!(values["stop"], "2026-08-07 11:30:00", "fractional hours count");
+    assert_eq!(
+        values["stop"], "2026-08-07 11:30:00",
+        "fractional hours count"
+    );
 }
 
 #[test]
@@ -164,14 +176,14 @@ fn task_list_can_be_asked_for_everything() {
 
 #[test]
 fn a_resolved_project_becomes_an_id_filter() {
-    let domain = task_domain(&tasks(Some("Acme"), Some("migration"), Some(false)), Some(7));
+    let domain = task_domain(
+        &tasks(Some("Acme"), Some("migration"), Some(false)),
+        Some(7),
+    );
 
     assert_eq!(
         domain,
-        serde_json::json!([
-            ["project_id", "=", 7],
-            ["name", "ilike", "%migration%"]
-        ]),
+        serde_json::json!([["project_id", "=", 7], ["name", "ilike", "%migration%"]]),
         "the name was resolved to an id before the domain was built"
     );
 }

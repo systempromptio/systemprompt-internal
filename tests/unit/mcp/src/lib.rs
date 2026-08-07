@@ -9,9 +9,9 @@
 //!   admin gate, its tool contract, its error mapping, and how search hits and
 //!   listing rows are rendered for the model
 //! - `systemprompt-mcp-odoo`'s JSON-RPC envelope handling, the search domains
-//!   it builds (including the acting-uid filter that makes "my activities"
-//!   mean the caller's), its record rendering, its sealed-credential framing,
-//!   its tool contract, and its error mapping
+//!   it builds (including the acting-uid filter that makes "my activities" mean
+//!   the caller's), its record rendering, its sealed-credential framing, its
+//!   tool contract, and its error mapping
 //! - the odoo knowledge plane: chatter HTML reduced to readable text,
 //!   query-centred snippets, the note-search domain's OR-over-AND shape, the
 //!   attachment size gates on both the upload and the inline-return side, and

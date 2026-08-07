@@ -74,7 +74,10 @@ fn an_unscoped_document_says_so_rather_than_rendering_nothing() {
     // `project` is nullable, and a blank in the provenance line would read as
     // a rendering bug.
     let out = search_summary(&[hit("Standalone note", None, "body")]);
-    assert!(out.contains("(meeting-transcript, unscoped, 2026-07-03)"), "{out}");
+    assert!(
+        out.contains("(meeting-transcript, unscoped, 2026-07-03)"),
+        "{out}"
+    );
 }
 
 #[test]

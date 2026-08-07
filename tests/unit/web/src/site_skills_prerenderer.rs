@@ -33,7 +33,9 @@ fn config(yaml: &str) -> Arc<SkillsPageConfig> {
 fn skills(entries: &[(&str, Option<&str>)]) -> Arc<SkillsPageConfig> {
     let mut yaml = String::from("skills:\n");
     for (id, category) in entries {
-        yaml.push_str(&format!("  - id: {id}\n    name: {id}\n    description: A skill.\n"));
+        yaml.push_str(&format!(
+            "  - id: {id}\n    name: {id}\n    description: A skill.\n"
+        ));
         if let Some(category) = category {
             yaml.push_str(&format!("    category: \"{category}\"\n"));
         }

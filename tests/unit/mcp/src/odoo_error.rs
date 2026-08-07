@@ -56,7 +56,8 @@ fn only_a_transport_failure_is_worth_retrying_unchanged() {
 
 #[test]
 fn a_missing_link_reaches_the_caller_as_something_they_can_fix() {
-    let mcp_error: rmcp::ErrorData = OdooError::NotLinked("link it on /admin/profile".to_owned()).into();
+    let mcp_error: rmcp::ErrorData =
+        OdooError::NotLinked("link it on /admin/profile".to_owned()).into();
 
     assert!(
         mcp_error.message.contains("/admin/profile"),

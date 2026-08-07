@@ -45,11 +45,11 @@ mod handler_variants;
 #[cfg(test)]
 mod hooks_track_contract;
 #[cfg(test)]
+mod odoo_auth_contract;
+#[cfg(test)]
 mod principal;
 #[cfg(test)]
 mod route_source;
-#[cfg(test)]
-mod odoo_auth_contract;
 #[cfg(test)]
 mod secrets_contract;
 #[cfg(test)]

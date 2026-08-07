@@ -57,7 +57,10 @@ fn a_keyerror_shape_is_recognised_too() {
     let fault = OdooError::Odoo("KeyError: 'project.task'".to_owned());
 
     assert!(
-        matches!(map_missing_app("project.task", fault), OdooError::AppMissing(_)),
+        matches!(
+            map_missing_app("project.task", fault),
+            OdooError::AppMissing(_)
+        ),
         "the registry lookup failure reaches the boundary in this shape"
     );
 }

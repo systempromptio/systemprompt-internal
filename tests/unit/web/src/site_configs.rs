@@ -157,8 +157,5 @@ skills:
 
     assert_eq!(round_tripped.skills.len(), 1);
     assert_eq!(round_tripped.skills[0].tags, vec!["crm", "sales"]);
-    assert_eq!(
-        round_tripped.skills[0].category.as_deref(),
-        Some("Odoo")
-    );
+    assert_eq!(round_tripped.skills[0].category.as_deref(), Some("Odoo"));
 }

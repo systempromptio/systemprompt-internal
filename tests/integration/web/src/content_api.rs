@@ -153,7 +153,10 @@ async fn generate_link_returns_a_short_url_built_from_the_configured_base_url() 
         body["short_url"],
         json!(format!("{BASE_URL}/r/{short_code}"))
     );
-    assert_eq!(body["target_url"], json!("https://systemprompt.test/guides/one"));
+    assert_eq!(
+        body["target_url"],
+        json!("https://systemprompt.test/guides/one")
+    );
 
     db.cleanup().await;
 }

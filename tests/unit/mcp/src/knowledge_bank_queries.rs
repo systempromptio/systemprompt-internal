@@ -46,7 +46,10 @@ fn an_out_of_range_limit_is_clamped_rather_than_refused() {
     // An agent asking for 100_000 results wants "as many as you have".
     assert_eq!(clamp_search_limit(Some(0)), 1);
     assert_eq!(clamp_search_limit(Some(1)), 1);
-    assert_eq!(clamp_search_limit(Some(100_000)), i64::from(MAX_SEARCH_LIMIT));
+    assert_eq!(
+        clamp_search_limit(Some(100_000)),
+        i64::from(MAX_SEARCH_LIMIT)
+    );
     assert_eq!(
         clamp_search_limit(Some(MAX_SEARCH_LIMIT)),
         i64::from(MAX_SEARCH_LIMIT)
