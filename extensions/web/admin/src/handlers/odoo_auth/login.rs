@@ -180,7 +180,10 @@ fn validate_request(req: &OdooLoginRequest, login: &str, credential: &str) -> Ad
 
 // Why: the credential just proved itself over RPC, so auto-linking it keeps
 // Odoo MCP tools working without a profile-page step (see the module doc).
-// Best-effort: sign-in must not fail because the link write did.
+// Best-effort: sign-in must not fail because the link write did. First-link
+// only: the sign-in credential may be a password, and overwriting an API key
+// stored from the profile page with a password would break RPC the moment
+// Odoo enforces API keys.
 async fn auto_link_identity(
     pool: &sqlx::PgPool,
     user_id: &UserId,
@@ -188,7 +191,7 @@ async fn auto_link_identity(
     uid: i32,
     credential: &str,
 ) {
-    if let Err(e) = odoo_identity::insert(pool, user_id, login, uid, credential).await {
+    if let Err(e) = odoo_identity::insert_if_absent(pool, user_id, login, uid, credential).await {
         tracing::error!(
             error = %e,
             user_id = %user_id,

@@ -88,7 +88,12 @@ pub(crate) async fn authenticate(
         }
     });
 
-    let resp = reqwest::Client::new()
+    // Why: without a request timeout a stalled Odoo hangs the sign-in handler
+    // (and the browser) instead of failing with an error the user can act on.
+    let resp = reqwest::Client::builder()
+        .connect_timeout(std::time::Duration::from_secs(5))
+        .timeout(std::time::Duration::from_secs(20))
+        .build()?
         .post(conn.endpoint())
         .json(&body)
         .send()

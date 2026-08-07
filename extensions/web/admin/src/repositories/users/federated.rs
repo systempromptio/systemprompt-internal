@@ -12,7 +12,13 @@
 //!    is the account *merge*. The caller MUST have verified `email_verified`
 //!    and an allow-listed domain before reaching this path — linking an
 //!    unverified address would let a hostile `IdP` claim arbitrary accounts.
-//! 3. **Create** — no mapping and no local account: provision a fresh user, the
+//! 3. **Odoo credential link** (odoo issuers only) — an active local account
+//!    already holds this Odoo identity in `odoo_identity` (the profile-page
+//!    "Connect Odoo" flow), under a *different* platform email. Resolving to
+//!    that account instead of provisioning is what keeps an admin who linked
+//!    Odoo before Odoo became a sign-in door from being split into a
+//!    duplicate, role-less account.
+//! 4. **Create** — no mapping and no local account: provision a fresh user, the
 //!    mapping, and — when the email's domain is claimed by a customer
 //!    organization — its membership row, in a single transaction.
 //!
@@ -80,6 +86,38 @@ async fn find_active_user_by_email(
         WHERE LOWER(email) = LOWER($1) AND status = 'active'
         "#,
         email
+    )
+    .fetch_optional(pool)
+    .await?;
+    Ok(row.map(|r| LocalUser {
+        id: r.id,
+        display_name: r.display_name,
+        roles: r.roles,
+    }))
+}
+
+/// A user who already holds this Odoo identity via the profile "Connect Odoo"
+/// flow. Matches on `odoo_uid` (the stable identifier Odoo issued as
+/// `external_sub`) or, as a fallback, the Odoo login, because a re-created
+/// Odoo user keeps its login but not its uid.
+async fn find_active_user_by_odoo_identity(
+    pool: &PgPool,
+    external_sub: &str,
+    odoo_login: &str,
+) -> Result<Option<LocalUser>, sqlx::Error> {
+    let odoo_uid: Option<i32> = external_sub.parse().ok();
+    let row = sqlx::query!(
+        r#"
+        SELECT u.id AS "id: UserId", COALESCE(u.display_name, u.name) AS "display_name!", u.roles AS "roles!: Vec<String>"
+        FROM odoo_identity oi
+        JOIN users u ON u.id = oi.user_id
+        WHERE (oi.odoo_uid = $1 OR LOWER(oi.odoo_login) = LOWER($2))
+          AND u.status = 'active'
+        ORDER BY (oi.odoo_uid = $1) DESC
+        LIMIT 1
+        "#,
+        odoo_uid,
+        odoo_login
     )
     .fetch_optional(pool)
     .await?;
@@ -278,6 +316,22 @@ pub async fn resolve_federated_user(
     }
 
     if let Some(user) = find_active_user_by_email(pool, email).await? {
+        link_existing(pool, issuer, external_sub, &user.id).await?;
+        return Ok(Some(ResolvedFederatedUser {
+            user_id: user.id,
+            email: email.to_owned(),
+            display_name: user.display_name,
+            roles: user.roles,
+        }));
+    }
+
+    // Why: an Odoo credential proves the same identity the profile-page link
+    // flow recorded, so a user who linked Odoo under another platform email
+    // resolves to that account rather than being duplicated (see module doc,
+    // step 3).
+    if issuer.starts_with("odoo:")
+        && let Some(user) = find_active_user_by_odoo_identity(pool, external_sub, email).await?
+    {
         link_existing(pool, issuer, external_sub, &user.id).await?;
         return Ok(Some(ResolvedFederatedUser {
             user_id: user.id,

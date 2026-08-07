@@ -13,7 +13,9 @@ plugin:
   skills:
     source: explicit
     include:
-      - cowork_setup
+      - systemprompt-setup
+      - systemprompt-setup-cowork
+      - systemprompt-setup-codex
       - crm
       - business_overview
       - add_note
@@ -34,8 +36,8 @@ plugin:
       - odoo
       - knowledge-bank
   content_sources: {}
-  # The workspace dashboards cowork_setup installs. The skill's primary channel
-  # is skills/cowork_setup/assets/artifacts/ (VM-mounted, bash-copyable); the
+  # The workspace dashboards systemprompt-setup-cowork installs. The skill's primary channel
+  # is skills/systemprompt-setup-cowork/assets/artifacts/ (VM-mounted, bash-copyable); the
   # artifacts/<id>.json records this selection emits into the bundle are the
   # fallback.
   artifacts:

@@ -63,8 +63,16 @@ impl OdooClient {
     /// # Errors
     /// [`OdooError::NotConfigured`] when `ODOO_URL` / `ODOO_DB` are not set.
     pub fn from_env() -> Result<Self, OdooError> {
+        // Why: without a request timeout a stalled Odoo hangs the MCP tool
+        // call until the *caller's* client gives up, which surfaces as a
+        // silent dashboard timeout instead of a tool error.
+        let http = reqwest::Client::builder()
+            .connect_timeout(std::time::Duration::from_secs(5))
+            .timeout(std::time::Duration::from_secs(20))
+            .build()
+            .map_err(|e| OdooError::Internal(format!("failed to build HTTP client: {e}")))?;
         Ok(Self {
-            http: reqwest::Client::new(),
+            http,
             conn: OdooConnection::from_env()?,
         })
     }

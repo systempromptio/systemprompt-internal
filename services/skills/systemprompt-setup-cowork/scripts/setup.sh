@@ -1,5 +1,5 @@
 #!/bin/sh
-# One-shot staging for the cowork_setup skill, run inside the Cowork session VM.
+# One-shot staging for the systemprompt-setup-cowork skill, run inside the Cowork session VM.
 #
 #   setup.sh              copy every bundled dashboard into the session outputs
 #                         dir and print one create_artifact parameter block per

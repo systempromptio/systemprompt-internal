@@ -118,6 +118,33 @@ pub async fn insert(
     Ok(())
 }
 
+/// Link `user_id` to an Odoo account only when no link exists yet. Used by the
+/// sign-in auto-link, where the credential may be a password: bootstrapping a
+/// first link is helpful, but overwriting an API key the user deliberately
+/// stored from the profile page with a sign-in password would break every
+/// later RPC call if Odoo enforces API keys (2FA).
+pub async fn insert_if_absent(
+    pool: &PgPool,
+    user_id: &UserId,
+    odoo_login: &str,
+    odoo_uid: i32,
+    api_key: &str,
+) -> Result<(), OdooIdentityError> {
+    let sealed = seal(api_key)?;
+    sqlx::query!(
+        "INSERT INTO odoo_identity (user_id, odoo_login, odoo_uid, odoo_api_key_encrypted) \
+         VALUES ($1, $2, $3, $4) \
+         ON CONFLICT (user_id) DO NOTHING",
+        user_id.as_str(),
+        odoo_login,
+        odoo_uid,
+        sealed
+    )
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
 /// The link state for `user_id`, or `None` if this user has never linked Odoo.
 pub async fn find(pool: &PgPool, user_id: &UserId) -> Result<Option<OdooIdentity>, sqlx::Error> {
     let row = sqlx::query!(

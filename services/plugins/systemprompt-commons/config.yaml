@@ -25,7 +25,7 @@ plugin:
   # Two of the Odoo CRM dashboards, so a commons-only install still gets the
   # core sales views. The full workspace set (plus business-overview,
   # recent-activity, todo-bulletin) belongs to systemprompt-crm, whose
-  # cowork_setup skill installs them; the admin-* dashboards belong to
+  # systemprompt-setup-cowork skill installs them; the admin-* dashboards belong to
   # systemprompt-admin, which selects them itself.
   artifacts:
     source: explicit

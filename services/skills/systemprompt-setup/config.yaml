@@ -1,0 +1,11 @@
+id: systemprompt-setup
+name: "Systemprompt Setup"
+description: "Start here to set up systemprompt.io in your workspace: routes to the right host-specific setup skill (Claude Cowork dashboards, Codex CLI gateway wiring) and checks the Odoo connection"
+enabled: true
+file: SKILL.md
+tags:
+  - setup
+  - onboarding
+  - getting-started
+category: setup
+display_category: "Brand & Workspace"
