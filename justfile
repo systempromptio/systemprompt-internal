@@ -999,11 +999,15 @@ connect CODE GATEWAY="http://localhost:8080":
     curl -fsSL {{GATEWAY}}/files/downloads/install.sh | sh -s -- \
         --download-base {{GATEWAY}}/files/downloads --code {{CODE}}
 
-# A code is needed the first time only: the credential it is exchanged for
-# persists in a per-gateway volume, so later runs are just `just
-# claude`. `just claude-reset` signs out and makes a code necessary again.
-# Claude Code, connected, in a container (CODE from /admin/profile, first run only)
-claude CODE="" GATEWAY="http://localhost:8080":
+# Signing in is needed the first time only: the credential persists in a
+# per-gateway volume, so later runs are just `just claude`. With no CODE the
+# container walks you through the gateway's device-link page (sign in with
+# Odoo, approve, paste the code); passing a CODE from /admin/profile skips
+# that. `just claude-reset` signs out and makes signing in necessary again.
+# Defaults to the production gateway; pass a second argument for a dev server
+# (`just claude '' http://localhost:8080`).
+# Claude Code, connected, in a container
+claude CODE="" GATEWAY="https://internal.systemprompt.io":
     #!/usr/bin/env bash
     set -euo pipefail
 
@@ -1160,10 +1164,12 @@ claude CODE="" GATEWAY="http://localhost:8080":
     # No code on a repeat run: the stored credential is reused, and bootstrap
     # only falls back to asking when there is neither. Passing an empty value
     # would look like "a code was supplied" to that check.
+    # With no code and no stored credential, bootstrap walks the device-link
+    # sign-in interactively (open the gateway page, sign in with Odoo, approve,
+    # paste the code) — which needs a terminal. Only a non-interactive caller
+    # is refused, because for it that prompt is an indistinguishable hang.
     # Look for the credential itself, not merely the volume: a volume left over
-    # from a run that never completed sign-in holds none, and bootstrap would
-    # then drop to an interactive code prompt — which is what a non-interactive
-    # caller sees as a hang.
+    # from a run that never completed sign-in holds none.
     CODE_ENV=()
     if [ -n "{{CODE}}" ]; then
         CODE_ENV=(-e SYSTEMPROMPT_BRIDGE_CODE="{{CODE}}")
@@ -1171,14 +1177,19 @@ claude CODE="" GATEWAY="http://localhost:8080":
             -v "$VOL":/home/tester \
             systemprompt-clean-client:local \
             -f /home/tester/.config/systemprompt-internal/systemprompt-internal-bridge.pat >/dev/null 2>&1; then
-        echo "ERROR: not signed in yet, and no code was given." >&2
-        echo "" >&2
-        echo "  A code is needed the first time. Take one from /admin/profile:" >&2
-        echo "" >&2
-        echo "      just claude <code>" >&2
-        echo "" >&2
-        echo "  Later runs need no code — the credential is kept." >&2
-        exit 1
+        if [ ! -t 0 ]; then
+            echo "ERROR: not signed in yet, and this is not an interactive terminal." >&2
+            echo "" >&2
+            echo "  Run from a terminal to sign in through the device-link page," >&2
+            echo "  or pass a code from /admin/profile:" >&2
+            echo "" >&2
+            echo "      just claude <code>" >&2
+            echo "" >&2
+            echo "  Later runs need neither — the credential is kept." >&2
+            exit 1
+        fi
+        echo "Not signed in yet — the container will walk you through the" >&2
+        echo "device-link sign-in (browser sign-in, then paste the code)." >&2
     fi
 
     exec docker run -it --rm \

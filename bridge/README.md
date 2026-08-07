@@ -45,10 +45,13 @@ systemprompt admin bridge issue-code --user-id <uuid>
 A signed-in user can also mint their own code from `/admin/profile`, which
 prints the commands below with the code already filled in.
 
-From a checkout of this repo, the code is the only argument either recipe needs:
+From a checkout of this repo, no code is needed at all — `just claude` targets
+the production gateway and, on a first run, walks you through the device-link
+page (sign in with Odoo, approve, paste the code it shows):
 
 ```bash
-just claude <code>    # Claude Code, connected, in a throwaway container
+just claude           # Claude Code, connected, in a throwaway container
+just claude <code>    # same, but skip the interactive sign-in with a code
 just connect <code>   # configure THIS host instead (writes ~/.profile etc.)
 ```
 
