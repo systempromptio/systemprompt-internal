@@ -60,8 +60,8 @@ async fn get_info_advertises_tools_and_names_the_service_id() {
         "the knowledge bank is a tool server"
     );
     assert!(
-        info.capabilities.resources.is_none(),
-        "it serves no MCP resources"
+        info.capabilities.resources.is_some(),
+        "it serves the artifact-viewer ui:// resources"
     );
     assert_eq!(
         info.server_info.name, "Knowledge Bank (knowledge-bank)",
