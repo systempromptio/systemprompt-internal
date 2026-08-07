@@ -54,6 +54,12 @@ parallel; install one dashboard at a time, verifying as you go.
   not the Windows session UUID — never construct `/sessions/<uuid>` by hand. Always discover
   locations with the find one-liner in Step 3.
 
+**Caching contract:** Cowork only caches a dashboard's MCP tool results when the gateway tool
+advertises `annotations.readOnlyHint: true`. Every read-only tool a dashboard calls (searches,
+lists, overviews) must carry that annotation in its server's tool catalog — without it, every
+re-render refetches from Odoo and rendering becomes racy. If you add a dashboard that calls a new
+tool, check the tool is annotated before shipping.
+
 ## Step 1 — Read the manifest this skill ships
 
 This skill's own directory contains `assets/artifacts/`, holding:

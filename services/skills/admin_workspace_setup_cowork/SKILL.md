@@ -54,6 +54,12 @@ parallel; install one dashboard at a time, verifying as you go.
   not the Windows session UUID — never construct `/sessions/<uuid>` by hand. Always discover
   locations with the find one-liner in Step 3.
 
+**Caching contract:** Cowork only caches a dashboard's MCP tool results when the gateway tool
+advertises `annotations.readOnlyHint: true`. The admin CLI tool executes arbitrary commands, so it
+is deliberately not annotated and its results are never cached — expect a live fetch on every
+render. If a future dashboard calls a dedicated read-only tool instead, annotate it in the server's
+tool catalog.
+
 ## Step 1 — Read the manifest this skill ships
 
 This skill's own directory contains `assets/artifacts/`, holding:

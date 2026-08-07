@@ -20,7 +20,7 @@
 pub mod catalog;
 pub mod inputs;
 
-use rmcp::model::{MetaObject, Tool};
+use rmcp::model::{MetaObject, Tool, ToolAnnotations};
 use std::sync::Arc;
 use systemprompt::mcp::{McpOutputSchema, default_tool_visibility, tool_ui_meta};
 use systemprompt::models::artifacts::CliArtifact;
@@ -86,6 +86,7 @@ pub(crate) struct ToolDef<'a> {
     pub description: &'a str,
     // JSON: protocol boundary
     pub input_schema: serde_json::Value,
+    pub read_only: bool,
 }
 
 pub(crate) fn create_tool(def: &ToolDef<'_>) -> Tool {
@@ -105,6 +106,9 @@ pub(crate) fn create_tool(def: &ToolDef<'_>) -> Tool {
     tool.description = Some(def.description.to_owned().into());
     tool.input_schema = Arc::new(input_obj);
     tool.output_schema = Some(Arc::new(output_obj));
+    tool.annotations = def
+        .read_only
+        .then(|| ToolAnnotations::new().read_only(true));
     tool.meta = Some(MetaObject(tool_ui_meta(
         SERVER_NAME,
         &default_tool_visibility(),

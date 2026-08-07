@@ -2,9 +2,9 @@
   "artifacts": [
     {
       "id": "business-overview",
-      "name": "Business Overview — Daily Briefing",
-      "description": "Today's whole CRM picture in one refreshable page — pipeline by stage, this week's new leads, your overdue and due-today activities, today's calendar, tasks due this week, and the latest team notes. Refresh re-runs business_overview_data against Odoo as you.",
-      "version": "1.0.2",
+      "name": "Business Overview \u2014 Daily Briefing",
+      "description": "Today's whole CRM picture in one refreshable page \u2014 pipeline by stage, this week's new leads, your overdue and due-today activities, today's calendar, tasks due this week, and the latest team notes. Refresh re-runs business_overview_data against Odoo as you.",
+      "version": "1.0.3",
       "isStarred": true,
       "mcpTools": [
         "mcp__odoo__business_overview_data"
@@ -12,9 +12,9 @@
     },
     {
       "id": "pipeline-open-deals",
-      "name": "Pipeline — Open Deals",
-      "description": "Your open Odoo CRM opportunities as a live, refreshable table — stage, expected revenue, probability, creation date and salesperson. Refresh re-runs crm_lead_search against Odoo as you, so Odoo's own record rules decide what appears.",
-      "version": "2.0.1",
+      "name": "Pipeline \u2014 Open Deals",
+      "description": "Your open Odoo CRM opportunities as a live, refreshable table \u2014 stage, expected revenue, probability, creation date and salesperson. Refresh re-runs crm_lead_search against Odoo as you, so Odoo's own record rules decide what appears.",
+      "version": "2.0.2",
       "isStarred": true,
       "mcpTools": [
         "mcp__odoo__crm_lead_search"
@@ -22,9 +22,9 @@
     },
     {
       "id": "leads-inbound-prospects",
-      "name": "Leads — Inbound Prospects",
-      "description": "Your open Odoo CRM leads as a live, refreshable table — contact, email, stage, expected revenue, probability and salesperson. Refresh re-runs crm_lead_search against Odoo as you, so Odoo's own record rules decide what appears.",
-      "version": "2.0.1",
+      "name": "Leads \u2014 Inbound Prospects",
+      "description": "Your open Odoo CRM leads as a live, refreshable table \u2014 contact, email, stage, expected revenue, probability and salesperson. Refresh re-runs crm_lead_search against Odoo as you, so Odoo's own record rules decide what appears.",
+      "version": "2.0.2",
       "isStarred": true,
       "mcpTools": [
         "mcp__odoo__crm_lead_search"
@@ -32,9 +32,9 @@
     },
     {
       "id": "recent-activity",
-      "name": "Recent Activity — Team Notes",
-      "description": "The latest chatter across every Odoo record as a live, searchable feed — who wrote what, on which record, and when. Refresh re-runs note_search against Odoo as you, so Odoo's own record rules decide what appears.",
-      "version": "1.0.2",
+      "name": "Recent Activity \u2014 Team Notes",
+      "description": "The latest chatter across every Odoo record as a live, searchable feed \u2014 who wrote what, on which record, and when. Refresh re-runs note_search against Odoo as you, so Odoo's own record rules decide what appears.",
+      "version": "1.0.3",
       "isStarred": true,
       "mcpTools": [
         "mcp__odoo__note_search"
@@ -44,7 +44,7 @@
       "id": "todo-bulletin",
       "name": "To-Do Bulletin",
       "description": "Everything waiting on the team as one live checklist: your Odoo activities (overdue first, tick to complete with feedback) and open project tasks with deadlines. Refresh re-runs activity_list and task_list against Odoo as you.",
-      "version": "1.1.1",
+      "version": "1.1.2",
       "isStarred": true,
       "mcpTools": [
         "mcp__odoo__activity_list",

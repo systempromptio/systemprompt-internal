@@ -8,7 +8,7 @@
 //! `project` — so a caller reading a search result already knows what to pass
 //! back to narrow the next one.
 
-use rmcp::model::{MetaObject, Tool};
+use rmcp::model::{MetaObject, Tool, ToolAnnotations};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -58,6 +58,7 @@ struct ToolDef<'a> {
     description: &'a str,
     // JSON: protocol boundary
     input_schema: serde_json::Value,
+    read_only: bool,
 }
 
 fn create_tool(def: &ToolDef<'_>) -> Tool {
@@ -77,6 +78,9 @@ fn create_tool(def: &ToolDef<'_>) -> Tool {
     tool.description = Some(def.description.to_owned().into());
     tool.input_schema = Arc::new(input_obj);
     tool.output_schema = Some(Arc::new(output_obj));
+    tool.annotations = def
+        .read_only
+        .then(|| ToolAnnotations::new().read_only(true));
     tool.meta = Some(MetaObject(tool_ui_meta(
         SERVER_NAME,
         &default_tool_visibility(),
@@ -96,6 +100,7 @@ pub fn list_tools() -> Vec<Tool> {
                           proposing an approach: prior decisions recorded here outrank general \
                           best practice.",
             input_schema: schemars::schema_for!(SearchInput).to_value(),
+            read_only: true,
         }),
         create_tool(&ToolDef {
             name: TOOL_LIST,
@@ -104,6 +109,7 @@ pub fn list_tools() -> Vec<Tool> {
                           project and source. Returns titles and sizes, not content — search \
                           for the content.",
             input_schema: schemars::schema_for!(ListInput).to_value(),
+            read_only: true,
         }),
         create_tool(&ToolDef {
             name: TOOL_UPLOAD,
@@ -112,6 +118,7 @@ pub fn list_tools() -> Vec<Tool> {
                           knowledge bank, where it becomes searchable immediately. Admin role \
                           required.",
             input_schema: schemars::schema_for!(UploadInput).to_value(),
+            read_only: false,
         }),
     ]
 }
