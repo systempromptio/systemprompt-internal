@@ -43,12 +43,12 @@ Happy to walk through any of this - otherwise we'll keep moving.
 
 {{sender_name}}
 systemprompt.io
-ed@tyingshoelaces.com | systemprompt.io
+ed@systemprompt.io | systemprompt.io
 ```
 
 ### Onboarding / kickoff
 
-Order: one-line opener; what was agreed (scope, dates, environments); who's who on both sides with roles; the first three concrete steps with owners and dates - typically install the binary, point it at their Postgres and Odoo instance, and run the first governed request; the single thing needed from them first (usually an API key and network access decision); logistics (cadence, channels, support address ed@tyingshoelaces.com).
+Order: one-line opener; what was agreed (scope, dates, environments); who's who on both sides with roles; the first three concrete steps with owners and dates - typically install the binary, point it at their Postgres and Odoo instance, and run the first governed request; the single thing needed from them first (usually an API key and network access decision); logistics (cadence, channels, support address ed@systemprompt.io).
 
 ### Release / upgrade notice
 
@@ -77,7 +77,7 @@ Never bury bad news mid-paragraph, never deliver it only in a status table, and 
 - Names and dates over pronouns and "soon": "Ed will send the migration notes by Thursday 18 June".
 - Thank-yous are specific ("thanks for turning the schema dump around in a day") or omitted.
 - Never assert a security posture, certification, or data-handling guarantee in an email. Point at the approved boilerplate (`company_boilerplate`) instead.
-- Sign-off: first name, then a "systemprompt.io" line, then the contact line `ed@tyingshoelaces.com | systemprompt.io`. No inspirational quotes, no taglines in the signature, no "kindly".
+- Sign-off: first name, then a "systemprompt.io" line, then the contact line `ed@systemprompt.io | systemprompt.io`. No inspirational quotes, no taglines in the signature, no "kindly".
 - Anything commercial, legal, or security-incident related: draft, but tell the sender to route it past Ed before sending.
 
 ## Quality Gate
@@ -86,5 +86,5 @@ Never bury bad news mid-paragraph, never deliver it only in a status table, and 
 - [ ] The ask, owner, and deadline explicit (or genuinely no ask)
 - [ ] Facts reconciled against the Odoo record; no unconfirmed claims; placeholders flagged to the sender
 - [ ] Bad news or breaking changes, if any, in the first sentence
-- [ ] Signature block correct (name, systemprompt.io, ed@tyingshoelaces.com | systemprompt.io)
+- [ ] Signature block correct (name, systemprompt.io, ed@systemprompt.io | systemprompt.io)
 - [ ] Voice check passes (no filler, no marketing adjectives, no passive commitments)

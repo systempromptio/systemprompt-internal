@@ -9,7 +9,7 @@ Use this skill whenever a document needs an "About systemprompt.io" section, a p
 ## How to Use
 
 1. **Identify which blocks the document needs** from the catalog below, based on document type.
-2. **Source the canonical text.** Approved boilerplate is owned by systemprompt.io (contact ed@tyingshoelaces.com). If the requester provides current approved text, use it verbatim. If not, insert the structural placeholder blocks below and flag them as "requires approved text" - do not write final legal or corporate-fact language from memory, because entity facts and version claims go stale and legal wording carries liability.
+2. **Source the canonical text.** Approved boilerplate is owned by systemprompt.io (contact ed@systemprompt.io). If the requester provides current approved text, use it verbatim. If not, insert the structural placeholder blocks below and flag them as "requires approved text" - do not write final legal or corporate-fact language from memory, because entity facts and version claims go stale and legal wording carries liability.
 3. **Fill only the variable slots** (`{{customer}}`, `{{date}}`, `{{document_type}}`, `{{version}}`) inside approved blocks. Everything else is untouchable.
 4. **Match the length to the slot**: one-liner for email footers and slide furniture, short description for cover pages and quote intros, long description for RFP and security-questionnaire company sections.
 5. **Record which blocks and versions were used** so the requester can confirm they are current.
@@ -42,7 +42,7 @@ When approved text is not supplied, insert exactly this pattern so downstream ch
 ## Rules
 
 - Verbatim or placeholder - never a from-memory rewrite of legal or corporate-fact text.
-- Brand name in prose is "systemprompt.io" on every use, lowercase, always with the `.io`; URL form is systemprompt.io; support contact is ed@tyingshoelaces.com; no abbreviations.
+- Brand name in prose is "systemprompt.io" on every use, lowercase, always with the `.io`; URL form is systemprompt.io; support contact is ed@systemprompt.io; no abbreviations.
 - Product name is "Systemprompt Internal". Describe the software as a library customers embed and own - never a "framework", never a "platform we host".
 - Never state specific customer names, revenue figures, headcounts, uptime numbers, certification claims, or partnership tiers unless they appear in the approved block or the requester supplies them in writing. Security certifications in particular are never asserted from memory.
 - Disclaimers are not optional: quotes and estimates without their validity/estimate disclaimers should be flagged as incomplete.

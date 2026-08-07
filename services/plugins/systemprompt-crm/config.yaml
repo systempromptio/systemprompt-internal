@@ -6,7 +6,7 @@ plugin:
   enabled: true
   author:
     name: systemprompt.io
-    email: ed@tyingshoelaces.com
+    email: ed@systemprompt.io
   keywords: [crm, odoo, leads, pipeline, notes, activities, briefing]
   license: proprietary
   category: crm

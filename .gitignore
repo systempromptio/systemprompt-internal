@@ -192,7 +192,11 @@ demo/scenarios/airgap/results/*.json
 
 # Stray Outlook image paste artifacts
 /image*.png
-/.claude/
+
+# Agent-local state; the tracked settings.json carries repo policy
+# (coauthorAttribution) and stays in.
+/.claude/*
+!/.claude/settings.json
 
 # Scaled scenario: staged release binaries for the Docker build (see Dockerfile.scaled-prebuilt)
 deploy/scenarios/scaled/.bin/
@@ -218,4 +222,8 @@ rustc-ice-*.txt
 
 # Generated at publish time by bundle_admin_css
 storage/files/css/admin-bundle.css
-backups/odoo/
+
+# Local DB dumps and coverage scratch; only the ratchet baseline is tracked
+/backups/
+/coverage/*
+!/coverage/baseline.json

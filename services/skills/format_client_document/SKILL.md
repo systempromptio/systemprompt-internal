@@ -41,7 +41,7 @@ Use this skill as the final structural pass on any customer-facing document: quo
   Appendix A, B, C ... referenced at least once from the body
 
 [Footer, every page]
-  systemprompt.io | ed@tyingshoelaces.com | 2026 systemprompt.io. All rights reserved.
+  systemprompt.io | ed@systemprompt.io | 2026 systemprompt.io. All rights reserved.
 ```
 
 | Document class | Required front matter |

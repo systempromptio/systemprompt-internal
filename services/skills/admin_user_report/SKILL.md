@@ -9,7 +9,7 @@ account looks like up close. This is the roster; for what those people actually 
 - "List the admins."
 - "Show me recent users as a table."
 - "How many users do we have, and how many are active?"
-- "Tell me everything about ed@tyingshoelaces.com."
+- "Tell me everything about you@example.com."
 
 ## When to Use
 
