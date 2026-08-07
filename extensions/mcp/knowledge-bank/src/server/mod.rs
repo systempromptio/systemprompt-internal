@@ -12,7 +12,8 @@ use crate::store::KnowledgeStore;
 use crate::tools::{self, SERVER_NAME};
 use rmcp::model::{
     CallToolRequestParams, CallToolResponse, Implementation, InitializeRequestParams,
-    InitializeResult, ListToolsResult, PaginatedRequestParams, ProtocolVersion, ServerCapabilities,
+    InitializeResult, ListResourcesResult, ListToolsResult, PaginatedRequestParams,
+    ProtocolVersion, ReadResourceRequestParams, ReadResourceResponse, ServerCapabilities,
     ServerInfo,
 };
 use rmcp::service::{MaybeSendFuture, RequestContext, RoleServer};
@@ -22,7 +23,11 @@ use std::sync::Arc;
 use systemprompt::database::DbPool;
 use systemprompt::identifiers::McpServerId;
 use systemprompt::mcp::repository::ToolUsageRepository;
-use systemprompt::mcp::{McpArtifactRepository, McpToolExecutor};
+use systemprompt::mcp::{
+    ArtifactViewerConfig, McpArtifactRepository, McpToolExecutor, artifact_shell_template,
+    build_artifact_viewer_resource, parse_artifact_resource_uri, read_artifact_resource,
+    read_artifact_viewer_resource,
+};
 use systemprompt::security::authz::SharedAuthzHook;
 use systemprompt_mcp_shared::record_mcp_access;
 
@@ -66,7 +71,12 @@ impl KnowledgeBankServer {
 
 impl ServerHandler for KnowledgeBankServer {
     fn get_info(&self) -> ServerInfo {
-        ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
+        ServerInfo::new(
+            ServerCapabilities::builder()
+                .enable_tools()
+                .enable_resources()
+                .build(),
+        )
             .with_protocol_version(ProtocolVersion::V_2024_11_05)
             .with_server_info(
                 Implementation::new(
@@ -137,5 +147,41 @@ impl ServerHandler for KnowledgeBankServer {
         )
         .await
         .map(Into::into)
+    }
+
+    fn list_resources(
+        &self,
+        _request: Option<PaginatedRequestParams>,
+        _ctx: RequestContext<RoleServer>,
+    ) -> impl Future<Output = Result<ListResourcesResult, McpError>> + MaybeSendFuture + '_ {
+        std::future::ready(Ok(build_artifact_viewer_resource(&ArtifactViewerConfig {
+            server_name: SERVER_NAME,
+            title: "Knowledge Bank Artifact Viewer",
+            description: "Interactive UI viewer for knowledge-bank artifacts. Receives the \
+                          tool result via the MCP Apps ui/notifications/tool-result protocol \
+                          and mounts the server-rendered artifact HTML it carries.",
+            template: &artifact_shell_template(),
+            icons: None,
+        })))
+    }
+
+    /// Serves the static shell, plus any `ui://knowledge-bank/artifact/<id>`
+    /// the host chooses to resolve instead of using the copy embedded in the
+    /// tool result.
+    async fn read_resource(
+        &self,
+        request: ReadResourceRequestParams,
+        _ctx: RequestContext<RoleServer>,
+    ) -> Result<ReadResourceResponse, McpError> {
+        if parse_artifact_resource_uri(&request.uri).is_some() {
+            let repo = McpArtifactRepository::new(&self.db_pool)
+                .map_err(|e| McpError::internal_error(e.to_string(), None))?;
+            return read_artifact_resource(&request, SERVER_NAME, &repo)
+                .await
+                .map(Into::into);
+        }
+
+        read_artifact_viewer_resource(&request, SERVER_NAME, &artifact_shell_template())
+            .map(Into::into)
     }
 }
