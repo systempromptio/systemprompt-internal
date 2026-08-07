@@ -129,12 +129,8 @@ export class SpSetup extends SpElement {
             <p class="sp-setup__pitch-body">One gateway. Every agent. Every tool call audited.</p>
           </div>
           <footer class="sp-setup__brand-foot">
-            <p class="sp-setup__demo">
-              <strong data-l10n-id="setup-warning-strong">Demo software.</strong>
-              <span data-l10n-id="setup-warning-body">This build is provided for demonstration purposes only and is not licensed for production use.</span>
-            </p>
             <p class="sp-setup__meta">
-              <span class="sp-setup__version">v${escapeHtml(version)}</span>
+              <span class="sp-setup__version">Systemprompt Internal Bridge v${escapeHtml(version)}</span>
               <span class="sp-setup__meta-sep">·</span>
               <a class="sp-setup__docs" href="https://systemprompt.io/docs/bridge/${escapeHtml(platform)}" target="_blank" rel="noopener noreferrer">
                 Documentation for ${escapeHtml(platformDisplay)} →

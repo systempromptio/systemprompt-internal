@@ -14,14 +14,12 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
-/// Attempts permitted per key within [`WINDOW`].
 const MAX_ATTEMPTS: u32 = 10;
 
-/// Width of the counting window.
-const WINDOW: Duration = Duration::from_secs(15 * 60);
+const WINDOW: Duration = Duration::from_mins(15);
 
-/// Entries are swept once the map grows past this, so a spray across many
-/// distinct logins cannot grow it without bound between sweeps.
+// Why: entries are swept once the map grows past this, so a spray across many
+// distinct logins cannot grow it without bound between sweeps.
 const SWEEP_THRESHOLD: usize = 1024;
 
 #[derive(Debug, Clone, Copy)]

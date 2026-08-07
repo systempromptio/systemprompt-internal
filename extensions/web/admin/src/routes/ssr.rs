@@ -61,10 +61,7 @@ fn public_routes() -> Router<Arc<PgPool>> {
     Router::new()
         .route("/login", get(handlers::ssr::login_page))
         .route("/login/operator", get(handlers::ssr::operator_login_page))
-        .route(
-            "/auth/odoo/login",
-            post(handlers::odoo_auth::odoo_login),
-        )
+        .route("/auth/odoo/login", post(handlers::odoo_auth::odoo_login))
         .route(
             "/auth/passkey/register",
             post(handlers::passkey_auth::passkey_register),

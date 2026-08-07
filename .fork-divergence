@@ -35,6 +35,7 @@ extensions/web/src/lib.rs	# brand: crate doc names the product
 extensions/web/admin/src/lib.rs	# internal mounts the Odoo account-linking deps + Slack alert surface; template mounts the bridge plugin-file plane
 extensions/mcp/systemprompt/src/server/mod.rs	# internal serves artifact resources by URI (parse/read/shell template); template serves only the viewer resource
 extensions/web/src/schemas.rs	# internal ships the Odoo identity schema
+extensions/web/src/router/pools.rs	# internal builds the OAuth repository Odoo sign-in mints codes through; template has no Odoo sign-in
 extensions/web/jobs/src/llms_txt.rs	# template emits a blog section; internal has no blog
 extensions/web/site/src/lib.rs	# template ships blog + features sections; internal ships the skills page
 extensions/web/site/src/navigation/provider.rs	# the blog nav link exists in the template only

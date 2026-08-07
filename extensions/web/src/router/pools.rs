@@ -34,7 +34,7 @@ impl DbHandles {
     }
 }
 
-/// The repository Odoo sign-in stores its authorization codes through.
+// Why: the repository Odoo sign-in stores its authorization codes through.
 pub(crate) fn build_oauth_repository(db: &DbHandles) -> Option<Arc<OAuthRepository>> {
     OAuthRepository::new(&db.database())
         .map_err(|e| tracing::error!(error = %e, "Failed to build OAuth repository"))

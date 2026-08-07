@@ -8,8 +8,12 @@ const LOGIN_PATH = '/admin/login';
 
 export const DEFAULT_REDIRECT = '/admin/profile';
 
+// Mirrors the server-side `sanitize_login_redirect`: any same-origin absolute
+// path is a valid post-login target (e.g. /bridge-auth/device-link), while
+// protocol-relative `//host` and absolute URLs are open-redirect vectors and
+// fall back to the default.
 export const resolveRedirect = async (target) => {
-  if (!target || !target.startsWith('/admin/')) return DEFAULT_REDIRECT;
+  if (!target || !target.startsWith('/') || target.startsWith('//')) return DEFAULT_REDIRECT;
   try {
     const probe = await rawResponse(target, { method: 'HEAD' });
     if (probe.status === 404) return DEFAULT_REDIRECT;
