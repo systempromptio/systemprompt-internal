@@ -141,6 +141,21 @@ html:not([data-scrolled]) body.has-video-hero .site-header {
    The header partial emits no per-item classes, so the glyphs key off the
    href. Keep these in lockstep with services/web/config/navigation.yaml and
    the --os-glyph masks in homepage-hero.css. */
+.nav-links a[href^="/documentation/download-"] {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35em 0.9em;
+  border-radius: 999px;
+  background: oklch(1 0 0 / 0.1);
+  border: 1px solid oklch(1 0 0 / 0.18);
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.nav-links a[href^="/documentation/download-"]:hover {
+  background: oklch(1 0 0 / 0.18);
+  border-color: oklch(1 0 0 / 0.4);
+}
+
 .nav-links a[href^="/documentation/download-"]::before {
   content: "";
   display: inline-block;
