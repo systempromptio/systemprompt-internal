@@ -38,25 +38,52 @@ else
     step "sign in"
     bold "  Open this in your browser:"
     printf '\n      %s/bridge-auth/device-link\n\n' "$BROWSER_GATEWAY"
-    echo "  Sign in, click Allow, then copy the code (the 'Just the code' section)."
+    echo "  Sign in with Odoo, click Allow. The page THEN shows a one-time code"
+    echo "  (the 'Just the code' section) — that code is what goes here, not"
+    echo "  your username or email."
     echo
-    printf '  code: '
-    read -r CODE
 
-    # Terminals with bracketed paste wrap a paste in ESC[200~ … ESC[201~.
-    # Readline strips those at an interactive prompt; `read` in a script does
-    # not, so without this the code arrives with an invisible prefix and the
-    # gateway rejects a string the screen shows as correct.
-    CODE=$(printf '%s' "$CODE" | sed $'s/\033\\[[0-9;]*[~A-Za-z]//g' | tr -d '\000-\037')
-    # Then the surrounding whitespace a paste often carries. `read` strips its
-    # own, but stripping an escape can expose more, so trim after rather than
-    # relying on what came before.
-    CODE="${CODE#"${CODE%%[![:space:]]*}"}"
-    CODE="${CODE%"${CODE##*[![:space:]]}"}"
+    # A mispaste must not abort the whole bootstrap — a fresh code is a browser
+    # round-trip away, so ask again rather than dying under set -e.
+    SIGNED_IN=0
+    for _ in 1 2 3; do
+        printf '  code: '
+        read -r CODE
 
-    # Tolerant on purpose: the page shows a command as well as a bare code, and
-    # the CLI accepts either. Refusing a paste here would be gratuitous.
-    systemprompt-internal-bridge login --code "$CODE" --gateway "$GATEWAY" --device-name clean-client
+        # Terminals with bracketed paste wrap a paste in ESC[200~ … ESC[201~.
+        # Readline strips those at an interactive prompt; `read` in a script
+        # does not, so without this the code arrives with an invisible prefix
+        # and the gateway rejects a string the screen shows as correct.
+        CODE=$(printf '%s' "$CODE" | sed $'s/\033\\[[0-9;]*[~A-Za-z]//g' | tr -d '\000-\037')
+        # Then the surrounding whitespace a paste often carries. `read` strips
+        # its own, but stripping an escape can expose more, so trim after
+        # rather than relying on what came before.
+        CODE="${CODE#"${CODE%%[![:space:]]*}"}"
+        CODE="${CODE%"${CODE##*[![:space:]]}"}"
+
+        case "$CODE" in
+        *@*)
+            warn "that looks like an email address — paste the code the page shows after you click Allow"
+            continue
+            ;;
+        '')
+            warn "nothing pasted — copy the code from the device-link page"
+            continue
+            ;;
+        esac
+
+        # Tolerant on purpose: the page shows a command as well as a bare code,
+        # and the CLI accepts either. Refusing a paste here would be gratuitous.
+        if systemprompt-internal-bridge login --code "$CODE" --gateway "$GATEWAY" --device-name clean-client; then
+            SIGNED_IN=1
+            break
+        fi
+        warn "sign-in failed — codes are one-shot and short-lived, so refresh the page for a fresh one and try again"
+    done
+    if [ "$SIGNED_IN" -ne 1 ]; then
+        printf '\033[31mERROR:\033[0m could not sign in after 3 attempts.\n' >&2
+        exit 1
+    fi
 fi
 
 # ── 2. Policy + plugins ───────────────────────────────────────────────────────
@@ -80,6 +107,16 @@ systemprompt-internal-bridge sync --allow-tofu
 
 step "verifying"
 systemprompt-internal-bridge doctor || warn "doctor reported problems — read them above before trusting the result"
+
+# A fresh home has no ~/.claude/settings.json, and without one Claude Code
+# defaults to the biggest model the gateway offers. Seed haiku as the starting
+# model — only when the file is absent, so a /model choice the user saved on a
+# previous run is never overridden.
+if [ ! -f "$HOME/.claude/settings.json" ]; then
+    step "seeding default model (haiku)"
+    mkdir -p "$HOME/.claude"
+    printf '{\n  "model": "haiku"\n}\n' > "$HOME/.claude/settings.json"
+fi
 
 if [ -n "${CLEAN_CLIENT_EXEC_CLAUDE:-}" ]; then
     step "starting Claude Code"
