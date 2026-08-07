@@ -908,8 +908,13 @@ status:
 # MCP & BUILD ALL
 # ══════════════════════════════════════════════════════════════════════════════
 
-# Build all MCP servers (reads from manifest.yaml files)
+# Build all MCP servers (reads from manifest.yaml files) — single-flight and
+# fingerprint-skipped, so a tree whose MCP servers already built returns
+# immediately instead of re-paying the per-package feature-unification rebuild.
 build-mcp:
+    @scripts/build-coordinator.sh run build-mcp "" -- {{just_executable()}} _build-mcp-uncoordinated
+
+_build-mcp-uncoordinated:
     DATABASE_URL="$(just _db-url)" {{CLI}} build mcp --release
 
 # Build everything for deployment (Rust binary + MCP servers + web assets)
@@ -982,8 +987,10 @@ core-checkout:
     fi
 
 # Package the branded bridge as a Linux release tarball into dist/
+# Coordinated: bridge/ and the core sibling are both in the fingerprint, so a
+# failed deploy retried on the same tree skips straight past this step.
 bridge-package-linux:
-    scripts/package-bridge-linux.sh
+    @scripts/build-coordinator.sh run bridge-package "" -- scripts/package-bridge-linux.sh
 
 # Installs the client if it is not there yet; re-running it with a fresh code
 # re-binds the machine to whoever that code belongs to.
