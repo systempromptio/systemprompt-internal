@@ -136,9 +136,7 @@ pub async fn call(
         // Why: Odoo answers an application fault with HTTP 200 and an `error`
         // member, so a non-2xx is the proxy, the URL, or the server being
         // down — never a model-level refusal, and the body is not an envelope.
-        return Err(OdooError::Transport(format!(
-            "Odoo returned HTTP {status}"
-        )));
+        return Err(OdooError::Transport(format!("Odoo returned HTTP {status}")));
     }
 
     parse_response(&body)

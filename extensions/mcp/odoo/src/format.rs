@@ -18,10 +18,9 @@ pub fn field(record: &serde_json::Value, key: &str) -> Option<String> {
         serde_json::Value::Number(n) => Some(n.to_string()),
         // Why: the many2one shape. The display name is the second element;
         // the id alone is rarely what a reader wants to see.
-        serde_json::Value::Array(items) => items
-            .get(1)
-            .and_then(|v| v.as_str())
-            .map(ToOwned::to_owned),
+        serde_json::Value::Array(items) => {
+            items.get(1).and_then(|v| v.as_str()).map(ToOwned::to_owned)
+        },
         other @ serde_json::Value::Object(_) => Some(other.to_string()),
     }
 }
@@ -43,7 +42,9 @@ pub fn field_or_dash(record: &serde_json::Value, key: &str) -> String {
 #[must_use]
 pub fn detail_lines(record: &serde_json::Value, keys: &[(&str, &str)]) -> String {
     keys.iter()
-        .filter_map(|(key, label)| field(record, key).map(|value| format!("- **{label}:** {value}")))
+        .filter_map(|(key, label)| {
+            field(record, key).map(|value| format!("- **{label}:** {value}"))
+        })
         .collect::<Vec<_>>()
         .join("\n")
 }

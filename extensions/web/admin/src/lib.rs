@@ -57,8 +57,8 @@ pub mod test_support {
         SessionAnalysis, session_analysis_schema, validate_analysis,
     };
     pub use crate::handlers::hooks_track::session_summary::GeneratedSessionSummary;
-    pub use crate::handlers::resolve_principal;
     pub use crate::handlers::odoo_auth::uid_from_result;
+    pub use crate::handlers::resolve_principal;
 }
 
 pub fn hooks_webhook_router(

@@ -71,11 +71,7 @@ pub(crate) async fn passkey_register(
 // enrol a passkey through this door; an account that already has one must sign
 // in with it — handing out enrolment tokens for it would let anyone who knows
 // an email add their own credential to that account.
-async fn resolve_user(
-    deps: &AuthDeps,
-    email: &str,
-    display_name: &str,
-) -> AdminResult<UserId> {
+async fn resolve_user(deps: &AuthDeps, email: &str, display_name: &str) -> AdminResult<UserId> {
     if let Some(existing) = passkey::find_user_by_email(&deps.write_pool, email).await? {
         if existing.has_passkey {
             return Err(AdminError::Conflict(

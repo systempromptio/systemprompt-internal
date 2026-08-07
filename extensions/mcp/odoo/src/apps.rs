@@ -55,7 +55,11 @@ pub fn map_missing_app(model: &str, err: OdooError) -> OdooError {
         return err;
     }
     let detail = app_for_model(model).map_or_else(
-        || format!("this Odoo instance has no model '{model}'; the app providing it is not installed"),
+        || {
+            format!(
+                "this Odoo instance has no model '{model}'; the app providing it is not installed"
+            )
+        },
         |app| {
             format!(
                 "Odoo app '{app}' is not installed on this instance, so '{model}' does not \

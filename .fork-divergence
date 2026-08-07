@@ -92,7 +92,6 @@ extensions/web/admin/src/repositories/departments/aggregates.rs	# internal count
 extensions/web/src/router/mod.rs	# internal nests /bridge-auth and builds the auth deps the SSR plane needs
 extensions/web/src/router/admin_ssr.rs	# internal builds the bridge sign-in router beside the dashboard, from the same engine
 extensions/web/admin/src/repositories/users/mod.rs	# internal persists devices, federated identities and Odoo credentials
-extensions/web/src/router/api.rs	# internal's public API plane carries the bridge and slack surfaces the template has no counterpart for
 
 # ---------------------------------------------------------------------
 # ODOO / CATALOG - surface the template does not ship.

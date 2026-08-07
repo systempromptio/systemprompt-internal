@@ -10,9 +10,10 @@ pub mod activity;
 pub mod attachments;
 pub mod briefing;
 pub mod calendar;
-pub mod channels;
 pub mod call;
+pub mod channels;
 pub mod crm;
+mod crm_shape;
 pub mod notes;
 pub mod overview;
 pub mod partner;
@@ -152,14 +153,8 @@ impl ServerHandler for OdooServer {
         )
         .await;
 
-        dispatch_tool(
-            &self.executor,
-            call,
-            &tool_name,
-            &request,
-            &request_context,
-        )
-        .await
-        .map(Into::into)
+        dispatch_tool(&self.executor, call, &tool_name, &request, &request_context)
+            .await
+            .map(Into::into)
     }
 }

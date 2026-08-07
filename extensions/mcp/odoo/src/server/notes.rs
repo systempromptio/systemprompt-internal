@@ -72,13 +72,28 @@ pub fn search_domain(input: &NoteSearchInput) -> serde_json::Value {
         serde_json::json!(["body", "ilike", pattern]),
         serde_json::json!(["subject", "ilike", pattern]),
     ];
-    if let Some(model) = input.model.as_deref().map(str::trim).filter(|m| !m.is_empty()) {
+    if let Some(model) = input
+        .model
+        .as_deref()
+        .map(str::trim)
+        .filter(|m| !m.is_empty())
+    {
         domain.push(serde_json::json!(["model", "=", model]));
     }
-    if let Some(from) = input.date_from.as_deref().map(str::trim).filter(|d| !d.is_empty()) {
+    if let Some(from) = input
+        .date_from
+        .as_deref()
+        .map(str::trim)
+        .filter(|d| !d.is_empty())
+    {
         domain.push(serde_json::json!(["date", ">=", from]));
     }
-    if let Some(to) = input.date_to.as_deref().map(str::trim).filter(|d| !d.is_empty()) {
+    if let Some(to) = input
+        .date_to
+        .as_deref()
+        .map(str::trim)
+        .filter(|d| !d.is_empty())
+    {
         domain.push(serde_json::json!(["date", "<=", to]));
     }
     serde_json::Value::Array(domain)
@@ -88,10 +103,8 @@ pub fn search_domain(input: &NoteSearchInput) -> serde_json::Value {
 #[doc(hidden)]
 #[must_use]
 pub fn thread_row(record: &serde_json::Value) -> String {
-    let body = field(record, "body").map_or_else(
-        || "(empty note)".to_owned(),
-        |html| html_to_text(&html),
-    );
+    let body =
+        field(record, "body").map_or_else(|| "(empty note)".to_owned(), |html| html_to_text(&html));
     format!(
         "- **{}** — {} ({})\n  {body}",
         field_or_dash(record, "date"),
@@ -213,7 +226,11 @@ impl McpToolHandler for NoteListHandler {
             let body = if records.is_empty() {
                 empty_result("chatter messages")
             } else {
-                records.iter().map(thread_row).collect::<Vec<_>>().join("\n")
+                records
+                    .iter()
+                    .map(thread_row)
+                    .collect::<Vec<_>>()
+                    .join("\n")
             };
             Ok((text_artifact("Odoo Record Chatter", &body), summary))
         }
@@ -248,8 +265,7 @@ impl McpToolHandler for NoteSearchHandler {
             let query = input.query.trim().to_owned();
             if query.is_empty() {
                 return Err(McpError::invalid_params(
-                    "A search query is required — pass the subject you are looking for."
-                        .to_owned(),
+                    "A search query is required — pass the subject you are looking for.".to_owned(),
                     None,
                 ));
             }
@@ -260,12 +276,7 @@ impl McpToolHandler for NoteSearchHandler {
             };
             let records = call
                 .client
-                .search_read(
-                    &call.creds,
-                    "mail.message",
-                    search_domain(&input),
-                    &options,
-                )
+                .search_read(&call.creds, "mail.message", search_domain(&input), &options)
                 .await?;
 
             let summary = format!("{} note(s) mention \"{query}\"", records.len());

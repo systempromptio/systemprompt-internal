@@ -64,8 +64,7 @@ impl McpToolHandler for PartnerSearchHandler {
             let query = input.query.trim().to_owned();
             if query.is_empty() {
                 return Err(McpError::invalid_params(
-                    "A search query is required — pass a name, email or phone fragment."
-                        .to_owned(),
+                    "A search query is required — pass a name, email or phone fragment.".to_owned(),
                     None,
                 ));
             }
@@ -86,7 +85,10 @@ impl McpToolHandler for PartnerSearchHandler {
                 records
                     .iter()
                     .map(|r| {
-                        let id = r.get("id").and_then(serde_json::Value::as_i64).unwrap_or_default();
+                        let id = r
+                            .get("id")
+                            .and_then(serde_json::Value::as_i64)
+                            .unwrap_or_default();
                         format!(
                             "- **[{id}] {}** — {} · {}",
                             field_or_dash(r, "name"),

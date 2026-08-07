@@ -10,71 +10,14 @@ use systemprompt::models::execution::context::RequestContext;
 
 use super::call::{OdooCall, lead_fields};
 use crate::client::SearchOptions;
-use crate::format::{detail_lines, empty_result, field_or_dash, text_artifact};
+use crate::format::{detail_lines, empty_result, text_artifact};
 use crate::tools::inputs::{
     LeadCreateInput, LeadGetInput, LeadSearchInput, LeadUpdateInput, resolve_limit,
 };
 use crate::tools::{TOOL_LEAD_CREATE, TOOL_LEAD_GET, TOOL_LEAD_SEARCH, TOOL_LEAD_UPDATE};
 
-const LEAD_LABELS: [(&str, &str); 9] = [
-    ("name", "Subject"),
-    ("partner_name", "Contact"),
-    ("email_from", "Email"),
-    ("phone", "Phone"),
-    ("stage_id", "Stage"),
-    ("user_id", "Salesperson"),
-    ("expected_revenue", "Expected revenue"),
-    ("probability", "Probability"),
-    ("create_date", "Created"),
-];
-
-/// Build the Odoo search domain from the three optional filters.
-///
-/// Domains are prefix-notation: a bare sequence of leaves is an implicit AND,
-/// and the `"|"` prefixes make the free-text group an OR across three columns.
-/// Getting this wrong silently returns the wrong leads rather than failing, so
-/// it is exposed for direct assertion.
-///
-/// Exposed (behind `#[doc(hidden)]`) for the external test workspace; not part
-/// of the public API.
-#[doc(hidden)]
-#[must_use]
-pub fn lead_domain(input: &LeadSearchInput) -> serde_json::Value {
-    let mut domain: Vec<serde_json::Value> = Vec::new();
-
-    if let Some(query) = input.query.as_deref().map(str::trim).filter(|q| !q.is_empty()) {
-        domain.push(serde_json::json!("|"));
-        domain.push(serde_json::json!("|"));
-        domain.push(serde_json::json!(["name", "ilike", query]));
-        domain.push(serde_json::json!(["partner_name", "ilike", query]));
-        domain.push(serde_json::json!(["email_from", "ilike", query]));
-    }
-    if let Some(stage) = input.stage.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
-        domain.push(serde_json::json!(["stage_id.name", "ilike", stage]));
-    }
-    if let Some(user) = input.user.as_deref().map(str::trim).filter(|u| !u.is_empty()) {
-        domain.push(serde_json::json!("|"));
-        domain.push(serde_json::json!(["user_id.name", "ilike", user]));
-        domain.push(serde_json::json!(["user_id.login", "ilike", user]));
-    }
-
-    serde_json::Value::Array(domain)
-}
-
-/// One lead as a markdown list row.
-#[doc(hidden)]
-#[must_use]
-pub fn lead_row(record: &serde_json::Value) -> String {
-    let id = record.get("id").and_then(serde_json::Value::as_i64).unwrap_or_default();
-    format!(
-        "- **[{id}] {}** — {} · {} · {} · revenue {}",
-        field_or_dash(record, "name"),
-        field_or_dash(record, "stage_id"),
-        field_or_dash(record, "user_id"),
-        field_or_dash(record, "partner_name"),
-        field_or_dash(record, "expected_revenue"),
-    )
-}
+use super::crm_shape::LEAD_LABELS;
+pub use super::crm_shape::{lead_domain, lead_row};
 
 #[derive(Debug)]
 pub struct LeadSearchHandler {
@@ -227,7 +170,11 @@ impl McpToolHandler for LeadCreateHandler {
     }
 }
 
-fn insert_opt(values: &mut serde_json::Map<String, serde_json::Value>, key: &str, value: Option<String>) {
+fn insert_opt(
+    values: &mut serde_json::Map<String, serde_json::Value>,
+    key: &str,
+    value: Option<String>,
+) {
     if let Some(value) = value.map(|v| v.trim().to_owned()).filter(|v| !v.is_empty()) {
         values.insert(key.to_owned(), serde_json::json!(value));
     }

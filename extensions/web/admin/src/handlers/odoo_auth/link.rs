@@ -4,8 +4,8 @@
 use axum::{Extension, Json};
 use serde::{Deserialize, Serialize};
 
-use super::rpc::{OdooConnection, authenticate};
 use super::OdooAuthError;
+use super::rpc::{OdooConnection, authenticate};
 use crate::error::{AdminError, AdminResult};
 use crate::handlers::auth_deps::AuthDeps;
 use crate::repositories::users::odoo_identity;

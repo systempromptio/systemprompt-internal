@@ -47,7 +47,12 @@ pub fn task_domain(input: &TaskListInput, project_id: Option<i64>) -> serde_json
     if let Some(id) = project_id {
         domain.push(serde_json::json!(["project_id", "=", id]));
     }
-    if let Some(query) = input.query.as_deref().map(str::trim).filter(|q| !q.is_empty()) {
+    if let Some(query) = input
+        .query
+        .as_deref()
+        .map(str::trim)
+        .filter(|q| !q.is_empty())
+    {
         domain.push(serde_json::json!(["name", "ilike", format!("%{query}%")]));
     }
     if input.open_only.unwrap_or(true) {
@@ -102,7 +107,11 @@ impl McpToolHandler for TaskListHandler {
     ) -> impl Future<Output = Result<(Self::Output, String), McpError>> + Send {
         let call = self.call.clone();
         async move {
-            let project_id = match input.project.as_deref().map(str::trim).filter(|p| !p.is_empty())
+            let project_id = match input
+                .project
+                .as_deref()
+                .map(str::trim)
+                .filter(|p| !p.is_empty())
             {
                 Some(name) => Some(resolve::project_id(&call.client, &call.creds, name).await?),
                 None => None,
@@ -170,19 +179,33 @@ impl McpToolHandler for TaskCreateHandler {
             let mut values = serde_json::Map::new();
             values.insert("name".to_owned(), serde_json::json!(name));
             values.insert("project_id".to_owned(), serde_json::json!(project_id));
-            if let Some(who) = input.user.as_deref().map(str::trim).filter(|u| !u.is_empty()) {
+            if let Some(who) = input
+                .user
+                .as_deref()
+                .map(str::trim)
+                .filter(|u| !u.is_empty())
+            {
                 let user_id = resolve::user_id(&call.client, &call.creds, who).await?;
                 // Why: project.task assigns through a many2many, so a single
                 // assignee is still written as a set-replacement command.
-                values.insert("user_ids".to_owned(), serde_json::json!([[6, 0, [user_id]]]));
+                values.insert(
+                    "user_ids".to_owned(),
+                    serde_json::json!([[6, 0, [user_id]]]),
+                );
             }
-            if let Some(description) =
-                input.description.as_deref().map(str::trim).filter(|d| !d.is_empty())
+            if let Some(description) = input
+                .description
+                .as_deref()
+                .map(str::trim)
+                .filter(|d| !d.is_empty())
             {
                 values.insert("description".to_owned(), serde_json::json!(description));
             }
-            if let Some(deadline) =
-                input.date_deadline.as_deref().map(str::trim).filter(|d| !d.is_empty())
+            if let Some(deadline) = input
+                .date_deadline
+                .as_deref()
+                .map(str::trim)
+                .filter(|d| !d.is_empty())
             {
                 values.insert("date_deadline".to_owned(), serde_json::json!(deadline));
             }

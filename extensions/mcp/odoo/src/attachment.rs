@@ -88,7 +88,11 @@ pub fn classify_upload(input: &AttachmentAddInput) -> Result<Upload, McpError> {
         .as_deref()
         .map(str::trim)
         .filter(|c| !c.is_empty());
-    let url = input.url.as_deref().map(str::trim).filter(|u| !u.is_empty());
+    let url = input
+        .url
+        .as_deref()
+        .map(str::trim)
+        .filter(|u| !u.is_empty());
 
     match (content, url) {
         (Some(_), Some(_)) => Err(McpError::invalid_params(
@@ -179,9 +183,9 @@ pub fn is_url_attachment(record: &serde_json::Value) -> bool {
 /// [`MAX_UPLOAD_BYTES`] once decoded.
 #[doc(hidden)]
 pub fn check_upload(content_base64: &str) -> Result<usize, McpError> {
-    let decoded = STANDARD
-        .decode(content_base64.trim())
-        .map_err(|e| McpError::invalid_params(format!("content_base64 is not valid base64: {e}"), None))?;
+    let decoded = STANDARD.decode(content_base64.trim()).map_err(|e| {
+        McpError::invalid_params(format!("content_base64 is not valid base64: {e}"), None)
+    })?;
 
     if decoded.is_empty() {
         return Err(McpError::invalid_params(
@@ -214,13 +218,23 @@ pub fn check_upload(content_base64: &str) -> Result<usize, McpError> {
 #[must_use]
 pub fn attachment_domain(input: &AttachmentListInput) -> serde_json::Value {
     let mut domain: Vec<serde_json::Value> = Vec::new();
-    if let Some(model) = input.model.as_deref().map(str::trim).filter(|m| !m.is_empty()) {
+    if let Some(model) = input
+        .model
+        .as_deref()
+        .map(str::trim)
+        .filter(|m| !m.is_empty())
+    {
         domain.push(serde_json::json!(["res_model", "=", model]));
     }
     if let Some(res_id) = input.res_id {
         domain.push(serde_json::json!(["res_id", "=", res_id]));
     }
-    if let Some(query) = input.query.as_deref().map(str::trim).filter(|q| !q.is_empty()) {
+    if let Some(query) = input
+        .query
+        .as_deref()
+        .map(str::trim)
+        .filter(|q| !q.is_empty())
+    {
         domain.push(serde_json::json!(["name", "ilike", format!("%{query}%")]));
     }
     serde_json::Value::Array(domain)

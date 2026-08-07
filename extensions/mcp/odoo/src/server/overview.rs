@@ -16,13 +16,13 @@ use systemprompt::mcp::McpToolHandler;
 use systemprompt::models::artifacts::CliArtifact;
 use systemprompt::models::execution::context::RequestContext;
 
+use super::activity::activity_row;
 use super::briefing::{Briefing, RECENT_DAYS, TASK_HORIZON_DAYS, fetch};
+use super::calendar::event_row;
 use super::call::OdooCall;
 use super::crm::lead_row;
-use super::activity::activity_row;
-use super::calendar::event_row;
-use super::tasks::task_row;
 use super::report::group_row;
+use super::tasks::task_row;
 use crate::format::{field_or_dash, text_artifact};
 use crate::tools::TOOL_OVERVIEW;
 use crate::tools::inputs::OverviewInput;

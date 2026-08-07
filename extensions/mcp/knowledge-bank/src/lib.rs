@@ -7,10 +7,10 @@
 //! answers with nothing.
 //!
 //! - [`schema`] — the `knowledge_documents` DDL and its registration.
-//! - [`store`] — every query the tools run, plus the pure query-shaping
-//!   helpers (mode selection, limit clamp, size cap) they depend on.
-//! - [`tools`] — the wire contract: `search_project_context`,
-//!   `list_documents`, `upload_document`.
+//! - [`store`] — every query the tools run, plus the pure query-shaping helpers
+//!   (mode selection, limit clamp, size cap) they depend on.
+//! - [`tools`] — the wire contract: `search_project_context`, `list_documents`,
+//!   `upload_document`.
 //! - [`server`] — the rmcp handler, RBAC, and the admin gate on uploads.
 
 pub mod error;

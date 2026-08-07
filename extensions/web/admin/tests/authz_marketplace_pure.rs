@@ -244,7 +244,9 @@ fn an_unowned_artifact_is_dropped_rather_than_defaulting_to_visible() {
 #[test]
 fn the_owner_map_and_marketplace_scope_pass_through_untouched() {
     let mut input = candidate();
-    input.marketplace_id = Some(systemprompt::identifiers::MarketplaceId::new("systemprompt"));
+    input.marketplace_id = Some(systemprompt::identifiers::MarketplaceId::new(
+        "systemprompt",
+    ));
     let owners = input.artifact_owners.clone();
 
     let kept = apply_keep_sets(

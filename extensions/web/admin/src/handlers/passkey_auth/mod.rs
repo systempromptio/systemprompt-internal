@@ -1,10 +1,10 @@
 //! Email + passkey self-registration.
 //!
 //! `POST /admin/auth/passkey/register` is the domain-gated front door for
-//! creating an account without an operator in the loop: it validates the email against the
-//! same `allowed_email_domains` list that gates SSO, provisions the user (org
-//! membership and seat limit included), and returns a short-lived setup token.
-//! The browser then enrols the passkey through core's public
+//! creating an account without an operator in the loop: it validates the email
+//! against the same `allowed_email_domains` list that gates SSO, provisions the
+//! user (org membership and seat limit included), and returns a short-lived
+//! setup token. The browser then enrols the passkey through core's public
 //! `/api/v1/core/oauth/webauthn/link/{start,finish}` ceremony — the same flow
 //! CLI-created users use — and signs in with the fresh credential.
 //!

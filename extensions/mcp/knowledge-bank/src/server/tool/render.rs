@@ -77,4 +77,3 @@ pub fn listing_summary(documents: &[DocumentSummary]) -> String {
         .collect::<Vec<_>>()
         .join("\n")
 }
-

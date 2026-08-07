@@ -2,6 +2,7 @@
 name = "systemprompt-web-content"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
 authors.workspace = true
 description = "Content pipeline extension for the systemprompt.io template: Markdown ingestion, content sources, and governed publishing."
 repository.workspace = true

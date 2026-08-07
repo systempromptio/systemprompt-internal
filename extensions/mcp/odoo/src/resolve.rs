@@ -42,11 +42,7 @@ async fn names(
 ///
 /// # Errors
 /// No match, with the logins this account can see listed in the message.
-pub async fn user_id(
-    client: &OdooClient,
-    creds: &Credentials,
-    who: &str,
-) -> Result<i64, McpError> {
+pub async fn user_id(client: &OdooClient, creds: &Credentials, who: &str) -> Result<i64, McpError> {
     let pattern = format!("%{}%", who.trim());
     let options = SearchOptions {
         fields: vec!["id".to_owned(), "login".to_owned(), "name".to_owned()],
@@ -66,9 +62,7 @@ pub async fn user_id(
         // Why: two matches is a real fork — assigning work to the wrong
         // colleague is worse than asking which one.
         n if n > 1 => Err(McpError::invalid_params(
-            format!(
-                "\"{who}\" matches more than one Odoo user. Use a full login to disambiguate."
-            ),
+            format!("\"{who}\" matches more than one Odoo user. Use a full login to disambiguate."),
             None,
         )),
         _ => {
@@ -103,7 +97,10 @@ pub async fn project_id(
         .search_read(creds, "project.project", domain, &options)
         .await?;
 
-    if let Some(id) = matches.first().and_then(|r| r.get("id")).and_then(serde_json::Value::as_i64)
+    if let Some(id) = matches
+        .first()
+        .and_then(|r| r.get("id"))
+        .and_then(serde_json::Value::as_i64)
     {
         return Ok(id);
     }
@@ -130,10 +127,7 @@ pub async fn project_id(
 ///
 /// # Errors
 /// The instance has no activity types at all.
-pub async fn activity_type_id(
-    client: &OdooClient,
-    creds: &Credentials,
-) -> Result<i64, McpError> {
+pub async fn activity_type_id(client: &OdooClient, creds: &Credentials) -> Result<i64, McpError> {
     let options = SearchOptions {
         fields: vec!["id".to_owned(), "name".to_owned()],
         limit: 1,
@@ -147,18 +141,16 @@ pub async fn activity_type_id(
             &options,
         )
         .await?;
-    if let Some(id) = preferred.first().and_then(|r| r.get("id")).and_then(serde_json::Value::as_i64)
+    if let Some(id) = preferred
+        .first()
+        .and_then(|r| r.get("id"))
+        .and_then(serde_json::Value::as_i64)
     {
         return Ok(id);
     }
 
     let any = client
-        .search_read(
-            creds,
-            "mail.activity.type",
-            serde_json::json!([]),
-            &options,
-        )
+        .search_read(creds, "mail.activity.type", serde_json::json!([]), &options)
         .await?;
     any.first()
         .and_then(|r| r.get("id"))

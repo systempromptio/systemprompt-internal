@@ -2,6 +2,7 @@
 name = "systemprompt-mcp-agent"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
 authors.workspace = true
 description = "Bundled MCP server for the systemprompt.io template: governed tools exercised by the demo agents through the AI governance pipeline."
 repository.workspace = true

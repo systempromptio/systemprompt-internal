@@ -98,6 +98,10 @@ jobs:
       # The integration crates are a self-contained throwaway-database harness:
       # they connect to the maintenance DB, CREATE DATABASE a per-test schema,
       # and drop it on teardown. All they need is a reachable Postgres.
+      # The contract suite's fixture profile validates paths.bin points at an
+      # existing directory; nothing in this job builds the root workspace, so
+      # create it.
+      - run: mkdir -p target/debug
       - name: Run the tests workspace (unit, integration, contract)
         env:
           SYSTEMPROMPT_TEST_DATABASE_URL: postgres://test:test@localhost:5432/postgres

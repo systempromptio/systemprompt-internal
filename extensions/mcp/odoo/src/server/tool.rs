@@ -175,7 +175,8 @@ async fn work_tools(
         TOOL_ACTIVITY_COMPLETE => ctx.run(&activity::ActivityCompleteHandler { call }).await,
         TOOL_CALENDAR_EVENT_LIST => ctx.run(&calendar::CalendarEventListHandler { call }).await,
         TOOL_CALENDAR_EVENT_CREATE => {
-            ctx.run(&calendar::CalendarEventCreateHandler { call }).await
+            ctx.run(&calendar::CalendarEventCreateHandler { call })
+                .await
         },
         TOOL_TASK_LIST => ctx.run(&tasks::TaskListHandler { call }).await,
         TOOL_TASK_CREATE => ctx.run(&tasks::TaskCreateHandler { call }).await,

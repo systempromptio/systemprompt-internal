@@ -136,10 +136,9 @@ pub async fn find(pool: &PgPool, user_id: &UserId) -> Result<Option<OdooIdentity
 /// Every Odoo login this deployment knows about, sorted. The answer to "whose
 /// work will show up in Odoo's audit log" without touching any credential.
 pub async fn list_odoo_logins(pool: &PgPool) -> Result<Vec<String>, sqlx::Error> {
-    let rows =
-        sqlx::query!("SELECT DISTINCT odoo_login FROM odoo_identity ORDER BY odoo_login")
-            .fetch_all(pool)
-            .await?;
+    let rows = sqlx::query!("SELECT DISTINCT odoo_login FROM odoo_identity ORDER BY odoo_login")
+        .fetch_all(pool)
+        .await?;
     Ok(rows.into_iter().map(|r| r.odoo_login).collect())
 }
 

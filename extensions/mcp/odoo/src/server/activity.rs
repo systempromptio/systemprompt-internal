@@ -18,9 +18,8 @@ use systemprompt::models::artifacts::CliArtifact;
 use systemprompt::models::execution::context::RequestContext;
 
 use super::call::OdooCall;
-use crate::client::SearchOptions;
+use crate::client::{ModelCall, SearchOptions};
 use crate::format::{empty_result, field_or_dash, text_artifact};
-use crate::client::ModelCall;
 use crate::resolve;
 use crate::tools::inputs::{
     ActivityCompleteInput, ActivityCreateInput, ActivityListInput, resolve_limit,
@@ -56,7 +55,12 @@ pub fn activity_fields() -> Vec<String> {
 #[must_use]
 pub fn activity_domain(uid: i32, input: &ActivityListInput, today: &str) -> serde_json::Value {
     let mut domain: Vec<serde_json::Value> = vec![serde_json::json!(["user_id", "=", uid])];
-    if let Some(model) = input.model.as_deref().map(str::trim).filter(|m| !m.is_empty()) {
+    if let Some(model) = input
+        .model
+        .as_deref()
+        .map(str::trim)
+        .filter(|m| !m.is_empty())
+    {
         domain.push(serde_json::json!(["res_model", "=", model]));
     }
     if input.overdue_only.unwrap_or(false) {
@@ -122,7 +126,11 @@ impl McpToolHandler for ActivityListHandler {
             let body = if records.is_empty() {
                 empty_result("activities")
             } else {
-                records.iter().map(activity_row).collect::<Vec<_>>().join("\n")
+                records
+                    .iter()
+                    .map(activity_row)
+                    .collect::<Vec<_>>()
+                    .join("\n")
             };
             Ok((text_artifact("Odoo Activities", &body), summary))
         }
@@ -165,7 +173,12 @@ impl McpToolHandler for ActivityCreateHandler {
             // Why: defaulting the assignee to the caller rather than leaving it
             // unset. An unassigned activity appears on nobody's list, which
             // makes "schedule a follow-up" quietly do nothing.
-            let user_id = match input.user.as_deref().map(str::trim).filter(|u| !u.is_empty()) {
+            let user_id = match input
+                .user
+                .as_deref()
+                .map(str::trim)
+                .filter(|u| !u.is_empty())
+            {
                 Some(who) => resolve::user_id(&call.client, &call.creds, who).await?,
                 None => i64::from(call.creds.uid),
             };
@@ -185,13 +198,22 @@ impl McpToolHandler for ActivityCreateHandler {
             );
             values.insert("user_id".to_owned(), serde_json::json!(user_id));
             values.insert("activity_type_id".to_owned(), serde_json::json!(type_id));
-            if let Some(note) = input.note.as_deref().map(str::trim).filter(|n| !n.is_empty()) {
+            if let Some(note) = input
+                .note
+                .as_deref()
+                .map(str::trim)
+                .filter(|n| !n.is_empty())
+            {
                 values.insert("note".to_owned(), serde_json::json!(note));
             }
 
             let id = call
                 .client
-                .create(&call.creds, "mail.activity", serde_json::Value::Object(values))
+                .create(
+                    &call.creds,
+                    "mail.activity",
+                    serde_json::Value::Object(values),
+                )
                 .await?;
 
             let summary = format!(
@@ -239,12 +261,15 @@ impl McpToolHandler for ActivityCompleteHandler {
                 .unwrap_or("Done");
 
             call.client
-                .execute_kw(&call.creds, ModelCall {
-                    model: "mail.activity",
-                    method: "action_feedback",
-                    args: serde_json::json!([[input.activity_id]]),
-                    kwargs: serde_json::json!({ "feedback": feedback }),
-                })
+                .execute_kw(
+                    &call.creds,
+                    ModelCall {
+                        model: "mail.activity",
+                        method: "action_feedback",
+                        args: serde_json::json!([[input.activity_id]]),
+                        kwargs: serde_json::json!({ "feedback": feedback }),
+                    },
+                )
                 .await?;
 
             let summary = format!(

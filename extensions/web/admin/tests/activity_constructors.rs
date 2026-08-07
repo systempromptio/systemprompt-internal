@@ -101,8 +101,7 @@ fn a_notification_is_described_by_the_type_and_message_it_has() {
 
 #[test]
 fn entity_crud_descriptions_use_the_human_label_for_the_kind() {
-    let created =
-        NewActivity::entity_created(&user(), ActivityEntity::McpServer, "odoo", "Odoo");
+    let created = NewActivity::entity_created(&user(), ActivityEntity::McpServer, "odoo", "Odoo");
     assert_eq!(created.description, "Created MCP server 'Odoo'");
     assert!(matches!(created.action, ActivityAction::Created));
     assert!(matches!(

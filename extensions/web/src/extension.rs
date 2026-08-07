@@ -57,7 +57,6 @@ impl WebExtension {
     pub fn skills_page_config() -> Option<Arc<SkillsPageConfig>> {
         config_loader::skills_page_config()
     }
-
 }
 
 register_extension!(WebExtension);

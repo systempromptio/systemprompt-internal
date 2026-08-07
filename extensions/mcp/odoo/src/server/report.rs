@@ -37,10 +37,20 @@ const fn group_field(group_by: ReportGroupBy) -> &'static str {
 #[must_use]
 pub fn report_domain(input: &LeadReportInput) -> serde_json::Value {
     let mut domain: Vec<serde_json::Value> = Vec::new();
-    if let Some(from) = input.date_from.as_deref().map(str::trim).filter(|d| !d.is_empty()) {
+    if let Some(from) = input
+        .date_from
+        .as_deref()
+        .map(str::trim)
+        .filter(|d| !d.is_empty())
+    {
         domain.push(serde_json::json!(["create_date", ">=", from]));
     }
-    if let Some(to) = input.date_to.as_deref().map(str::trim).filter(|d| !d.is_empty()) {
+    if let Some(to) = input
+        .date_to
+        .as_deref()
+        .map(str::trim)
+        .filter(|d| !d.is_empty())
+    {
         domain.push(serde_json::json!(["create_date", "<=", to]));
     }
     serde_json::Value::Array(domain)
@@ -93,19 +103,25 @@ impl McpToolHandler for LeadReportHandler {
             let group_key = group_field(input.group_by);
             let records = call
                 .client
-                .read_group(&call.creds, "crm.lead", GroupQuery {
-                    domain: report_domain(&input),
-                    fields: &AGGREGATES,
-                    group_by: &[group_key],
-                })
+                .read_group(
+                    &call.creds,
+                    "crm.lead",
+                    GroupQuery {
+                        domain: report_domain(&input),
+                        fields: &AGGREGATES,
+                        group_by: &[group_key],
+                    },
+                )
                 .await?;
 
             let total: i64 = records
                 .iter()
                 .filter_map(|r| r.get("__count").and_then(serde_json::Value::as_i64))
                 .sum();
-            let summary =
-                format!("{total} lead(s) across {} group(s) by {group_key}", records.len());
+            let summary = format!(
+                "{total} lead(s) across {} group(s) by {group_key}",
+                records.len()
+            );
             let body = if records.is_empty() {
                 empty_result("leads")
             } else {

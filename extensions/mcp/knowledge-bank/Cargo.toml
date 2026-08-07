@@ -2,6 +2,7 @@
 name = "systemprompt-mcp-knowledge-bank"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
 authors.workspace = true
 description = "Company knowledge-bank MCP server: meeting transcripts, documents and notes persisted on the tenant Postgres with full-text search."
 repository.workspace = true

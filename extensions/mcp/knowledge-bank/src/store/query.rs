@@ -107,9 +107,7 @@ pub fn check_content_size(content: &str) -> Result<(), KnowledgeBankError> {
 /// "the caller sent an empty string", and the two mean the same thing here.
 #[must_use]
 pub fn normalize_optional(value: Option<String>) -> Option<String> {
-    value
-        .map(|v| v.trim().to_owned())
-        .filter(|v| !v.is_empty())
+    value.map(|v| v.trim().to_owned()).filter(|v| !v.is_empty())
 }
 
 /// Reject an upload field that is blank once trimmed.
@@ -125,4 +123,3 @@ pub fn require_non_empty(field: &str, value: &str) -> Result<String, KnowledgeBa
     }
     Ok(trimmed.to_owned())
 }
-

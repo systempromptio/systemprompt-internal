@@ -78,4 +78,3 @@ pub struct AttachmentGetInput {
     /// Odoo id of the attachment.
     pub id: i64,
 }
-

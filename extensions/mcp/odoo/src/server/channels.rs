@@ -27,13 +27,10 @@ const CHANNEL_FIELDS: [&str; 4] = ["id", "name", "channel_type", "member_count"]
 #[doc(hidden)]
 #[must_use]
 pub fn channel_domain(query: Option<&str>) -> serde_json::Value {
-    query
-        .map(str::trim)
-        .filter(|q| !q.is_empty())
-        .map_or_else(
-            || serde_json::json!([]),
-            |q| serde_json::json!([["name", "ilike", format!("%{q}%")]]),
-        )
+    query.map(str::trim).filter(|q| !q.is_empty()).map_or_else(
+        || serde_json::json!([]),
+        |q| serde_json::json!([["name", "ilike", format!("%{q}%")]]),
+    )
 }
 
 /// One channel as a markdown row.
@@ -96,7 +93,11 @@ impl McpToolHandler for ChannelListHandler {
             let body = if records.is_empty() {
                 empty_result("channels")
             } else {
-                records.iter().map(channel_row).collect::<Vec<_>>().join("\n")
+                records
+                    .iter()
+                    .map(channel_row)
+                    .collect::<Vec<_>>()
+                    .join("\n")
             };
             Ok((text_artifact("Odoo Discuss Channels", &body), summary))
         }

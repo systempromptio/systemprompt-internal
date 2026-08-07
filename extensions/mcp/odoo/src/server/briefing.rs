@@ -89,11 +89,15 @@ pub async fn fetch(call: &OdooCall) -> Result<Briefing, McpError> {
         order: Some("date desc".to_owned()),
     };
 
-    let pipeline = call.client.read_group(&call.creds, "crm.lead", GroupQuery {
-        domain: serde_json::json!([]),
-        fields: &["expected_revenue:sum"],
-        group_by: &["stage_id"],
-    });
+    let pipeline = call.client.read_group(
+        &call.creds,
+        "crm.lead",
+        GroupQuery {
+            domain: serde_json::json!([]),
+            fields: &["expected_revenue:sum"],
+            group_by: &["stage_id"],
+        },
+    );
     let new_leads = call.client.search_read(
         &call.creds,
         "crm.lead",
@@ -105,7 +109,10 @@ pub async fn fetch(call: &OdooCall) -> Result<Briefing, McpError> {
     let activities = call.client.search_read(
         &call.creds,
         "mail.activity",
-        serde_json::json!([["user_id", "=", call.creds.uid], ["date_deadline", "<=", today]]),
+        serde_json::json!([
+            ["user_id", "=", call.creds.uid],
+            ["date_deadline", "<=", today]
+        ]),
         &activity_options,
     );
     let notes = call.client.search_read(

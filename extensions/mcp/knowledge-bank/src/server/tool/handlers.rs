@@ -165,4 +165,3 @@ impl McpToolHandler for UploadHandler {
         Ok((text_artifact("Document Uploaded", &body), summary))
     }
 }
-

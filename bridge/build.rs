@@ -1,5 +1,6 @@
-//! Build script: embed the Systemprompt icon + metadata into the Windows executable.
-//! No-op on non-Windows targets. Mirrors systemprompt-core/bin/bridge/build.rs.
+//! Build script: embed the Systemprompt icon + metadata into the Windows
+//! executable. No-op on non-Windows targets. Mirrors
+//! systemprompt-core/bin/bridge/build.rs.
 #![allow(
     clippy::print_stdout,
     clippy::print_stderr,

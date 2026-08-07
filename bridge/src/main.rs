@@ -2,11 +2,12 @@
 //! Systemprompt Internal desktop bridge.
 //!
 //! A thin white-label wrapper over the systemprompt bridge: it defines the
-//! Systemprompt [`Brand`] (chrome, on-disk paths, env prefix, default gateway, and
-//! embedded GUI assets) and hands it to [`systemprompt_bridge::run_with_brand`].
-//! All behaviour lives in the shared core library — this file is intentionally
-//! tiny so a new client bridge is "copy this crate, swap `assets/`, edit the
-//! const below". See `README.md` for the recipe.
+//! Systemprompt [`Brand`] (chrome, on-disk paths, env prefix, default gateway,
+//! and embedded GUI assets) and hands it to
+//! [`systemprompt_bridge::run_with_brand`]. All behaviour lives in the shared
+//! core library — this file is intentionally tiny so a new client bridge is
+//! "copy this crate, swap `assets/`, edit the const below". See `README.md` for
+//! the recipe.
 
 use std::process::ExitCode;
 

@@ -12,7 +12,7 @@ use serde::Serialize;
 
 use crate::apps::map_missing_app;
 use crate::error::OdooError;
-pub use rpc::{OdooConnection, ODOO_DB_ENV, ODOO_URL_ENV};
+pub use rpc::{ODOO_DB_ENV, ODOO_URL_ENV, OdooConnection};
 
 /// The acting user's Odoo credential, resolved per request from
 /// `odoo_identity`.
@@ -79,11 +79,7 @@ impl OdooClient {
     ///
     /// # Errors
     /// Transport or protocol failures.
-    pub async fn authenticate(
-        &self,
-        login: &str,
-        api_key: &str,
-    ) -> Result<Option<i32>, OdooError> {
+    pub async fn authenticate(&self, login: &str, api_key: &str) -> Result<Option<i32>, OdooError> {
         let args = [
             serde_json::json!(self.conn.db),
             serde_json::json!(login),
@@ -141,12 +137,15 @@ impl OdooClient {
             kwargs.insert("order".to_owned(), serde_json::json!(order));
         }
         let result = self
-            .execute_kw(creds, ModelCall {
-                model,
-                method: "search_read",
-                args: serde_json::json!([domain]),
-                kwargs: serde_json::Value::Object(kwargs),
-            })
+            .execute_kw(
+                creds,
+                ModelCall {
+                    model,
+                    method: "search_read",
+                    args: serde_json::json!([domain]),
+                    kwargs: serde_json::Value::Object(kwargs),
+                },
+            )
             .await?;
         Ok(result.as_array().cloned().unwrap_or_default())
     }
@@ -163,12 +162,15 @@ impl OdooClient {
         fields: &[&str],
     ) -> Result<Vec<serde_json::Value>, OdooError> {
         let result = self
-            .execute_kw(creds, ModelCall {
-                model,
-                method: "read",
-                args: serde_json::json!([ids]),
-                kwargs: serde_json::json!({ "fields": fields }),
-            })
+            .execute_kw(
+                creds,
+                ModelCall {
+                    model,
+                    method: "read",
+                    args: serde_json::json!([ids]),
+                    kwargs: serde_json::json!({ "fields": fields }),
+                },
+            )
             .await?;
         Ok(result.as_array().cloned().unwrap_or_default())
     }
@@ -184,12 +186,15 @@ impl OdooClient {
         query: GroupQuery<'_>,
     ) -> Result<Vec<serde_json::Value>, OdooError> {
         let result = self
-            .execute_kw(creds, ModelCall {
-                model,
-                method: "read_group",
-                args: serde_json::json!([query.domain, query.fields, query.group_by]),
-                kwargs: serde_json::json!({ "lazy": false }),
-            })
+            .execute_kw(
+                creds,
+                ModelCall {
+                    model,
+                    method: "read_group",
+                    args: serde_json::json!([query.domain, query.fields, query.group_by]),
+                    kwargs: serde_json::json!({ "lazy": false }),
+                },
+            )
             .await?;
         Ok(result.as_array().cloned().unwrap_or_default())
     }
@@ -206,16 +211,19 @@ impl OdooClient {
         values: serde_json::Value,
     ) -> Result<i64, OdooError> {
         let result = self
-            .execute_kw(creds, ModelCall {
-                model,
-                method: "create",
-                args: serde_json::json!([values]),
-                kwargs: serde_json::json!({}),
-            })
+            .execute_kw(
+                creds,
+                ModelCall {
+                    model,
+                    method: "create",
+                    args: serde_json::json!([values]),
+                    kwargs: serde_json::json!({}),
+                },
+            )
             .await?;
-        result.as_i64().ok_or_else(|| {
-            OdooError::Odoo(format!("create on {model} returned no record id"))
-        })
+        result
+            .as_i64()
+            .ok_or_else(|| OdooError::Odoo(format!("create on {model} returned no record id")))
     }
 
     /// `write` — returns Odoo's boolean acknowledgement.
@@ -230,12 +238,15 @@ impl OdooClient {
         values: serde_json::Value,
     ) -> Result<bool, OdooError> {
         let result = self
-            .execute_kw(creds, ModelCall {
-                model,
-                method: "write",
-                args: serde_json::json!([[id], values]),
-                kwargs: serde_json::json!({}),
-            })
+            .execute_kw(
+                creds,
+                ModelCall {
+                    model,
+                    method: "write",
+                    args: serde_json::json!([[id], values]),
+                    kwargs: serde_json::json!({}),
+                },
+            )
             .await?;
         Ok(result.as_bool().unwrap_or(false))
     }
@@ -254,12 +265,15 @@ impl OdooClient {
         body: &str,
     ) -> Result<i64, OdooError> {
         let result = self
-            .execute_kw(creds, ModelCall {
-                model,
-                method: "message_post",
-                args: serde_json::json!([[res_id]]),
-                kwargs: serde_json::json!({ "body": body, "message_type": "comment" }),
-            })
+            .execute_kw(
+                creds,
+                ModelCall {
+                    model,
+                    method: "message_post",
+                    args: serde_json::json!([[res_id]]),
+                    kwargs: serde_json::json!({ "body": body, "message_type": "comment" }),
+                },
+            )
             .await?;
         Ok(result.as_i64().unwrap_or_default())
     }

@@ -19,8 +19,7 @@ const NONCE_LEN: usize = 12;
 /// The message shown to a caller with no linked Odoo account. It names the
 /// page they need, because "unauthorized" would send an agent looking for a
 /// permissions problem that does not exist.
-pub const NOT_LINKED_MESSAGE: &str =
-    "You have not linked an Odoo account yet. Open /admin/profile, connect Odoo with your login \
+pub const NOT_LINKED_MESSAGE: &str = "You have not linked an Odoo account yet. Open /admin/profile, connect Odoo with your login \
      and an API key from Odoo's Preferences → Account Security, then try again.";
 
 // Why: the same master key the admin plane seals with — the two processes
@@ -69,7 +68,9 @@ pub fn open_api_key(key: &[u8; 32], sealed: &str) -> Result<String, OdooError> {
     let cipher = ChaCha20Poly1305::new(key.into());
     let plaintext = cipher
         .decrypt(Nonce::from_slice(nonce_bytes), ciphertext)
-        .map_err(|_e| OdooError::Internal("stored Odoo API key could not be decrypted".to_owned()))?;
+        .map_err(|_e| {
+            OdooError::Internal("stored Odoo API key could not be decrypted".to_owned())
+        })?;
     String::from_utf8(plaintext)
         .map_err(|_e| OdooError::Internal("decrypted Odoo API key is not UTF-8".to_owned()))
 }

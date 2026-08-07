@@ -6,9 +6,9 @@
 //! - a query with something to match on goes to `websearch_to_tsquery` ranked
 //!   by `ts_rank_cd`, with a `ts_headline` snippet;
 //! - a query that produces no lexemes — punctuation, a bare stopword, a
-//!   substring of a word — falls back to `ILIKE`, because returning nothing
-//!   for "checkou" would read as an empty knowledge bank rather than a query
-//!   the tokenizer could not use;
+//!   substring of a word — falls back to `ILIKE`, because returning nothing for
+//!   "checkou" would read as an empty knowledge bank rather than a query the
+//!   tokenizer could not use;
 //! - an empty or one-character query lists the newest documents, which is what
 //!   a caller orienting themselves actually wants.
 //!

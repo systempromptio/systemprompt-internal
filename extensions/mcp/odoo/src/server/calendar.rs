@@ -62,13 +62,32 @@ pub fn normalize_datetime(value: &str) -> String {
 #[must_use]
 pub fn event_domain(input: &CalendarEventListInput) -> serde_json::Value {
     let mut domain: Vec<serde_json::Value> = Vec::new();
-    if let Some(from) = input.date_from.as_deref().map(str::trim).filter(|d| !d.is_empty()) {
-        domain.push(serde_json::json!(["start", ">=", format!("{from} 00:00:00")]));
+    if let Some(from) = input
+        .date_from
+        .as_deref()
+        .map(str::trim)
+        .filter(|d| !d.is_empty())
+    {
+        domain.push(serde_json::json!([
+            "start",
+            ">=",
+            format!("{from} 00:00:00")
+        ]));
     }
-    if let Some(to) = input.date_to.as_deref().map(str::trim).filter(|d| !d.is_empty()) {
+    if let Some(to) = input
+        .date_to
+        .as_deref()
+        .map(str::trim)
+        .filter(|d| !d.is_empty())
+    {
         domain.push(serde_json::json!(["start", "<=", format!("{to} 23:59:59")]));
     }
-    if let Some(query) = input.query.as_deref().map(str::trim).filter(|q| !q.is_empty()) {
+    if let Some(query) = input
+        .query
+        .as_deref()
+        .map(str::trim)
+        .filter(|q| !q.is_empty())
+    {
         domain.push(serde_json::json!(["name", "ilike", format!("%{query}%")]));
     }
     serde_json::Value::Array(domain)
@@ -119,9 +138,16 @@ pub fn event_values(input: &CalendarEventCreateInput) -> serde_json::Value {
     let mut values = serde_json::Map::new();
     values.insert("name".to_owned(), serde_json::json!(input.name.trim()));
     values.insert("start".to_owned(), serde_json::json!(start));
-    values.insert("stop".to_owned(), serde_json::json!(stop_for(input, &start)));
+    values.insert(
+        "stop".to_owned(),
+        serde_json::json!(stop_for(input, &start)),
+    );
 
-    if let Some(partners) = input.attendee_partner_ids.as_ref().filter(|p| !p.is_empty()) {
+    if let Some(partners) = input
+        .attendee_partner_ids
+        .as_ref()
+        .filter(|p| !p.is_empty())
+    {
         // Why: Odoo's x2many write format. `[(6, 0, ids)]` means "replace the
         // set with exactly these", which on a new record is simply "invite
         // them".
@@ -130,7 +156,11 @@ pub fn event_values(input: &CalendarEventCreateInput) -> serde_json::Value {
             serde_json::json!([[6, 0, partners]]),
         );
     }
-    if let Some(description) = input.description.as_deref().map(str::trim).filter(|d| !d.is_empty())
+    if let Some(description) = input
+        .description
+        .as_deref()
+        .map(str::trim)
+        .filter(|d| !d.is_empty())
     {
         values.insert("description".to_owned(), serde_json::json!(description));
     }
@@ -146,7 +176,12 @@ pub fn event_values(input: &CalendarEventCreateInput) -> serde_json::Value {
 // Why: an explicit stop wins; otherwise the duration decides; otherwise one
 // hour. Odoo requires a stop, so there is no "leave it open" option to pass on.
 fn stop_for(input: &CalendarEventCreateInput, start: &str) -> String {
-    if let Some(stop) = input.stop.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+    if let Some(stop) = input
+        .stop
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+    {
         return normalize_datetime(stop);
     }
     let hours = input.duration_hours.unwrap_or(DEFAULT_DURATION_HOURS);
@@ -254,10 +289,7 @@ impl McpToolHandler for CalendarEventCreateHandler {
             }
 
             let values = event_values(&input);
-            let id = call
-                .client
-                .create(&call.creds, EVENT_MODEL, values)
-                .await?;
+            let id = call.client.create(&call.creds, EVENT_MODEL, values).await?;
 
             let summary = format!(
                 "Created calendar event {id} \"{}\" starting {}, organised by {}",

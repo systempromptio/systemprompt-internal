@@ -26,8 +26,9 @@ const ENTITIES: [(&str, &str); 6] = [
     ("&#39;", "'"),
 ];
 
-// Why: block-level tags become a space rather than vanishing, so "<p>a</p><p>b</p>"
-// reads as "a b" and not "ab". Odoo separates chatter paragraphs this way.
+// Why: block-level tags become a space rather than vanishing, so
+// "<p>a</p><p>b</p>" reads as "a b" and not "ab". Odoo separates chatter
+// paragraphs this way.
 fn is_block_break(tag: &str) -> bool {
     let name = tag
         .trim_start_matches('/')
