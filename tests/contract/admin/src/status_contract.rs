@@ -30,8 +30,13 @@ fn known_5xx(key: &str) -> bool {
 // Routes served before authentication, by design. Everything else must
 // refuse an anonymous caller.
 fn is_public(template: &str) -> bool {
-    const PUBLIC: [&str; 8] = [
+    const PUBLIC: [&str; 10] = [
         "/admin/login",
+        // The operator passkey door and the Odoo sign-in endpoint are both
+        // pre-authentication by definition: they are how a caller stops being
+        // anonymous.
+        "/admin/login/operator",
+        "/admin/auth/odoo/login",
         "/admin/auth/passkey/register",
         "/admin/register",
         "/admin/add-passkey",
