@@ -4,8 +4,10 @@ mcp_servers:
     binary: systemprompt-mcp-agent
     package: systemprompt
     port: 5010
-    enabled: true
-    display_in_web: true
+    # Disabled 2026-08-07: the CLI-executor surface is not wanted on managed
+    # clients for now. The extension code stays; flip this back to re-enable.
+    enabled: false
+    display_in_web: false
     removable: false
     description: Systemprompt MCP Server - Execute CLI commands (admin only)
     oauth:
