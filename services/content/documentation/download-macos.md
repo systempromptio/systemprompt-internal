@@ -22,7 +22,7 @@ holds your credential, syncs your organization's plugins and MCP servers into
 Claude Code, Claude Desktop, and Codex CLI, and runs the local inference proxy
 that routes every request through the governance gateway.
 
-<a href="https://github.com/systempromptio/systemprompt-internal/releases/latest/download/systemprompt-internal-bridge-macos.dmg" class="download-cta">Download for macOS (.dmg) &rarr;</a>
+**[⬇ Download for macOS (.dmg)](https://github.com/systempromptio/systemprompt-internal/releases/latest/download/systemprompt-internal-bridge-macos.dmg)**
 
 Requires macOS 10.15 or later, Apple Silicon.
 

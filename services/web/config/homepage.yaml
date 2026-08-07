@@ -16,7 +16,10 @@ hero:
   download_ctas:
     - label: "Download for Mac"
       url: "/documentation/download-macos"
+      os: "macos"
     - label: "Download for Windows"
       url: "/documentation/download-windows"
+      os: "windows"
     - label: "Download for Linux"
       url: "/documentation/download-linux"
+      os: "linux"

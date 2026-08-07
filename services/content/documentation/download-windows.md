@@ -22,7 +22,7 @@ holds your credential, syncs your organization's plugins and MCP servers into
 Claude Code, Claude Desktop, and Codex CLI, and runs the local inference proxy
 that routes every request through the governance gateway.
 
-<a href="https://github.com/systempromptio/systemprompt-internal/releases/latest/download/systemprompt-internal-bridge-windows.exe" class="download-cta">Download for Windows (.exe) &rarr;</a>
+**[⬇ Download for Windows (.exe)](https://github.com/systempromptio/systemprompt-internal/releases/latest/download/systemprompt-internal-bridge-windows.exe)**
 
 ## Install
 

@@ -33,8 +33,8 @@ Signing in interactively is the default; for unattended installs pass
 
 ## Tarballs
 
-- <a href="https://github.com/systempromptio/systemprompt-internal/releases/latest/download/systemprompt-internal-bridge-linux-x86_64.tar.gz" class="download-cta">Download for Linux x86_64 (.tar.gz) &rarr;</a>
-- <a href="https://github.com/systempromptio/systemprompt-internal/releases/latest/download/systemprompt-internal-bridge-linux-aarch64.tar.gz" class="download-cta">Download for Linux aarch64 (.tar.gz) &rarr;</a>
+- **[⬇ Download for Linux x86_64 (.tar.gz)](https://github.com/systempromptio/systemprompt-internal/releases/latest/download/systemprompt-internal-bridge-linux-x86_64.tar.gz)**
+- **[⬇ Download for Linux aarch64 (.tar.gz)](https://github.com/systempromptio/systemprompt-internal/releases/latest/download/systemprompt-internal-bridge-linux-aarch64.tar.gz)**
 
 Each archive carries the binary and an `INSTALL.md` with the manual steps.
 The binary dynamically links `libdbus-1`, `libcap`, `libgcrypt`, and
