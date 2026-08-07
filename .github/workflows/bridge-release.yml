@@ -114,21 +114,47 @@ jobs:
           workspaces: systemprompt-internal/bridge
           key: ${{ matrix.runner }}
 
+      # working-directory, not --manifest-path: bridge/.cargo/config.toml sets
+      # SYSTEMPROMPT_BRIDGE_WEB_OVERLAY, and cargo discovers .cargo/config.toml
+      # from the working directory upward. Building from the workspace root
+      # silently skipped it, so releases up to and including bridge-v0.1.1
+      # shipped core's stock GUI instead of the white-label overlay.
       - name: Build release binary
         if: runner.os != 'macOS'
         shell: bash
-        run: cargo build --manifest-path systemprompt-internal/bridge/Cargo.toml --release --locked
+        working-directory: systemprompt-internal/bridge
+        run: cargo build --release --locked
 
       # Both slices, so make-mac-app.sh --universal can lipo them into one
       # universal2 executable: the runner is Apple Silicon, but the .dmg has to
       # run on Intel Macs too.
       - name: Build release binaries (macos, universal2)
         if: runner.os == 'macOS'
+        working-directory: systemprompt-internal/bridge
         run: |
           for target in aarch64-apple-darwin x86_64-apple-darwin; do
-            cargo build --manifest-path systemprompt-internal/bridge/Cargo.toml \
-              --release --locked --target "$target"
+            cargo build --release --locked --target "$target"
           done
+
+      # The overlay is invisible in the build log — it either got compiled in or
+      # it did not. Assert on a string only the overlay carries, so a release
+      # can never again quietly lose the branding.
+      - name: Verify the brand overlay was compiled in
+        shell: bash
+        working-directory: systemprompt-internal/bridge
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            BIN=target/release/systemprompt-internal-bridge.exe
+          elif [ "${{ runner.os }}" = "macOS" ]; then
+            BIN=target/aarch64-apple-darwin/release/systemprompt-internal-bridge
+          else
+            BIN=target/release/systemprompt-internal-bridge
+          fi
+          if ! grep -qa "systemprompt.io brand overrides for the bridge GUI" "$BIN"; then
+            echo "::error::$BIN has no brand overlay — SYSTEMPROMPT_BRIDGE_WEB_OVERLAY was not applied."
+            exit 1
+          fi
+          echo "brand overlay present in $BIN"
 
       - name: Package tarball (linux)
         if: runner.os == 'Linux'
