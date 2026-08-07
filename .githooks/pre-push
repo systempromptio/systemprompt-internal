@@ -2,9 +2,9 @@
 # Tracked pre-push hook. Enable with `just init-hooks` (sets core.hooksPath).
 #
 # Runs the static and lint preflight tiers (fmt, sqlx cache, source gates,
-# clippy, doc-check, msrv-check). Tests and the coverage ratchet are too slow
-# for a push hook — `just preflight` is the mandatory pre-merge gate; this
-# repo has no CI behind it.
+# clippy, doc-check, msrv-check). Tests are too slow for a push hook — hosted
+# CI (.github/workflows/ci.yml + quality.yml) runs the full suites on every
+# push and PR.
 set -euo pipefail
 
 # DISABLED: the lint tier's clippy run is a full workspace compile, which is a
@@ -17,4 +17,4 @@ set -euo pipefail
 # echo "pre-push: running preflight-static + preflight-lint (skip with --no-verify)"
 # just preflight-static preflight-lint
 
-echo "pre-push: gates disabled — run 'just preflight' before merging."
+echo "pre-push: gates disabled — 'just preflight' locally, tests run in hosted CI."

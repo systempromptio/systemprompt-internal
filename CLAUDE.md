@@ -81,19 +81,23 @@ re-creates the contention. Escape hatches when you truly need them:
 
 ---
 
-## Preflight (this repo has no CI — these gates ARE the CI)
+## Preflight (hosted CI runs the tests; local gates stay cheap)
+
+GitHub Actions is the test gate: `.github/workflows/ci.yml` runs fmt, build,
+sqlx-check, the full test workspace (unit + integration + contract against a
+Postgres service), and the bridge check on every push and PR;
+`quality.yml` runs clippy, rustdoc, the source gates, MSRV, audit, deny, and
+machete. Do NOT run the expensive tiers locally by default — push and let CI
+do it.
 
 ```bash
-just preflight          # the mandatory pre-merge gate: static → lint → tests → coverage
+just preflight          # the local pre-merge gate: static → lint (no tests/coverage)
 just preflight-static   # seconds: fmt, sqlx cache, 20 source gates
 just preflight-lint     # clippy (both workspaces), doc-check, msrv-check
+just verify             # preflight + full test suite, for when you need the answer pre-push
 just preflight-full     # weekly: preflight + deny + audit + machete
 just init-hooks         # once per clone: tracked .githooks/ (pre-commit + pre-push)
 ```
-
-`verify` = preflight minus the coverage tier; use it mid-iteration, `preflight`
-before merging. The pre-push hook runs the static + lint tiers automatically
-after `just init-hooks`.
 
 **Coverage floor + ratchet.** `just coverage` runs an instrumented llvm-cov
 pass over all three workspaces (root, `tests/`, `bridge/`) into

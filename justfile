@@ -336,19 +336,21 @@ _lint-gates-uncoordinated:
     fi
     echo "all ${#gates[@]} lint gates passed"
 
-# The whole gate, in one command. This repo runs no hosted CI, so nothing
-# else will catch what this misses: run it before you push. `preflight` adds
-# the coverage floor/ratchet on top; use it before merging.
+# Static + lint tiers plus the full test suite. Hosted CI (ci.yml/quality.yml)
+# runs the same suites on every push, so this is the belt-and-braces local run
+# for when you want the answer before pushing.
 verify: preflight-static preflight-lint test
     @echo "verify: format, sqlx cache, lint gates, clippy, docs, msrv, and tests all pass"
 
 # ══════════════════════════════════════════════════════════════════════════════
-# PREFLIGHT (local stand-in for CI — tiered, cheapest first)
+# PREFLIGHT (tiered, cheapest first — tests and coverage run in hosted CI)
 # ══════════════════════════════════════════════════════════════════════════════
 
-# Everything: static gates → lint/doc/msrv → tests → coverage floor+ratchet.
-# This is the mandatory pre-merge gate; there is no CI behind it.
-preflight: preflight-static preflight-lint test coverage-check
+# The local pre-merge gate: static gates → lint/doc/msrv. Tests and the
+# coverage floor/ratchet moved to hosted CI (.github/workflows/ci.yml runs
+# unit + integration + contract on every push/PR) — run `just test` or
+# `just verify` locally only when you need the answer before pushing.
+preflight: preflight-static preflight-lint
 
 # Tier 0 — seconds. Formatting, sqlx cache freshness, and the source gates.
 preflight-static:

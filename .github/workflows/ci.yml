@@ -1,0 +1,136 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+  SQLX_OFFLINE: "true"
+  # aws-lc-sys refuses to build with GCC <10 (bug #95189) and the release
+  # profile's LTO trips it; ubuntu-latest ships clang, so force it everywhere
+  # this repo compiles C. Mirrors the CC/CXX toggle in the justfile build recipe.
+  CC: clang
+  CXX: clang++
+
+jobs:
+  fmt:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # rust-toolchain.toml pins the channel and its components; `rustup show`
+      # installs exactly that toolchain, so fmt runs on the same version
+      # developers use locally with no channel duplicated in this file.
+      - run: rustup show
+      - run: cargo fmt --all -- --check
+      # tests/ is excluded from the root workspace, so --all does not reach it.
+      - run: cargo fmt --manifest-path tests/Cargo.toml --all -- --check
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --workspace --locked
+
+  sqlx-check:
+    name: SQLx Offline Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      # Every extension crate that invokes a sqlx query macro must ship a
+      # committed .sqlx/ cache so the -D warnings offline build above is
+      # reproducible.
+      - name: Verify offline sqlx cache is current
+        run: bash scripts/check-sqlx-cache.sh
+      - run: cargo check --workspace --locked
+
+  test:
+    name: Test (unit, integration, contract)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # The test workspace verifies behaviour; linting it is quality.yml's job,
+    # so it does not inherit the -D warnings RUSTFLAGS.
+    env:
+      RUSTFLAGS: ""
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_INCREMENTAL: "0"
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_USER: test
+          POSTGRES_DB: test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            .
+            tests
+      # Several integration tests drive process-global state and are only
+      # correct when each test owns its process. `cargo test` threads them into
+      # one process, where they race and fail; nextest is what `just test-*`
+      # runs, so CI must match it.
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+      # The integration crates are a self-contained throwaway-database harness:
+      # they connect to the maintenance DB, CREATE DATABASE a per-test schema,
+      # and drop it on teardown. All they need is a reachable Postgres.
+      - name: Run the tests workspace (unit, integration, contract)
+        env:
+          SYSTEMPROMPT_TEST_DATABASE_URL: postgres://test:test@localhost:5432/postgres
+        run: cargo nextest run --manifest-path tests/Cargo.toml --workspace
+
+      - name: Run admin unit tests
+        run: cargo nextest run -p systemprompt-web-admin --tests
+
+      - name: Front-end asset manifest and standards gate
+        run: cargo nextest run -p systemprompt-web-extension --tests
+
+  bridge:
+    name: Bridge (standalone workspace)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: systemprompt-internal
+      # The bridge depends on systemprompt-core/bin/bridge by sibling path
+      # (not on crates.io), pinned to the ref in bridge/CORE_REF — the same
+      # layout the bridge-release workflow uses.
+      - name: Read pinned core ref
+        id: core
+        run: echo "ref=$(tr -d '[:space:]' < systemprompt-internal/bridge/CORE_REF)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: systempromptio/systemprompt-core
+          ref: ${{ steps.core.outputs.ref }}
+          path: systemprompt-core
+      # keyring → dbus-secret-service → libdbus-sys builds from pkg-config.
+      - run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: systemprompt-internal/bridge
+      - run: cargo check --manifest-path systemprompt-internal/bridge/Cargo.toml --locked
