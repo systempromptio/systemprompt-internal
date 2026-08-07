@@ -226,7 +226,7 @@ li input[type=checkbox]{margin-top:3px;accent-color:var(--accent);cursor:pointer
         var fb = window.prompt("Completion feedback (lands in the record's chatter):", "");
         if (fb === null) { box.checked = false; return; }
         box.disabled = true;
-        window.cowork.callMcpTool(contract.complete.tool, { activity_id: a.id, feedback: fb || undefined })
+        timedCall(contract.complete.tool, { activity_id: a.id, feedback: fb || undefined })
           .then(function (r) {
             if (r && r.isError) { box.checked = false; box.disabled = false; showErr("Could not complete the activity."); return; }
             li.classList.add("done");
@@ -252,25 +252,58 @@ li input[type=checkbox]{margin-top:3px;accent-color:var(--accent);cursor:pointer
     });
   };
 
-  var load = function () {
-    if (!window.cowork || typeof window.cowork.callMcpTool !== "function") {
-      showErr("This bulletin needs the live MCP connection; open it inside the workspace.");
-      return;
-    }
-    $("error").style.display = "none"; $("grid").style.display = "flex"; setStatus("await");
-    var pending = contract.reads.length;
-    var settle = function () { if (--pending === 0) setStatus("live"); };
-    contract.reads.forEach(function (read) {
-      window.cowork.callMcpTool(read.tool, read.arguments).then(function (r) {
-        if (r && r.isError) { showErr(text(r) || "The Odoo query could not be completed."); return; }
-        var md = text(r);
-        (read.target === "acts" ? renderActs(parseActs(md)) : renderTasks(parseTasks(md)));
-        settle();
-      }).catch(function (e) { showErr(String((e && e.message) || e)); });
+  var FETCH = { tries: 0, max: 3, inflight: false };
+  var TIMEOUT_MS = 20000;
+
+  var bridgeReady = function () { return window.cowork && typeof window.cowork.callMcpTool === "function"; };
+
+  var timedCall = function (tool, args) {
+    return new Promise(function (resolve, reject) {
+      var done = false;
+      var guard = setTimeout(function () {
+        if (done) return; done = true;
+        reject(new Error("The data query timed out — the workspace may have reloaded mid-fetch."));
+      }, TIMEOUT_MS);
+      window.cowork.callMcpTool(tool, args).then(
+        function (r) { if (done) return; done = true; clearTimeout(guard); resolve(r); },
+        function (e) { if (done) return; done = true; clearTimeout(guard); reject(e); });
     });
   };
 
-  $("reload").addEventListener("click", load);
+  var failedAttempt = function (msg) {
+    FETCH.inflight = false;
+    if (FETCH.tries < FETCH.max) { setTimeout(load, 1200 * FETCH.tries); return; }
+    showErr(msg + " (after " + FETCH.max + " attempts — press Reload to try again)");
+  };
+
+  var load = function (waited) {
+    if (FETCH.inflight) return;
+    if (!bridgeReady()) {
+      if ((waited || 0) >= 10000) {
+        showErr("This bulletin needs the live MCP connection; open it inside the workspace.");
+        return;
+      }
+      return void setTimeout(function () { load((waited || 0) + 250); }, 250);
+    }
+    $("error").style.display = "none"; $("grid").style.display = "flex"; setStatus("await");
+    FETCH.inflight = true; FETCH.tries++;
+    var pending = contract.reads.length;
+    var failed = false;
+    var settle = function () { if (--pending === 0) { FETCH.inflight = false; if (!failed) setStatus("live"); } };
+    contract.reads.forEach(function (read) {
+      timedCall(read.tool, read.arguments).then(function (r) {
+        if (r && r.isError) { failed = true; showErr(text(r) || "The Odoo query could not be completed."); settle(); return; }
+        var md = text(r);
+        (read.target === "acts" ? renderActs(parseActs(md)) : renderTasks(parseTasks(md)));
+        settle();
+      }).catch(function (e) {
+        failed = true; pending = 0;
+        failedAttempt(String((e && e.message) || e));
+      });
+    });
+  };
+
+  $("reload").addEventListener("click", function () { FETCH.tries = 0; load(); });
   window.addEventListener("message", function () { load(); });
   load();
 })();

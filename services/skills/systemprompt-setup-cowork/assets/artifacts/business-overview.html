@@ -199,24 +199,71 @@ body{
     return null;
   };
 
-  var load = function () {
-    if (!window.cowork || typeof window.cowork.callMcpTool !== "function") { setStatus("await"); show("await"); return; }
+  var FETCH = { tries: 0, max: 3, inflight: false };
+  var TIMEOUT_MS = 20000;
+
+  var retryBtn = function () {
+    if (document.getElementById("retry")) return;
+    var b = document.createElement("button");
+    b.id = "retry"; b.className = "hint"; b.type = "button";
+    b.style.cursor = "pointer"; b.style.font = "inherit"; b.style.marginTop = "16px";
+    b.textContent = "Try again";
+    b.addEventListener("click", function () { FETCH.tries = 0; b.remove(); load(); });
+    $("error").appendChild(b);
+  };
+
+  var fail = function (msg) {
+    FETCH.inflight = false;
+    setStatus("error"); show("error"); $("error-msg").textContent = msg;
+    retryBtn();
+  };
+
+  var failedAttempt = function (msg) {
+    FETCH.inflight = false;
+    if (FETCH.tries < FETCH.max) { setTimeout(load, 1200 * FETCH.tries); return; }
+    fail(msg + " (after " + FETCH.max + " attempts)");
+  };
+
+  var bridgeReady = function () { return window.cowork && typeof window.cowork.callMcpTool === "function"; };
+
+  var timedCall = function (tool, args) {
+    return new Promise(function (resolve, reject) {
+      var done = false;
+      var guard = setTimeout(function () {
+        if (done) return; done = true;
+        reject(new Error("The data query timed out — the workspace may have reloaded mid-fetch."));
+      }, TIMEOUT_MS);
+      window.cowork.callMcpTool(tool, args).then(
+        function (r) { if (done) return; done = true; clearTimeout(guard); resolve(r); },
+        function (e) { if (done) return; done = true; clearTimeout(guard); reject(e); });
+    });
+  };
+
+  var load = function (waited) {
+    if (FETCH.inflight) return;
+    if (!bridgeReady()) {
+      setStatus("await"); show("await");
+      if ((waited || 0) >= 10000) return fail("The workspace MCP bridge never became available.");
+      return void setTimeout(function () { load((waited || 0) + 250); }, 250);
+    }
     setStatus("await"); show("await");
-    window.cowork.callMcpTool(contract.tool, contract.arguments).then(function (r) {
+    FETCH.inflight = true; FETCH.tries++;
+    timedCall(contract.tool, contract.arguments).then(function (r) {
+      FETCH.inflight = false;
       if (r && r.isError) {
         var msg = "The Odoo query could not be completed.";
         try { msg = (r.content && r.content[0] && r.content[0].text) || msg; } catch (e) {}
-        setStatus("error"); show("error"); $("error-msg").textContent = msg; return;
+        fail(msg); return;
       }
       var md = content(r);
-      if (md == null) { setStatus("error"); show("error"); $("error-msg").textContent = "Could not read the tool response."; return; }
+      if (md == null) { fail("Could not read the tool response."); return; }
       var sections = parseSections(md);
-      if (!sections.length) { setStatus("error"); show("error"); $("error-msg").textContent = "The briefing came back empty."; return; }
+      if (!sections.length) { fail("The briefing came back empty."); return; }
       setStatus("live"); renderSections(sections); show("ready");
-    }).catch(function (e) { setStatus("error"); show("error"); $("error-msg").textContent = String((e && e.message) || e); });
+    }).catch(function (e) { failedAttempt(String((e && e.message) || e)); });
   };
 
-  window.addEventListener("message", load);
+  window.addEventListener("message", function () { load(); });
   load();
 })();
 </script>
