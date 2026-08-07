@@ -12,7 +12,7 @@ use rmcp::service::{RequestContext, RoleServer};
 use systemprompt::database::DbPool;
 use systemprompt::identifiers::McpExecutionId;
 use systemprompt::mcp::middleware::enforce_rbac_from_registry;
-use systemprompt::mcp::{McpToolExecutor, McpToolHandler};
+use systemprompt::mcp::{ClientProfile, McpToolExecutor, McpToolHandler};
 use systemprompt::models::artifacts::{CliArtifact, TextArtifact};
 use systemprompt::models::execution::context::RequestContext as SysRequestContext;
 use systemprompt::security::authz::SharedAuthzHook;
@@ -107,6 +107,15 @@ pub(super) async fn authenticate_tool_request(
     }
 }
 
+#[doc(hidden)]
+#[derive(Debug)]
+pub struct Dispatch<'a> {
+    pub executor: &'a McpToolExecutor,
+    pub request: &'a CallToolRequestParams,
+    pub request_context: &'a SysRequestContext,
+    pub client: &'a ClientProfile,
+}
+
 /// Route one authenticated tool call to its handler.
 ///
 /// Exposed (behind `#[doc(hidden)]`) so the external test workspace can assert
@@ -114,10 +123,8 @@ pub(super) async fn authenticate_tool_request(
 /// transport is serving. Not part of the public API.
 #[doc(hidden)]
 pub async fn dispatch_tool(
-    executor: &McpToolExecutor,
+    ctx: &Dispatch<'_>,
     tool_name: &str,
-    request: &CallToolRequestParams,
-    request_context: &SysRequestContext,
     auth_token: &str,
 ) -> Result<CallToolResult, McpError> {
     match tool_name {
@@ -125,7 +132,9 @@ pub async fn dispatch_tool(
             let handler = SystempromptToolHandler {
                 auth_token: auth_token.to_owned(),
             };
-            executor.execute(&handler, request, request_context).await
+            ctx.executor
+                .execute(&handler, ctx.request, ctx.request_context, ctx.client)
+                .await
         },
         _ => Err(McpError::invalid_params(
             format!(

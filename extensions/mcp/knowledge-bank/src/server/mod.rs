@@ -25,8 +25,8 @@ use systemprompt::identifiers::McpServerId;
 use systemprompt::mcp::repository::ToolUsageRepository;
 use systemprompt::mcp::{
     ArtifactViewerConfig, McpArtifactRepository, McpToolExecutor, artifact_shell_template,
-    build_artifact_viewer_resource, parse_artifact_resource_uri, read_artifact_resource,
-    read_artifact_viewer_resource,
+    build_artifact_viewer_resource, build_extension_capabilities, client_profile_from_peer,
+    parse_artifact_resource_uri, read_artifact_resource, read_artifact_viewer_resource,
 };
 use systemprompt::security::authz::SharedAuthzHook;
 use systemprompt_mcp_shared::record_mcp_access;
@@ -75,9 +75,10 @@ impl ServerHandler for KnowledgeBankServer {
             ServerCapabilities::builder()
                 .enable_tools()
                 .enable_resources()
+                .enable_extensions_with(build_extension_capabilities())
                 .build(),
         )
-        .with_protocol_version(ProtocolVersion::V_2024_11_05)
+        .with_protocol_version(ProtocolVersion::V_2025_06_18)
         .with_server_info(
             Implementation::new(
                 format!("Knowledge Bank ({})", self.service_id),
@@ -138,12 +139,16 @@ impl ServerHandler for KnowledgeBankServer {
         )
         .await;
 
+        let client = client_profile_from_peer(&ctx);
         dispatch_tool(
-            &self.executor,
+            &tool::Dispatch {
+                executor: &self.executor,
+                request: &request,
+                request_context: &request_context,
+                client: &client,
+            },
             &self.store,
             &tool_name,
-            &request,
-            &request_context,
         )
         .await
         .map(Into::into)

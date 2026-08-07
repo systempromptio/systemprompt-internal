@@ -31,16 +31,11 @@ mcp_servers:
     package: odoo
     port: 5040
     enabled: true
-    # Spawned with a cleared environment; this is the passthrough allowlist
-    # (see core's process::spawner). ODOO_URL / ODOO_DB must be set on the
-    # parent. MCP_PLAIN_RESULTS is optional: unset (or anything but
-    # 0/false/off) strips tool results to plain text on the wire — required by
-    # strict hosts like the Cowork artifact bridge; set it to 0 to restore the
-    # rich ui:// artifact shape for the gateway chat surface.
+    # Spawned with a cleared environment; these two are the passthrough
+    # allowlist (see core's process::spawner). Both must be set on the parent.
     env_vars:
       - ODOO_URL
       - ODOO_DB
-      - MCP_PLAIN_RESULTS
     display_in_web: true
     description: "Odoo CRM — leads, partners, notes and activities, executed as the calling user"
     oauth:

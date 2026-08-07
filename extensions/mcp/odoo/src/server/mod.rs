@@ -36,11 +36,11 @@ use systemprompt::identifiers::McpServerId;
 use systemprompt::mcp::repository::ToolUsageRepository;
 use systemprompt::mcp::{
     ArtifactViewerConfig, McpArtifactRepository, McpToolExecutor, artifact_shell_template,
-    build_artifact_viewer_resource, parse_artifact_resource_uri, read_artifact_resource,
-    read_artifact_viewer_resource,
+    build_artifact_viewer_resource, build_extension_capabilities, client_profile_from_peer,
+    parse_artifact_resource_uri, read_artifact_resource, read_artifact_viewer_resource,
 };
 use systemprompt::security::authz::SharedAuthzHook;
-use systemprompt_mcp_shared::{plain_wire_result, record_mcp_access};
+use systemprompt_mcp_shared::record_mcp_access;
 
 use crate::client::OdooClient;
 use crate::error::OdooError;
@@ -105,6 +105,7 @@ impl ServerHandler for OdooServer {
             ServerCapabilities::builder()
                 .enable_tools()
                 .enable_resources()
+                .enable_extensions_with(build_extension_capabilities())
                 .build(),
         )
         .with_protocol_version(ProtocolVersion::V_2025_06_18)
@@ -154,10 +155,8 @@ impl ServerHandler for OdooServer {
 
         let call = match build_call(&self.db_pool, &self.client, &request_context).await {
             Ok(call) => call,
-            // Why: "no linked account" and "deployment not set up" are states
-            // the calling UI must render, not protocol faults — as a JSON-RPC
-            // error the Cowork artifact bridge rejects the whole response and
-            // the user sees a validation failure instead of the fix.
+            // Why: link/setup states must reach the UI as isError results —
+            // a JSON-RPC error is rejected by strict bridges before rendering.
             Err(
                 err @ (OdooError::NotLinked(_)
                 | OdooError::NotConfigured(_)
@@ -177,9 +176,19 @@ impl ServerHandler for OdooServer {
         )
         .await;
 
-        dispatch_tool(&self.executor, call, &tool_name, &request, &request_context)
-            .await
-            .map(|result| plain_wire_result(result).into())
+        let client = client_profile_from_peer(&ctx);
+        dispatch_tool(
+            &tool::Dispatch {
+                executor: &self.executor,
+                request: &request,
+                request_context: &request_context,
+                client: &client,
+            },
+            call,
+            &tool_name,
+        )
+        .await
+        .map(Into::into)
     }
 
     fn list_resources(

@@ -74,7 +74,7 @@ fn body_of(result: &rmcp::model::CallToolResult) -> String {
     result
         .structured_content
         .as_ref()
-        .and_then(|v| v.pointer("/artifact/content"))
+        .and_then(|v| v.pointer("/content"))
         .and_then(|v| v.as_str())
         .expect("the executor returns the handler's artifact as structured content")
         .to_owned()
@@ -95,15 +95,29 @@ async fn dispatch(
     tool: &'static str,
     arguments: serde_json::Value,
 ) -> Result<rmcp::model::CallToolResult, rmcp::ErrorData> {
+    let executor = executor(&db.pool);
+    let request = call(tool, arguments);
+    let profile = client();
     dispatch_tool(
-        &executor(&db.pool),
+        &systemprompt_mcp_knowledge_bank::server::tool::Dispatch {
+            executor: &executor,
+            request: &request,
+            request_context: ctx,
+            client: &profile,
+        },
         &store(&db.pool),
         tool,
-        &call(tool, arguments),
-        ctx,
     )
     .await
 }
+
+fn client() -> systemprompt::mcp::ClientProfile {
+    systemprompt::mcp::ClientProfile {
+        protocol_version: Some(rmcp::model::ProtocolVersion::V_2025_06_18),
+        ..systemprompt::mcp::ClientProfile::default()
+    }
+}
+
 
 /// Three documents whose word counts make the ranking predictable.
 async fn seed(db: &TempDb) {

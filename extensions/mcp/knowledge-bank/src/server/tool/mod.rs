@@ -19,14 +19,34 @@ use rmcp::ErrorData as McpError;
 use rmcp::model::{CallToolRequestParams, CallToolResult};
 use rmcp::service::{RequestContext, RoleServer};
 use systemprompt::database::DbPool;
-use systemprompt::mcp::McpToolExecutor;
 use systemprompt::mcp::middleware::enforce_rbac_from_registry;
+use systemprompt::mcp::{ClientProfile, McpToolExecutor};
 use systemprompt::models::auth::AuthenticatedUser;
 use systemprompt::models::execution::context::RequestContext as SysRequestContext;
 use systemprompt::security::authz::SharedAuthzHook;
 use systemprompt_mcp_shared::{record_mcp_access, record_mcp_access_rejected};
 
 use handlers::{ListHandler, SearchHandler, UploadHandler};
+
+#[doc(hidden)]
+#[derive(Debug)]
+pub struct Dispatch<'a> {
+    pub executor: &'a McpToolExecutor,
+    pub request: &'a CallToolRequestParams,
+    pub request_context: &'a SysRequestContext,
+    pub client: &'a ClientProfile,
+}
+
+impl Dispatch<'_> {
+    async fn run<H: systemprompt::mcp::McpToolHandler>(
+        &self,
+        handler: &H,
+    ) -> Result<CallToolResult, McpError> {
+        self.executor
+            .execute(handler, self.request, self.request_context, self.client)
+            .await
+    }
+}
 
 pub(super) async fn authenticate_tool_request(
     db_pool: &DbPool,
@@ -98,31 +118,29 @@ pub fn require_admin(request_context: &SysRequestContext) -> Result<(), McpError
 /// makes its body testable. Not part of the public API.
 #[doc(hidden)]
 pub async fn dispatch_tool(
-    executor: &McpToolExecutor,
+    ctx: &Dispatch<'_>,
     store: &KnowledgeStore,
     tool_name: &str,
-    request: &CallToolRequestParams,
-    request_context: &SysRequestContext,
 ) -> Result<CallToolResult, McpError> {
     match tool_name {
         TOOL_SEARCH => {
             let handler = SearchHandler {
                 store: store.clone(),
             };
-            executor.execute(&handler, request, request_context).await
+            ctx.run(&handler).await
         },
         TOOL_LIST => {
             let handler = ListHandler {
                 store: store.clone(),
             };
-            executor.execute(&handler, request, request_context).await
+            ctx.run(&handler).await
         },
         TOOL_UPLOAD => {
-            require_admin(request_context)?;
+            require_admin(ctx.request_context)?;
             let handler = UploadHandler {
                 store: store.clone(),
             };
-            executor.execute(&handler, request, request_context).await
+            ctx.run(&handler).await
         },
         _ => Err(McpError::invalid_params(
             format!(

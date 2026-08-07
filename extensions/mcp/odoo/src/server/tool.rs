@@ -13,7 +13,7 @@ use rmcp::service::{RequestContext, RoleServer};
 use std::sync::Arc;
 use systemprompt::database::DbPool;
 use systemprompt::mcp::middleware::enforce_rbac_from_registry;
-use systemprompt::mcp::{McpToolExecutor, McpToolHandler};
+use systemprompt::mcp::{ClientProfile, McpToolExecutor, McpToolHandler};
 use systemprompt::models::execution::context::RequestContext as SysRequestContext;
 use systemprompt::security::authz::SharedAuthzHook;
 use systemprompt_mcp_shared::{record_mcp_access, record_mcp_access_rejected};
@@ -72,11 +72,6 @@ pub(super) async fn authenticate_tool_request(
     }
 }
 
-// Why: builds the per-request call bundle. A caller with no linked Odoo
-// account fails here, before any handler runs, with a message naming the
-// profile page — never with an empty result. The error stays an `OdooError`
-// so `call_tool` can turn link/setup problems into an `isError` tool result
-// that artifact UIs render, instead of a protocol error they cannot.
 pub(super) async fn build_call(
     db_pool: &DbPool,
     client: &Arc<OdooClient>,
@@ -98,39 +93,33 @@ pub(super) async fn build_call(
 /// testable. Not part of the public API.
 #[doc(hidden)]
 pub async fn dispatch_tool(
-    executor: &McpToolExecutor,
+    ctx: &Dispatch<'_>,
     call: OdooCall,
     tool_name: &str,
-    request: &CallToolRequestParams,
-    request_context: &SysRequestContext,
 ) -> Result<CallToolResult, McpError> {
     // Why: split by plane rather than one 24-arm match. Every arm names a
     // distinct handler type, and holding all of them in one stack frame costs
     // half a megabyte — over clippy's frame ceiling, and a real cost on a
     // server that runs one of these per request.
-    let ctx = Dispatch {
-        executor,
-        request,
-        request_context,
-    };
-    if let Some(result) = crm_tools(&ctx, call.clone(), tool_name).await {
+    if let Some(result) = crm_tools(ctx, call.clone(), tool_name).await {
         return result;
     }
-    if let Some(result) = knowledge_tools(&ctx, call.clone(), tool_name).await {
+    if let Some(result) = knowledge_tools(ctx, call.clone(), tool_name).await {
         return result;
     }
-    if let Some(result) = work_tools(&ctx, call, tool_name).await {
+    if let Some(result) = work_tools(ctx, call, tool_name).await {
         return result;
     }
     Err(unknown_tool(tool_name))
 }
 
-// Why: the three arguments every arm needs, bundled so a sub-dispatcher takes
-// four parameters rather than six.
-struct Dispatch<'a> {
-    executor: &'a McpToolExecutor,
-    request: &'a CallToolRequestParams,
-    request_context: &'a SysRequestContext,
+#[doc(hidden)]
+#[derive(Debug)]
+pub struct Dispatch<'a> {
+    pub executor: &'a McpToolExecutor,
+    pub request: &'a CallToolRequestParams,
+    pub request_context: &'a SysRequestContext,
+    pub client: &'a ClientProfile,
 }
 
 async fn crm_tools(
@@ -193,7 +182,7 @@ async fn work_tools(
 impl Dispatch<'_> {
     async fn run<H: McpToolHandler>(&self, handler: &H) -> Result<CallToolResult, McpError> {
         self.executor
-            .execute(handler, self.request, self.request_context)
+            .execute(handler, self.request, self.request_context, self.client)
             .await
     }
 }
