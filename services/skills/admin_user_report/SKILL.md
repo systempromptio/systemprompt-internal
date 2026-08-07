@@ -35,8 +35,9 @@ The server is admin-only. A non-admin caller gets
 - **Answering in chat** - omit `--json`. The CLI prints a formatted table; summarise it in prose plus a
   markdown table of the rows that matter. Do not paste raw CLI output wholesale.
 - **Feeding a dashboard artifact** - always add `--json`. The CLI then emits a typed envelope:
-  `{"artifact_type":"table","columns":[{"name","column_type"}],"items":[{...}]}` for lists, or
-  `{"artifact_type":"presentation_card","sections":[{"heading","content"}]}` for stats. The **User Directory**
+  `{"x-artifact-type":"table","columns":[{"name","column_type"}],"items":[{...}]}` for lists, or
+  `{"x-artifact-type":"presentation_card","sections":[{"heading","content"}]}` for stats (`x-artifact-type` is
+  the canonical type tag; CLI envelopes also carry a redundant `artifact_type` serde tag). The **User Directory**
   artifact renders the table envelope directly - if it is installed, prefer refreshing it over re-pasting rows.
 
 ## The roster

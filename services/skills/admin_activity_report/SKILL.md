@@ -30,7 +30,7 @@ Every command runs through the admin `systemprompt` MCP server's single `systemp
 ```
 
 Add `--json` when the result feeds a dashboard artifact; the CLI then emits a typed envelope
-(`{"artifact_type":"table","columns":[...],"items":[...]}`, or `presentation_card` with `sections` for stats,
+(`{"x-artifact-type":"table","columns":[...],"items":[...]}`, or `presentation_card` with `sections` for stats,
 or `message` when there is nothing to report). Omit `--json` when answering in chat, and summarise rather than
 pasting raw output.
 

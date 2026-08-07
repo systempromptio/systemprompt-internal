@@ -272,8 +272,9 @@ function hasRole(u, role) {
     if (Array.isArray(d)) return { records: d };
     if (typeof d === "string") { try { return unwrap(JSON.parse(d)); } catch (e) { return null; } }
     if (d.error) return { error: String(d.error) };
-    if (d.artifact_type === "table" || Array.isArray(d.items)) return { records: d.items || [] };
-    if (d.artifact_type === "message") {
+    var t = d["x-artifact-type"] || d.artifact_type;
+    if (t === "table" || Array.isArray(d.items)) return { records: d.items || [] };
+    if (t === "message") {
       var m = (d.messages || [])[0] || {};
       if (m.level === "error") return { error: String(m.text || "Command failed") };
       return { records: [] };
