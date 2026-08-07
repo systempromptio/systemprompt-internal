@@ -36,6 +36,8 @@ mod knowledge_bank_rendering;
 #[cfg(test)]
 mod knowledge_bank_tools;
 #[cfg(test)]
+mod knowledge_email_capture;
+#[cfg(test)]
 mod odoo_apps;
 #[cfg(test)]
 mod odoo_attachment_kind;

@@ -1,0 +1,13 @@
+id: cowork_setup
+name: Set Up My Workspace
+description: "First-run workspace setup: installs the systemprompt.io Odoo dashboards (business overview, pipeline, leads, recent activity, to-do bulletin) into your Artifacts library and checks the Odoo connection"
+enabled: true
+file: SKILL.md
+tags:
+  - setup
+  - onboarding
+  - artifacts
+  - odoo
+  - crm
+category: setup
+display_category: "Brand & Workspace"

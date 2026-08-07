@@ -6,6 +6,7 @@ members = [
     "extensions/web/content",
     "extensions/web/site",
     "extensions/web/jobs",
+    "extensions/knowledge/jobs",
     "extensions/mcp/systemprompt",
     "extensions/mcp/knowledge-bank",
     "extensions/mcp/shared",
@@ -55,6 +56,8 @@ systemprompt-web-content = { path = "extensions/web/content" }
 systemprompt-web-site = { path = "extensions/web/site" }
 systemprompt-web-jobs = { path = "extensions/web/jobs" }
 systemprompt-mcp-shared = { path = "extensions/mcp/shared" }
+systemprompt-mcp-knowledge-bank = { path = "extensions/mcp/knowledge-bank" }
+systemprompt-knowledge-jobs = { path = "extensions/knowledge/jobs" }
 
 # Core runtime dependencies
 tokio = { version = "1.49", features = ["rt-multi-thread", "net", "io-util", "time", "sync", "macros", "fs", "process", "signal"] }
@@ -232,6 +235,7 @@ systemprompt = { workspace = true, features = ["full", "slack", "teams"] }
 
 # Local extensions
 systemprompt-web-extension = { workspace = true }
+systemprompt-knowledge-jobs = { workspace = true }
 
 # Runtime
 tokio = { workspace = true }

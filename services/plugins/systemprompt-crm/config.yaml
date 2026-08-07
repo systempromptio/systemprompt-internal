@@ -2,7 +2,7 @@ plugin:
   id: systemprompt-crm
   name: "Systemprompt CRM — Business on Odoo"
   description: "Run the business from the conversation with Odoo as the system of record: create, update, and report on CRM leads, log notes onto records, and pull a live business overview — every action executed in Odoo as the acting user."
-  version: "1.0.0"
+  version: "1.1.0"
   enabled: true
   author:
     name: systemprompt.io
@@ -13,6 +13,7 @@ plugin:
   skills:
     source: explicit
     include:
+      - cowork_setup
       - crm
       - business_overview
       - add_note
@@ -33,9 +34,15 @@ plugin:
       - odoo
       - knowledge-bank
   content_sources: {}
+  # The workspace dashboards cowork_setup installs. The skill's primary channel
+  # is skills/cowork_setup/assets/artifacts/ (VM-mounted, bash-copyable); the
+  # artifacts/<id>.json records this selection emits into the bundle are the
+  # fallback.
   artifacts:
     source: explicit
     include:
+      - business-overview
       - leads-inbound-prospects
       - pipeline-open-deals
+      - recent-activity
       - todo-bulletin

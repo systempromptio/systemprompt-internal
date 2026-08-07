@@ -12,6 +12,7 @@ systemprompt-mcp-shared = { workspace = true }
 systemprompt-mcp-agent = { workspace = true }
 systemprompt-mcp-knowledge-bank = { workspace = true }
 systemprompt-mcp-odoo = { workspace = true }
+systemprompt-knowledge-jobs = { workspace = true }
 # Why: the sealed-credential test asserts that the admin plane and the odoo
 # MCP server agree byte-for-byte on the stored API key format. Proving that
 # needs both sides in one process.

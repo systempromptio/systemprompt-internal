@@ -22,12 +22,11 @@ plugin:
     include: []
   mcp_servers: {}
   content_sources: {}
-  # The client-facing dashboards cowork_setup installs. The skill's primary
-  # channel is skills/cowork-setup/assets/artifacts/ (staged by
-  # scripts/generate-cowork-setup-assets.py, VM-mounted, bash-copyable); the
-  # artifacts/<id>.json records this selection emits into the bundle are the
-  # fallback. The admin-* dashboards belong to systemprompt-admin, which selects
-  # them itself.
+  # Two of the Odoo CRM dashboards, so a commons-only install still gets the
+  # core sales views. The full workspace set (plus business-overview,
+  # recent-activity, todo-bulletin) belongs to systemprompt-crm, whose
+  # cowork_setup skill installs them; the admin-* dashboards belong to
+  # systemprompt-admin, which selects them itself.
   artifacts:
     source: explicit
     include:
