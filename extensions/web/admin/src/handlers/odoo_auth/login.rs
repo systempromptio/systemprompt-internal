@@ -73,26 +73,7 @@ pub(crate) async fn odoo_login(
 ) -> AdminResult<Json<OdooLoginResponse>> {
     let login = req.login.trim().to_lowercase();
     let credential = req.credential.trim().to_owned();
-
-    if login.is_empty() || credential.is_empty() {
-        return Err(AdminError::BadRequest(
-            "An Odoo login and password or API key are both required".to_owned(),
-        ));
-    }
-    // Why: resolution keys on email, and every downstream consumer (seat
-    // accounting, org membership, the profile page) assumes users.email is a
-    // real address. An Odoo login like "admin" has nothing to key on.
-    if !login.contains('@') {
-        return Err(AdminError::BadRequest(
-            "Sign in with the email address on your Odoo account".to_owned(),
-        ));
-    }
-
-    if req.code_challenge.trim().is_empty() || req.code_challenge_method.trim().is_empty() {
-        return Err(AdminError::BadRequest(
-            "A PKCE code challenge is required".to_owned(),
-        ));
-    }
+    validate_request(&req, &login, &credential)?;
 
     let client_key = client_key(&headers);
     for key in [login.as_str(), client_key.as_str()] {
@@ -173,6 +154,28 @@ pub(crate) async fn odoo_login(
         redirect_uri: req.redirect_uri.clone(),
         state: req.state.clone(),
     }))
+}
+
+fn validate_request(req: &OdooLoginRequest, login: &str, credential: &str) -> AdminResult<()> {
+    if login.is_empty() || credential.is_empty() {
+        return Err(AdminError::BadRequest(
+            "An Odoo login and password or API key are both required".to_owned(),
+        ));
+    }
+    // Why: resolution keys on email, and every downstream consumer (seat
+    // accounting, org membership, the profile page) assumes users.email is a
+    // real address. An Odoo login like "admin" has nothing to key on.
+    if !login.contains('@') {
+        return Err(AdminError::BadRequest(
+            "Sign in with the email address on your Odoo account".to_owned(),
+        ));
+    }
+    if req.code_challenge.trim().is_empty() || req.code_challenge_method.trim().is_empty() {
+        return Err(AdminError::BadRequest(
+            "A PKCE code challenge is required".to_owned(),
+        ));
+    }
+    Ok(())
 }
 
 // Why: the credential just proved itself over RPC, so auto-linking it keeps
