@@ -159,15 +159,15 @@ impl ServerHandler for OdooServer {
                 .enable_resources()
                 .build(),
         )
-            .with_protocol_version(ProtocolVersion::V_2025_06_18)
-            .with_server_info(
-                Implementation::new(
-                    format!("Odoo ({})", self.service_id),
-                    env!("CARGO_PKG_VERSION"),
-                )
-                .with_title("Odoo CRM"),
+        .with_protocol_version(ProtocolVersion::V_2025_06_18)
+        .with_server_info(
+            Implementation::new(
+                format!("Odoo ({})", self.service_id),
+                env!("CARGO_PKG_VERSION"),
             )
-            .with_instructions(INSTRUCTIONS.to_owned())
+            .with_title("Odoo CRM"),
+        )
+        .with_instructions(INSTRUCTIONS.to_owned())
     }
 
     fn initialize(
@@ -215,9 +215,7 @@ impl ServerHandler for OdooServer {
                 | OdooError::NotConfigured(_)
                 | OdooError::AppMissing(_)),
             ) => {
-                return Ok(
-                    CallToolResult::error(vec![ContentBlock::text(err.to_string())]).into(),
-                );
+                return Ok(CallToolResult::error(vec![ContentBlock::text(err.to_string())]).into());
             },
             Err(other) => return Err(other.into()),
         };

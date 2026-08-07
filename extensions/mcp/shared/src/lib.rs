@@ -40,12 +40,13 @@ const ACTION_USED: &str = "used";
 /// chat surface, but strict hosts — the Claude Cowork artifact bridge among
 /// them — reject it wholesale, and every artifact then shows a validation
 /// error instead of data. In the rich shape `content[0]` is only a one-line
-/// summary; the markdown body rides inside `structuredContent.artifact.content`,
-/// so the body is promoted into the text block before the envelope is
-/// dropped. Artifact persistence is unaffected: the structured output is in
-/// Postgres before this runs, and the `ui://` resource stays resolvable via
-/// `resources/read`. Set `MCP_PLAIN_RESULTS=0` to restore the rich wire
-/// shape (it must also be in the server's `env_vars` passthrough allowlist).
+/// summary; the markdown body rides inside
+/// `structuredContent.artifact.content`, so the body is promoted into the text
+/// block before the envelope is dropped. Artifact persistence is unaffected:
+/// the structured output is in Postgres before this runs, and the `ui://`
+/// resource stays resolvable via `resources/read`. Set `MCP_PLAIN_RESULTS=0` to
+/// restore the rich wire shape (it must also be in the server's `env_vars`
+/// passthrough allowlist).
 #[must_use]
 pub fn plain_wire_result(mut result: rmcp::model::CallToolResult) -> rmcp::model::CallToolResult {
     let plain = std::env::var("MCP_PLAIN_RESULTS")

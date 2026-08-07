@@ -77,22 +77,22 @@ impl ServerHandler for KnowledgeBankServer {
                 .enable_resources()
                 .build(),
         )
-            .with_protocol_version(ProtocolVersion::V_2024_11_05)
-            .with_server_info(
-                Implementation::new(
-                    format!("Knowledge Bank ({})", self.service_id),
-                    env!("CARGO_PKG_VERSION"),
-                )
-                .with_title("Company Knowledge Bank"),
+        .with_protocol_version(ProtocolVersion::V_2024_11_05)
+        .with_server_info(
+            Implementation::new(
+                format!("Knowledge Bank ({})", self.service_id),
+                env!("CARGO_PKG_VERSION"),
             )
-            .with_instructions(
-                "The company knowledge bank: meeting transcripts, documents and notes, \
+            .with_title("Company Knowledge Bank"),
+        )
+        .with_instructions(
+            "The company knowledge bank: meeting transcripts, documents and notes, \
                  full-text searchable. Search with search_project_context before proposing an \
                  approach; decisions recorded here outrank general best practice. The bank \
                  starts empty and grows only by upload, so an empty result means nothing has \
                  been added yet, not that the search failed. Uploading is admin-only."
-                    .to_owned(),
-            )
+                .to_owned(),
+        )
     }
 
     fn initialize(
