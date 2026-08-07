@@ -236,11 +236,24 @@ jobs:
             systemprompt-internal/bridge/scripts/sign-mac-app.sh \
             "systemprompt-internal/bridge/target/release/Systemprompt Internal Bridge.app"
 
+      # Stage the app next to an /Applications symlink and image the staging dir,
+      # not the .app itself. Imaging the bundle directly puts it alone at the
+      # volume root with nothing to drag it onto, so users run the app straight
+      # off the read-only mounted image — where it cannot be updated and does not
+      # survive an eject.
       - name: Build dmg (macos)
         if: runner.os == 'macOS'
         run: |
+          STAGE="$RUNNER_TEMP/dmg-stage"
+          rm -rf "$STAGE"
+          mkdir -p "$STAGE"
+          # ditto, not cp: it preserves the extended attributes and the stapled
+          # notarization ticket that the signature depends on.
+          ditto "systemprompt-internal/bridge/target/release/Systemprompt Internal Bridge.app" \
+            "$STAGE/Systemprompt Internal Bridge.app"
+          ln -s /Applications "$STAGE/Applications"
           hdiutil create -volname "Systemprompt Internal Bridge" \
-            -srcfolder "systemprompt-internal/bridge/target/release/Systemprompt Internal Bridge.app" \
+            -srcfolder "$STAGE" \
             -format UDZO "${{ matrix.asset }}"
 
       - name: Sign & notarize dmg (macos)

@@ -118,11 +118,13 @@ pub async fn insert(
     Ok(())
 }
 
-/// Link `user_id` to an Odoo account only when no link exists yet. Used by the
-/// sign-in auto-link, where the credential may be a password: bootstrapping a
-/// first link is helpful, but overwriting an API key the user deliberately
-/// stored from the profile page with a sign-in password would break every
-/// later RPC call if Odoo enforces API keys (2FA).
+/// Link `user_id` to an Odoo account only when no link exists yet, leaving any
+/// existing link untouched.
+///
+/// The non-overwriting half is the point: a credential that merely proved
+/// itself at sign-in may be a password, and replacing an API key the user
+/// deliberately stored from their profile page would break every later RPC
+/// call against an Odoo that enforces API keys for 2FA accounts.
 pub async fn insert_if_absent(
     pool: &PgPool,
     user_id: &UserId,
