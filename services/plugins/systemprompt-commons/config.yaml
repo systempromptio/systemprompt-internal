@@ -3,7 +3,7 @@ plugin:
   name: "Systemprompt Commons — Workspace Setup"
   description: "Shared brand skills: voice, document formatting, client email, and company boilerplate"
   version: "2.0.0"
-  enabled: true
+  enabled: false
   author:
     name: systemprompt.io
     email: ed@systemprompt.io

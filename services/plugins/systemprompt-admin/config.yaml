@@ -3,7 +3,7 @@ plugin:
   name: "Systemprompt Admin — Control Plane"
   description: "Admin-only control plane: who is using the platform, what it costs, what failed, and why. Ships the systemprompt CLI server plus governance, analytics, and operations skills, and three live dashboards."
   version: "1.0.0"
-  enabled: true
+  enabled: false
   author:
     name: systemprompt.io
     email: ed@systemprompt.io

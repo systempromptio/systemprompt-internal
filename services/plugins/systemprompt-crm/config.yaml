@@ -41,3 +41,9 @@ plugin:
       - recent-activity
       - todo-bulletin
       - knowledge-feed
+  # Session-global governance hooks. Normally owned by systemprompt-commons —
+  # each extra owner is another govern call per tool — but commons is disabled
+  # for the MVP marketplace, so the sole enabled plugin carries them. Move this
+  # back to systemprompt-commons when it is re-enabled.
+  hooks:
+    governance: true
