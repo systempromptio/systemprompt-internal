@@ -114,31 +114,36 @@ jobs:
           workspaces: systemprompt-internal/bridge
           key: ${{ matrix.runner }}
 
-      # working-directory, not --manifest-path: bridge/.cargo/config.toml sets
-      # SYSTEMPROMPT_BRIDGE_WEB_OVERLAY, and cargo discovers .cargo/config.toml
-      # from the working directory upward. Building from the workspace root
-      # silently skipped it, so releases up to and including bridge-v0.1.1
-      # shipped core's stock GUI instead of the white-label overlay.
+      # SYSTEMPROMPT_BRIDGE_WEB_OVERLAY is set here rather than left to
+      # bridge/.cargo/config.toml, which cargo only discovers when the working
+      # directory is inside bridge/. Building from the workspace root skipped
+      # it, so every release up to bridge-v0.1.2 shipped core's stock GUI
+      # instead of the white-label overlay. Setting it explicitly also keeps
+      # the workspace root as the cwd, so systemprompt-internal/rust-toolchain.toml
+      # does not override the toolchain this job installed targets for.
       - name: Build release binary
         if: runner.os != 'macOS'
         shell: bash
-        working-directory: systemprompt-internal/bridge
-        run: cargo build --release --locked
+        env:
+          SYSTEMPROMPT_BRIDGE_WEB_OVERLAY: ${{ github.workspace }}/systemprompt-internal/bridge/web
+        run: cargo build --manifest-path systemprompt-internal/bridge/Cargo.toml --release --locked
 
       # Both slices, so make-mac-app.sh --universal can lipo them into one
       # universal2 executable: the runner is Apple Silicon, but the .dmg has to
       # run on Intel Macs too.
       - name: Build release binaries (macos, universal2)
         if: runner.os == 'macOS'
-        working-directory: systemprompt-internal/bridge
+        env:
+          SYSTEMPROMPT_BRIDGE_WEB_OVERLAY: ${{ github.workspace }}/systemprompt-internal/bridge/web
         run: |
           for target in aarch64-apple-darwin x86_64-apple-darwin; do
-            cargo build --release --locked --target "$target"
+            cargo build --manifest-path systemprompt-internal/bridge/Cargo.toml \
+              --release --locked --target "$target"
           done
 
-      # The overlay is invisible in the build log — it either got compiled in or
-      # it did not. Assert on a string only the overlay carries, so a release
-      # can never again quietly lose the branding.
+      # The overlay leaves no trace in the build log — it either got compiled
+      # in or it did not. Assert on a string only the overlay carries, so a
+      # release can never again quietly lose the branding.
       - name: Verify the brand overlay was compiled in
         shell: bash
         working-directory: systemprompt-internal/bridge
