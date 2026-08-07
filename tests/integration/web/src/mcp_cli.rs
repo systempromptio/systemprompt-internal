@@ -197,8 +197,9 @@ async fn stdout_that_is_not_an_artifact_falls_back_to_a_text_artifact() {
     );
     assert_eq!(
         summary_of(&result),
-        "plain human output",
-        "the summary the model reads is the raw stdout either way"
+        "plain human output\n\nplain human output",
+        "for a host without the UI extension the text block folds the body \
+         under the summary, and the CLI handler uses raw stdout as both"
     );
 
     db.cleanup().await;
