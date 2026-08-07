@@ -4,112 +4,49 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <title>{{branding.domain}} - Sign In or Create Account</title>
+    <title>{{branding.domain}} - Sign In</title>
     <link rel="stylesheet" href="/css/core/fonts.css?v={{css_version}}">
     <link rel="stylesheet" href="/css/admin-bundle.css?v={{css_version}}">
 </head>
 <body>
     <main class="auth-page">
-        <div class="auth-info">
-            <div>
-                <div class="auth-badge">systemprompt.io &middot; Systemprompt Internal</div>
-                <h2>Welcome</h2>
-                <p>
-                    This is Systemprompt Internal &mdash; the AI and communication layer for
-                    running the business. Create an account with your work email and a passkey,
-                    then link your Odoo login from your profile. No passwords are created or stored.
-                </p>
+        <div class="auth-card">
+            <div class="login-logo">
+                <img src="/files/images/logo-white.svg" alt="{{branding.domain}}" height="36">
+            </div>
 
-                <details class="auth-more">
-                <summary>How sign-in works, recovery, and enterprise options</summary>
-                <hr class="auth-divider">
+            <h1 class="auth-title">Sign in</h1>
+            <p class="auth-subtitle">Continue with your Odoo account</p>
 
-                <h2>Getting Started</h2>
-                <div class="auth-flow-steps">
-                    <div class="auth-flow-step"><span class="step-num">1</span><span>Create an account with your work email and a passkey</span></div>
-                    <div class="auth-flow-step"><span class="step-num">2</span><span>Download the desktop bridge for <a href="/files/downloads/systemprompt-internal-bridge-macos.dmg">Mac</a>, <a href="/files/downloads/systemprompt-internal-bridge-windows.exe">Windows</a>, or <a href="/files/downloads/systemprompt-internal-bridge-linux-x86_64.tar.gz">Linux</a></span></div>
-                    <div class="auth-flow-step"><span class="step-num">3</span><span>Approve the device link &mdash; the bridge installs your Cowork profile and syncs your skills</span></div>
-                    <div class="auth-flow-step"><span class="step-num">4</span><span>Link your Odoo login and API key on your profile, then work your own CRM data inside your AI tools</span></div>
+            <div id="error" class="login-error" role="alert" aria-live="polite" hidden></div>
+
+            <form id="odoo-login-form" class="auth-form" novalidate>
+                <div class="form-group">
+                    <label for="odoo-login">Email</label>
+                    <input class="form-input" type="email" id="odoo-login" name="login"
+                           placeholder="you@systemprompt.io" autocomplete="username"
+                           autocapitalize="none" spellcheck="false" required
+                           aria-describedby="error">
                 </div>
 
-                <hr class="auth-divider">
-
-                <h2>How Sign-In Works</h2>
-                <p>Sign-in is passkey-based. Registration is limited to allow-listed work-email
-                    domains. Instead of a password you create a passkey &mdash; Touch&nbsp;ID,
-                    Windows&nbsp;Hello, or your phone &mdash; and sign in with it from then on.</p>
-                <p>Odoo is not a sign-in provider here. It is the system of record, and you
-                    connect to it from your profile page with your own Odoo login and a personal
-                    API key, so every action an agent takes is executed and audited in Odoo as you.</p>
-
-                <hr class="auth-divider">
-
-                <h2>Trouble Signing In?</h2>
-                <p>
-                    If sign-in is refused, the message above the form explains why.
-                    Platform operators who have lost passkey access should contact the platform
-                    team for a new setup link.
-                </p>
-                </details>
-            </div>
-        </div>
-
-        <div class="auth-form-col">
-            <div class="login-container login-container--bare">
-                <div class="card">
-                    <div class="login-logo">
-                        <img src="/files/images/logo-white.svg" alt="{{branding.domain}}" height="40">
-                    </div>
-
-                    <!-- ids consumed by webauthn-login.js -->
-                    <div id="pane-signin">
-                        <p class="login-subtitle">Sign in</p>
-
-                        <div id="error" class="login-error" role="alert" aria-live="polite"></div>
-
-
-                        <div id="login-form" hidden>
-                            <div class="form-group">
-                                <label for="login-email">Email</label>
-                                <input class="form-input" type="email" id="login-email" placeholder="you@systemprompt.io" required autocomplete="email" aria-describedby="error">
-                            </div>
-                            <div class="form-actions">
-                                <button type="button" id="sign-in-btn" class="btn btn-primary w-full">Sign in with Passkey</button>
-                            </div>
-                            <p class="login-switch">New here? <a href="#" id="show-register">Create an account</a></p>
-                        </div>
-
-                        <div id="register-form" hidden>
-                            <div class="form-group">
-                                <label for="register-email">Work email</label>
-                                <input class="form-input" type="email" id="register-email" placeholder="you@systemprompt.io" required autocomplete="email" aria-describedby="error">
-                            </div>
-                            <div class="form-group">
-                                <label for="register-name">Name</label>
-                                <input class="form-input" type="text" id="register-name" placeholder="Your name" autocomplete="name">
-                            </div>
-                            <div class="form-actions">
-                                <button type="button" id="register-btn" class="btn btn-primary w-full">Create account with Passkey</button>
-                            </div>
-                            <p class="login-switch">Already registered? <a href="#" id="show-signin">Sign in</a></p>
-                        </div>
-
-                        <div id="loading" class="login-loading" hidden aria-live="polite">
-                            <div class="login-spinner" role="status" aria-label="Loading"></div>
-                            <p id="loading-text">Processing...</p>
-                        </div>
-
-                        <div id="retry" class="login-retry">
-                            <a href="/admin/login">Try again</a>
-                        </div>
-                    </div>
+                <div class="form-group">
+                    <label for="odoo-credential">Password or API key</label>
+                    <input class="form-input" type="password" id="odoo-credential" name="credential"
+                           autocomplete="current-password" required aria-describedby="error">
                 </div>
+
+                <button type="submit" id="odoo-sign-in-btn" class="btn btn-primary w-full">Sign in</button>
+            </form>
+
+            <div id="loading" class="login-loading" hidden aria-live="polite">
+                <div class="login-spinner" role="status" aria-label="Signing in"></div>
+                <p id="loading-text">Signing in…</p>
             </div>
+
+            <p class="auth-alt"><a href="/admin/login/operator">Operator sign-in</a></p>
         </div>
     </main>
 
-
-    <script data-cfasync="false" src="/js/services/webauthn-login.js?v=4" type="module"></script>
-    <script data-cfasync="false" src="/js/services/webauthn-register.js?v=1" type="module"></script>
+    <script data-cfasync="false" src="/js/services/odoo-login.js?v=1" type="module"></script>
 </body>
 </html>

@@ -1,15 +1,20 @@
 //! Per-request dependencies shared by the account-linking handlers.
 //!
-//! There is no external identity provider in this deployment. Accounts are
-//! created by an operator, or self-registered against an allow-listed email
-//! domain, and the only external system a user links is Odoo — with their own
-//! credential, from their profile page, after they already have an account.
+//! Odoo is the identity provider for this deployment: signing in proves an Odoo
+//! credential and provisions the platform account on first use. Operators keep
+//! a separate passkey route, and its self-registration allow-list still governs
+//! who may enrol that way — the Odoo door is gated by Odoo's own user list, not
+//! by the allow-list.
 //!
-//! What is left is the write-capable pool and the self-registration allow-list.
+//! Linking an Odoo credential *for agents to act with* remains a separate,
+//! explicit step on the profile page; signing in does not store the secret.
 
 use std::sync::Arc;
 
 use sqlx::PgPool;
+use systemprompt::oauth::OAuthRepository;
+
+use super::odoo_auth::LoginThrottle;
 
 /// Comma-separated email domains eligible for passkey self-registration.
 ///
@@ -52,7 +57,8 @@ pub fn allowed_domains_from_env() -> Vec<String> {
     }
 }
 
-/// Shared via an axum `Extension` to the profile and registration handlers.
+/// Shared via an axum `Extension` to the profile, registration and sign-in
+/// handlers.
 #[derive(Clone)]
 pub struct AuthDeps {
     /// Write-capable pool — registration provisions users, linking writes
@@ -60,6 +66,12 @@ pub struct AuthDeps {
     pub write_pool: Arc<PgPool>,
     /// Email domains eligible for passkey self-registration.
     pub allowed_email_domains: Arc<Vec<String>>,
+    /// Issues the OAuth authorization code that Odoo sign-in hands back, so
+    /// both sign-in routes end at the same token endpoint.
+    pub oauth_repo: Arc<OAuthRepository>,
+    /// Brute-force budget for the Odoo sign-in endpoint. Shared, so every
+    /// request counts against the same windows.
+    pub login_throttle: Arc<LoginThrottle>,
 }
 
 impl std::fmt::Debug for AuthDeps {

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>{{branding.domain}} - Operator Sign In</title>
+    <link rel="stylesheet" href="/css/core/fonts.css?v={{css_version}}">
+    <link rel="stylesheet" href="/css/admin-bundle.css?v={{css_version}}">
+</head>
+<body>
+    <main class="auth-page">
+        <div class="auth-card">
+            <div class="login-logo">
+                <img src="/files/images/logo-white.svg" alt="{{branding.domain}}" height="36">
+            </div>
+
+            <!-- ids consumed by webauthn-login.js -->
+            <div id="pane-signin">
+                <h1 class="auth-title">Operator sign-in</h1>
+                <p class="auth-subtitle">Passkey access for platform staff</p>
+
+                <div id="error" class="login-error" role="alert" aria-live="polite"></div>
+
+                <div id="login-form" class="auth-form" hidden>
+                    <div class="form-group">
+                        <label for="login-email">Email</label>
+                        <input class="form-input" type="email" id="login-email"
+                               placeholder="you@systemprompt.io" required autocomplete="email"
+                               autocapitalize="none" spellcheck="false" aria-describedby="error">
+                    </div>
+                    <button type="button" id="sign-in-btn" class="btn btn-primary w-full">Sign in with passkey</button>
+                    <p class="login-switch">New here? <a href="#" id="show-register">Create an account</a></p>
+                </div>
+
+                <div id="register-form" class="auth-form" hidden>
+                    <div class="form-group">
+                        <label for="register-email">Work email</label>
+                        <input class="form-input" type="email" id="register-email"
+                               placeholder="you@systemprompt.io" required autocomplete="email"
+                               autocapitalize="none" spellcheck="false" aria-describedby="error">
+                    </div>
+                    <div class="form-group">
+                        <label for="register-name">Name</label>
+                        <input class="form-input" type="text" id="register-name" placeholder="Your name" autocomplete="name">
+                    </div>
+                    <button type="button" id="register-btn" class="btn btn-primary w-full">Create account with passkey</button>
+                    <p class="login-switch">Already registered? <a href="#" id="show-signin">Sign in</a></p>
+                </div>
+
+                <div id="loading" class="login-loading" hidden aria-live="polite">
+                    <div class="login-spinner" role="status" aria-label="Loading"></div>
+                    <p id="loading-text">Processing…</p>
+                </div>
+
+                <div id="retry" class="login-retry">
+                    <a href="/admin/login/operator">Try again</a>
+                </div>
+            </div>
+
+            <p class="auth-alt"><a href="/admin/login">Sign in with Odoo</a></p>
+        </div>
+    </main>
+
+    <script data-cfasync="false" src="/js/services/webauthn-login.js?v=4" type="module"></script>
+    <script data-cfasync="false" src="/js/services/webauthn-register.js?v=1" type="module"></script>
+</body>
+</html>

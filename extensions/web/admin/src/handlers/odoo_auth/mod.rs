@@ -19,12 +19,16 @@
 
 mod identity;
 mod link;
+mod login;
 mod rpc;
+mod throttle;
 mod unlink;
 
 pub(crate) use identity::odoo_identity_status;
 pub(crate) use link::odoo_link;
+pub(crate) use login::odoo_login;
 pub use rpc::{OdooConnection, OdooRpcError, uid_from_result};
+pub use throttle::LoginThrottle;
 pub(crate) use unlink::odoo_unlink;
 
 /// Failures from the Odoo account-linking flow.

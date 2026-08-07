@@ -19,14 +19,18 @@ export const resolveRedirect = async (target) => {
   return target;
 };
 
-export const exchangeToken = async (code, codeVerifier) => {
+// `redirectUri` must be byte-identical to the one the code was issued against,
+// or the token endpoint rejects the exchange. Odoo sign-in issues against
+// /admin/login and the passkey ceremony against /admin/login/operator, so the
+// caller passes its own rather than sharing one constant.
+export const exchangeToken = async (code, codeVerifier, redirectUri) => {
   const tokenResponse = await rawResponse(OAUTH_BASE + '/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     credentials: 'same-origin',
     body: new URLSearchParams({
       grant_type: 'authorization_code', code,
-      redirect_uri: window.location.origin + LOGIN_PATH,
+      redirect_uri: redirectUri || window.location.origin + LOGIN_PATH,
       code_verifier: codeVerifier, client_id: CLIENT_ID,
     }),
   });

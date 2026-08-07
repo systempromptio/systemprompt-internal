@@ -81,14 +81,30 @@ pub(crate) async fn login_page(
     Extension(engine): Extension<AdminTemplateEngine>,
     Query(params): Query<LoginParams>,
 ) -> AdminHtmlResult<Response> {
+    render_login(&engine, params, "login")
+}
+
+/// Passkey sign-in, kept for platform operators.
+pub(crate) async fn operator_login_page(
+    Extension(engine): Extension<AdminTemplateEngine>,
+    Query(params): Query<LoginParams>,
+) -> AdminHtmlResult<Response> {
+    render_login(&engine, params, "login-operator")
+}
+
+fn render_login(
+    engine: &AdminTemplateEngine,
+    params: LoginParams,
+    template: &str,
+) -> AdminHtmlResult<Response> {
     let redirect_encoded = sanitize_login_redirect(params.redirect.as_deref())
         .map(|target| urlencoding::encode(&target).into_owned());
 
     let ctx = LoginContext {
-        shell: branding_context(&engine),
+        shell: branding_context(engine),
         redirect_encoded,
     };
-    let html = engine.render("login", &ctx)?;
+    let html = engine.render(template, &ctx)?;
     Ok(Html(html).into_response())
 }
 

@@ -10,7 +10,7 @@ import {
 } from '/js/services/webauthn-session.js';
 import { safeStorageGet, safeStorageRemove } from '/js/utils/storage-safe.js';
 
-const LOGIN_PATH = '/admin/login';
+const LOGIN_PATH = '/admin/login/operator';
 const signInBtn = document.getElementById('sign-in-btn');
 const emailInput = getEmailInput();
 let isAuthenticating = false;
@@ -25,7 +25,7 @@ const processCallback = async (code) => {
   }
   try {
     showLoading('Exchanging token...');
-    const tokenData = await exchangeToken(code, codeVerifier);
+    const tokenData = await exchangeToken(code, codeVerifier, window.location.origin + LOGIN_PATH);
     await storeSession(tokenData);
     await completePendingRegistration();
     safeStorageRemove('pkce_code_verifier');

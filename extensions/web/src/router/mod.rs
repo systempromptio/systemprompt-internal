@@ -28,6 +28,8 @@ pub(crate) fn build(ctx: &dyn ExtensionContext) -> Option<ExtensionRouter> {
     let auth_deps = admin::AuthDeps {
         write_pool: Arc::clone(&db.write),
         allowed_email_domains: Arc::new(admin::allowed_domains_from_env()),
+        oauth_repo: pools::build_oauth_repository(&db)?,
+        login_throttle: Arc::new(admin::LoginThrottle::new()),
     };
 
     let api_router = api::build(&db, &session_service);

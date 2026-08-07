@@ -53,9 +53,18 @@ pub fn admin_ssr_router(
     )
 }
 
+// Why: `/login` is the Odoo door everyone uses; `/login/operator` is the
+// passkey door for platform staff, who may need in when Odoo is down or before
+// they have an Odoo account. Keeping them on separate paths means neither
+// login page has to explain the other's failure modes.
 fn public_routes() -> Router<Arc<PgPool>> {
     Router::new()
         .route("/login", get(handlers::ssr::login_page))
+        .route("/login/operator", get(handlers::ssr::operator_login_page))
+        .route(
+            "/auth/odoo/login",
+            post(handlers::odoo_auth::odoo_login),
+        )
         .route(
             "/auth/passkey/register",
             post(handlers::passkey_auth::passkey_register),

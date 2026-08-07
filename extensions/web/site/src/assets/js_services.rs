@@ -69,6 +69,7 @@ fn service_core_js(p: &Path) -> Vec<AssetDefinition> {
 
 fn service_webauthn_js(p: &Path) -> Vec<AssetDefinition> {
     vec![
+        svc_js!(p, "odoo-login.js"),
         svc_js!(p, "webauthn-helpers.js"),
         svc_js!(p, "webauthn-session.js"),
         svc_js!(p, "webauthn-login.js"),

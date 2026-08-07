@@ -46,7 +46,7 @@ use sqlx::PgPool;
 pub use handlers::auth_deps::{
     ALLOWED_DOMAINS_ENV, AuthDeps, allowed_domains_from_env, default_allowed_domains,
 };
-pub use handlers::odoo_auth::{OdooAuthError, OdooConnection, OdooRpcError};
+pub use handlers::odoo_auth::{LoginThrottle, OdooAuthError, OdooConnection, OdooRpcError};
 pub use routes::{admin_ssr_router, bridge_auth_ssr_router};
 pub use types::{CreateUserRequest, MarketplaceContext, UserContext, UserSummary, UserUsageEvent};
 
