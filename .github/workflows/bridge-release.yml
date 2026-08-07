@@ -146,16 +146,19 @@ jobs:
       # The overlay leaves no trace in the build log — it either got compiled
       # in or it did not. Assert on a string only the overlay carries, so a
       # release can never again quietly lose the branding.
+      #
+      # macOS and Windows only: core gates `pub mod gui` on those two targets
+      # (the wry/winit/tray-icon deps are declared per-target), so the Linux
+      # bridge is CLI-only and embeds no web assets to overlay.
       - name: Verify the brand overlay was compiled in
+        if: runner.os != 'Linux'
         shell: bash
         working-directory: systemprompt-internal/bridge
         run: |
           if [ "${{ runner.os }}" = "Windows" ]; then
             BIN=target/release/systemprompt-internal-bridge.exe
-          elif [ "${{ runner.os }}" = "macOS" ]; then
-            BIN=target/aarch64-apple-darwin/release/systemprompt-internal-bridge
           else
-            BIN=target/release/systemprompt-internal-bridge
+            BIN=target/aarch64-apple-darwin/release/systemprompt-internal-bridge
           fi
           if ! grep -qa "systemprompt.io brand overrides for the bridge GUI" "$BIN"; then
             echo "::error::$BIN has no brand overlay — SYSTEMPROMPT_BRIDGE_WEB_OVERLAY was not applied."
