@@ -85,6 +85,13 @@ fn every_tool_declares_an_output_schema_and_ui_meta() {
             "{} output schema must not be empty",
             tool.name
         );
+        assert_eq!(
+            output.get("type").and_then(|t| t.as_str()),
+            Some("object"),
+            "{}: MCP requires outputSchema to be an object schema; Claude \
+             Desktop parks the whole server on the first tool that is not",
+            tool.name
+        );
         assert!(
             tool.meta.is_some(),
             "{} must carry UI meta so the client can attribute the call",

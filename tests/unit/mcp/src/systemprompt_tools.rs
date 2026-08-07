@@ -31,6 +31,12 @@ fn the_tool_carries_a_title_description_output_schema_and_ui_meta() {
     assert!(!tool.input_schema.is_empty());
     let output = tool.output_schema.as_ref().expect("output schema is set");
     assert!(!output.is_empty());
+    assert_eq!(
+        output.get("type").and_then(|t| t.as_str()),
+        Some("object"),
+        "MCP requires outputSchema to be an object schema; Claude Desktop \
+         parks the whole server on the first tool that is not"
+    );
     assert!(
         tool.meta.is_some(),
         "UI meta is what attributes the call to this server"

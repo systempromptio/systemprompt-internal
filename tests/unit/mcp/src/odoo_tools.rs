@@ -25,9 +25,15 @@ fn every_tool_carries_an_input_and_output_schema() {
             "{} has an empty input schema",
             tool.name
         );
-        assert!(
-            tool.output_schema.is_some(),
-            "{} declares no output schema",
+        let output = tool
+            .output_schema
+            .as_ref()
+            .unwrap_or_else(|| panic!("{} declares no output schema", tool.name));
+        assert_eq!(
+            output.get("type").and_then(|t| t.as_str()),
+            Some("object"),
+            "{}: MCP requires outputSchema to be an object schema; Claude \
+             Desktop parks the whole server on the first tool that is not",
             tool.name
         );
         assert!(
