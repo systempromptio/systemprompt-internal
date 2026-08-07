@@ -1,9 +1,9 @@
 //! `list_tools` is the knowledge bank's wire contract: exactly three tools
 //! with stable names and titles, an input schema that makes `query` mandatory
-//! on search and everything optional on list, a typed `CliArtifact` output schema
-//! on every tool, and UI meta so the client knows which server rendered the
-//! call. The input field names mirror the `knowledge_documents` columns, so a
-//! caller can feed a search result straight back into the next call.
+//! on search and everything optional on list, a typed `CliArtifact` output
+//! schema on every tool, and UI meta so the client knows which server rendered
+//! the call. The input field names mirror the `knowledge_documents` columns, so
+//! a caller can feed a search result straight back into the next call.
 
 use systemprompt_mcp_knowledge_bank::tools::{
     ListInput, SearchInput, TOOL_LIST, TOOL_SEARCH, TOOL_UPLOAD, UploadInput, list_tools,
