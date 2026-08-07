@@ -4609,6 +4609,7 @@ dependencies = [
  "raw-window-handle",
  "reqwest",
  "security-framework",
+ "semver",
  "serde",
  "serde_jcs",
  "serde_json",
@@ -4668,7 +4669,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-internal-bridge"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "inventory",
  "systemprompt-bridge",
