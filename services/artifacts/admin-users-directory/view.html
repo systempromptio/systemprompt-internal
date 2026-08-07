@@ -425,8 +425,14 @@ function hasRole(u, role) {
       }
       var payload = r && r.structuredContent;
       if (payload == null) {
-        try { payload = JSON.parse(r.content[0].text); }
-        catch (e3) { return applyResult(null, "Could not parse the tool response."); }
+        var text = "";
+        try { text = r.content[0].text || ""; } catch (e3) {}
+        try { payload = JSON.parse(text); }
+        catch (e5) {
+          var cut = text.indexOf("\n\n");
+          try { payload = JSON.parse(cut === -1 ? text : text.slice(cut + 2)); }
+          catch (e6) { return applyResult(null, "Could not parse the tool response."); }
+        }
       }
       var records = normalize(payload);
       if (!records) return applyResult(null, "The tool response had no record list.");

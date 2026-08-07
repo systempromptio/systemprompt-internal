@@ -4,7 +4,7 @@
       "id": "admin-users-directory",
       "name": "Users — Directory",
       "description": "Everyone with an account on this workspace as a live, refreshable table — name, email, roles, status, and signup date. Refresh runs the admin systemprompt CLI server; admin role required.",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "isStarred": true,
       "mcpTools": [
         "mcp__systemprompt__systemprompt"
@@ -14,7 +14,7 @@
       "id": "admin-activity-requests",
       "name": "Activity — Recent Requests",
       "description": "Every AI gateway request as a live, refreshable table — model, tokens, cost, latency, and status. Refresh runs the admin systemprompt CLI server; admin role required.",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "isStarred": true,
       "mcpTools": [
         "mcp__systemprompt__systemprompt"
@@ -24,7 +24,7 @@
       "id": "admin-usage-costs",
       "name": "Usage — Spend by Model",
       "description": "Where the last 24 hours of token spend went, by provider and model — requests, tokens, average latency, cost, and share. Refresh runs the admin systemprompt CLI server; admin role required.",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "isStarred": true,
       "mcpTools": [
         "mcp__systemprompt__systemprompt"

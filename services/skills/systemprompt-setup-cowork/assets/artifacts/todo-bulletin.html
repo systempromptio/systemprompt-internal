@@ -1,105 +1,225 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>To-Do Bulletin</title>
 <style>
-:root { color-scheme: light dark;
-  --bg: light-dark(#ffffff, #0f0f0f); --ink: light-dark(#0F172A, #f5f5f5);
-  --dim: light-dark(#475569, #a0a0a0); --line: light-dark(#E2E8F0, #333333);
-  --card: light-dark(#F8FAFC, #1a1a1a); --accent: #f38318;
-  --ok: light-dark(#10b981, #34d399); --warn: light-dark(#dc2626, #f87171);
+:root{
+  --bg:oklch(0.17 0 0); --bg-2:oklch(0.14 0 0);
+  --glass:oklch(0.20 0 0 / 0.55); --glass-2:oklch(0.23 0 0 / 0.60);
+  --line:oklch(1 0 0 / 0.08); --line-soft:oklch(1 0 0 / 0.05);
+  --ink:oklch(0.97 0 0); --ink-2:oklch(0.80 0 0); --muted:oklch(0.64 0 0);
+  --accent:oklch(0.755 0.154 61); --accent-soft:oklch(0.755 0.154 61 / 0.14); --accent-line:oklch(0.755 0.154 61 / 0.35);
+  --ok:oklch(0.72 0.17 155); --ok-soft:oklch(0.72 0.17 155 / 0.16);
+  --warn:oklch(0.82 0.15 85); --warn-soft:oklch(0.82 0.15 85 / 0.16);
+  --radius:18px 6px 18px 18px; --radius-sm:12px 4px 12px 12px;
+  --shadow:0 20px 50px oklch(0 0 0 / 0.45);
+  --font:"Inter",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --mono:"Roboto Mono","SF Mono",ui-monospace,"Fira Code",monospace;
 }
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font: 14px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: var(--bg); color: var(--ink); padding: 1.25rem; }
-h1 { font-size: 1.15rem; margin-bottom: .25rem; }
-h1::after { content: ""; display: block; width: 2.25rem; height: 2px; margin-top: .4rem;
-  border-radius: 999px; background: var(--accent); }
-.sub { color: var(--dim); font-size: .8rem; margin-bottom: 1rem; }
-.grid { display: grid; gap: 1rem; grid-template-columns: 1fr; max-width: 860px; }
-section { border: 1px solid var(--line); border-radius: .6rem; background: var(--card); padding: .9rem 1rem; }
-section h2 { font-size: .95rem; margin-bottom: .5rem; display: flex; justify-content: space-between; align-items: baseline; }
-section h2 .n { color: var(--dim); font-size: .75rem; font-weight: 400; }
-ul { list-style: none; }
-li { display: flex; gap: .55rem; align-items: flex-start; padding: .4rem 0; border-top: 1px solid var(--line); }
-li:first-child { border-top: 0; }
-li input[type=checkbox] { margin-top: .22rem; accent-color: var(--accent); cursor: pointer; }
-.t { flex: 1; }
-.t .name { font-weight: 600; }
-.t .meta { color: var(--dim); font-size: .75rem; }
-.due { font-variant-numeric: tabular-nums; font-size: .75rem; white-space: nowrap; }
-.due.over { color: var(--warn); font-weight: 700; }
-.due.today { color: var(--accent); font-weight: 700; }
-.done .t { text-decoration: line-through; opacity: .55; }
-.empty { color: var(--dim); font-style: italic; padding: .4rem 0; }
-.err { border: 1px solid var(--warn); border-radius: .5rem; padding: .6rem .8rem; margin-bottom: 1rem; display: none; }
-.foot { color: var(--dim); font-size: .72rem; margin-top: 1rem; }
-button.reload { float: right; font: inherit; font-size: .78rem; padding: .25rem .7rem; cursor: pointer;
-  border: 1px solid var(--line); border-radius: .45rem; background: transparent; color: var(--ink); }
-button.reload:hover { border-color: var(--accent); }
+*{box-sizing:border-box;}
+html,body{margin:0;}
+body{
+  font-family:var(--font); color:var(--ink); background:var(--bg); padding:28px;
+  line-height:1.45; -webkit-font-smoothing:antialiased;
+  background-image:
+    radial-gradient(70rem 55rem at 108% -12%, oklch(0.755 0.154 61 / 0.16), transparent 60%),
+    radial-gradient(55rem 55rem at -12% 118%, oklch(0.55 0.02 250 / 0.14), transparent 58%),
+    linear-gradient(180deg, var(--bg), var(--bg-2));
+  background-attachment:fixed;
+}
+.wrap{max-width:860px;margin:0 auto;}
+.hd{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:18px;flex-wrap:wrap;}
+.hd-l{display:flex;align-items:center;gap:16px;min-width:0;}
+.brand{display:flex;align-items:center;color:var(--ink);height:22px;}
+.brand svg{height:20px;width:auto;display:block;}
+.sep{width:1px;height:30px;background:var(--line);flex:none;}
+.ttl{margin:0;font-size:19px;font-weight:700;letter-spacing:-0.02em;line-height:1.2;}
+.ttl .em{color:var(--accent);}
+.sub{margin:3px 0 0;color:var(--muted);font-size:12.5px;}
+.hd-r{display:flex;align-items:center;gap:10px;}
+.status{display:inline-flex;align-items:center;gap:8px;padding:7px 13px;border-radius:9999px;
+  background:var(--glass);border:1px solid var(--line);font-size:12px;font-weight:600;color:var(--ink-2);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);white-space:nowrap;}
+.status .dot{width:7px;height:7px;border-radius:50%;background:var(--muted);}
+.status.live .dot{background:var(--ok);box-shadow:0 0 0 4px var(--ok-soft);}
+.status.live{color:var(--ink);}
+.status .cnt{color:var(--accent);font-variant-numeric:tabular-nums;}
+.reload{font:inherit;font-size:12.5px;font-weight:600;color:var(--ink);cursor:pointer;
+  background:var(--accent-soft);border:1px solid var(--accent-line);border-radius:var(--radius-sm);padding:7px 16px;}
+.reload:hover{background:var(--accent);color:oklch(0.15 0 0);}
+.grid{display:flex;flex-direction:column;gap:14px;}
+.card{border-radius:var(--radius-sm);background:var(--glass-2);border:1px solid var(--line);
+  box-shadow:var(--shadow);backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);
+  padding:16px 20px;}
+.card h2{margin:0 0 10px;font-size:14px;font-weight:700;letter-spacing:-0.01em;display:flex;justify-content:space-between;align-items:baseline;}
+.card h2 .n{color:var(--muted);font-size:11.5px;font-weight:600;font-variant-numeric:tabular-nums;}
+ul{list-style:none;margin:0;padding:0;}
+li{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line-soft);}
+li:first-child{border-top:0;}
+li input[type=checkbox]{margin-top:3px;accent-color:var(--accent);cursor:pointer;width:15px;height:15px;flex:none;}
+.t{flex:1;min-width:0;}
+.t .name{font-weight:600;font-size:13px;color:var(--ink);}
+.t .meta{color:var(--muted);font-size:11.5px;margin-top:2px;}
+.due{font-variant-numeric:tabular-nums;font-size:11.5px;white-space:nowrap;color:var(--muted);
+  padding:3px 10px;border-radius:9999px;border:1px solid var(--line);background:var(--glass);flex:none;}
+.due.over{color:var(--warn);border-color:var(--warn-soft);background:var(--warn-soft);font-weight:700;}
+.due.today{color:var(--accent);border-color:var(--accent-line);background:var(--accent-soft);font-weight:700;}
+.done .t{text-decoration:line-through;opacity:0.55;}
+.empty{color:var(--muted);font-style:italic;padding:8px 0;font-size:12.5px;}
+.state{display:none;flex-direction:column;align-items:center;text-align:center;padding:64px 28px;
+  border-radius:var(--radius);background:var(--glass);border:1px solid var(--line);
+  backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);}
+.state .mark{color:var(--ink);opacity:0.9;margin-bottom:22px;}
+.state .mark svg{height:26px;width:auto;}
+.state h2{margin:0 0 8px;font-size:18px;font-weight:700;letter-spacing:-0.01em;color:var(--ink);}
+.state p{margin:0;max-width:440px;color:var(--muted);font-size:13.5px;line-height:1.6;}
+.state.err h2{color:var(--accent);}
+.state.err .mark{color:var(--accent);}
+.state a{color:var(--accent);}
+.foot{margin-top:14px;color:var(--muted);font-size:11px;text-align:center;letter-spacing:0.01em;}
+.foot code{font-family:var(--mono);color:var(--ink-2);}
+@media (prefers-reduced-motion: no-preference){
+  .grid .card{animation:rise .42s cubic-bezier(.22,1,.36,1) both;animation-delay:calc(var(--i,0)*40ms);}
+}
+@keyframes rise{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
 </style>
 </head>
 <body>
-<button class="reload" id="reload">Reload</button>
-<h1>To-Do Bulletin</h1>
-<p class="sub">Live from Odoo, as you: activities (tick to complete) and open project tasks. Overdue first.</p>
-<div class="err" id="err"></div>
-<div class="grid">
-  <section>
-    <h2>Activities — follow-ups on records <span class="n" id="act-n"></span></h2>
-    <ul id="acts"><li class="empty">Loading…</li></ul>
-  </section>
-  <section>
-    <h2>Open project tasks <span class="n" id="task-n"></span></h2>
-    <ul id="tasks"><li class="empty">Loading…</li></ul>
-  </section>
-</div>
-<p class="foot">Data via <code>mcp__odoo__activity_list</code> + <code>mcp__odoo__task_list</code>, executed as you ·
-ticking an activity runs <code>mcp__odoo__activity_complete</code> · tasks are read-only here — update them in chat or Odoo</p>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="sp-logo" viewBox="167 461 666 78"><g>
+<path fill="#fb9b34" d="M 234.109375 461.253906 L 218.292969 516.605469 L 211.96875 538.746094 L 223.039063 538.746094 L 238.859375 483.394531 L 245.179688 461.253906"/>
+<path fill="#fb9b34" d="M 192.523438 474.636719 L 207.539063 474.636719 L 182.179688 500 L 207.539063 525.359375 L 192.523438 525.359375 L 167.15625 500.007813"/>
+<path fill="currentColor" d="M 285.796875 527.675781 L 252.582031 527.675781 L 252.582031 516.605469 L 274.722656 516.605469 L 274.722656 505.535156 L 252.582031 505.535156 L 252.582031 472.324219 L 285.796875 472.324219 L 285.796875 483.394531 L 263.652344 483.394531 L 263.652344 494.464844 L 285.796875 494.464844"/>
+<path fill="currentColor" d="M 372.359375 472.320313 L 372.359375 483.390625 L 350.21875 483.390625 L 350.21875 494.46875 L 372.359375 494.46875 L 372.359375 527.679688 L 339.148438 527.679688 L 339.148438 516.609375 L 361.289063 516.609375 L 361.289063 505.539063 L 339.148438 505.539063 L 339.148438 472.320313"/>
+<path fill="currentColor" d="M 413.640625 472.320313 L 413.640625 483.390625 L 402.570313 483.390625 L 402.570313 527.679688 L 391.5 527.679688 L 391.5 483.390625 L 380.210938 483.390625 L 380.210938 472.320313"/>
+<path fill="currentColor" d="M 454.925781 527.675781 L 421.714844 527.675781 L 421.714844 472.324219 L 454.925781 472.324219 L 454.925781 483.394531 L 432.785156 483.394531 L 432.785156 494.464844 L 443.855469 494.464844 L 443.855469 505.535156 L 432.785156 505.535156 L 432.785156 516.605469 L 454.925781 516.605469"/>
+<path fill="currentColor" d="M 477.066406 527.675781 L 465.996094 527.675781 L 465.996094 472.324219 L 477.066406 472.324219 L 477.066406 483.394531 L 488.136719 483.394531 L 488.136719 472.324219 L 499.207031 472.324219 L 499.207031 527.675781 L 488.136719 527.675781 L 488.136719 494.464844 L 477.066406 494.464844"/>
+<path fill="currentColor" d="M 521.347656 494.464844 L 532.417969 494.464844 L 532.417969 483.394531 L 521.347656 483.394531 Z M 521.347656 527.675781 L 510.277344 527.675781 L 510.277344 472.324219 L 543.488281 472.324219 L 543.488281 505.535156 L 521.347656 505.535156"/>
+<path fill="currentColor" d="M 609.914063 516.605469 L 620.984375 516.605469 L 620.984375 483.394531 L 609.914063 483.394531 Z M 632.054688 527.675781 L 598.84375 527.675781 L 598.84375 472.324219 L 632.054688 472.324219 Z M 632.054688 527.675781"/>
+<path fill="currentColor" d="M 654.195313 527.675781 L 643.125 527.675781 L 643.125 472.324219 L 654.195313 472.324219 L 654.195313 483.394531 L 665.265625 483.394531 L 665.265625 472.324219 L 676.335938 472.324219 L 676.335938 527.675781 L 665.265625 527.675781 L 665.265625 494.464844 L 654.195313 494.464844"/>
+<path fill="currentColor" d="M 698.480469 494.464844 L 709.550781 494.464844 L 709.550781 483.394531 L 698.480469 483.394531 Z M 698.480469 527.675781 L 687.40625 527.675781 L 687.40625 472.324219 L 720.621094 472.324219 L 720.621094 505.535156 L 698.480469 505.535156"/>
+<path fill="currentColor" d="M 753.832031 527.675781 L 742.761719 527.675781 L 742.761719 483.394531 L 731.691406 483.394531 L 731.691406 472.324219 L 764.902344 472.324219 L 764.902344 483.394531 L 753.832031 483.394531"/>
+<path fill="currentColor" d="M 328.078125 472.324219 L 317.007813 472.324219 L 317.007813 494.464844 L 305.9375 494.464844 L 305.9375 472.324219 L 294.867188 472.324219 L 294.867188 494.464844 L 305.9375 505.535156 L 305.9375 527.675781 L 317.007813 527.675781 L 317.007813 505.535156 L 328.078125 494.464844"/>
+<path fill="currentColor" d="M 587.777344 472.324219 L 554.554688 472.324219 L 554.554688 527.675781 L 565.625 527.675781 L 565.625 516.605469 L 576.695313 527.675781 L 587.777344 527.675781 L 587.777344 516.605469 L 576.695313 505.535156 L 565.625 505.535156 L 565.625 483.394531 L 576.695313 483.394531 L 576.695313 505.535156 L 587.777344 505.535156"/>
+<path fill="#ff9a2f" d="M 766.898438 527.675781 L 776.320313 527.675781 L 776.320313 518.253906 L 766.898438 518.253906 Z M 766.898438 527.675781"/>
+<path fill="#ff9a2f" d="M 785.742188 480.570313 L 795.160156 480.570313 L 795.160156 471.152344 L 785.742188 471.152344 Z M 785.742188 527.675781 L 795.160156 527.675781 L 795.160156 489.992188 L 785.742188 489.992188 Z M 785.742188 527.675781"/>
+<path fill="#ff9a2f" d="M 823.425781 518.253906 L 814.003906 518.253906 L 814.003906 499.414063 L 823.425781 499.414063 Z M 804.582031 527.675781 L 832.84375 527.675781 L 832.84375 489.996094 L 804.582031 489.996094 Z M 804.582031 527.675781"/>
+<path fill="currentColor" d="M 372.359375 483.390625 L 372.359375 472.320313 L 339.148438 472.320313 L 339.148438 505.539063 L 361.289063 505.539063 L 361.289063 516.609375 L 339.148438 516.609375 L 339.148438 527.679688 L 372.359375 527.679688 L 372.359375 494.46875 L 350.21875 494.46875 L 350.21875 483.390625"/>
+</g></symbol></svg>
+  <div class="wrap">
+    <div class="hd">
+      <div class="hd-l">
+        <span class="brand"><svg viewBox="167 461 666 78" role="img" aria-label="systemprompt.io"><use href="#sp-logo"/></svg></span>
+        <span class="sep"></span>
+        <div>
+          <h1 class="ttl">To-Do <span class="em">—</span> Bulletin</h1>
+          <p class="sub">Live from Odoo, as you: activities (tick to complete) and open project tasks. Overdue first.</p>
+        </div>
+      </div>
+      <div class="hd-r">
+        <span class="status" id="status"><span class="dot"></span>Awaiting data</span>
+        <button class="reload" id="reload">Reload</button>
+      </div>
+    </div>
 
-<!-- Data contract: two reads on load; one write per ticked activity. -->
-<script type="application/json" id="odoo-query">
-{"reads": [
-  {"tool": "mcp__odoo__activity_list", "arguments": {"limit": 100}, "target": "acts"},
-  {"tool": "mcp__odoo__task_list", "arguments": {"open_only": true, "limit": 100}, "target": "tasks"}
-], "complete": {"tool": "mcp__odoo__activity_complete"}}
-</script>
+    <div class="grid" id="grid">
+      <section class="card" style="--i:0">
+        <h2>Activities — follow-ups on records <span class="n" id="act-n"></span></h2>
+        <ul id="acts"><li class="empty">Loading…</li></ul>
+      </section>
+      <section class="card" style="--i:1">
+        <h2>Open project tasks <span class="n" id="task-n"></span></h2>
+        <ul id="tasks"><li class="empty">Loading…</li></ul>
+      </section>
+    </div>
+
+    <div class="state err" id="error">
+      <span class="mark"><svg viewBox="167 461 666 78" role="img" aria-label="systemprompt.io"><use href="#sp-logo"/></svg></span>
+      <h2>Odoo is not connected</h2>
+      <p id="error-msg">The Odoo query could not be completed.</p>
+      <p style="margin-top:10px">Link your Odoo login and API key on <a href="/admin/profile">your profile</a>, then press Reload.</p>
+    </div>
+
+    <p class="foot">Data via <code>mcp__odoo__activity_list</code> + <code>mcp__odoo__task_list</code>, executed as you ·
+    ticking an activity runs <code>mcp__odoo__activity_complete</code> · tasks are read-only here — update them in chat or Odoo</p>
+  </div>
+
+  <!-- Data contract: two reads on load; one write per ticked activity. The
+       tools answer with markdown rows in content[0].text:
+       activity: "- **[id] summary** — type on record (model), due date"
+       task:     "- **[id] name** — project · stage · due date · N assignee(s)" -->
+  <script type="application/json" id="odoo-query">
+  {"reads": [
+    {"tool": "mcp__odoo__activity_list", "arguments": {"limit": 100}, "target": "acts"},
+    {"tool": "mcp__odoo__task_list", "arguments": {"open_only": true, "limit": 100}, "target": "tasks"}
+  ], "complete": {"tool": "mcp__odoo__activity_complete"}}
+  </script>
 
 <script>
 (function () {
   var $ = function (id) { return document.getElementById(id); };
-  var NAME = function (v) { return Array.isArray(v) ? (v.length > 1 ? v[1] : v[0]) : v; };
   var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
     return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]; }); };
   var contract = JSON.parse($("odoo-query").textContent);
   var today = new Date().toISOString().slice(0, 10);
+  var counts = { acts: 0, tasks: 0 };
 
+  var dash = function (v) { return v && v !== "—" ? v : ""; };
   var dueClass = function (d) { if (!d) return ""; if (d < today) return "over"; if (d === today) return "today"; return ""; };
   var dueLabel = function (d) { if (!d) return "no deadline"; if (d < today) return d + " · overdue"; if (d === today) return "today"; return d; };
 
-  var showErr = function (msg) { var e = $("err"); e.style.display = "block"; e.textContent = msg; };
-
-  var records = function (r) {
-    var payload = r && r.structuredContent;
-    if (payload == null) { try { payload = JSON.parse(r.content[0].text); } catch (e) { return null; } }
-    if (Array.isArray(payload)) return payload;
-    for (var k in payload) if (Array.isArray(payload[k])) return payload[k];
-    return null;
+  var setStatus = function (mode) {
+    var el = $("status");
+    if (mode === "live") { el.className = "status live"; el.innerHTML = '<span class="dot"></span>Live · <span class="cnt">' + (counts.acts + counts.tasks) + "</span>&nbsp;open"; }
+    else if (mode === "error") { el.className = "status"; el.innerHTML = '<span class="dot" style="background:var(--accent)"></span>Not connected'; }
+    else { el.className = "status"; el.innerHTML = '<span class="dot"></span>Awaiting data'; }
   };
+
+  var showErr = function (msg) {
+    $("grid").style.display = "none"; $("error").style.display = "flex";
+    $("error-msg").textContent = msg; setStatus("error");
+  };
+
+  var text = function (r) {
+    var payload = r && r.structuredContent;
+    if (payload && typeof payload.content === "string") return payload.content;
+    try { return r.content[0].text || ""; } catch (e) { return ""; }
+  };
+
+  var ACT = /^- \*\*\[(\d+)\] (.*?)\*\* — (.*?) on (.*?) \((.*?)\), due (.*)$/;
+  var parseActs = function (md) {
+    var rows = [];
+    md.split("\n").forEach(function (line) {
+      var m = line.match(ACT);
+      if (m) rows.push({ id: +m[1], summary: dash(m[2]), type: dash(m[3]), record: dash(m[4]), model: dash(m[5]), due: dash(m[6]) });
+    });
+    return rows;
+  };
+
+  var TASK = /^- \*\*\[(\d+)\] (.*?)\*\* — (.*?) · (.*?) · due (.*?) · (\d+) assignee\(s\)$/;
+  var parseTasks = function (md) {
+    var rows = [];
+    md.split("\n").forEach(function (line) {
+      var m = line.match(TASK);
+      if (m) rows.push({ id: +m[1], name: dash(m[2]), project: dash(m[3]), stage: dash(m[4]), due: dash(m[5]), assignees: +m[6] });
+    });
+    return rows;
+  };
+
+  var byDue = function (a, b) { return String(a.due || "9999") < String(b.due || "9999") ? -1 : 1; };
 
   var renderActs = function (rows) {
     var ul = $("acts"); ul.innerHTML = "";
+    counts.acts = rows.length;
     $("act-n").textContent = rows.length + " open";
     if (!rows.length) { ul.innerHTML = '<li class="empty">Nothing waiting — clear board.</li>'; return; }
-    rows.sort(function (a, b) { return String(a.date_deadline || "9999") < String(b.date_deadline || "9999") ? -1 : 1; });
+    rows.sort(byDue);
     rows.forEach(function (a) {
       var li = document.createElement("li");
-      var rec = a.record_name || (NAME(a.res_model) ? NAME(a.res_model) + " #" + a.res_id : "");
-      li.innerHTML = '<input type="checkbox" title="Mark done"><div class="t"><div class="name">' + esc(a.summary || a.display_name || "Activity") +
-        '</div><div class="meta">' + esc([rec, NAME(a.user_id)].filter(Boolean).join(" · ")) + "</div></div>" +
-        '<span class="due ' + dueClass(a.date_deadline) + '">' + esc(dueLabel(a.date_deadline)) + "</span>";
+      li.innerHTML = '<input type="checkbox" title="Mark done"><div class="t"><div class="name">' + esc(a.summary || a.type || "Activity") +
+        '</div><div class="meta">' + esc([a.type, a.record ? a.record + (a.model ? " (" + a.model + ")" : "") : a.model].filter(Boolean).join(" · ")) + "</div></div>" +
+        '<span class="due ' + dueClass(a.due) + '">' + esc(dueLabel(a.due)) + "</span>";
       li.querySelector("input").addEventListener("change", function (ev) {
         var box = ev.target;
         if (!box.checked) return;
@@ -119,15 +239,15 @@ ticking an activity runs <code>mcp__odoo__activity_complete</code> · tasks are 
 
   var renderTasks = function (rows) {
     var ul = $("tasks"); ul.innerHTML = "";
+    counts.tasks = rows.length;
     $("task-n").textContent = rows.length + " open";
     if (!rows.length) { ul.innerHTML = '<li class="empty">No open tasks.</li>'; return; }
-    rows.sort(function (a, b) { return String(a.date_deadline || "9999") < String(b.date_deadline || "9999") ? -1 : 1; });
+    rows.sort(byDue);
     rows.forEach(function (t) {
       var li = document.createElement("li");
       li.innerHTML = '<div class="t"><div class="name">' + esc(t.name || "Task") +
-        '</div><div class="meta">' + esc([NAME(t.project_id), NAME(t.stage_id),
-          (t.user_ids && t.user_ids.length ? "assigned" : "unassigned")].filter(Boolean).join(" · ")) + "</div></div>" +
-        '<span class="due ' + dueClass(t.date_deadline) + '">' + esc(dueLabel(t.date_deadline)) + "</span>";
+        '</div><div class="meta">' + esc([t.project, t.stage, (t.assignees ? "assigned" : "unassigned")].filter(Boolean).join(" · ")) + "</div></div>" +
+        '<span class="due ' + dueClass(t.due) + '">' + esc(dueLabel(t.due)) + "</span>";
       ul.appendChild(li);
     });
   };
@@ -137,17 +257,21 @@ ticking an activity runs <code>mcp__odoo__activity_complete</code> · tasks are 
       showErr("This bulletin needs the live MCP connection; open it inside the workspace.");
       return;
     }
-    $("err").style.display = "none";
+    $("error").style.display = "none"; $("grid").style.display = "flex"; setStatus("await");
+    var pending = contract.reads.length;
+    var settle = function () { if (--pending === 0) setStatus("live"); };
     contract.reads.forEach(function (read) {
       window.cowork.callMcpTool(read.tool, read.arguments).then(function (r) {
-        var rows = records(r);
-        if (rows == null) { showErr("The " + read.tool + " response had no record list."); rows = []; }
-        (read.target === "acts" ? renderActs : renderTasks)(rows);
+        if (r && r.isError) { showErr(text(r) || "The Odoo query could not be completed."); return; }
+        var md = text(r);
+        (read.target === "acts" ? renderActs(parseActs(md)) : renderTasks(parseTasks(md)));
+        settle();
       }).catch(function (e) { showErr(String((e && e.message) || e)); });
     });
   };
 
   $("reload").addEventListener("click", load);
+  window.addEventListener("message", function () { load(); });
   load();
 })();
 </script>

@@ -136,7 +136,7 @@ body{
 
   <!-- Data contract: on load the page calls window.cowork.callMcpTool with this
        tool + arguments and renders the markdown briefing the tool returns
-       (structuredContent.artifact.content): one "## Section" per briefing
+       (structuredContent.content): one "## Section" per briefing
        section, one "- ..." row per record. -->
   <script type="application/json" id="odoo-query">
   {"tool": "mcp__odoo__business_overview_data", "arguments": {}}
@@ -194,8 +194,8 @@ body{
   var content = function (r) {
     var payload = r && r.structuredContent;
     if (payload == null) { try { payload = JSON.parse(r.content[0].text); } catch (e) { payload = null; } }
-    if (payload && payload.artifact && typeof payload.artifact.content === "string") return payload.artifact.content;
     if (payload && typeof payload.content === "string") return payload.content;
+    if (r && r.content && r.content[0] && typeof r.content[0].text === "string") return r.content[0].text;
     return null;
   };
 

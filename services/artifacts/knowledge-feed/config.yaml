@@ -1,7 +1,7 @@
 id: knowledge-feed
 name: "Knowledge Feed — brain@ Activity"
 description: "Everything the brain@ pipeline has captured into the knowledge bank as a live feed — each document with its source, pipeline status, category, and summary, newest first. Refresh re-runs list_documents against the knowledge bank."
-version: "1.0.0"
+version: "1.0.1"
 enabled: true
 starred: true
 # `category`, `tags` and `query` are forward-compatible metadata — the core

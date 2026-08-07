@@ -159,7 +159,7 @@ body{
 
   <!-- Data contract: on load the page calls window.cowork.callMcpTool with this
        tool + arguments and renders the markdown note rows the tool returns
-       (structuredContent.artifact.content). "%" matches every note; the search
+       (structuredContent.content). "%" matches every note; the search
        box swaps in the user's own query. -->
   <script type="application/json" id="odoo-query">
   {"tool": "mcp__odoo__note_search", "arguments": {"query": "%", "limit": 50}}
@@ -222,8 +222,8 @@ body{
   var content = function (r) {
     var payload = r && r.structuredContent;
     if (payload == null) { try { payload = JSON.parse(r.content[0].text); } catch (e) { payload = null; } }
-    if (payload && payload.artifact && typeof payload.artifact.content === "string") return payload.artifact.content;
     if (payload && typeof payload.content === "string") return payload.content;
+    if (r && r.content && r.content[0] && typeof r.content[0].text === "string") return r.content[0].text;
     return null;
   };
 
@@ -240,7 +240,7 @@ body{
       }
       var md = content(r);
       if (md == null) { setStatus("error"); show("error"); $("error-msg").textContent = "Could not read the tool response."; return; }
-      if (/^No notes matched/.test(md.trim())) { setStatus("live", 0); show("empty"); return; }
+      if (md.indexOf("No notes matched") !== -1) { setStatus("live", 0); show("empty"); return; }
       var notes = parseNotes(md);
       if (!notes.length) { setStatus("live", 0); show("empty"); return; }
       setStatus("live", notes.length); renderNotes(notes); show("ready");

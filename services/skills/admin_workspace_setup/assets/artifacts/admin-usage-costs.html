@@ -13,10 +13,10 @@
   --accent:oklch(0.755 0.154 61); --accent-soft:oklch(0.755 0.154 61 / 0.14); --accent-line:oklch(0.755 0.154 61 / 0.35);
   --ok:oklch(0.72 0.17 155); --ok-soft:oklch(0.72 0.17 155 / 0.16);
   --warn:oklch(0.82 0.15 85); --warn-soft:oklch(0.82 0.15 85 / 0.16);
-  --err:oklch(0.63 0.22 25); --err-soft:oklch(0.63 0.22 25 / 0.16);
+  --err:oklch(0.63 0.25 28); --err-soft:oklch(0.63 0.25 28 / 0.16);
   --info:oklch(0.70 0.13 240); --info-soft:oklch(0.70 0.13 240 / 0.16);
   --radius:18px 6px 18px 18px; --radius-sm:12px 4px 12px 12px;
-  --glow:0 12px 40px oklch(0.710 0.169 55 / 0.20);
+  --glow:0 12px 40px oklch(0.58 0.25 28 / 0.20);
   --shadow:0 20px 50px oklch(0 0 0 / 0.45);
   --font:"Inter",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   --mono:"Roboto Mono","SF Mono",ui-monospace,"Fira Code",monospace;
@@ -422,8 +422,14 @@ var CONFIG = {
       }
       var payload = r && r.structuredContent;
       if (payload == null) {
-        try { payload = JSON.parse(r.content[0].text); }
-        catch (e3) { return applyResult(null, "Could not parse the tool response."); }
+        var text = "";
+        try { text = r.content[0].text || ""; } catch (e3) {}
+        try { payload = JSON.parse(text); }
+        catch (e5) {
+          var cut = text.indexOf("\n\n");
+          try { payload = JSON.parse(cut === -1 ? text : text.slice(cut + 2)); }
+          catch (e6) { return applyResult(null, "Could not parse the tool response."); }
+        }
       }
       var records = normalize(payload);
       if (!records) return applyResult(null, "The tool response had no record list.");

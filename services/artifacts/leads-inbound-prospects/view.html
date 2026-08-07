@@ -408,9 +408,29 @@ var CONFIG = {
         return applyResult(null, msg);
       }
       var payload = r && r.structuredContent;
+      var text = "";
+      try { text = r.content[0].text || ""; } catch (e3) {}
       if (payload == null) {
-        try { payload = JSON.parse(r.content[0].text); }
-        catch (e3) { return applyResult(null, "Could not parse the tool response."); }
+        try { payload = JSON.parse(text); }
+        catch (e5) {
+          var cut = text.indexOf("\n\n");
+          try { payload = JSON.parse(cut === -1 ? text : text.slice(cut + 2)); } catch (e6) { payload = null; }
+        }
+      }
+      if (payload == null) {
+        if (text.indexOf("matched. This is Odoo's answer") !== -1) return applyResult([]);
+        var ROW = /^- \*\*\[(\d+)\] (.+?)\*\* — (.*?) · (.*?) · (.*?) · revenue (.*)$/;
+        var dash = function (v) { return v && v !== "—" ? v : null; };
+        var rows = [];
+        text.split("\n").forEach(function (line) {
+          var m = line.match(ROW);
+          if (!m) return;
+          var rev = parseFloat(String(m[6]).replace(/[^0-9.\-]/g, ""));
+          rows.push({ id: +m[1], name: dash(m[2]), stage_id: dash(m[3]), user_id: dash(m[4]),
+            partner_name: dash(m[5]), expected_revenue: isNaN(rev) ? null : rev });
+        });
+        if (!rows.length) return applyResult(null, "Could not parse the tool response.");
+        return applyResult(rows);
       }
       var records = normalize(payload);
       if (!records) return applyResult(null, "The tool response had no record list.");
