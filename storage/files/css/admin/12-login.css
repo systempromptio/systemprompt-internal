@@ -12,13 +12,15 @@
         linear-gradient(180deg, var(--sp-bg-canvas) 0%, var(--sp-bg-base) 100%);
 }
 
+/* Same dark surface as .auth-card: this card hosts the white brand logo and
+   light theme text, so a light background renders both invisible. */
 .login-container .card {
     width: 100%;
     max-width: 420px;
     text-align: center;
     box-shadow: var(--sp-shadow-login-card);
     border-radius: var(--sp-radius-card-brand);
-    background: var(--sp-primitive-white);
+    background: var(--sp-bg-surface);
     border: 1px solid var(--sp-border-subtle);
     padding: var(--sp-space-8) var(--sp-space-6);
 }
