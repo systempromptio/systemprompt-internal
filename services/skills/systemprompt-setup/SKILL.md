@@ -25,5 +25,18 @@ install: verify the Odoo MCP connection works by listing the available Odoo tool
 user at their profile page (`/admin/profile`) to connect Odoo if tools fail with a missing-identity
 error.
 
-Never attempt the Cowork artifact installation outside Cowork — `create_artifact` with an
-`html_path` only exists there, and every past failure came from guessing at it elsewhere.
+**Admin users, in Cowork only:** there is a second set of dashboards — users, activity, usage —
+installed by `admin_workspace_setup_cowork` from the admin plugin. It is separate from the CRM
+dashboards and needs the admin role. Mention it after the CRM setup finishes; it is subject to the
+same host rule below.
+
+## Dashboards are a Cowork feature — everywhere else, say so
+
+Never attempt an artifact installation outside Cowork. `create_artifact` with an `html_path` only
+exists there, and every past failure came from guessing at it elsewhere. In particular, **Codex CLI
+has no artifact library**: no `create_artifact`, no `list_artifacts`, no persistent dashboard
+gallery, and its inline visualizations are blocked from calling MCP tools, so a page rendered there
+could never load Odoo data. There is no CLI substitute either — `coworkctl` does not exist.
+
+Outside Cowork the correct outcome is to tell the user dashboards do not apply on this host and
+finish the host's own setup, not to stage HTML files or write a receipt reporting zero installs.

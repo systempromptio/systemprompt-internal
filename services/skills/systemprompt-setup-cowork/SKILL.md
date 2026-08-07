@@ -5,9 +5,27 @@ are missing, leave the ones already there alone, and report a clear "installed X
 to run on every new session — it reconciles rather than seeds, so re-running is the point, not a
 waste.
 
-This is the workspace counterpart to the admin setup skill that installs the control-plane
-dashboards (users, activity, usage). The two do not overlap: each installs only what its own plugin
-ships.
+This is the workspace counterpart to `admin_workspace_setup_cowork`, which installs the
+control-plane dashboards (users, activity, usage). The two do not overlap: each installs only what
+its own plugin ships.
+
+## Before you start — this skill only works in Claude Cowork
+
+The Artifacts library is a Cowork feature. Check for it before doing anything else: you need a
+**`create_artifact` tool that takes an `html_path`**, a `list_artifacts` tool, and a session
+`outputs/` directory. If any of those is absent, **stop here** and hand over:
+
+- **Codex CLI** — follow `systemprompt-setup-codex` instead. Codex has no artifact library at all,
+  and its inline visualizations are blocked from calling MCP tools (`callMcp` rejects with "Inline
+  visualizations cannot call tools"), so a dashboard could not load data even if you rendered one.
+- **Plain Claude Code or any other MCP client** — nothing to install. Verify the Odoo MCP server
+  answers (`crm_lead_search` with `{ "limit": 1 }`) and stop.
+
+Stopping means stopping. Do **not** stage the HTML into `outputs/` "in case", do not write a
+receipt, and do not look for a CLI to install artifacts with — **there is no `coworkctl`, no
+`cowork` command, and no HTTP endpoint for this.** `create_artifact` is a built-in tool or it is
+nothing. A receipt reporting `installed: 0` on a host that has no library is a wrong answer dressed
+as a result; say plainly that the skill does not apply here.
 
 ## Ask me things like
 
@@ -75,7 +93,7 @@ Run this skill's staging script **once** with this exact shell command (it finds
 wherever the skills mount lands — do not substitute a guessed path, and never a Windows path):
 
 ```
-SETUP=$(find "$HOME/mnt" /sessions/*/mnt -name setup.sh -path '*cowork*setup*' 2>/dev/null | head -1) \
+SETUP=$(find "$HOME/mnt" /sessions/*/mnt -name setup.sh -path '*systemprompt?setup?cowork*' 2>/dev/null | head -1) \
   && sh "$SETUP" || echo "SETUP_SCRIPT_NOT_FOUND"
 ```
 
@@ -97,7 +115,7 @@ artifact counts as installed only when it appears in the list — never because 
 
 1. The find-and-run one-liner above.
 2. If it printed `SETUP_SCRIPT_NOT_FOUND`: locate the assets the same way —
-   `find "$HOME/mnt" /sessions/*/mnt -type d -path '*cowork*setup/assets/artifacts' 2>/dev/null | head -1`
+   `find "$HOME/mnt" /sessions/*/mnt -type d -path '*systemprompt?setup?cowork/assets/artifacts' 2>/dev/null | head -1`
    — and bash-`cp` every `*.html` from it into the outputs dir (`$HOME/mnt/outputs`, or discover it:
    `find "$HOME/mnt" /sessions/*/mnt -maxdepth 2 -type d -name outputs`).
 3. Only if **both** finds return nothing (the mounts genuinely lack this skill): Read the plugin
@@ -116,7 +134,7 @@ but a workspace-path rejection is not a failure to record, it is a signal you sk
 Write the receipt through the same script so the timestamp is real, not typed:
 
 ```
-SETUP=$(find "$HOME/mnt" /sessions/*/mnt -name setup.sh -path '*cowork*setup*' 2>/dev/null | head -1) \
+SETUP=$(find "$HOME/mnt" /sessions/*/mnt -name setup.sh -path '*systemprompt?setup?cowork*' 2>/dev/null | head -1) \
   && sh "$SETUP" receipt '{ "checkedAt": "__NOW__", "bundled": 5, "installed": 5,
   "created": ["..."], "alreadyPresent": ["..."], "stale": ["..."], "failed": [] }'
 ```

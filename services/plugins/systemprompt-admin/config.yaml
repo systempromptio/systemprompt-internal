@@ -13,7 +13,7 @@ plugin:
   skills:
     source: explicit
     include:
-      - admin_workspace_setup
+      - admin_workspace_setup_cowork
       - admin_user_report
       - admin_activity_report
       - analytics_dashboards

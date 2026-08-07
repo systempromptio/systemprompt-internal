@@ -1,0 +1,13 @@
+id: admin_workspace_setup_cowork
+name: "Set Up Admin Dashboards — Claude Cowork"
+description: "Claude Cowork only: installs the three admin control-plane dashboards (users, activity, usage) into your Artifacts library and checks the admin CLI connection. Other hosts have no Artifacts library — there is nothing to install there."
+enabled: true
+file: SKILL.md
+tags:
+  - setup
+  - onboarding
+  - artifacts
+  - admin
+  - control-plane
+category: setup
+display_category: "Governance & Analytics"

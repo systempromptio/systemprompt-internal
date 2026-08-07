@@ -85,7 +85,7 @@ rules:
     default_included: false
     roles: [admin]
   - entity_type: skill
-    entity_id: admin_workspace_setup
+    entity_id: admin_workspace_setup_cowork
     access: allow
     default_included: false
     roles: [admin]
