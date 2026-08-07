@@ -90,6 +90,17 @@ scheduler:
         imap_user: brain@systemprompt.io
         mailbox: INBOX
 
+    # Phase 2: hourly LLM pass over status='raw' knowledge documents →
+    # category + structured JSON. Never writes to Odoo, never creates CRM
+    # leads. Cost-capped by batch_size per run.
+    - name: knowledge_categorization
+      extension: knowledge
+      owner: admin
+      schedule: "0 15 * * * *"
+      enabled: true
+      parameters:
+        batch_size: "10"
+
     # Standalone web extension jobs
     - name: content_analytics_aggregation
       extension: web

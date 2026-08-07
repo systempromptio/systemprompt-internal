@@ -5492,6 +5492,7 @@ dependencies = [
  "inventory",
  "mail-parser",
  "rustls",
+ "serde",
  "serde_json",
  "sqlx",
  "systemprompt",
