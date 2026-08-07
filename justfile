@@ -884,7 +884,18 @@ backup *ARGS:
 # Note: publish_pipeline runs automatically on server startup with correct profile URLs
 # Pinned to the `production` profile so a deploy never follows whichever profile
 # the CLI session happens to be switched to.
+#
+# Refuses a dirty working tree: the image and the synced services/ tree are
+# built from what is on disk, so uncommitted or half-committed state ships to
+# production silently. A scheduler config referencing a job whose module was
+# still untracked once crashlooped prod this way. DEPLOY_DIRTY=1 overrides.
 deploy *FLAGS: build-all
+    @if [ "${DEPLOY_DIRTY:-0}" != "1" ] && [ -n "$(git status --porcelain)" ]; then \
+        echo "ERROR: working tree is dirty — a deploy ships exactly what is on disk,"; \
+        echo "committed or not. Commit (or stash) first, or override with DEPLOY_DIRTY=1:"; \
+        git status --porcelain | head -20; \
+        exit 1; \
+    fi
     {{CLI_RELEASE}} cloud deploy --profile {{DEPLOY_PROFILE}} {{FLAGS}}
 
 # Pre-deploy preflight only — no build, no push
