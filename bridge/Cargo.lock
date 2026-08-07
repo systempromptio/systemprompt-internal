@@ -4668,7 +4668,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-internal-bridge"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "inventory",
  "systemprompt-bridge",

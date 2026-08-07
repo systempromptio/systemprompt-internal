@@ -119,7 +119,10 @@ fn a_categorized_row_carries_its_category_and_summary() {
     categorized.category = Some("sales-order".to_owned());
     categorized.summary = Some("An order for 40 crates of aniseed syrup.".to_owned());
     let out = listing_summary(&[categorized]);
-    assert!(out.contains("900 chars, categorized, sales-order)"), "{out}");
+    assert!(
+        out.contains("900 chars, categorized, sales-order)"),
+        "{out}"
+    );
     assert!(
         out.contains("\n  An order for 40 crates of aniseed syrup."),
         "the summary renders as an indented follow-on line: {out}"
