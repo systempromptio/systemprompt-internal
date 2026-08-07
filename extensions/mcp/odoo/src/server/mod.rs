@@ -40,7 +40,7 @@ use systemprompt::mcp::{
     read_artifact_viewer_resource,
 };
 use systemprompt::security::authz::SharedAuthzHook;
-use systemprompt_mcp_shared::record_mcp_access;
+use systemprompt_mcp_shared::{plain_wire_result, record_mcp_access};
 
 use crate::client::OdooClient;
 use crate::error::OdooError;
@@ -97,58 +97,6 @@ impl OdooServer {
             client,
         })
     }
-}
-
-/// Reduce a tool result to the plain `CallToolResult` shape every MCP client
-/// validates: text content only, no `structuredContent`, no `_meta`, no
-/// embedded `ui://` resource.
-///
-/// The rich shape the shared response builder emits is consumed by the
-/// gateway chat surface, but strict hosts — the Claude Cowork artifact bridge
-/// among them — reject it wholesale, so every artifact shows a validation
-/// error instead of data. Artifact persistence is unaffected: the structured
-/// output is already in Postgres by the time this runs, and the `ui://`
-/// resource remains resolvable via `resources/read`. Set
-/// `ODOO_MCP_PLAIN_RESULTS=0` to restore the rich wire shape.
-///
-/// Exposed (behind `#[doc(hidden)]`) so the external test workspace can
-/// assert the stripped shape; not part of the public API.
-#[doc(hidden)]
-#[must_use]
-pub fn plain_wire_result(mut result: CallToolResult) -> CallToolResult {
-    let plain = std::env::var("ODOO_MCP_PLAIN_RESULTS")
-        .map_or(true, |v| !matches!(v.trim(), "0" | "false" | "off"));
-    if !plain {
-        return result;
-    }
-
-    // Why: in the rich shape, content[0] is only the one-line summary — the
-    // markdown body rides inside structuredContent.artifact.content. A plain
-    // client gets exactly one shot at the data, so the body is promoted into
-    // the text block before the envelope is dropped.
-    let body = result
-        .structured_content
-        .as_ref()
-        .and_then(|sc| sc.pointer("/artifact/content"))
-        .and_then(serde_json::Value::as_str)
-        .map(str::to_owned);
-    let summary = result
-        .content
-        .iter()
-        .find_map(|block| block.as_text().map(|t| t.text.clone()));
-
-    let text = match (summary, body) {
-        (Some(s), Some(b)) if s != b => format!("{s}\n\n{b}"),
-        (_, Some(b)) => b,
-        (Some(s), None) => s,
-        (None, None) => String::new(),
-    };
-
-    result.content = vec![ContentBlock::text(text)];
-    result.structured_content = None;
-    result.meta = None;
-    result.result_type = None;
-    result
 }
 
 impl ServerHandler for OdooServer {
