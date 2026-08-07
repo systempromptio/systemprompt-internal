@@ -21,7 +21,15 @@ CREATE TABLE IF NOT EXISTS knowledge_documents (
         to_tsvector('english', coalesce(title, '') || ' ' || content)
     ) STORED,
     uploaded_by TEXT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    -- Categorization columns the knowledge jobs pipeline fills in. Declared
+    -- here because this crate's list query reads them: the jobs extension's
+    -- ALTER ... IF EXISTS migration no-ops when it runs before this table
+    -- exists, which is exactly what a fresh database does.
+    metadata JSONB,
+    category TEXT,
+    structured JSONB,
+    status TEXT NOT NULL DEFAULT 'raw'
 );
 
 -- Ranked search reads this and nothing else.
