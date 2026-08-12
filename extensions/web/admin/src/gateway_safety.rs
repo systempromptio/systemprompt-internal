@@ -66,9 +66,8 @@ fn scan(text: &str) -> Vec<Finding> {
 register_safety_scanner!(SecretsScanner::new, name = "secrets");
 
 
-/// Blocks configurable banned words/phrases in request content. Registered as
-/// an extension scanner rather than hardcoded in core, per the intended
-/// architecture: core stays generic, client-specific word lists live here.
+// Why: client-specific word list, kept as an extension const rather than a
+// core-hardcoded list, per the intended architecture.
 const BANNED_WORDS: &[&str] = &["duck"];
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -88,7 +87,9 @@ impl SafetyScanner for WordBlocklistScanner {
     }
     async fn scan_request(&self, req: &CanonicalRequest) -> Vec<Finding> {
         let mut findings = Vec::new();
-        if let Some(text) = req.latest_message_text(systemprompt::models::wire::canonical::Role::User) {
+        if let Some(text) =
+            req.latest_message_text(systemprompt::models::wire::canonical::Role::User)
+        {
             let lower = text.to_ascii_lowercase();
             for word in BANNED_WORDS {
                 if lower.contains(word) {
