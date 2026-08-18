@@ -8,7 +8,7 @@
 
 use serde::Deserialize;
 
-/// Where Odoo lives, from the environment.
+/// Where Odoo lives, from the environment or the profile's secrets.
 #[derive(Debug, Clone)]
 pub struct OdooConnection {
     /// Base URL, no trailing slash, e.g. `https://odoo.example.com`.
@@ -20,17 +20,28 @@ pub struct OdooConnection {
 pub(crate) const ODOO_URL_ENV: &str = "ODOO_URL";
 pub(crate) const ODOO_DB_ENV: &str = "ODOO_DB";
 
+// Why: env::var().ok() and SecretsBootstrap::get().ok() are both
+// missing-is-normal carve-outs encoding the priority chain (env var first —
+// the container path, where secrets arrive as env — then the profile's
+// secrets store, the local path, where `odoo_url` / `odoo_db` live in
+// secrets.json as custom keys).
+fn setting(env_name: &str, secrets_key: &str) -> Option<String> {
+    std::env::var(env_name).ok().or_else(|| {
+        systemprompt::config::SecretsBootstrap::get()
+            .ok()
+            .and_then(|s| s.get(secrets_key).cloned())
+    })
+}
+
 impl OdooConnection {
-    /// Read the connection from `ODOO_URL` / `ODOO_DB`. `None` when either is
-    /// unset or blank — the caller reports "not configured", which is a
-    /// deployment problem, not a user error.
+    /// Read the connection from `ODOO_URL` / `ODOO_DB`, falling back to the
+    /// profile secrets (`odoo_url` / `odoo_db`). `None` when either is unset
+    /// or blank — the caller reports "not configured", which is a deployment
+    /// problem, not a user error.
     #[must_use]
     pub fn from_env() -> Option<Self> {
-        // Why: env::var().ok() twice is a missing-is-normal carve-out — an
-        // unconfigured deployment is a supported state that the handlers
-        // report as `Unavailable`.
-        let url = std::env::var(ODOO_URL_ENV).ok()?;
-        let db = std::env::var(ODOO_DB_ENV).ok()?;
+        let url = setting(ODOO_URL_ENV, "odoo_url")?;
+        let db = setting(ODOO_DB_ENV, "odoo_db")?;
         let url = url.trim().trim_end_matches('/').to_owned();
         let db = db.trim().to_owned();
         if url.is_empty() || db.is_empty() {
