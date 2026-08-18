@@ -768,9 +768,9 @@ setup-local ANTHROPIC_KEY="" OPENAI_KEY="" GEMINI_KEY="" HTTP_PORT="8080" PG_POR
     YAML
     fi
     # The app reads exactly two Odoo vars (services/mcp/odoo.yaml passthrough
-    # allowlist). Seed them into .env if absent so the MCP server and admin
-    # link flow can reach the local sidecar.
-    if [ -f "$ROOT/.env" ] && ! grep -q '^ODOO_URL=' "$ROOT/.env"; then
+    # allowlist). Seed them into .env (created if absent) so the MCP server
+    # and admin link flow can reach the local sidecar.
+    if [ ! -f "$ROOT/.env" ] || ! grep -q '^ODOO_URL=' "$ROOT/.env"; then
         {
             echo "ODOO_URL=http://localhost:${ODOO_PORT}"
             echo "ODOO_DB=odoo_local"
