@@ -767,16 +767,24 @@ setup-local ANTHROPIC_KEY="" OPENAI_KEY="" GEMINI_KEY="" HTTP_PORT="8080" PG_POR
       odoo_web_data: {}
     YAML
     fi
-    # The app reads exactly two Odoo vars (services/mcp/odoo.yaml passthrough
-    # allowlist). Seed them into .env (created if absent) so the MCP server
-    # and admin link flow can reach the local sidecar.
-    if [ ! -f "$ROOT/.env" ] || ! grep -q '^ODOO_URL=' "$ROOT/.env"; then
-        {
-            echo "ODOO_URL=http://localhost:${ODOO_PORT}"
-            echo "ODOO_DB=odoo_local"
-        } >> "$ROOT/.env"
-        echo "Appended ODOO_URL / ODOO_DB to .env (local Odoo sidecar)."
-    fi
+    # Seed the Odoo connection into the profile's secrets.json as custom keys.
+    # SecretsBootstrap carries them in-process, and the MCP spawner uppercases
+    # custom keys into the subprocess env (odoo_url → ODOO_URL), so nothing
+    # needs a .env file. Runs after `admin setup` below has written the file.
+    seed_odoo_secrets() {
+        local secrets_file="$PROFILE_DIR/secrets.json"
+        [ -f "$secrets_file" ] || return 0
+        ODOO_PORT="$ODOO_PORT" python3 - "$secrets_file" <<'PY'
+    import json, os, sys
+    path = sys.argv[1]
+    data = json.load(open(path))
+    if "odoo_url" not in data:
+        data["odoo_url"] = f"http://localhost:{os.environ['ODOO_PORT']}"
+        data["odoo_db"] = data.get("odoo_db", "odoo_local")
+        json.dump(data, open(path, "w"), indent=2)
+        print("Seeded odoo_url / odoo_db into profile secrets (local Odoo sidecar).")
+    PY
+    }
     if [ ! -f "$PROFILE_DIR/profile.yaml" ]; then
         echo "Generating profile + provider registry + secrets via 'admin setup'..."
         if [ "$HAS_KEY" = true ]; then
@@ -846,6 +854,7 @@ setup-local ANTHROPIC_KEY="" OPENAI_KEY="" GEMINI_KEY="" HTTP_PORT="8080" PG_POR
         echo "    rm -rf \"$PROFILE_DIR\" && just setup-local <keys...> $HTTP_PORT $PG_PORT"
         echo ""
     fi
+    seed_odoo_secrets
     mkdir -p "$ROOT/web/dist"
     echo "Building binaries (release, full workspace)..."
     just build --release

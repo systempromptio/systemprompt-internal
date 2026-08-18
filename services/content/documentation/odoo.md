@@ -56,8 +56,10 @@ just odoo-local-init   # creates the odoo role + odoo_local DB (base module, no 
 ```
 
 Odoo then answers on http://localhost:8070 (override with the sixth
-`setup-local` argument), login `admin` / `admin`, and setup-local appends
-`ODOO_URL=http://localhost:8070` / `ODOO_DB=odoo_local` to `.env`. Logs:
+`setup-local` argument), login `admin` / `admin`. setup-local seeds
+`odoo_url` / `odoo_db` into the profile's `secrets.json`; the server reads
+them via the secrets bootstrap and the MCP spawner injects them into the
+odoo MCP server's environment, so no `.env` file is involved. Logs:
 `just odoo-local-logs`; restart: `just odoo-local-restart`.
 
 ## Link a user
