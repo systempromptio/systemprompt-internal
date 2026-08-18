@@ -670,9 +670,9 @@ tenant:
 # Set up a local-only profile + Docker Postgres (no cloud, no login required).
 # Pass keys as positional args, or leave blank to be prompted interactively:
 #   just setup-local sk-ant-... sk-... AIza...
-# Port and Postgres port can be overridden for running multiple clones on one host:
-#   just setup-local sk-ant-... "" "" 8081 5433
-setup-local ANTHROPIC_KEY="" OPENAI_KEY="" GEMINI_KEY="" HTTP_PORT="8080" PG_PORT="5432":
+# Port, Postgres port and Odoo port can be overridden for running multiple clones on one host:
+#   just setup-local sk-ant-... "" "" 8081 5433 8071
+setup-local ANTHROPIC_KEY="" OPENAI_KEY="" GEMINI_KEY="" HTTP_PORT="8080" PG_PORT="5432" ODOO_PORT="8070":
     #!/usr/bin/env bash
     set -euo pipefail
     ROOT="{{justfile_directory()}}"
@@ -683,6 +683,7 @@ setup-local ANTHROPIC_KEY="" OPENAI_KEY="" GEMINI_KEY="" HTTP_PORT="8080" PG_POR
     GEMINI_KEY="{{GEMINI_KEY}}"
     HTTP_PORT="{{HTTP_PORT}}"
     PG_PORT="{{PG_PORT}}"
+    ODOO_PORT="{{ODOO_PORT}}"
     export SYSTEMPROMPT_PROFILE="$PROFILE_DIR/profile.yaml"
     # Whether a key was passed as a positional arg. When none is and there is
     # nothing to preserve, generation still needs a provider: on a TTY we let
@@ -721,7 +722,7 @@ setup-local ANTHROPIC_KEY="" OPENAI_KEY="" GEMINI_KEY="" HTTP_PORT="8080" PG_POR
     fi
     mkdir -p "$PROFILE_DIR" "$DOCKER_DIR"
     if [ ! -f "$DOCKER_DIR/local.yaml" ]; then
-        echo "Writing Docker compose for local Postgres (host port $PG_PORT)..."
+        echo "Writing Docker compose for local Postgres (host port $PG_PORT) + Odoo (host port $ODOO_PORT)..."
         cat > "$DOCKER_DIR/local.yaml" <<YAML
     services:
       postgres:
@@ -740,9 +741,41 @@ setup-local ANTHROPIC_KEY="" OPENAI_KEY="" GEMINI_KEY="" HTTP_PORT="8080" PG_POR
           interval: 5s
           timeout: 5s
           retries: 5
+      # Local Odoo CE mirroring the production companion app (deploy/fly/odoo/).
+      # Needs the odoo role + odoo_local DB once: \`just odoo-local-init\` (after db-up).
+      odoo:
+        image: odoo:18
+        restart: unless-stopped
+        depends_on:
+          postgres:
+            condition: service_healthy
+        environment:
+          HOST: postgres
+          USER: odoo
+          PASSWORD: odoo
+        ports:
+          - "${ODOO_PORT}:8069"
+        volumes:
+          - odoo_web_data:/var/lib/odoo
+        healthcheck:
+          test: ["CMD", "curl", "-fsS", "http://localhost:8069/web/health"]
+          interval: 10s
+          timeout: 5s
+          retries: 12
     volumes:
       postgres_data: {}
+      odoo_web_data: {}
     YAML
+    fi
+    # The app reads exactly two Odoo vars (services/mcp/odoo.yaml passthrough
+    # allowlist). Seed them into .env if absent so the MCP server and admin
+    # link flow can reach the local sidecar.
+    if [ -f "$ROOT/.env" ] && ! grep -q '^ODOO_URL=' "$ROOT/.env"; then
+        {
+            echo "ODOO_URL=http://localhost:${ODOO_PORT}"
+            echo "ODOO_DB=odoo_local"
+        } >> "$ROOT/.env"
+        echo "Appended ODOO_URL / ODOO_DB to .env (local Odoo sidecar)."
     fi
     if [ ! -f "$PROFILE_DIR/profile.yaml" ]; then
         echo "Generating profile + provider registry + secrets via 'admin setup'..."
@@ -1801,7 +1834,38 @@ odoo-backup:
 odoo-restore DUMP:
     pg_restore -h db.systemprompt.io -p 5432 -U {{ODOO_DB_NAME}} -d {{ODOO_DB_NAME}} --clean --if-exists --no-owner "{{DUMP}}"
 
-# Local: create the odoo role + DB on the local dev postgres (after db-up)
+# Local: create the odoo role + initialise the odoo_local DB on the local dev
+# postgres (after `just db-up`). Idempotent — safe to re-run. Mirrors prod's
+# first boot (deploy/fly/odoo/entrypoint.sh): `-i base --without-demo=all`,
+# so no web DB-manager wizard is needed. Login afterwards: admin / admin.
 odoo-local-init:
-    PGPASSWORD=123 psql -h localhost -p 5448 -U systemprompt -d systemprompt \
+    #!/usr/bin/env bash
+    set -euo pipefail
+    COMPOSE_FILE=".systemprompt/docker/local.yaml"
+    PROJECT="$(just _project_name local)"
+    # Derive the host Postgres port from the compose file (setup-local wrote it).
+    PG_PORT=$(sed -n 's/^ *- *"\([0-9]*\):5432"/\1/p' "$COMPOSE_FILE" | head -n1)
+    if [ -z "$PG_PORT" ]; then
+        echo "ERROR: could not read the Postgres host port from $COMPOSE_FILE" >&2
+        exit 1
+    fi
+    PGPASSWORD=123 psql -h localhost -p "$PG_PORT" -U systemprompt -d systemprompt \
       -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='odoo') THEN CREATE USER odoo WITH PASSWORD 'odoo' CREATEDB; END IF; END \$\$;"
+    EXISTS=$(PGPASSWORD=123 psql -h localhost -p "$PG_PORT" -U systemprompt -d systemprompt \
+      -tAc "SELECT 1 FROM pg_database WHERE datname='odoo_local'")
+    if [ "$EXISTS" = "1" ]; then
+        echo "odoo_local database already exists — nothing to do."
+    else
+        echo "Initialising odoo_local (base module, no demo data)..."
+        docker compose -p "$PROJECT" -f "$COMPOSE_FILE" \
+          run --rm odoo odoo -d odoo_local -i base --without-demo=all --stop-after-init
+        echo "odoo_local initialised. Login: admin / admin."
+    fi
+
+# Tail the local Odoo sidecar's logs (it starts/stops with `just db-up`/`db-down`)
+odoo-local-logs:
+    docker compose -p "$(just _project_name local)" -f .systemprompt/docker/local.yaml logs -f odoo
+
+# Restart the local Odoo sidecar
+odoo-local-restart:
+    docker compose -p "$(just _project_name local)" -f .systemprompt/docker/local.yaml restart odoo

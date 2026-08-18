@@ -44,6 +44,22 @@ ODOO_DB=production                  # database name
 There is no server-wide Odoo credential. The server holds only the address;
 identity comes from each user's link.
 
+### Local development
+
+`just setup-local` writes an Odoo CE sidecar (odoo:18) into the same Docker
+compose stack as the local Postgres, so `just db-up` starts both. One-time
+init after that:
+
+```bash
+just db-up
+just odoo-local-init   # creates the odoo role + odoo_local DB (base module, no demo data)
+```
+
+Odoo then answers on http://localhost:8070 (override with the sixth
+`setup-local` argument), login `admin` / `admin`, and setup-local appends
+`ODOO_URL=http://localhost:8070` / `ODOO_DB=odoo_local` to `.env`. Logs:
+`just odoo-local-logs`; restart: `just odoo-local-restart`.
+
 ## Link a user
 
 Each user connects their own Odoo account once:
