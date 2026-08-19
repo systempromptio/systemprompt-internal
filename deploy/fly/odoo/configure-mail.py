@@ -34,6 +34,11 @@ smtp_password = require("SMTP_PASSWORD")
 # against it, so "systemprompt.io <hello@systemprompt.io>" would not match.
 mail_domain = os.environ.get("MAIL_DOMAIN", "systemprompt.io")
 company_email = os.environ.get("MAIL_COMPANY_EMAIL", f"hello@{mail_domain}")
+# Fallback envelope sender, used only when the author is outside from_filter
+# (system notifications, external authors) — an author on mail_domain sends as
+# themselves. It must be a real monitored mailbox: there is no inbound server,
+# so a reply to a dead address like odoo@ would be lost silently.
+default_from = os.environ.get("MAIL_DEFAULT_FROM", "hello")
 base_url = os.environ.get("ODOO_BASE_URL", "https://odoo.systemprompt.io")
 
 # --- Outgoing server ------------------------------------------------------
@@ -65,7 +70,7 @@ alias_values = {
     "name": mail_domain,
     "bounce_alias": "bounce",
     "catchall_alias": "catchall",
-    "default_from": "odoo",
+    "default_from": default_from,
 }
 alias_domain = env["mail.alias.domain"].search([("name", "=", mail_domain)], limit=1)
 if alias_domain:
@@ -74,6 +79,7 @@ if alias_domain:
 else:
     alias_domain = env["mail.alias.domain"].create(alias_values)
     print(f"created mail.alias.domain {alias_domain.id} ({mail_domain})")
+print(f"default_from={alias_domain.default_from_email}")
 
 companies = env["res.company"].search([])
 companies.write({"alias_domain_id": alias_domain.id})
