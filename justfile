@@ -1034,6 +1034,13 @@ core-checkout:
 bridge-package-linux:
     @scripts/build-coordinator.sh run bridge-package "" -- scripts/package-bridge-linux.sh
 
+# Cross-compile the Windows bridge exe (x86_64-pc-windows-msvc via cargo-xwin —
+# msvc is required: it statically links WebView2Loader, a -gnu build ships a
+# bare exe that dies at start on "WebView2Loader.dll was not found") and stage
+# it into storage/files/downloads/. Follow with `just publish`.
+bridge-package-windows: core-checkout
+    @scripts/build-coordinator.sh run bridge-package-windows "" -- scripts/package-bridge-windows.sh
+
 # Installs the client if it is not there yet; re-running it with a fresh code
 # re-binds the machine to whoever that code belongs to.
 # Point Claude Code on THIS host at the gateway (CODE comes from /admin/profile)
@@ -1848,6 +1855,16 @@ odoo-mail-config:
     set -euo pipefail
     # base64 so the whole script crosses `ssh -C` as one argument-safe blob.
     SCRIPT=$(base64 -w0 < deploy/fly/odoo/configure-mail.py 2>/dev/null || base64 < deploy/fly/odoo/configure-mail.py | tr -d '\n')
+    flyctl ssh console -a {{ODOO_APP}} -C "/bin/bash -lc \"echo $SCRIPT | base64 -d | odoo shell -c /tmp/odoo.conf -d {{ODOO_DB_NAME}} --no-http --log-level=warn\""
+
+# The entrypoint already pre-generates these on every boot; this recipe is for
+# repairing a live machine that is serving a /web/assets/... 500 (unstyled UI).
+# Pre-generate the Odoo asset bundles on the running machine
+odoo-assets:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # base64 so the whole script crosses `ssh -C` as one argument-safe blob.
+    SCRIPT=$(base64 -w0 < deploy/fly/odoo/pregenerate-assets.py 2>/dev/null || base64 < deploy/fly/odoo/pregenerate-assets.py | tr -d '\n')
     flyctl ssh console -a {{ODOO_APP}} -C "/bin/bash -lc \"echo $SCRIPT | base64 -d | odoo shell -c /tmp/odoo.conf -d {{ODOO_DB_NAME}} --no-http --log-level=warn\""
 
 # One-time: create the odoo role + database on systemprompt-db-prod.

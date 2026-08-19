@@ -14,4 +14,12 @@ if [ ! -f "$MARKER" ]; then
   touch "$MARKER"
 fi
 
+# Pre-generate the asset bundles in this single process, before the HTTP
+# workers can race each other over them. Non-fatal: a failure here costs
+# styling on the first page load, not the boot. See pregenerate-assets.py.
+echo "[sp-entrypoint] pre-generating asset bundles"
+odoo shell -c /tmp/odoo.conf -d "${ODOO_DB_NAME}" --no-http --log-level=warn \
+  < /usr/local/lib/sp-pregenerate-assets.py || \
+  echo "[sp-entrypoint] WARNING: asset pre-generation failed; continuing"
+
 exec odoo -c /tmp/odoo.conf
