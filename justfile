@@ -1820,6 +1820,36 @@ odoo-logs *FLAGS:
 odoo-secrets DB_PASSWORD ADMIN_PASSWD:
     flyctl secrets set -a {{ODOO_APP}} ODOO_DB_PASSWORD='{{DB_PASSWORD}}' ODOO_ADMIN_PASSWD='{{ADMIN_PASSWD}}'
 
+# Push the SMTP relay credentials to the Odoo app as Fly secrets. Reads them
+# from the production profile (shared with systemprompt-web's Resend relay),
+# so there is no separate key to rotate. Restarts the machine (single machine
+# → brief downtime). Run once, then `just odoo-mail-config`.
+odoo-mail-secrets:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    SECRETS=".systemprompt/profiles/production/secrets.json"
+    [ -f "$SECRETS" ] || { echo "ERROR: $SECRETS not found" >&2; exit 1; }
+    read_secret() {
+        python3 -c 'import json,sys; v=json.load(open(sys.argv[1])).get(sys.argv[2],""); sys.exit("ERROR: missing "+sys.argv[2]+" in profile secrets") if not v else print(v)' "$SECRETS" "$1"
+    }
+    SMTP_HOST=$(read_secret smtp_host)
+    SMTP_PORT=$(read_secret smtp_port)
+    SMTP_USER=$(read_secret smtp_username)
+    SMTP_PASS=$(read_secret smtp_password)
+    flyctl secrets set -a {{ODOO_APP}} \
+      SMTP_HOST="$SMTP_HOST" SMTP_PORT="$SMTP_PORT" \
+      SMTP_USER="$SMTP_USER" SMTP_PASSWORD="$SMTP_PASS"
+
+# Configure outgoing mail in the Odoo database (idempotent, and it verifies
+# the relay before returning). Needs `just odoo-mail-secrets` first.
+# Outbound only — see the note in deploy/fly/odoo/configure-mail.py.
+odoo-mail-config:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # base64 so the whole script crosses `ssh -C` as one argument-safe blob.
+    SCRIPT=$(base64 -w0 < deploy/fly/odoo/configure-mail.py 2>/dev/null || base64 < deploy/fly/odoo/configure-mail.py | tr -d '\n')
+    flyctl ssh console -a {{ODOO_APP}} -C "/bin/bash -lc \"echo $SCRIPT | base64 -d | odoo shell -c /tmp/odoo.conf -d {{ODOO_DB_NAME}} --no-http --log-level=warn\""
+
 # One-time: create the odoo role + database on systemprompt-db-prod.
 # Needs the cluster superuser password: just odoo-provision-db <role_pw>
 # (connects via db.systemprompt.io:5432; prompts for the postgres password)
