@@ -123,3 +123,5 @@ extensions/web/tests/asset_manifest.rs	# internal's flash guard is CSS-only, so 
 
 extensions/web/admin/src/repositories/governance/decisions.rs	# internal ships no decisions-ledger page, so list_decisions_filtered is removed here; the template still serves it
 extensions/web/tests/frontend_standards.rs	# internal ships no blog, so the blog-print !important carve-out and blog TOP_LEVEL entry are removed here; the template keeps both
+
+extensions/web/admin/src/gateway_safety.rs	# internal adds the WordBlocklistScanner (client-specific banned-word list); the template ships only the secrets scanner

@@ -31,7 +31,7 @@ opt-level = "z"
 [workspace.package]
 edition = "2024"
 rust-version = "1.94"
-version = "0.30.1"
+version = "0.32.1"
 authors = ["systemprompt.io <ed@systemprompt.io>"]
 license = "MIT"
 repository = "https://github.com/systempromptio/systemprompt-internal"
@@ -42,9 +42,9 @@ documentation = "https://systemprompt.io/documentation"
 # ============================================
 # CORE FACADE (single dependency for all systemprompt-core)
 # ============================================
-systemprompt = { version = "0.30.1", default-features = false, features = ["core", "database", "config"] }
-systemprompt-security = { version = "0.30.1" }
-systemprompt-extension = { version = "0.30.1" }
+systemprompt = { version = "0.32.1", default-features = false, features = ["core", "database", "config"] }
+systemprompt-security = { version = "0.32.1" }
+systemprompt-extension = { version = "0.32.1" }
 
 # ============================================
 # LOCAL EXTENSIONS
@@ -103,7 +103,7 @@ handlebars = "6"
 # Archive
 
 # MCP Protocol
-rmcp = { version = "=3.0.0", features = ["server", "client", "transport-io", "transport-streamable-http-server", "transport-streamable-http-server-session", "transport-streamable-http-client", "transport-streamable-http-client-reqwest", "macros", "auth"] }
+rmcp = { version = "=3.1.3", features = ["server", "client", "transport-io", "transport-streamable-http-server", "transport-streamable-http-server-session", "transport-streamable-http-client", "transport-streamable-http-client-reqwest", "macros", "auth"] }
 
 # The tests/ workspace deliberately relaxes a handful of these (unwrap/expect/
 # panic and the doc lints) in its own [workspace.lints.clippy] block — see
@@ -245,7 +245,7 @@ anyhow = { workspace = true }
 workspace = true
 
 
-# Core 0.30.1 is published; the patch below is dormant. Uncomment (together with the mirror in
+# Core 0.32.1 is published; the patch below is dormant. Uncomment (together with the mirror in
 # tests/Cargo.toml — [patch] only applies per-workspace) to work against
 # ../systemprompt-core, and add an "ACTIVE: core X.Y.Z is unreleased" marker,
 # which the pre-commit hook requires before an active patch may be committed.

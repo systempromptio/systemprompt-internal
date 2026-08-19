@@ -52,13 +52,19 @@ impl McpToolHandler for SystempromptToolHandler {
             ));
         }
 
-        let summary = output.stdout.clone();
-
-        let artifact = match serde_json::from_str::<CliArtifact>(&output.stdout) {
-            Ok(artifact) => artifact,
+        // Why: the response builder pairs the summary with the artifact's text
+        // body on the wire, so echoing stdout as the summary would print the
+        // whole output twice for structured clients.
+        let (artifact, summary) = match serde_json::from_str::<CliArtifact>(&output.stdout) {
+            Ok(artifact) => (artifact, output.stdout.clone()),
             Err(e) => {
                 tracing::warn!(error = %e, "CLI stdout is not a CliArtifact, returning as text");
-                CliArtifact::text(TextArtifact::new(&output.stdout).with_title("Command Output"))
+                (
+                    CliArtifact::text(
+                        TextArtifact::new(&output.stdout).with_title("Command Output"),
+                    ),
+                    format!("Ran `{}`", input.command),
+                )
             },
         };
 
