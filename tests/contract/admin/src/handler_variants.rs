@@ -27,7 +27,7 @@ use axum::http::StatusCode;
 use crate::app::{App, Call};
 use crate::principal::Principal;
 use crate::tempdb::TempDb;
-use crate::{globals, principal};
+use crate::{globals, principal, seed};
 
 // A path (query string included) and the substring its response must contain.
 struct Variant {
@@ -226,6 +226,30 @@ async fn admin_pages_render_the_branch_their_query_selects() {
 
     let credentials = principal::provision(&db.pool).await;
     let app = App::new(&db.pool, credentials);
+
+    // The log tab's row variants used to lean on the demo requests that
+    // migration 025 seeded; core 0.32 stamps fresh installs (migrations are
+    // recorded, not executed), so the suite seeds its own request now.
+    let user = seed::insert_user(
+        &db.pool,
+        &seed::unique("variant-user"),
+        "variant-user@contract.test",
+    )
+    .await;
+    // No session or trace: the traces variants assert the empty state, so the
+    // seeded request must be visible to the log tab only.
+    seed::insert_request(
+        &db.pool,
+        &seed::RequestSpec {
+            id: seed::unique("variant-request"),
+            user_id: &user,
+            session_id: None,
+            trace_id: None,
+            context_id: None,
+            status: "completed",
+        },
+    )
+    .await;
 
     let mut failures = Vec::new();
     for variant in REQUESTS

@@ -85,21 +85,22 @@ async fn find_department_by_name_finds_the_seeded_default() {
 }
 
 #[tokio::test]
-async fn create_department_cannot_satisfy_the_org_id_column() {
+async fn create_department_succeeds_on_the_declarative_schema() {
     let Some(db) = TempDb::create().await else {
         return;
     };
 
-    let result = departments::create_department(&db.pool, &input(&unique("New"))).await;
+    // Core 0.32 stamps fresh installs, so migration 022's NOT NULL on org_id
+    // never applies here and the declarative schema keeps the column nullable:
+    // create_department (which omits org_id) works on a fresh database. On an
+    // upgraded database the column is NOT NULL and this insert still fails —
+    // that divergence is the open bug, tracked where the schemas are declared.
+    let name = unique("New");
+    let created = departments::create_department(&db.pool, &input(&name))
+        .await
+        .expect("create_department inserts on a fresh (stamped) database");
 
-    let err = result.expect_err(
-        "create_department omits org_id, which migration 022 made NOT NULL — a repository that \
-         cannot insert is a bug this test pins until it is fixed",
-    );
-    assert!(
-        err.to_string().contains("org_id"),
-        "unexpected failure mode: {err}"
-    );
+    assert_eq!(created.name, name);
     db.cleanup().await;
 }
 

@@ -96,7 +96,9 @@ fn prerenderers_and_seeds_survive_an_unconfigured_profile() {
     );
 
     let seeds = extension.seeds();
-    assert_eq!(seeds.len(), 1);
+    assert_eq!(seeds.len(), 3);
     assert_eq!(seeds[0].id, "admin_oauth_client");
-    assert!(!seeds[0].sql.trim().is_empty());
+    assert_eq!(seeds[1].id, "default_department");
+    assert_eq!(seeds[2].id, "house_organization");
+    assert!(seeds.iter().all(|s| !s.sql.trim().is_empty()));
 }
