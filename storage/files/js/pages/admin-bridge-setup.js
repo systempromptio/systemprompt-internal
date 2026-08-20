@@ -1,17 +1,13 @@
+// Only platforms with a binary staged in storage/files/downloads/ are listed;
+// macOS and Linux aarch64 are not currently hosted.
 const ARTIFACTS = {
-  macos: { label: 'Download for macOS', file: 'systemprompt-internal-bridge-macos.dmg' },
   windows: { label: 'Download for Windows', file: 'systemprompt-internal-bridge-windows.exe' },
-  'linux-x86_64': { label: 'Download for Linux (x86_64)', file: 'systemprompt-internal-bridge-linux-x86_64.tar.gz' },
-  'linux-aarch64': { label: 'Download for Linux (aarch64)', file: 'systemprompt-internal-bridge-linux-aarch64.tar.gz' }
+  'linux-x86_64': { label: 'Download for Linux (x86_64)', file: 'systemprompt-internal-bridge-linux-x86_64.tar.gz' }
 };
 
 const detectPlatform = (ua) => {
-  if (/Mac/i.test(ua)) return 'macos';
-  if (/Win/i.test(ua)) return 'windows';
-  if (/Linux|Android/i.test(ua)) {
-    return /aarch64|arm64|armv8/i.test(ua) ? 'linux-aarch64' : 'linux-x86_64';
-  }
-  return 'macos';
+  if (/Linux|Android/i.test(ua) && !/aarch64|arm64|armv8/i.test(ua)) return 'linux-x86_64';
+  return 'windows';
 };
 
 const pill = document.getElementById('gateway-pill');

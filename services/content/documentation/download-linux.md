@@ -8,7 +8,7 @@ kind: "guide"
 public: true
 tags: ["download", "bridge", "linux"]
 published_at: "2026-08-07"
-updated_at: "2026-08-07"
+updated_at: "2026-08-20"
 after_reading_this:
   - "Install the bridge with the one-line installer"
   - "Or install manually from the tarball for your architecture"
@@ -25,7 +25,7 @@ install, sign-in, environment, proxy, sync.
 ## One-line install (recommended)
 
 ```bash
-curl -fsSL https://github.com/systempromptio/systemprompt-internal/releases/latest/download/install.sh | sh
+curl -fsSL https://internal.systemprompt.io/files/downloads/install.sh | sh
 ```
 
 Signing in interactively is the default; for unattended installs pass
@@ -33,8 +33,10 @@ Signing in interactively is the default; for unattended installs pass
 
 ## Tarballs
 
-- **[⬇ Download for Linux x86_64 (.tar.gz)](https://github.com/systempromptio/systemprompt-internal/releases/latest/download/systemprompt-internal-bridge-linux-x86_64.tar.gz)**
-- **[⬇ Download for Linux aarch64 (.tar.gz)](https://github.com/systempromptio/systemprompt-internal/releases/latest/download/systemprompt-internal-bridge-linux-aarch64.tar.gz)**
+- **[⬇ Download for Linux x86_64 (.tar.gz)](https://internal.systemprompt.io/files/downloads/systemprompt-internal-bridge-linux-x86_64.tar.gz)**
+
+An aarch64 build is not currently hosted — ask your administrator if you need
+one.
 
 Each archive carries the binary and an `INSTALL.md` with the manual steps.
 The binary dynamically links `libdbus-1`, `libcap`, `libgcrypt`, and
@@ -46,16 +48,14 @@ sudo apt-get install -y libdbus-1-3 libcap2 libgcrypt20 libsystemd0   # Debian/U
 
 ## Verify the download
 
-```bash
-curl -fsSLO https://github.com/systempromptio/systemprompt-internal/releases/latest/download/SHA256SUMS
-sha256sum -c SHA256SUMS --ignore-missing
-```
+A `.sha256` checksum is published beside the tarball:
 
-`SHA256SUMS` and every asset are cosign-signed (keyless) by the release
-workflow; the release notes carry the `cosign verify-blob` invocation.
+```bash
+curl -fsSLO https://internal.systemprompt.io/files/downloads/systemprompt-internal-bridge-linux-x86_64.tar.gz.sha256
+sha256sum -c systemprompt-internal-bridge-linux-x86_64.tar.gz.sha256
+```
 
 ## Other platforms
 
 - [macOS](/documentation/download-macos)
 - [Windows](/documentation/download-windows)
-- [All releases](https://github.com/systempromptio/systemprompt-internal/releases)

@@ -129,18 +129,17 @@ rather than a container. It writes:
 Open a new login shell (or `. ~/.profile`), then run `claude`.
 
 Without a checkout, the installer does the same directly. It downloads the
-bridge from the versioned [GitHub
-Releases](https://github.com/systempromptio/systemprompt-internal/releases) and
+bridge from this gateway's [downloads](/documentation/download-linux) and
 verifies the checksum before installing:
 
 ```bash
-curl -fsSL https://github.com/systempromptio/systemprompt-internal/releases/latest/download/install.sh | sh -s -- --code <code>
+curl -fsSL https://internal.systemprompt.io/files/downloads/install.sh | sh -s -- --code <code>
 ```
 
 The defaults target the production gateway (`https://internal.systemprompt.io`).
-Against a dev server, add `--gateway http://localhost:8081` (and
-`--download-base https://your-gateway/files/downloads` to use a locally
-packaged tarball instead of the GitHub release).
+Against a dev server, add `--gateway http://localhost:8081` and
+`--download-base https://your-gateway/files/downloads` to use its locally
+packaged tarball.
 
 ## Verifying from a clean state
 

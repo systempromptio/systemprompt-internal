@@ -964,6 +964,7 @@ build-all:
     just build --release
     just build-mcp
     just bridge-package-linux
+    just bridge-package-windows
     just web-build
     {{CLI_RELEASE}} infra jobs run publish_pipeline
     @echo "All components built"

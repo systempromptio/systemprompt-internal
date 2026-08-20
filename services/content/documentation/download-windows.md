@@ -8,7 +8,7 @@ kind: "guide"
 public: true
 tags: ["download", "bridge", "windows"]
 published_at: "2026-08-07"
-updated_at: "2026-08-07"
+updated_at: "2026-08-20"
 after_reading_this:
   - "Install the bridge on Windows and launch the tray app"
   - "Get past the SmartScreen prompt on the unsigned build"
@@ -22,7 +22,7 @@ holds your credential, syncs your organization's plugins and MCP servers into
 Claude Code, Claude Desktop, and Codex CLI, and runs the local inference proxy
 that routes every request through the governance gateway.
 
-**[⬇ Download for Windows (.exe)](https://github.com/systempromptio/systemprompt-internal/releases/latest/download/systemprompt-internal-bridge-windows.exe)**
+**[⬇ Download for Windows (.exe)](https://internal.systemprompt.io/files/downloads/systemprompt-internal-bridge-windows.exe)**
 
 ## Install
 
@@ -35,17 +35,15 @@ that routes every request through the governance gateway.
 
 ## Verify the download
 
-Every release ships a `SHA256SUMS` manifest, cosign-signed keyless from the
-release workflow. In PowerShell:
+A `.sha256` checksum is published beside the binary. In PowerShell:
 
 ```powershell
 (Get-FileHash .\systemprompt-internal-bridge-windows.exe -Algorithm SHA256).Hash
-# compare against the matching line in:
-# https://github.com/systempromptio/systemprompt-internal/releases/latest/download/SHA256SUMS
+# compare against the digest in:
+# https://internal.systemprompt.io/files/downloads/systemprompt-internal-bridge-windows.exe.sha256
 ```
 
 ## Other platforms
 
 - [macOS](/documentation/download-macos)
 - [Linux](/documentation/download-linux)
-- [All releases](https://github.com/systempromptio/systemprompt-internal/releases)

@@ -25,6 +25,9 @@ purpose, so these stay permanent links:
 | Windows x86_64 | `systemprompt-internal-bridge-windows.exe` |
 
 ```bash
+# NOTE: the GitHub release may lag the deployed gateway — prefer the assets at
+# https://internal.systemprompt.io/files/downloads/ where hosted (Windows,
+# Linux x86_64); macOS is GitHub-only and may need a fresh bridge-v* release.
 curl -LO https://github.com/systempromptio/systemprompt-internal/releases/latest/download/systemprompt-internal-bridge-macos.dmg
 ```
 

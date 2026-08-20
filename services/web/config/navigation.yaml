@@ -67,9 +67,8 @@ footer:
       label: "Contact"
       external: true
   resources:
-    - path: "https://github.com/systempromptio/systemprompt-internal/releases/latest"
+    - path: "/documentation/download-windows"
       label: "Bridge Downloads"
-      external: true
     - path: "/skills/"
       label: "Skills"
     - path: "/documentation/"

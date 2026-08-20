@@ -1,10 +1,10 @@
 #!/bin/sh
 # Systemprompt Internal Bridge client installer for Linux.
 #
-# Published as a GitHub Release asset (and same-origin for dev servers) and
-# run as:
+# Published same-origin by scripts/package-bridge-linux.sh, which substitutes
+# @DOWNLOAD_BASE@ with the serving origin's /files/downloads URL, and run as:
 #
-#     curl -fsSL https://github.com/systempromptio/systemprompt-internal/releases/latest/download/install.sh | sh
+#     curl -fsSL https://internal.systemprompt.io/files/downloads/install.sh | sh
 #
 # NOT to be confused with scripts/install.sh, which installs the *gateway*
 # server. This one takes a bare Linux box to a working `claude`:
@@ -26,8 +26,14 @@ fail() { printf '\033[31mERROR:\033[0m %s\n' "$*" >&2; exit 1; }
 # ── Arguments ─────────────────────────────────────────────────────────────────
 # Defaults target the production release + gateway so a piped install needs no
 # arguments; both are overridable for dev servers and forks.
-DEFAULT_DOWNLOAD_BASE="https://github.com/systempromptio/systemprompt-internal/releases/latest/download"
+# @DOWNLOAD_BASE@ is substituted by scripts/package-bridge-linux.sh at publish
+# time; a copy run straight from the repo (placeholder intact) falls back to
+# the production origin below.
+DEFAULT_DOWNLOAD_BASE="@DOWNLOAD_BASE@"
 DEFAULT_GATEWAY_URL="https://internal.systemprompt.io"
+case "$DEFAULT_DOWNLOAD_BASE" in
+    @*) DEFAULT_DOWNLOAD_BASE="$DEFAULT_GATEWAY_URL/files/downloads" ;;
+esac
 DOWNLOAD_BASE="${SYSTEMPROMPT_DOWNLOAD_BASE:-}"
 GATEWAY_URL="${SYSTEMPROMPT_GATEWAY_URL:-}"
 PAT="${SYSTEMPROMPT_BRIDGE_PAT:-}"
@@ -67,8 +73,8 @@ done
 [ -n "$DOWNLOAD_BASE" ] || DOWNLOAD_BASE="$DEFAULT_DOWNLOAD_BASE"
 DOWNLOAD_BASE="${DOWNLOAD_BASE%/}"
 if [ -z "$GATEWAY_URL" ]; then
-    # A same-origin download base (a dev gateway serving /files/downloads)
-    # implies the gateway; the GitHub default does not, so fall back to prod.
+    # A download base ending in /files/downloads implies the gateway that
+    # serves it; anything else falls back to prod.
     case "$DOWNLOAD_BASE" in
         */files/downloads) GATEWAY_URL="${DOWNLOAD_BASE%/files/downloads}" ;;
         *)                 GATEWAY_URL="$DEFAULT_GATEWAY_URL" ;;

@@ -59,7 +59,7 @@ Without the repo, the installer does the same thing directly (it prompts for the
 code if omitted):
 
 ```bash
-curl -fsSL https://github.com/systempromptio/systemprompt-internal/releases/latest/download/install.sh | sh -s -- --code <code>
+curl -fsSL https://internal.systemprompt.io/files/downloads/install.sh | sh -s -- --code <code>
 ```
 
 Against a dev server, add `--gateway http://localhost:8081` and, to use a

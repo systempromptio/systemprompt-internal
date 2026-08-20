@@ -18,6 +18,12 @@ separate "Apple Silicon build" to choose — the release lipos the
 curl -LO https://github.com/systempromptio/systemprompt-internal/releases/latest/download/systemprompt-internal-bridge-macos.dmg
 ```
 
+> **Staleness check:** the website at `/files/downloads` (populated by
+> `just deploy`) is the download source of truth for Windows and Linux; macOS
+> only ships via `bridge-v*` GitHub releases, which can lag the deployed
+> gateway. Confirm the release's bridge version is compatible with the running
+> core before installing.
+
 Asset names are version-less on purpose, so `releases/latest/download/<asset>`
 stays a permanent link. `systemprompt-internal` is a private repository —
 downloading needs repo access (`gh release download` if you are authenticated

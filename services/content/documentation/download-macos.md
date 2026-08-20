@@ -8,7 +8,7 @@ kind: "guide"
 public: true
 tags: ["download", "bridge", "macos"]
 published_at: "2026-08-07"
-updated_at: "2026-08-07"
+updated_at: "2026-08-20"
 after_reading_this:
   - "Install the bridge on macOS and launch the tray app"
   - "Clear the Gatekeeper quarantine flag on the unsigned build"
@@ -22,7 +22,8 @@ holds your credential, syncs your organization's plugins and MCP servers into
 Claude Code, Claude Desktop, and Codex CLI, and runs the local inference proxy
 that routes every request through the governance gateway.
 
-**[⬇ Download for macOS (.dmg)](https://github.com/systempromptio/systemprompt-internal/releases/latest/download/systemprompt-internal-bridge-macos.dmg)**
+> **A macOS build is not currently hosted for download** — contact your
+> administrator to get the `.dmg`. The steps below apply once you have it.
 
 Requires macOS 10.15 or later, Apple Silicon.
 
@@ -42,16 +43,13 @@ Requires macOS 10.15 or later, Apple Silicon.
 
 ## Verify the download
 
-Every release ships a `SHA256SUMS` manifest, cosign-signed keyless from the
-release workflow:
+Verify the `.dmg` against the checksum your administrator provides:
 
 ```bash
-curl -fsSLO https://github.com/systempromptio/systemprompt-internal/releases/latest/download/SHA256SUMS
-shasum -a 256 -c SHA256SUMS --ignore-missing
+shasum -a 256 systemprompt-internal-bridge-macos.dmg
 ```
 
 ## Other platforms
 
 - [Windows](/documentation/download-windows)
 - [Linux](/documentation/download-linux)
-- [All releases](https://github.com/systempromptio/systemprompt-internal/releases)

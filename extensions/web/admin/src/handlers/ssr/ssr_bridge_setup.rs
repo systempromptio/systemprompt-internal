@@ -15,14 +15,12 @@ use crate::types::{MarketplaceContext, UserContext};
 
 use super::ssr_helpers::render_typed_page;
 
-// Why: GitHub Releases is the download source of truth — versioned binaries
-// for all platforms are published by `.github/workflows/bridge-release.yml`,
-// and `releases/latest/download/<asset>` is stable because the assets carry
-// version-less names. Those names stay in lockstep with the workflow's build
-// matrix, `scripts/package-bridge-linux.sh`, `bridge-setup.hbs`, and
-// `ARTIFACTS` in `storage/files/js/pages/admin-bridge-setup.js`.
-const DOWNLOAD_BASE_URL: &str =
-    "https://github.com/systempromptio/systemprompt-internal/releases/latest/download";
+// Why: the website is the download source of truth — `just deploy` stages the
+// binaries into `storage/files/downloads/` (scripts/package-bridge-*.sh) and
+// the server serves them same-origin at /files/downloads. Asset names stay in
+// lockstep with those scripts, `bridge-setup.hbs`, and `ARTIFACTS` in
+// `storage/files/js/pages/admin-bridge-setup.js`.
+const DOWNLOAD_BASE_URL: &str = "/files/downloads";
 
 #[derive(Debug, Serialize)]
 struct SetupPageData {

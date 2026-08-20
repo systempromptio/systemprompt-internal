@@ -84,7 +84,7 @@ Version ${VERSION} (${COMMIT}, ${ASSET_ARCH})
 Prefer the installer — it verifies the checksum, installs to the right place,
 and writes the environment for you:
 
-    curl -fsSL https://github.com/systempromptio/systemprompt-internal/releases/latest/download/install.sh | sh
+    curl -fsSL https://internal.systemprompt.io/files/downloads/install.sh | sh
 
 The rest of this file is the manual equivalent.
 
@@ -159,16 +159,20 @@ echo
 echo "==> $DIST_DIR/$ASSET"
 echo "    $(cd "$DIST_DIR" && cut -d' ' -f1 "$ASSET.sha256")"
 echo "    version ${VERSION} (${COMMIT})  size $(du -h "$DIST_DIR/$ASSET" | cut -f1)"
-# ── Optional local publish (dev only) ────────────────────────────────────────
-# Real releases are the GitHub Release assets uploaded by
-# .github/workflows/bridge-release.yml; this same-origin copy exists so a dev
-# server's Bridge Setup page can serve a locally built tarball. PUBLISH=0 (CI)
-# skips it.
+# ── Publish to the served downloads dir ──────────────────────────────────────
+# The website is the download source of truth: `just deploy` ships whatever is
+# in storage/files/downloads/, served at /files/downloads. The installer is
+# templated so its default --download-base points at the deployed origin
+# (override with INSTALL_BASE_URL for another environment). PUBLISH=0 (CI)
+# skips this step.
+INSTALL_BASE_URL="${INSTALL_BASE_URL:-https://internal.systemprompt.io/files/downloads}"
 if [ "${PUBLISH:-1}" = "1" ]; then
     PUBLISH_DIR="$REPO_ROOT/storage/files/downloads"
     mkdir -p "$PUBLISH_DIR"
     install -m 0644 "$DIST_DIR/$ASSET" "$PUBLISH_DIR/$ASSET"
     install -m 0644 "$DIST_DIR/$ASSET.sha256" "$PUBLISH_DIR/$ASSET.sha256"
-    install -m 0644 "$REPO_ROOT/scripts/install-bridge.sh" "$PUBLISH_DIR/install.sh"
-    echo "==> published to $PUBLISH_DIR (tarball, .sha256, install.sh)"
+    sed "s|@DOWNLOAD_BASE@|${INSTALL_BASE_URL%/}|" \
+        "$REPO_ROOT/scripts/install-bridge.sh" > "$PUBLISH_DIR/install.sh"
+    chmod 0644 "$PUBLISH_DIR/install.sh"
+    echo "==> published to $PUBLISH_DIR (tarball, .sha256, install.sh @ ${INSTALL_BASE_URL%/})"
 fi
