@@ -43,10 +43,13 @@
                 <p id="loading-text">Signing in…</p>
             </div>
 
+            {{#if passkey_authorize_url}}
+            <p class="auth-alt"><a href="{{passkey_authorize_url}}">Use a passkey instead</a></p>
+            {{/if}}
             <p class="auth-alt"><a href="/admin/login/operator">Operator sign-in</a></p>
         </div>
     </main>
 
-    <script data-cfasync="false" src="/js/services/odoo-login.js?v=1" type="module"></script>
+    <script data-cfasync="false" src="/js/services/odoo-login.js?v=4" type="module"></script>
 </body>
 </html>

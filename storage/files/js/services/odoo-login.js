@@ -7,7 +7,9 @@ import { safeStorageRemove } from '/js/utils/storage-safe.js';
 
 const CLIENT_ID = 'marketplace-admin';
 const LOGIN_PATH = '/admin/login';
-const REDIRECT_URI = window.location.origin + LOGIN_PATH;
+// The relative form is what's registered for marketplace-admin, and the
+// login endpoint validates redirect_uri against the registered set.
+const REDIRECT_URI = LOGIN_PATH;
 
 const form = document.getElementById('odoo-login-form');
 const submitBtn = document.getElementById('odoo-sign-in-btn');
@@ -55,9 +57,49 @@ const signIn = async (event) => {
   setBusy('Signing in…');
 
   try {
+    const params = new URLSearchParams(window.location.search);
+
+    // OAuth authorize mode: a third-party client (MCP inspector, bridge,
+    // Cowork) sent the browser here with its own PKCE challenge. Forward the
+    // params verbatim and hand the code back to the client's redirect_uri —
+    // the client, not this page, exchanges it.
+    if (params.get('client_id') && params.get('redirect_uri')) {
+      const body = {
+        login,
+        credential,
+        client_id: params.get('client_id'),
+        redirect_uri: params.get('redirect_uri'),
+        code_challenge: params.get('code_challenge') || '',
+        code_challenge_method: params.get('code_challenge_method') || '',
+      };
+      for (const key of ['scope', 'state', 'resource']) {
+        if (params.get(key)) body[key] = params.get(key);
+      }
+
+      const response = await rawResponse('/admin/auth/odoo/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) {
+        throw new Error(await errorMessage(response) || 'Sign-in failed');
+      }
+
+      const { authorization_code: code, redirect_uri: redirectUri, state, issuer } = await response.json();
+      if (!code) throw new Error('Sign-in failed — no authorization code was issued.');
+
+      setBusy('Returning to the app…');
+      const target = new URL(redirectUri, window.location.origin);
+      target.searchParams.set('code', code);
+      if (state) target.searchParams.set('state', state);
+      if (issuer) target.searchParams.set('iss', issuer);
+      window.location.href = target.toString();
+      return;
+    }
+
     const codeVerifier = generateRandomString(64);
     const codeChallenge = await generateCodeChallenge(codeVerifier);
-    const params = new URLSearchParams(window.location.search);
     const redirectAfterLogin = params.get('redirect') || DEFAULT_REDIRECT;
 
     const response = await rawResponse('/admin/auth/odoo/login', {
@@ -83,7 +125,7 @@ const signIn = async (event) => {
     if (!code) throw new Error('Sign-in failed — no authorization code was issued.');
 
     setBusy('Finishing…');
-    const tokenData = await exchangeToken(code, codeVerifier);
+    const tokenData = await exchangeToken(code, codeVerifier, REDIRECT_URI);
     await storeSession(tokenData);
     safeStorageRemove('pkce_code_verifier');
     window.location.href = await resolveRedirect(redirectAfterLogin);

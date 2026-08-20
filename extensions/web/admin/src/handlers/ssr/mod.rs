@@ -65,16 +65,60 @@ pub(crate) use ssr_users_sessions::users_sessions_page;
 #[derive(serde::Deserialize)]
 pub(crate) struct LoginParams {
     redirect: Option<String>,
+    client_id: Option<String>,
+    redirect_uri: Option<String>,
+    response_type: Option<String>,
+    scope: Option<String>,
+    state: Option<String>,
+    code_challenge: Option<String>,
+    code_challenge_method: Option<String>,
+    resource: Option<String>,
 }
 
 #[derive(serde::Serialize)]
 struct LoginContext<'a> {
     #[serde(flatten)]
     shell: context::BrandingShell<'a>,
-    /// Percent-encoded, ready to append to an SSO start URL. Absent when the
-    /// user came to the login page directly.
     #[serde(skip_serializing_if = "Option::is_none")]
     redirect_encoded: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    passkey_authorize_url: Option<String>,
+}
+
+fn passkey_authorize_url(params: &LoginParams) -> Option<String> {
+    let client_id = params.client_id.as_deref()?;
+    let redirect_uri = params.redirect_uri.as_deref()?;
+    let mut pairs = vec![
+        (
+            "response_type",
+            params.response_type.as_deref().unwrap_or("code").to_owned(),
+        ),
+        ("client_id", client_id.to_owned()),
+        ("redirect_uri", redirect_uri.to_owned()),
+    ];
+    let optional = [
+        ("scope", params.scope.as_deref()),
+        ("state", params.state.as_deref()),
+        ("code_challenge", params.code_challenge.as_deref()),
+        (
+            "code_challenge_method",
+            params.code_challenge_method.as_deref(),
+        ),
+        ("resource", params.resource.as_deref()),
+    ];
+    for (key, value) in optional {
+        if let Some(value) = value {
+            pairs.push((key, value.to_owned()));
+        }
+    }
+    let query = pairs
+        .iter()
+        .map(|(k, v)| format!("{k}={}", urlencoding::encode(v)))
+        .collect::<Vec<_>>()
+        .join("&");
+    Some(format!(
+        "/api/v1/core/oauth/authorize?{query}&prompt=passkey"
+    ))
 }
 
 pub(crate) async fn login_page(
@@ -103,6 +147,7 @@ fn render_login(
     let ctx = LoginContext {
         shell: branding_context(engine),
         redirect_encoded,
+        passkey_authorize_url: passkey_authorize_url(params),
     };
     let html = engine.render(template, &ctx)?;
     Ok(Html(html).into_response())

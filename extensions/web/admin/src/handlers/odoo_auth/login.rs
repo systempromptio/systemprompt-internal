@@ -30,6 +30,7 @@ use systemprompt::identifiers::{AuthorizationCode, ClientId, UserId};
 use systemprompt::oauth::OAuthRepository;
 use systemprompt::oauth::repository::AuthCodeParams;
 use systemprompt::oauth::services::generate_secure_token;
+use systemprompt::oauth::services::validation::validate_redirect_uri;
 
 use super::OdooAuthError;
 use super::rpc::{OdooConnection, authenticate};
@@ -57,6 +58,8 @@ pub(crate) struct OdooLoginRequest {
     scope: Option<String>,
     #[serde(default)]
     state: Option<String>,
+    #[serde(default)]
+    resource: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -64,8 +67,15 @@ pub(crate) struct OdooLoginResponse {
     authorization_code: String,
     redirect_uri: String,
     state: Option<String>,
+    // Why: RFC 9207 — clients validate `iss` on the authorization response, so
+    // the redirect must carry the same issuer discovery advertises.
+    issuer: String,
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "single linear login flow: authenticate, mint the code, build the RFC 9207 response"
+)]
 pub(crate) async fn odoo_login(
     Extension(deps): Extension<AuthDeps>,
     headers: HeaderMap,
@@ -74,6 +84,7 @@ pub(crate) async fn odoo_login(
     let login = req.login.trim().to_lowercase();
     let credential = req.credential.trim().to_owned();
     validate_request(&req, &login, &credential)?;
+    validate_client(&deps.oauth_repo, &req).await?;
 
     let client_key = client_key(&headers);
     for key in [login.as_str(), client_key.as_str()] {
@@ -149,10 +160,16 @@ pub(crate) async fn odoo_login(
         "Odoo sign-in succeeded"
     );
 
+    let issuer = systemprompt::models::Config::get()
+        .map_err(AdminError::internal)?
+        .api_external_url
+        .clone();
+
     Ok(Json(OdooLoginResponse {
         authorization_code: code,
         redirect_uri: req.redirect_uri.clone(),
         state: req.state.clone(),
+        issuer,
     }))
 }
 
@@ -202,6 +219,28 @@ async fn auto_link_identity(
     }
 }
 
+// Why: this endpoint now takes client_id/redirect_uri from arbitrary OAuth
+// clients, not just the hard-coded admin page — an unregistered pair must not
+// get a code minted for it, or any caller could redirect codes anywhere.
+async fn validate_client(repo: &OAuthRepository, req: &OdooLoginRequest) -> AdminResult<()> {
+    let client = repo
+        .find_client_by_id(&req.client_id)
+        .await
+        .map_err(AdminError::internal)?
+        .ok_or_else(|| {
+            AdminError::BadRequest(format!("Unknown OAuth client '{}'", req.client_id))
+        })?;
+
+    validate_redirect_uri(&client.redirect_uris, Some(&req.redirect_uri)).map_err(|_e| {
+        AdminError::BadRequest(format!(
+            "redirect_uri is not registered for client '{}'",
+            req.client_id
+        ))
+    })?;
+
+    Ok(())
+}
+
 // Why: mirrors the code issuance in core's `webauthn_complete`, so both
 // sign-in routes produce codes the token endpoint treats identically.
 async fn mint_authorization_code(
@@ -221,11 +260,15 @@ async fn mint_authorization_code(
         }
     });
 
-    let params = AuthCodeParams::builder(&code, &req.client_id, user_id, &req.redirect_uri, &scope)
-        .with_pkce(&req.code_challenge, &req.code_challenge_method)
-        .build();
+    let mut builder =
+        AuthCodeParams::builder(&code, &req.client_id, user_id, &req.redirect_uri, &scope)
+            .with_pkce(&req.code_challenge, &req.code_challenge_method);
 
-    repo.store_authorization_code(params)
+    if let Some(resource) = req.resource.as_deref() {
+        builder = builder.with_resource(resource);
+    }
+
+    repo.store_authorization_code(builder.build())
         .await
         .map_err(AdminError::internal)?;
 
