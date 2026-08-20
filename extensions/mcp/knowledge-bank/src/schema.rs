@@ -52,13 +52,6 @@ impl Extension for KnowledgeBankExtension {
 
 register_extension!(KnowledgeBankExtension);
 
-/// Apply the DDL if it is not already present.
-///
-/// Every statement in the file is `IF NOT EXISTS`, so this is idempotent and
-/// safe to run on each boot of the MCP process.
-///
-/// # Errors
-/// [`KnowledgeBankError::Internal`] if there is no write pool or the DDL fails.
 pub async fn ensure_installed(pool: &DbPool) -> Result<(), KnowledgeBankError> {
     let write = pool.write_pool().ok_or_else(|| {
         KnowledgeBankError::Internal(

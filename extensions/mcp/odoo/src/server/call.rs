@@ -15,8 +15,6 @@ pub struct OdooCall {
     pub creds: Credentials,
 }
 
-/// Fields read for every lead, in search and in detail alike. One list so a
-/// lead never renders differently depending on which tool found it.
 pub const LEAD_FIELDS: [&str; 10] = [
     "id",
     "name",
@@ -30,7 +28,6 @@ pub const LEAD_FIELDS: [&str; 10] = [
     "create_date",
 ];
 
-/// Fields read for every partner.
 pub const PARTNER_FIELDS: [&str; 9] = [
     "id",
     "name",

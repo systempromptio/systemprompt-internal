@@ -4,8 +4,6 @@
 
 use serde::Deserialize;
 
-/// Closed category set. `other` is the honest fallback so the model is never
-/// forced to mislabel; `spam` lets the later review pass filter noise out.
 pub const CATEGORIES: &[&str] = &[
     "sales",
     "client",
@@ -94,11 +92,6 @@ pub fn response_schema() -> serde_json::Value {
     })
 }
 
-/// Parse model output into a [`Categorization`].
-///
-/// Tolerates prose around the JSON (some providers wrap it) by retrying on
-/// the outermost brace span; an unknown category collapses to `other` so a
-/// creative model cannot widen the closed set.
 #[must_use]
 pub fn parse_output(raw: &str) -> Option<Categorization> {
     let parsed: Option<Categorization> = serde_json::from_str(raw.trim()).ok().or_else(|| {
@@ -113,7 +106,6 @@ pub fn parse_output(raw: &str) -> Option<Categorization> {
     Some(categorization)
 }
 
-/// The `structured` JSONB written back to the document row.
 #[must_use]
 pub fn structured_json(c: &Categorization) -> serde_json::Value {
     serde_json::json!({

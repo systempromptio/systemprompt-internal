@@ -38,10 +38,6 @@ async fn names(
         .collect())
 }
 
-/// Resolve an Odoo user by login or display name.
-///
-/// # Errors
-/// No match, with the logins this account can see listed in the message.
 pub async fn user_id(client: &OdooClient, creds: &Credentials, who: &str) -> Result<i64, McpError> {
     let pattern = format!("%{}%", who.trim());
     let options = SearchOptions {
@@ -78,10 +74,6 @@ pub async fn user_id(client: &OdooClient, creds: &Credentials, who: &str) -> Res
     }
 }
 
-/// Resolve a project by name.
-///
-/// # Errors
-/// No match, with the visible project names listed in the message.
 pub async fn project_id(
     client: &OdooClient,
     creds: &Credentials,
@@ -118,15 +110,6 @@ pub async fn project_id(
     ))
 }
 
-/// The `mail.activity.type` to schedule under.
-///
-/// Prefers a type named like "To Do", which is Odoo's default and what a plain
-/// "follow this up" means. Falls back to whichever type the instance lists
-/// first: an instance may use its own vocabulary, and scheduling under the
-/// wrong type beats refusing to schedule at all.
-///
-/// # Errors
-/// The instance has no activity types at all.
 pub async fn activity_type_id(client: &OdooClient, creds: &Credentials) -> Result<i64, McpError> {
     let options = SearchOptions {
         fields: vec!["id".to_owned(), "name".to_owned()],
@@ -164,12 +147,6 @@ pub async fn activity_type_id(client: &OdooClient, creds: &Credentials) -> Resul
         })
 }
 
-/// The `ir.model` id for a model name, which `mail.activity` requires
-/// alongside the record reference.
-///
-/// # Errors
-/// Odoo does not know the model — usually a typo, or an app that is not
-/// installed.
 pub async fn model_id(
     client: &OdooClient,
     creds: &Credentials,

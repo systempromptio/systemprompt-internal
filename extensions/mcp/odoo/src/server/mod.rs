@@ -24,9 +24,9 @@ pub mod tool;
 
 use rmcp::model::{
     CallToolRequestParams, CallToolResponse, CallToolResult, ContentBlock, Implementation,
-    InitializeRequestParams, InitializeResult, ListResourcesResult, ListToolsResult,
-    PaginatedRequestParams, ProtocolVersion, ReadResourceRequestParams, ReadResourceResponse,
-    ServerCapabilities, ServerInfo,
+    InitializeRequestParams, InitializeResult, ListResourceTemplatesResult, ListResourcesResult,
+    ListToolsResult, PaginatedRequestParams, ProtocolVersion, ReadResourceRequestParams,
+    ReadResourceResponse, ServerCapabilities, ServerInfo,
 };
 use rmcp::service::{MaybeSendFuture, RequestContext, RoleServer};
 use rmcp::{ErrorData as McpError, ServerHandler};
@@ -36,7 +36,8 @@ use systemprompt::identifiers::McpServerId;
 use systemprompt::mcp::repository::ToolUsageRepository;
 use systemprompt::mcp::{
     ArtifactViewerConfig, McpArtifactRepository, McpToolExecutor, artifact_shell_template,
-    build_artifact_viewer_resource, build_extension_capabilities, client_profile_from_peer,
+    build_artifact_viewer_resource, build_extension_capabilities,
+    build_resource_template_list_result, build_tool_list_result, client_profile_from_peer,
     parse_artifact_resource_uri, read_artifact_resource, read_artifact_viewer_resource,
 };
 use systemprompt::security::authz::SharedAuthzHook;
@@ -65,10 +66,6 @@ pub struct OdooServer {
 }
 
 impl OdooServer {
-    /// # Errors
-    /// Fails if the repositories cannot be built, or if `ODOO_URL` / `ODOO_DB`
-    /// are unset — a server that cannot reach Odoo should refuse to start
-    /// rather than accept calls and fail every one of them.
     pub fn new(
         db_pool: DbPool,
         service_id: McpServerId,
@@ -133,7 +130,16 @@ impl ServerHandler for OdooServer {
         _request: Option<PaginatedRequestParams>,
         _ctx: RequestContext<RoleServer>,
     ) -> impl Future<Output = Result<ListToolsResult, McpError>> + MaybeSendFuture + '_ {
-        std::future::ready(Ok(ListToolsResult::with_all_items(tools::list_tools())))
+        std::future::ready(Ok(build_tool_list_result(tools::list_tools())))
+    }
+
+    fn list_resource_templates(
+        &self,
+        _request: Option<PaginatedRequestParams>,
+        _ctx: RequestContext<RoleServer>,
+    ) -> impl Future<Output = Result<ListResourceTemplatesResult, McpError>> + MaybeSendFuture + '_
+    {
+        std::future::ready(Ok(build_resource_template_list_result()))
     }
 
     async fn call_tool(
@@ -207,9 +213,6 @@ impl ServerHandler for OdooServer {
         })))
     }
 
-    /// Serves the static shell, plus any `ui://odoo/artifact/<id>` the host
-    /// chooses to resolve instead of using the copy embedded in the tool
-    /// result.
     async fn read_resource(
         &self,
         request: ReadResourceRequestParams,

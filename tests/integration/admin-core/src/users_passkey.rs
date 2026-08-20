@@ -10,10 +10,10 @@ use crate::fixtures::{
 };
 use crate::tempdb::TempDb;
 
-/// A fixed key for the sealed-credential round trip. Passed explicitly rather
-/// than exported into the environment: these tests run in one process with
-/// other suites, and mutating the environment underneath them is not worth a
-/// saved parameter.
+// A fixed key for the sealed-credential round trip. Passed explicitly rather
+// than exported into the environment: these tests run in one process with
+// other suites, and mutating the environment underneath them is not worth a
+// saved parameter.
 const TEST_KEY: [u8; 32] = [7u8; 32];
 
 #[tokio::test]
@@ -134,9 +134,9 @@ async fn odoo_identity_stores_the_api_key_sealed_not_in_the_clear() {
     db.cleanup().await;
 }
 
-/// Insert a link row directly, sealing under [`TEST_KEY`]. The repository's own
-/// `insert` reaches for the deployment master key, which this process has no
-/// business setting.
+// Insert a link row directly, sealing under [`TEST_KEY`]. The repository's own
+// `insert` reaches for the deployment master key, which this process has no
+// business setting.
 async fn insert_link(pool: &sqlx::PgPool, user: &UserId, login: &str, uid: i32) {
     let sealed = odoo_identity::seal_with(&TEST_KEY, "key").expect("sealing succeeds");
     sqlx::query(

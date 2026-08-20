@@ -40,10 +40,6 @@ impl LoginThrottle {
         Self::default()
     }
 
-    /// Whether `key` has already spent its budget for the current window.
-    ///
-    /// Checked before the Odoo round trip, so a throttled caller costs us no
-    /// upstream request.
     #[must_use]
     pub fn is_blocked(&self, key: &str) -> bool {
         let now = Instant::now();
@@ -53,7 +49,6 @@ impl LoginThrottle {
             .is_some_and(|w| now.duration_since(w.started) < WINDOW && w.attempts >= MAX_ATTEMPTS)
     }
 
-    /// Count one failed attempt against `key`.
     pub fn record_failure(&self, key: &str) {
         let now = Instant::now();
         let mut guard = self.lock();
@@ -80,8 +75,6 @@ impl LoginThrottle {
             });
     }
 
-    /// Clear `key`'s budget after a successful sign-in, so a user who
-    /// mistyped several times is not left throttled once they get in.
     pub fn record_success(&self, key: &str) {
         self.lock().remove(key);
     }

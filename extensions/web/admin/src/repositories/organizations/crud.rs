@@ -14,9 +14,7 @@ pub struct OrganizationSummary {
     pub plan_id: Option<String>,
     pub plan_name: Option<String>,
     pub status: String,
-    /// The operator's own tenant, whose members administer every other one.
     pub is_platform: bool,
-    /// The org override when set, otherwise the plan's; `None` is unlimited.
     pub seat_limit: Option<i32>,
     pub seats_used: i64,
 }
@@ -82,12 +80,6 @@ pub async fn find_organization_by_slug(
         .find(|o| o.slug == slug))
 }
 
-/// The organization a user belongs to, or `None` for a user no membership row
-/// covers.
-///
-/// Suspended organizations are returned: this answers "who owns this user",
-/// which stays true while a customer is suspended, unlike the authz provider,
-/// which deliberately reports nothing so grants stop resolving.
 pub async fn find_organization_for_user(
     pool: &PgPool,
     user_id: &UserId,
@@ -103,12 +95,6 @@ pub async fn find_organization_for_user(
     Ok(slug)
 }
 
-/// Whether this user belongs to the platform tenant.
-///
-/// The second half of the super-admin test — the first is the `admin` role.
-/// A customer's own administrator holds that role too, so the role alone says
-/// "may administer an organization", and this says "may administer *every*
-/// organization".
 pub async fn get_platform_membership(
     pool: &PgPool,
     user_id: &UserId,
@@ -161,13 +147,6 @@ pub async fn list_members(
         .collect())
 }
 
-/// Place a user in an organization, moving them if they were in another.
-///
-/// Callers that are creating a *new* seat must call
-/// [`super::seats::assert_seat_available`] first — this function does not
-/// check the limit, because moving an existing member between departments of
-/// the same org, or repairing a membership row, must not be blocked by a full
-/// plan.
 pub async fn set_membership(
     pool: &PgPool,
     user_id: &UserId,
@@ -191,19 +170,6 @@ pub async fn set_membership(
     Ok(())
 }
 
-/// The organization claiming an email address's domain, if any.
-///
-/// Matching is on the domain alone and case-insensitive. A `None` result is
-/// not an error: an unclaimed domain means the arrival is not an enterprise
-/// customer's user, and they land unattached rather than silently joining
-/// somebody else's contract.
-///
-/// The platform tenant is excluded. This function is the only thing both
-/// provisioning doors — operator-created users and SSO just-in-time arrivals —
-/// consult to decide whose organization a new account joins, and membership of
-/// the platform tenant is what the enterprise console authorises against. If a
-/// claimed domain could resolve to it, adding a domain to the wrong row would
-/// silently mint super-admins out of a customer's SSO.
 pub async fn find_organization_for_email(
     pool: &PgPool,
     email: &str,

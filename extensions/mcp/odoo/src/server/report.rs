@@ -28,11 +28,6 @@ const fn group_field(group_by: ReportGroupBy) -> &'static str {
     }
 }
 
-/// Build the creation-date window. An open-ended range is the normal case and
-/// produces an empty domain rather than a sentinel date.
-///
-/// Exposed (behind `#[doc(hidden)]`) so the external test workspace can assert
-/// each of the four from/to combinations; not part of the public API.
 #[doc(hidden)]
 #[must_use]
 pub fn report_domain(input: &LeadReportInput) -> serde_json::Value {
@@ -56,8 +51,6 @@ pub fn report_domain(input: &LeadReportInput) -> serde_json::Value {
     serde_json::Value::Array(domain)
 }
 
-/// Render one `read_group` bucket. Odoo names the count `__count` and the
-/// summed field after the field itself, not after the aggregate expression.
 #[doc(hidden)]
 #[must_use]
 pub fn group_row(record: &serde_json::Value, group_key: &str) -> String {

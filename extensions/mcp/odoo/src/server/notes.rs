@@ -44,25 +44,12 @@ fn fields(names: &[&str]) -> Vec<String> {
     names.iter().map(|f| (*f).to_owned()).collect()
 }
 
-/// The chatter of exactly one record.
-///
-/// Exposed (behind `#[doc(hidden)]`) so the external test workspace can assert
-/// the anchor is an equality match on both halves; not part of the public API.
 #[doc(hidden)]
 #[must_use]
 pub fn thread_domain(model: &str, res_id: i64) -> serde_json::Value {
     serde_json::json!([["model", "=", model], ["res_id", "=", res_id]])
 }
 
-/// The retrieval domain: free text over body and subject, optionally narrowed.
-///
-/// The two text leaves are OR'd because Odoo puts an emailed note's content in
-/// `body` and its heading in `subject`, and a caller searching for a phrase
-/// does not know which one holds it. Model and date filters AND onto that
-/// group.
-///
-/// Exposed (behind `#[doc(hidden)]`) for the external test workspace; not part
-/// of the public API.
 #[doc(hidden)]
 #[must_use]
 pub fn search_domain(input: &NoteSearchInput) -> serde_json::Value {
@@ -99,7 +86,6 @@ pub fn search_domain(input: &NoteSearchInput) -> serde_json::Value {
     serde_json::Value::Array(domain)
 }
 
-/// One message in a record's chatter, as markdown.
 #[doc(hidden)]
 #[must_use]
 pub fn thread_row(record: &serde_json::Value) -> String {
@@ -113,7 +99,6 @@ pub fn thread_row(record: &serde_json::Value) -> String {
     )
 }
 
-/// One search hit: the anchor, then a snippet centred on the match.
 #[doc(hidden)]
 #[must_use]
 pub fn search_row(record: &serde_json::Value, query: &str) -> String {

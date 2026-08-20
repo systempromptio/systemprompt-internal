@@ -10,7 +10,6 @@ const MAX_BODY_BYTES: usize = 2 * 1024 * 1024 - 4096;
 /// One parsed inbox message, reduced to the fields the knowledge bank keeps.
 #[derive(Debug, Clone)]
 pub struct CapturedEmail {
-    /// RFC 5322 Message-ID header value, or the caller's fallback id.
     pub mime_message_id: String,
     pub subject: String,
     pub from: String,
@@ -20,13 +19,6 @@ pub struct CapturedEmail {
     pub attachment_names: Vec<String>,
 }
 
-/// Parse raw RFC 822 bytes into a [`CapturedEmail`].
-///
-/// `None` only when the bytes are not parseable as a message at all. A
-/// missing Message-ID falls back to `fallback_id` (the IMAP UID scoped by
-/// mailbox), so dedupe still works for non-conforming senders. Bodies past
-/// the knowledge-bank content ceiling are truncated, not refused: a partial
-/// capture is more useful than a dropped one.
 #[must_use]
 pub fn captured_from_rfc822(raw: &[u8], fallback_id: &str) -> Option<CapturedEmail> {
     let message = MessageParser::default().parse(raw)?;
@@ -67,8 +59,6 @@ pub fn captured_from_rfc822(raw: &[u8], fallback_id: &str) -> Option<CapturedEma
     })
 }
 
-/// Render the knowledge-bank `content` field: a plain header block followed
-/// by the body, so full-text search hits sender names and addresses too.
 #[must_use]
 pub fn render_document(email: &CapturedEmail) -> String {
     let mut content = String::new();
@@ -90,7 +80,6 @@ pub fn render_document(email: &CapturedEmail) -> String {
     content
 }
 
-/// Metadata JSON stored alongside the document row.
 #[must_use]
 pub fn metadata_json(email: &CapturedEmail) -> serde_json::Value {
     serde_json::json!({

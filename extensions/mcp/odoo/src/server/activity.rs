@@ -26,7 +26,6 @@ use crate::tools::inputs::{
 };
 use crate::tools::{TOOL_ACTIVITY_COMPLETE, TOOL_ACTIVITY_CREATE, TOOL_ACTIVITY_LIST};
 
-/// Fields read for a `mail.activity` row.
 pub const ACTIVITY_FIELDS: [&str; 7] = [
     "id",
     "res_model",
@@ -42,15 +41,6 @@ pub fn activity_fields() -> Vec<String> {
     ACTIVITY_FIELDS.iter().map(|f| (*f).to_owned()).collect()
 }
 
-/// Activities assigned to the acting user, optionally narrowed.
-///
-/// `user_id = uid` is not a convenience filter — it is the tool's contract.
-/// "List my activities" that quietly returned a colleague's would be worse
-/// than useless, so the acting uid is baked in here and cannot be overridden
-/// by input.
-///
-/// Exposed (behind `#[doc(hidden)]`) so the external test workspace can assert
-/// exactly that; not part of the public API.
 #[doc(hidden)]
 #[must_use]
 pub fn activity_domain(uid: i32, input: &ActivityListInput, today: &str) -> serde_json::Value {

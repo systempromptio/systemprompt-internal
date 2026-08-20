@@ -28,8 +28,8 @@ fn config(yaml: &str) -> Arc<SkillsPageConfig> {
     Arc::new(serde_yaml::from_str(yaml).expect("the skills fixture matches SkillsPageConfig"))
 }
 
-/// Build a skills fixture from `(id, category)` pairs, so the YAML stays
-/// readable however rustfmt wraps the call.
+// Build a skills fixture from `(id, category)` pairs, so the YAML stays
+// readable however rustfmt wraps the call.
 fn skills(entries: &[(&str, Option<&str>)]) -> Arc<SkillsPageConfig> {
     let mut yaml = String::from("skills:\n");
     for (id, category) in entries {

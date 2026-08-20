@@ -60,8 +60,6 @@ pub struct GroupQuery<'a> {
 }
 
 impl OdooClient {
-    /// # Errors
-    /// [`OdooError::NotConfigured`] when `ODOO_URL` / `ODOO_DB` are not set.
     pub fn from_env() -> Result<Self, OdooError> {
         // Why: without a request timeout a stalled Odoo hangs the MCP tool
         // call until the *caller's* client gives up, which surfaces as a
@@ -82,11 +80,6 @@ impl OdooClient {
         &self.conn
     }
 
-    /// Resolve a login + API key to an Odoo uid. `Ok(None)` is a rejected
-    /// credential — Odoo answers that with `false`, not a fault.
-    ///
-    /// # Errors
-    /// Transport or protocol failures.
     pub async fn authenticate(&self, login: &str, api_key: &str) -> Result<Option<i32>, OdooError> {
         let args = [
             serde_json::json!(self.conn.db),
@@ -98,13 +91,6 @@ impl OdooClient {
         Ok(result.as_i64().and_then(|uid| i32::try_from(uid).ok()))
     }
 
-    /// The general door: `object.execute_kw(db, uid, key, model, method, args,
-    /// kwargs)`.
-    ///
-    /// # Errors
-    /// Transport failures, or an Odoo fault — which includes access-rule
-    /// refusals, and those are the interesting ones: they mean the acting
-    /// user genuinely may not do this.
     pub async fn execute_kw(
         &self,
         creds: &Credentials,
@@ -127,10 +113,6 @@ impl OdooClient {
             .map_err(|e| map_missing_app(call.model, e))
     }
 
-    /// `search_read` — the list form. Returns the raw record array.
-    ///
-    /// # Errors
-    /// As [`execute_kw`](Self::execute_kw).
     pub async fn search_read(
         &self,
         creds: &Credentials,
@@ -158,10 +140,6 @@ impl OdooClient {
         Ok(result.as_array().cloned().unwrap_or_default())
     }
 
-    /// `read` — fetch named fields for known ids.
-    ///
-    /// # Errors
-    /// As [`execute_kw`](Self::execute_kw).
     pub async fn read(
         &self,
         creds: &Credentials,
@@ -183,10 +161,6 @@ impl OdooClient {
         Ok(result.as_array().cloned().unwrap_or_default())
     }
 
-    /// `read_group` — the aggregation form.
-    ///
-    /// # Errors
-    /// As [`execute_kw`](Self::execute_kw).
     pub async fn read_group(
         &self,
         creds: &Credentials,
@@ -207,11 +181,6 @@ impl OdooClient {
         Ok(result.as_array().cloned().unwrap_or_default())
     }
 
-    /// `create` — returns the new record id.
-    ///
-    /// # Errors
-    /// As [`execute_kw`](Self::execute_kw); also [`OdooError::Odoo`] if Odoo
-    /// answers with something that is not an id.
     pub async fn create(
         &self,
         creds: &Credentials,
@@ -234,10 +203,6 @@ impl OdooClient {
             .ok_or_else(|| OdooError::Odoo(format!("create on {model} returned no record id")))
     }
 
-    /// `write` — returns Odoo's boolean acknowledgement.
-    ///
-    /// # Errors
-    /// As [`execute_kw`](Self::execute_kw).
     pub async fn write(
         &self,
         creds: &Credentials,
@@ -259,12 +224,6 @@ impl OdooClient {
         Ok(result.as_bool().unwrap_or(false))
     }
 
-    /// `message_post` — log a note on any record that inherits `mail.thread`.
-    /// Posted as the acting user, so Odoo attributes it to them.
-    ///
-    /// # Errors
-    /// As [`execute_kw`](Self::execute_kw). A model without a message thread
-    /// surfaces as an Odoo fault, which is the honest answer.
     pub async fn message_post(
         &self,
         creds: &Credentials,

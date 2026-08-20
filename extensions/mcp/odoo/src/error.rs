@@ -6,26 +6,15 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum OdooError {
-    /// The deployment has no Odoo connection configured (`ODOO_URL` /
-    /// `ODOO_DB`). An operator problem, not a caller problem.
     #[error("Odoo is not configured: {0}")]
     NotConfigured(String),
 
-    /// The calling user has not linked an Odoo account, so there is no
-    /// credential to execute as.
     #[error("Not linked: {0}")]
     NotLinked(String),
 
-    /// The Odoo app backing this model is not installed on the instance.
-    ///
-    /// Distinct from [`Self::Odoo`] because it is neither a permission problem
-    /// nor a bad request: the tool is sound, the deployment simply lacks the
-    /// module. Only an Odoo administrator can change that, and the message says
-    /// so rather than leaving a model to retry.
     #[error("Odoo app not installed: {0}")]
     AppMissing(String),
 
-    /// Odoo answered, and the answer was a refusal or a fault.
     #[error("Odoo rejected the call: {0}")]
     Odoo(String),
 

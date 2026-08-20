@@ -19,10 +19,8 @@ use rmcp::ErrorData as McpError;
 use crate::format::field_or_dash;
 use crate::tools::inputs::{AttachmentAddInput, AttachmentListInput};
 
-/// Largest file `attachment_add` will upload, decoded: 5 MB.
 pub const MAX_UPLOAD_BYTES: usize = 5 * 1024 * 1024;
 
-/// Largest file `attachment_get` will return inline, in bytes: 1 MB.
 pub const MAX_INLINE_BYTES: i64 = 1024 * 1024;
 
 pub const ATTACHMENT_FIELDS: [&str; 10] = [
@@ -61,27 +59,10 @@ pub fn attachment_fields() -> Vec<String> {
 /// so `attachment_get` must not offer to return content it does not have.
 #[derive(Debug, PartialEq, Eq)]
 pub enum Upload {
-    /// A stored file: `type = "binary"`, bytes in `datas`.
-    Binary {
-        /// The base64 payload, exactly as Odoo wants it.
-        content_base64: String,
-        /// Decoded length, for the confirmation message.
-        size: usize,
-    },
-    /// A link: `type = "url"`, no bytes stored.
+    Binary { content_base64: String, size: usize },
     Url(String),
 }
 
-/// Decide which kind of attachment the input describes.
-///
-/// Exactly one of `content_base64` and `url` must be present. Neither is a
-/// caller who forgot the payload; both is a caller who has not decided what
-/// they are creating, and guessing on their behalf would silently store one and
-/// discard the other.
-///
-/// # Errors
-/// Zero or two payloads given, an unusable URL, or a base64 body that fails
-/// [`check_upload`].
 pub fn classify_upload(input: &AttachmentAddInput) -> Result<Upload, McpError> {
     let content = input
         .content_base64
@@ -125,10 +106,6 @@ pub fn classify_upload(input: &AttachmentAddInput) -> Result<Upload, McpError> {
     }
 }
 
-/// The `ir.attachment` values for a classified upload.
-///
-/// Exposed (behind `#[doc(hidden)]`) so the external test workspace can assert
-/// both payload shapes without a live Odoo; not part of the public API.
 #[doc(hidden)]
 #[must_use]
 pub fn create_values(
@@ -165,22 +142,11 @@ pub fn create_values(
     serde_json::Value::Object(values)
 }
 
-/// Whether this attachment row is a pointer rather than stored bytes.
 #[must_use]
 pub fn is_url_attachment(record: &serde_json::Value) -> bool {
     record.get("type").and_then(serde_json::Value::as_str) == Some("url")
 }
 
-/// Validate an upload and measure it, in decoded bytes.
-///
-/// The decoded bytes are then discarded: Odoo wants the base64 form, so this is
-/// a validation step rather than a conversion. Decoding is the only way to
-/// prove the payload really is base64 and to learn what it will cost before
-/// any of it crosses the wire — the encoded length overstates it by a third.
-///
-/// # Errors
-/// A payload that is not valid base64, is empty, or exceeds
-/// [`MAX_UPLOAD_BYTES`] once decoded.
 #[doc(hidden)]
 pub fn check_upload(content_base64: &str) -> Result<usize, McpError> {
     let decoded = STANDARD.decode(content_base64.trim()).map_err(|e| {
@@ -206,14 +172,6 @@ pub fn check_upload(content_base64: &str) -> Result<usize, McpError> {
     Ok(decoded.len())
 }
 
-/// The attachment search domain: model, record, and filename filters.
-///
-/// `res_id` without `model` is accepted but nearly meaningless, since Odoo ids
-/// are only unique within a model — the tool description says so rather than
-/// rejecting it, because the caller may genuinely want every model's id 42.
-///
-/// Exposed (behind `#[doc(hidden)]`) for the external test workspace; not part
-/// of the public API.
 #[doc(hidden)]
 #[must_use]
 pub fn attachment_domain(input: &AttachmentListInput) -> serde_json::Value {
@@ -240,7 +198,6 @@ pub fn attachment_domain(input: &AttachmentListInput) -> serde_json::Value {
     serde_json::Value::Array(domain)
 }
 
-/// One attachment as a markdown list row.
 #[doc(hidden)]
 #[must_use]
 pub fn attachment_row(record: &serde_json::Value) -> String {
@@ -267,7 +224,6 @@ pub fn attachment_row(record: &serde_json::Value) -> String {
     )
 }
 
-/// The message returned in place of a body that is too large to inline.
 #[doc(hidden)]
 #[must_use]
 pub fn too_large_notice(file_size: i64) -> String {

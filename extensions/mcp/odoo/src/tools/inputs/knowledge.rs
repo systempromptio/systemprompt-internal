@@ -5,76 +5,46 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct NoteAddInput {
-    /// Odoo model to log the note against, e.g. "crm.lead" or "res.partner".
     pub model: String,
-    /// Odoo id of the record.
     pub res_id: i64,
-    /// Note body. Plain text or simple HTML; Odoo renders it in the chatter.
     pub body: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct NoteListInput {
-    /// Odoo model the record belongs to, e.g. "crm.lead" or "res.partner".
     pub model: String,
-    /// Odoo id of the record whose chatter you want.
     pub res_id: i64,
-    /// Maximum messages to return, newest first (default 20, capped at 100).
     pub limit: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct NoteSearchInput {
-    /// Free text matched against message bodies and subjects.
     pub query: String,
-    /// Restrict to notes on one model, e.g. "crm.lead". Omit to search every
-    /// record type at once, which is usually what you want.
     pub model: Option<String>,
-    /// Only notes written on or after this date (YYYY-MM-DD).
     pub date_from: Option<String>,
-    /// Only notes written on or before this date (YYYY-MM-DD).
     pub date_to: Option<String>,
-    /// Maximum notes to return, newest first (default 20, capped at 100).
     pub limit: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct AttachmentAddInput {
-    /// Odoo model to attach the file to, e.g. "crm.lead".
     pub model: String,
-    /// Odoo id of the record to attach the file to.
     pub res_id: i64,
-    /// Name as it should appear in Odoo. For a stored file, include the
-    /// extension; for a link, a human-readable label.
     pub filename: String,
-    /// File content, base64-encoded, for a stored file. Decoded size must be
-    /// 5 MB or less. Provide exactly one of `content_base64` or `url`.
     pub content_base64: Option<String>,
-    /// External location, for a link rather than a stored file — a meeting
-    /// recording in object storage, a document in a shared drive. Odoo stores
-    /// the pointer, not the bytes, so there is no size limit. Provide exactly
-    /// one of `content_base64` or `url`.
     pub url: Option<String>,
-    /// MIME type. Odoo infers one from the filename when this is omitted.
-    /// Ignored for a link.
     pub mimetype: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct AttachmentListInput {
-    /// Restrict to attachments on one model, e.g. "crm.lead".
     pub model: Option<String>,
-    /// Restrict to one record. Requires `model` to be meaningful, since ids
-    /// are only unique within a model.
     pub res_id: Option<i64>,
-    /// Free text matched against the filename.
     pub query: Option<String>,
-    /// Maximum attachments to return (default 20, capped at 100).
     pub limit: Option<u32>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
 pub struct AttachmentGetInput {
-    /// Odoo id of the attachment.
     pub id: i64,
 }

@@ -87,10 +87,6 @@ pub(super) async fn authenticate_tool_request(
     }
 }
 
-/// The admin gate on `upload_document`.
-///
-/// Exposed (behind `#[doc(hidden)]`) so the external test workspace can assert
-/// the gate without a live MCP transport; not part of the public API.
 #[doc(hidden)]
 pub fn require_admin(request_context: &SysRequestContext) -> Result<(), McpError> {
     let is_admin = request_context
@@ -109,13 +105,6 @@ pub fn require_admin(request_context: &SysRequestContext) -> Result<(), McpError
     }
 }
 
-/// Route one authenticated tool call to its handler.
-///
-/// Exposed (behind `#[doc(hidden)]`) so the external test workspace can drive
-/// every branch — the three handlers and the unknown-tool arm — without an
-/// rmcp `Peer`, which only exists once a transport is serving. `call_tool`
-/// itself is therefore unreachable from a test process; this is the seam that
-/// makes its body testable. Not part of the public API.
 #[doc(hidden)]
 pub async fn dispatch_tool(
     ctx: &Dispatch<'_>,

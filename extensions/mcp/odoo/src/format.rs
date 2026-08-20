@@ -7,8 +7,6 @@
 
 use systemprompt::models::artifacts::{CliArtifact, TextArtifact};
 
-/// A field value as prose. `false`, null and empty string all collapse to
-/// `None` — in Odoo they mean the same thing.
 #[must_use]
 pub fn field(record: &serde_json::Value, key: &str) -> Option<String> {
     match record.get(key)? {
@@ -25,20 +23,16 @@ pub fn field(record: &serde_json::Value, key: &str) -> Option<String> {
     }
 }
 
-/// The id side of a many2one, for follow-up calls.
 #[must_use]
 pub fn relation_id(record: &serde_json::Value, key: &str) -> Option<i64> {
     record.get(key)?.as_array()?.first()?.as_i64()
 }
 
-/// A field value, or an em dash. Used in list rows where a missing value still
-/// needs a column.
 #[must_use]
 pub fn field_or_dash(record: &serde_json::Value, key: &str) -> String {
     field(record, key).unwrap_or_else(|| "—".to_owned())
 }
 
-/// Render `keys` as a markdown definition list, skipping absent values.
 #[must_use]
 pub fn detail_lines(record: &serde_json::Value, keys: &[(&str, &str)]) -> String {
     keys.iter()
@@ -49,17 +43,11 @@ pub fn detail_lines(record: &serde_json::Value, keys: &[(&str, &str)]) -> String
         .join("\n")
 }
 
-/// Wrap a rendered body as the artifact returned to the model.
 #[must_use]
 pub fn text_artifact(title: &str, body: &str) -> CliArtifact {
     CliArtifact::text(TextArtifact::new(body).with_title(title))
 }
 
-/// The sentinel for a query that ran fine and matched nothing.
-///
-/// Said explicitly rather than returned as an empty string, because "no
-/// results" and "the call failed" must not look alike to a model deciding
-/// whether to retry.
 #[must_use]
 pub fn empty_result(what: &str) -> String {
     format!("No {what} matched. This is Odoo's answer for your account, not an error.")

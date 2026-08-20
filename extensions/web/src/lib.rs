@@ -16,9 +16,6 @@
 //!   helpers.
 //! - `site` — public homepage / docs content providers.
 
-/// The admin template engine needs the same branding the server builds it
-/// with; the HTTP contract suite would otherwise render every page against a
-/// different context than production.
 pub use systemprompt_web_site::config_loader::branding_config;
 pub mod extension;
 mod extension_impl;

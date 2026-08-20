@@ -11,9 +11,7 @@ use serde::Deserialize;
 /// Where Odoo lives, from the environment or the profile's secrets.
 #[derive(Debug, Clone)]
 pub struct OdooConnection {
-    /// Base URL, no trailing slash, e.g. `https://odoo.example.com`.
     pub url: String,
-    /// Database name — an Odoo server can host several.
     pub db: String,
 }
 
@@ -34,10 +32,6 @@ fn setting(env_name: &str, secrets_key: &str) -> Option<String> {
 }
 
 impl OdooConnection {
-    /// Read the connection from `ODOO_URL` / `ODOO_DB`, falling back to the
-    /// profile secrets (`odoo_url` / `odoo_db`). `None` when either is unset
-    /// or blank — the caller reports "not configured", which is a deployment
-    /// problem, not a user error.
     #[must_use]
     pub fn from_env() -> Option<Self> {
         let url = setting(ODOO_URL_ENV, "odoo_url")?;
@@ -50,7 +44,6 @@ impl OdooConnection {
         Some(Self { url, db })
     }
 
-    /// The JSON-RPC endpoint every call posts to.
     #[must_use]
     pub fn endpoint(&self) -> String {
         format!("{}/jsonrpc", self.url)
@@ -124,15 +117,6 @@ pub(crate) async fn authenticate(
     Ok(uid_from_result(envelope.result.as_ref()))
 }
 
-/// Read the uid out of an `authenticate` result.
-///
-/// Odoo answers a rejected credential with JSON `false`, not an error, so the
-/// non-integer case is the ordinary "wrong password" path and must not be
-/// mistaken for a protocol fault.
-///
-/// Exposed (behind `#[doc(hidden)]`) so the external test workspace can assert
-/// the `false` / integer / null cases without a live Odoo; not part of the
-/// public API.
 #[doc(hidden)]
 #[must_use]
 pub fn uid_from_result(result: Option<&serde_json::Value>) -> Option<i32> {

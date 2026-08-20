@@ -42,15 +42,6 @@ pub struct OrgBudgetGuard;
 
 #[async_trait::async_trait]
 impl GatewayRequestGuard for RouteEntitlementGuard {
-    /// Fails **open** on a lookup error and on an unresolved route, and
-    /// **closed** on an actual deny decision.
-    ///
-    /// The asymmetry is deliberate. A deny is an answer — the resolver read
-    /// the rules and the customer is not entitled — and honouring it is the
-    /// whole point. A database error is not an answer, and treating it as one
-    /// would turn a blip into a total inference outage for every customer at
-    /// once. An unmatched route means the request never reached a governed
-    /// entity and the gateway will fail it on its own terms.
     async fn check(
         &self,
         pool: &PgPool,
@@ -122,10 +113,6 @@ async fn load_roles(pool: &PgPool, user_id: &UserId) -> Option<Vec<String>> {
 
 #[async_trait::async_trait]
 impl GatewayRequestGuard for OrgBudgetGuard {
-    /// Fails **open**: a user with no organization, an organization with no
-    /// cap, or a lookup error all allow the request. A cap that is one request
-    /// late on a transient error is the cheaper failure, and the audit trail
-    /// still records the spend.
     async fn check(
         &self,
         pool: &PgPool,

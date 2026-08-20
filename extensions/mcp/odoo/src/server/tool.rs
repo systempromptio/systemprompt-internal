@@ -84,13 +84,6 @@ pub(super) async fn build_call(
     })
 }
 
-/// Route one authenticated tool call to its handler.
-///
-/// Exposed (behind `#[doc(hidden)]`) so the external test workspace can drive
-/// every arm — including the unknown-tool arm — without an rmcp `Peer`, which
-/// only exists once a transport is serving. `call_tool` itself is therefore
-/// unreachable from a test process; this is the seam that makes its body
-/// testable. Not part of the public API.
 #[doc(hidden)]
 pub async fn dispatch_tool(
     ctx: &Dispatch<'_>,
@@ -187,10 +180,6 @@ impl Dispatch<'_> {
     }
 }
 
-/// The unknown-tool error, listing what this server does answer to.
-///
-/// Exposed (behind `#[doc(hidden)]`) so the external test workspace can assert
-/// the message names every tool; not part of the public API.
 #[doc(hidden)]
 #[must_use]
 pub fn unknown_tool(tool_name: &str) -> McpError {

@@ -11,7 +11,6 @@
 //! rather than arbitrary hostile HTML — the values here are read back from a
 //! record the acting user can already see.
 
-/// Longest snippet [`snippet_around`] will return, in characters.
 pub const SNIPPET_CHARS: usize = 200;
 
 // Why: the entities Odoo's editor actually emits. A full entity table would be
@@ -42,11 +41,6 @@ fn is_block_break(tag: &str) -> bool {
     )
 }
 
-/// Strip HTML markup from a chatter body and collapse its whitespace.
-///
-/// Tags are removed, block-level tags become spaces, and the handful of
-/// entities Odoo emits are decoded. Runs of whitespace collapse to one space,
-/// because Odoo's editor indents its markup and the indentation is not content.
 #[must_use]
 pub fn html_to_text(html: &str) -> String {
     let mut out = String::with_capacity(html.len());
@@ -81,13 +75,6 @@ pub fn html_to_text(html: &str) -> String {
     out.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
-/// An excerpt of `text` centred on the first case-insensitive hit for `query`.
-///
-/// Capped at [`SNIPPET_CHARS`]; an ellipsis marks each end where text was
-/// dropped. A query that does not appear falls back to the head of the text
-/// rather than to nothing — Odoo matches on subject as well as body, so a hit
-/// with no body match is normal, and an empty snippet would read as an empty
-/// record.
 #[must_use]
 pub fn snippet_around(text: &str, query: &str) -> String {
     let chars: Vec<char> = text.chars().collect();

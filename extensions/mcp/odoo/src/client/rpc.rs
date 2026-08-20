@@ -13,9 +13,7 @@ use crate::error::OdooError;
 /// Where Odoo lives, from the environment.
 #[derive(Debug, Clone)]
 pub struct OdooConnection {
-    /// Base URL, no trailing slash.
     pub url: String,
-    /// Database name — one Odoo server can host several.
     pub db: String,
 }
 
@@ -23,10 +21,6 @@ pub const ODOO_URL_ENV: &str = "ODOO_URL";
 pub const ODOO_DB_ENV: &str = "ODOO_DB";
 
 impl OdooConnection {
-    /// Read the connection from `ODOO_URL` / `ODOO_DB`.
-    ///
-    /// # Errors
-    /// [`OdooError::NotConfigured`] when either variable is unset or blank.
     pub fn from_env() -> Result<Self, OdooError> {
         // Why: env::var().ok() twice is a missing-is-normal carve-out — the
         // absent case is reported as NotConfigured, naming both variables.
@@ -70,11 +64,6 @@ struct FaultData {
     message: Option<String>,
 }
 
-/// Build the `params` for a `service.method(args)` call.
-///
-/// Exposed (behind `#[doc(hidden)]`) so the external test workspace can assert
-/// the envelope shape — the positional-args layout is the part of the protocol
-/// most easily got wrong — without a live Odoo. Not part of the public API.
 #[doc(hidden)]
 #[must_use]
 pub fn build_request(service: &str, method: &str, args: &[serde_json::Value]) -> serde_json::Value {
@@ -86,14 +75,6 @@ pub fn build_request(service: &str, method: &str, args: &[serde_json::Value]) ->
     })
 }
 
-/// Read a JSON-RPC response body into a result value.
-///
-/// Odoo puts the useful text of a fault in `error.data.message` and a generic
-/// class name in `error.message`, so a fault reported with only the latter
-/// reads as "Odoo Server Error" and tells the model nothing. Prefer the inner
-/// message when it is there.
-///
-/// Exposed (behind `#[doc(hidden)]`) for the same reason as [`build_request`].
 #[doc(hidden)]
 pub fn parse_response(body: &str) -> Result<serde_json::Value, OdooError> {
     let envelope: Envelope =
@@ -110,7 +91,6 @@ pub fn parse_response(body: &str) -> Result<serde_json::Value, OdooError> {
     Ok(envelope.result.unwrap_or(serde_json::Value::Null))
 }
 
-/// Post one JSON-RPC call and return its `result`.
 pub async fn call(
     http: &reqwest::Client,
     conn: &OdooConnection,

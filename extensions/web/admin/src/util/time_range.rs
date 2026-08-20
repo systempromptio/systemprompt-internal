@@ -102,9 +102,6 @@ fn parse_rfc3339(s: &str) -> Option<DateTime<Utc>> {
         .map(|dt| dt.with_timezone(&Utc))
 }
 
-/// Resolve a fixed [`TimeRangePreset`] (not Custom) to a concrete window
-/// anchored at `now()`. Returns the same window `parse_time_range` would have
-/// produced for the matching preset string.
 pub fn preset_to_range(preset: TimeRangePreset) -> TimeRange {
     let now = Utc::now();
     let d = preset.duration().unwrap_or_else(|| Duration::hours(24));
@@ -115,9 +112,6 @@ pub fn preset_to_range(preset: TimeRangePreset) -> TimeRange {
     }
 }
 
-/// Cheap probe for the auto-widen path: just count rows in `ai_requests`
-/// inside the candidate window. Used to decide whether the default 24h
-/// window has data, or whether to fall back to a wider preset.
 pub async fn count_requests_in_range(pool: &PgPool, range: TimeRange) -> Result<i64, sqlx::Error> {
     let row = sqlx::query!(
         r#"SELECT COUNT(*)::bigint AS "count!"

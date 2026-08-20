@@ -18,15 +18,6 @@ pub(super) const LEAD_LABELS: [(&str, &str); 9] = [
     ("create_date", "Created"),
 ];
 
-/// Build the Odoo search domain from the three optional filters.
-///
-/// Domains are prefix-notation: a bare sequence of leaves is an implicit AND,
-/// and the `"|"` prefixes make the free-text group an OR across three columns.
-/// Getting this wrong silently returns the wrong leads rather than failing, so
-/// it is exposed for direct assertion.
-///
-/// Exposed (behind `#[doc(hidden)]`) for the external test workspace; not part
-/// of the public API.
 #[doc(hidden)]
 #[must_use]
 pub fn lead_domain(input: &LeadSearchInput) -> serde_json::Value {
@@ -66,7 +57,6 @@ pub fn lead_domain(input: &LeadSearchInput) -> serde_json::Value {
     serde_json::Value::Array(domain)
 }
 
-/// One lead as a markdown list row.
 #[doc(hidden)]
 #[must_use]
 pub fn lead_row(record: &serde_json::Value) -> String {

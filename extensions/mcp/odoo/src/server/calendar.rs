@@ -34,21 +34,12 @@ const EVENT_FIELDS: [&str; 7] = [
     "description",
 ];
 
-/// Hours an event runs for when the caller gives neither `stop` nor a duration.
 pub const DEFAULT_DURATION_HOURS: f64 = 1.0;
 
 // Why: a description is free text and can be an entire email thread. The
 // briefing needs enough to recognise the event, not to read it.
 const DESCRIPTION_CHARS: usize = 160;
 
-/// Rewrite a caller's datetime into the form Odoo's ORM accepts.
-///
-/// Accepts `YYYY-MM-DDTHH:MM:SS`, a trailing `Z`, and fractional seconds, all
-/// of which Odoo rejects verbatim. A value that is already in Odoo's own form
-/// passes through untouched.
-///
-/// Exposed (behind `#[doc(hidden)]`) so the external test workspace can assert
-/// each accepted shape; not part of the public API.
 #[doc(hidden)]
 #[must_use]
 pub fn normalize_datetime(value: &str) -> String {
@@ -57,7 +48,6 @@ pub fn normalize_datetime(value: &str) -> String {
     no_frac.replacen('T', " ", 1)
 }
 
-/// The event search domain: a start-date window and a name filter.
 #[doc(hidden)]
 #[must_use]
 pub fn event_domain(input: &CalendarEventListInput) -> serde_json::Value {
@@ -93,7 +83,6 @@ pub fn event_domain(input: &CalendarEventListInput) -> serde_json::Value {
     serde_json::Value::Array(domain)
 }
 
-/// One event as a markdown row.
 #[doc(hidden)]
 #[must_use]
 pub fn event_row(record: &serde_json::Value) -> String {
@@ -127,10 +116,6 @@ pub fn event_row(record: &serde_json::Value) -> String {
     row
 }
 
-/// Build the `calendar.event` create payload.
-///
-/// Exposed (behind `#[doc(hidden)]`) so the external test workspace can assert
-/// the derived `stop` and the optional record link; not part of the public API.
 #[doc(hidden)]
 #[must_use]
 pub fn event_values(input: &CalendarEventCreateInput) -> serde_json::Value {

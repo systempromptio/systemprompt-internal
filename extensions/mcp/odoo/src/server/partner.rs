@@ -22,8 +22,6 @@ const PARTNER_LABELS: [(&str, &str); 7] = [
     ("category_id", "Tags"),
 ];
 
-/// Free-text partner search across the three columns anyone actually searches
-/// by. Prefix `"|"` operators make it an OR.
 #[doc(hidden)]
 #[must_use]
 pub fn partner_domain(query: &str) -> serde_json::Value {

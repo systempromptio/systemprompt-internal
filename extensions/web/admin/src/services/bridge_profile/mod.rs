@@ -72,13 +72,8 @@ pub(crate) struct BridgeConnectBlock {
     pub code: String,
     pub expires_in_seconds: i64,
     pub gateway: String,
-    /// For a machine with no bridge yet.
     pub install_command: String,
-    /// For a machine that already has one.
     pub login_command: String,
-    /// The same two, for a developer who already has this repo checked out.
-    /// These are the ones the page leads with; the raw commands above are the
-    /// escape hatch for a machine without the repo.
     pub just_install_command: String,
     pub just_login_command: String,
 }
@@ -91,9 +86,6 @@ pub(crate) const BRIDGE_BINARY: &str = "systemprompt-internal-bridge";
 pub(crate) struct OdooLinkBlock {
     pub linked: bool,
     pub odoo_login: Option<String>,
-    /// Whether this deployment has an Odoo server configured at all. Without
-    /// one there is nothing to link against, and the card says so instead of
-    /// offering a form that cannot succeed.
     pub configured: bool,
 }
 

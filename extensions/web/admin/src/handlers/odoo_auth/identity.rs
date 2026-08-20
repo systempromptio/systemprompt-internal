@@ -15,9 +15,6 @@ use crate::types::UserContext;
 #[derive(Debug, Serialize)]
 pub(crate) struct IdentityResponse {
     linked: bool,
-    /// Whether this deployment has an Odoo connection at all. A user cannot
-    /// link against a server that is not configured, and the page says so
-    /// rather than offering a form that always fails.
     configured: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     odoo_login: Option<String>,

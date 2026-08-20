@@ -120,8 +120,8 @@ fn store(pool: &Arc<PgPool>) -> KnowledgeStore {
     )))
 }
 
-/// The bank starts empty, so every knowledge-bank case here puts its own
-/// document in first. There are no fixtures to lean on.
+// The bank starts empty, so every knowledge-bank case here puts its own
+// document in first. There are no fixtures to lean on.
 async fn given_a_document(db: &TempDb, title: &str, source: &str, content: &str) {
     store(&db.pool)
         .insert(NewDocument {

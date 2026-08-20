@@ -7,26 +7,14 @@
 
 use crate::store::{DocumentSummary, SearchHit};
 
-/// Shown when a query matched nothing, in place of an empty body — an empty
-/// string reads as a broken tool rather than an answer.
 pub const NO_MATCHES: &str = "No matching documents in the knowledge bank.";
 
-/// Shown when a filtered listing is empty.
 pub const NO_DOCUMENTS: &str = "The knowledge bank holds no documents matching the filter.";
 
 pub(super) fn project_label(project: Option<&str>) -> &str {
     project.unwrap_or("unscoped")
 }
 
-/// Render search hits as the markdown body returned to the model.
-///
-/// Each hit leads with its title and provenance and carries the id, because
-/// the id is what a follow-up call needs and an agent that has to guess it
-/// will guess wrong.
-///
-/// Exposed (behind `#[doc(hidden)]`) so the external test workspace can assert
-/// the empty-result sentinel and the per-hit heading shape directly; not part
-/// of the public API.
 #[doc(hidden)]
 #[must_use]
 pub fn search_summary(hits: &[SearchHit]) -> String {
@@ -50,11 +38,6 @@ pub fn search_summary(hits: &[SearchHit]) -> String {
         .join("\n\n")
 }
 
-/// Render a listing as one line per document: identity, provenance, and size,
-/// never content.
-///
-/// Exposed (behind `#[doc(hidden)]`) for the external test workspace; not part
-/// of the public API.
 #[doc(hidden)]
 #[must_use]
 pub fn listing_summary(documents: &[DocumentSummary]) -> String {

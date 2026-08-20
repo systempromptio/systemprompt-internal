@@ -16,26 +16,13 @@ use systemprompt::oauth::OAuthRepository;
 
 use super::odoo_auth::LoginThrottle;
 
-/// Comma-separated email domains eligible for passkey self-registration.
-///
-/// Read from the environment, not a YAML file.
-///
-/// This is the whole provisioning gate: a wrong value here hands out accounts,
-/// so it belongs beside the other deployment secrets rather than in a config
-/// file that gets copied between installs.
 pub const ALLOWED_DOMAINS_ENV: &str = "SELF_REGISTRATION_EMAIL_DOMAINS";
 
-/// Domains allowed to self-register when [`ALLOWED_DOMAINS_ENV`] is unset.
 #[must_use]
 pub fn default_allowed_domains() -> Vec<String> {
     vec!["systemprompt.io".to_owned()]
 }
 
-/// Parse [`ALLOWED_DOMAINS_ENV`], falling back to [`default_allowed_domains`].
-///
-/// An empty or whitespace-only value is treated as unset rather than as "allow
-/// nobody", so a blank line in an env file cannot silently disable
-/// registration.
 #[must_use]
 pub fn allowed_domains_from_env() -> Vec<String> {
     // Why: env::var().ok() is a missing-is-normal carve-out — an unset
@@ -61,16 +48,9 @@ pub fn allowed_domains_from_env() -> Vec<String> {
 /// handlers.
 #[derive(Clone)]
 pub struct AuthDeps {
-    /// Write-capable pool — registration provisions users, linking writes
-    /// credentials.
     pub write_pool: Arc<PgPool>,
-    /// Email domains eligible for passkey self-registration.
     pub allowed_email_domains: Arc<Vec<String>>,
-    /// Issues the OAuth authorization code that Odoo sign-in hands back, so
-    /// both sign-in routes end at the same token endpoint.
     pub oauth_repo: Arc<OAuthRepository>,
-    /// Brute-force budget for the Odoo sign-in endpoint. Shared, so every
-    /// request counts against the same windows.
     pub login_throttle: Arc<LoginThrottle>,
 }
 
@@ -83,8 +63,6 @@ impl std::fmt::Debug for AuthDeps {
 }
 
 impl AuthDeps {
-    /// Whether `email` is in an allow-listed domain. `email` is expected
-    /// already trimmed and lowercased by the caller.
     #[must_use]
     pub fn email_allowed(&self, email: &str) -> bool {
         email

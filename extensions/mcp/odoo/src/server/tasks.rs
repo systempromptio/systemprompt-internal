@@ -31,15 +31,6 @@ const TASK_FIELDS: [&str; 7] = [
     "priority",
 ];
 
-/// The task search domain.
-///
-/// `open_only` defaults to true, and is expressed as `is_closed = false` on the
-/// stage rather than by naming stages: Odoo lets each project rename its own,
-/// so a list of "done"-ish names would be wrong on the first customer who used
-/// their own vocabulary.
-///
-/// Exposed (behind `#[doc(hidden)]`) for the external test workspace; not part
-/// of the public API.
 #[doc(hidden)]
 #[must_use]
 pub fn task_domain(input: &TaskListInput, project_id: Option<i64>) -> serde_json::Value {
@@ -61,7 +52,6 @@ pub fn task_domain(input: &TaskListInput, project_id: Option<i64>) -> serde_json
     serde_json::Value::Array(domain)
 }
 
-/// One task as a markdown row.
 #[doc(hidden)]
 #[must_use]
 pub fn task_row(record: &serde_json::Value) -> String {

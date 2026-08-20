@@ -23,7 +23,6 @@ const CHANNEL_MODEL: &str = "discuss.channel";
 // for it is one column, not one query per channel, so it stays cheap.
 const CHANNEL_FIELDS: [&str; 4] = ["id", "name", "channel_type", "member_count"];
 
-/// Channels matching a name fragment, or all of them.
 #[doc(hidden)]
 #[must_use]
 pub fn channel_domain(query: Option<&str>) -> serde_json::Value {
@@ -33,7 +32,6 @@ pub fn channel_domain(query: Option<&str>) -> serde_json::Value {
     )
 }
 
-/// One channel as a markdown row.
 #[doc(hidden)]
 #[must_use]
 pub fn channel_row(record: &serde_json::Value) -> String {

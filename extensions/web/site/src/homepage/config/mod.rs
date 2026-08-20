@@ -120,7 +120,6 @@ pub struct HeroConfig {
     pub cta_secondary: String,
     #[serde(default)]
     pub cta_secondary_url: Option<String>,
-    /// Per-platform download CTAs rendered as a row under the primary CTAs.
     #[serde(default)]
     pub download_ctas: Vec<DownloadCta>,
 }

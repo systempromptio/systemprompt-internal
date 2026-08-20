@@ -119,7 +119,7 @@ fn client() -> systemprompt::mcp::ClientProfile {
 }
 
 
-/// Three documents whose word counts make the ranking predictable.
+// Three documents whose word counts make the ranking predictable.
 async fn seed(db: &TempDb) {
     let store = store(&db.pool);
     for (title, source, project, content) in [

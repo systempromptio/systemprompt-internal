@@ -52,7 +52,6 @@ pub const TOOL_TASK_CREATE: &str = "task_create";
 pub const TOOL_TASK_UPDATE: &str = "task_update";
 pub const TOOL_OVERVIEW: &str = "business_overview_data";
 
-/// Every tool name this server answers to, for the unknown-tool error.
 pub const ALL_TOOLS: [&str; 24] = [
     TOOL_LEAD_SEARCH,
     TOOL_LEAD_GET,

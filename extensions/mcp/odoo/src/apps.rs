@@ -24,7 +24,6 @@ const APPS: [(&str, &str); 6] = [
     ("account.", "Invoicing"),
 ];
 
-/// The Odoo app that owns `model`, when it is one we can name.
 #[must_use]
 pub fn app_for_model(model: &str) -> Option<&'static str> {
     APPS.iter()
@@ -41,11 +40,6 @@ fn is_missing_model_fault(model: &str, message: &str) -> bool {
         || message.contains(&format!("Model not found: {model}"))
 }
 
-/// Translate a missing-model fault on `model` into a message naming its app.
-///
-/// Any other error passes through untouched — this must not swallow a genuine
-/// access-rule refusal, which mentions the model too but means something
-/// entirely different.
 #[must_use]
 pub fn map_missing_app(model: &str, err: OdooError) -> OdooError {
     let OdooError::Odoo(message) = &err else {

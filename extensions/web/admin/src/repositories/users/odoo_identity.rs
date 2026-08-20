@@ -41,18 +41,6 @@ pub enum OdooIdentityError {
 
 const NONCE_LEN: usize = 12;
 
-/// Seal an API key under `key`: hex of `nonce || ciphertext`.
-///
-/// A per-row random nonce means the same API key linked by two users never
-/// produces the same stored bytes.
-///
-/// The key is a parameter rather than loaded inside, so the framing can be
-/// round-tripped in a test without a configured deployment master key — and so
-/// the odoo MCP crate, which opens these values in a different process, has a
-/// single documented format to agree with.
-///
-/// # Errors
-/// [`OdooIdentityError::Crypto`] if the AEAD refuses.
 pub fn seal_with(key: &[u8; 32], api_key: &str) -> Result<String, OdooIdentityError> {
     let nonce = generate_nonce();
     let ciphertext = encrypt(key, &nonce, api_key.as_bytes())?;
@@ -61,11 +49,6 @@ pub fn seal_with(key: &[u8; 32], api_key: &str) -> Result<String, OdooIdentityEr
     Ok(hex::encode(blob))
 }
 
-/// Open a value produced by [`seal_with`].
-///
-/// # Errors
-/// [`OdooIdentityError::MalformedCiphertext`] for bad framing,
-/// [`OdooIdentityError::Crypto`] for a failed authentication tag.
 pub fn open_with(key: &[u8; 32], sealed: &str) -> Result<String, OdooIdentityError> {
     let blob = hex::decode(sealed.trim()).map_err(|e| {
         tracing::warn!(error = %e, "Stored Odoo API key is not valid hex");
@@ -89,9 +72,6 @@ fn seal(api_key: &str) -> Result<String, OdooIdentityError> {
     seal_with(&load_master_key()?, api_key)
 }
 
-/// Link (or re-link) `user_id` to an Odoo account. Idempotent: re-linking
-/// overwrites the login, uid and key, which is also how a rotated API key is
-/// applied.
 pub async fn insert(
     pool: &PgPool,
     user_id: &UserId,
@@ -118,13 +98,6 @@ pub async fn insert(
     Ok(())
 }
 
-/// Link `user_id` to an Odoo account only when no link exists yet, leaving any
-/// existing link untouched.
-///
-/// The non-overwriting half is the point: a credential that merely proved
-/// itself at sign-in may be a password, and replacing an API key the user
-/// deliberately stored from their profile page would break every later RPC
-/// call against an Odoo that enforces API keys for 2FA accounts.
 pub async fn insert_if_absent(
     pool: &PgPool,
     user_id: &UserId,
@@ -147,7 +120,6 @@ pub async fn insert_if_absent(
     Ok(())
 }
 
-/// The link state for `user_id`, or `None` if this user has never linked Odoo.
 pub async fn find(pool: &PgPool, user_id: &UserId) -> Result<Option<OdooIdentity>, sqlx::Error> {
     let row = sqlx::query!(
         "SELECT odoo_login, odoo_uid, updated_at FROM odoo_identity WHERE user_id = $1",
@@ -162,8 +134,6 @@ pub async fn find(pool: &PgPool, user_id: &UserId) -> Result<Option<OdooIdentity
     }))
 }
 
-/// Every Odoo login this deployment knows about, sorted. The answer to "whose
-/// work will show up in Odoo's audit log" without touching any credential.
 pub async fn list_odoo_logins(pool: &PgPool) -> Result<Vec<String>, sqlx::Error> {
     let rows = sqlx::query!("SELECT DISTINCT odoo_login FROM odoo_identity ORDER BY odoo_login")
         .fetch_all(pool)
@@ -171,8 +141,6 @@ pub async fn list_odoo_logins(pool: &PgPool) -> Result<Vec<String>, sqlx::Error>
     Ok(rows.into_iter().map(|r| r.odoo_login).collect())
 }
 
-/// Unlink `user_id` from Odoo (the profile "Disconnect" flow). An absent row is
-/// fine — the state is already what the caller asked for.
 pub async fn delete(pool: &PgPool, user_id: &UserId) -> Result<(), sqlx::Error> {
     sqlx::query!(
         "DELETE FROM odoo_identity WHERE user_id = $1",

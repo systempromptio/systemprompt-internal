@@ -16,9 +16,6 @@ use crate::error::OdooError;
 
 const NONCE_LEN: usize = 12;
 
-/// The message shown to a caller with no linked Odoo account. It names the
-/// page they need, because "unauthorized" would send an agent looking for a
-/// permissions problem that does not exist.
 pub const NOT_LINKED_MESSAGE: &str = "You have not linked an Odoo account yet. Open /admin/profile, connect Odoo with your login \
      and an API key from Odoo's Preferences → Account Security, then try again.";
 
@@ -49,12 +46,6 @@ fn master_key() -> Result<[u8; 32], OdooError> {
         .map_err(|_e| OdooError::Internal("master key did not decode to 32 bytes".to_owned()))
 }
 
-/// Open a sealed API key: hex of `nonce || ciphertext`, matching the admin
-/// plane's `repositories::users::odoo_identity`.
-///
-/// Exposed (behind `#[doc(hidden)]`) so the external test workspace can assert
-/// the framing — a mismatch between the two crates would only show up as a
-/// runtime decryption failure otherwise. Not part of the public API.
 #[doc(hidden)]
 pub fn open_api_key(key: &[u8; 32], sealed: &str) -> Result<String, OdooError> {
     let blob = hex::decode(sealed.trim())
@@ -75,12 +66,6 @@ pub fn open_api_key(key: &[u8; 32], sealed: &str) -> Result<String, OdooError> {
         .map_err(|_e| OdooError::Internal("decrypted Odoo API key is not UTF-8".to_owned()))
 }
 
-/// The acting user's Odoo credential.
-///
-/// # Errors
-/// [`OdooError::NotLinked`] when the user has no `odoo_identity` row — the
-/// ordinary case for a first-time caller. Other variants mean the credential
-/// exists but could not be opened.
 pub async fn resolve_credentials(
     pool: &DbPool,
     user_id: &UserId,

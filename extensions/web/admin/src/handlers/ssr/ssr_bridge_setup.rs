@@ -27,10 +27,6 @@ struct SetupPageData {
     gateway_url: String,
     user_email: String,
     download_base_url: &'static str,
-    /// Whether the user has linked an Odoo credential on their profile. The
-    /// Odoo MCP tools execute as that credential, so a bridge without the link
-    /// authenticates fine but every Odoo tool call fails — the page nudges
-    /// toward the profile link form instead of leaving that to be discovered.
     odoo_linked: bool,
 }
 
