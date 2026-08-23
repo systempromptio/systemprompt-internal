@@ -26,10 +26,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # The root workspace's [patch.crates-io] is ACTIVE and points at
-      # ../systemprompt-core (core release with the wire-shape work is not on
-      # crates.io yet). Materialise the sibling at the ref bridge/CORE_REF
-      # pins: checkout must land inside the workspace, so link it into place.
+      # bridge/ depends on systemprompt-bridge by path, which is not published
+      # to crates.io at all. Materialise the sibling core checkout at the ref
+      # bridge/CORE_REF pins: checkout must land inside the workspace, so link
+      # it into place. The root workspace itself builds from crates.io -- its
+      # [patch.crates-io] block is commented out.
       - name: Read pinned core ref
         id: core
         run: echo "ref=$(tr -d '[:space:]' < bridge/CORE_REF)" >> "$GITHUB_OUTPUT"
@@ -53,10 +54,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # The root workspace's [patch.crates-io] is ACTIVE and points at
-      # ../systemprompt-core (core release with the wire-shape work is not on
-      # crates.io yet). Materialise the sibling at the ref bridge/CORE_REF
-      # pins: checkout must land inside the workspace, so link it into place.
+      # bridge/ depends on systemprompt-bridge by path, which is not published
+      # to crates.io at all. Materialise the sibling core checkout at the ref
+      # bridge/CORE_REF pins: checkout must land inside the workspace, so link
+      # it into place. The root workspace itself builds from crates.io -- its
+      # [patch.crates-io] block is commented out.
       - name: Read pinned core ref
         id: core
         run: echo "ref=$(tr -d '[:space:]' < bridge/CORE_REF)" >> "$GITHUB_OUTPUT"
@@ -76,10 +78,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # The root workspace's [patch.crates-io] is ACTIVE and points at
-      # ../systemprompt-core (core release with the wire-shape work is not on
-      # crates.io yet). Materialise the sibling at the ref bridge/CORE_REF
-      # pins: checkout must land inside the workspace, so link it into place.
+      # bridge/ depends on systemprompt-bridge by path, which is not published
+      # to crates.io at all. Materialise the sibling core checkout at the ref
+      # bridge/CORE_REF pins: checkout must land inside the workspace, so link
+      # it into place. The root workspace itself builds from crates.io -- its
+      # [patch.crates-io] block is commented out.
       - name: Read pinned core ref
         id: core
         run: echo "ref=$(tr -d '[:space:]' < bridge/CORE_REF)" >> "$GITHUB_OUTPUT"
@@ -124,10 +127,11 @@ jobs:
           --health-retries 10
     steps:
       - uses: actions/checkout@v4
-      # The root workspace's [patch.crates-io] is ACTIVE and points at
-      # ../systemprompt-core (core release with the wire-shape work is not on
-      # crates.io yet). Materialise the sibling at the ref bridge/CORE_REF
-      # pins: checkout must land inside the workspace, so link it into place.
+      # bridge/ depends on systemprompt-bridge by path, which is not published
+      # to crates.io at all. Materialise the sibling core checkout at the ref
+      # bridge/CORE_REF pins: checkout must land inside the workspace, so link
+      # it into place. The root workspace itself builds from crates.io -- its
+      # [patch.crates-io] block is commented out.
       - name: Read pinned core ref
         id: core
         run: echo "ref=$(tr -d '[:space:]' < bridge/CORE_REF)" >> "$GITHUB_OUTPUT"

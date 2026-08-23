@@ -8,6 +8,7 @@ use crate::templates::AdminTemplateEngine;
 use axum::Extension;
 use axum::extract::Query;
 use axum::response::{Html, IntoResponse, Response};
+use systemprompt::identifiers::ClientId;
 
 
 mod context;
@@ -65,7 +66,7 @@ pub(crate) use ssr_users_sessions::users_sessions_page;
 #[derive(serde::Deserialize)]
 pub(crate) struct LoginParams {
     redirect: Option<String>,
-    client_id: Option<String>,
+    client_id: Option<ClientId>,
     redirect_uri: Option<String>,
     response_type: Option<String>,
     scope: Option<String>,
@@ -86,14 +87,14 @@ struct LoginContext<'a> {
 }
 
 fn passkey_authorize_url(params: &LoginParams) -> Option<String> {
-    let client_id = params.client_id.as_deref()?;
+    let client_id = params.client_id.as_ref()?;
     let redirect_uri = params.redirect_uri.as_deref()?;
     let mut pairs = vec![
         (
             "response_type",
             params.response_type.as_deref().unwrap_or("code").to_owned(),
         ),
-        ("client_id", client_id.to_owned()),
+        ("client_id", client_id.as_str().to_owned()),
         ("redirect_uri", redirect_uri.to_owned()),
     ];
     let optional = [
