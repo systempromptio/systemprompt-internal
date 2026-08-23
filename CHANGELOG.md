@@ -3,6 +3,12 @@
 All notable changes to this repository are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.36.0] - 2026-08-24
+
+Tracks systemprompt-core 0.36.0. Helm chart 0.13.0 with appVersion 0.36.0. Pin-only:
+the breaking `McpDomainError::PortHolderUnverifiable` variant is not matched in this
+repo, and the messaging and Slack APIs 0.36.0 changed are not used here.
+
 ## [0.35.0] - 2026-08-23
 
 Tracks systemprompt-core 0.35.0, taking the 0.34.0 governance change this repo
