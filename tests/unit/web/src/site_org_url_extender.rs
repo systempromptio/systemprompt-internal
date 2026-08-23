@@ -45,6 +45,7 @@ fn install_config() {
         content_config_path: "/tmp".to_owned(),
         geoip_database_path: None,
         system_admin_email: None,
+        login_page_url: None,
         web_path: "/tmp".to_owned(),
         web_config_path: "/tmp".to_owned(),
         web_metadata_path: "/tmp".to_owned(),
