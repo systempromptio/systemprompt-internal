@@ -3,7 +3,23 @@
 All notable changes to this repository are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [0.35.0] - 2026-08-23
+
+Tracks systemprompt-core 0.35.0, taking the 0.34.0 governance change this repo
+had skipped.
+
+### Fixed
+
+- **The trace explorer joined governance rows on the wrong column.** Enforcement
+  sites with no session wrote their trace id into `governance_decisions.session_id`,
+  and the trace list, trace stats, and id resolver all joined against that. Core
+  0.34.0 gave the table a real `trace_id`, so the webhook now writes the correlator
+  to its own column, the two trace queries join `t.trace_id = g.trace_id`, and a
+  session id that merely looked like a trace id can no longer pull in unrelated
+  rows. Empty session ids are treated as absent rather than as a session.
+- `governance` id resolution searches `governance_decisions.trace_id` as well as
+  `ai_requests`, so a trace belonging to an enforcement site that issued no AI
+  request resolves instead of coming back empty.
 
 ### Changed
 

@@ -138,9 +138,10 @@ pub(crate) async fn govern_tool_use(
         chain,
         approver: None,
         act_chain: Vec::new(),
-        // Why: the tool-call webhook carries no conversational context; only
-        // the gateway path knows one.
+        // Why: the tool-call webhook carries no conversational context and no
+        // request-plane trace; only the gateway path knows either.
         context_id: None,
+        trace_id: None,
     };
     spawn_audit_recording(&pool, audit);
 
@@ -207,6 +208,7 @@ fn spawn_auth_denial(params: &AuthDenialParams<'_>, reason: &str) {
             approver: None,
             act_chain: Vec::new(),
             context_id: None,
+            trace_id: None,
         };
         if let Err(e) = record_decision(&pool, &audit).await {
             tracing::error!(

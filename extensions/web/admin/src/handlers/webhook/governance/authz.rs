@@ -164,11 +164,9 @@ async fn audit_decision(
         // Why: the attested session, so a gateway decision keys to the same
         // session row as the prompt gate and the `ai_requests` row it belongs
         // to. Enforcement sites without a session (server-attach RBAC, MCP)
-        // send none, and the trace id keeps the row correlatable.
-        session_id: req
-            .session_id
-            .as_ref()
-            .map_or_else(|| req.trace_id.as_str(), SessionId::as_str),
+        // send none; the trace join reads `trace_id` and no longer needs this
+        // field to stand in for it.
+        session_id: req.session_id.as_ref().map_or("", SessionId::as_str),
         tool_name: entity_id_str,
         agent_id: None,
         // Why: authz decisions are entity-keyed, not agent-keyed; entity_type
@@ -185,6 +183,7 @@ async fn audit_decision(
             .task_id
             .as_ref()
             .map(systemprompt::identifiers::TaskId::as_str),
+        trace_id: Some(req.trace_id.as_str()),
     };
     if let Err(e) = insert_governance_decision(pool, &record).await {
         tracing::error!(error = %e, "Failed to record authz decision");
