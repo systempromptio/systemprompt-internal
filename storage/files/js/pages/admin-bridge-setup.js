@@ -1,6 +1,4 @@
-// Only platforms with a binary staged in storage/files/downloads/ are listed;
-// macOS and Linux aarch64 are not currently hosted.
-const ARTIFACTS = {
+const HOSTED_ARTIFACTS = {
   windows: { label: 'Download for Windows', file: 'systemprompt-internal-bridge-windows.exe' },
   'linux-x86_64': { label: 'Download for Linux (x86_64)', file: 'systemprompt-internal-bridge-linux-x86_64.tar.gz' }
 };
@@ -16,7 +14,7 @@ const downloadBase = pill?.dataset.downloadBase || '';
 
 const cta = document.getElementById('download-cta');
 if (cta) {
-  const artifact = ARTIFACTS[detectPlatform(navigator.userAgent)];
+  const artifact = HOSTED_ARTIFACTS[detectPlatform(navigator.userAgent)];
   cta.href = `${downloadBase}/${artifact.file}`;
   cta.textContent = artifact.label;
 }

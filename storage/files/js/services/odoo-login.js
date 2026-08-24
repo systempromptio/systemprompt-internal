@@ -7,9 +7,7 @@ import { safeStorageRemove } from '/js/utils/storage-safe.js';
 
 const CLIENT_ID = 'marketplace-admin';
 const LOGIN_PATH = '/admin/login';
-// The relative form is what's registered for marketplace-admin, and the
-// login endpoint validates redirect_uri against the registered set.
-const REDIRECT_URI = LOGIN_PATH;
+const REGISTERED_REDIRECT_URI = LOGIN_PATH;
 
 const form = document.getElementById('odoo-login-form');
 const submitBtn = document.getElementById('odoo-sign-in-btn');
@@ -59,11 +57,10 @@ const signIn = async (event) => {
   try {
     const params = new URLSearchParams(window.location.search);
 
-    // OAuth authorize mode: a third-party client (MCP inspector, bridge,
-    // Cowork) sent the browser here with its own PKCE challenge. Forward the
-    // params verbatim and hand the code back to the client's redirect_uri —
-    // the client, not this page, exchanges it.
-    if (params.get('client_id') && params.get('redirect_uri')) {
+    const thirdPartyClientAwaitingItsOwnCode =
+      params.get('client_id') && params.get('redirect_uri');
+
+    if (thirdPartyClientAwaitingItsOwnCode) {
       const body = {
         login,
         credential,
@@ -110,7 +107,7 @@ const signIn = async (event) => {
         login,
         credential,
         client_id: CLIENT_ID,
-        redirect_uri: REDIRECT_URI,
+        redirect_uri: REGISTERED_REDIRECT_URI,
         code_challenge: codeChallenge,
         code_challenge_method: 'S256',
         state: generateRandomString(32),
@@ -125,7 +122,7 @@ const signIn = async (event) => {
     if (!code) throw new Error('Sign-in failed — no authorization code was issued.');
 
     setBusy('Finishing…');
-    const tokenData = await exchangeToken(code, codeVerifier, REDIRECT_URI);
+    const tokenData = await exchangeToken(code, codeVerifier, REGISTERED_REDIRECT_URI);
     await storeSession(tokenData);
     safeStorageRemove('pkce_code_verifier');
     window.location.href = await resolveRedirect(redirectAfterLogin);

@@ -7,6 +7,14 @@ All notable changes to this repository are documented here. The format follows
 
 ### Fixed
 
+- Two shipped front-end sources carried explanatory `//` comments, which the
+  front-end standards test bans outright — 55 of the other 57 files carry none,
+  and the exemptions file is explicitly not for muting a fixable violation. The
+  knowledge moved into names instead of being deleted: `ARTIFACTS` is
+  `HOSTED_ARTIFACTS`, `REDIRECT_URI` is `REGISTERED_REDIRECT_URI`, and the OAuth
+  authorize branch tests `thirdPartyClientAwaitingItsOwnCode`. The test had been
+  failing since both files landed on 2026-08-20, hidden behind the contract
+  failure that aborted the run before it.
 - **The admin contract suite never had the `marketplace-admin` OAuth client.**
   Seeds run on every boot and the owner-dependent ones select the first admin
   user, inserting nothing when there is none -- `oauth_clients.owner_user_id` is
