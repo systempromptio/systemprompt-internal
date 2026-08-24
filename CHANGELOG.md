@@ -5,6 +5,24 @@ All notable changes to this repository are documented here. The format follows
 
 ## [0.36.0] - 2026-08-24
 
+### Fixed
+
+- **The admin contract suite never had the `marketplace-admin` OAuth client.**
+  Seeds run on every boot and the owner-dependent ones select the first admin
+  user, inserting nothing when there is none -- `oauth_clients.owner_user_id` is
+  NOT NULL. A real deployment installs its schema, creates an admin, then serves
+  from the next boot, by which point the seed has applied; `TempDb` installs once
+  and never boots again, so the client never existed and
+  `signing_in_never_provisions_a_user_from_an_unproven_credential` was answered
+  `400 Unknown OAuth client` instead of reaching the credential check it asserts
+  on. The fixture now re-applies seeds once an admin exists, which is what the
+  next boot does. Production was never affected.
+- The same test posted `http://localhost/admin/login`, which is not one of the
+  client's registered redirect URIs, so a well-formed request was refused at
+  redirect validation before the credential was ever examined. It uses the
+  registered `http://localhost:8080/admin/login`, so the refusal it asserts is
+  the one it means.
+
 Tracks systemprompt-core 0.36.0. Helm chart 0.13.0 with appVersion 0.36.0. Pin-only:
 the breaking `McpDomainError::PortHolderUnverifiable` variant is not matched in this
 repo, and the messaging and Slack APIs 0.36.0 changed are not used here.

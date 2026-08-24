@@ -7,7 +7,11 @@
 //! it the same way it does in production. The token only has to validate and
 //! carry a subject.
 
+use std::sync::Arc;
+
 use sqlx::PgPool;
+use systemprompt::ExtensionRegistry;
+use systemprompt::database::{Database, install_extension_schemas};
 use systemprompt::identifiers::{SessionId, UserId};
 use systemprompt_security::{AdminTokenParams, JwtService};
 
@@ -62,7 +66,24 @@ impl Credentials {
 pub async fn provision(pool: &PgPool) -> Credentials {
     let non_admin = provision_one(pool, "contract-user", &["user"], false).await;
     let admin = provision_one(pool, "contract-admin", &["admin", "user"], true).await;
+    reapply_seeds(pool).await;
     Credentials { non_admin, admin }
+}
+
+// Why: seeds run on every boot, and the owner-dependent ones -- the
+// `marketplace-admin` OAuth client above all, whose `owner_user_id` is NOT NULL
+// -- select the first admin user and insert nothing when there is none. A real
+// deployment installs its schema, creates an admin, then serves from the next
+// boot, by which point the seed has applied. `TempDb` installs once and never
+// boots again, so without this the client never exists and every route needing
+// it answers "Unknown OAuth client" instead of exercising its own contract.
+async fn reapply_seeds(pool: &PgPool) {
+    let pool = std::sync::Arc::new(pool.clone());
+    let database = Database::from_pools(Arc::clone(&pool), Some(Arc::clone(&pool)));
+    let registry = ExtensionRegistry::discover().expect("discover extension registrations");
+    install_extension_schemas(&registry, database.write())
+        .await
+        .expect("re-apply extension seeds after provisioning an admin");
 }
 
 async fn provision_one(pool: &PgPool, name: &str, roles: &[&str], platform: bool) -> String {

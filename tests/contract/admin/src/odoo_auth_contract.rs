@@ -194,7 +194,7 @@ fn login_body(login: &str, credential: &str) -> String {
     format!(
         r#"{{"login":"{login}","credential":"{credential}",
             "client_id":"marketplace-admin",
-            "redirect_uri":"http://localhost/admin/login",
+            "redirect_uri":"http://localhost:8080/admin/login",
             "code_challenge":"E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
             "code_challenge_method":"S256"}}"#
     )
@@ -275,7 +275,7 @@ async fn signing_in_without_a_pkce_challenge_is_refused() {
             Principal::Anonymous,
             r#"{"login":"jo@example.com","credential":"an-api-key",
                 "client_id":"marketplace-admin",
-                "redirect_uri":"http://localhost/admin/login",
+                "redirect_uri":"http://localhost:8080/admin/login",
                 "code_challenge":"","code_challenge_method":""}"#,
         ))
         .await;
