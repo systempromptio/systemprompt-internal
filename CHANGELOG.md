@@ -7,6 +7,27 @@ All notable changes to this repository are documented here. The format follows
 
 ### Fixed
 
+- **Three pieces of configuration were read from process-global state, and the
+  tests that varied them could only be correct one-per-process.** `cargo test`
+  threads them together, where they raced and produced fourteen failures that
+  were not real -- a trap that reads exactly like a regression. Each value is now
+  passed in rather than looked up globally:
+  - The MCP CLI's binary and working directory come from a `CliLocation` resolved
+    once at the composition root, replacing the `SYSTEMPROMPT_CLI_PATH` and
+    `SYSTEMPROMPT_WORKDIR` environment reads. Neither was a sanctioned
+    environment variable, and nothing outside the tests ever set them.
+  - The content-ingestion job takes `delete_orphans` as a job parameter instead
+    of reading `CONTENT_INGESTION_DELETE_ORPHANS`, and resolves its blog config
+    from the job context's own `AppPaths` instead of the process-wide
+    `BlogConfigValidated::cached()`, whose `OnceLock` fixed the answer for the
+    whole process the first time any caller asked.
+  - The subject-dimension registry is cached per database rather than in a single
+    `OnceLock`. The providers close over the pool they were built with, so one
+    process-wide registry answered every later caller from whichever database
+    asked first.
+
+  The suite now passes under `cargo test` as well as `cargo nextest`: 1227 tests,
+  no failures, where fourteen failed before.
 - Two shipped front-end sources carried explanatory `//` comments, which the
   front-end standards test bans outright — 55 of the other 57 files carry none,
   and the exemptions file is explicitly not for muting a fixable violation. The
