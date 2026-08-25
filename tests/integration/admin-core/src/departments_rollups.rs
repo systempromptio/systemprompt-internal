@@ -201,11 +201,11 @@ async fn list_user_marketplace_overrides_reports_both_scopes() {
     assert_eq!(mine.len(), 2, "the same user picks up both rule scopes");
     assert!(
         mine.iter()
-            .any(|r| r.entity_id == by_department && r.access == "allow")
+            .any(|r| r.entity_id.as_str() == by_department && r.access == "allow")
     );
     assert!(
         mine.iter()
-            .any(|r| r.entity_id == by_user && r.access == "deny")
+            .any(|r| r.entity_id.as_str() == by_user && r.access == "deny")
     );
     db.cleanup().await;
 }

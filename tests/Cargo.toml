@@ -43,7 +43,7 @@ systemprompt-mcp-knowledge-bank = { path = "../extensions/mcp/knowledge-bank" }
 systemprompt-mcp-odoo = { path = "../extensions/mcp/odoo" }
 systemprompt-knowledge-jobs = { path = "../extensions/knowledge/jobs" }
 systemprompt-web-shared = { path = "../extensions/web/shared" }
-systemprompt-web-admin = { path = "../extensions/web/admin" }
+systemprompt-web-admin = { path = "../extensions/web/admin", features = ["governance-ssr"] }
 systemprompt-web-content = { path = "../extensions/web/content" }
 systemprompt-web-jobs = { path = "../extensions/web/jobs" }
 systemprompt-web-extension = { path = "../extensions/web" }
