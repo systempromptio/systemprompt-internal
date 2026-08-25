@@ -29,6 +29,13 @@ pub fn unique(prefix: &str) -> String {
     format!("{prefix}-{}", uuid::Uuid::new_v4().simple())
 }
 
+// Why: the entity-access API parses a `user` rule_value as a UUID, because
+// every real user id is one. A `unique("...")` id is not, so a fixture that
+// grants a rule to a user must seed a user whose id looks like production's.
+pub fn unique_user_id() -> String {
+    uuid::Uuid::new_v4().to_string()
+}
+
 // Mint a token for an arbitrary audience / scope / `plugin_id` triple.
 //
 // The hook endpoints validate against `aud=hook` and `scope=hook:*`, which
