@@ -1,5 +1,5 @@
-//! The subject dimensions this extension adds, and the pure shape-shuffling
-//! the marketplace filter does around the access-control resolver.
+//! The subject dimensions this extension adds, and the candidate-retention
+//! behaviour the marketplace filter delegates to core.
 
 #![allow(
     clippy::expect_used,
@@ -11,15 +11,15 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
+use systemprompt::identifiers::{AgentId, HookId, McpServerId};
 use systemprompt::marketplace::{EntryKeepSets, MarketplaceCandidate};
-use systemprompt::models::bridge::ids::{LibraryArtifactId, PluginId};
+use systemprompt::models::bridge::ids::{LibraryArtifactId, PluginId, SkillId};
 use systemprompt::models::bridge::manifest::{
     AgentEntry, ArtifactEntry, HookEntry, ManagedMcpServer, PluginEntry, SkillEntry,
 };
 use systemprompt_security::authz::{EntityKind, EntityRef};
 use systemprompt_web_admin::authz::department::{department_dimension, department_rule_type};
 use systemprompt_web_admin::authz::organization::{organization_dimension, organization_rule_type};
-use systemprompt_web_admin::marketplace_filter::keepsets::{CandidateEntityIds, KeepSet};
 
 #[test]
 fn the_department_dimension_sits_between_user_and_role() {
@@ -77,17 +77,18 @@ fn owned_by(artifact: &str, plugin: &str) -> (LibraryArtifactId, BTreeSet<Plugin
 }
 
 fn candidate() -> MarketplaceCandidate {
-    MarketplaceCandidate::new(
-        vec![
+    MarketplaceCandidate {
+        plugins: vec![
             plugin_entry("systemprompt-admin"),
             plugin_entry("systemprompt-commons"),
         ],
-        vec![skill_entry("skill-a"), skill_entry("skill-b")],
-        vec![agent_entry("agent-a")],
-        vec![hook_entry("hook-a")],
-        vec![mcp_entry("odoo"), mcp_entry("systemprompt")],
-        vec![artifact_entry("art-admin"), artifact_entry("art-common")],
-    )
+        skills: vec![skill_entry("skill-a"), skill_entry("skill-b")],
+        agents: vec![agent_entry("agent-a")],
+        hooks: vec![hook_entry("hook-a")],
+        managed_mcp_servers: vec![mcp_entry("odoo"), mcp_entry("systemprompt")],
+        artifacts: vec![artifact_entry("art-admin"), artifact_entry("art-common")],
+        ..MarketplaceCandidate::default()
+    }
     .with_artifact_owners(BTreeMap::from([
         owned_by("art-admin", "systemprompt-admin"),
         owned_by("art-common", "systemprompt-commons"),
@@ -128,7 +129,7 @@ fn hook_entry(id: &str) -> HookEntry {
 
 fn mcp_entry(name: &str) -> ManagedMcpServer {
     serde_json::from_value(serde_json::json!({
-        "name": name, "url": "https://example.test/mcp",
+        "id": name, "name": name, "url": "https://example.test/mcp",
     }))
     .expect("mcp entry")
 }
@@ -141,8 +142,12 @@ fn artifact_entry(id: &str) -> ArtifactEntry {
     .expect("artifact entry")
 }
 
-fn keep(ids: &[&str]) -> KeepSet {
-    ids.iter().map(|s| (*s).to_owned()).collect()
+fn keep<T, F>(ids: &[&str], make: F) -> std::collections::HashSet<T>
+where
+    T: Eq + std::hash::Hash,
+    F: Fn(&str) -> T,
+{
+    ids.iter().map(|s| make(s)).collect()
 }
 
 fn retained(mut input: MarketplaceCandidate, keep_sets: &EntryKeepSets) -> MarketplaceCandidate {
@@ -151,26 +156,17 @@ fn retained(mut input: MarketplaceCandidate, keep_sets: &EntryKeepSets) -> Marke
 }
 
 #[test]
-fn candidate_ids_are_read_off_every_entry_list() {
-    let ids = CandidateEntityIds::from_candidate(&candidate());
-    assert_eq!(ids.plugins, ["systemprompt-admin", "systemprompt-commons"]);
-    assert_eq!(ids.skills, ["skill-a", "skill-b"]);
-    assert_eq!(ids.agents, ["agent-a"]);
-    assert_eq!(ids.hooks, ["hook-a"]);
-    // Why: an MCP server is keyed by its name, not an id field.
-    assert_eq!(ids.mcp, ["odoo", "systemprompt"]);
-}
-
-#[test]
 fn keep_sets_shrink_every_list_to_what_survived() {
     let kept = retained(
         candidate(),
         &EntryKeepSets {
-            plugins: keep(&["systemprompt-commons"]),
-            skills: keep(&["skill-b"]),
-            agents: KeepSet::new(),
-            hooks: keep(&["hook-a"]),
-            mcp_servers: keep(&["odoo"]),
+            plugins: keep(&["systemprompt-commons"], |s| {
+                PluginId::try_new(s).expect("plugin id")
+            }),
+            skills: keep(&["skill-b"], |s| SkillId::try_new(s).expect("skill id")),
+            agents: std::collections::HashSet::new(),
+            hooks: keep(&["hook-a"], |s| HookId::new(s)),
+            mcp_servers: keep(&["odoo"], |s| McpServerId::new(s)),
         },
     );
     assert_eq!(kept.plugins.len(), 1);
@@ -188,7 +184,9 @@ fn an_artifact_survives_only_while_one_of_its_owning_plugins_does() {
     let kept = retained(
         candidate(),
         &EntryKeepSets {
-            plugins: keep(&["systemprompt-commons"]),
+            plugins: keep(&["systemprompt-commons"], |s| {
+                PluginId::try_new(s).expect("plugin id")
+            }),
             ..EntryKeepSets::default()
         },
     );
@@ -205,7 +203,7 @@ fn dropping_every_plugin_drops_every_artifact() {
     let kept = retained(
         candidate(),
         &EntryKeepSets {
-            skills: keep(&["skill-a"]),
+            skills: keep(&["skill-a"], |s| SkillId::try_new(s).expect("skill id")),
             ..EntryKeepSets::default()
         },
     );
@@ -220,7 +218,9 @@ fn an_unowned_artifact_is_dropped_rather_than_defaulting_to_visible() {
     let kept = retained(
         input,
         &EntryKeepSets {
-            plugins: keep(&["systemprompt-admin", "systemprompt-commons"]),
+            plugins: keep(&["systemprompt-admin", "systemprompt-commons"], |s| {
+                PluginId::try_new(s).expect("plugin id")
+            }),
             ..EntryKeepSets::default()
         },
     );
@@ -239,7 +239,9 @@ fn the_assembly_context_passes_through_untouched() {
     let kept = retained(
         input,
         &EntryKeepSets {
-            plugins: keep(&["systemprompt-admin"]),
+            plugins: keep(&["systemprompt-admin"], |s| {
+                PluginId::try_new(s).expect("plugin id")
+            }),
             ..EntryKeepSets::default()
         },
     );
@@ -256,11 +258,15 @@ fn keeping_everything_is_the_identity() {
     let kept = retained(
         candidate(),
         &EntryKeepSets {
-            plugins: keep(&["systemprompt-admin", "systemprompt-commons"]),
-            skills: keep(&["skill-a", "skill-b"]),
-            agents: keep(&["agent-a"]),
-            hooks: keep(&["hook-a"]),
-            mcp_servers: keep(&["odoo", "systemprompt"]),
+            plugins: keep(&["systemprompt-admin", "systemprompt-commons"], |s| {
+                PluginId::try_new(s).expect("plugin id")
+            }),
+            skills: keep(&["skill-a", "skill-b"], |s| {
+                SkillId::try_new(s).expect("skill id")
+            }),
+            agents: keep(&["agent-a"], |s| AgentId::new(s)),
+            hooks: keep(&["hook-a"], |s| HookId::new(s)),
+            mcp_servers: keep(&["odoo", "systemprompt"], |s| McpServerId::new(s)),
         },
     );
     assert_eq!(kept.plugins.len(), 2);
