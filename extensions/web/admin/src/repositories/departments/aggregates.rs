@@ -2,7 +2,7 @@
 //! overrides and per-user skill / device counts keyed by department.
 
 use sqlx::PgPool;
-use systemprompt::identifiers::UserId;
+use systemprompt::identifiers::{MarketplaceId, UserId};
 
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct UserManagementAggregate {
@@ -17,8 +17,7 @@ pub struct UserManagementAggregate {
 pub struct UserMarketplaceOverride {
     pub user_id: UserId,
     pub department: String,
-    // Why: polymorphic entity reference (gateway_route/mcp_server), no single typed-ID equivalent
-    pub entity_id: String,
+    pub entity_id: MarketplaceId,
     pub access: String,
 }
 
@@ -31,7 +30,7 @@ pub async fn list_user_marketplace_overrides(
         SELECT
             u.id AS "user_id!: UserId",
             COALESCE(upe.department, '') AS "department!",
-            acr.entity_id AS "entity_id!",
+            acr.entity_id AS "entity_id!: MarketplaceId",
             acr.access AS "access!"
         FROM users u
         LEFT JOIN user_profile_ext upe ON upe.user_id = u.id

@@ -15,7 +15,7 @@ The Artifacts library is a Cowork feature. Check for it before doing anything el
 **`create_artifact` tool that takes an `html_path`**, a `list_artifacts` tool, and a session
 `outputs/` directory. If any of those is absent, **stop here** and hand over:
 
-- **Codex CLI** — follow `systemprompt-setup-codex` instead. Codex has no artifact library at all,
+- **Codex CLI** — follow `systemprompt_setup_codex` instead. Codex has no artifact library at all,
   and its inline visualizations are blocked from calling MCP tools (`callMcp` rejects with "Inline
   visualizations cannot call tools"), so a dashboard could not load data even if you rendered one.
 - **Plain Claude Code or any other MCP client** — nothing to install. Verify the Odoo MCP server

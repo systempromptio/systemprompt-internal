@@ -72,10 +72,9 @@ pub async fn insert_setup_token(
     Ok(())
 }
 
-// Why: `name` is set to the email to sidestep the `users.name` uniqueness
-// constraint; `display_name` carries the human-friendly form. `email_verified`
-// is set on the SSO-provisioning precedent: the domain allowlist is the gate,
-// no mail-based proof of address exists on this deployment.
+// Why: `email_verified` is set on the SSO-provisioning precedent: the domain
+// allowlist is the gate, no mail-based proof of address exists on this
+// deployment.
 pub async fn insert_passkey_user(
     pool: &PgPool,
     email: &str,
@@ -96,7 +95,7 @@ pub async fn insert_passkey_user(
         VALUES ($1, $2, $3, $4, 'active', true, $5)
         "#,
         &user_id,
-        email,
+        display_name,
         email,
         display_name,
         &roles,

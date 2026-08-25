@@ -1,4 +1,4 @@
-id: systemprompt-setup-codex
+id: systemprompt_setup_codex
 name: "Systemprompt Setup — Codex CLI"
 description: "Set up OpenAI Codex CLI to route through the systemprompt.io gateway via the desktop bridge: install the bridge, enable the Codex agent, and verify governed requests arrive"
 enabled: true

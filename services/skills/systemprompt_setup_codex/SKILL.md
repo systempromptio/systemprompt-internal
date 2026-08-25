@@ -70,7 +70,7 @@ dashboard rendered there could never fetch Odoo data.
 
 So: do not stage dashboard HTML anywhere on this host, do not go looking for an install command,
 and do not write a setup receipt reporting zero installs. Say the dashboards live in Claude Cowork
-and are installed there by `systemprompt-setup-cowork` (or `admin_workspace_setup_cowork` for the
+and are installed there by `systemprompt_setup_cowork` (or `admin_workspace_setup_cowork` for the
 admin control-plane set).
 
 ## What this does NOT do — Odoo identity

@@ -53,9 +53,8 @@ pub fn unclaimed_email(local: &str) -> String {
 
 // Insert an active user with the `user` role.
 //
-// `users.name` is unique and `users.email` must already be lowercase and
-// trimmed, so the email doubles as the name exactly as the production
-// provisioning paths do.
+// `users.email` is unique and must already be lowercase and trimmed; the
+// email doubles as the name for fixture brevity.
 pub async fn insert_user(pool: &PgPool, id: &str, email: &str) -> UserId {
     insert_user_full(pool, id, email, Some(email), &["user".to_owned()], "active").await
 }

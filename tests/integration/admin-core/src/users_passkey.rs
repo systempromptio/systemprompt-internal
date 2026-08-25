@@ -261,8 +261,8 @@ async fn passkey_insert_passkey_user_provisions_like_the_sso_door() {
             .await
             .expect("the new user exists");
     assert_eq!(
-        name, email,
-        "name carries the email to dodge the uniqueness constraint"
+        name, "Self Registered",
+        "name carries the human-friendly form now that users.name is not unique"
     );
     assert_eq!(display.as_deref(), Some("Self Registered"));
     assert!(

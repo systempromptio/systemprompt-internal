@@ -14,45 +14,10 @@ marketplace:
     - sales
     - productivity
   license: proprietary
-  category: crm
   access:
     default_included: true
     roles: [user]
     justification: "Public Odoo CRM productivity workspace for signed-in users"
-  skills:
-    include:
-      - apply_brand_voice
-      - format_client_document
-      - draft_client_email
-      - company_boilerplate
-      # Setup. The router must be here: Codex CLI reads this flat list rather
-      # than the plugin bundles, so without it the only setup skill Codex sees
-      # is a Cowork-only dashboard installer it cannot possibly run. The two
-      # host-specific skills follow so the router's handoff resolves; each one
-      # guards on its own host, so shipping them everywhere is safe.
-      - systemprompt-setup
-      - systemprompt-setup-cowork
-      - systemprompt-setup-codex
-      # Odoo CRM (systemprompt-crm plugin): leads and pipeline, notes onto
-      # records, and the live business overview.
-      - crm
-      - business_overview
-      - add_note
-      # Admin control plane. Listed here so marketplace scoping keeps them in
-      # the catalogue; per-entity rules in services/access-control/roles.yaml
-      # restrict them to the admin role.
-      - admin_workspace_setup_cowork
-      - admin_user_report
-      - admin_activity_report
-      - analytics_dashboards
-      - inspect_ai_requests
-      - inspect_conversation
-      - manage_permissions
-      - demonstrate_governance
-      - inspect_agents
-      - manage_services
-      - inspect_mcp_and_skills
-      - systemprompt_cli
   plugins:
     include:
       - systemprompt-commons

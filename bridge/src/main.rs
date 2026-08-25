@@ -21,7 +21,7 @@ mod registry;
 
 static SYSTEMPROMPT_BRAND: Brand = Brand {
     app_name: "Systemprompt Internal Bridge",
-    binary_name: "systemprompt-internal-bridge",
+    binary_name: systemprompt_internal_brand::BRIDGE_BINARY_NAME,
     // Why: this crate's version, not the core library's — it is what the
     // `bridge-v*` release tag carries and what the updater compares against the
     // gateway's advertised version.

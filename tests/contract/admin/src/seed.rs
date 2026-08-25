@@ -102,8 +102,8 @@ pub fn mint(spec: &TokenSpec<'_>) -> String {
     encode(&header, &claims, key).expect("sign the token")
 }
 
-// Insert a user with the `user` role. `users.name` is unique, so the email
-// doubles as the name exactly as the production provisioning paths do.
+// Insert a user with the `user` role. The email doubles as the name for
+// fixture brevity; `users.email` is the unique column.
 pub async fn insert_user(pool: &PgPool, id: &str, email: &str) -> UserId {
     sqlx::query(
         "INSERT INTO users (id, name, email, display_name, status, email_verified, roles)

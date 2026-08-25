@@ -26,10 +26,9 @@
 use axum::http::HeaderMap;
 use axum::{Extension, Json};
 use serde::{Deserialize, Serialize};
-use systemprompt::identifiers::{AuthorizationCode, ClientId, UserId};
+use systemprompt::identifiers::{ClientId, UserId};
 use systemprompt::oauth::OAuthRepository;
-use systemprompt::oauth::repository::AuthCodeParams;
-use systemprompt::oauth::services::generate_secure_token;
+use systemprompt::oauth::repository::MintAuthCodeParams;
 use systemprompt::oauth::services::validation::validate_redirect_uri;
 
 use super::OdooAuthError;
@@ -241,38 +240,24 @@ async fn validate_client(repo: &OAuthRepository, req: &OdooLoginRequest) -> Admi
     Ok(())
 }
 
-// Why: mirrors the code issuance in core's `webauthn_complete`, so both
-// sign-in routes produce codes the token endpoint treats identically.
 async fn mint_authorization_code(
     repo: &OAuthRepository,
     req: &OdooLoginRequest,
     user_id: &UserId,
 ) -> AdminResult<String> {
-    let code_str = generate_secure_token("auth_code");
-    let code = AuthorizationCode::new(code_str.clone());
-
-    let scope = req.scope.clone().unwrap_or_else(|| {
-        let default_roles = OAuthRepository::get_default_roles();
-        if default_roles.is_empty() {
-            "user".to_owned()
-        } else {
-            default_roles.join(" ")
-        }
-    });
-
-    let mut builder =
-        AuthCodeParams::builder(&code, &req.client_id, user_id, &req.redirect_uri, &scope)
-            .with_pkce(&req.code_challenge, &req.code_challenge_method);
-
-    if let Some(resource) = req.resource.as_deref() {
-        builder = builder.with_resource(resource);
-    }
-
-    repo.store_authorization_code(builder.build())
+    let code = repo
+        .mint_authorization_code(MintAuthCodeParams {
+            client_id: &req.client_id,
+            user_id,
+            redirect_uri: &req.redirect_uri,
+            scope: req.scope.as_deref(),
+            code_challenge: Some(&req.code_challenge),
+            code_challenge_method: Some(&req.code_challenge_method),
+            resource: req.resource.as_deref(),
+        })
         .await
         .map_err(AdminError::internal)?;
-
-    Ok(code_str)
+    Ok(code.as_str().to_owned())
 }
 
 // Why: best-effort caller identity for throttling. The server sits behind a

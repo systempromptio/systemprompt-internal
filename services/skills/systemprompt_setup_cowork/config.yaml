@@ -1,4 +1,4 @@
-id: systemprompt-setup-cowork
+id: systemprompt_setup_cowork
 name: "Systemprompt Setup — Claude Cowork"
 description: "First-run workspace setup: installs the systemprompt.io Odoo dashboards (business overview, pipeline, leads, recent activity, to-do bulletin) into your Artifacts library and checks the Odoo connection"
 enabled: true

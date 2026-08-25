@@ -17,8 +17,8 @@ Decide which host you are running in, then load and follow the matching skill:
 
 | You are running in | Signs | Use |
 |--------------------|-------|-----|
-| Claude Cowork | A session VM under `/sessions/`, a `create_artifact` tool that takes `html_path`, an `outputs/` directory | `systemprompt-setup-cowork` |
-| Codex CLI | OpenAI Codex CLI environment, no Cowork artifact tools | `systemprompt-setup-codex` |
+| Claude Cowork | A session VM under `/sessions/`, a `create_artifact` tool that takes `html_path`, an `outputs/` directory | `systemprompt_setup_cowork` |
+| Codex CLI | OpenAI Codex CLI environment, no Cowork artifact tools | `systemprompt_setup_codex` |
 
 If neither matches (plain Claude Code, another MCP client), there is nothing host-specific to
 install: verify the Odoo MCP connection works by listing the available Odoo tools, and point the

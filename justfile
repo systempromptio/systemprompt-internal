@@ -566,8 +566,10 @@ prepare:
     for pkg in $SQLX_PKGS; do
         cargo clean -p "$pkg" 2>/dev/null || true
     done
-    # Workspace-level prepare (catches lib crates)
-    cargo sqlx prepare --workspace
+    # Workspace-level prepare (catches lib crates). The admin crate's
+    # governance-ssr queries are feature-gated off by default; the flag keeps
+    # their cache entries from being pruned as though they no longer existed.
+    cargo sqlx prepare --workspace -- --features governance-ssr
     # Per-crate prepare for binary/extension crates that cargo sqlx skips
     EXTENSION_DIRS="extensions/web extensions/mcp/shared extensions/mcp/systemprompt"
     for dir in $EXTENSION_DIRS; do

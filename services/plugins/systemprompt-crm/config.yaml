@@ -13,8 +13,16 @@ plugin:
   skills:
     source: explicit
     include:
-      - systemprompt-setup-cowork
+      # Setup. The router must ship in a plugin bundle now that the
+      # marketplace no longer carries a flat skill list; the two host-specific
+      # skills follow so the router's handoff resolves. Each guards on its own
+      # host, so shipping them everywhere is safe.
+      - systemprompt_setup
+      - systemprompt_setup_cowork
+      - systemprompt_setup_codex
       - crm
+      - business_overview
+      - add_note
       - schedule_activity
   agents:
     source: explicit
@@ -28,8 +36,8 @@ plugin:
       - odoo
       - knowledge-bank
   content_sources: {}
-  # The workspace dashboards systemprompt-setup-cowork installs. The skill's primary channel
-  # is skills/systemprompt-setup-cowork/assets/artifacts/ (VM-mounted, bash-copyable); the
+  # The workspace dashboards systemprompt_setup_cowork installs. The skill's primary channel
+  # is skills/systemprompt_setup_cowork/assets/artifacts/ (VM-mounted, bash-copyable); the
   # artifacts/<id>.json records this selection emits into the bundle are the
   # fallback.
   artifacts:

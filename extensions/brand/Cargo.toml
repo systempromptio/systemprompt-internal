@@ -1,0 +1,16 @@
+# Leaf crate holding the Systemprompt Internal brand constants. Both the main
+# workspace (admin extension) and the standalone bridge workspace depend on it,
+# so a renamed binary or config dir changes in exactly one place.
+[package]
+name = "systemprompt-internal-brand"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Brand constants shared by the Systemprompt Internal server and its desktop bridge."
+repository.workspace = true
+homepage.workspace = true
+publish = false
+
+[lints]
+workspace = true

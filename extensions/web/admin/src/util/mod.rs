@@ -2,4 +2,5 @@
 //! domain.
 
 pub mod month_range;
+pub mod source_path;
 pub mod time_range;

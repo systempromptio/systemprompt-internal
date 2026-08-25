@@ -7,6 +7,31 @@ All notable changes to this repository are documented here. The format follows
 
 ### Changed
 
+- Adopted systemprompt core 0.38.0 from crates.io (typed marketplace keep-sets,
+  the `keep_sets` authz resolver with bulk entity loading, `SubjectRef`/`DeviceId`
+  identifiers, fallible `ContextId` construction, and the
+  `ai_gateway_policies.priority` / `users.name`-uniqueness migrations). The
+  local-core `[patch.crates-io]` blocks are dormant again.
+- Plan and ACL YAML loaders now validate the whole document before writing:
+  a grant naming an entity with no catalog row is an error instead of minting a
+  phantom catalog entry. Two inert grants in `plans.yaml` that named a
+  nonexistent `systemprompt-admin` marketplace were removed; admin-console
+  access continues to ride the `roles.yaml` admin gating.
+- Governance SSR repositories are gated behind a new `governance-ssr` cargo
+  feature (default off in this fork); `just prepare` builds with it so their
+  query cache survives.
+- Budget at-risk thresholds unified in one `BudgetState` shared by the internal
+  report and enterprise console pages.
+- Odoo sign-in now mints OAuth authorization codes through core's
+  `mint_authorization_code` instead of a hand-mirrored copy; extension authz
+  precedences derive from core's exported constants.
+- Federated and passkey users get their human-readable name in `users.name`
+  (core 0.38.0 dropped the uniqueness constraint that forced the email
+  workaround); `display_name` is unchanged.
+- Polymorphic entity/subject references across admin repositories and handlers
+  now use typed ids (`EntityRef`, `SubjectRef`, `DeviceId`, `MarketplaceId`,
+  `UserId`) instead of raw strings; JSON/template output is unchanged.
+
 - The marketplace filter now delegates its candidate shrinking to core:
   `apply_keep_sets` and its hand-rolled artifact-ownership pruning are replaced
   by `MarketplaceCandidate::retain_entries`, and the local `entity_ref_for`

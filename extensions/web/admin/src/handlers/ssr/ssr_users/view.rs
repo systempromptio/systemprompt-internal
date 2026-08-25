@@ -42,18 +42,18 @@ pub(super) fn resolve_marketplaces(
 
     for ovr in overrides {
         match ovr.access.as_str() {
-            "allow" if !entries.iter().any(|e| e.id == ovr.entity_id) => {
+            "allow" if !entries.iter().any(|e| e.id == ovr.entity_id.as_str()) => {
                 let name = yaml_defaults
                     .iter()
-                    .find(|(id, _)| id == &ovr.entity_id)
-                    .map_or_else(|| ovr.entity_id.clone(), |(_, n)| n.clone());
+                    .find(|(id, _)| id.as_str() == ovr.entity_id.as_str())
+                    .map_or_else(|| ovr.entity_id.as_str().to_owned(), |(_, n)| n.clone());
                 entries.push(UserMarketplaceRef {
-                    id: ovr.entity_id.clone(),
+                    id: ovr.entity_id.as_str().to_owned(),
                     name,
                     source: "override",
                 });
             },
-            "deny" => entries.retain(|e| e.id != ovr.entity_id),
+            "deny" => entries.retain(|e| e.id != ovr.entity_id.as_str()),
             _ => {},
         }
     }

@@ -14,18 +14,14 @@ use super::activity::activity_fields;
 use super::call::{OdooCall, lead_fields};
 use crate::client::{GroupQuery, SearchOptions};
 
-// Why: how far back "recent" reaches for the new-leads section.
 pub const RECENT_DAYS: i64 = 7;
-// Why: how far ahead the task section looks. A week is the horizon someone
-// planning their day can still act on.
+// Why: a week is the horizon someone planning their day can still act on.
 pub const TASK_HORIZON_DAYS: i64 = 7;
-// Why: chatter notes included in the briefing.
 const RECENT_NOTES: u32 = 20;
 // Why: caps the new-leads list, so a busy week cannot crowd out the rest.
 const RECENT_LEADS: u32 = 25;
-// Why: separate caps for the agenda sections, both small — a day's meetings and
-// a week's deadlines are short lists by nature, and a long one is a signal to
-// open the calendar rather than to read more here.
+// Why: small on purpose — a day's meetings and a week's deadlines are short
+// lists by nature, and a long one is a signal to open the calendar instead.
 const AGENDA_LIMIT: u32 = 15;
 
 const EVENT_FIELDS: [&str; 6] = ["id", "name", "start", "stop", "location", "partner_ids"];

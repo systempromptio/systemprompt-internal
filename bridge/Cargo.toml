@@ -24,6 +24,9 @@ path = "src/main.rs"
 # systemprompt-* deps via relative paths, so no [patch.crates-io] is needed
 # here. The `brand` module + `run_with_brand` entry point come from this crate.
 systemprompt-bridge = { path = "../../systemprompt-core/bin/bridge" }
+# Brand constants shared with the server workspace's admin extension, so the
+# binary name printed in install/login commands cannot drift from the [[bin]].
+systemprompt-internal-brand = { path = "../extensions/brand" }
 # Required by core's `register_*!` macros, which expand to `::inventory::submit!`
 # in this crate; the registrations in src/registry.rs use it.
 inventory = "0.3"

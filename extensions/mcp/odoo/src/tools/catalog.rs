@@ -24,7 +24,6 @@ use super::{
     TOOL_TASK_CREATE, TOOL_TASK_LIST, TOOL_TASK_UPDATE, ToolDef, create_tool,
 };
 
-// Why: the crm.lead tools — the four record operations plus the aggregation.
 pub fn lead_tools() -> Vec<Tool> {
     vec![
         create_tool(&ToolDef {
@@ -74,9 +73,6 @@ pub fn lead_tools() -> Vec<Tool> {
     ]
 }
 
-// Why: the record-anchored knowledge bank — chatter and attachments. These are
-// the retrieval tools, and their descriptions carry the routing advice a model
-// needs to pick between them and the structured record searches.
 pub fn knowledge_tools() -> Vec<Tool> {
     vec![
         create_tool(&ToolDef {
@@ -149,9 +145,6 @@ pub fn knowledge_tools() -> Vec<Tool> {
     ]
 }
 
-// Why: the scheduling and collaboration plane — activities, calendar, tasks,
-// channels. These write to other people's days, so the descriptions say who
-// ends up on the hook.
 pub fn work_tools() -> Vec<Tool> {
     let mut tools = scheduling_tools();
     tools.extend(collaboration_tools());
@@ -249,8 +242,6 @@ fn collaboration_tools() -> Vec<Tool> {
     ]
 }
 
-// Why: everything that is not a lead or a knowledge record — partners, the
-// activity list, and the composite briefing.
 pub fn context_tools() -> Vec<Tool> {
     vec![
         create_tool(&ToolDef {

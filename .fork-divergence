@@ -111,18 +111,10 @@ extensions/web/admin/src/handlers/ssr/list_view.rs	# chip, preset and preserved-
 # ---------------------------------------------------------------------
 # DEBT - one side is simply ahead. Port it, then delete the line.
 # ---------------------------------------------------------------------
-extensions/web/admin/src/marketplace_filter/keepsets.rs	# internal adopted core's EntryKeepSets/retain_entries (post-0.37.0); port with the template's next core-pin bump
-extensions/web/admin/src/marketplace_filter/mod.rs	# internal calls EntityRef::from_kind_and_id and retain_entries (post-0.37.0 core); port with the template's next core-pin bump
-extensions/web/admin/src/repositories/users/access_control/matrix.rs	# internal uses core's EntityRef::from_kind_and_id (post-0.37.0); port with the template's next core-pin bump
-extensions/web/admin/src/handlers/ssr/entity_urls.rs	# internal deleted the per-helper URL-shape comments the module doc already states; port with the Why-comment cleanup wave
 extensions/web/admin/src/repositories/governance/counts.rs	# internal gates the ssr_governance-only rollups behind the governance-ssr feature; port with the Why-comment cleanup wave
 extensions/web/admin/src/repositories/governance/hook_events.rs	# internal gates the ssr_governance-only hook-event queries behind the governance-ssr feature; port with the Why-comment cleanup wave
 extensions/web/admin/src/repositories/governance/mod.rs	# internal cfg-gates the governance-ssr re-exports the template consumes unconditionally; port with the Why-comment cleanup wave
 extensions/web/admin/src/repositories/governance/rankings.rs	# internal gates the ssr_governance-only rankings behind the governance-ssr feature; port with the Why-comment cleanup wave
-extensions/web/admin/src/repositories/marketplace/plugins/catalog.rs	# internal routes source-path display through util::source_path::display_source_path; port with the Why-comment cleanup wave
-extensions/web/admin/src/repositories/mcp/mcp_servers/queries.rs	# internal routes source-path display through util::source_path::display_source_path; port with the Why-comment cleanup wave
-extensions/web/shared/src/config/mod.rs	# internal dedupes the two error-adapt map_errs into one read_raw helper; port with the Why-comment cleanup wave
-extensions/web/tests/admin_css_classes.rs	# internal moved repo_root/walk into tests/support; port with the Why-comment cleanup wave
 # (2026-08-05: the coverage-campaign seams and bug fixes were all ported to
 # the template and the files converged; only genuinely product-divergent test
 # files remain, listed under PRODUCT.)

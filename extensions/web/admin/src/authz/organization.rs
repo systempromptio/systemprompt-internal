@@ -23,14 +23,14 @@ use std::time::{Duration, Instant};
 use async_trait::async_trait;
 use sqlx::PgPool;
 use systemprompt::identifiers::UserId;
-use systemprompt_security::authz::{RuleType, SubjectAttributeProvider, SubjectDimension};
+use systemprompt_security::authz::{
+    ROLE_PRECEDENCE, RuleType, SubjectAttributeProvider, SubjectDimension,
+};
 use tokio::sync::RwLock;
 
 const ORGANIZATION_SLUG: &str = "organization";
 
-// Why: below core's `ROLE` (200) and `DEPARTMENT` (100) — the broadest scope
-// yields to every narrower one.
-const ORGANIZATION_PRECEDENCE: u16 = 300;
+const ORGANIZATION_PRECEDENCE: u16 = ROLE_PRECEDENCE + 100;
 
 const ORGANIZATION_TTL: Duration = Duration::from_secs(60);
 

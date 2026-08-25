@@ -38,7 +38,7 @@ pub(super) async fn load_user_groups(
             Vec::new()
         });
 
-    // Why: Why an empty list is not a safe default here: `resolve_marketplaces`
+    // Why: an empty list is not a safe default here: `resolve_marketplaces`
     // seeds from every YAML marketplace and *subtracts* the deny rows, so
     // losing the overrides does not lose grants — it loses the denials, and
     // every explicitly denied marketplace renders as granted. That is the one
@@ -149,7 +149,12 @@ async fn collect_user_devices(pool: &PgPool, d: &crate::types::UserDetail) -> Ve
         .inspect_err(|e| tracing::warn!(error = %e, "ssr_users: load device app_links failed"))
         .unwrap_or_default()
         .into_iter()
-        .map(|r| (r.device_id, (r.app_platform, r.app_version, r.last_seen_at)))
+        .map(|r| {
+            (
+                r.device_id.as_str().to_owned(),
+                (r.app_platform, r.app_version, r.last_seen_at),
+            )
+        })
         .collect();
 
     pats.into_iter()

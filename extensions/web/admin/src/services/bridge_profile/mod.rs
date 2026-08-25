@@ -78,9 +78,7 @@ pub(crate) struct BridgeConnectBlock {
     pub just_login_command: String,
 }
 
-// Why: not derivable here — `brand()` lives in the bridge crate, which the
-// admin extension does not depend on.
-pub(crate) const BRIDGE_BINARY: &str = "systemprompt-internal-bridge";
+pub(crate) use systemprompt_internal_brand::BRIDGE_BINARY_NAME as BRIDGE_BINARY;
 
 #[derive(Debug, Clone, Default, Serialize)]
 pub(crate) struct OdooLinkBlock {

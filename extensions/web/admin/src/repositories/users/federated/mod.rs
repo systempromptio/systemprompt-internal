@@ -108,8 +108,6 @@ pub async fn delete_federated_identities_for_issuer(
     Ok(deleted)
 }
 
-// Why: `name` is set to the email to sidestep the `users.name` uniqueness
-// constraint; `display_name` carries the human-friendly form.
 async fn create_federated(
     pool: &PgPool,
     issuer: &str,
@@ -136,7 +134,7 @@ async fn create_federated(
         VALUES ($1, $2, $3, $4, 'active', true, $5)
         "#,
         &user_id,
-        email,
+        display_name,
         email,
         display_name,
         &roles,

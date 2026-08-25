@@ -5,7 +5,7 @@ any that are missing, leave the ones already there alone, and report a clear "in
 result. Safe to run on every new session — it reconciles rather than seeds, so re-running is the
 point, not a waste.
 
-This is the admin counterpart to `systemprompt-setup-cowork`, which installs the Odoo CRM dashboards
+This is the admin counterpart to `systemprompt_setup_cowork`, which installs the Odoo CRM dashboards
 (leads, activities, pipeline). The two do not overlap: each installs only what its own plugin ships.
 
 ## Before you start — this skill only works in Claude Cowork
@@ -15,7 +15,7 @@ The Artifacts library is a Cowork feature. Check for it before doing anything el
 `outputs/` directory. If any of those is absent, **stop here**. Report that the admin dashboards are
 a Cowork feature and this host has no Artifacts library, then hand over:
 
-- **Codex CLI** — follow `systemprompt-setup-codex` instead. Codex has no artifact library at all,
+- **Codex CLI** — follow `systemprompt_setup_codex` instead. Codex has no artifact library at all,
   and its inline visualizations are blocked from calling MCP tools (`callMcp` rejects with "Inline
   visualizations cannot call tools"), so a dashboard could not load data even if you rendered one.
 - **Plain Claude Code or any other MCP client** — nothing to install. Verify the `systemprompt` MCP

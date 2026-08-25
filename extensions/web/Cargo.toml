@@ -14,6 +14,9 @@ publish = false
 [package.metadata.cargo-machete]
 ignored = ["systemprompt-extension", "inventory"]
 
+[features]
+governance-ssr = ["systemprompt-web-admin/governance-ssr"]
+
 [lints]
 workspace = true
 

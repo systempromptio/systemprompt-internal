@@ -3,11 +3,9 @@
 use serde::Serialize;
 use systemprompt::identifiers::UserId;
 
-// Why: One customer, as the enterprise list and the detail header show them.
-//
-// Money stays in microdollars all the way to the template, where `formatUsd`
-// renders it. Rounding to dollars in Rust and again in Handlebars is how a
-// total stops matching the rows above it.
+// Why: money stays in microdollars all the way to the template, where
+// `formatUsd` renders it. Rounding to dollars in Rust and again in Handlebars
+// is how a total stops matching the rows above it.
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct EnterpriseView {
     pub slug: String,
