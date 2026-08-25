@@ -7,6 +7,8 @@ All notable changes to this repository are documented here. The format follows
 
 ### Changed
 
+- Bridge rebuilt against systemprompt-core 0.38.0 (`bridge/CORE_REF` bumped to
+  the v0.38.0 release commit) and republished as `bridge-v0.18.0`.
 - Adopted systemprompt core 0.38.0 from crates.io (typed marketplace keep-sets,
   the `keep_sets` authz resolver with bulk entity loading, `SubjectRef`/`DeviceId`
   identifiers, fallible `ContextId` construction, and the
