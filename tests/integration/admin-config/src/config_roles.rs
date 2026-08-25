@@ -225,10 +225,7 @@ async fn load_plans_from_yaml_is_idempotent_across_two_boots() {
         .await
         .expect("count plans");
     assert_eq!(plans, 1);
-    assert_eq!(
-        org_rule_values(&db.pool, &org).await,
-        vec!["mkt".to_owned()]
-    );
+    assert_eq!(org_rule_values(&db.pool, &org).await, vec![marketplace]);
 
     db.cleanup().await;
 }
