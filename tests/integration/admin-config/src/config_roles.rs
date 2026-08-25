@@ -198,10 +198,18 @@ async fn load_plans_from_yaml_is_idempotent_across_two_boots() {
     let dir: &Path = tmp.path();
     let plan = unique("plan");
     let org = unique("org");
+    let marketplace = unique("mkt");
+    insert_acl_entity(
+        &db.pool,
+        EntityKind::Marketplace.as_str(),
+        &marketplace,
+        false,
+    )
+    .await;
     write_services_file(
         dir,
         "access-control/plans.yaml",
-        &plans_yaml(&plan, &org, "mkt"),
+        &plans_yaml(&plan, &org, &marketplace),
     );
 
     load_plans_from_yaml(&db.pool, dir)
