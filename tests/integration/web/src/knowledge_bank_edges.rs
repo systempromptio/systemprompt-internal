@@ -48,7 +48,7 @@ fn request_context() -> SysRequestContext {
     SysRequestContext::new(
         SessionId::new("kb-edge-session"),
         TraceId::new("kb-edge-trace"),
-        ContextId::new("00000000-0000-4000-8000-00000000e46e"),
+        ContextId::new_unchecked("00000000-0000-4000-8000-00000000e46e"),
         AgentName::new("kb-edge-agent"),
     )
 }
