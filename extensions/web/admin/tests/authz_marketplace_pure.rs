@@ -11,7 +11,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use systemprompt::marketplace::MarketplaceCandidate;
+use systemprompt::marketplace::{EntryKeepSets, MarketplaceCandidate};
 use systemprompt::models::bridge::ids::{LibraryArtifactId, PluginId};
 use systemprompt::models::bridge::manifest::{
     AgentEntry, ArtifactEntry, HookEntry, ManagedMcpServer, PluginEntry, SkillEntry,
@@ -19,9 +19,7 @@ use systemprompt::models::bridge::manifest::{
 use systemprompt_security::authz::{EntityKind, EntityRef};
 use systemprompt_web_admin::authz::department::{department_dimension, department_rule_type};
 use systemprompt_web_admin::authz::organization::{organization_dimension, organization_rule_type};
-use systemprompt_web_admin::marketplace_filter::keepsets::{
-    CandidateEntityIds, KeepSet, KeepSets, apply_keep_sets, entity_ref_for,
-};
+use systemprompt_web_admin::marketplace_filter::keepsets::{CandidateEntityIds, KeepSet};
 
 #[test]
 fn the_department_dimension_sits_between_user_and_role() {
@@ -54,27 +52,11 @@ fn the_two_extension_dimensions_are_distinct_and_ordered() {
 
 #[test]
 fn every_entity_kind_maps_to_its_own_typed_reference() {
-    let kinds = [
-        EntityKind::Plugin,
-        EntityKind::Skill,
-        EntityKind::Agent,
-        EntityKind::McpServer,
-        EntityKind::Marketplace,
-        EntityKind::GatewayRoute,
-        EntityKind::Hook,
-        EntityKind::SlackWorkspace,
-        EntityKind::SlackChannel,
-        EntityKind::TeamsTenant,
-        EntityKind::TeamsConversation,
-    ];
     let mut seen = Vec::new();
-    for kind in kinds {
-        let entity = entity_ref_for(kind, "id-1");
-        let rendered = format!("{entity:?}");
-        assert!(
-            rendered.contains("id-1"),
-            "{kind:?} dropped the id: {rendered}"
-        );
+    for kind in EntityKind::ALL {
+        let entity = EntityRef::from_kind_and_id(*kind, "id-1");
+        assert_eq!(entity.kind(), *kind);
+        assert_eq!(entity.id_str(), "id-1");
         assert!(
             !seen.contains(&std::mem::discriminant(&entity)),
             "{kind:?} reuses another kind's EntityRef variant"
@@ -82,7 +64,7 @@ fn every_entity_kind_maps_to_its_own_typed_reference() {
         seen.push(std::mem::discriminant(&entity));
     }
     assert!(matches!(
-        entity_ref_for(EntityKind::Plugin, "p"),
+        EntityRef::from_kind_and_id(EntityKind::Plugin, "p"),
         EntityRef::Plugin(_)
     ));
 }
@@ -163,6 +145,11 @@ fn keep(ids: &[&str]) -> KeepSet {
     ids.iter().map(|s| (*s).to_owned()).collect()
 }
 
+fn retained(mut input: MarketplaceCandidate, keep_sets: &EntryKeepSets) -> MarketplaceCandidate {
+    input.retain_entries(keep_sets);
+    input
+}
+
 #[test]
 fn candidate_ids_are_read_off_every_entry_list() {
     let ids = CandidateEntityIds::from_candidate(&candidate());
@@ -176,14 +163,14 @@ fn candidate_ids_are_read_off_every_entry_list() {
 
 #[test]
 fn keep_sets_shrink_every_list_to_what_survived() {
-    let kept = apply_keep_sets(
+    let kept = retained(
         candidate(),
-        &KeepSets {
+        &EntryKeepSets {
             plugins: keep(&["systemprompt-commons"]),
             skills: keep(&["skill-b"]),
             agents: KeepSet::new(),
             hooks: keep(&["hook-a"]),
-            mcp: keep(&["odoo"]),
+            mcp_servers: keep(&["odoo"]),
         },
     );
     assert_eq!(kept.plugins.len(), 1);
@@ -198,14 +185,11 @@ fn keep_sets_shrink_every_list_to_what_survived() {
 
 #[test]
 fn an_artifact_survives_only_while_one_of_its_owning_plugins_does() {
-    let kept = apply_keep_sets(
+    let kept = retained(
         candidate(),
-        &KeepSets {
+        &EntryKeepSets {
             plugins: keep(&["systemprompt-commons"]),
-            skills: KeepSet::new(),
-            agents: KeepSet::new(),
-            hooks: KeepSet::new(),
-            mcp: KeepSet::new(),
+            ..EntryKeepSets::default()
         },
     );
     let ids: Vec<_> = kept.artifacts.iter().map(|a| a.id.to_string()).collect();
@@ -218,14 +202,11 @@ fn an_artifact_survives_only_while_one_of_its_owning_plugins_does() {
 
 #[test]
 fn dropping_every_plugin_drops_every_artifact() {
-    let kept = apply_keep_sets(
+    let kept = retained(
         candidate(),
-        &KeepSets {
-            plugins: KeepSet::new(),
+        &EntryKeepSets {
             skills: keep(&["skill-a"]),
-            agents: KeepSet::new(),
-            hooks: KeepSet::new(),
-            mcp: KeepSet::new(),
+            ..EntryKeepSets::default()
         },
     );
     assert!(kept.artifacts.is_empty());
@@ -236,35 +217,30 @@ fn dropping_every_plugin_drops_every_artifact() {
 fn an_unowned_artifact_is_dropped_rather_than_defaulting_to_visible() {
     let mut input = candidate();
     input.artifact_owners.clear();
-    let kept = apply_keep_sets(
+    let kept = retained(
         input,
-        &KeepSets {
+        &EntryKeepSets {
             plugins: keep(&["systemprompt-admin", "systemprompt-commons"]),
-            skills: KeepSet::new(),
-            agents: KeepSet::new(),
-            hooks: KeepSet::new(),
-            mcp: KeepSet::new(),
+            ..EntryKeepSets::default()
         },
     );
     assert!(kept.artifacts.is_empty());
 }
 
 #[test]
-fn the_owner_map_and_marketplace_scope_pass_through_untouched() {
+fn the_assembly_context_passes_through_untouched() {
     let mut input = candidate();
     input.marketplace_id = Some(systemprompt::identifiers::MarketplaceId::new(
         "systemprompt",
     ));
+    input.diagnostics.push("assembly warning".to_owned());
     let owners = input.artifact_owners.clone();
 
-    let kept = apply_keep_sets(
+    let kept = retained(
         input,
-        &KeepSets {
+        &EntryKeepSets {
             plugins: keep(&["systemprompt-admin"]),
-            skills: KeepSet::new(),
-            agents: KeepSet::new(),
-            hooks: KeepSet::new(),
-            mcp: KeepSet::new(),
+            ..EntryKeepSets::default()
         },
     );
     assert_eq!(kept.artifact_owners, owners);
@@ -272,18 +248,19 @@ fn the_owner_map_and_marketplace_scope_pass_through_untouched() {
         kept.marketplace_id.map(|id| id.to_string()),
         Some("systemprompt".to_owned())
     );
+    assert_eq!(kept.diagnostics, vec!["assembly warning".to_owned()]);
 }
 
 #[test]
 fn keeping_everything_is_the_identity() {
-    let kept = apply_keep_sets(
+    let kept = retained(
         candidate(),
-        &KeepSets {
+        &EntryKeepSets {
             plugins: keep(&["systemprompt-admin", "systemprompt-commons"]),
             skills: keep(&["skill-a", "skill-b"]),
             agents: keep(&["agent-a"]),
             hooks: keep(&["hook-a"]),
-            mcp: keep(&["odoo", "systemprompt"]),
+            mcp_servers: keep(&["odoo", "systemprompt"]),
         },
     );
     assert_eq!(kept.plugins.len(), 2);

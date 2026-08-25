@@ -17,22 +17,21 @@
 #[doc(hidden)]
 pub mod keepsets;
 
-pub(crate) use keepsets::entity_ref_for;
-
 use std::sync::Arc;
 
 use sqlx::PgPool;
 use systemprompt::database::DbPool;
 use systemprompt::identifiers::{MarketplaceId, UserId};
 use systemprompt::marketplace::{
-    MarketplaceCandidate, MarketplaceFilter, MarketplaceFilterError, register_marketplace_filter,
+    EntryKeepSets, MarketplaceCandidate, MarketplaceFilter, MarketplaceFilterError,
+    register_marketplace_filter,
 };
 use systemprompt_security::authz::{
     AccessControlRepository, AccessRule, Decision, EntityKind, EntityRef, ResolveInput,
     ResolveParent, resolve as resolve_access,
 };
 
-use keepsets::{CandidateEntityIds, KeepIdsQuery, KeepSets, apply_keep_sets};
+use keepsets::{CandidateEntityIds, KeepIdsQuery};
 
 use crate::authz::{dimensions, subject_attributes_for};
 use crate::repositories::users::queries::find_user_roles_department;
@@ -103,7 +102,7 @@ impl TemplateMarketplaceFilter {
                 .ok()
                 .flatten()
                 .map(|e| e.default_included);
-            let entity = entity_ref_for(kind, id);
+            let entity = EntityRef::from_kind_and_id(kind, id);
             let decision = resolve_access(ResolveInput {
                 entity: &entity,
                 rules: entity_rules,
@@ -161,7 +160,7 @@ impl MarketplaceFilter for TemplateMarketplaceFilter {
     async fn filter(
         &self,
         user_id: &UserId,
-        candidate: MarketplaceCandidate,
+        mut candidate: MarketplaceCandidate,
     ) -> Result<MarketplaceCandidate, MarketplaceFilterError> {
         let (roles, _department) = self.user_principal(user_id).await?;
         let uid = user_id.as_str();
@@ -179,7 +178,7 @@ impl MarketplaceFilter for TemplateMarketplaceFilter {
 
         let ids = CandidateEntityIds::from_candidate(&candidate);
 
-        let (plugins, skills, agents, hooks, mcp) = tokio::try_join!(
+        let (plugins, skills, agents, hooks, mcp_servers) = tokio::try_join!(
             self.keep_ids(KeepIdsQuery {
                 user_id: uid,
                 roles: &roles,
@@ -217,14 +216,14 @@ impl MarketplaceFilter for TemplateMarketplaceFilter {
             }),
         )?;
 
-        let keep = KeepSets {
+        candidate.retain_entries(&EntryKeepSets {
             plugins,
             skills,
             agents,
             hooks,
-            mcp,
-        };
-        Ok(apply_keep_sets(candidate, &keep))
+            mcp_servers,
+        });
+        Ok(candidate)
     }
 }
 

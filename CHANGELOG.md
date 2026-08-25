@@ -3,6 +3,17 @@
 All notable changes to this repository are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Changed
+
+- The marketplace filter now delegates its candidate shrinking to core:
+  `apply_keep_sets` and its hand-rolled artifact-ownership pruning are replaced
+  by `MarketplaceCandidate::retain_entries`, and the local `entity_ref_for`
+  mapping by `EntityRef::from_kind_and_id`. Behaviour is unchanged; the
+  duplicated artifact rule now lives in one place (core) and gains core's
+  per-drop tracing. Requires the next `systemprompt` core release.
+
 ## [0.36.0] - 2026-08-24
 
 ### Fixed
