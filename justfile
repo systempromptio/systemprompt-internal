@@ -1009,6 +1009,9 @@ deploy-next *FLAGS:
     # the image build would find nothing to copy. Production's paths are
     # container paths (/app) and are untouched.
     sed -i "s|$root|$dir|g" "$dir/.systemprompt/profiles/local/profile.yaml"
+    # The signing key sits gitignored at the clone root; the asset jobs
+    # refuse to boot without it.
+    [ -f "$root/signing_key.pem" ] && cp "$root/signing_key.pem" "$dir/signing_key.pem"
     echo "deploy-next: worktree at $dir on $(git -C "$dir" rev-parse --short HEAD)"
     cd "$dir" && just deploy {{FLAGS}}
 
