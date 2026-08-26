@@ -82,7 +82,7 @@ impl Odoo {
     }
 
     // Create-or-update: the seed is safe to run on every invocation.
-    async fn ensure_user(&self, login: &str, group_ids: &[i64]) {
+    async fn ensure_user(&self, login: &str, group_ids: &[i64]) -> i64 {
         let existing = self
             .execute(
                 "res.users",
@@ -111,6 +111,28 @@ impl Odoo {
             }]),
         )
         .await;
+        uid
+    }
+
+    // A CRM lead owned by the salesperson — the record their chatter tools
+    // are allowed to write on. Idempotent by name.
+    async fn ensure_lead(&self, name: &str, owner_uid: i64) -> i64 {
+        let existing = self
+            .execute("crm.lead", "search", serde_json::json!([[["name", "=", name]]]))
+            .await;
+        if let Some(id) = existing.as_array().and_then(|a| a.first()).and_then(serde_json::Value::as_i64) {
+            self.execute("crm.lead", "write", serde_json::json!([[id], { "user_id": owner_uid }]))
+                .await;
+            return id;
+        }
+        self.execute(
+            "crm.lead",
+            "create",
+            serde_json::json!([{ "name": name, "user_id": owner_uid }]),
+        )
+        .await
+        .as_i64()
+        .expect("lead created")
     }
 }
 
@@ -124,7 +146,14 @@ fn pkce_pair() -> (String, String) {
     (verifier, challenge)
 }
 
-async fn sign_in(http: &reqwest::Client, base: &str, login: &str) -> String {
+// `resource` (RFC 8707) binds the minted token to one protected resource —
+// the MCP proxy only accepts tokens minted for its own URL.
+async fn sign_in(
+    http: &reqwest::Client,
+    base: &str,
+    login: &str,
+    resource: Option<&str>,
+) -> String {
     let (verifier, challenge) = pkce_pair();
     let resp = http
         .post(format!("{base}/admin/auth/odoo/login"))
@@ -135,6 +164,7 @@ async fn sign_in(http: &reqwest::Client, base: &str, login: &str) -> String {
             "redirect_uri": "/admin/login",
             "code_challenge": challenge,
             "code_challenge_method": "S256",
+            "resource": resource,
         }))
         .send()
         .await
@@ -159,15 +189,19 @@ async fn sign_in(http: &reqwest::Client, base: &str, login: &str) -> String {
         .as_str()
         .expect("token_endpoint advertised");
 
+    let mut form: Vec<(&str, &str)> = vec![
+        ("grant_type", "authorization_code"),
+        ("code", code),
+        ("client_id", "marketplace-admin"),
+        ("redirect_uri", "/admin/login"),
+        ("code_verifier", &verifier),
+    ];
+    if let Some(resource) = resource {
+        form.push(("resource", resource));
+    }
     let token: serde_json::Value = http
         .post(token_endpoint)
-        .form(&[
-            ("grant_type", "authorization_code"),
-            ("code", code),
-            ("client_id", "marketplace-admin"),
-            ("redirect_uri", "/admin/login"),
-            ("code_verifier", &verifier),
-        ])
+        .form(&form)
         .send()
         .await
         .expect("token endpoint answers")
@@ -242,12 +276,14 @@ async fn live_stack_walks_the_two_role_journey() {
     step("seed e2e users in odoo (idempotent)");
     let group_system = odoo.group_id("base", "group_system").await;
     let group_user = odoo.group_id("base", "group_user").await;
+    let group_salesman = odoo.group_id("sales_team", "group_sale_salesman").await;
     odoo.ensure_user(ADMIN_LOGIN, &[group_system, group_user]).await;
-    odoo.ensure_user(SALES_LOGIN, &[group_user]).await;
+    let sales_uid = odoo.ensure_user(SALES_LOGIN, &[group_user, group_salesman]).await;
+    let lead_id = odoo.ensure_lead("E2E Demo Lead", sales_uid).await;
 
     step("sign in as both roles (JIT + PKCE exchange)");
-    let admin_bearer = sign_in(&http, &base, ADMIN_LOGIN).await;
-    let sales_bearer = sign_in(&http, &base, SALES_LOGIN).await;
+    let admin_bearer = sign_in(&http, &base, ADMIN_LOGIN, None).await;
+    let sales_bearer = sign_in(&http, &base, SALES_LOGIN, None).await;
 
     step("per-role manifest diff");
     let admin_skills = manifest_skills(&http, &base, &admin_bearer).await;
@@ -268,12 +304,14 @@ async fn live_stack_walks_the_two_role_journey() {
     );
 
     step("chatter round-trip through the MCP proxy as the salesperson");
+    let mcp_resource = format!("{base}/api/v1/mcp/odoo/mcp");
+    let sales_mcp_bearer = sign_in(&http, &base, SALES_LOGIN, Some(&mcp_resource)).await;
     let note = format!("E2E live note {}", uuid::Uuid::new_v4().simple());
     let added = crate::harness::mcp::call_tool_at(
         &format!("{base}/api/v1/mcp/odoo/mcp"),
-        &sales_bearer,
+        &sales_mcp_bearer,
         "note_add",
-        serde_json::json!({ "model": "res.partner", "res_id": 1, "body": note }),
+        serde_json::json!({ "model": "crm.lead", "res_id": lead_id, "body": note }),
     )
     .await
     .expect("note_add through the proxy succeeds");
@@ -281,7 +319,7 @@ async fn live_stack_walks_the_two_role_journey() {
 
     let searched = crate::harness::mcp::call_tool_at(
         &format!("{base}/api/v1/mcp/odoo/mcp"),
-        &sales_bearer,
+        &sales_mcp_bearer,
         "note_search",
         serde_json::json!({ "query": "%", "limit": 50 }),
     )

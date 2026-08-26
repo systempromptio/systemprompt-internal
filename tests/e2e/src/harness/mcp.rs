@@ -108,8 +108,11 @@ pub async fn call_tool_at(
         ContextId::generate(),
         AgentName::new("e2e-tests".to_owned()),
     );
-    let config = StreamableHttpClientTransportConfig::with_uri(url.to_owned())
-        .auth_header(format!("Bearer {bearer}"));
+    // Why: the transport calls `bearer_auth` on this value, which prepends
+    // "Bearer " itself — passing a full header here reaches the server as
+    // "Bearer Bearer <jwt>" and fails as a malformed token.
+    let config =
+        StreamableHttpClientTransportConfig::with_uri(url.to_owned()).auth_header(bearer.to_owned());
     let transport =
         StreamableHttpClientTransport::with_client(HttpClientWithContext::new(request_context), config);
     let client_info = ClientInfo::new(
