@@ -43,9 +43,9 @@ documentation = "https://systemprompt.io/documentation"
 # ============================================
 # CORE FACADE (single dependency for all systemprompt-core)
 # ============================================
-systemprompt = { version = "0.39.0", default-features = false, features = ["core", "database", "config"] }
-systemprompt-security = { version = "0.39.0" }
-systemprompt-extension = { version = "0.39.0" }
+systemprompt = { version = "0.40.0", default-features = false, features = ["core", "database", "config"] }
+systemprompt-security = { version = "0.40.0" }
+systemprompt-extension = { version = "0.40.0" }
 
 # ============================================
 # LOCAL EXTENSIONS
@@ -257,7 +257,7 @@ workspace = true
 # The version requirements above must track whatever the patch points at: a
 # patch whose version does not satisfy them is silently ignored and the build
 # falls back to the last published release.
-# ACTIVE: core 0.39.1 is unreleased — this next branch builds against core next.
+# ACTIVE: core 0.40.0 is unreleased — this next branch builds against core next.
 [patch.crates-io]
 systemprompt = { path = "../systemprompt-core/systemprompt" }
 systemprompt-models = { path = "../systemprompt-core/crates/shared/models" }
