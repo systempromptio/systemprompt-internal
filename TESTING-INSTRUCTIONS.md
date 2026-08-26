@@ -185,7 +185,71 @@ existing example at every step — that is the intended workflow.
    pin in `skills_artifacts.rs`) → `just e2e` → `bridge sync` + setup skill
    in Cowork → the new dashboard installs and loads live data.
 
-## 7. Debugging, in the order that finds things
+## 7. What the flow looks like (annotated screenshots)
+
+Reference captures live in `docs/testing/` — each is one of the three UI
+surfaces, owned by a different piece of code, edited a different way.
+
+### 7a. The full flow: skill → MCP → artifacts
+
+![The setup skill running in Cowork](docs/testing/setup-skill-run.png)
+
+`/systemprompt-setup-cowork` executing in Cowork: the agent reads the
+bundled manifest, stages the HTML, calls `create_artifact` six times, and
+verifies the install — the six dashboards appear under *Pinned*. The
+behaviour is **prose, not code**:
+`services/skills/systemprompt_setup_cowork/SKILL.md` plus its
+`scripts/setup.sh`. Edit the SKILL.md to change how the agent installs or
+verifies; the bundle it installs is generated (section 4). Start a new
+setup-style skill by copying this directory — section 6c step 4.
+
+### 7b. Inline MCP-UI: a tool result rendered in chat
+
+![crm_lead_search rendered as an inline table](docs/testing/inline-mcp-ui-table.png)
+
+`crm_lead_search`'s typed `TableArtifact` rendered inline in the
+conversation. Nothing in this repo draws it: the tool returns
+`CliArtifact::table(...)` (`extensions/mcp/odoo/src/server/crm.rs`), core
+persists it and serves a `ui://` resource that Cowork mounts. The renderer
+is core's registry:
+`../systemprompt-core/crates/domain/mcp/src/services/ui_renderer/` —
+`table.css` styles this table, `tokens.css` holds the `--mcpui-*` design
+tokens every renderer shares (OKLCH, `light-dark()`; a literal hex in a
+sibling sheet is a bug). **To improve this table's styling**, edit core's
+`table.css` against the tokens, rebuild the server, restart, and re-run the
+tool — no change in this repo at all. To give a new tool an inline UI, just
+return the right `CliArtifact` variant (Table, Chart, List, …); the
+renderer comes free.
+
+### 7c. A full dashboard artifact
+
+![The Knowledge Feed artifact](docs/testing/knowledge-feed-artifact.png)
+
+The Knowledge Feed — a standalone page in Cowork's artifact library:
+`services/artifacts/knowledge-feed/view.html` calls
+`window.cowork.callMcpTool("mcp__knowledge-bank__list_documents")` on load
+and renders the feed itself. All styling is inline CSS in that one file
+(house style: dark OKLCH palette, branded `18px 6px 18px 18px` corner
+radius) — edit it, bump the version, run the sync script, re-install as
+stale (section 4). A new dashboard is section 6c step 2.
+
+### 7d. Testing all three without Cowork: MCP Inspector
+
+`npx @modelcontextprotocol/inspector` → Streamable HTTP →
+`http://localhost:8081/api/v1/mcp/odoo/mcp` → the browser OAuth flow signs
+you in as any test user. Then:
+
+- **Tools tab → `crm_lead_search`** returns the same structured table as
+  7b (`structuredContent.columns/items`) — assert the contract without any
+  rendering.
+- **Resources tab** lists the `ui://odoo/...` resources — open one to see
+  the exact HTML core serves to Cowork for the inline UI.
+- The dashboards' data path is the same wire: call the tool named in an
+  artifact's embedded contract with its embedded arguments and you have
+  reproduced exactly what the page fetches (an empty result here means the
+  dashboard would be empty too — that's Odoo answering, not a UI bug).
+
+## 8. Debugging, in the order that finds things
 
 ```bash
 systemprompt infra logs view --level error --since 10m     # first stop
@@ -242,5 +306,5 @@ with `just e2e-live`), the `marketplace-admin` OAuth client with redirect
 `/admin/login`, and Docker Postgres reachable via the URL in
 `.systemprompt/profiles/local/secrets.json`. PATs for headless bridge tests
 come from `admin users api-key issue`. Windows-side verification happens
-through `/mnt/c` as described in section 7 — read Cowork's caches instead of
+through `/mnt/c` as described in section 8 — read Cowork's caches instead of
 guessing what the client saw.
