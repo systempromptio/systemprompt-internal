@@ -178,7 +178,8 @@ fn switch_account_href(redirect: Option<&str>) -> String {
 // mounted OUTSIDE the auth gate: it clears the session cookies and sends the
 // user to the login page with the device-link continuation, so they choose
 // the account — Odoo credential or passkey — before anything is approved.
-pub(crate) async fn device_link_switch(Query(query): Query<SwitchQuery>) -> Response { // lint-ok: http-error
+// lint-ok: http-error
+pub(crate) async fn device_link_switch(Query(query): Query<SwitchQuery>) -> Response {
     let next = query
         .next
         .filter(|n| n.starts_with('/') && !n.starts_with("//"))

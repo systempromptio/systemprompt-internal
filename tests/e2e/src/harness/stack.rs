@@ -53,11 +53,14 @@ pub fn profile_path() -> PathBuf {
     repo_root().join(format!("tests/target/e2e-profile-{}", std::process::id()))
 }
 
-fn install_profile(database_url: &str, odoo_url: &str) {
+fn install_profile(database_url: &str, odoo_url: &str, govern_port: u16) {
     let root = repo_root();
     let dir = profile_path();
     std::fs::create_dir_all(&dir).expect("create fixture profile directory");
-    let yaml = FIXTURE_PROFILE.replace("__REPO__", &root.to_string_lossy());
+    let yaml = FIXTURE_PROFILE
+        .replace("__REPO__", &root.to_string_lossy())
+        .replace("__PROFILE_DIR__", &dir.to_string_lossy())
+        .replace("__GOVERN_PORT__", &govern_port.to_string());
     std::fs::write(dir.join("profile.yaml"), yaml).expect("write fixture profile");
     // odoo_url / odoo_db ride along as custom secret keys — the same channel
     // `just setup-local` uses — so the Odoo login handler resolves the mock
@@ -151,7 +154,17 @@ impl Stack {
     pub async fn create() -> Option<Self> {
         let db = TempDb::create().await?;
         let odoo = super::odoo_mock::OdooMock::start().await;
-        install_profile(&db.url, &odoo.url());
+        // Why: the profile's authz hook URL must be live before any config is
+        // built, so the port is reserved first and the assembled router is
+        // served on it below — a spawned MCP subprocess fail-closes on an
+        // unreachable hook.
+        let govern_listener =
+            std::net::TcpListener::bind("127.0.0.1:0").expect("reserve the governance hook port");
+        let govern_port = govern_listener
+            .local_addr()
+            .expect("read the governance hook port")
+            .port();
+        install_profile(&db.url, &odoo.url(), govern_port);
 
         // Why: `AppContextBuilder::build` resolves the profile's system_admin
         // by name and refuses to boot without an active admin row — the same
@@ -181,6 +194,16 @@ impl Stack {
                 .expect("assemble the production AppContext"),
         );
         let router = setup_api_server(&ctx, None).expect("assemble the full API router");
+
+        govern_listener
+            .set_nonblocking(true)
+            .expect("switch the governance hook listener to non-blocking");
+        let hook_listener = tokio::net::TcpListener::from_std(govern_listener)
+            .expect("adopt the governance hook listener");
+        let hook_router = router.clone();
+        tokio::spawn(async move {
+            let _ = axum::serve(hook_listener, hook_router).await;
+        });
 
         Some(Self {
             router,

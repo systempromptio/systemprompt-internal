@@ -35,8 +35,8 @@ fn binary() -> Option<PathBuf> {
         .parent()
         .expect("profile dir has a parent")
         .ancestors()
-        .nth(1)
-        .expect("tests/target has a parent")
+        .nth(2)
+        .expect("tests/target sits two levels below the repository root")
         .to_path_buf();
     let candidates = [
         root.join("target/release/systemprompt-mcp-odoo"),

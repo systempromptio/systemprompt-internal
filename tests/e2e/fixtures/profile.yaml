@@ -51,7 +51,7 @@ security:
   allowed_resource_audiences:
   - hook
   allow_registration: true
-  signing_key_path: signing_key.pem
+  signing_key_path: __PROFILE_DIR__/signing_key.pem
   id_jag_ttl_secs: 300
 rate_limits:
   disabled: true
@@ -129,6 +129,6 @@ governance:
   authz:
     hook:
       mode: webhook
-      url: http://localhost:8098/api/public/govern/authz
+      url: http://127.0.0.1:__GOVERN_PORT__/api/public/govern/authz
       timeout_ms: 500
       acknowledgement: null
