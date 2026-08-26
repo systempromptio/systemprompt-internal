@@ -68,8 +68,9 @@ This skill's own directory contains `assets/artifacts/`, holding:
   `{ "artifacts": [ { "id", "name", "description", "version", "isStarred", "mcpTools": [...] }, ... ] }`
 - `<id>.html` — the finished dashboard page for each record.
 
-Expect five: `business-overview`, `pipeline-open-deals`, `leads-inbound-prospects`,
-`recent-activity`, `todo-bulletin`.
+Expect six: `business-overview`, `pipeline-open-deals`, `leads-inbound-prospects`,
+`recent-activity`, `todo-bulletin`, `knowledge-feed`. Treat `manifest.json` as the authoritative
+list and count — if it ships more or fewer, the manifest wins.
 
 Read **only `manifest.json`**. Do not read the `.html` files into context — they are large, and you
 never need their contents: they get copied, not retyped.
@@ -83,7 +84,12 @@ directory means the sync has not happened — it is never "nothing to do".
 ## Step 2 — Diff bundled against installed
 
 List the artifacts already in the Artifacts library. Match manifest records to installed ones **by
-`id` where the library exposes it, otherwise by exact `name`**. Build four groups:
+`id` only**. Never match by name, title, or "close enough" description — the library also holds the
+admin dashboards, and their names are near-homographs of these (e.g. "Activity — Recent Requests"
+vs "Recent Activity — Team Notes"); a name match is exactly how a dashboard ends up installed with
+another dashboard's tool allowlist. If the library genuinely exposes no id for an entry, treat that
+entry as unmatchable: leave it alone and report it, never adopt it as one of ours. Build four
+groups:
 
 - **Missing** — bundled but not in the library.
 - **Present** — bundled and already in the library.
@@ -113,9 +119,15 @@ printed block — sequentially, never in parallel. Include the `mcp_tools` list 
 it the dashboard cannot call the Odoo MCP server and will never load data. Also pass the commented
 `name`/star values if the tool's schema exposes such fields; if it does not, skip them silently.
 
-**Verify** with one `list_artifacts` after the whole batch: every bundled id must appear. An
-artifact counts as installed only when it appears in the list — never because the create call
-"should have" worked. If any create call errored, fix and retry that one before the final listing.
+**Verify** with one `list_artifacts` after the whole batch: every bundled id must appear, **and for
+each one the installed record must carry the same tool allowlist as its manifest record** — compare
+the listed `mcp_tools` (however the library names the field) against the manifest's `mcpTools` for
+that id, verbatim. A dashboard installed with another dashboard's allowlist renders but every data
+fetch fails with "not in this artifact's mcp_tools allowlist", so a mismatch is a failed install:
+delete that one artifact, re-run its `create_artifact` from the printed block, and re-verify. An
+artifact counts as installed only when it appears in the list with the right allowlist — never
+because the create call "should have" worked. If any create call errored, fix and retry that one
+before the final listing.
 
 **Fallback ladder** — take each step only after the previous one provably failed:
 
@@ -141,9 +153,11 @@ Write the receipt through the same script so the timestamp is real, not typed:
 
 ```
 SETUP=$(find "$HOME/mnt" /sessions/*/mnt -name setup.sh -path '*systemprompt?setup?cowork*' 2>/dev/null | head -1) \
-  && sh "$SETUP" receipt '{ "checkedAt": "__NOW__", "bundled": 5, "installed": 5,
+  && sh "$SETUP" receipt '{ "checkedAt": "__NOW__", "bundled": N, "installed": N,
   "created": ["..."], "alreadyPresent": ["..."], "stale": ["..."], "failed": [] }'
 ```
+
+`bundled` is the number of records in `manifest.json` — count them, never assume.
 
 The script replaces `__NOW__` with the current UTC time and writes
 `outputs/setup-receipt.json` (never write into the plugin or skills directories — they are
@@ -155,8 +169,8 @@ fails, do not fail the run: report the same receipt inline in Step 6 so the resu
 
 ## Step 5 — Check the Odoo connection
 
-All five dashboards fetch through the Odoo MCP server, executed as the signed-in user. Run one small
-probe — `crm_lead_search` with `{ "limit": 1 }` — through that server. The dashboards fetch their
+The dashboards fetch through the Odoo MCP server (`knowledge-feed` through the knowledge-bank
+server), executed as the signed-in user. Run one small probe — `crm_lead_search` with `{ "limit": 1 }` — through that server. The dashboards fetch their
 own data when opened (each page calls the MCP tool itself on load, and Reload re-runs it), so a
 working probe means the dashboards will populate.
 

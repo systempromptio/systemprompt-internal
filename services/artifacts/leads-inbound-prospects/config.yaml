@@ -1,7 +1,7 @@
 id: leads-inbound-prospects
 name: "Leads — Inbound Prospects"
 description: "Your open Odoo CRM leads as a live, refreshable table — contact, email, stage, expected revenue, probability and salesperson. Refresh re-runs crm_lead_search against Odoo as you, so Odoo's own record rules decide what appears."
-version: "2.0.1"
+version: "2.1.0"
 enabled: true
 starred: true
 # `category`, `tags` and `query` are forward-compatible metadata — the core

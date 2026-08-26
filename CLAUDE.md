@@ -26,6 +26,10 @@ main   ← protected, release-only. Tagged. Never pushed to directly.
 **Do not run the pre-release gate cycle to land ordinary work.** The full cycle is expensive and
 runs **once nightly** (`.github/workflows/nightly.yml`), not on your push.
 Committing and pushing to `next` without gating is the intended workflow.
+That means concretely: no `just preflight*`, no `just clippy`, no `just verify`,
+no workspace-wide test runs, no `just lint-gates` before a push to `next`.
+Run at most the single unit-test file you just wrote (to know it passes) and
+nothing broader; the nightly runs everything else and auto-fixes formatting.
 
 What the nightly does, in order:
 

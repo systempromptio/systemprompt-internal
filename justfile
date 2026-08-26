@@ -309,6 +309,7 @@ _lint-gates-uncoordinated:
         check-file-size.sh
         check-asset-reachability.sh
         check-workspace-deps.sh
+        check-cowork-artifacts.sh
         validate-services.sh
     )
     logdir=$(mktemp -d)

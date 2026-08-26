@@ -50,15 +50,32 @@ pub fn thread_domain(model: &str, res_id: i64) -> serde_json::Value {
     serde_json::json!([["model", "=", model], ["res_id", "=", res_id]])
 }
 
+// Why: "%" (or any run of them) is a caller saying "everything" — the Recent
+// Activity artifact does exactly this. Wrapping it again would ilike on
+// literal percent signs and match nothing.
+#[doc(hidden)]
+#[must_use]
+pub fn is_match_all(query: &str) -> bool {
+    let trimmed = query.trim();
+    !trimmed.is_empty() && trimmed.chars().all(|c| c == '%')
+}
+
 #[doc(hidden)]
 #[must_use]
 pub fn search_domain(input: &NoteSearchInput) -> serde_json::Value {
-    let pattern = format!("%{}%", input.query.trim());
-    let mut domain: Vec<serde_json::Value> = vec![
-        serde_json::json!("|"),
-        serde_json::json!(["body", "ilike", pattern]),
-        serde_json::json!(["subject", "ilike", pattern]),
-    ];
+    let mut domain: Vec<serde_json::Value> = if is_match_all(&input.query) {
+        // Why: mirrors the briefing feed — comments are the notes people
+        // wrote, and a text predicate would drop NULL-bodied rows an
+        // "everything" query is expected to include.
+        vec![serde_json::json!(["message_type", "=", "comment"])]
+    } else {
+        let pattern = format!("%{}%", input.query.trim());
+        vec![
+            serde_json::json!("|"),
+            serde_json::json!(["body", "ilike", pattern]),
+            serde_json::json!(["subject", "ilike", pattern]),
+        ]
+    };
     if let Some(model) = input
         .model
         .as_deref()
@@ -104,7 +121,14 @@ pub fn thread_row(record: &serde_json::Value) -> String {
 pub fn search_row(record: &serde_json::Value, query: &str) -> String {
     let snippet = field(record, "body").map_or_else(
         || "(empty note)".to_owned(),
-        |html| snippet_around(&html_to_text(&html), query),
+        |html| {
+            let text = html_to_text(&html);
+            if is_match_all(query) {
+                snippet_around(&text, "")
+            } else {
+                snippet_around(&text, query)
+            }
+        },
     );
     format!(
         "- **{} {}** — {} · {} by {}\n  {snippet}",
@@ -264,7 +288,11 @@ impl McpToolHandler for NoteSearchHandler {
                 .search_read(&call.creds, "mail.message", search_domain(&input), &options)
                 .await?;
 
-            let summary = format!("{} note(s) mention \"{query}\"", records.len());
+            let summary = if is_match_all(&query) {
+                format!("{} recent note(s)", records.len())
+            } else {
+                format!("{} note(s) mention \"{query}\"", records.len())
+            };
             let body = if records.is_empty() {
                 empty_result("notes")
             } else {

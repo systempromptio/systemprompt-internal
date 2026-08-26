@@ -1,0 +1,30 @@
+# Odoo group -> platform role mapping for federated sign-in.
+#
+# Odoo is the identity provider for this deployment, so it is also the role
+# authority: on every Odoo sign-in the login handler reads the user's Odoo
+# groups over RPC (as that user), maps them through this file, and writes the
+# result to `users.roles`. Change a user's groups in Odoo and their platform
+# roles follow at their next sign-in — no dashboard step.
+#
+# Schema:
+#   default_roles:  roles every signed-in Odoo user gets
+#   groups:         Odoo group xml_id -> extra platform roles it grants
+#
+# The mapping is fail-safe in one direction only: when the group lookup fails
+# (network, an Odoo edition that hides ir.model.data from the user), the
+# sign-in proceeds with the user's EXISTING platform roles untouched — it
+# never grants admin on a failed lookup, and never strips roles it could not
+# recompute.
+#
+# Platform roles referenced here must match the roles used in roles.yaml —
+# `admin` is what gates the systemprompt MCP server, the systemprompt-admin
+# plugin, and the admin skills.
+
+default_roles: [user]
+
+groups:
+  # Settings -> Administration: Settings — the built-in Odoo administrator.
+  base.group_system: [admin]
+  # Sales -> Administrator, for a demo where the sales lead runs the workspace.
+  # Uncomment to make Odoo sales managers platform admins:
+  # sales_team.group_sale_manager: [admin]

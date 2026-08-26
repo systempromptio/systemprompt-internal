@@ -117,6 +117,8 @@ pub(crate) async fn odoo_login(
         },
     };
 
+    let desired_roles = super::roles::resolve_roles(&conn, uid, &credential).await;
+
     // Why: `auto_provision` is on. Anyone who can authenticate against this
     // Odoo gets a platform account on first sign-in — the deliberate choice
     // that makes an Odoo admin a platform user without an operator step. It
@@ -130,6 +132,7 @@ pub(crate) async fn odoo_login(
             display_name: &login,
         },
         true,
+        desired_roles.as_deref(),
     )
     .await
     .map_err(AdminError::Marketplace)?

@@ -1,7 +1,7 @@
 id: business-overview
 name: "Business Overview — Daily Briefing"
 description: "Today's whole CRM picture in one refreshable page — pipeline by stage, this week's new leads, your overdue and due-today activities, today's calendar, tasks due this week, and the latest team notes. Refresh re-runs business_overview_data against Odoo as you."
-version: "1.0.2"
+version: "1.1.0"
 enabled: true
 starred: true
 # `category`, `tags` and `query` are forward-compatible metadata — the core

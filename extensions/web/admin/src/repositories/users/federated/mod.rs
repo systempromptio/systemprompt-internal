@@ -108,13 +108,49 @@ pub async fn delete_federated_identities_for_issuer(
     Ok(deleted)
 }
 
+// Why: the identity provider is also the role authority when it can be — a
+// sign-in that carries freshly-computed roles overwrites the stored set, so
+// flipping a user's groups at the provider changes their platform roles at
+// the next sign-in. `None` means the caller could not compute roles this
+// time; the stored set stands.
+async fn apply_roles(
+    pool: &PgPool,
+    user_id: &UserId,
+    stored: Vec<String>,
+    desired: Option<&[String]>,
+) -> Result<Vec<String>, MarketplaceError> {
+    let Some(desired) = desired else {
+        return Ok(stored);
+    };
+    if stored == desired {
+        return Ok(stored);
+    }
+    sqlx::query!(
+        "UPDATE users SET roles = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $1",
+        user_id.as_str(),
+        desired,
+    )
+    .execute(pool)
+    .await?;
+    tracing::info!(
+        user_id = %user_id,
+        roles = ?desired,
+        "Federated sign-in updated platform roles"
+    );
+    Ok(desired.to_vec())
+}
+
 async fn create_federated(
     pool: &PgPool,
-    issuer: &str,
-    external_sub: &str,
-    email: &str,
-    display_name: &str,
+    claims: &FederatedClaims<'_>,
+    desired_roles: Option<&[String]>,
 ) -> Result<ResolvedFederatedUser, MarketplaceError> {
+    let FederatedClaims {
+        issuer,
+        external_sub,
+        email,
+        display_name,
+    } = *claims;
     // Why: the seat check runs before the user exists, so a full plan rejects
     // the login rather than creating an orphaned account that cannot reach
     // anything. An unclaimed email domain is not an error — that arrival is
@@ -125,7 +161,7 @@ async fn create_federated(
     }
 
     let user_id = uuid::Uuid::new_v4().to_string();
-    let roles = vec!["user".to_owned()];
+    let roles = desired_roles.map_or_else(|| vec!["user".to_owned()], <[String]>::to_vec);
     let mut tx = pool.begin().await?;
 
     sqlx::query!(
@@ -176,6 +212,7 @@ pub async fn resolve_federated_user(
     pool: &PgPool,
     claims: &FederatedClaims<'_>,
     auto_provision: bool,
+    desired_roles: Option<&[String]>,
 ) -> Result<Option<ResolvedFederatedUser>, MarketplaceError> {
     let FederatedClaims {
         issuer,
@@ -186,21 +223,23 @@ pub async fn resolve_federated_user(
     if let Some(user_id) = find_mapping(pool, issuer, external_sub).await?
         && let Some(user) = load_user(pool, &user_id).await?
     {
+        let roles = apply_roles(pool, &user.id, user.roles, desired_roles).await?;
         return Ok(Some(ResolvedFederatedUser {
             user_id: user.id,
             email: email.to_owned(),
             display_name: user.display_name,
-            roles: user.roles,
+            roles,
         }));
     }
 
     if let Some(user) = find_active_user_by_email(pool, email).await? {
         link_existing(pool, issuer, external_sub, &user.id).await?;
+        let roles = apply_roles(pool, &user.id, user.roles, desired_roles).await?;
         return Ok(Some(ResolvedFederatedUser {
             user_id: user.id,
             email: email.to_owned(),
             display_name: user.display_name,
-            roles: user.roles,
+            roles,
         }));
     }
 
@@ -212,11 +251,12 @@ pub async fn resolve_federated_user(
         && let Some(user) = find_active_user_by_odoo_identity(pool, external_sub, email).await?
     {
         link_existing(pool, issuer, external_sub, &user.id).await?;
+        let roles = apply_roles(pool, &user.id, user.roles, desired_roles).await?;
         return Ok(Some(ResolvedFederatedUser {
             user_id: user.id,
             email: email.to_owned(),
             display_name: user.display_name,
-            roles: user.roles,
+            roles,
         }));
     }
 
@@ -224,7 +264,5 @@ pub async fn resolve_federated_user(
         return Ok(None);
     }
 
-    create_federated(pool, issuer, external_sub, email, display_name)
-        .await
-        .map(Some)
+    create_federated(pool, claims, desired_roles).await.map(Some)
 }

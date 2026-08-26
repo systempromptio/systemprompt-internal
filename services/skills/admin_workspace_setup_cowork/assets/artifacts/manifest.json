@@ -2,8 +2,8 @@
   "artifacts": [
     {
       "id": "admin-users-directory",
-      "name": "Users \u2014 Directory",
-      "description": "Everyone with an account on this workspace as a live, refreshable table \u2014 name, email, roles, status, and signup date. Refresh runs the admin systemprompt CLI server; admin role required.",
+      "name": "Users — Directory",
+      "description": "Everyone with an account on this workspace as a live, refreshable table — name, email, roles, status, and signup date. Refresh runs the admin systemprompt CLI server; admin role required.",
       "version": "1.2.0",
       "isStarred": true,
       "mcpTools": [
@@ -12,8 +12,8 @@
     },
     {
       "id": "admin-activity-requests",
-      "name": "Activity \u2014 Recent Requests",
-      "description": "Every AI gateway request as a live, refreshable table \u2014 model, tokens, cost, latency, and status. Refresh runs the admin systemprompt CLI server; admin role required.",
+      "name": "Activity — Recent Requests",
+      "description": "Every AI gateway request as a live, refreshable table — model, tokens, cost, latency, and status. Refresh runs the admin systemprompt CLI server; admin role required.",
       "version": "1.2.0",
       "isStarred": true,
       "mcpTools": [
@@ -22,8 +22,8 @@
     },
     {
       "id": "admin-usage-costs",
-      "name": "Usage \u2014 Spend by Model",
-      "description": "Where the last 24 hours of token spend went, by provider and model \u2014 requests, tokens, average latency, cost, and share. Refresh runs the admin systemprompt CLI server; admin role required.",
+      "name": "Usage — Spend by Model",
+      "description": "Where the last 24 hours of token spend went, by provider and model — requests, tokens, average latency, cost, and share. Refresh runs the admin systemprompt CLI server; admin role required.",
       "version": "1.2.0",
       "isStarred": true,
       "mcpTools": [

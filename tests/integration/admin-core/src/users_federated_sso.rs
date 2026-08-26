@@ -33,7 +33,7 @@ async fn resolve_federated_user_returns_the_existing_mapping_first() {
     let sub = unique("sub");
     insert_federated_identity(&db.pool, ISSUER, &sub, &user).await;
 
-    let resolved = resolve_federated_user(&db.pool, &claims(&sub, "other@elsewhere.test"), false)
+    let resolved = resolve_federated_user(&db.pool, &claims(&sub, "other@elsewhere.test"), false, None)
         .await
         .expect("resolution succeeds")
         .expect("an existing mapping resolves without provisioning");
@@ -51,7 +51,7 @@ async fn resolve_federated_user_links_a_verified_email_to_an_active_local_accoun
     let user = insert_user(&db.pool, &unique("user"), &email).await;
     let sub = unique("sub");
 
-    let resolved = resolve_federated_user(&db.pool, &claims(&sub, &email), false)
+    let resolved = resolve_federated_user(&db.pool, &claims(&sub, &email), false, None)
         .await
         .expect("resolution succeeds")
         .expect("an active local account is linked rather than duplicated");
@@ -82,7 +82,7 @@ async fn resolve_federated_user_matches_the_email_case_insensitively() {
     let user = insert_user(&db.pool, &unique("user"), &email).await;
     let shouted = email.to_uppercase();
 
-    let resolved = resolve_federated_user(&db.pool, &claims(&unique("sub"), &shouted), false)
+    let resolved = resolve_federated_user(&db.pool, &claims(&unique("sub"), &shouted), false, None)
         .await
         .expect("resolution succeeds")
         .expect("an upper-cased claim still finds the local account");
@@ -107,7 +107,7 @@ async fn resolve_federated_user_ignores_an_inactive_local_account() {
     )
     .await;
 
-    let resolved = resolve_federated_user(&db.pool, &claims(&unique("sub"), &email), false)
+    let resolved = resolve_federated_user(&db.pool, &claims(&unique("sub"), &email), false, None)
         .await
         .expect("resolution succeeds");
 
@@ -128,6 +128,7 @@ async fn resolve_federated_user_returns_none_when_provisioning_is_off() {
         &db.pool,
         &claims(&unique("sub"), &unclaimed_email("stranger")),
         false,
+        None,
     )
     .await
     .expect("resolution succeeds");
@@ -147,7 +148,7 @@ async fn resolve_federated_user_provisions_when_asked_to() {
     let email = unclaimed_email("jit");
     let sub = unique("sub");
 
-    let resolved = resolve_federated_user(&db.pool, &claims(&sub, &email), true)
+    let resolved = resolve_federated_user(&db.pool, &claims(&sub, &email), true, None)
         .await
         .expect("resolution succeeds")
         .expect("auto_provision mints the account");
@@ -176,7 +177,7 @@ async fn resolve_federated_user_joins_the_organization_claiming_the_domain() {
     insert_org(&db.pool, &spec).await;
     let email = format!("newhire@{domain}");
 
-    let resolved = resolve_federated_user(&db.pool, &claims(&unique("sub"), &email), true)
+    let resolved = resolve_federated_user(&db.pool, &claims(&unique("sub"), &email), true, None)
         .await
         .expect("resolution succeeds")
         .expect("auto_provision mints the account");
@@ -211,6 +212,7 @@ async fn resolve_federated_user_refuses_to_provision_past_the_seat_limit() {
         &db.pool,
         &claims(&unique("sub"), &format!("second@{domain}")),
         true,
+        None,
     )
     .await;
 
@@ -225,6 +227,89 @@ async fn resolve_federated_user_refuses_to_provision_past_the_seat_limit() {
         .await
         .expect("count succeeds");
     assert_eq!(minted, 0, "the refused login must leave no orphan account");
+    db.cleanup().await;
+}
+
+#[tokio::test]
+async fn resolve_federated_user_provisions_with_the_callers_roles() {
+    let Some(db) = TempDb::create().await else {
+        return;
+    };
+    let desired = vec!["admin".to_owned(), "user".to_owned()];
+
+    let resolved = resolve_federated_user(
+        &db.pool,
+        &claims(&unique("sub"), &unclaimed_email("odooadmin")),
+        true,
+        Some(&desired),
+    )
+    .await
+    .expect("resolution succeeds")
+    .expect("auto_provision mints the account");
+
+    assert_eq!(
+        resolved.roles, desired,
+        "the identity provider's roles land on the freshly minted account"
+    );
+    db.cleanup().await;
+}
+
+#[tokio::test]
+async fn resolve_federated_user_refreshes_roles_on_a_returning_login() {
+    let Some(db) = TempDb::create().await else {
+        return;
+    };
+    let user = insert_user(&db.pool, &unique("user"), &unclaimed_email("promoted")).await;
+    let sub = unique("sub");
+    insert_federated_identity(&db.pool, ISSUER, &sub, &user).await;
+    let desired = vec!["admin".to_owned(), "user".to_owned()];
+
+    let resolved = resolve_federated_user(&db.pool, &claims(&sub, "x@y.test"), false, Some(&desired))
+        .await
+        .expect("resolution succeeds")
+        .expect("the mapping resolves");
+
+    assert_eq!(resolved.roles, desired);
+    let stored: Vec<String> = sqlx::query_scalar("SELECT roles FROM users WHERE id = $1")
+        .bind(user.as_str())
+        .fetch_one(&*db.pool)
+        .await
+        .expect("the user exists");
+    assert_eq!(
+        stored, desired,
+        "a group change at the provider must land in users.roles at the next sign-in"
+    );
+    db.cleanup().await;
+}
+
+#[tokio::test]
+async fn resolve_federated_user_keeps_roles_when_the_caller_could_not_compute_them() {
+    let Some(db) = TempDb::create().await else {
+        return;
+    };
+    let email = unclaimed_email("unchanged");
+    let user = insert_user_full(
+        &db.pool,
+        &unique("user"),
+        &email,
+        None,
+        &["admin".to_owned(), "user".to_owned()],
+        "active",
+    )
+    .await;
+    let sub = unique("sub");
+    insert_federated_identity(&db.pool, ISSUER, &sub, &user).await;
+
+    let resolved = resolve_federated_user(&db.pool, &claims(&sub, &email), false, None)
+        .await
+        .expect("resolution succeeds")
+        .expect("the mapping resolves");
+
+    assert_eq!(
+        resolved.roles,
+        vec!["admin".to_owned(), "user".to_owned()],
+        "a failed group lookup must never strip roles"
+    );
     db.cleanup().await;
 }
 

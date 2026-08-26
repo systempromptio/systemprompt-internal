@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Business Overview — Daily Briefing</title>
+<title>Knowledge Feed — brain@ Activity</title>
 <style>
 :root{
   --bg:oklch(0.17 0 0); --bg-2:oklch(0.14 0 0);
@@ -11,7 +11,8 @@
   --line:oklch(1 0 0 / 0.08); --line-soft:oklch(1 0 0 / 0.05);
   --ink:oklch(0.97 0 0); --ink-2:oklch(0.80 0 0); --muted:oklch(0.64 0 0);
   --accent:oklch(0.755 0.154 61); --accent-soft:oklch(0.755 0.154 61 / 0.14); --accent-line:oklch(0.755 0.154 61 / 0.35);
-  --ok:oklch(0.72 0.17 155); --ok-soft:oklch(0.72 0.17 155 / 0.16);
+  --ok:oklch(0.72 0.17 155); --ok-soft:oklch(0.72 0.17 155 / 0.16); --ok-line:oklch(0.72 0.17 155 / 0.35);
+  --warn:oklch(0.82 0.15 85); --warn-soft:oklch(0.82 0.15 85 / 0.16); --warn-line:oklch(0.82 0.15 85 / 0.35);
   --radius:18px 6px 18px 18px; --radius-sm:12px 4px 12px 12px;
   --shadow:0 20px 50px oklch(0 0 0 / 0.45);
   --font:"Inter",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
@@ -28,8 +29,8 @@ body{
     linear-gradient(180deg, var(--bg), var(--bg-2));
   background-attachment:fixed;
 }
-.wrap{max-width:1180px;margin:0 auto;}
-.hd{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:22px;flex-wrap:wrap;}
+.wrap{max-width:860px;margin:0 auto;}
+.hd{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:18px;flex-wrap:wrap;}
 .hd-l{display:flex;align-items:center;gap:16px;min-width:0;}
 .brand{display:flex;align-items:center;color:var(--ink);height:22px;}
 .brand svg{height:20px;width:auto;display:block;}
@@ -43,20 +44,32 @@ body{
 .status .dot{width:7px;height:7px;border-radius:50%;background:var(--muted);}
 .status.live .dot{background:var(--ok);box-shadow:0 0 0 4px var(--ok-soft);}
 .status.live{color:var(--ink);}
-/* section grid */
-.grid{display:none;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px;}
-.sec{border-radius:var(--radius-sm);background:var(--glass-2);border:1px solid var(--line);
+.status .cnt{color:var(--accent);font-variant-numeric:tabular-nums;}
+/* search bar */
+.bar{display:flex;gap:10px;margin-bottom:16px;}
+.bar input{flex:1;font:inherit;font-size:13.5px;color:var(--ink);background:var(--glass);
+  border:1px solid var(--line);border-radius:var(--radius-sm);padding:11px 15px;outline:none;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);}
+.bar input::placeholder{color:var(--muted);}
+.bar input:focus{border-color:var(--accent-line);}
+.bar button{font:inherit;font-size:12.5px;font-weight:600;color:var(--ink);cursor:pointer;
+  background:var(--accent-soft);border:1px solid var(--accent-line);border-radius:var(--radius-sm);padding:0 18px;}
+.bar button:hover{background:var(--accent);color:oklch(0.15 0 0);}
+/* feed */
+.feed{display:flex;flex-direction:column;gap:10px;}
+.doc{border-radius:var(--radius-sm);background:var(--glass-2);border:1px solid var(--line);
   box-shadow:var(--shadow);backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);
-  padding:16px 18px;overflow:hidden;position:relative;}
-.sec::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--accent);opacity:0.85;}
-.sec h2{margin:0 0 10px;font-size:12px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:var(--muted);
-  display:flex;justify-content:space-between;align-items:baseline;gap:10px;}
-.sec h2 .n{color:var(--accent);font-variant-numeric:tabular-nums;font-size:11px;}
-.sec ul{list-style:none;margin:0;padding:0;}
-.sec li{padding:8px 0;border-top:1px solid var(--line-soft);font-size:13px;color:var(--ink-2);line-height:1.55;word-break:break-word;}
-.sec li:first-child{border-top:0;}
-.sec li b{color:var(--ink);font-weight:600;}
-.sec .quiet{color:var(--muted);font-style:italic;}
+  padding:14px 18px;}
+.doc .top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;}
+.doc .title{font-weight:600;font-size:13.5px;color:var(--ink);min-width:0;}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:2px 10px;border-radius:9999px;font-size:11px;
+  font-weight:600;white-space:nowrap;border:1px solid var(--line);background:var(--glass);color:var(--ink-2);}
+.badge.src{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-line);}
+.badge.st-raw{background:var(--warn-soft);color:var(--warn);border-color:var(--warn-line);}
+.badge.st-done{background:var(--ok-soft);color:var(--ok);border-color:var(--ok-line);}
+.doc .when{margin-left:auto;color:var(--muted);font-size:11.5px;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.doc .body{color:var(--ink-2);font-size:13px;line-height:1.55;word-break:break-word;}
+.doc .anchor{margin-top:6px;color:var(--muted);font-size:11px;font-family:var(--mono);}
 /* states */
 .state{display:none;flex-direction:column;align-items:center;text-align:center;padding:64px 28px;
   border-radius:var(--radius);background:var(--glass);border:1px solid var(--line);
@@ -75,7 +88,7 @@ body{
 .foot{margin-top:14px;color:var(--muted);font-size:11px;text-align:center;letter-spacing:0.01em;}
 .foot code{font-family:var(--mono);color:var(--ink-2);}
 @media (prefers-reduced-motion: no-preference){
-  .grid .sec{animation:rise .5s cubic-bezier(.22,1,.36,1) both;animation-delay:calc(var(--i,0)*55ms);}
+  .feed .doc{animation:rise .42s cubic-bezier(.22,1,.36,1) both;animation-delay:calc(var(--i,0)*24ms);}
 }
 @keyframes rise{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
 </style>
@@ -107,88 +120,120 @@ body{
         <span class="brand"><svg viewBox="167 461 666 78" role="img" aria-label="systemprompt.io"><use href="#sp-logo"/></svg></span>
         <span class="sep"></span>
         <div>
-          <h1 class="ttl">Business Overview <span class="em">—</span> Daily Briefing</h1>
-          <p class="sub">Pipeline, new leads, your day, and the latest team notes — one call, live from Odoo.</p>
+          <h1 class="ttl">Knowledge Feed <span class="em">—</span> brain@ Activity</h1>
+          <p class="sub">Every document the pipeline has captured into the knowledge bank, newest first.</p>
         </div>
       </div>
       <span class="status" id="status"><span class="dot"></span>Awaiting data</span>
     </div>
 
-    <div class="grid" id="grid"></div>
+    <div class="bar">
+      <input id="q" type="search" placeholder="Filter the feed — a sender, a category, a phrase… (empty = everything)" />
+      <button id="go">Filter</button>
+    </div>
+
+    <div class="feed" id="feed" style="display:none"></div>
 
     <div class="state" id="await">
       <span class="mark"><svg viewBox="167 461 666 78" role="img" aria-label="systemprompt.io"><use href="#sp-logo"/></svg></span>
-      <h2>Loading your daily briefing</h2>
-      <p>This dashboard renders only your real Odoo data — no sample data. It loads automatically by running the query below through the Odoo MCP connection, as you; use <strong>Reload</strong> in the header to fetch it again.</p>
-      <div class="qry">business_overview_data {} — pipeline by stage, new leads, due activities, today's calendar, week's tasks, recent notes</div>
-      <span class="hint">Loads via mcp__odoo__business_overview_data</span>
+      <h2>Loading the knowledge bank</h2>
+      <p>This feed renders only real knowledge-bank documents — no sample data. It loads automatically by running the query below through the knowledge-bank MCP server; use <strong>Reload</strong> in the header to fetch again.</p>
+      <div class="qry">list_documents {} — every document, newest first, capped at 200</div>
+      <span class="hint">Loads via mcp__knowledge-bank__list_documents</span>
     </div>
 
     <div class="state err" id="error">
       <span class="mark"><svg viewBox="167 461 666 78" role="img" aria-label="systemprompt.io"><use href="#sp-logo"/></svg></span>
-      <h2>Odoo is not connected</h2>
-      <p id="error-msg">The Odoo query could not be completed.</p>
-      <p style="margin-top:10px">Link your Odoo login and API key on <a href="/admin/profile">your profile</a>, then press Reload.</p>
+      <h2>Knowledge bank unavailable</h2>
+      <p id="error-msg">The listing query could not be completed.</p>
+      <p style="margin-top:10px">Check the knowledge-bank MCP server, then press Reload.</p>
     </div>
 
-    <p class="foot">Live data via the Odoo MCP connection, executed as you · Reload re-runs <code>mcp__odoo__business_overview_data</code> with the call in <code>#odoo-query</code></p>
+    <div class="state" id="empty">
+      <span class="mark"><svg viewBox="167 461 666 78" role="img" aria-label="systemprompt.io"><use href="#sp-logo"/></svg></span>
+      <h2>No documents yet</h2>
+      <p>The knowledge bank is reachable but holds nothing matching this filter. Emails sent to brain@ land here once the ingest job runs.</p>
+    </div>
+
+    <p class="foot">Live data from the knowledge bank · Reload re-runs <code>mcp__knowledge-bank__list_documents</code> with the call in <code>#kb-query</code></p>
   </div>
 
   <!-- Data contract: on load the page calls window.cowork.callMcpTool with this
-       tool + arguments and renders the markdown briefing the tool returns
-       (structuredContent.content): one "## Section" per briefing
-       section, one "- ..." row per record. -->
-  <script type="application/json" id="odoo-query">
-  {"tool": "mcp__odoo__business_overview_data", "arguments": {}}
+       tool + arguments and renders the markdown listing rows the tool returns
+       (structuredContent.content). The search box filters the loaded
+       rows client-side — no second query shape to parse. -->
+  <script type="application/json" id="kb-query">
+  {"tool": "mcp__knowledge-bank__list_documents", "arguments": {}}
   </script>
 
 <script>
 (function () {
   var $ = function (id) { return document.getElementById(id); };
   var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]; }); };
-  var contract = JSON.parse($("odoo-query").textContent);
+  var contract = JSON.parse($("kb-query").textContent);
+  var docs = [];
 
-  var setStatus = function (mode) {
+  var setStatus = function (mode, count) {
     var el = $("status");
-    if (mode === "live") { el.className = "status live"; el.innerHTML = '<span class="dot"></span>Live'; }
+    if (mode === "live") { el.className = "status live"; el.innerHTML = '<span class="dot"></span>Live · <span class="cnt">' + count + "</span>&nbsp;docs"; }
     else if (mode === "error") { el.className = "status"; el.innerHTML = '<span class="dot" style="background:var(--accent)"></span>Not connected'; }
     else { el.className = "status"; el.innerHTML = '<span class="dot"></span>Awaiting data'; }
   };
 
   var show = function (which) {
-    $("grid").style.display = which === "ready" ? "grid" : "none";
+    $("feed").style.display = which === "ready" ? "flex" : "none";
     $("await").style.display = which === "await" ? "flex" : "none";
     $("error").style.display = which === "error" ? "flex" : "none";
+    $("empty").style.display = which === "empty" ? "flex" : "none";
   };
 
-  // The briefing arrives as markdown: "## Title" per section, "- row" per
-  // record, and a named empty-case sentence when a section has nothing. Bold
-  // (**x**) is the only inline markup the server emits.
-  var parseSections = function (md) {
-    var sections = [], cur = null;
+  // The tool renders one line per document (see the knowledge-bank server's
+  // listing_summary): "- <id> — <title> (<source>, <project>, <date>, <size>
+  // chars, <status>[, <category>])", optionally followed by a two-space
+  // indented summary line. Parse exactly that shape; anything unparseable
+  // still shows as a plain row rather than being dropped.
+  var HEAD = /^- (\S+) — (.+) \(([^()]*)\)$/;
+  var parseDocs = function (md) {
+    var out = [], cur = null;
     md.split("\n").forEach(function (line) {
-      var h = line.match(/^## (.+)$/);
-      if (h) { cur = { title: h[1], rows: [], empty: "" }; sections.push(cur); return; }
-      if (!cur) return;
-      if (/^- /.test(line)) { cur.rows.push(line.slice(2)); return; }
-      if (/^ {2,}\S/.test(line) && cur.rows.length) { cur.rows[cur.rows.length - 1] += " " + line.trim(); return; }
-      if (line.trim() && !cur.rows.length) cur.empty += (cur.empty ? " " : "") + line.trim();
+      var m = line.match(HEAD);
+      if (m) {
+        var meta = m[3].split(", ");
+        cur = { id: m[1], title: m[2], source: meta[0] || "", project: meta[1] || "",
+                date: meta[2] || "", size: meta[3] || "", status: meta[4] || "",
+                category: meta.slice(5).join(", "), summary: "" };
+        out.push(cur); return;
+      }
+      if (/^- /.test(line)) { cur = { id: "", title: line.slice(2), source: "", project: "", date: "", size: "", status: "", category: "", summary: "" }; out.push(cur); return; }
+      if (cur && line.trim()) cur.summary += (cur.summary ? " " : "") + line.trim();
     });
-    return sections;
+    return out;
   };
 
-  var inline = function (s) {
-    return esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
-  };
-
-  var renderSections = function (sections) {
-    $("grid").innerHTML = sections.map(function (sec, i) {
-      var body = sec.rows.length
-        ? "<ul>" + sec.rows.map(function (r) { return "<li>" + inline(r) + "</li>"; }).join("") + "</ul>"
-        : '<ul><li class="quiet">' + esc(sec.empty || "Nothing here right now.") + "</li></ul>";
-      var n = sec.rows.length ? '<span class="n">' + sec.rows.length + "</span>" : "";
-      return '<section class="sec" style="--i:' + i + '"><h2>' + esc(sec.title) + n + "</h2>" + body + "</section>";
+  var statusClass = function (s) { return s === "raw" ? "badge st-raw" : s ? "badge st-done" : "badge"; };
+  var renderDocs = function (rows) {
+    $("feed").innerHTML = rows.map(function (d, i) {
+      return '<div class="doc" style="--i:' + i + '"><div class="top">' +
+        '<span class="title">' + esc(d.title || "(untitled)") + '</span>' +
+        (d.source ? '<span class="badge src">' + esc(d.source) + '</span>' : "") +
+        (d.status ? '<span class="' + statusClass(d.status) + '">' + esc(d.status) + '</span>' : "") +
+        (d.category ? '<span class="badge">' + esc(d.category) + '</span>' : "") +
+        '<span class="when">' + esc(d.date || "") + '</span></div>' +
+        (d.summary ? '<div class="body">' + esc(d.summary) + '</div>' : "") +
+        (d.id ? '<div class="anchor">' + esc(d.id + (d.project && d.project !== "unscoped" ? " · " + d.project : "") + (d.size ? " · " + d.size : "")) + '</div>' : "") +
+        "</div>";
     }).join("");
+  };
+
+  var matches = function (d, q) {
+    return [d.title, d.source, d.status, d.category, d.project, d.summary, d.date]
+      .join(" ").toLowerCase().indexOf(q) !== -1;
+  };
+  var applyFilter = function () {
+    var q = $("q").value.trim().toLowerCase();
+    var rows = q ? docs.filter(function (d) { return matches(d, q); }) : docs;
+    if (!rows.length) { setStatus("live", 0); show("empty"); return; }
+    setStatus("live", rows.length); renderDocs(rows); show("ready");
   };
 
   var content = function (r) {
@@ -199,70 +244,26 @@ body{
     return null;
   };
 
-  var FETCH = { tries: 0, max: 3, inflight: false };
-  var TIMEOUT_MS = 20000;
-
-  var retryBtn = function () {
-    if (document.getElementById("retry")) return;
-    var b = document.createElement("button");
-    b.id = "retry"; b.className = "hint"; b.type = "button";
-    b.style.cursor = "pointer"; b.style.font = "inherit"; b.style.marginTop = "16px";
-    b.textContent = "Try again";
-    b.addEventListener("click", function () { FETCH.tries = 0; b.remove(); load(); });
-    $("error").appendChild(b);
-  };
-
-  var fail = function (msg) {
-    FETCH.inflight = false;
-    setStatus("error"); show("error"); $("error-msg").textContent = msg;
-    retryBtn();
-  };
-
-  var failedAttempt = function (msg) {
-    FETCH.inflight = false;
-    if (FETCH.tries < FETCH.max) { setTimeout(load, 1200 * FETCH.tries); return; }
-    fail(msg + " (after " + FETCH.max + " attempts)");
-  };
-
-  var bridgeReady = function () { return window.cowork && typeof window.cowork.callMcpTool === "function"; };
-
-  var timedCall = function (tool, args) {
-    return new Promise(function (resolve, reject) {
-      var done = false;
-      var guard = setTimeout(function () {
-        if (done) return; done = true;
-        reject(new Error("The data query timed out — the workspace may have reloaded mid-fetch."));
-      }, TIMEOUT_MS);
-      window.cowork.callMcpTool(tool, args).then(
-        function (r) { if (done) return; done = true; clearTimeout(guard); resolve(r); },
-        function (e) { if (done) return; done = true; clearTimeout(guard); reject(e); });
-    });
-  };
-
-  var load = function (waited) {
-    if (FETCH.inflight) return;
-    if (!bridgeReady()) {
-      setStatus("await"); show("await");
-      if ((waited || 0) >= 10000) return fail("The workspace MCP bridge never became available.");
-      return void setTimeout(function () { load((waited || 0) + 250); }, 250);
-    }
+  var load = function () {
+    if (!window.cowork || typeof window.cowork.callMcpTool !== "function") { setStatus("await"); show("await"); return; }
     setStatus("await"); show("await");
-    FETCH.inflight = true; FETCH.tries++;
-    timedCall(contract.tool, contract.arguments).then(function (r) {
-      FETCH.inflight = false;
+    window.cowork.callMcpTool(contract.tool, contract.arguments).then(function (r) {
       if (r && r.isError) {
-        var msg = "The Odoo query could not be completed.";
+        var msg = "The listing query could not be completed.";
         try { msg = (r.content && r.content[0] && r.content[0].text) || msg; } catch (e) {}
-        fail(msg); return;
+        setStatus("error"); show("error"); $("error-msg").textContent = msg; return;
       }
       var md = content(r);
-      if (md == null) { fail("Could not read the tool response."); return; }
-      var sections = parseSections(md);
-      if (!sections.length) { fail("The briefing came back empty."); return; }
-      setStatus("live"); renderSections(sections); show("ready");
-    }).catch(function (e) { failedAttempt(String((e && e.message) || e)); });
+      if (md == null) { setStatus("error"); show("error"); $("error-msg").textContent = "Could not read the tool response."; return; }
+      if (md.indexOf("The knowledge bank holds no documents") !== -1) { docs = []; setStatus("live", 0); show("empty"); return; }
+      docs = parseDocs(md);
+      applyFilter();
+    }).catch(function (e) { setStatus("error"); show("error"); $("error-msg").textContent = String((e && e.message) || e); });
   };
 
+  $("go").addEventListener("click", applyFilter);
+  $("q").addEventListener("input", applyFilter);
+  $("q").addEventListener("keydown", function (ev) { if (ev.key === "Enter") applyFilter(); });
   window.addEventListener("message", function () { load(); });
   load();
 })();
