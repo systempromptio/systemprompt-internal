@@ -392,16 +392,57 @@ var CONFIG = {
     return null;
   };
 
-  var applyResult = function (records, err) {
-    window.__ARTIFACT_DATA__ = err ? { error: err } : records;
-    render();
+  var FETCH = { tries: 0, max: 3, inflight: false };
+  var TIMEOUT_MS = 20000;
+
+  var retryBtn = function () {
+    if (document.getElementById("retry")) return;
+    var b = document.createElement("button");
+    b.id = "retry"; b.className = "hint"; b.type = "button";
+    b.style.cursor = "pointer"; b.style.font = "inherit"; b.style.marginTop = "16px";
+    b.textContent = "Try again";
+    b.addEventListener("click", function () { FETCH.tries = 0; b.remove(); fetchLive(); });
+    $("error").appendChild(b);
   };
 
-  var fetchLive = function () {
-    if (!CONTRACT_EL || !window.cowork || typeof window.cowork.callMcpTool !== "function") return;
+  var applyResult = function (records, err) {
+    FETCH.inflight = false;
+    window.__ARTIFACT_DATA__ = err ? { error: err } : records;
+    render();
+    if (err) retryBtn();
+  };
+
+  var failedAttempt = function (msg) {
+    FETCH.inflight = false;
+    if (FETCH.tries < FETCH.max) { setTimeout(fetchLive, 1200 * FETCH.tries); return; }
+    applyResult(null, msg + " (after " + FETCH.max + " attempts)");
+  };
+
+  var bridgeReady = function () { return window.cowork && typeof window.cowork.callMcpTool === "function"; };
+
+  var timedCall = function (tool, args) {
+    return new Promise(function (resolve, reject) {
+      var done = false;
+      var guard = setTimeout(function () {
+        if (done) return; done = true;
+        reject(new Error("The data query timed out — the workspace may have reloaded mid-fetch."));
+      }, TIMEOUT_MS);
+      window.cowork.callMcpTool(tool, args).then(
+        function (r) { if (done) return; done = true; clearTimeout(guard); resolve(r); },
+        function (e) { if (done) return; done = true; clearTimeout(guard); reject(e); });
+    });
+  };
+
+  var fetchLive = function (waited) {
+    if (FETCH.inflight || !CONTRACT_EL) return;
+    if (!bridgeReady()) {
+      if ((waited || 0) >= 10000) return applyResult(null, "The workspace MCP bridge never became available.");
+      return void setTimeout(function () { fetchLive((waited || 0) + 250); }, 250);
+    }
     var contract;
-    try { contract = JSON.parse(CONTRACT_EL.textContent); } catch (e) { return; }
-    window.cowork.callMcpTool(contract.tool, contract.arguments).then(function (r) {
+    try { contract = JSON.parse(CONTRACT_EL.textContent); } catch (e) { return applyResult(null, "The embedded data contract is unreadable."); }
+    FETCH.inflight = true; FETCH.tries++;
+    timedCall(contract.tool, contract.arguments).then(function (r) {
       if (r && r.isError) {
         var msg = "The data query failed.";
         try { msg = (r.content && r.content[0] && r.content[0].text) || msg; } catch (e2) {}
@@ -435,7 +476,7 @@ var CONFIG = {
       var records = normalize(payload);
       if (!records) return applyResult(null, "The tool response had no record list.");
       applyResult(records);
-    }).catch(function (e4) { applyResult(null, String((e4 && e4.message) || e4)); });
+    }).catch(function (e4) { failedAttempt(String((e4 && e4.message) || e4)); });
   };
 
   render();
