@@ -986,6 +986,27 @@ deploy *FLAGS: build-all
     fi
     {{CLI_RELEASE}} cloud deploy --profile {{DEPLOY_PROFILE}} {{FLAGS}}
 
+# Deploy the NEXT stack to production (internal.systemprompt.io) as a
+# PARALLEL process: a dedicated git worktree of origin/next with its own
+# target/ and build coordinator, so it never contends with this clone's
+# builds and never touches `just deploy` (the main/crates.io release act).
+# The gitignored .systemprompt/ (profiles, secrets, Dockerfile) is synced in
+# because a worktree only carries tracked files.
+deploy-next *FLAGS:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    root="{{justfile_directory()}}"
+    dir="$(cd "$root/.." && pwd)/systemprompt-internal-deploy-next"
+    git -C "$root" fetch origin next
+    if [ ! -d "$dir" ]; then
+        git -C "$root" worktree add --detach "$dir" origin/next
+    else
+        git -C "$dir" checkout --detach origin/next
+    fi
+    rsync -a --delete "$root/.systemprompt/" "$dir/.systemprompt/"
+    echo "deploy-next: worktree at $dir on $(git -C "$dir" rev-parse --short HEAD)"
+    cd "$dir" && just deploy {{FLAGS}}
+
 # Pre-deploy preflight only — no build, no push
 deploy-check:
     {{CLI}} cloud doctor --profile {{DEPLOY_PROFILE}}
