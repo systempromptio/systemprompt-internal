@@ -1004,6 +1004,11 @@ deploy-next *FLAGS:
         git -C "$dir" checkout --detach origin/next
     fi
     rsync -a --delete "$root/.systemprompt/" "$dir/.systemprompt/"
+    # The local profile carries absolute paths into THIS clone; left alone,
+    # the worktree's asset jobs would write web/dist into the wrong tree and
+    # the image build would find nothing to copy. Production's paths are
+    # container paths (/app) and are untouched.
+    sed -i "s|$root|$dir|g" "$dir/.systemprompt/profiles/local/profile.yaml"
     echo "deploy-next: worktree at $dir on $(git -C "$dir" rev-parse --short HEAD)"
     cd "$dir" && just deploy {{FLAGS}}
 
