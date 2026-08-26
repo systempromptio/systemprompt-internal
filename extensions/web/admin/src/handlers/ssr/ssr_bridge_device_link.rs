@@ -49,6 +49,7 @@ struct DeviceLinkContext<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     redirect_host: Option<String>,
     code_ttl_seconds: i64,
+    switch_account_href: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -82,6 +83,7 @@ pub(crate) async fn device_link_page(
     let data = DeviceLinkContext {
         branding,
         user_email: user_ctx.email.to_string(),
+        switch_account_href: switch_account_href(query.redirect.as_deref()),
         redirect: query.redirect,
         redirect_host,
         code_ttl_seconds: bridge::EXCHANGE_CODE_TTL_SECONDS,
@@ -157,6 +159,45 @@ pub(crate) async fn device_link_deny(
     let sep = if redirect.contains('?') { '&' } else { '?' };
     let location = format!("{redirect}{sep}error=denied");
     Ok(Redirect::to(&location).into_response())
+}
+
+fn switch_account_href(redirect: Option<&str>) -> String {
+    let mut target = "/bridge-auth/device-link".to_owned();
+    if let Some(redirect) = redirect {
+        target.push_str("?redirect=");
+        target.push_str(&urlencoding::encode(redirect));
+    }
+    format!("/bridge-auth/device-link/switch?next={}", urlencoding::encode(&target))
+}
+
+// Why: the browser's session cookie decides WHO gets linked, and a machine
+// with a lingering session would silently link that account. This route is
+// mounted OUTSIDE the auth gate: it clears the session cookies and sends the
+// user to the login page with the device-link continuation, so they choose
+// the account — Odoo credential or passkey — before anything is approved.
+pub(crate) async fn device_link_switch(Query(query): Query<SwitchQuery>) -> Response {
+    let next = query
+        .next
+        .filter(|n| n.starts_with('/') && !n.starts_with("//"))
+        .unwrap_or_else(|| "/bridge-auth/device-link".to_owned());
+    let location = format!("/admin/login?redirect={}", urlencoding::encode(&next));
+
+    let mut response = Redirect::to(&location).into_response();
+    let headers = response.headers_mut();
+    for cookie in [
+        "access_token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0",
+        "refresh_token=; Path=/api/public/auth; HttpOnly; SameSite=Lax; Max-Age=0",
+    ] {
+        if let Ok(value) = cookie.parse() {
+            headers.append(axum::http::header::SET_COOKIE, value);
+        }
+    }
+    response
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct SwitchQuery {
+    pub next: Option<String>,
 }
 
 fn render_code_page(

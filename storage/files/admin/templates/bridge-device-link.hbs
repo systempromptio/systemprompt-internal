@@ -12,18 +12,15 @@
     <div class="login-container">
         <div class="card">
             <div class="login-logo"><img src="/files/images/logo-white.svg" alt="{{branding.domain}}" height="40"></div>
-            <h1 class="text-xl mb-2">Authorise a device</h1>
-            {{#if redirect_host}}
-            <p class="text-sm text-tertiary mb-3">
-                A local helper at <strong class="text-primary">{{redirect_host}}</strong> is asking to sign in as
-                <strong class="text-primary">{{user_email}}</strong>.
+            <h1 class="text-xl mb-2">Link this computer</h1>
+            <p class="text-sm text-tertiary mb-1">
+                {{#if redirect_host}}A local helper at <strong class="text-primary">{{redirect_host}}</strong>{{else}}A command-line helper on another machine{{/if}}
+                will sign in as the account below.
             </p>
-            {{else}}
-            <p class="text-sm text-tertiary mb-3">
-                A command-line helper on another machine is asking to sign in as
-                <strong class="text-primary">{{user_email}}</strong>.
-            </p>
-            {{/if}}
+            <div class="device-link-identity mb-3">
+                <div class="text-base text-primary"><strong>{{user_email}}</strong></div>
+                <a class="text-sm" href="{{switch_account_href}}">Not you? Use a different account</a>
+            </div>
             <p class="text-sm text-tertiary mb-4">
                 Only approve if you started <code>{{#if redirect_host}}sp-bridge-auth{{else}}systemprompt-internal-bridge login{{/if}}</code> yourself. The helper will receive a one-time code (valid for {{code_ttl_seconds}}&nbsp;seconds) and exchange it for a durable personal access token that signs in as you until you revoke it.
             </p>
