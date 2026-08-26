@@ -167,7 +167,10 @@ fn switch_account_href(redirect: Option<&str>) -> String {
         target.push_str("?redirect=");
         target.push_str(&urlencoding::encode(redirect));
     }
-    format!("/bridge-auth/device-link/switch?next={}", urlencoding::encode(&target))
+    format!(
+        "/bridge-auth/device-link/switch?next={}",
+        urlencoding::encode(&target)
+    )
 }
 
 // Why: the browser's session cookie decides WHO gets linked, and a machine
@@ -175,7 +178,7 @@ fn switch_account_href(redirect: Option<&str>) -> String {
 // mounted OUTSIDE the auth gate: it clears the session cookies and sends the
 // user to the login page with the device-link continuation, so they choose
 // the account — Odoo credential or passkey — before anything is approved.
-pub(crate) async fn device_link_switch(Query(query): Query<SwitchQuery>) -> Response {
+pub(crate) async fn device_link_switch(Query(query): Query<SwitchQuery>) -> Response { // lint-ok: http-error
     let next = query
         .next
         .filter(|n| n.starts_with('/') && !n.starts_with("//"))

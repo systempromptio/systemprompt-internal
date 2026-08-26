@@ -82,7 +82,9 @@ pub async fn spawn_odoo_mcp(odoo_url: &str) -> Option<McpServerProc> {
         }
         tokio::time::sleep(Duration::from_millis(200)).await;
     }
-    panic!("systemprompt-mcp-odoo never opened port {port} — check the profile it was spawned with");
+    panic!(
+        "systemprompt-mcp-odoo never opened port {port} — check the profile it was spawned with"
+    );
 }
 
 // initialize → tools/call → cancel, over genuine HTTP. Returns the textual
@@ -122,10 +124,12 @@ pub async fn call_tool_full(
     // Why: the transport calls `bearer_auth` on this value, which prepends
     // "Bearer " itself — passing a full header here reaches the server as
     // "Bearer Bearer <jwt>" and fails as a malformed token.
-    let config =
-        StreamableHttpClientTransportConfig::with_uri(url.to_owned()).auth_header(bearer.to_owned());
-    let transport =
-        StreamableHttpClientTransport::with_client(HttpClientWithContext::new(request_context), config);
+    let config = StreamableHttpClientTransportConfig::with_uri(url.to_owned())
+        .auth_header(bearer.to_owned());
+    let transport = StreamableHttpClientTransport::with_client(
+        HttpClientWithContext::new(request_context),
+        config,
+    );
     let client_info = ClientInfo::new(
         ClientCapabilities::default(),
         Implementation::new("e2e-tests", "0.0.0"),

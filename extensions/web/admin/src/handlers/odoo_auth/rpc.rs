@@ -158,7 +158,7 @@ impl OdooUserSession<'_> {
 // Why: asked as the user themself with the credential that just
 // authenticated — no service account. `has_group` is the one group probe
 // Odoo grants every user about their own account; reading `ir.model.data`
-// requires admin rights, which is exactly what a demoted user no longer has,
+// requires admin rights, which a demoted user lacks by definition,
 // and a lookup that fails on demotion can never revoke anything.
 pub(crate) async fn has_group(
     session: &OdooUserSession<'_>,

@@ -59,10 +59,12 @@ pub fn lead_domain(input: &LeadSearchInput) -> serde_json::Value {
     serde_json::Value::Array(domain)
 }
 
-/// One lead, typed at the Odoo wire boundary. Field names are Odoo's own —
-/// the contract anyone who knows Odoo already speaks. Odoo's JSON quirks are
-/// absorbed by the deserializers: `false` means absent, and a many2one
-/// arrives as `[id, "Display Name"]` and collapses to its name.
+/// One lead, typed at the Odoo wire boundary.
+///
+/// Field names are Odoo's own — the contract anyone who knows Odoo already
+/// speaks. Odoo's JSON quirks are absorbed by the deserializers: `false`
+/// means absent, and a many2one arrives as `[id, "Display Name"]` and
+/// collapses to its name.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct LeadRow {
     pub id: i64,
@@ -70,8 +72,8 @@ pub struct LeadRow {
     pub name: Option<String>,
     #[serde(deserialize_with = "odoo::many2one", default)]
     pub stage_id: Option<String>,
-    #[serde(deserialize_with = "odoo::many2one", default)]
-    pub user_id: Option<String>,
+    #[serde(rename = "user_id", deserialize_with = "odoo::many2one", default)]
+    pub salesperson: Option<String>,
     #[serde(deserialize_with = "odoo::text", default)]
     pub partner_name: Option<String>,
     #[serde(deserialize_with = "odoo::text", default)]
@@ -135,13 +137,15 @@ pub fn lead_table(records: &[serde_json::Value]) -> TableArtifact {
     // logged and dropped rather than shipped half-parsed.
     let rows = records
         .iter()
-        .filter_map(|record| match serde_json::from_value::<LeadRow>(record.clone()) {
-            Ok(row) => serde_json::to_value(row).ok(),
-            Err(e) => {
-                tracing::warn!(error = %e, "crm.lead record did not match LeadRow; dropping");
-                None
+        .filter_map(
+            |record| match serde_json::from_value::<LeadRow>(record.clone()) {
+                Ok(row) => serde_json::to_value(row).ok(),
+                Err(e) => {
+                    tracing::warn!(error = %e, "crm.lead record did not match LeadRow; dropping");
+                    None
+                },
             },
-        })
+        )
         .collect();
     TableArtifact::new(columns).with_rows(rows)
 }

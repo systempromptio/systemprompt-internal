@@ -59,6 +59,10 @@ pub async fn insert_user(pool: &PgPool, id: &str, email: &str) -> UserId {
     insert_user_full(pool, id, email, Some(email), &["user".to_owned()], "active").await
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "fixture mirrors the row's columns"
+)]
 pub async fn insert_user_full(
     pool: &PgPool,
     id: &str,
@@ -459,6 +463,10 @@ pub async fn insert_activity(
 }
 
 // Insert an access-control grant, creating the catalog row the FK requires.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "fixture mirrors the row's columns"
+)]
 pub async fn insert_acl_rule(
     pool: &PgPool,
     entity_type: &str,

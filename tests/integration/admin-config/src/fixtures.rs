@@ -192,6 +192,10 @@ pub async fn insert_acl_entity(pool: &PgPool, entity_type: &str, entity_id: &str
     .expect("insert access-control entity");
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "fixture mirrors the row's columns"
+)]
 pub async fn insert_env_var(
     pool: &PgPool,
     user: &str,

@@ -58,7 +58,7 @@ struct StoredAnalysis {
 }
 
 async fn read_analysis(pool: &sqlx::PgPool, session_id: &str) -> StoredAnalysis {
-    let row: (
+    type AnalysisRow = (
         String,
         String,
         String,
@@ -69,7 +69,8 @@ async fn read_analysis(pool: &sqlx::PgPool, session_id: &str) -> StoredAnalysis 
         Option<i32>,
         bool,
         String,
-    ) = sqlx::query_as(
+    );
+    let row: AnalysisRow = sqlx::query_as(
         "SELECT title, summary, tags, quality_score, category, corrections_count,
                     session_duration_minutes, total_turns, plan_mode_used, client_surface
              FROM session_analyses WHERE session_id = $1",

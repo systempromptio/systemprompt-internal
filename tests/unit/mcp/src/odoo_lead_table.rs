@@ -27,8 +27,11 @@ fn a_lead_record_types_cleanly_including_odoo_false_and_many2one() {
 
     assert_eq!(row.id, 47);
     assert_eq!(row.stage_id.as_deref(), Some("New"), "many2one → name");
-    assert_eq!(row.user_id.as_deref(), Some("Jo Salesperson"));
-    assert_eq!(row.email_from, None, "Odoo's false means absent, not \"false\"");
+    assert_eq!(row.salesperson.as_deref(), Some("Jo Salesperson"));
+    assert_eq!(
+        row.email_from, None,
+        "Odoo's false means absent, not \"false\""
+    );
     assert_eq!(row.probability, None);
     assert_eq!(row.expected_revenue, Some(40000.0));
 }

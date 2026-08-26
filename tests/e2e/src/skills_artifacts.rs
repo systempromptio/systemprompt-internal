@@ -53,7 +53,9 @@ async fn every_manifest_named_skill_file_is_fetchable() {
     // manifest still carries it (Codex's own emitter reads manifest.skills).
     let all_paths: Vec<&str> = files.iter().filter_map(|f| f["path"].as_str()).collect();
     assert!(
-        !all_paths.iter().any(|p| p.contains("systemprompt-setup-codex")),
+        !all_paths
+            .iter()
+            .any(|p| p.contains("systemprompt-setup-codex")),
         "the codex setup skill leaked into the Claude bundle: {all_paths:?}"
     );
     let skills: Vec<&str> = manifest["skills"]

@@ -127,6 +127,13 @@
 }
 .advanced > div { padding: var(--sp-space-3) 0; }
 
+.device-link-identity {
+    padding: var(--sp-space-2) var(--sp-space-3);
+    border: 1px solid var(--sp-border-subtle);
+    border-radius: var(--sp-radius-md);
+    background: var(--sp-bg-surface-raised-gradient);
+}
+
 .device-link-actions {
     display: flex;
     gap: var(--sp-space-3);

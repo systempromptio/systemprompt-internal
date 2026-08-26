@@ -59,12 +59,23 @@ impl Odoo {
         resp["result"].clone()
     }
 
-    async fn execute(&self, model: &str, method: &str, args: serde_json::Value) -> serde_json::Value {
+    async fn execute(
+        &self,
+        model: &str,
+        method: &str,
+        args: serde_json::Value,
+    ) -> serde_json::Value {
         self.rpc(
             "object",
             "execute_kw",
             serde_json::json!([
-                self.db, self.admin_uid, self.admin_pw, model, method, args, {}
+                self.db,
+                self.admin_uid,
+                self.admin_pw,
+                model,
+                method,
+                args,
+                {}
             ]),
         )
         .await
@@ -90,7 +101,11 @@ impl Odoo {
                 serde_json::json!([[["login", "=", login]]]),
             )
             .await;
-        let uid = match existing.as_array().and_then(|a| a.first()).and_then(serde_json::Value::as_i64) {
+        let uid = match existing
+            .as_array()
+            .and_then(|a| a.first())
+            .and_then(serde_json::Value::as_i64)
+        {
             Some(uid) => uid,
             None => self
                 .execute(
@@ -118,11 +133,23 @@ impl Odoo {
     // are allowed to write on. Idempotent by name.
     async fn ensure_lead(&self, name: &str, owner_uid: i64) -> i64 {
         let existing = self
-            .execute("crm.lead", "search", serde_json::json!([[["name", "=", name]]]))
+            .execute(
+                "crm.lead",
+                "search",
+                serde_json::json!([[["name", "=", name]]]),
+            )
             .await;
-        if let Some(id) = existing.as_array().and_then(|a| a.first()).and_then(serde_json::Value::as_i64) {
-            self.execute("crm.lead", "write", serde_json::json!([[id], { "user_id": owner_uid }]))
-                .await;
+        if let Some(id) = existing
+            .as_array()
+            .and_then(|a| a.first())
+            .and_then(serde_json::Value::as_i64)
+        {
+            self.execute(
+                "crm.lead",
+                "write",
+                serde_json::json!([[id], { "user_id": owner_uid }]),
+            )
+            .await;
             return id;
         }
         self.execute(
@@ -139,8 +166,7 @@ impl Odoo {
 fn pkce_pair() -> (String, String) {
     let verifier = base64::engine::general_purpose::URL_SAFE_NO_PAD
         .encode(uuid::Uuid::new_v4().as_bytes())
-        + &base64::engine::general_purpose::URL_SAFE_NO_PAD
-            .encode(uuid::Uuid::new_v4().as_bytes());
+        + &base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(uuid::Uuid::new_v4().as_bytes());
     let challenge = base64::engine::general_purpose::URL_SAFE_NO_PAD
         .encode(sha2::Sha256::digest(verifier.as_bytes()));
     (verifier, challenge)
@@ -277,8 +303,11 @@ async fn live_stack_walks_the_two_role_journey() {
     let group_system = odoo.group_id("base", "group_system").await;
     let group_user = odoo.group_id("base", "group_user").await;
     let group_salesman = odoo.group_id("sales_team", "group_sale_salesman").await;
-    odoo.ensure_user(ADMIN_LOGIN, &[group_system, group_user]).await;
-    let sales_uid = odoo.ensure_user(SALES_LOGIN, &[group_user, group_salesman]).await;
+    odoo.ensure_user(ADMIN_LOGIN, &[group_system, group_user])
+        .await;
+    let sales_uid = odoo
+        .ensure_user(SALES_LOGIN, &[group_user, group_salesman])
+        .await;
     let lead_id = odoo.ensure_lead("E2E Demo Lead", sales_uid).await;
 
     step("sign in as both roles (JIT + PKCE exchange)");

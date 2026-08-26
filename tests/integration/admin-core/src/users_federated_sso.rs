@@ -33,10 +33,11 @@ async fn resolve_federated_user_returns_the_existing_mapping_first() {
     let sub = unique("sub");
     insert_federated_identity(&db.pool, ISSUER, &sub, &user).await;
 
-    let resolved = resolve_federated_user(&db.pool, &claims(&sub, "other@elsewhere.test"), false, None)
-        .await
-        .expect("resolution succeeds")
-        .expect("an existing mapping resolves without provisioning");
+    let resolved =
+        resolve_federated_user(&db.pool, &claims(&sub, "other@elsewhere.test"), false, None)
+            .await
+            .expect("resolution succeeds")
+            .expect("an existing mapping resolves without provisioning");
 
     assert_eq!(resolved.user_id, user, "the mapping wins over the email");
     db.cleanup().await;
@@ -264,10 +265,11 @@ async fn resolve_federated_user_refreshes_roles_on_a_returning_login() {
     insert_federated_identity(&db.pool, ISSUER, &sub, &user).await;
     let desired = vec!["admin".to_owned(), "user".to_owned()];
 
-    let resolved = resolve_federated_user(&db.pool, &claims(&sub, "x@y.test"), false, Some(&desired))
-        .await
-        .expect("resolution succeeds")
-        .expect("the mapping resolves");
+    let resolved =
+        resolve_federated_user(&db.pool, &claims(&sub, "x@y.test"), false, Some(&desired))
+            .await
+            .expect("resolution succeeds")
+            .expect("the mapping resolves");
 
     assert_eq!(resolved.roles, desired);
     let stored: Vec<String> = sqlx::query_scalar("SELECT roles FROM users WHERE id = $1")

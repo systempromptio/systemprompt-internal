@@ -246,8 +246,8 @@ async fn a_tampered_token_is_refused() {
     // Flip one hex digit of the MAC, keeping the length identical so the
     // constant-time compare — not the length precheck — is what rejects it.
     let mac = parts[2];
-    let flipped = if mac.starts_with('0') {
-        format!("1{}", &mac[1..])
+    let flipped = if let Some(rest) = mac.strip_prefix('0') {
+        format!("1{rest}")
     } else {
         format!("0{}", &mac[1..])
     };

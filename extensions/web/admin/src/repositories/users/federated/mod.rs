@@ -264,5 +264,7 @@ pub async fn resolve_federated_user(
         return Ok(None);
     }
 
-    create_federated(pool, claims, desired_roles).await.map(Some)
+    create_federated(pool, claims, desired_roles)
+        .await
+        .map(Some)
 }

@@ -83,7 +83,10 @@ async fn a_signed_in_user_posts_and_finds_notes_over_the_mcp_wire() {
     assert!(summary.contains("lead(s) matched"), "summary: {summary}");
     let table = structured.expect("structured content present");
     let first = &table["items"][0];
-    assert_eq!(first["name"], "E2E Table Lead", "typed rows under items: {table:#}");
+    assert_eq!(
+        first["name"], "E2E Table Lead",
+        "typed rows under items: {table:#}"
+    );
     assert_eq!(first["stage_id"], "New", "many2one collapsed to its name");
     assert_eq!(first["email_from"], "buyer@acme.test");
     assert_eq!(first["expected_revenue"], 1250.5);
@@ -101,9 +104,7 @@ async fn the_gateway_proxies_the_odoo_mcp_route() {
     // No subprocess is running here; the property is that the gateway OWNS the
     // route (auth challenge or upstream failure), rather than 404ing — a 404
     // means the proxy mount for services/mcp/odoo.yaml is gone.
-    let (status, body) = stack
-        .send("POST", "/api/v1/mcp/odoo/mcp", None, None)
-        .await;
+    let (status, body) = stack.send("POST", "/api/v1/mcp/odoo/mcp", None, None).await;
     assert_ne!(
         status,
         StatusCode::NOT_FOUND,
