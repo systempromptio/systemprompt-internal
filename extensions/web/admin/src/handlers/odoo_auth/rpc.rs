@@ -1,10 +1,11 @@
-//! The one Odoo JSON-RPC call the admin plane makes: `common.authenticate`.
+//! The Odoo JSON-RPC calls the admin plane makes: `common.authenticate`, plus
+//! the group lookup behind role mapping.
 //!
 //! Everything else that talks to Odoo lives in the odoo MCP server crate. This
-//! is deliberately not a general client — the link handler needs to prove a
-//! credential works and learn its uid before storing it, and nothing more. A
-//! shared client crate for a single 40-line call would cost a dependency edge
-//! from the admin extension into an MCP binary.
+//! is deliberately not a general client — the sign-in handlers need to prove a
+//! credential works, learn its uid, and read that user's groups, and nothing
+//! more. A shared client crate for two calls would cost a dependency edge from
+//! the admin extension into an MCP binary.
 
 use serde::Deserialize;
 
@@ -81,15 +82,27 @@ pub(crate) async fn authenticate(
     login: &str,
     api_key: &str,
 ) -> Result<Option<i32>, OdooRpcError> {
+    let result = call(
+        conn,
+        serde_json::json!({
+            "service": "common",
+            "method": "authenticate",
+            "args": [conn.db, login, api_key, {}],
+        }),
+    )
+    .await?;
+    Ok(uid_from_result(result.as_ref()))
+}
+
+async fn call(
+    conn: &OdooConnection,
+    params: serde_json::Value,
+) -> Result<Option<serde_json::Value>, OdooRpcError> {
     let body = serde_json::json!({
         "jsonrpc": "2.0",
         "method": "call",
         "id": 1,
-        "params": {
-            "service": "common",
-            "method": "authenticate",
-            "args": [conn.db, login, api_key, {}],
-        }
+        "params": params,
     });
 
     // Why: without a request timeout a stalled Odoo hangs the sign-in handler
@@ -113,8 +126,86 @@ pub(crate) async fn authenticate(
     if let Some(fault) = envelope.error {
         return Err(OdooRpcError::Fault(fault.message));
     }
+    Ok(envelope.result)
+}
 
-    Ok(uid_from_result(envelope.result.as_ref()))
+pub(crate) struct OdooUserSession<'a> {
+    pub conn: &'a OdooConnection,
+    pub uid: i32,
+    pub credential: &'a str,
+}
+
+impl OdooUserSession<'_> {
+    async fn execute_kw(
+        &self,
+        model: &str,
+        method: &str,
+        args: serde_json::Value,
+        kwargs: serde_json::Value,
+    ) -> Result<Option<serde_json::Value>, OdooRpcError> {
+        call(
+            self.conn,
+            serde_json::json!({
+                "service": "object",
+                "method": "execute_kw",
+                "args": [self.conn.db, self.uid, self.credential, model, method, args, kwargs],
+            }),
+        )
+        .await
+    }
+}
+
+// Why: the groups are read as the user themself with the credential that just
+// authenticated — no service account. Two calls because `res.users.has_group`
+// answers for env.user regardless of the record passed, while a read of
+// `groups_id` plus an `ir.model.data` lookup names the groups explicitly.
+pub(crate) async fn user_group_xml_ids(
+    session: &OdooUserSession<'_>,
+) -> Result<Vec<String>, OdooRpcError> {
+    let users = session
+        .execute_kw(
+            "res.users",
+            "read",
+            serde_json::json!([[session.uid], ["groups_id"]]),
+            serde_json::json!({}),
+        )
+        .await?;
+    let group_ids: Vec<i64> = users
+        .as_ref()
+        .and_then(|v| v.get(0))
+        .and_then(|u| u.get("groups_id"))
+        .and_then(|g| g.as_array())
+        .map(|ids| ids.iter().filter_map(serde_json::Value::as_i64).collect())
+        .unwrap_or_default();
+    if group_ids.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let rows = session
+        .execute_kw(
+            "ir.model.data",
+            "search_read",
+            serde_json::json!([[["model", "=", "res.groups"], ["res_id", "in", group_ids]]]),
+            serde_json::json!({ "fields": ["module", "name"] }),
+        )
+        .await?;
+    Ok(xml_ids_from_rows(rows.as_ref()))
+}
+
+#[doc(hidden)]
+#[must_use]
+pub fn xml_ids_from_rows(rows: Option<&serde_json::Value>) -> Vec<String> {
+    rows.and_then(|v| v.as_array())
+        .map(|rows| {
+            rows.iter()
+                .filter_map(|row| {
+                    let module = row.get("module")?.as_str()?;
+                    let name = row.get("name")?.as_str()?;
+                    Some(format!("{module}.{name}"))
+                })
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 #[doc(hidden)]

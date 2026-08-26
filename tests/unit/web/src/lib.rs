@@ -71,6 +71,8 @@ mod link_models;
 #[cfg(test)]
 mod month_range;
 #[cfg(test)]
+mod odoo_role_mapping;
+#[cfg(test)]
 mod page_window;
 #[cfg(test)]
 mod paper_metadata;
