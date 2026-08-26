@@ -54,6 +54,8 @@ mod odoo_error;
 #[cfg(test)]
 mod odoo_format;
 #[cfg(test)]
+mod odoo_lead_table;
+#[cfg(test)]
 mod odoo_notes;
 #[cfg(test)]
 mod odoo_rpc;

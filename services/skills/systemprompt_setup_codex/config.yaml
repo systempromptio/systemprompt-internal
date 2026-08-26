@@ -3,6 +3,10 @@ name: "Systemprompt Setup — Codex CLI"
 description: "Set up OpenAI Codex CLI to route through the systemprompt.io gateway via the desktop bridge: install the bridge, enable the Codex agent, and verify governed requests arrive"
 enabled: true
 file: SKILL.md
+# Host targeting: this skill only makes sense on this host; the bundle
+# projector and per-host emitters drop it everywhere else.
+hosts:
+  - codex
 tags:
   - setup
   - onboarding

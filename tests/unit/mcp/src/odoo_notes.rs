@@ -93,7 +93,10 @@ fn a_wildcard_query_still_honours_the_filters() {
     let domain = search_domain(&search("%", Some("crm.lead"), Some("2026-01-01"), None));
     let leaves = domain.as_array().expect("a domain is an array");
 
-    assert_eq!(leaves[0], serde_json::json!(["message_type", "=", "comment"]));
+    assert_eq!(
+        leaves[0],
+        serde_json::json!(["message_type", "=", "comment"])
+    );
     assert!(leaves.contains(&serde_json::json!(["model", "=", "crm.lead"])));
     assert!(leaves.contains(&serde_json::json!(["date", ">=", "2026-01-01"])));
 }

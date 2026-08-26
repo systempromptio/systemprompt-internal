@@ -43,8 +43,7 @@ fn validate(
 
 fn errors_of(sources: Vec<ContentSourceRaw>, base: &Path) -> String {
     validate(sources, base)
-        .err()
-        .expect("the fixture is expected to fail validation")
+        .expect_err("the fixture is expected to fail validation")
         .to_string()
 }
 
@@ -231,8 +230,7 @@ fn load_from_file_reports_a_file_that_cannot_be_read() {
     let temp = tempfile::tempdir().expect("tempdir");
 
     let rendered = BlogConfigValidated::load_from_file(&temp.path().join("absent.yaml"))
-        .err()
-        .expect("a missing file is an error at this level")
+        .expect_err("a missing file is an error at this level")
         .to_string();
 
     assert!(
@@ -248,8 +246,7 @@ fn load_from_file_reports_yaml_that_does_not_parse() {
     fs::write(&path, "content_sources: [\n").expect("broken yaml");
 
     let rendered = BlogConfigValidated::load_from_file(&path)
-        .err()
-        .expect("unbalanced YAML does not parse")
+        .expect_err("unbalanced YAML does not parse")
         .to_string();
 
     assert!(

@@ -155,57 +155,24 @@ impl OdooUserSession<'_> {
     }
 }
 
-// Why: the groups are read as the user themself with the credential that just
-// authenticated — no service account. Two calls because `res.users.has_group`
-// answers for env.user regardless of the record passed, while a read of
-// `groups_id` plus an `ir.model.data` lookup names the groups explicitly.
-pub(crate) async fn user_group_xml_ids(
+// Why: asked as the user themself with the credential that just
+// authenticated — no service account. `has_group` is the one group probe
+// Odoo grants every user about their own account; reading `ir.model.data`
+// requires admin rights, which a demoted user lacks by definition,
+// and a lookup that fails on demotion can never revoke anything.
+pub(crate) async fn has_group(
     session: &OdooUserSession<'_>,
-) -> Result<Vec<String>, OdooRpcError> {
-    let users = session
+    group_xml_id: &str,
+) -> Result<bool, OdooRpcError> {
+    let result = session
         .execute_kw(
             "res.users",
-            "read",
-            serde_json::json!([[session.uid], ["groups_id"]]),
+            "has_group",
+            serde_json::json!([[session.uid], group_xml_id]),
             serde_json::json!({}),
         )
         .await?;
-    let group_ids: Vec<i64> = users
-        .as_ref()
-        .and_then(|v| v.get(0))
-        .and_then(|u| u.get("groups_id"))
-        .and_then(|g| g.as_array())
-        .map(|ids| ids.iter().filter_map(serde_json::Value::as_i64).collect())
-        .unwrap_or_default();
-    if group_ids.is_empty() {
-        return Ok(Vec::new());
-    }
-
-    let rows = session
-        .execute_kw(
-            "ir.model.data",
-            "search_read",
-            serde_json::json!([[["model", "=", "res.groups"], ["res_id", "in", group_ids]]]),
-            serde_json::json!({ "fields": ["module", "name"] }),
-        )
-        .await?;
-    Ok(xml_ids_from_rows(rows.as_ref()))
-}
-
-#[doc(hidden)]
-#[must_use]
-pub fn xml_ids_from_rows(rows: Option<&serde_json::Value>) -> Vec<String> {
-    rows.and_then(|v| v.as_array())
-        .map(|rows| {
-            rows.iter()
-                .filter_map(|row| {
-                    let module = row.get("module")?.as_str()?;
-                    let name = row.get("name")?.as_str()?;
-                    Some(format!("{module}.{name}"))
-                })
-                .collect()
-        })
-        .unwrap_or_default()
+    Ok(result.as_ref().and_then(serde_json::Value::as_bool) == Some(true))
 }
 
 #[doc(hidden)]

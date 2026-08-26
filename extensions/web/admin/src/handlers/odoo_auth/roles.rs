@@ -14,7 +14,7 @@ use std::path::Path;
 
 use serde::Deserialize;
 
-use super::rpc::{OdooConnection, OdooUserSession, user_group_xml_ids};
+use super::rpc::{OdooConnection, OdooUserSession, has_group};
 
 const MAPPING_FILE: &str = "access-control/odoo-roles.yaml";
 
@@ -73,15 +73,25 @@ pub(crate) async fn resolve_roles(
         uid,
         credential,
     };
-    match user_group_xml_ids(&session).await {
-        Ok(xml_ids) => Some(mapping.roles_for(&xml_ids)),
-        Err(e) => {
-            tracing::warn!(
-                error = %e,
-                odoo_uid = uid,
-                "Odoo group lookup failed; keeping the user's existing platform roles"
-            );
-            None
-        },
+    // Why: one has_group probe per MAPPED group, asked as the user. This is
+    // the only group question Odoo answers for non-admin users — and a
+    // demoted admin must still get an answer, or demotion could never
+    // propagate. Any probe failing keeps the stored roles.
+    let mut held: Vec<String> = Vec::new();
+    for xml_id in mapping.groups.keys() {
+        match has_group(&session, xml_id).await {
+            Ok(true) => held.push(xml_id.clone()),
+            Ok(false) => {},
+            Err(e) => {
+                tracing::warn!(
+                    error = %e,
+                    odoo_uid = uid,
+                    group = %xml_id,
+                    "Odoo group probe failed; keeping the user's existing platform roles"
+                );
+                return None;
+            },
+        }
     }
+    Some(mapping.roles_for(&held))
 }

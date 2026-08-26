@@ -17,7 +17,6 @@ plugin:
       # marketplace no longer carries a flat skill list; the two host-specific
       # skills follow so the router's handoff resolves. Each guards on its own
       # host, so shipping them everywhere is safe.
-      - systemprompt_setup
       - systemprompt_setup_cowork
       - systemprompt_setup_codex
       - crm

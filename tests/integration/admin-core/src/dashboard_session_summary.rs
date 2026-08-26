@@ -47,7 +47,7 @@ struct SummaryRow {
 }
 
 async fn read_summary(pool: &sqlx::PgPool, session_id: &str) -> SummaryRow {
-    let row: (
+    type SummaryTuple = (
         i64,
         i64,
         i64,
@@ -56,7 +56,8 @@ async fn read_summary(pool: &sqlx::PgPool, session_id: &str) -> SummaryRow {
         Option<i32>,
         Option<i32>,
         Option<i32>,
-    ) = sqlx::query_as(
+    );
+    let row: SummaryTuple = sqlx::query_as(
         "SELECT total_events, tool_uses, prompts, errors, subagent_spawns,
                 user_prompts, automated_actions, unique_files_touched
          FROM plugin_session_summaries WHERE session_id = $1",

@@ -14,7 +14,7 @@
       "id": "leads-inbound-prospects",
       "name": "Leads — Inbound Prospects",
       "description": "Your open Odoo CRM leads as a live, refreshable table — contact, email, stage, expected revenue, probability and salesperson. Refresh re-runs crm_lead_search against Odoo as you, so Odoo's own record rules decide what appears.",
-      "version": "2.1.0",
+      "version": "2.1.1",
       "isStarred": true,
       "mcpTools": [
         "mcp__odoo__crm_lead_search"
@@ -24,7 +24,7 @@
       "id": "pipeline-open-deals",
       "name": "Pipeline — Open Deals",
       "description": "Your open Odoo CRM opportunities as a live, refreshable table — stage, expected revenue, probability, creation date and salesperson. Refresh re-runs crm_lead_search against Odoo as you, so Odoo's own record rules decide what appears.",
-      "version": "2.1.0",
+      "version": "2.1.1",
       "isStarred": true,
       "mcpTools": [
         "mcp__odoo__crm_lead_search"

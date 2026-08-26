@@ -17,7 +17,7 @@ use crate::tools::inputs::{
 use crate::tools::{TOOL_LEAD_CREATE, TOOL_LEAD_GET, TOOL_LEAD_SEARCH, TOOL_LEAD_UPDATE};
 
 use super::crm_shape::LEAD_LABELS;
-pub use super::crm_shape::{lead_domain, lead_row};
+pub use super::crm_shape::{LeadRow, lead_domain, lead_row, lead_table, odoo};
 
 #[derive(Debug)]
 pub struct LeadSearchHandler {
@@ -54,13 +54,12 @@ impl McpToolHandler for LeadSearchHandler {
                 .search_read(&call.creds, "crm.lead", lead_domain(&input), &options)
                 .await?;
 
-            let summary = format!("{} lead(s) matched in Odoo", records.len());
-            let body = if records.is_empty() {
+            let summary = if records.is_empty() {
                 empty_result("leads")
             } else {
-                records.iter().map(lead_row).collect::<Vec<_>>().join("\n")
+                format!("{} lead(s) matched in Odoo", records.len())
             };
-            Ok((text_artifact("Odoo CRM Leads", &body), summary))
+            Ok((CliArtifact::table(lead_table(&records)), summary))
         }
     }
 }

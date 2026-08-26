@@ -1,7 +1,7 @@
 id: admin-activity-requests
 name: "Activity — Recent Requests"
 description: "Every AI gateway request as a live, refreshable table — model, tokens, cost, latency, and status. Refresh runs the admin systemprompt CLI server; admin role required."
-version: "1.2.0"
+version: "1.2.1"
 enabled: true
 starred: true
 category: admin

@@ -30,6 +30,7 @@
 
 @layer utilities {
 .d-grid { display: grid; }
+.mb-1 { margin-bottom: var(--sp-space-1); }
 .mb-2 { margin-bottom: var(--sp-space-2); }
 .mb-3 { margin-bottom: var(--sp-space-3); }
 .mb-4 { margin-bottom: var(--sp-space-4); }
@@ -38,6 +39,7 @@
 .mt-4 { margin-top: var(--sp-space-4); }
 .text-xs { font-size: var(--sp-text-xs); }
 .text-sm { font-size: var(--sp-text-sm); }
+.text-base { font-size: var(--sp-text-base); }
 .text-lg { font-size: var(--sp-text-lg); }
 .text-xl { font-size: var(--sp-text-xl); }
 .text-center { text-align: center; }

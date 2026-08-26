@@ -1,12 +1,6 @@
 name: CI
 
 on:
-  workflow_call:
-    inputs:
-      ref:
-        description: "Commit SHA or branch to gate. Defaults to the triggering ref."
-        type: string
-        required: false
   workflow_dispatch:
     inputs:
       ref:
@@ -42,7 +36,7 @@ jobs:
       # to crates.io at all. Materialise the sibling core checkout at the ref
       # bridge/CORE_REF pins: checkout must land inside the workspace, so link
       # it into place. The root workspace itself builds from crates.io -- its
-      # [patch.crates-io] block is commented out.
+      # this sibling via [patch.crates-io]; after pin-flip it builds from crates.io.
       - name: Read pinned core ref
         id: core
         run: echo "ref=$(tr -d '[:space:]' < bridge/CORE_REF)" >> "$GITHUB_OUTPUT"
@@ -72,7 +66,7 @@ jobs:
       # to crates.io at all. Materialise the sibling core checkout at the ref
       # bridge/CORE_REF pins: checkout must land inside the workspace, so link
       # it into place. The root workspace itself builds from crates.io -- its
-      # [patch.crates-io] block is commented out.
+      # this sibling via [patch.crates-io]; after pin-flip it builds from crates.io.
       - name: Read pinned core ref
         id: core
         run: echo "ref=$(tr -d '[:space:]' < bridge/CORE_REF)" >> "$GITHUB_OUTPUT"
@@ -98,7 +92,7 @@ jobs:
       # to crates.io at all. Materialise the sibling core checkout at the ref
       # bridge/CORE_REF pins: checkout must land inside the workspace, so link
       # it into place. The root workspace itself builds from crates.io -- its
-      # [patch.crates-io] block is commented out.
+      # this sibling via [patch.crates-io]; after pin-flip it builds from crates.io.
       - name: Read pinned core ref
         id: core
         run: echo "ref=$(tr -d '[:space:]' < bridge/CORE_REF)" >> "$GITHUB_OUTPUT"
@@ -149,7 +143,7 @@ jobs:
       # to crates.io at all. Materialise the sibling core checkout at the ref
       # bridge/CORE_REF pins: checkout must land inside the workspace, so link
       # it into place. The root workspace itself builds from crates.io -- its
-      # [patch.crates-io] block is commented out.
+      # this sibling via [patch.crates-io]; after pin-flip it builds from crates.io.
       - name: Read pinned core ref
         id: core
         run: echo "ref=$(tr -d '[:space:]' < bridge/CORE_REF)" >> "$GITHUB_OUTPUT"
@@ -180,7 +174,11 @@ jobs:
       # existing directory; nothing in this job builds the root workspace, so
       # create it.
       - run: mkdir -p target/debug
-      - name: Run the tests workspace (unit, integration, contract)
+      # The e2e suite's MCP wire test spawns the real odoo MCP binary; without
+      # it the test would self-skip, and in CI it asserts instead of skipping.
+      - name: Build the odoo MCP binary for the e2e wire test
+        run: cargo build -p systemprompt-mcp-odoo --locked
+      - name: Run the tests workspace (unit, integration, contract, e2e)
         env:
           SYSTEMPROMPT_TEST_DATABASE_URL: postgres://test:test@localhost:5432/postgres
         run: cargo nextest run --manifest-path tests/Cargo.toml --workspace

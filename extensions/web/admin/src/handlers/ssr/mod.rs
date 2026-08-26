@@ -41,7 +41,9 @@ mod ssr_users_sessions;
 pub(crate) mod types;
 
 pub(crate) use ssr_analytics_requests::analytics_requests_page;
-pub(crate) use ssr_bridge_device_link::{device_link_approve, device_link_deny, device_link_page};
+pub(crate) use ssr_bridge_device_link::{
+    device_link_approve, device_link_deny, device_link_page, device_link_switch,
+};
 pub(crate) use ssr_bridge_setup::bridge_setup_page;
 pub(crate) use ssr_chain::chain_envelope;
 pub(crate) use ssr_context_detail::context_detail_page;

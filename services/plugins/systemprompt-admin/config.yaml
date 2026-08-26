@@ -3,7 +3,11 @@ plugin:
   name: "Systemprompt Admin — Control Plane"
   description: "Admin-only control plane: who is using the platform, what it costs, what failed, and why. Ships the systemprompt CLI server plus governance, analytics, and operations skills, and three live dashboards."
   version: "1.0.0"
-  enabled: false
+  # Enabled but admin-gated: roles.yaml grants this plugin, its skills, and the
+  # systemprompt MCP server to [admin] with default_included: false, so a
+  # user-role manifest never carries it. Disabling it here would hide the
+  # admin surface from admins too (tests/e2e/src/manifest_roles.rs pins this).
+  enabled: true
   author:
     name: systemprompt.io
     email: ed@systemprompt.io

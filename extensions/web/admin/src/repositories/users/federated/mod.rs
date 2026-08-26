@@ -218,7 +218,7 @@ pub async fn resolve_federated_user(
         issuer,
         external_sub,
         email,
-        display_name,
+        display_name: _,
     } = *claims;
     if let Some(user_id) = find_mapping(pool, issuer, external_sub).await?
         && let Some(user) = load_user(pool, &user_id).await?
@@ -264,5 +264,7 @@ pub async fn resolve_federated_user(
         return Ok(None);
     }
 
-    create_federated(pool, claims, desired_roles).await.map(Some)
+    create_federated(pool, claims, desired_roles)
+        .await
+        .map(Some)
 }

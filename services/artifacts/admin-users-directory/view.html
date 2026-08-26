@@ -466,6 +466,11 @@ function hasRole(u, role) {
         return applyResult(null, msg);
       }
       var payload = r && r.structuredContent;
+      /* The gateway wraps tool output as {artifact_type:"text", content:"<json>"} —
+         a truthy object that is NOT the data. Unwrap and parse its content. */
+      if (payload && typeof payload.content === "string") {
+        try { payload = JSON.parse(payload.content); } catch (e4) { payload = null; }
+      }
       if (payload == null) {
         var text = "";
         try { text = r.content[0].text || ""; } catch (e3) {}

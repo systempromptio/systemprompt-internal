@@ -226,7 +226,7 @@ fn a_page_with_no_children_omits_the_slot() {
 
 #[test]
 fn the_provider_is_registered_at_the_priority_the_pipeline_expects() {
-    let provider = DocsPageDataProvider::default();
+    let provider = DocsPageDataProvider;
 
     assert_eq!(provider.provider_id(), "docs-metadata");
     assert_eq!(

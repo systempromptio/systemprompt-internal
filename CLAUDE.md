@@ -12,42 +12,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **All work lands on `next`. Never push to `main`.**
 
-`main` is protected by a ruleset that requires a pull request and grants **no
-bypass to anyone** — a direct `git push origin main` is refused for agents,
-sessions and repository admins alike. That is deliberate: it is the mechanism,
-not a convention you could talk your way around.
+`next` is the repository's default branch, so a fresh clone starts there. `main`
+is protected by a ruleset that requires a pull request and grants **no bypass to
+anyone** — a direct `git push origin main` is refused for agents, sessions and
+repository admins alike. Protection is pinned to `main` by name, so moving the
+default branch does not move it.
 
 ```
-next   ← every agent, every session, every commit. Push freely.
-  ↓ nightly (05:17 UTC): auto-fix → full gate cycle → promote (only if green)
+next   ← default branch. Every agent, every session. Push freely, no gates.
+  ↓ `just gate` when you are ready, then `just promote` to open the release PR
 main   ← protected, release-only. Tagged. Never pushed to directly.
 ```
 
-**Do not run the pre-release gate cycle to land ordinary work.** The full cycle is expensive and
-runs **once nightly** (`.github/workflows/nightly.yml`), not on your push.
-Committing and pushing to `next` without gating is the intended workflow.
-That means concretely: no `just preflight*`, no `just clippy`, no `just verify`,
-no workspace-wide test runs, no `just lint-gates` before a push to `next`.
-Run at most the single unit-test file you just wrote (to know it passes) and
-nothing broader; the nightly runs everything else and auto-fixes formatting.
+**Nothing runs the pre-release cycle for you.** There is no scheduled job and
+nothing gating a push to `next`. The gates run when a person decides to run
+them:
 
-What the nightly does, in order:
+1. `just gate [REF]` — dispatches every gate workflow against the ref
+   (default: the tip of `next`) and waits.
+2. `just promote [SHA]` — freezes that commit on the `promote` ref and **opens**
+   the release pull request onto `main`. It does not merge; you do.
+3. Tag `main` once merged. Tags are not covered by the ruleset.
 
-1. **Auto-fixes the mechanical standards** — rustfmt across every workspace in
-   the repo plus clippy's machine-applicable suggestions — and commits the
-   result straight back to `next`. **Do not spend a turn on formatting**; it is
-   applied for you. Anything needing judgement is not touched.
-2. **Runs the whole cycle** (CI, Quality) against that commit.
-3. **Promotes `next` → `main`** by merging a pull request, but only when every
-   gate is green. A failure leaves `main` at its last good commit.
-
-So the standard obligations still hold — your commit should compile and its own
-tests should pass, and the coding standards below are not optional — but
-*proving* it across the whole repo is not your turn to spend. A red gate is the
-highest-priority work next morning: `main` is frozen until it is green.
-
-Releasing is a separate, deliberate act (see the release workflows), run on demand from a
-green `main` — never automatically.
+The commit is frozen on `promote` rather than the PR being headed at `next`
+because a PR headed at `next` merges whatever `next` points at *when you merge
+it* — anything pushed meanwhile would ride along ungated. That happened once
+for real.
 
 ## Quick Start
 
@@ -69,7 +59,9 @@ just clippy
 # Regenerate .sqlx/ offline query cache (needs live DB)
 just prepare
 
-# Start services
+# Start services — runs the DEBUG binary. The local iterate loop is
+# `just build` + `just start`; release builds are for deploys/packaging only,
+# never for a local restart.
 just start
 
 # Discover CLI commands
@@ -139,6 +131,16 @@ just verify             # preflight + full test suite, for when you need the ans
 just preflight-full     # weekly: preflight + deny + audit + machete
 just init-hooks         # once per clone: tracked .githooks/ (pre-commit + pre-push)
 ```
+
+**End-to-end suite (`tests/e2e`).** The full production API router in-process
+— per-role `/v1/bridge/manifest` diffs, Odoo sign-in with group→role mapping
+(wiremock Odoo), the real `systemprompt-mcp-odoo` binary over the MCP wire,
+and skill/artifact bundle delivery. `just e2e` runs it against Docker
+Postgres (CI runs it too); `just e2e-fast` skips the MCP subprocess; `just
+e2e-live` walks the two-role journey (seeded `e2e-admin@` / `e2e-sales@`
+Odoo users, PKCE sign-in, manifest diff, chatter via the MCP proxy) against
+the RUNNING local stack — it reuses your server and Odoo and never restarts
+anything.
 
 **Coverage floor + ratchet.** `just coverage` runs an instrumented llvm-cov
 pass over all three workspaces (root, `tests/`, `bridge/`) into
@@ -299,7 +301,13 @@ Unknown YAML keys cause loud errors at load time (`#[serde(deny_unknown_fields)]
 5. **Brand name is `systemprompt.io`** — Use "Systemprompt Internal" for the product, "systemprompt.io" for the brand and URLs.
 6. **It's a library, not a framework** — Embedded code you own and extend. NEVER call it a "framework".
 7. **Demo scripts must work on macOS and Linux** — BSD vs GNU differ on `grep -oP`, `head -n -1`, `sha256sum`, `sed -i`, and binary downloads (pick `hey_darwin_amd64` vs `hey_linux_amd64`). `demo/_common.sh` provides `install_hey()` for the last case; prefer `grep -oE` + `sed -n 's/.../\1/p'` over `grep -oP … \K …`.
-8. **No Co-Authored-By in commits** — `coauthorAttribution: false` is set in `.claude/settings.json`. Never add `Co-Authored-By:` trailers to commit messages.
+8. **Integration work uses typed models** — wire data crosses boundaries as
+   `#[derive(Serialize, Deserialize)]` structs (with custom deserializers for
+   provider quirks — see `extensions/mcp/odoo/src/server/crm_shape.rs`'s
+   `LeadRow` + `odoo::*` adapters), never `json!` literals or `.get()` chains
+   over `serde_json::Value`. `Value` survives only at declared protocol
+   boundaries carrying a `// JSON: protocol boundary` comment.
+9. **No Co-Authored-By in commits** — `coauthorAttribution: false` is set in `.claude/settings.json`. Never add `Co-Authored-By:` trailers to commit messages.
 
 ---
 

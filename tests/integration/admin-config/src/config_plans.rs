@@ -238,7 +238,7 @@ async fn load_plans_from_yaml_rejects_an_organization_on_an_unknown_plan() {
 
     let result = load_plans_from_yaml(&db.pool, dir.path()).await;
 
-    let message = result.err().expect("unknown plan is an error").to_string();
+    let message = result.expect_err("unknown plan is an error").to_string();
     assert!(
         message.contains("unknown plan"),
         "the message must name the problem, got: {message}"
@@ -321,8 +321,7 @@ async fn load_plans_from_yaml_rejects_a_grant_with_no_catalog_row_and_writes_not
     let result = load_plans_from_yaml(&db.pool, dir.path()).await;
 
     let message = result
-        .err()
-        .expect("an unregistered entity id is a typo, not a new catalog row")
+        .expect_err("an unregistered entity id is a typo, not a new catalog row")
         .to_string();
     assert!(
         message.contains("no-such-marketplace"),
