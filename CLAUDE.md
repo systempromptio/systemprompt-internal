@@ -140,6 +140,16 @@ just preflight-full     # weekly: preflight + deny + audit + machete
 just init-hooks         # once per clone: tracked .githooks/ (pre-commit + pre-push)
 ```
 
+**End-to-end suite (`tests/e2e`).** The full production API router in-process
+— per-role `/v1/bridge/manifest` diffs, Odoo sign-in with group→role mapping
+(wiremock Odoo), the real `systemprompt-mcp-odoo` binary over the MCP wire,
+and skill/artifact bundle delivery. `just e2e` runs it against Docker
+Postgres (CI runs it too); `just e2e-fast` skips the MCP subprocess; `just
+e2e-live` walks the two-role journey (seeded `e2e-admin@` / `e2e-sales@`
+Odoo users, PKCE sign-in, manifest diff, chatter via the MCP proxy) against
+the RUNNING local stack — it reuses your server and Odoo and never restarts
+anything.
+
 **Coverage floor + ratchet.** `just coverage` runs an instrumented llvm-cov
 pass over all three workspaces (root, `tests/`, `bridge/`) into
 `coverage-report/` (gitignored); `just coverage-check` enforces the tracked

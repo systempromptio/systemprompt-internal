@@ -278,6 +278,51 @@ _test-contract-uncoordinated:
 # All tests
 test: test-unit test-integration test-contract
 
+# End-to-end suite (Tier A): the FULL production API router in-process —
+# gateway, per-role bridge manifest, Odoo sign-in with group→role mapping,
+# and the real systemprompt-mcp-odoo binary over the MCP wire — against a
+# throwaway database and a wiremock Odoo. Needs Docker Postgres (just db-up).
+e2e:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # dotenv-load pulls the real ODOO_URL/ODOO_DB from .env; the suite's Odoo
+    # is a wiremock whose URL rides the fixture secrets, and env wins — unset.
+    unset ODOO_URL ODOO_DB
+    if [ ! -x target/release/systemprompt-mcp-odoo ] && [ ! -x target/debug/systemprompt-mcp-odoo ]; then
+        echo "building systemprompt-mcp-odoo (the MCP wire test needs it)…"
+        cargo build -p systemprompt-mcp-odoo
+    fi
+    if [ -z "${SYSTEMPROMPT_TEST_DATABASE_URL:-}" ] && [ -f .systemprompt/profiles/local/secrets.json ]; then
+        SYSTEMPROMPT_TEST_DATABASE_URL=$(python3 -c "
+    import json, urllib.parse as up
+    u = up.urlsplit(json.load(open('.systemprompt/profiles/local/secrets.json'))['database_url'])
+    print(up.urlunsplit((u.scheme, u.netloc, '/postgres', '', '')))")
+        export SYSTEMPROMPT_TEST_DATABASE_URL
+    fi
+    cargo nextest run --manifest-path tests/Cargo.toml -p e2e-tests
+
+# Tier A without the MCP subprocess build — the quickest full-router signal.
+e2e-fast:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    unset ODOO_URL ODOO_DB
+    if [ -z "${SYSTEMPROMPT_TEST_DATABASE_URL:-}" ] && [ -f .systemprompt/profiles/local/secrets.json ]; then
+        SYSTEMPROMPT_TEST_DATABASE_URL=$(python3 -c "
+    import json, urllib.parse as up
+    u = up.urlsplit(json.load(open('.systemprompt/profiles/local/secrets.json'))['database_url'])
+    print(up.urlunsplit((u.scheme, u.netloc, '/postgres', '', '')))")
+        export SYSTEMPROMPT_TEST_DATABASE_URL
+    fi
+    cargo nextest run --manifest-path tests/Cargo.toml -p e2e-tests -E 'not test(a_signed_in_user)'
+
+# End-to-end smoke (Tier B): drives the RUNNING local stack over real HTTP —
+# seeds e2e-admin@/e2e-sales@ in Odoo, signs in as both, diffs their
+# manifests, and runs the chatter tools through the MCP proxy. Reuses the
+# running server and Odoo; never starts or restarts anything.
+# Prereqs: `just start` and `just db-up local` + `just odoo-local-init`.
+e2e-live:
+    cargo nextest run --manifest-path tests/Cargo.toml -p e2e-tests --features live -E 'test(live_smoke)' --no-capture
+
 # Source gates ported from systemprompt-core (scripts/*.sh)
 lint-gates:
     @scripts/build-coordinator.sh run lint-gates "" -- {{just_executable()}} _lint-gates-uncoordinated
@@ -1469,10 +1514,11 @@ dev-sandbox REPO PERSIST="0" GATEWAY="http://host.docker.internal:8080":
 e2e-install:
     cd playwright && npm install && npx playwright install chromium
 
-# Run the Playwright e2e suite against a running gateway (GATEWAY_URL env
+# Run the Playwright browser suite against a running gateway (GATEWAY_URL env
 # overrides the default http://localhost:8080). Not part of `just validate` —
-# it needs a live stack: `just start` first.
-e2e *ARGS:
+# it needs a live stack: `just start` first. (`just e2e` is the Rust
+# end-to-end suite; this drives the browser.)
+playwright *ARGS:
     cd playwright && npx playwright test {{ARGS}}
 
 # Test build without pushing
