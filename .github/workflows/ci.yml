@@ -1,13 +1,23 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
+  workflow_call:
+    inputs:
+      ref:
+        description: "Commit SHA or branch to gate. Defaults to the triggering ref."
+        type: string
+        required: false
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Commit SHA or branch to gate. Defaults to the triggering ref."
+        type: string
+        required: false
   pull_request:
-    branches: [main]
+    branches: [main, next]
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ inputs.ref || github.ref }}
   cancel-in-progress: true
 
 env:
@@ -26,6 +36,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
       # bridge/ depends on systemprompt-bridge by path, which is not published
       # to crates.io at all. Materialise the sibling core checkout at the ref
       # bridge/CORE_REF pins: checkout must land inside the workspace, so link
@@ -54,6 +66,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
       # bridge/ depends on systemprompt-bridge by path, which is not published
       # to crates.io at all. Materialise the sibling core checkout at the ref
       # bridge/CORE_REF pins: checkout must land inside the workspace, so link
@@ -78,6 +92,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
       # bridge/ depends on systemprompt-bridge by path, which is not published
       # to crates.io at all. Materialise the sibling core checkout at the ref
       # bridge/CORE_REF pins: checkout must land inside the workspace, so link
@@ -127,6 +143,8 @@ jobs:
           --health-retries 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
       # bridge/ depends on systemprompt-bridge by path, which is not published
       # to crates.io at all. Materialise the sibling core checkout at the ref
       # bridge/CORE_REF pins: checkout must land inside the workspace, so link
@@ -179,6 +197,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.ref || github.ref }}
           path: systemprompt-internal
       # The bridge depends on systemprompt-core/bin/bridge by sibling path
       # (not on crates.io), pinned to the ref in bridge/CORE_REF — the same
