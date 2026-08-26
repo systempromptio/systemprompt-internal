@@ -3,6 +3,10 @@ name: "Systemprompt Setup — Claude Cowork"
 description: "First-run workspace setup: installs the systemprompt.io Odoo dashboards (business overview, pipeline, leads, recent activity, to-do bulletin) into your Artifacts library and checks the Odoo connection"
 enabled: true
 file: SKILL.md
+# Host targeting: this skill only makes sense on this host; the bundle
+# projector and per-host emitters drop it everywhere else.
+hosts:
+  - cowork
 tags:
   - setup
   - onboarding

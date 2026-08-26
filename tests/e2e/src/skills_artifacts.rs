@@ -48,6 +48,29 @@ async fn every_manifest_named_skill_file_is_fetchable() {
         assert!(!body.is_empty(), "{path} served empty");
     }
 
+    // Host targeting: the bundle is the Claude-family skill surface, so the
+    // codex-only setup skill must not reach the Cowork picker — while the
+    // manifest still carries it (Codex's own emitter reads manifest.skills).
+    let all_paths: Vec<&str> = files.iter().filter_map(|f| f["path"].as_str()).collect();
+    assert!(
+        !all_paths.iter().any(|p| p.contains("systemprompt-setup-codex")),
+        "the codex setup skill leaked into the Claude bundle: {all_paths:?}"
+    );
+    let skills: Vec<&str> = manifest["skills"]
+        .as_array()
+        .expect("skills present")
+        .iter()
+        .filter_map(|s| s["id"].as_str())
+        .collect();
+    assert!(
+        skills.contains(&"systemprompt_setup_codex"),
+        "the codex skill still rides the manifest for codex's emitter: {skills:?}"
+    );
+    assert!(
+        !skills.contains(&"systemprompt_setup"),
+        "the retired router skill must be gone: {skills:?}"
+    );
+
     let manifest_path = setup_files
         .iter()
         .find(|p| p.ends_with("artifacts/manifest.json"))

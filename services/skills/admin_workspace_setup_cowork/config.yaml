@@ -3,6 +3,10 @@ name: "Set Up Admin Dashboards — Claude Cowork"
 description: "Claude Cowork only: installs the three admin control-plane dashboards (users, activity, usage) into your Artifacts library and checks the admin CLI connection. Other hosts have no Artifacts library — there is nothing to install there."
 enabled: true
 file: SKILL.md
+# Host targeting: this skill only makes sense on this host; the bundle
+# projector and per-host emitters drop it everywhere else.
+hosts:
+  - cowork
 tags:
   - setup
   - onboarding
