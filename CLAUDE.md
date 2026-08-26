@@ -301,7 +301,13 @@ Unknown YAML keys cause loud errors at load time (`#[serde(deny_unknown_fields)]
 5. **Brand name is `systemprompt.io`** — Use "Systemprompt Internal" for the product, "systemprompt.io" for the brand and URLs.
 6. **It's a library, not a framework** — Embedded code you own and extend. NEVER call it a "framework".
 7. **Demo scripts must work on macOS and Linux** — BSD vs GNU differ on `grep -oP`, `head -n -1`, `sha256sum`, `sed -i`, and binary downloads (pick `hey_darwin_amd64` vs `hey_linux_amd64`). `demo/_common.sh` provides `install_hey()` for the last case; prefer `grep -oE` + `sed -n 's/.../\1/p'` over `grep -oP … \K …`.
-8. **No Co-Authored-By in commits** — `coauthorAttribution: false` is set in `.claude/settings.json`. Never add `Co-Authored-By:` trailers to commit messages.
+8. **Integration work uses typed models** — wire data crosses boundaries as
+   `#[derive(Serialize, Deserialize)]` structs (with custom deserializers for
+   provider quirks — see `extensions/mcp/odoo/src/server/crm_shape.rs`'s
+   `LeadRow` + `odoo::*` adapters), never `json!` literals or `.get()` chains
+   over `serde_json::Value`. `Value` survives only at declared protocol
+   boundaries carrying a `// JSON: protocol boundary` comment.
+9. **No Co-Authored-By in commits** — `coauthorAttribution: false` is set in `.claude/settings.json`. Never add `Co-Authored-By:` trailers to commit messages.
 
 ---
 

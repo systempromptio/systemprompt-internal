@@ -75,6 +75,18 @@ impl OdooRpc {
             return self.message_post(model, params);
         }
         match model {
+            "crm.lead" => rpc_result(serde_json::json!([{
+                "id": 1,
+                "name": "E2E Table Lead",
+                "partner_name": "Acme",
+                "email_from": "buyer@acme.test",
+                "phone": false,
+                "stage_id": [1, "New"],
+                "user_id": [UID, "E2E Person"],
+                "expected_revenue": 1250.5,
+                "probability": 40.0,
+                "create_date": "2026-08-26 09:00:00",
+            }])),
             "mail.message" => {
                 let notes = self.notes.lock().expect("notes state").clone();
                 rpc_result(serde_json::Value::Array(notes))

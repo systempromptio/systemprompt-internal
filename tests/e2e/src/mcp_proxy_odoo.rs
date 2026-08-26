@@ -69,6 +69,25 @@ async fn a_signed_in_user_posts_and_finds_notes_over_the_mcp_wire() {
         "a wildcard search is match-all, not a literal percent hunt: {searched}"
     );
 
+    // The lead dashboards' contract: crm_lead_search answers with a typed
+    // table — columns named in Odoo's own fields, rows under `items` — not
+    // markdown for the dashboards to regex apart.
+    let (summary, structured) = mcp::call_tool_full(
+        &format!("http://127.0.0.1:{}/mcp", server.port),
+        &bearer,
+        "crm_lead_search",
+        serde_json::json!({ "limit": 10 }),
+    )
+    .await
+    .expect("crm_lead_search succeeds");
+    assert!(summary.contains("lead(s) matched"), "summary: {summary}");
+    let table = structured.expect("structured content present");
+    let first = &table["items"][0];
+    assert_eq!(first["name"], "E2E Table Lead", "typed rows under items: {table:#}");
+    assert_eq!(first["stage_id"], "New", "many2one collapsed to its name");
+    assert_eq!(first["email_from"], "buyer@acme.test");
+    assert_eq!(first["expected_revenue"], 1250.5);
+
     drop(server);
     stack.db.cleanup().await;
 }

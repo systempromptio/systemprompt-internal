@@ -102,6 +102,17 @@ pub async fn call_tool_at(
     tool: &str,
     args: serde_json::Value,
 ) -> Result<String, String> {
+    call_tool_full(url, bearer, tool, args).await.map(|r| r.0)
+}
+
+// The textual blocks joined, plus the structured content — the machine half
+// of the contract the dashboards consume.
+pub async fn call_tool_full(
+    url: &str,
+    bearer: &str,
+    tool: &str,
+    args: serde_json::Value,
+) -> Result<(String, Option<serde_json::Value>), String> {
     let request_context = RequestContext::new(
         SessionId::new(uuid::Uuid::new_v4().to_string()),
         TraceId::generate(),
@@ -141,5 +152,11 @@ pub async fn call_tool_at(
     if result.is_error == Some(true) {
         return Err(format!("{tool} returned an error result: {text}"));
     }
-    Ok(text)
+    let structured = result
+        .structured_content
+        .clone()
+        .map(serde_json::to_value)
+        .transpose()
+        .map_err(|e| e.to_string())?;
+    Ok((text, structured))
 }
