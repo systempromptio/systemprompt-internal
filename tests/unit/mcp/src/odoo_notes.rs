@@ -6,7 +6,9 @@
 //! subject-only matches or drops the model filter — no error, just wrong
 //! answers.
 
-use systemprompt_mcp_odoo::server::notes::{search_domain, search_row, thread_domain, thread_row};
+use systemprompt_mcp_odoo::server::notes::{
+    is_match_all, search_domain, search_row, thread_domain, thread_row,
+};
 use systemprompt_mcp_odoo::tools::inputs::NoteSearchInput;
 
 fn search(
@@ -64,6 +66,49 @@ fn search_domain_trims_the_query_before_wildcarding() {
         domain[1][2], "%pricing%",
         "leading whitespace inside the wildcards would never match"
     );
+}
+
+#[test]
+fn a_wildcard_query_is_match_all_not_a_literal_percent_search() {
+    assert_eq!(
+        search_domain(&search("%", None, None, None)),
+        serde_json::json!([["message_type", "=", "comment"]]),
+        "wrapping % again would ilike on literal percent signs and match nothing"
+    );
+}
+
+#[test]
+fn wildcard_detection_covers_padding_and_runs_but_not_real_terms() {
+    assert!(is_match_all("%"));
+    assert!(is_match_all("%%"));
+    assert!(is_match_all("  %  "));
+    assert!(!is_match_all(""));
+    assert!(!is_match_all("   "));
+    assert!(!is_match_all("50%"));
+    assert!(!is_match_all("pricing"));
+}
+
+#[test]
+fn a_wildcard_query_still_honours_the_filters() {
+    let domain = search_domain(&search("%", Some("crm.lead"), Some("2026-01-01"), None));
+    let leaves = domain.as_array().expect("a domain is an array");
+
+    assert_eq!(leaves[0], serde_json::json!(["message_type", "=", "comment"]));
+    assert!(leaves.contains(&serde_json::json!(["model", "=", "crm.lead"])));
+    assert!(leaves.contains(&serde_json::json!(["date", ">=", "2026-01-01"])));
+}
+
+#[test]
+fn a_wildcard_search_row_leads_with_the_body_not_a_percent_hunt() {
+    let record = serde_json::json!({
+        "model": "crm.lead",
+        "res_id": 1,
+        "body": "<p>Customer wants net 60</p>",
+    });
+
+    let row = search_row(&record, "%");
+
+    assert!(row.contains("Customer wants net 60"), "got: {row}");
 }
 
 #[test]
