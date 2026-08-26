@@ -1,7 +1,8 @@
 //! A wiremock Odoo: the whole integration surface is one POST `/jsonrpc`.
 //!
-//! `common.authenticate` proves a credential and returns a uid; `execute_kw`
-//! reads `res.users.groups_id` and resolves them through `ir.model.data`.
+//! `common.authenticate` proves a credential and returns a uid; the role
+//! mapping probes group membership with `res.users.has_group` — the one group
+//! question Odoo answers for non-admin users.
 //! The mock dispatches on the JSON-RPC body and keeps the group answer in
 //! shared state, so a test can flip a user's groups (or break the lookup)
 //! between logins and watch the platform roles follow.
@@ -74,6 +75,16 @@ impl OdooRpc {
         if method == "message_post" {
             return self.message_post(model, params);
         }
+        if method == "has_group" {
+            let asked = params["args"][5][1].as_str().unwrap_or_default();
+            let groups = self.groups.lock().expect("groups state").clone();
+            return match groups {
+                Groups::XmlIds(ids) => rpc_result(serde_json::json!(
+                    ids.iter().any(|(m, n)| format!("{m}.{n}") == asked)
+                )),
+                Groups::LookupFails => rpc_fault("Odoo Server Error"),
+            };
+        }
         match model {
             "crm.lead" => rpc_result(serde_json::json!([{
                 "id": 1,
@@ -90,22 +101,6 @@ impl OdooRpc {
             "mail.message" => {
                 let notes = self.notes.lock().expect("notes state").clone();
                 rpc_result(serde_json::Value::Array(notes))
-            },
-            "res.users" => rpc_result(serde_json::json!([
-                { "id": UID, "groups_id": [1, 2, 3] }
-            ])),
-            "ir.model.data" => {
-                let groups = self.groups.lock().expect("groups state").clone();
-                match groups {
-                    Groups::XmlIds(ids) => rpc_result(serde_json::Value::Array(
-                        ids.iter()
-                            .map(|(module, name)| {
-                                serde_json::json!({ "module": module, "name": name })
-                            })
-                            .collect(),
-                    )),
-                    Groups::LookupFails => rpc_fault("access denied on ir.model.data"),
-                }
             },
             _ => rpc_fault("unknown model"),
         }

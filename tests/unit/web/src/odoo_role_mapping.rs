@@ -5,7 +5,7 @@
 //! skipped rather than turned into a half-formed xml_id — because whatever
 //! comes out of this mapping is written straight onto `users.roles`.
 
-use systemprompt_web_admin::test_support::{OdooRoleMap, xml_ids_from_rows};
+use systemprompt_web_admin::test_support::OdooRoleMap;
 
 fn mapping(yaml: &str) -> OdooRoleMap {
     serde_yaml::from_str(yaml).expect("test mapping parses")
@@ -51,26 +51,4 @@ fn an_empty_mapping_file_still_yields_a_valid_empty_set() {
     let map = mapping("{}");
 
     assert!(map.roles_for(&["base.group_system".to_owned()]).is_empty());
-}
-
-#[test]
-fn xml_ids_are_module_dot_name_and_malformed_rows_are_skipped() {
-    let rows = serde_json::json!([
-        { "module": "base", "name": "group_system" },
-        { "module": "sales_team" },
-        { "name": "group_user" },
-        { "module": 3, "name": "group_x" },
-    ]);
-
-    assert_eq!(
-        xml_ids_from_rows(Some(&rows)),
-        vec!["base.group_system".to_owned()],
-        "a half-formed row must vanish, not become a partial xml_id that maps to nothing"
-    );
-}
-
-#[test]
-fn a_missing_or_non_array_rpc_result_yields_no_groups() {
-    assert!(xml_ids_from_rows(None).is_empty());
-    assert!(xml_ids_from_rows(Some(&serde_json::json!(false))).is_empty());
 }

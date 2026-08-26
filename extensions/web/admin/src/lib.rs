@@ -57,7 +57,7 @@ pub mod test_support {
         SessionAnalysis, session_analysis_schema, validate_analysis,
     };
     pub use crate::handlers::hooks_track::session_summary::GeneratedSessionSummary;
-    pub use crate::handlers::odoo_auth::{OdooRoleMap, uid_from_result, xml_ids_from_rows};
+    pub use crate::handlers::odoo_auth::{OdooRoleMap, uid_from_result};
     pub use crate::handlers::resolve_principal;
 }
 
