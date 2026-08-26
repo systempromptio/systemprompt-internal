@@ -1,7 +1,7 @@
 id: pipeline-open-deals
 name: "Pipeline — Open Deals"
 description: "Your open Odoo CRM opportunities as a live, refreshable table — stage, expected revenue, probability, creation date and salesperson. Refresh re-runs crm_lead_search against Odoo as you, so Odoo's own record rules decide what appears."
-version: "2.1.0"
+version: "2.1.1"
 enabled: true
 # Owning plugin — artifact only syncs when this plugin is enabled/granted.
 # Seed into the global Cowork Artifacts library as a starred/global entry.

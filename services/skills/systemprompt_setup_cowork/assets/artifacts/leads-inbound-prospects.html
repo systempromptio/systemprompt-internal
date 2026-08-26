@@ -451,6 +451,9 @@ var CONFIG = {
       var payload = r && r.structuredContent;
       var text = "";
       try { text = r.content[0].text || ""; } catch (e3) {}
+      /* The gateway wraps tool output as {artifact_type:"text", content:"<markdown>"} —
+         a truthy object that is NOT rows. Unwrap it and fall through to the parsers. */
+      if (payload && typeof payload.content === "string") { text = payload.content; payload = null; }
       if (payload == null) {
         try { payload = JSON.parse(text); }
         catch (e5) {
