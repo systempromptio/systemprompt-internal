@@ -59,7 +59,9 @@ just clippy
 # Regenerate .sqlx/ offline query cache (needs live DB)
 just prepare
 
-# Start services
+# Start services — runs the DEBUG binary. The local iterate loop is
+# `just build` + `just start`; release builds are for deploys/packaging only,
+# never for a local restart.
 just start
 
 # Discover CLI commands

@@ -3,12 +3,6 @@ import { onBridgeEvent } from "/assets/js/events/bridge-events.js";
 import { bridge } from "/assets/js/bridge.js";
 import { t } from "/assets/js/i18n.js";
 import "/assets/js/components/sp-setup-gateway.js";
-import "/assets/js/components/sp-setup-agents.js";
-
-const STEPS = [
-  { id: "connect", label: "Sign in" },
-  { id: "agents", label: "Agents" },
-];
 
 function isConfigured(snap) {
   const reachable = snap.gateway_status && snap.gateway_status.state === "reachable";
@@ -21,13 +15,13 @@ export class SpSetup extends SpElement {
     super();
     this.snapshot = null;
     this.step = "connect";
-    this.anyInstalled = false;
     this._finished = false;
     /** Latched once the app proper is on screen; see `_applySnapshot`. */
     this._leftSetup = false;
     this._logoFragment = null;
     this._onSetupOpen = () => { document.body.classList.add("is-setup-mode"); };
     this.registerAction("finish", () => this._finish());
+    this.registerAction("sign-out", () => { bridge.logout().catch((e) => console.warn("logout", e)); });
     this.registerAction("open-bridge", () => { this._leftSetup = true; document.body.classList.remove("is-setup-mode"); });
   }
 
@@ -50,37 +44,30 @@ export class SpSetup extends SpElement {
     this.snapshot = snap;
     if (!snap) { return; }
     const configured = isConfigured(snap);
-    const hosts = snap.host_apps || [];
-    // Install state for a host is only KNOWN once its probe has completed, at
-    // which point `snapshot` is populated. Until every host has a snapshot the
-    // result is "unknown" — we must not show onboarding then, or it flashes
-    // before detection resolves (the bug where it appeared with agents already
-    // installed). Once settled, show the agents step only when none are
-    // installed; installing one (anyInstalled) drops straight into the app.
-    const settled = hosts.length > 0 && hosts.every((h) => h.snapshot);
-    const anyInstalled = hosts.some((h) => h.snapshot?.profile_state?.kind === "installed");
-    this.anyInstalled = anyInstalled;
-    this.step = configured ? "agents" : "connect";
+    // Onboarding is sign in, confirm who you are, done. Agents are managed in
+    // the Agents tab afterwards (and the first-run pass installs detected
+    // hosts automatically) — the old agents step duplicated that surface.
+    this.step = configured ? "done" : "connect";
 
     // Signing out is the one thing that legitimately sends us back to the
     // splash. Clear the latch so it can.
     if (!snap.verified_identity || !snap.verified_identity.user_id) { this._leftSetup = false; }
 
-    // Everything below decides whether to show a full-screen overlay, so it must
-    // only ever run on a settled snapshot. `configured` and `anyInstalled` each
-    // start out false and flip true as the gateway probe and then the host
-    // probes land — evaluating on those partial snapshots is what made the
-    // window flick splash → app → splash → app during startup.
+    // Only decide overlay visibility on a settled gateway probe — partial
+    // snapshots flip `configured` mid-startup and made the window flick
+    // splash → app → splash.
     const gatewayProbing = !snap.gateway_status || snap.gateway_status.state === "probing"
       || snap.gateway_status.state === "unknown";
-    if (gatewayProbing || !settled) { return; }
+    if (gatewayProbing) { return; }
 
     // One-way latch: once the app proper has been shown, a later probe result
     // must not yank the user back into onboarding mid-session.
     if (this._leftSetup) { return; }
 
-    const needAgents = !anyInstalled && !this._finished;
-    const inSetup = !configured || needAgents;
+    // `agents_onboarded` is the durable sentinel written by Finish; without
+    // consulting it a returning user re-entered onboarding on every launch.
+    const onboarded = this._finished || !!snap.agents_onboarded;
+    const inSetup = !configured || !onboarded;
     if (!inSetup) { this._leftSetup = true; }
     document.body.classList.toggle("is-setup-mode", inSetup);
   }
@@ -100,14 +87,9 @@ export class SpSetup extends SpElement {
     }
   }
 
-  _renderSteps() {
-    const active = STEPS.findIndex((s) => s.id === this.step);
-    const items = STEPS.map((s, i) => {
-      const state = i < active ? "is-done" : i === active ? "is-current" : "";
-      const current = i === active ? 'aria-current="step"' : "";
-      return `<li class="sp-setup__step-dot ${state}" ${current}><span>${escapeHtml(s.label)}</span></li>`;
-    }).join("");
-    return `<ol class="sp-setup__steps" aria-label="Setup progress">${items}</ol>`;
+  _identityEmail() {
+    const id = this.snapshot && this.snapshot.verified_identity;
+    return (id && (id.email || id.user_id)) || "";
   }
 
   render() {
@@ -115,11 +97,6 @@ export class SpSetup extends SpElement {
     const version = this.dataset.version || "";
     const platform = this.dataset.platform || "linux";
     const platformDisplay = this.dataset.platformDisplay || "";
-    // Finish is always enabled. Host install-state is probe-driven and can lag
-    // or misreport (e.g. the card shows "Installed ✓" while `anyInstalled` is
-    // still false), which trapped the user on this step with no way forward.
-    // Installing agents is optional, so never block completing setup.
-    const finishDisabled = "";
     return `
       <div class="sp-setup__split">
         <aside class="sp-setup__brand">
@@ -143,21 +120,26 @@ export class SpSetup extends SpElement {
 
         <section class="sp-setup__panel">
           <div class="sp-setup__panel-inner">
-            ${this._renderSteps()}
             <div class="sp-setup__step" data-step="connect" ${step !== "connect" ? "hidden" : ""}>
               <h1 id="setup-heading">Sign in</h1>
               <p class="sp-setup__lede">
-                Use your Systemprompt Internal account. Your bridge account is created
-                automatically the first time you sign in.
+                Your browser opens to sign in — use your Odoo email and password
+                (or API key), or a passkey. Whoever you approve there is the
+                account this computer links to.
               </p>
               <sp-setup-gateway></sp-setup-gateway>
             </div>
-            <div class="sp-setup__step" data-step="agents" ${step !== "agents" ? "hidden" : ""}>
-              <h1>Choose your agents</h1>
-              <p class="sp-setup__lede" data-l10n-id="setup-agents-lede">Pick the coding agents you want systemprompt bridge to govern.</p>
-              <sp-setup-agents></sp-setup-agents>
+            <div class="sp-setup__step" data-step="done" ${step !== "done" ? "hidden" : ""}>
+              <h1>You're connected</h1>
+              <p class="sp-setup__lede">This computer is linked to</p>
+              <p class="sp-setup__identity">${escapeHtml(this._identityEmail())}</p>
+              <p class="sp-setup__hint">
+                Not you? <a href="#" data-action="sign-out">Sign out</a> and sign
+                in again — you choose the account in the browser. Coding agents
+                are managed in the Agents tab once you're in.
+              </p>
               <div class="sp-setup__actions">
-                <button class="sp-btn-primary" type="button" data-l10n-id="setup-finish" data-action="finish" ${finishDisabled}>Finish</button>
+                <button class="sp-btn-primary" type="button" data-l10n-id="setup-finish" data-action="finish">Finish</button>
               </div>
             </div>
           </div>
@@ -167,5 +149,5 @@ export class SpSetup extends SpElement {
   }
 }
 
-reactive(SpSetup.prototype, ["snapshot", "step", "anyInstalled"]);
+reactive(SpSetup.prototype, ["snapshot", "step"]);
 customElements.define("sp-setup", SpSetup);
