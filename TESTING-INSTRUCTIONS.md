@@ -114,7 +114,78 @@ dance signs you in as an Odoo user and every tool runs **as that user**
 (Odoo's own record rules apply; a salesperson can't post on records they
 can't touch).
 
-## 6. Debugging, in the order that finds things
+## 6. Onboarding walkthroughs (do these once, in order)
+
+### 6a. Add a field to an existing dashboard (Leads: add "Phone")
+
+The data is typed end to end — a field exists in exactly three places:
+
+1. **The typed row** — `extensions/mcp/odoo/src/server/crm_shape.rs`:
+   add `pub phone: Option<String>` to `LeadRow` with
+   `#[serde(deserialize_with = "odoo::text", default)]`, and a
+   `Column::new("phone", ColumnType::String).with_header("Phone")` in
+   `lead_table` (the field is already in `LEAD_FIELDS`, so Odoo returns it;
+   a brand-new Odoo field would also join that list in `server/call.rs`).
+2. **The view** — `services/artifacts/leads-inbound-prospects/view.html`:
+   add `{ label: "Phone", path: "phone", cell: "text" }` to its `COLUMNS`
+   array; bump `version:` in the sibling `config.yaml`.
+3. **The regenerated bundle** — `python3 scripts/sync-cowork-artifacts.py`
+   (never edit the copies under `services/skills/*/assets/`).
+
+Then: `cargo build -p systemprompt-mcp-odoo` →
+`systemprompt infra services restart mcp odoo --profile local` →
+`just e2e` (extend `tests/unit/mcp/src/odoo_lead_table.rs` and the mock's
+`crm.lead` record with the new field) → in Cowork: `bridge sync`, re-run
+the setup skill, accept the stale replacement. Removing a field is the same
+three places in reverse.
+
+### 6b. Modify a skill
+
+Skills are instructions, not code: edit
+`services/skills/<id>/SKILL.md` (behaviour) or `config.yaml` (name,
+description, `hosts:` targeting). Then
+`bash scripts/validate-services.sh`, restart the server, and confirm the
+new sha rides the manifest (section 3's curl). Cowork picks the change up
+at the next `bridge sync` — skills are re-synced wholesale, no reinstall
+step.
+
+### 6c. New feature end to end: tool → artifact → skill
+
+The worked shape, using a hypothetical "Won Deals" board. Copy the nearest
+existing example at every step — that is the intended workflow.
+
+1. **Tool** (`extensions/mcp/odoo/`): declare `TOOL_WON_LEADS` in
+   `tools/mod.rs` + a `ToolDef` in `tools/catalog.rs` (`read_only: true` —
+   required for Cowork to cache dashboard fetches); add a typed input in
+   `tools/inputs/`; write the handler in `server/` returning
+   `(CliArtifact::table(...), summary)` built from a typed row struct
+   (copy `LeadSearchHandler` + `LeadRow`); register the handler where the
+   others are wired in `server/mod.rs`. Unit-test the domain and the table
+   in `tests/unit/mcp/`.
+2. **Artifact**: `services/artifacts/won-leads/{config.yaml,view.html}` —
+   copy `leads-inbound-prospects` wholesale; set `id`, `name`,
+   `mcp_tools: ["mcp__odoo__won_leads"]`, and the embedded contract
+   `{"tool": "mcp__odoo__won_leads", "arguments": {...}}`; adjust the
+   `COLUMNS` array. The view reads `structuredContent.items` — no parsing.
+3. **Wire it into the plugin**: `services/plugins/systemprompt-crm/config.yaml`
+   → add the artifact id under `artifacts.include` (and the skill id under
+   `skills.include` in step 4). Run `python3 scripts/sync-cowork-artifacts.py`
+   so the setup-skill bundle gains the new dashboard.
+4. **Skill**: `services/skills/won_leads_review/{config.yaml,SKILL.md}` —
+   `hosts: [cowork]` if it drives the dashboard; the SKILL.md tells the
+   agent when to call the tool and open the artifact.
+5. **Access**: if the feature is admin-only, add rules for the skill (and
+   tool's server, if new) to `services/access-control/roles.yaml`;
+   otherwise it rides the marketplace's `[user]` grant. Check with
+   `systemprompt admin access-control lint`.
+6. **Prove it**: `bash scripts/validate-services.sh` →
+   `cargo build -p systemprompt-mcp-odoo` → restart → extend the e2e
+   harness (mock arm in `tests/e2e/src/harness/odoo_mock.rs`, wire
+   assertion beside `crm_lead_search`'s in `mcp_proxy_odoo.rs`, allowlist
+   pin in `skills_artifacts.rs`) → `just e2e` → `bridge sync` + setup skill
+   in Cowork → the new dashboard installs and loads live data.
+
+## 7. Debugging, in the order that finds things
 
 ```bash
 systemprompt infra logs view --level error --since 10m     # first stop
@@ -171,5 +242,5 @@ with `just e2e-live`), the `marketplace-admin` OAuth client with redirect
 `/admin/login`, and Docker Postgres reachable via the URL in
 `.systemprompt/profiles/local/secrets.json`. PATs for headless bridge tests
 come from `admin users api-key issue`. Windows-side verification happens
-through `/mnt/c` as described in section 6 — read Cowork's caches instead of
+through `/mnt/c` as described in section 7 — read Cowork's caches instead of
 guessing what the client saw.
