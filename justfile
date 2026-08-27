@@ -427,19 +427,14 @@ _doc-check-uncoordinated:
     SQLX_OFFLINE=true RUSTDOCFLAGS="-D warnings" cargo doc --manifest-path tests/Cargo.toml --workspace --no-deps
     RUSTDOCFLAGS="-D warnings" cargo doc --manifest-path bridge/Cargo.toml --no-deps
 
-# The workspace must build on the declared minimum supported Rust version
-# (rust-version in Cargo.toml). Requires: rustup toolchain install 1.94.0
+# Both workspaces must build on the declared minimum supported Rust version,
+# and must declare the same one. The number is read from the manifests, never
+# hardcoded — see scripts/check-msrv.sh for why that matters.
 msrv-check:
     @scripts/build-coordinator.sh run msrv-check "" -- {{just_executable()}} _msrv-check-uncoordinated
 
 _msrv-check-uncoordinated:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    if ! rustup toolchain list | grep -q '^1\.94\.0'; then
-        echo "msrv-check: toolchain 1.94.0 missing — run: rustup toolchain install 1.94.0" >&2
-        exit 1
-    fi
-    SQLX_OFFLINE=true cargo +1.94.0 check --workspace
+    bash scripts/check-msrv.sh
 
 # ══════════════════════════════════════════════════════════════════════════════
 # COVERAGE (raw llvm-cov; floor + ratchet vs tracked coverage/baseline.json)
