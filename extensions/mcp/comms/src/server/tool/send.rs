@@ -8,8 +8,8 @@ use systemprompt::models::artifacts::CliArtifact;
 use systemprompt::models::execution::context::RequestContext as SysRequestContext;
 
 use crate::store::{Address, CommsStore, NewMessage, check_body, classify, parse_address};
-use systemprompt::identifiers::{SessionId, UserId};
 use crate::tools::{SendInput, TOOL_SEND};
+use systemprompt::identifiers::{SessionId, UserId};
 
 use super::common::{internal, invalid, text_artifact};
 
@@ -86,11 +86,7 @@ impl McpToolHandler for SendHandler {
         } else {
             ""
         };
-        let summary = format!(
-            "Sent to {} as {}{note}",
-            resolved.label,
-            class.as_str()
-        );
+        let summary = format!("Sent to {} as {}{note}", resolved.label, class.as_str());
         let body = format!(
             "{summary}\n\nid: {}\nsent: {}\n\n{}",
             sent.id,
