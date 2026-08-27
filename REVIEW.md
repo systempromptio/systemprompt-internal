@@ -65,6 +65,8 @@ which renders every artifact type and rasterizes each in light / dark / narrow.
 
 ### Governance approvals — `34434f4e`, `4321c08d`, core `bee179e99` / `f4e907d59`
 
+Core's full range for the day is `abbf25b3c..8abc76962`.
+
 `require_approval` is the fifth stage and the only one returning a third verdict,
 `Decision::Pending`: neither allowed nor denied, but held for a named human.
 
@@ -87,6 +89,17 @@ passes: the hold is real here and proven end to end.
 The distinction matters if this code is ever read as a description of core's
 behaviour, or if a future change tries to route internal's holds through core's
 stage on the assumption it already works.
+
+### Fork convergence and the checks themselves — `52949f3a`, template `c73c010`
+
+Not a feature, but a large part of the day's diff. `check-fork-drift` had failed
+all session, masking clippy inside `just clippy` and `just preflight`. 43 shared
+files differed unrecorded; 32 are converged and 11 recorded. The template got the
+same APM removal, the same MSRV raise, three fixes that originated here, and a
+`.fork-divergence` resynced from internal's after rotting to a third of its size.
+
+Three CI checks that could not fail were made real — see *Known-weak spots*, which
+is where the interesting part of this work is.
 
 ---
 
@@ -116,7 +129,7 @@ two RBAC grants defensible, given each is `[user]`?*
 Depends on approvals being real. *Is there any path through this tool that
 reaches the relay without two humans?*
 
-**6. Bridge and gateway — core `abbf25b3c..f4e907d59`, comms leg in `59fc30e59`**
+**6. Bridge and gateway — core `abbf25b3c..8abc76962`, comms leg in `59fc30e59`**
 The push leg. *Does anything here ship to a machine?* (It should not — no
 `min_bridge_version` bump, no `bridge-v*` tag, confirmed.)
 
@@ -228,21 +241,35 @@ store and the addressing predicate. It does not prove that a message actually
 surfaces inside a running Cowork conversation. Treat "an agent gets interrupted
 by `@user/handle`" as designed and unverified end to end.
 
-**The APM fix moves historical numbers.** `duration_minutes` used to fall back to
-1.0 whenever `ended_at` was null, which scored every crashed or interrupted
-session as if all of its work happened in a single minute. It is now
-`COALESCE(ended_at, last_event_at)`. This is a correctness fix, but every
-historical `apm` / `eapm` rollup changes value as a result. If anyone has
-screenshotted or reported those numbers, they will no longer reconcile. Nothing
-is versioned or backfilled — the new query simply reads the old rows differently.
+**The APM metric was removed, not fixed.** It read `duration_minutes` as 1.0
+whenever `ended_at` was null, scoring every crashed or interrupted session as
+though all its work happened in one minute. Correcting that to
+`COALESCE(ended_at, last_event_at)` moved every historical `apm`/`eapm` number,
+which raised the better question: `apm`, `eapm` and `peak_concurrent` were
+written on every Stop event and read by nothing but their own test. All three
+columns are gone (internal migration 031; the template's declarative schema),
+along with `count_concurrent_sessions`, which existed only to feed
+`peak_concurrent`. `analytics::live_sessions::list_live_sessions` covers live
+sessions properly. Nothing to reconcile — the numbers are not wrong now, they
+are absent.
 
-**`check-fork-drift` fails and is masking clippy.** `just clippy` and
-`just preflight` both run `lint-gates` first and abort on its failure, and
-`check-fork-drift` fails on an untouched HEAD (it needs `SIBLING_REPO` set).
-The consequence is that **clippy is silently skipped** — the recipe exits
-non-zero for a reason that has nothing to do with lint, and a reader sees a red
-gate rather than a clippy result. This masked two real failures today. Until it
-is fixed, run the compilers directly; see *What to re-run*.
+**`check-fork-drift` was failing and masking clippy — fixed.** `just clippy` and
+`just preflight` both run `lint-gates` first and abort on its failure, so a red
+fork-drift meant **clippy never ran** and the recipe's failure said nothing about
+lint. That masked two real failures during the day.
+
+43 shared files differed with no entry in `.fork-divergence`. 32 are now
+converged and 11 recorded with dated reasons; all 21 gates pass in both repos.
+Two of the ported fixes were live bugs here, not tidying: the gateway admin UI
+dropped `pricing`/`when`/`requires` on every round-trip, silently rewriting
+routing policy it does not display, and share tokens had no expiry at all.
+
+The template's own `.fork-divergence` had rotted much further — 27 entries
+against internal's 76, with all 10 of its unique entries stale. Divergence is
+symmetric, so two lists that disagree just means one stopped being maintained.
+It is now internal's list verbatim. It rotted unnoticed because `check-fork-drift`
+skips in CI, where only one repo is present: **it is still a local-only gate, and
+still the one thing most likely to rot again.**
 
 **Per-crate `.sqlx` caches now regenerate far larger than they are tracked.**
 `just prepare` runs a per-crate `cargo sqlx prepare` for each dir in
@@ -289,47 +316,70 @@ inbox, which is destructive, and surfaces nothing. Nobody has decided whether
 `Stop` should be registered at all. Untested and unresolved; see core
 `59fc30e59`.
 
-**`quality.yml`'s `msrv` job had never tested MSRV — fixed in `a99d137d`.** It
-installed 1.94.0 via `dtolnay/rust-toolchain@1.94.0` and then ran a bare
-`cargo check`, but `rust-toolchain.toml` pins `nightly-2026-06-03` and a
-toolchain file overrides rustup's default — so the check ran that nightly every
-time. Confirmed in this tree: a bare `cargo` reports 1.98.0-nightly,
-`cargo +1.94.0` reports 1.94.0.
-
-Now uses `+1.94.0` and asserts the toolchain actually in use before checking.
-The assertion is the durable half: the defect was never a wrong answer, it was a
-job that passed while proving nothing, and only an explicit check can fail that
-loudly. This workspace does satisfy 1.94 — verified with a real
-`cargo +1.94.0 check --workspace` — so the job went honest without going red. The
-local `just msrv-check` recipe was always correct; only CI made an untested
+**The MSRV jobs never tested the MSRV — fixed in all three repos.** Each
+installed a toolchain and then ran a bare `cargo check`, which silently used the
+nightly from `rust-toolchain.toml`. Confirmed by hand: a bare `cargo` reported
+1.98.0-nightly where `cargo +1.94.0` reported 1.94.0. The template was worse —
+it had no local msrv recipe at all, so nothing anywhere had ever exercised its
 claim.
 
-Core's equivalent job is a different problem and is being fixed there: it checks
-both the root workspace and `bin/bridge` against 1.94, but `bin/bridge/Cargo.toml`
-declares no `rust-version` at all, so the job invented a claim the bridge never
-made. Root's `rust-version = "1.94"` is a real published promise for the 33
-crates that go to crates.io and genuinely passes; the bridge needs 1.95 for
-vergen-gitcl, and no 10.x release works on 1.94 (10.0.0/10.0.1 declare 1.95,
-10.0.2/10.0.3 declare 1.96, and it is a build-dependency, so it constrains who
-can build the bridge rather than who can consume the crates). The fix there is to
-give each workspace its own declared MSRV, not to move a public claim.
+The MSRV is now **1.96** everywhere. The old 1.94 was an unmaintained pin, not a
+promise being held to; core's `bin/bridge` had in fact needed 1.95 for
+vergen-gitcl all along, against a number it never declared.
 
-**`quality.yml`'s `file-size` job cannot fail** (core only — this repo has no
-such job).** Its recipe pipes `find` into
-`awk` and prints; `awk` exits 0 whether or not it printed anything. Forty-nine files
-are over the 300-line guard right now, under a green tick — all hand-written
-source; the recipe already excludes `target/` and `tests/` and discounts `//!`
-heads, so the number is not inflated. That is consistent
-with the house rule that file size is informational — but the job's presence
-implies a gate that does not exist, which is the same shape as the `msrv` defect
-above and the self-skipping e2e test below.
+`scripts/check-msrv.sh` is byte-identical in internal and the template. It reads
+the number from the manifests rather than naming one — a toolchain hardcoded in a
+script or a workflow stops matching the day someone edits `rust-version`, which
+is this defect exactly — checks the workspaces and `clippy.toml` all agree, uses
+`RUSTUP_TOOLCHAIN` (which outranks a toolchain file where installing a toolchain
+does not), and asserts the running cargo before checking anything. Core still
+hardcodes its toolchain in the workflow; that fails loudly rather than silently,
+and matching this script is on core's follow-up list.
 
-Deliberately unresolved, and the reason is worth recording: the two honest fixes
-point in opposite directions. Making the gate real (a baseline plus ratchet, as
-`coverage/baseline.json` already does here) contradicts the standing guidance
-that file size is informational rather than a blocker — it would go red the day
-someone writes a 301-line file. Removing the job admits it was never a gate. That
-is a call for a person, not for a quality pass, and it is with Ed.
+**`file-size` could not fail — fixed in core.** Its recipe piped `find` into
+`awk` and printed; `awk` exits 0 whether or not it printed, so 49 files sat over
+the 300-line guard under a green tick. It is now a real gate, and all 49 files
+were split rather than baselined — 146 files changed across four refactor
+commits. The gate commit deliberately lands **last**, after the refactors that
+satisfy it, so no commit in the series is knowingly red.
+
+The evidence that 49 structural splits changed no behaviour is that the test
+count is **identical** before and after (19,667 across 13 shards), and that the
+test workspace compiled untouched — every public path the tests import still
+resolves, so the re-exports held. This repo's own `check-file-size.sh` was
+already a real gate and already passed.
+
+**Four checks were green while proving nothing — read them as one pattern.** This
+is the most transferable finding of the day, and it recurred in four independent
+places:
+
+  - three MSRV jobs that installed a toolchain and then ran a different one;
+  - a `file-size` job whose `awk` exits 0 whether or not it printed;
+  - e2e tests that return green in hundredths of a second when
+    `SYSTEMPROMPT_TEST_DATABASE_URL` is unset;
+  - a `require_approval` stage in core with no enforcement point behind it.
+
+The shape is always the same: **the check names a condition it never asserts.**
+Nobody was careless — each looks correct in review, and each passes. What catches
+them is asking not "does this pass" but "what does this fail on, and has it ever?"
+The three now fixed all gained an explicit assertion of the thing they claim, not
+just a corrected command, because the corrected command is one edit away from
+lying again.
+
+**A structural refactor fanned across agents breaks the shared build.** Core's 49
+file splits ran as six uncoordinated agents; for about ten minutes the tree did
+not compile — symbols left behind in the half that no longer saw them
+(`BTreeSet`, a `const`, a `pub(super)`). Each agent fixed its own crate and it
+converged, but internal's `[patch.crates-io]` resolves against core's **working
+tree**, so an unfinished refactor there breaks builds here. The mitigation is
+short windows and a ping, not a lock. Worth knowing before the next big fan-out.
+
+**Verify staging, don't trust the pathspec.** The core refactor was first
+committed as one commit sweeping all 145 files under a message describing only
+the bridge; it was caught on the `--stat`, soft-reset and redone by area. Nothing
+was pushed wrong. Same shape as the `git add -A` hazard in release.md §1d, and
+the reason every commit in today's series was staged by explicit path and checked
+with `git diff --cached --name-only` first.
 
 **`next` has never been gated.** This one stopped being theoretical today: core's
 first gate cycle went red on `bridge-native` clippy on windows-latest —
@@ -370,8 +420,8 @@ bash scripts/check-sqlx-cache.sh
 SQLX_OFFLINE=true cargo clippy --workspace --all-targets --all-features -- -D warnings
 SQLX_OFFLINE=true cargo clippy --manifest-path tests/Cargo.toml --workspace --all-targets -- -D warnings
 SQLX_OFFLINE=true RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
-just msrv-check
-just lint-gates                      # expect only check-fork-drift
+just msrv-check                      # reads the MSRV from the manifests
+SIBLING_REPO=../systemprompt-template just lint-gates   # all 21 should pass
 cargo nextest run --manifest-path tests/Cargo.toml \
     -p mcp-unit-tests -p web-unit-tests -p email-unit-tests
 
@@ -382,15 +432,19 @@ export SYSTEMPROMPT_TEST_DATABASE_URL=postgres://systemprompt:123@localhost:5448
 cargo nextest run --manifest-path tests/Cargo.toml -p e2e-tests -j 4
 ```
 
-Last run on this tree: **543 unit tests passed**, **23/23 e2e passed**, everything
-above green except `check-fork-drift`.
+Last run on this tree: **543 unit tests**, **328 admin-core integration tests**
+and **23/23 e2e** all passing, with **all 21 lint gates** green — including
+`check-fork-drift`, which had failed all day. The template passes the same 21
+gates and its own clippy and MSRV checks.
 
-On `systemprompt-core` at `f4e907d59`: 19,667 tests across all 13 shards green
+On `systemprompt-core` at `8abc76962`: 19,667 tests across all 13 shards green
 against fresh migrated databases, plus rustfmt, clippy `-D warnings` and rustdoc
 `-D warnings` on all three workspaces, all 15 source-gate lints, machete, deny,
-sqlx-verify-offline and `cargo build --workspace --locked`. Its hosted CI,
-Quality and Supply Chain gates all report `success`, each verified by its own
-conclusion and `headSha` at `f4e907d59` rather than by a summary line.
+sqlx-verify-offline and `cargo build --workspace --locked`. Its hosted CI, Quality and Supply Chain gates all report `success`, each
+verified by its own conclusion and `headSha` at `8abc76962` rather than by a
+summary line. That Quality run is the first that exercised both previously-fake
+jobs, plus `bridge-native` clippy on real Windows and macOS runners — the only
+thing that ever compiles the cfg-gated `gui/**` code.
 
 The full ladder core was run through is `internal/quality-check.md` in that repo
 (gitignored). It exists because `release-flow.md` §3 listed eight commands while
