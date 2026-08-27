@@ -129,3 +129,36 @@ extensions/web/admin/src/repositories/governance/decisions.rs	# internal ships n
 extensions/web/tests/frontend_standards.rs	# internal ships no blog, so the blog-print !important carve-out and blog TOP_LEVEL entry are removed here; the template keeps both
 
 extensions/web/admin/src/gateway_safety.rs	# internal adds the WordBlocklistScanner (client-specific banned-word list); the template ships only the secrets scanner
+
+# ---------------------------------------------------------------------
+# APPROVAL (2026-08-27) - internal handles `Decision::Pending`, the third
+# governance verdict. The template pins released systemprompt 0.40.0 from
+# crates.io, whose `Decision` enum has only Allow and Deny — the variant
+# landed on core's `next` after that release. These are not a decision to
+# diverge: they are debt with a date on it. When the template adopts a core
+# that carries Pending, port them and delete these five lines.
+# ---------------------------------------------------------------------
+extensions/web/admin/src/handlers/webhook/governance/authz.rs	# internal degrades a hold to a deny on a plane that cannot park a request, and audits it verbatim; template's core has no Pending to match on
+extensions/web/admin/src/handlers/webhook/governance/handler/mod.rs	# internal renders a hold as a [GOVERNANCE] reason on the hook plane; template's core has no Pending to match on
+extensions/web/admin/src/handlers/webhook/governance/types.rs	# internal carries the `Ask` wire value — Pending rendered for a caller at a terminal, asked in place rather than parked; template's core has no Pending
+extensions/web/admin/src/repositories/governance/effective.rs	# internal reports a hold as its own "pending" verdict rather than collapsing it to allow or deny; template's core has no Pending
+extensions/web/admin/src/repositories/users/access_control/matrix.rs	# internal renders the "pending" cell in the access matrix; template's core has no Pending
+
+# ---------------------------------------------------------------------
+# SESSION REGISTRY (2026-08-27) - internal's migration 030 added cwd,
+# workspace, handle, last_event_at and the live-session columns to
+# plugin_session_summaries so a session can be addressed and its cost
+# attributed to a repository. The template's schema has none of them, so
+# these files reference columns that do not exist there. Port the schema
+# first, or not at all; the code cannot move on its own.
+# ---------------------------------------------------------------------
+extensions/web/admin/src/handlers/hooks_track/processing.rs	# internal writes the session-registry columns and implements /hooks/statusline; template has neither the columns nor the handler
+extensions/web/admin/src/handlers/webhook/tracking.rs	# internal binds the statusline payload (model, running cost, context window) that template's handler discards
+extensions/web/admin/src/handlers/webhook/helpers.rs	# internal returns the validated JwtClaims so statusline rows carry user attribution; template's webhook auth has no consumer for them
+extensions/web/admin/src/repositories/dashboard/usage_aggregations/daily.rs	# internal upserts cwd/workspace/last_event_at on the daily rollup; those columns do not exist in the template
+
+# ---------------------------------------------------------------------
+# PRODUCT (2026-08-27)
+# ---------------------------------------------------------------------
+extensions/mcp/shared/src/lib.rs	# internal declares the approval gate and the brand ArtifactTheme; the template ships neither
+extensions/web/admin/src/handlers/ssr/ssr_setup.rs	# each fork's setup cards link into its own documentation site; the two sites have different pages

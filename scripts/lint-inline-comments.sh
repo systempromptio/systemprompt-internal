@@ -27,8 +27,19 @@ set -uo pipefail
 # banned. A genuine invariant on such an item belongs in a `// Why:` comment;
 # anything else is deleted.
 #
+# Exemption: a path (one per line, `#` comments) in
+# scripts/rustdoc-exemptions.txt. Reserve it for files where `///` is
+# load-bearing rather than decorative — clap-derive CLIs, where the rustdoc
+# *is* the generated `--help` text and deleting it silently guts the CLI.
+#
 # Scope: production sources in `extensions/**`, `src/**` and `bridge/src/**`, tracked or
 # not (`git ls-files -co`) — an untracked new file must not pass vacuously.
+
+EXEMPT_FILE="scripts/rustdoc-exemptions.txt"
+is_exempt() {
+    [ -f "$EXEMPT_FILE" ] || return 1
+    grep -v '^[[:space:]]*#' "$EXEMPT_FILE" | grep -qxF "$1"
+}
 
 MATCHES=""
 while IFS= read -r file; do
@@ -36,6 +47,7 @@ while IFS= read -r file; do
         tests/*|*/tests/*) continue ;;
         */build.rs) continue ;;
     esac
+    is_exempt "$file" && continue
     FOUND=$(awk '
         /^[[:space:]]*\/\/\// { prev_allowed = 0; if (!in_doc) doc_line = FNR; in_doc = 1; next }
         /^[[:space:]]*\/\/!/ { prev_allowed = 0; next }
