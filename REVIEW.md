@@ -289,23 +289,47 @@ inbox, which is destructive, and surfaces nothing. Nobody has decided whether
 `Stop` should be registered at all. Untested and unresolved; see core
 `59fc30e59`.
 
-**`quality.yml`'s `msrv` job has never tested MSRV.** It installs 1.94.0 via
-`dtolnay/rust-toolchain@1.94.0`, but `rust-toolchain.toml` pins
-`nightly-2026-06-03`, and a toolchain file overrides rustup's default — so
-`cargo check` there silently runs the nightly. Forcing real 1.94 with
-`cargo +1.94.0` shows the main workspace passes but `bin/bridge` does not:
-vergen 10.0.1 requires rustc 1.95, above the declared `rust-version = "1.94"`.
-A green job checking nothing and hiding a real breach — the same class of defect
-as the self-skipping e2e test above. Left alone deliberately: making the job
-honest turns CI red immediately, and the fix changes a public MSRV claim, which
-is a decision for a person rather than a quality pass.
+**`quality.yml`'s `msrv` job had never tested MSRV — fixed in `a99d137d`.** It
+installed 1.94.0 via `dtolnay/rust-toolchain@1.94.0` and then ran a bare
+`cargo check`, but `rust-toolchain.toml` pins `nightly-2026-06-03` and a
+toolchain file overrides rustup's default — so the check ran that nightly every
+time. Confirmed in this tree: a bare `cargo` reports 1.98.0-nightly,
+`cargo +1.94.0` reports 1.94.0.
 
-**`quality.yml`'s `file-size` job cannot fail.** Its recipe pipes `find` into
-`awk` and prints; `awk` exits 0 whether or not it printed anything. Twenty files
-are over the 300-line guard right now, under a green tick. That is consistent
+Now uses `+1.94.0` and asserts the toolchain actually in use before checking.
+The assertion is the durable half: the defect was never a wrong answer, it was a
+job that passed while proving nothing, and only an explicit check can fail that
+loudly. This workspace does satisfy 1.94 — verified with a real
+`cargo +1.94.0 check --workspace` — so the job went honest without going red. The
+local `just msrv-check` recipe was always correct; only CI made an untested
+claim.
+
+Core's equivalent job is a different problem and is being fixed there: it checks
+both the root workspace and `bin/bridge` against 1.94, but `bin/bridge/Cargo.toml`
+declares no `rust-version` at all, so the job invented a claim the bridge never
+made. Root's `rust-version = "1.94"` is a real published promise for the 33
+crates that go to crates.io and genuinely passes; the bridge needs 1.95 for
+vergen-gitcl, and no 10.x release works on 1.94 (10.0.0/10.0.1 declare 1.95,
+10.0.2/10.0.3 declare 1.96, and it is a build-dependency, so it constrains who
+can build the bridge rather than who can consume the crates). The fix there is to
+give each workspace its own declared MSRV, not to move a public claim.
+
+**`quality.yml`'s `file-size` job cannot fail** (core only — this repo has no
+such job).** Its recipe pipes `find` into
+`awk` and prints; `awk` exits 0 whether or not it printed anything. Forty-nine files
+are over the 300-line guard right now, under a green tick — all hand-written
+source; the recipe already excludes `target/` and `tests/` and discounts `//!`
+heads, so the number is not inflated. That is consistent
 with the house rule that file size is informational — but the job's presence
 implies a gate that does not exist, which is the same shape as the `msrv` defect
-above and the self-skipping e2e test below. Recorded, not fixed.
+above and the self-skipping e2e test below.
+
+Deliberately unresolved, and the reason is worth recording: the two honest fixes
+point in opposite directions. Making the gate real (a baseline plus ratchet, as
+`coverage/baseline.json` already does here) contradicts the standing guidance
+that file size is informational rather than a blocker — it would go red the day
+someone writes a 301-line file. Removing the job admits it was never a gate. That
+is a call for a person, not for a quality pass, and it is with Ed.
 
 **`next` has never been gated.** This one stopped being theoretical today: core's
 first gate cycle went red on `bridge-native` clippy on windows-latest —
