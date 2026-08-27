@@ -61,6 +61,17 @@
       "mcpTools": [
         "mcp__knowledge-bank__list_documents"
       ]
+    },
+    {
+      "id": "team-inbox",
+      "name": "Team Inbox — Messages & Live Sessions",
+      "description": "Unread messages addressed to you, and the directory of agent sessions running right now with the handle to reach each one. Refresh re-runs comms_inbox and comms_sessions as you, so you only ever see what was addressed to you.",
+      "version": "1.0.0",
+      "isStarred": true,
+      "mcpTools": [
+        "mcp__comms__comms_inbox",
+        "mcp__comms__comms_sessions"
+      ]
     }
   ]
 }

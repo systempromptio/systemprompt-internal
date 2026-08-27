@@ -1,0 +1,83 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.slug, c.name, c.description, c.required_role, c.urgent,\n                     COUNT(cm.user_id) AS member_count\n              FROM comms_channels c\n              LEFT JOIN comms_channel_members cm ON cm.channel_id = c.id\n              WHERE c.required_role IS NULL\n                 OR EXISTS (SELECT 1 FROM users u\n                             WHERE u.id = $1 AND c.required_role = ANY(u.roles))\n              GROUP BY c.slug, c.name, c.description, c.required_role, c.urgent\n              ORDER BY c.slug",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "slug",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "comms_channels",
+            "name": "slug"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "comms_channels",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "comms_channels",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "required_role",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "comms_channels",
+            "name": "required_role"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "urgent",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "comms_channels",
+            "name": "urgent"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "member_count",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      false,
+      null
+    ]
+  },
+  "hash": "a3739fde1c093efa7f9ec73e7a513f47ffad7e635d8a261d8a83df5002e56081"
+}

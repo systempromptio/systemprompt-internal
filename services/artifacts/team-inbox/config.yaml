@@ -1,0 +1,24 @@
+id: team-inbox
+name: "Team Inbox — Messages & Live Sessions"
+description: "Unread messages addressed to you, and the directory of agent sessions running right now with the handle to reach each one. Refresh re-runs comms_inbox and comms_sessions as you, so you only ever see what was addressed to you."
+version: "1.0.0"
+enabled: true
+starred: true
+# `category`, `tags` and `query` are forward-compatible metadata — the core
+# loader ignores them today; the call also lives in `description` and view.html.
+category: comms
+tags:
+  - comms
+  - messages
+  - inbox
+  - sessions
+# Team comms MCP server (services/mcp/comms.yaml). Per-user execution: the
+# inbox returns only messages addressed to the calling user or to the calling
+# session, so the allowlist below cannot widen what a viewer sees.
+mcp_tools:
+  - "mcp__comms__comms_inbox"
+  - "mcp__comms__comms_sessions"
+query: |
+  comms_inbox
+  arguments: { "limit": 50, "peek": true }
+file: view.html

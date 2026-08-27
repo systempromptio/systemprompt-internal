@@ -1,0 +1,48 @@
+[package]
+name = "systemprompt-mcp-comms"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Team comms MCP server: addressed messages between people and their agent sessions, persisted on the tenant Postgres."
+repository.workspace = true
+homepage.workspace = true
+publish = false
+
+# register_extension!() expands to `::inventory::submit!`; machete cannot see
+# macro-expansion usage.
+[package.metadata.cargo-machete]
+ignored = ["inventory"]
+
+[[bin]]
+name = "systemprompt-mcp-comms"
+path = "src/main.rs"
+
+[dependencies]
+# Audit: uses database, identifiers, logging, mcp, models, system (api) — requires `full`.
+systemprompt = { workspace = true, features = ["full"] }
+
+anyhow.workspace = true
+chrono.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+
+rmcp.workspace = true
+
+axum.workspace = true
+
+schemars.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+tracing.workspace = true
+
+sqlx.workspace = true
+uuid.workspace = true
+
+inventory.workspace = true
+
+systemprompt-mcp-shared.workspace = true
+
+[lints]
+workspace = true

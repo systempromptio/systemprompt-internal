@@ -1,0 +1,8 @@
+extension:
+  type: mcp
+  name: comms
+  binary: systemprompt-mcp-comms
+  description: Team comms - addressed messages between people and their agent sessions
+  port: 5060
+  build_type: workspace
+  enabled: true
