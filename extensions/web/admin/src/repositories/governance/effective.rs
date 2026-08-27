@@ -148,6 +148,10 @@ fn decide(args: DecideArgs<'_>) -> EntityDecision {
     let (decision, reason) = match dec {
         Decision::Allow { matched_by } => ("allow".to_owned(), allow_reason(&uid, &matched_by)),
         Decision::Deny { reason } => ("deny".to_owned(), reason.to_string()),
+        // Why: the matrix reports what the chain said, verbatim. Rendering a
+        // hold as an allow or a deny would misreport the one cell whose
+        // answer is "it depends on a person".
+        Decision::Pending { reason } => ("pending".to_owned(), reason.to_string()),
     };
     let tab = if entity.kind() == EntityKind::GatewayRoute {
         "gateway"

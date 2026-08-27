@@ -10,10 +10,19 @@ homepage.workspace = true
 publish = false
 
 [dependencies]
-systemprompt = { workspace = true }
+# The approval gate reaches `systemprompt::security::policy`, which the facade
+# puts behind its `security` feature; the workspace default set stops at
+# core/database/config.
+systemprompt = { workspace = true, features = ["security"] }
 sqlx = { workspace = true }
 serde = { workspace = true }
 tracing = { workspace = true }
+# The approval gate: MRTR result types, the derived call id, and audit row ids.
+rmcp = { workspace = true }
+sha2 = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+serde_json = { workspace = true }
 
 [lints]
 workspace = true

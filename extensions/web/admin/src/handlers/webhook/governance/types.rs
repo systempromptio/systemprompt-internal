@@ -20,6 +20,10 @@ use systemprompt_security::authz::{Decision, DecisionTag};
 pub enum GovernanceDecision {
     Allow,
     Deny,
+    // Why: the hook contract's third value. It renders `Decision::Pending` on
+    // this plane — the caller is a person at a terminal, so the approval is
+    // asked for in place rather than parked for the admin console.
+    Ask,
 }
 
 impl GovernanceDecision {
@@ -27,6 +31,7 @@ impl GovernanceDecision {
         match d {
             Decision::Allow { .. } => Self::Allow,
             Decision::Deny { .. } => Self::Deny,
+            Decision::Pending { .. } => Self::Ask,
         }
     }
 }
@@ -36,6 +41,7 @@ impl From<GovernanceDecision> for DecisionTag {
         match d {
             GovernanceDecision::Allow => Self::Allow,
             GovernanceDecision::Deny => Self::Deny,
+            GovernanceDecision::Ask => Self::Pending,
         }
     }
 }

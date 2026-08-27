@@ -236,6 +236,15 @@ fn resolve_effective(cell: &MatrixCell<'_>) -> (String, MatrixSource) {
     match decision {
         Decision::Allow { matched_by } => ("allow".to_owned(), allow_source(&uid, &matched_by)),
         Decision::Deny { reason } => ("deny".to_owned(), deny_source(&uid, &reason)),
+        // Why: see effective.rs — the matrix reports the verdict, it does
+        // not resolve it.
+        Decision::Pending { reason } => (
+            "pending".to_owned(),
+            MatrixSource {
+                layer: "policy".into(),
+                detail: reason.to_string(),
+            },
+        ),
     }
 }
 

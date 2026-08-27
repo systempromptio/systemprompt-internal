@@ -9,6 +9,8 @@
 //! read, written, or truncated. The database is dropped on completion.
 
 #[cfg(test)]
+mod approval_gate;
+#[cfg(test)]
 mod common;
 #[cfg(test)]
 mod record_access;

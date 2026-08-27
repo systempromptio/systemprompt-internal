@@ -1,0 +1,51 @@
+{{#> layout title=title page=page}}
+    {{#*inline "content"}}
+    {{> components/page-header
+        title="Pending approvals"
+        subtitle="Tool calls held by the require_approval policy. Each one is a live request blocked on this page — approving resumes it, denying refuses it."}}
+
+    {{#if is_empty}}
+      {{> components/empty-state message="Nothing is waiting. Held calls appear here the moment a governed tool call matches an approval rule."}}
+    {{else}}
+    <section class="approvals" aria-label="Calls awaiting approval">
+      {{#each approvals}}
+      <article class="approval-card">
+        <header class="approval-card__header">
+          <div class="approval-card__title">
+            <code class="code-inline">{{this.tool_name}}</code>
+            {{> components/badge color="warning" text="held"}}
+          </div>
+          <p class="approval-card__meta">
+            Requested by <strong>{{this.requested_by}}</strong>
+            on <code class="code-inline">{{this.server_name}}</code>
+            · matched rule <code class="code-inline">{{this.rule}}</code>
+          </p>
+          <p class="approval-card__meta">
+            Waiting {{this.waiting_seconds}}s · expires in {{this.expires_in_seconds}}s
+            {{#if this.trace_id}}
+            · trace <code class="code-inline">{{this.trace_id}}</code>
+            {{/if}}
+          </p>
+        </header>
+
+        {{!-- The exact payload that will run, not a summary of it: approving a
+              description of a call is not approving the call. --}}
+        <details class="approval-card__args" open>
+          <summary>Arguments</summary>
+          <pre class="code-block"><code>{{this.arguments}}</code></pre>
+        </details>
+
+        <footer class="approval-card__actions">
+          <form method="post" action="{{this.approve_url}}">
+            <button type="submit" class="btn btn-primary">Approve</button>
+          </form>
+          <form method="post" action="{{this.deny_url}}">
+            <button type="submit" class="btn btn-danger">Deny</button>
+          </form>
+        </footer>
+      </article>
+      {{/each}}
+    </section>
+    {{/if}}
+    {{/inline}}
+{{/layout}}

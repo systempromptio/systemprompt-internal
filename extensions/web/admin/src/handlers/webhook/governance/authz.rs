@@ -23,7 +23,7 @@ use sqlx::PgPool;
 use systemprompt::identifiers::{Actor, MarketplaceId, SessionId};
 use systemprompt_security::authz::{
     AccessControlRepository, AccessRule, AuthzDecision, AuthzRequest, Decision, DecisionTag,
-    EntityKind, EntityRef, EntityRow, ResolveInput, ResolveParent, resolve,
+    DenyReason, EntityKind, EntityRef, EntityRow, ResolveInput, ResolveParent, resolve,
 };
 use tokio::sync::RwLock;
 
@@ -131,6 +131,11 @@ async fn audit_decision(
         match decision {
             Decision::Allow { .. } => (DecisionTag::Allow, String::new(), None),
             Decision::Deny { reason } => (DecisionTag::Deny, reason.to_string(), None),
+            // Why: this audits the entity-resolver plane, which has no way to
+            // hold a request. Recording the hold verbatim keeps the audit
+            // honest about what the chain actually said; the caller decides
+            // what to do with it.
+            Decision::Pending { reason } => (DecisionTag::Pending, reason.to_string(), None),
         };
     let id = uuid::Uuid::new_v4().to_string();
     let entity_type_str = req.entity.kind().as_str();
@@ -236,6 +241,27 @@ pub(crate) async fn govern_authz(
         Decision::Deny { reason } => AuthzDecision::Deny {
             reason,
             policy: POLICY_NAME.to_owned(),
+        },
+        // Why: `AuthzDecision` is a two-valued wire type — this endpoint
+        // answers "may this subject reach this entity", which the caller
+        // cannot park. A hold arriving here means a holding policy was mounted
+        // on a plane that cannot honour it, so it degrades to a deny. Failing
+        // the other way would turn the strictest verdict into an allow.
+        Decision::Pending { reason } => {
+            tracing::error!(
+                %reason,
+                "a governance hold reached the authz webhook, which cannot park a request; \
+                 refusing it"
+            );
+            AuthzDecision::Deny {
+                reason: DenyReason::PolicyViolation {
+                    policy: "require_approval".to_owned(),
+                    detail: std::borrow::Cow::Borrowed(
+                        "approval required, but this enforcement point cannot hold a request",
+                    ),
+                },
+                policy: POLICY_NAME.to_owned(),
+            }
         },
     };
     (StatusCode::OK, Json(resp)).into_response()
