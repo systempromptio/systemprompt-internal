@@ -1,0 +1,23 @@
+[package]
+name = "systemprompt-email"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "SMTP transport for outbound mail: secret-driven configuration and a plain-text send that returns the Message-ID it put on the wire."
+repository.workspace = true
+homepage.workspace = true
+publish = false
+
+[dependencies]
+# Audit: only `config` (SecretsBootstrap) is used, so this deliberately does NOT
+# take `full` — the crate stays a leaf that an MCP server can depend on cheaply.
+systemprompt = { workspace = true, features = ["config"] }
+
+lettre.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+uuid.workspace = true
+
+[lints]
+workspace = true

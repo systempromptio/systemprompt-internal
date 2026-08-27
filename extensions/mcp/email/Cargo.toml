@@ -1,0 +1,58 @@
+[package]
+name = "systemprompt-mcp-email"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Outbound email MCP server: composes a draft, previews it as an artifact, and sends only after an explicit human approval carried over MRTR."
+repository.workspace = true
+homepage.workspace = true
+publish = false
+
+[[bin]]
+name = "systemprompt-mcp-email"
+path = "src/main.rs"
+
+[dependencies]
+# Audit: uses database, identifiers, logging, mcp, models, security, system — requires `full`.
+systemprompt = { workspace = true, features = ["full"] }
+
+anyhow.workspace = true
+chrono.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+
+rmcp.workspace = true
+
+axum.workspace = true
+
+schemars.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+tracing.workspace = true
+uuid.workspace = true
+
+# The outbox ledger lives in `email_outbox`; queries are compile-checked sqlx
+# macros against this crate's .sqlx offline cache.
+sqlx.workspace = true
+
+# record_mcp_access + the hoisted require_approval gate.
+systemprompt-mcp-shared.workspace = true
+
+# The SMTP transport.
+systemprompt-email.workspace = true
+
+# Why a whole MCP server crate for three items (`Credentials`,
+# `identity::resolve_credentials`, `client::OdooClient`): the Odoo chatter
+# write-back must run as the calling user's own credential, and that resolution
+# lives in the odoo server crate. Lifting it into `extensions/mcp/shared` is the
+# right end state — it would also collapse the ChaCha20Poly1305 seal/open logic
+# that is already forked between this path and `systemprompt-web-admin` — but
+# three sessions are editing that crate concurrently and a move would collide.
+# This dependency is precedented (tests/Cargo.toml does the same) and is the
+# documented fallback in the plan. Revisit once the crate is quiet.
+systemprompt-mcp-odoo.workspace = true
+
+[lints]
+workspace = true

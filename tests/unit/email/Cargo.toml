@@ -1,0 +1,21 @@
+[package]
+name = "email-unit-tests"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+# Why this is its own crate rather than more modules in `mcp-unit-tests`: that
+# crate depends on `systemprompt-web-admin` (its sealed-credential test needs
+# the admin plane and the odoo MCP in one process), which drags the whole admin
+# surface and its sqlx cache into any run. These tests exercise pure draft
+# logic and need none of it, and coupling them to that build meant they could
+# not run while an unrelated crate was mid-edit.
+systemprompt-mcp-email = { workspace = true }
+rmcp = { workspace = true }
+serde_json = { workspace = true }
+
+[dev-dependencies]
