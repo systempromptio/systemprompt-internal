@@ -63,12 +63,30 @@ so every artifact rendered into Cowork came back cool-blue and square-cornered
 against a warm-orange product. Adds the theme, plus `just artifact-gallery`,
 which renders every artifact type and rasterizes each in light / dark / narrow.
 
-### Governance approvals — `34434f4e`, `4321c08d`, and core-side
+### Governance approvals — `34434f4e`, `4321c08d`, core `bee179e99`
 
 `require_approval` is the fifth stage and the only one returning a third verdict,
-`Decision::Pending`: neither allowed nor denied, but held for a named human. The
-core-side half — the policy operators and rules — is landing separately on
-`systemprompt-core`'s `next`.
+`Decision::Pending`: neither allowed nor denied, but held for a named human.
+
+**Read the next paragraph before trusting that sentence anywhere outside this
+repo.** In `systemprompt-core`, that stage has no production caller: the MCP
+plane consumes `AuthzDecision`, which has no `Pending` variant, and both planes
+that see `Decision::Pending` convert it to a deny. Migration 014 and
+`approval_requests` shipped ahead of the enforcement point.
+
+This installation is unaffected, because **the enforcement point is here, not in
+core.** `extensions/mcp/shared/src/approval/` is internal's own gate, called
+directly by the odoo and email servers before the tool body runs
+(`odoo/src/server/mod.rs:44`, `email/src/server/tool.rs:35`). It evaluates only
+the `require_approval` policy from `GovernanceEngine::global()` — deliberately
+not the whole chain, which would charge the shared rate limiter twice — and
+writes the approval row itself. That is why
+`a_non_admin_send_is_held_for_a_second_human_and_only_flies_once_approved`
+passes: the hold is real here and proven end to end.
+
+The distinction matters if this code is ever read as a description of core's
+behaviour, or if a future change tries to route internal's holds through core's
+stage on the assumption it already works.
 
 ---
 
@@ -98,9 +116,16 @@ two RBAC grants defensible, given each is `[user]`?*
 Depends on approvals being real. *Is there any path through this tool that
 reaches the relay without two humans?*
 
-**6. Bridge and gateway — on `systemprompt-core`'s `next`**
+**6. Bridge and gateway — core `abbf25b3c..bee179e99`, comms leg in `59fc30e59`**
 The push leg. *Does anything here ship to a machine?* (It should not — no
-`min_bridge_version` bump, no `bridge-v*` tag.)
+`min_bridge_version` bump, no `bridge-v*` tag, confirmed.)
+
+Two bugs were found and fixed inside this during core's quality pass, both worth
+re-reading rather than assuming: `comms_drain` read the inbox and then unlinked
+it, destroying any append that landed between the two calls — the exact loss its
+own comment claimed the design avoided; it now renames first, with the pid in the
+taken name. And the hook command interpolated the exe path unquoted, so any
+install under a path containing a space produced a command that split at it.
 
 ---
 
@@ -248,6 +273,31 @@ failure on this tree that read as a genuine linking defect and was not — detai
 and the fix in *What to re-run*. It is listed here because the failure message it
 produces is convincing, and the next person to see it will believe it.
 
+**Core's `require_approval` has no enforcement point of its own.** Covered in
+*What landed* — repeated here because it is the single most misleading thing
+about this feature. The hold works in this installation because
+`extensions/mcp/shared/src/approval/` implements it. It does not work in core,
+and `approval_requests` has been in core's schema since migration 014 without
+one. Documented in core's `bee179e99`.
+
+**The comms hook may destroy the inbox it was meant to deliver.** The bridge
+registers it on both `UserPromptSubmit` (sync) and `Stop` with `is_async: true`.
+An async hook's stdout is not consumed — so a `Stop` firing first drains the
+inbox, which is destructive, and surfaces nothing. Nobody has decided whether
+`Stop` should be registered at all. Untested and unresolved; see core
+`59fc30e59`.
+
+**`quality.yml`'s `msrv` job has never tested MSRV.** It installs 1.94.0 via
+`dtolnay/rust-toolchain@1.94.0`, but `rust-toolchain.toml` pins
+`nightly-2026-06-03`, and a toolchain file overrides rustup's default — so
+`cargo check` there silently runs the nightly. Forcing real 1.94 with
+`cargo +1.94.0` shows the main workspace passes but `bin/bridge` does not:
+vergen 10.0.1 requires rustc 1.95, above the declared `rust-version = "1.94"`.
+A green job checking nothing and hiding a real breach — the same class of defect
+as the self-skipping e2e test above. Left alone deliberately: making the job
+honest turns CI red immediately, and the fix changes a public MSRV claim, which
+is a decision for a person rather than a quality pass.
+
 **`next` has never been gated.** Neither this repo's CI nor Quality workflows
 trigger on pushes to `next` at all — they run on PRs and on `main`. Every commit
 on `next` since the last promote, including all of today's, has been validated
@@ -292,6 +342,12 @@ cargo nextest run --manifest-path tests/Cargo.toml -p e2e-tests -j 4
 
 Last run on this tree: **543 unit tests passed**, **23/23 e2e passed**, everything
 above green except `check-fork-drift`.
+
+On `systemprompt-core` at `bee179e99`: 19,667 tests across all 13 shards green
+against fresh migrated databases, plus rustfmt, clippy `-D warnings` and rustdoc
+`-D warnings` on all three workspaces, all 15 source-gate lints, machete, deny,
+sqlx-verify-offline and `cargo build --workspace --locked`. Its hosted gates were
+still running at the time of writing.
 
 **`just e2e` reuses a stale MCP binary.** The recipe builds
 `systemprompt-mcp-odoo` / `-email` only `if [ ! -x ... ]` — if a binary exists at
