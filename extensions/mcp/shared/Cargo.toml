@@ -10,19 +10,20 @@ homepage.workspace = true
 publish = false
 
 [dependencies]
-# The approval gate reaches `systemprompt::security::policy`, which the facade
-# puts behind its `security` feature; the workspace default set stops at
-# core/database/config.
-systemprompt = { workspace = true, features = ["security"] }
+# Audit: `systemprompt::mcp` (ArtifactTheme registration) is gated behind `full`.
+# The three MCP crates that depend on this one already enable it, so feature
+# unification means this costs nothing in a real build.
+systemprompt = { workspace = true, features = ["full"] }
 sqlx = { workspace = true }
-serde = { workspace = true }
-tracing = { workspace = true }
+inventory = { workspace = true }
 # The approval gate: MRTR result types, the derived call id, and audit row ids.
 rmcp = { workspace = true }
 sha2 = { workspace = true }
 uuid = { workspace = true }
 chrono = { workspace = true }
 serde_json = { workspace = true }
+serde = { workspace = true }
+tracing = { workspace = true }
 
 [lints]
 workspace = true

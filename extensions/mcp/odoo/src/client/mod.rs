@@ -231,6 +231,10 @@ impl OdooClient {
         res_id: i64,
         body: &str,
     ) -> Result<i64, OdooError> {
+        // Why: Odoo's message_post is also its sending path — it mails
+        // partner_ids and picks delivery from the subtype. Taking neither is
+        // what stops a caller that already sent the message from making Odoo
+        // deliver it a second time.
         let result = self
             .execute_kw(
                 creds,

@@ -10,9 +10,10 @@ use serde::Serialize;
 use systemprompt::database::DbPool;
 use systemprompt::identifiers::UserId;
 
-pub mod approval;
-
 mod repositories;
+
+pub mod approval;
+pub mod artifact_theme;
 
 /// Audit-row metadata persisted to `user_activity.metadata` for every MCP
 /// access event. `reason` is present only on rejections.

@@ -147,7 +147,9 @@ pub fn lead_table(records: &[serde_json::Value]) -> TableArtifact {
             },
         )
         .collect();
-    TableArtifact::new(columns).with_rows(rows)
+    TableArtifact::new(columns)
+        .with_title("CRM Leads")
+        .with_rows(rows)
 }
 
 #[doc(hidden)]
