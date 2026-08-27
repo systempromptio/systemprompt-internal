@@ -1,0 +1,14 @@
+id: demo_lead_triage
+name: "Demo 1 — Lead Inbox Triage"
+description: "Enterprise demo, step 1 of 5. Triage today's inbound leads in one governed tool call: ranked list, hottest lead flagged, live dashboard opened, and the exact cost of the task read back from the audit spine."
+enabled: true
+file: SKILL.md
+hosts:
+  - cowork
+tags:
+  - demo
+  - crm
+  - leads
+  - sales
+category: demo
+display_category: "Enterprise Demo"

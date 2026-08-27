@@ -56,6 +56,26 @@ async fn an_admin_manifest_carries_the_admin_surface_and_a_users_does_not() {
         "a salesperson must not be offered the admin workspace skill"
     );
 
+    // The enterprise demo (DEMO.md) splits its five skills across the role
+    // boundary: steps 1–3 ride the marketplace's [user] grant, steps 4–5 are
+    // admin-gated in roles.yaml.
+    for demo_skill in [
+        "demo_lead_triage",
+        "demo_account_360",
+        "demo_followup_orchestrator",
+    ] {
+        assert!(
+            user_skills.contains(demo_skill),
+            "demo steps 1-3 ride the [user] grant; user skills: {user_skills:?}"
+        );
+    }
+    for demo_skill in ["demo_governed_operations", "demo_command_center"] {
+        assert!(
+            admin_only.contains(&demo_skill.to_owned()),
+            "demo steps 4-5 are admin-only; admin-only set: {admin_only:?}"
+        );
+    }
+
     let admin_plugins = ids(&admin, "plugins");
     let user_plugins = ids(&user, "plugins");
     assert!(

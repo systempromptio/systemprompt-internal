@@ -23,6 +23,11 @@ plugin:
       - business_overview
       - add_note
       - schedule_activity
+      # Enterprise demo, user-facing steps 1–3 (DEMO.md). Steps 4–5 are
+      # admin-gated and ship with systemprompt-admin.
+      - demo_lead_triage
+      - demo_account_360
+      - demo_followup_orchestrator
   agents:
     source: explicit
     include: []

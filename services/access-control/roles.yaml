@@ -144,6 +144,18 @@ rules:
     access: allow
     default_included: false
     roles: [admin]
+  # Enterprise demo steps 4–5 (DEMO.md) — admin-only, like the skills they
+  # sequence (demonstrate_governance, manage_permissions, analytics_dashboards).
+  - entity_type: skill
+    entity_id: demo_governed_operations
+    access: allow
+    default_included: false
+    roles: [admin]
+  - entity_type: skill
+    entity_id: demo_command_center
+    access: allow
+    default_included: false
+    roles: [admin]
 
   # Slack inbound surface. Wildcard grant over every Slack channel for the
   # `user` role — the role federated Slack users are minted with (see

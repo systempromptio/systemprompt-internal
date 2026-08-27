@@ -1,0 +1,14 @@
+id: demo_account_360
+name: "Demo 2 — Account 360 Brief"
+description: "Enterprise demo, step 2 of 5. Build a full account brief on one lead by orchestrating typed tools across two MCP servers (Odoo + knowledge bank): record, chatter, attachments, and related knowledge — then price the whole task from the audit spine."
+enabled: true
+file: SKILL.md
+hosts:
+  - cowork
+tags:
+  - demo
+  - crm
+  - customer-360
+  - knowledge
+category: demo
+display_category: "Enterprise Demo"

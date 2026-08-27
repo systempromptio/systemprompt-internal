@@ -1,0 +1,15 @@
+id: demo_governed_operations
+name: "Demo 4 — Governed Operations"
+description: "Enterprise demo, step 4 of 5 (admin). Trip the trust layer on purpose — scope deny, secret scan, blocklist — flip a permission live with no restart, then reconstruct the whole session from the audit spine. Enforcement you can query, not prose."
+enabled: true
+file: SKILL.md
+hosts:
+  - cowork
+tags:
+  - demo
+  - governance
+  - audit
+  - permissions
+  - admin
+category: demo
+display_category: "Enterprise Demo"

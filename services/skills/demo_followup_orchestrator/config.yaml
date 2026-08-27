@@ -1,0 +1,15 @@
+id: demo_followup_orchestrator
+name: "Demo 3 — Follow-Up Orchestrator"
+description: "Enterprise demo, step 3 of 5. Governed write actions: schedule an activity, book a meeting, log a brand-voice follow-up note, and post to the team channel — every mutation executed in Odoo as the signed-in user, every one traced and priced."
+enabled: true
+file: SKILL.md
+hosts:
+  - cowork
+tags:
+  - demo
+  - crm
+  - activities
+  - calendar
+  - engagement
+category: demo
+display_category: "Enterprise Demo"

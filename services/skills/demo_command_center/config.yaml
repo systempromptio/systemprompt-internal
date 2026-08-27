@@ -1,0 +1,15 @@
+id: demo_command_center
+name: "Demo 5 — Command Center"
+description: "Enterprise demo finale (admin). The economics close: pipeline report, fleet analytics, the three admin dashboards, and the total metered cost of the entire demo — set against Salesforce Agentforce's per-conversation pricing with live numbers."
+enabled: true
+file: SKILL.md
+hosts:
+  - cowork
+tags:
+  - demo
+  - analytics
+  - costs
+  - admin
+  - reporting
+category: demo
+display_category: "Enterprise Demo"
