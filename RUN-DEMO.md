@@ -1,0 +1,81 @@
+# Running the demo — accounts, logins, and who plays whom
+
+Companion to `DEMO.md` (the script). This file is the cast list: every account the demo uses, how to
+sign in with each, and how to run the whole thing as a **real** user instead of the seeded test pair.
+
+Roles come from Odoo groups on every sign-in (`services/access-control/odoo-roles.yaml`): every Odoo
+user gets `user`; membership of **Settings → Administration: Settings** (`base.group_system`) adds
+`admin`. `user` sees demo steps 1–3; `admin` also gets steps 4–5 and the admin dashboards.
+
+## The cast (local, seeded)
+
+All local test data — never reuse these anywhere real.
+
+| Plays | Account | Password | Platform roles | Demo steps |
+|---|---|---|---|---|
+| The salesperson (Act I) | `e2e-sales@systemprompt.local` | `e2e-live-password-2026` | `user` | 1–3 |
+| The admin (Act II) | `e2e-admin@systemprompt.local` | `e2e-live-password-2026` | `admin, user` | 1–5 |
+| Odoo back office (proof shots) | `admin` / `admin` | — | (Odoo UI only, `http://localhost:8070`, db `odoo_local`) | show chatter in beat 3 |
+
+Both e2e users are (re)seeded idempotently by `just e2e-live`. Verify roles after first sign-in with
+`systemprompt admin users list`.
+
+## How to log in, per surface
+
+- **Browser (admin UI):** `http://localhost:8081/admin/login` — Odoo email + password. First sign-in
+  JIT-creates the platform account; roles are recomputed from Odoo groups at every sign-in.
+- **Cowork (per machine):**
+  ```bash
+  systemprompt-internal-bridge login <sp-live-…> --gateway http://localhost:8081
+  systemprompt-internal-bridge whoami      # confirm which cast member you are
+  systemprompt-internal-bridge logout      # switching actors: logout purges token cache + sync state
+  ```
+  Mint a PAT for a user: `systemprompt admin users api-key issue --user <email> --name demo`
+  (secret prints once). Or use the browser device-link flow — the approval page shows which account it
+  links and offers "Not you? Use a different account".
+- **MCP Inspector / OAuth:** `http://localhost:8081/api/v1/mcp/odoo/mcp` — the OAuth dance signs you
+  in as any of the users above; every tool then runs in Odoo as that user.
+
+**Switching actors mid-demo (Act I → Act II):** `bridge logout` → `bridge login` with the admin's PAT
+→ `bridge sync` → restart Cowork. Budget 2 minutes; rehearse it once.
+
+## Running it as your real user (recommended for the live demo)
+
+The demo is not tied to the test users — any Odoo account works, because every tool call executes in
+Odoo as whoever signed in. To put yourself on stage:
+
+**Locally:**
+1. In the Odoo UI (`http://localhost:8070`, `admin`/`admin`): Settings → Users → New. Create yourself
+   (e.g. `ed@systemprompt.io`) with a password, **Sales: User** access so the CRM tools have something
+   to act on, and assign yourself a few leads so triage finds *your* pipeline.
+2. Decide the role: leave Administration empty to play the salesperson (`user`, steps 1–3); set
+   **Administration: Settings** to also be platform `admin` (steps 4–5). You can flip this in Odoo at
+   any time — the new role applies at your next sign-in, promotion and demotion alike.
+3. Sign in at `/admin/login` with those credentials, then bridge-login as yourself (mint a PAT:
+   `systemprompt admin users api-key issue --user ed@systemprompt.io --name demo`).
+
+The cleanest theatre is real-you in both acts: run Act I with your Administration setting empty, then
+have a colleague (or the Odoo admin session) grant you **Administration: Settings**, sign in again,
+and open Act II with "my role just changed in the identity system — no restart, watch the picker
+change". That beat is itself the governance pitch.
+
+**On production** (`internal.systemprompt.io`, Odoo at `odoo.systemprompt.io` once DNS lands): the
+same mechanics with your real Odoo credentials — `ed@systemprompt.io` is already an Odoo
+administrator there, so you carry `admin, user` and see all five skills. No credentials for
+production belong in this file or anywhere in the repo: use your own Odoo password/API key, and mint
+PATs on the spot with `admin users api-key issue`. For a second real cast member, any of the real
+Odoo users can play the salesperson with their own login.
+
+## Preflight (60 seconds, before the audience)
+
+```bash
+curl -s http://localhost:8081/health                      # 200
+systemprompt admin users list                             # cast has the right roles
+TOKEN=$(systemprompt admin session login --email <your-actor> --token-only --profile local)
+curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8081/v1/bridge/manifest \
+  | python3 -c "import json,sys;p=json.loads(json.load(sys.stdin)['payload']);print(sorted(s['id'] for s in p['skills']))"
+# salesperson: demo_lead_triage, demo_account_360, demo_followup_orchestrator
+# admin: those plus demo_governed_operations, demo_command_center
+```
+
+Then run the acts per `DEMO.md`.

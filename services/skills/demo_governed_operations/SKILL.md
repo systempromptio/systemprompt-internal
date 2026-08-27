@@ -10,13 +10,13 @@ stages, with runnable curl recipes and token guidance) and `manage_permissions` 
 This skill sequences them into the demo beat; follow their instructions for each move rather than
 improvising payloads.
 
-## Precondition (do this first)
+## Precondition (check first)
 
-All four governance stages are **disabled** in this installation. Before this step, flip the four
-`enabled: false` flags to `true` in `services/governance/config.yaml` and restart the server
-(DEMO.md carries the exact procedure — and the revert). Never delete the file to change state:
-a missing file means all stages ENABLED by default. Confirm with a quick allow: any in-scope tool
-call should now land a `decision=allow` row with a real policy id, not `governance_disabled`.
+All four governance stages are **enabled** in this installation
+(`services/governance/config.yaml`). Confirm before the beat: any in-scope tool call should land a
+`decision=allow` row with a real policy id — a row reading `policy=governance_disabled` means the
+stages were switched off; re-enable them and restart before demoing. Never change state by deleting
+the file: a missing file means all stages ENABLED by default.
 
 ## Script
 

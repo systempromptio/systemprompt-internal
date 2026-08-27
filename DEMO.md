@@ -42,6 +42,9 @@ governed mutations and a permission-denial beat; 4 flips live policy and reconst
 
 ## Prerequisites
 
+Accounts, passwords, and how to run the demo as a real user instead of the seeded pair: see
+**`RUN-DEMO.md`** (the cast list).
+
 1. **Stack up** (`TESTING-INSTRUCTIONS.md` §1): `just db-up local` → `just build` → `just start` →
    `just e2e-live` (seeds `e2e-admin@systemprompt.local` / `e2e-sales@systemprompt.local`, password
    `e2e-live-password-2026`, plus a demo lead).
@@ -53,17 +56,13 @@ governed mutations and a permission-denial beat; 4 flips live policy and reconst
 4. **Verify the manifest** carries the five demo skills (§3 curl in TESTING-INSTRUCTIONS.md):
    steps 1–3 for both users, 4–5 only for `e2e-admin`.
 
-## Governance switch (needed for step 4 only)
+## Governance
 
-All four governance stages are intentionally **disabled** here (`services/governance/config.yaml`).
-For the demo:
-
-1. Flip the four `enabled: false` → `true` in `services/governance/config.yaml` (never delete the file —
-   absence means all stages enabled by default, which is the confusing way to find out).
-2. Restart the server (`just start` after a stop; check `just server-status` first — never trample
-   another agent's server).
-3. After the demo, flip them back and restart. The audit spine records rows either way — while disabled,
-   rows read `decision=allow, policy=governance_disabled`, which is itself worth showing.
+All four governance stages are **enabled** on local and production alike
+(`services/governance/config.yaml`, settled 2026-08-27) — step 4 works out of the box. Before a demo,
+confirm with any in-scope tool call: the audit row should carry a real policy id, not
+`policy=governance_disabled`. Never disable a stage by deleting the file — absence means all stages
+enabled by default; explicit `enabled: false` is the only reliable off.
 
 The gateway safety scanners (`services/gateway/policies.yaml`) are a separate plane and stay off.
 
