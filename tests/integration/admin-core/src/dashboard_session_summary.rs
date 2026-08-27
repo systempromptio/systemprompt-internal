@@ -32,6 +32,7 @@ fn summary_params<'a>(
         is_subagent_stop: false,
         file_path: None,
         is_from_subagent: false,
+        cwd: None,
     }
 }
 
