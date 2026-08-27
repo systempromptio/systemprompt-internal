@@ -23,6 +23,7 @@ marketplace:
       - systemprompt-commons
       - systemprompt-admin
       - systemprompt-crm
+      - systemprompt-demo
   mcp_servers:
     source: explicit
     include:

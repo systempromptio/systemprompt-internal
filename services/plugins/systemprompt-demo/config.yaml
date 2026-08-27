@@ -1,0 +1,38 @@
+plugin:
+  id: systemprompt-demo
+  name: "Systemprompt Enterprise Demo — Claude Force"
+  description: "The staged enterprise demo (DEMO.md): five skills, easy to hard, walking lead triage, an account 360, governed CRM writes, the trust layer tripped on purpose, and the metered bill for the whole run — the Agentforce comparison with live numbers."
+  version: "1.0.0"
+  enabled: true
+  author:
+    name: systemprompt.io
+    email: ed@systemprompt.io
+  keywords: [demo, enterprise, governance, crm, analytics, agentforce]
+  license: proprietary
+  category: demo
+  skills:
+    source: explicit
+    include:
+      # Easy → hard (DEMO.md). Steps 1–3 ride the marketplace's [user] grant;
+      # 4–5 carry admin-only skill rules in services/access-control/roles.yaml,
+      # so they never reach a user manifest even though the plugin does.
+      - demo_lead_triage
+      - demo_account_360
+      - demo_followup_orchestrator
+      - demo_governed_operations
+      - demo_command_center
+  agents:
+    source: explicit
+    include: []
+  # The demo runs over the same per-user servers the CRM plugin ships; naming
+  # them here keeps this plugin self-describing, not a hidden dependency on
+  # systemprompt-crm being installed.
+  mcp_servers:
+    source: explicit
+    include:
+      - odoo
+      - knowledge-bank
+  content_sources: {}
+  # No artifacts of its own: the demo opens the dashboards installed by
+  # systemprompt_setup_cowork (user) and admin_workspace_setup_cowork (admin).
+  # No hooks: systemprompt-crm owns the session-global governance hooks.

@@ -27,6 +27,11 @@ The thread through all five: **self-hosted, per-user identity (no service accoun
 with a trace id, every task priced to the cent.** Each skill ends with a cost readback so the finale's
 total is already earned.
 
+All five ship in the dedicated **`systemprompt-demo`** plugin
+(`services/plugins/systemprompt-demo/config.yaml`) on the enterprise-demo marketplace — separate from
+the CRM and admin plugins, so the demo surface can be enabled, versioned, or removed as one unit.
+Steps 4–5 stay admin-only via skill rules in `services/access-control/roles.yaml`.
+
 ## Difficulty ramp
 
 The skills go easy → hard on purpose: 1 is a single tool call; 2 is cross-server orchestration; 3 adds

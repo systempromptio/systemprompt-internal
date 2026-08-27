@@ -56,9 +56,9 @@ async fn an_admin_manifest_carries_the_admin_surface_and_a_users_does_not() {
         "a salesperson must not be offered the admin workspace skill"
     );
 
-    // The enterprise demo (DEMO.md) splits its five skills across the role
-    // boundary: steps 1–3 ride the marketplace's [user] grant, steps 4–5 are
-    // admin-gated in roles.yaml.
+    // The enterprise demo (DEMO.md) ships as its own systemprompt-demo plugin
+    // and splits its five skills across the role boundary: steps 1–3 ride the
+    // marketplace's [user] grant, steps 4–5 are admin-gated in roles.yaml.
     for demo_skill in [
         "demo_lead_triage",
         "demo_account_360",
