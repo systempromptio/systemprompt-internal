@@ -56,11 +56,35 @@ rules:
     default_included: true
     roles: [user]
 
+  # Team comms MCP server. Granted to every user because the whole point is
+  # reaching a colleague or their agent; the control that matters is addressing,
+  # not the caller's role. A message enters a running conversation only when it
+  # names that session — `@user` and `#channel` raise an unread count and never
+  # interrupt — so a broad grant cannot become a broadcast channel.
+  - entity_type: mcp_server
+    entity_id: comms
+    access: allow
+    default_included: true
+    roles: [user]
+
   # Project knowledge bank (stub RAG MCP). Read tools for every user; the
   # upload_document tool is additionally admin-gated inside the server (see
   # services/mcp/knowledge-bank.yaml).
   - entity_type: mcp_server
     entity_id: knowledge-bank
+    access: allow
+    default_included: true
+    roles: [user]
+
+  # Outbound email MCP server. Granted to every user, because the control on
+  # sending is the approval chain, not the caller's role: `email_send` elicits
+  # an in-band confirmation from the drafter and then holds the call for a
+  # second human via the `require_approval` governance stage. Restricting the
+  # grant to admin would be worse, not safer — `exempt_scopes: [admin]` on that
+  # stage means an admin caller is never held, so an admin-only grant would make
+  # every send self-approved.
+  - entity_type: mcp_server
+    entity_id: email
     access: allow
     default_included: true
     roles: [user]

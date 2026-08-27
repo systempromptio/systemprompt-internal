@@ -10,6 +10,7 @@ workspace = true
 [dependencies]
 systemprompt-mcp-shared = { workspace = true }
 systemprompt-mcp-agent = { workspace = true }
+systemprompt-mcp-comms = { workspace = true }
 systemprompt-mcp-knowledge-bank = { workspace = true }
 systemprompt-mcp-odoo = { workspace = true }
 systemprompt-knowledge-jobs = { workspace = true }

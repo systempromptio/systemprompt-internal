@@ -17,6 +17,12 @@
 mod harness;
 
 #[cfg(test)]
+mod artifact_gallery;
+#[cfg(test)]
+mod comms;
+#[cfg(test)]
+mod email_send;
+#[cfg(test)]
 mod health;
 #[cfg(test)]
 mod manifest_roles;

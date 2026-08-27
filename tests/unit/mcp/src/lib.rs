@@ -24,6 +24,8 @@
 #[cfg(test)]
 mod audit_metadata;
 #[cfg(test)]
+mod comms_addressing;
+#[cfg(test)]
 mod filter_hallucinated_args;
 #[cfg(test)]
 mod knowledge_bank_error;

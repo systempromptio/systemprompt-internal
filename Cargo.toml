@@ -8,10 +8,13 @@ members = [
     "extensions/web/site",
     "extensions/web/jobs",
     "extensions/knowledge/jobs",
+    "extensions/email",
     "extensions/mcp/systemprompt",
     "extensions/mcp/knowledge-bank",
     "extensions/mcp/shared",
     "extensions/mcp/odoo",
+    "extensions/mcp/comms",
+    "extensions/mcp/email",
 ]
 # The test workspace under tests/ is a separate workspace so it never compiles
 # when these extension crates are consumed as dependencies. Run it explicitly:
@@ -58,6 +61,8 @@ systemprompt-web-content = { path = "extensions/web/content" }
 systemprompt-web-site = { path = "extensions/web/site" }
 systemprompt-web-jobs = { path = "extensions/web/jobs" }
 systemprompt-mcp-shared = { path = "extensions/mcp/shared" }
+systemprompt-email = { path = "extensions/email" }
+systemprompt-mcp-odoo = { path = "extensions/mcp/odoo" }
 systemprompt-mcp-knowledge-bank = { path = "extensions/mcp/knowledge-bank" }
 systemprompt-knowledge-jobs = { path = "extensions/knowledge/jobs" }
 
@@ -97,6 +102,10 @@ urlencoding = "2.1"
 # Security
 rand = "0.9"
 sha2 = "0.10"
+# Outbound SMTP for extensions/email. rustls (not native-tls) to match the rest of
+# the workspace's TLS stack; no default features, so no blocking transport and no
+# hostname lookup for Message-ID generation (we mint our own).
+lettre = { version = "0.11", default-features = false, features = ["tokio1-rustls-tls", "smtp-transport", "builder"] }
 hex = "0.4"
 base64 = "0.22"
 
@@ -105,7 +114,11 @@ handlebars = "6"
 # Archive
 
 # MCP Protocol
-rmcp = { version = "=3.1.3", features = ["server", "client", "transport-io", "transport-streamable-http-server", "transport-streamable-http-server-session", "transport-streamable-http-client", "transport-streamable-http-client-reqwest", "macros", "auth"] }
+# `elicitation` and `request-state` arrive today only through feature
+# unification with systemprompt-core, which declares them. The MRTR approval
+# gate depends on them, so they are named here rather than inherited: a change
+# to core's feature list must not silently stop this workspace compiling.
+rmcp = { version = "=3.1.3", features = ["server", "client", "transport-io", "transport-streamable-http-server", "transport-streamable-http-server-session", "transport-streamable-http-client", "transport-streamable-http-client-reqwest", "macros", "auth", "elicitation", "request-state"] }
 
 # The tests/ workspace deliberately relaxes a handful of these (unwrap/expect/
 # panic and the doc lints) in its own [workspace.lints.clippy] block — see

@@ -292,6 +292,10 @@ e2e:
         echo "building systemprompt-mcp-odoo (the MCP wire test needs it)…"
         cargo build -p systemprompt-mcp-odoo
     fi
+    if [ ! -x target/release/systemprompt-mcp-email ] && [ ! -x target/debug/systemprompt-mcp-email ]; then
+        echo "building systemprompt-mcp-email (the email_send wire tests need it)…"
+        cargo build -p systemprompt-mcp-email
+    fi
     if [ -z "${SYSTEMPROMPT_TEST_DATABASE_URL:-}" ] && [ -f .systemprompt/profiles/local/secrets.json ]; then
         SYSTEMPROMPT_TEST_DATABASE_URL=$(python3 -c "
     import json, urllib.parse as up
@@ -313,7 +317,7 @@ e2e-fast:
     print(up.urlunsplit((u.scheme, u.netloc, '/postgres', '', '')))")
         export SYSTEMPROMPT_TEST_DATABASE_URL
     fi
-    cargo nextest run --manifest-path tests/Cargo.toml -p e2e-tests -E 'not test(a_signed_in_user)'
+    cargo nextest run --manifest-path tests/Cargo.toml -p e2e-tests -E 'not test(a_signed_in_user) and not test(email_send)'
 
 # End-to-end smoke (Tier B): drives the RUNNING local stack over real HTTP —
 # seeds e2e-admin@/e2e-sales@ in Odoo, signs in as both, diffs their
@@ -617,7 +621,7 @@ prepare:
     # their cache entries from being pruned as though they no longer existed.
     cargo sqlx prepare --workspace -- --features governance-ssr
     # Per-crate prepare for binary/extension crates that cargo sqlx skips
-    EXTENSION_DIRS="extensions/web extensions/mcp/shared extensions/mcp/systemprompt"
+    EXTENSION_DIRS="extensions/web extensions/mcp/shared extensions/mcp/systemprompt extensions/mcp/comms extensions/mcp/email"
     for dir in $EXTENSION_DIRS; do
         if [ -f "{{justfile_directory()}}/$dir/Cargo.toml" ]; then
             # Skip crates with no sqlx dependency — prepare would only
@@ -1546,6 +1550,36 @@ e2e-install:
 # end-to-end suite; this drives the browser.)
 playwright *ARGS:
     cd playwright && npx playwright test {{ARGS}}
+
+# Render every artifact type through the real MCP UI renderer, rasterize each in
+# light / dark / 375px-narrow, and assemble a contact sheet.
+#
+# Local and opt-in: CI has no browser, and cross-machine font rendering makes
+# golden-image diffing flaky. The functional half — that all twelve types render
+# and carry the brand theme — is a normal Rust test that CI does run.
+artifact-gallery:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "==> rendering artifacts (Rust)"
+    # The wire entry (`wire-crm-lead-search.html`) comes from `just e2e`, which
+    # needs a database; this render pass does not, so it stays runnable on its
+    # own and the spec picks the wire entry up whenever it is present.
+    cargo nextest run --manifest-path tests/Cargo.toml -p e2e-tests -E 'test(artifact_gallery)' --no-capture
+    if [ ! -d playwright/node_modules ]; then
+        echo "==> installing Playwright dependencies"
+        just e2e-install
+    fi
+    echo "==> rasterizing (Playwright)"
+    cd playwright && npx playwright test tests/artifact-gallery.spec.ts && cd ..
+    # Drives core's real artifact shell as a host would. It reads the HTML the
+    # step above just rendered, because `frame.js` is include_str!'d into each
+    # artifact at render time — run against a stale gallery it tests the old
+    # copy of the very file it is checking.
+    echo "==> host theme handshake (Playwright)"
+    cd playwright && npx playwright test tests/artifact-host-theme.spec.ts && cd ..
+    echo "==> contact sheet"
+    node scripts/artifact-contact-sheet.mjs
+    echo "open playwright/artifact-shots/index.html"
 
 # Test build without pushing
 docker-test:

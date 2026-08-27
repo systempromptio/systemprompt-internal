@@ -9,8 +9,10 @@
 includes:
   # MCP servers
   - ../mcp/systemprompt.yaml
+  - ../mcp/comms.yaml
   - ../mcp/knowledge-bank.yaml
   - ../mcp/odoo.yaml
+  - ../mcp/email.yaml
 
   # AI, scheduler, content
   # Note: ../web/config.yaml is NOT included here — the web domain validator
