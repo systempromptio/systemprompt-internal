@@ -242,6 +242,12 @@ Also fixed in passing: `extensions/mcp/email` was missing from `EXTENSION_DIRS`
 entirely, so the recipe that exists to generate that crate's cache never ran for
 it.
 
+**`just e2e` silently reuses a stale MCP binary.** It builds the server binaries
+only when none exists, so an old one is spawned unchanged. This produced a
+failure on this tree that read as a genuine linking defect and was not — details
+and the fix in *What to re-run*. It is listed here because the failure message it
+produces is convincing, and the next person to see it will believe it.
+
 **`next` has never been gated.** Neither this repo's CI nor Quality workflows
 trigger on pushes to `next` at all — they run on PRs and on `main`. Every commit
 on `next` since the last promote, including all of today's, has been validated
@@ -274,15 +280,47 @@ SQLX_OFFLINE=true cargo clippy --manifest-path tests/Cargo.toml --workspace --al
 SQLX_OFFLINE=true RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
 just msrv-check
 just lint-gates                      # expect only check-fork-drift
-cargo nextest run --manifest-path tests/Cargo.toml -p mcp-unit-tests -p web-unit-tests
-just e2e                             # needs SYSTEMPROMPT_TEST_DATABASE_URL
+cargo nextest run --manifest-path tests/Cargo.toml \
+    -p mcp-unit-tests -p web-unit-tests -p email-unit-tests
+
+# e2e: rebuild the MCP binaries first, and bound the concurrency. Both matter —
+# see the two notes below.
+cargo build -p systemprompt-mcp-odoo -p systemprompt-mcp-email -p systemprompt-mcp-comms
+export SYSTEMPROMPT_TEST_DATABASE_URL=postgres://systemprompt:123@localhost:5448/postgres
+cargo nextest run --manifest-path tests/Cargo.toml -p e2e-tests -j 4
 ```
+
+Last run on this tree: **543 unit tests passed**, **23/23 e2e passed**, everything
+above green except `check-fork-drift`.
+
+**`just e2e` reuses a stale MCP binary.** The recipe builds
+`systemprompt-mcp-odoo` / `-email` only `if [ ! -x ... ]` — if a binary exists at
+all, however old, it is spawned as-is. On this tree that produced a real,
+correct-looking failure:
+`the_crm_table_arrives_as_a_branded_ui_resource` panicked with *"the shipped
+binary renders unbranded — the ArtifactTheme registration did not survive
+linking"*. The registration was fine; the binary on disk predated it by a day and
+contained zero theme tokens (`strings target/release/systemprompt-mcp-odoo |
+grep -c '0.67 0.18 50'` → 0; a fresh build → 4). The harness already picks
+newest-by-mtime because this bit someone once before (`harness/mcp.rs:33`), but
+the *build* side of the recipe still has the hole. Build the binaries explicitly.
+
+**The suite cannot run at full parallelism against one Postgres.** All 23 tests
+each assemble a full production `AppContext` with its own pool. Run unbounded,
+three of them died at ~59s with
+`assemble the production AppContext: Repository(Database(PoolTimedOut))` —
+which looks like a code failure and is not. `-j 4` completes in ~93s, all green.
 
 Then the same clippy pair in `../systemprompt-core`.
 
-**One trap worth naming explicitly.** An e2e test that returns in ~0.02s did not
-run. `Stack::create()` returns `None` and every test in the suite silently skips
-when `SYSTEMPROMPT_TEST_DATABASE_URL` is unset — there is no failure, no warning,
-just a green pass in a couple of hundredths of a second. A real e2e test takes
-11–20 seconds. If `just e2e` finishes instantly, you have proved nothing; check
-the variable and run it again.
+**One trap worth naming explicitly.** `Stack::create()` returns `None` and the
+test silently returns green when `SYSTEMPROMPT_TEST_DATABASE_URL` is unset —
+no failure, no warning, just a pass in hundredths of a second. A DB-backed e2e
+test really takes 11–24s. If the whole suite finishes instantly, you have proved
+nothing.
+
+Read the timings rather than the count, but know the two legitimate exceptions:
+`artifact_gallery::every_artifact_type_renders_with_the_brand_theme` (~0.05s) and
+`skills_artifacts::the_skill_artifact_bundles_match_their_source` (~0.2s) never
+touch `Stack::create()` and are genuinely fast. Every other sub-second pass in
+this suite is a skip.
