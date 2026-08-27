@@ -49,13 +49,22 @@ governance:
     # including the other writes in the same demo step — still runs unattended,
     # so the contrast on stage is between an allowed write and a held one.
     #
-    # Matching is a substring of the TOOL NAME only, so a rule holds every call
-    # to a matching tool. Narrowing by argument — holding only the sends that
-    # leave our domain, say — needs argument conditioning in the policy, which
-    # does not exist yet.
+    # `email_send` (the email MCP server) is layered, and the two layers are
+    # deliberately different approvals rather than one repeated twice. The tool
+    # itself elicits in-band first, so the drafter confirms their own text; this
+    # stage then holds the call for a SECOND human, which is what `exempt_scopes`
+    # below actually buys — the drafter cannot be the approver. In-band alone
+    # would be self-approval and would prove nothing.
+    #
+    # Matching here is a substring of the TOOL NAME only, so this holds every
+    # send, not just the ones leaving our domain. That is correct but noisy;
+    # narrowing it to external recipients needs argument conditioning in the
+    # require_approval policy, which does not exist yet. `note_add` and
+    # `channel_post` are unconditional for the same reason.
     patterns:
     - channel_post
     - note_add
+    - email_send
     # An admin approving their own call would be a rubber stamp, not a control;
     # exempting the scope keeps the approver and the requester distinct.
     exempt_scopes:

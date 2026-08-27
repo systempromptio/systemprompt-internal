@@ -19,12 +19,13 @@ dashboard artifacts → the `infra logs` / `analytics` readback.
 |---|---|---|---|---|
 | 1 | SDR Agent — lead qualification | Lead Inbox Triage | `demo_lead_triage` | `crm_lead_search` typed table, per-user Odoo record rules, leads dashboard artifact |
 | 2 | Service Agent + Data Cloud 360 | Account 360 Brief | `demo_account_360` | Multi-tool orchestration across two MCP servers (odoo + knowledge-bank) |
-| 3 | Sales Engagement — follow-ups | Follow-Up Orchestrator | `demo_followup_orchestrator` | Governed writes: `activity_create`, `calendar_event_create`, `note_add`, `channel_post` — as the signed-in user |
-| 4 | Einstein Trust Layer | Governed Operations | `demo_governed_operations` (admin) | 4-stage governance pipeline, secret scan, live RBAC flip, `governance_decisions` audit rows |
+| 3 | Sales Engagement — follow-ups | Follow-Up Orchestrator | `demo_followup_orchestrator` | Governed writes: `activity_create`, `calendar_event_create`, `note_add`, `email_send`, `channel_post` — as the signed-in user; the last three **held for human approval** (MCP MRTR, SEP-2322). The email is confirmed in-band by its drafter first, and its provenance logged back to the lead by the same call |
+| 4 | Einstein Trust Layer | Governed Operations | `demo_governed_operations` (admin) | 5-stage governance pipeline, secret scan, live RBAC flip, `governance_decisions` audit rows including the approver stamp |
 | 5 | Agentforce Analytics + Flex credits | Command Center | `demo_command_center` (admin) | `analytics costs/requests/tools`, `ai_requests` per-request pricing, 3 admin dashboards |
 
 The thread through all five: **self-hosted, per-user identity (no service account), every call audited
-with a trace id, every task priced to the cent.** Each skill ends with a cost readback so the finale's
+with a trace id, every task priced to the cent — and three outcomes, not two: allow, deny, and *held
+for a human*.** Each skill ends with a cost readback so the finale's
 total is already earned.
 
 All five ship in the dedicated **`systemprompt-demo`** plugin
@@ -75,15 +76,43 @@ Run in order; each skill's SKILL.md is the script and ends by handing off to the
 **Act I — as `e2e-sales` (a plain user):**
 1. `/demo_lead_triage` — one call, ranked leads, inline typed table, leads dashboard, first cost line.
 2. `/demo_account_360` — four reads across two servers on the hottest lead; the 360 brief.
-3. `/demo_followup_orchestrator` — four writes into Odoo as the salesperson; optionally the denial beat
-   (a record the salesperson cannot touch — Odoo itself refuses). Show the chatter in Odoo under their
-   name.
+3. `/demo_followup_orchestrator` — five writes as the salesperson, four into Odoo and one leaving the
+   building as real email. Two land unattended; the three outbound-facing ones (`note_add`,
+   `email_send`, `channel_post`) **block** — governance holds them and no Odoo round trip and no SMTP
+   connection happens at all. `email_send` is confirmed in-band by its drafter *before* it parks, so
+   the audience sees both layers: the writer checking their own text, then a different person
+   releasing it. Leave all three waiting and switch to Act II.
+   Then the beat that never reaches an approver: a second send whose body pastes a config snippet
+   containing an `sk-ant-…` key is refused outright by `secret_scan` on the arguments — before SMTP,
+   before the hold, at **$0**. Optionally also the record-rules denial beat (a record the salesperson
+   cannot touch — Odoo itself refuses). Show the chatter in Odoo under their name.
+   **Run Act I as `e2e-sales`, never as an admin:** `exempt_scopes: [admin]` exempts an admin
+   *requester*, so an admin demo shows no hold at all and looks like the control is broken.
 
 **Act II — as `e2e-admin`:**
 
+3b. **Approve the held calls.** Open **Governance → Approvals** in the admin console
+   (`/admin/governance/approvals`). All three parked calls are listed with the exact arguments that
+   will run — for `email_send` that includes the full recipient list and body, so the approver reviews
+   what actually goes on the wire, not a summary of it. Approve the email and watch it send and log
+   its own provenance back to the lead's chatter. Approve one of the others and watch the
+   salesperson's blocked call resume and land in Odoo; deny the other
+   and watch it come back refused with Odoo never touched. The approver is necessarily a different
+   person from the requester — an admin's own calls are exempt, so this is a control rather than a
+   rubber stamp.
+
+   **The race, if a second admin is on stage.** Have them click Deny on the call the first admin has
+   already approved. Nothing breaks and nothing is overwritten: the first decision stands, the
+   original approver is still the one stamped in the audit row, and the queue simply stops listing
+   it. `ApprovalRepository::resolve` returns `Ok(None)` for a row that is already decided or expired,
+   and the console renders that as an ordinary outcome rather than an error — so a late click cannot
+   revive an abandoned call and two admins cannot both own one decision. Pinned by
+   `a_decision_already_taken_cannot_be_overwritten`.
 4. `/demo_governed_operations` — the allow, three engineered denials (scope, secret, blocklist), the
-   live RBAC flip, then `infra logs audit` reconstructing the chain. Denied calls cost $0 — enforcement
-   fires before the model spend.
+   live RBAC flip, then `infra logs audit` reconstructing the chain — now including the held calls'
+   `pending` rows and the approver stamped on the row that resumed them. Denied and held calls both
+   cost $0: enforcement fires before the model spend, and a call waiting on a human is not burning
+   anything.
 5. `/demo_command_center` — pipeline report, fleet analytics, the three admin dashboards, and the bill:
    *"everything you just watched cost $X.XX"* vs Agentforce's ~$2/conversation list price.
 

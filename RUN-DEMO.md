@@ -78,4 +78,33 @@ curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8081/v1/bridge/manife
 # admin: those plus demo_governed_operations, demo_command_center
 ```
 
+**Check the approval queue is empty before you start** — a leftover parked call from a rehearsal
+makes step 3b ambiguous on stage:
+
+```bash
+curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8081/admin/governance/approvals >/dev/null
+# or just open /admin/governance/approvals in the browser you are already screen-sharing
+```
+
 Then run the acts per `DEMO.md`.
+
+## The one way to break this demo
+
+**Act I must be run by a non-admin.** The `require_approval` stage carries `exempt_scopes: [admin]`,
+which exempts an admin *requester* — an admin's calls are never held. So if you play the salesperson
+with your own admin account (easy to do on production, where `ed@systemprompt.io` carries `admin,
+user`), `note_add`, `email_send` and `channel_post` all sail through, the approvals queue stays empty,
+and step 3b has nothing to approve. It looks exactly like the trust layer is switched off.
+
+It isn't — you're exempt, and deliberately so: an admin approving their own call is a rubber stamp,
+not a control, and that exemption is the thing that guarantees the approver and the requester are
+different people. But the audience cannot see that, so run Act I as the salesperson every time.
+
+The exemption is one-directional and worth saying out loud if anyone asks: it stops an admin from
+being *held*, not from *approving*. Act II's admin is the approver, which is the point.
+
+**Optional third cast member.** DEMO.md's step 3b has a race beat — a second admin clicking Deny on a
+call the first has already approved, showing the first decision stands and the original approver stays
+stamped. It needs a second admin account signed in on another screen. Skip the beat if you are running
+the demo with two people; nothing else depends on it.
+
