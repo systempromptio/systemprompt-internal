@@ -7,6 +7,7 @@ pub mod hooks_track;
 pub mod overview;
 pub mod queries;
 pub mod session_analyses;
+pub mod session_registry;
 pub mod traffic;
 pub mod usage_aggregations;
 

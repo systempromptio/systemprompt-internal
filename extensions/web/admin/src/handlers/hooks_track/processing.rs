@@ -8,7 +8,9 @@ use systemprompt::identifiers::{SessionId, UserId};
 
 use crate::event_hub::EventHub;
 use crate::numeric;
-use crate::repositories::dashboard::{conversation_analytics, hooks_track, usage_aggregations};
+use crate::repositories::dashboard::{
+    conversation_analytics, hooks_track, session_registry, usage_aggregations,
+};
 
 use crate::types::webhook::{HookEvent, HookEventPayload};
 use crate::types::{ENTITY_SKILL, EVENT_SESSION_END, EVENT_SESSION_START, EVENT_STOP};
@@ -84,8 +86,12 @@ async fn update_session_tracking(params: &ProcessInsertedEventParams<'_>) {
         is_subagent_stop: matches!(&params.payload.event, HookEvent::SubagentStop(_)),
         file_path: file_path.as_deref(),
         is_from_subagent,
+        cwd: Some(params.payload.common.cwd.as_str()),
     })
     .await;
+
+    assign_handle_if_new(params).await;
+    record_current_activity(params).await;
 
     if params.event_type == EVENT_SESSION_START
         && let HookEvent::SessionStart(ref data) = params.payload.event
@@ -109,6 +115,26 @@ async fn update_session_tracking(params: &ProcessInsertedEventParams<'_>) {
         )
         .await;
     }
+}
+
+async fn record_current_activity(params: &ProcessInsertedEventParams<'_>) {
+    let activity = match params.payload.event {
+        HookEvent::UserPromptSubmit(ref data) if !data.prompt.is_empty() => {
+            helpers::derive_title(&data.prompt)
+        },
+        _ => match params.tool_name {
+            Some(tool) if !tool.is_empty() => tool.to_owned(),
+            _ => return,
+        },
+    };
+    session_registry::update_session_activity(params.pool, params.session_id, &activity).await;
+}
+
+async fn assign_handle_if_new(params: &ProcessInsertedEventParams<'_>) {
+    let Some(workspace) = session_registry::derive_workspace(&params.payload.common.cwd) else {
+        return;
+    };
+    session_registry::assign_session_handle(params.pool, params.session_id, &workspace).await;
 }
 
 async fn track_session_entity(

@@ -11,12 +11,13 @@ pub async fn calculate_session_apm(pool: &PgPool, session_id: &SessionId) -> (f3
         prompts: Option<i64>,
         errors: Option<i64>,
         started_at: Option<chrono::DateTime<chrono::Utc>>,
-        ended_at: Option<chrono::DateTime<chrono::Utc>>,
+        last_seen_at: Option<chrono::DateTime<chrono::Utc>>,
     }
 
     let row = sqlx::query_as!(
         Row,
-        r"SELECT tool_uses, prompts, errors, started_at, ended_at
+        r"SELECT tool_uses, prompts, errors, started_at,
+                 COALESCE(ended_at, last_event_at) AS last_seen_at
           FROM plugin_session_summaries
           WHERE session_id = $1",
         session_id.as_str(),
@@ -35,7 +36,7 @@ pub async fn calculate_session_apm(pool: &PgPool, session_id: &SessionId) -> (f3
     let prompts = r.prompts.unwrap_or(0);
     let errors = r.errors.unwrap_or(0);
 
-    let duration_minutes = match (r.started_at, r.ended_at) {
+    let duration_minutes = match (r.started_at, r.last_seen_at) {
         (Some(s), Some(e)) => {
             let mins = numeric::seconds_to_f64((e - s).num_seconds()) / 60.0;
             mins.max(1.0)
