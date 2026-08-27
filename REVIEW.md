@@ -63,7 +63,7 @@ so every artifact rendered into Cowork came back cool-blue and square-cornered
 against a warm-orange product. Adds the theme, plus `just artifact-gallery`,
 which renders every artifact type and rasterizes each in light / dark / narrow.
 
-### Governance approvals — `34434f4e`, `4321c08d`, core `bee179e99`
+### Governance approvals — `34434f4e`, `4321c08d`, core `bee179e99` / `f4e907d59`
 
 `require_approval` is the fifth stage and the only one returning a third verdict,
 `Decision::Pending`: neither allowed nor denied, but held for a named human.
@@ -116,7 +116,7 @@ two RBAC grants defensible, given each is `[user]`?*
 Depends on approvals being real. *Is there any path through this tool that
 reaches the relay without two humans?*
 
-**6. Bridge and gateway — core `abbf25b3c..bee179e99`, comms leg in `59fc30e59`**
+**6. Bridge and gateway — core `abbf25b3c..f4e907d59`, comms leg in `59fc30e59`**
 The push leg. *Does anything here ship to a machine?* (It should not — no
 `min_bridge_version` bump, no `bridge-v*` tag, confirmed.)
 
@@ -278,7 +278,9 @@ produces is convincing, and the next person to see it will believe it.
 about this feature. The hold works in this installation because
 `extensions/mcp/shared/src/approval/` implements it. It does not work in core,
 and `approval_requests` has been in core's schema since migration 014 without
-one. Documented in core's `bee179e99`.
+one. Documented in core's `bee179e99`, and corrected in `f4e907d59`'s body — the
+first pass concluded the feature was dead everywhere, which is wrong for the
+reason above. Read the correction before quoting either commit.
 
 **The comms hook may destroy the inbox it was meant to deliver.** The bridge
 registers it on both `UserPromptSubmit` (sync) and `Stop` with `is_async: true`.
@@ -298,8 +300,24 @@ as the self-skipping e2e test above. Left alone deliberately: making the job
 honest turns CI red immediately, and the fix changes a public MSRV claim, which
 is a decision for a person rather than a quality pass.
 
-**`next` has never been gated.** Neither this repo's CI nor Quality workflows
-trigger on pushes to `next` at all — they run on PRs and on `main`. Every commit
+**`quality.yml`'s `file-size` job cannot fail.** Its recipe pipes `find` into
+`awk` and prints; `awk` exits 0 whether or not it printed anything. Twenty files
+are over the 300-line guard right now, under a green tick. That is consistent
+with the house rule that file size is informational — but the job's presence
+implies a gate that does not exist, which is the same shape as the `msrv` defect
+above and the self-skipping e2e test below. Recorded, not fixed.
+
+**`next` has never been gated.** This one stopped being theoretical today: core's
+first gate cycle went red on `bridge-native` clippy on windows-latest —
+`unused_qualifications` on `egress::cowork_egress_allowed_hosts()`
+(`install/mdm/mod.rs:172`, where line 15 already re-exports it unqualified),
+introduced by `ac8eda7d0`, which had sat on `next` ungated. It is also
+runner-only: reproducing it locally with
+`--target x86_64-pc-windows-msvc` fails before clippy runs, because `ring`'s
+build script needs a real MSVC toolchain. So local checks could not have caught
+it at any diligence.
+
+Neither this repo's CI nor Quality workflows trigger on pushes to `next` at all — they run on PRs and on `main`. Every commit
 on `next` since the last promote, including all of today's, has been validated
 only by whatever a person chose to run locally. This is a repo-level gap, not a
 property of today's work, and it is the reason the *What to re-run* section
@@ -343,11 +361,17 @@ cargo nextest run --manifest-path tests/Cargo.toml -p e2e-tests -j 4
 Last run on this tree: **543 unit tests passed**, **23/23 e2e passed**, everything
 above green except `check-fork-drift`.
 
-On `systemprompt-core` at `bee179e99`: 19,667 tests across all 13 shards green
+On `systemprompt-core` at `f4e907d59`: 19,667 tests across all 13 shards green
 against fresh migrated databases, plus rustfmt, clippy `-D warnings` and rustdoc
 `-D warnings` on all three workspaces, all 15 source-gate lints, machete, deny,
-sqlx-verify-offline and `cargo build --workspace --locked`. Its hosted gates were
-still running at the time of writing.
+sqlx-verify-offline and `cargo build --workspace --locked`. Its hosted CI,
+Quality and Supply Chain gates all report `success`, each verified by its own
+conclusion and `headSha` at `f4e907d59` rather than by a summary line.
+
+The full ladder core was run through is `internal/quality-check.md` in that repo
+(gitignored). It exists because `release-flow.md` §3 listed eight commands while
+`quality.yml` alone runs twenty-one — eleven gates were missing from the
+documented procedure, including every one that caught something today.
 
 **`just e2e` reuses a stale MCP binary.** The recipe builds
 `systemprompt-mcp-odoo` / `-email` only `if [ ! -x ... ]` — if a binary exists at
