@@ -355,16 +355,34 @@ places:
 
   - three MSRV jobs that installed a toolchain and then ran a different one;
   - a `file-size` job whose `awk` exits 0 whether or not it printed;
-  - e2e tests that return green in hundredths of a second when
-    `SYSTEMPROMPT_TEST_DATABASE_URL` is unset;
   - a `require_approval` stage in core with no enforcement point behind it.
+
+A fourth candidate turned out **not** to belong here, and the distinction is the
+useful part: the e2e suite does return green in hundredths of a second with no
+`SYSTEMPROMPT_TEST_DATABASE_URL`, but `harness/db.rs:29` asserts on exactly that
+when `CI` is set, so the suite cannot silently skip where it matters. Verified by
+running it with the variable unset and `CI=1`: it panics with "the e2e suite must
+not be skipped there". That is a deliberate local-dev affordance with a guard on
+the case that counts — not the same defect. The trap it leaves is for a *person*
+reading a local run, which is why it stays in *What to re-run* rather than here.
 
 The shape is always the same: **the check names a condition it never asserts.**
 Nobody was careless — each looks correct in review, and each passes. What catches
 them is asking not "does this pass" but "what does this fail on, and has it ever?"
-The three now fixed all gained an explicit assertion of the thing they claim, not
+All three now fixed gained an explicit assertion of the thing they claim, not
 just a corrected command, because the corrected command is one edit away from
 lying again.
+
+That standard applied back to this repo's own `check-file-size.sh`, which exited
+1 correctly but proved nothing about whether it still *could*. It now plants a
+301-line file in a temp tree on every run and fails if the scan does not trip on
+it, plus a 300-line file that must not trip, so an off-by-one is caught too. Both
+arms were verified by sabotaging the script and confirming each one goes red.
+Core's file-size gate does not yet do this — it exits 1 on a real violation, but
+nothing asserts it can, so a future `| awk` that swallows the status would return
+it to silent without looking wrong. **Still open there**; the runbook's current
+answer is the habit of introducing a violation by hand, which is weaker than a
+mechanism.
 
 **A structural refactor fanned across agents breaks the shared build.** Core's 49
 file splits ran as six uncoordinated agents; for about ten minutes the tree did
@@ -471,9 +489,12 @@ which looks like a code failure and is not. `-j 4` completes in ~93s, all green.
 
 Then the same clippy pair in `../systemprompt-core`.
 
-**One trap worth naming explicitly.** `Stack::create()` returns `None` and the
-test silently returns green when `SYSTEMPROMPT_TEST_DATABASE_URL` is unset —
-no failure, no warning, just a pass in hundredths of a second. A DB-backed e2e
+**One trap worth naming explicitly — for you, not for CI.** `Stack::create()`
+returns `None` and the test silently returns green when
+`SYSTEMPROMPT_TEST_DATABASE_URL` is unset — no failure, no warning, just a pass
+in hundredths of a second. CI is safe: `harness/db.rs:29` asserts when `CI` is
+set and no URL is present, so the suite cannot skip unnoticed there. Locally
+nothing stops you. A DB-backed e2e
 test really takes 11–24s. If the whole suite finishes instantly, you have proved
 nothing.
 
