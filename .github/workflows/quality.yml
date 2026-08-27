@@ -120,7 +120,21 @@ jobs:
         run: ln -sfn "$GITHUB_WORKSPACE/.core-sibling" "$GITHUB_WORKSPACE/../systemprompt-core"
       - uses: dtolnay/rust-toolchain@1.94.0
       - uses: Swatinem/rust-cache@v2
-      - run: cargo check --workspace
+      # `rust-toolchain.toml` pins a nightly, and a toolchain file overrides
+      # rustup's default — so a bare `cargo check` here silently ran that
+      # nightly and this job never tested the MSRV at all. `+1.94.0` overrides
+      # the file; the assertion is what stops it drifting back, because the
+      # failure mode is a job that passes while proving nothing.
+      - name: Assert the MSRV toolchain is the one actually in use
+        run: |
+          set -euo pipefail
+          actual=$(cargo +1.94.0 --version)
+          echo "cargo: $actual"
+          case "$actual" in
+            "cargo 1.94.0 "*) ;;
+            *) echo "::error::expected cargo 1.94.0, got: $actual" >&2; exit 1 ;;
+          esac
+      - run: cargo +1.94.0 check --workspace
 
   audit:
     name: cargo-audit
