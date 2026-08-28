@@ -46,10 +46,19 @@ pub async fn find_decision_chain(
     let transcript = find_transcript(pool, &session_id).await?;
     let summary = find_summary(pool, &session_id).await?;
 
+    // Why: the hook payload's own agent id is self-reported, so it lives in
+    // the audit blob rather than the identity column and is shown as a claim.
+    let claimed_agent = decisions.iter().find_map(|d| {
+        d.evaluated_rules
+            .pointer("/principal/claimed/agent_id")
+            .and_then(serde_json::Value::as_str)
+            .map(str::to_owned)
+    });
     let identity = ChainIdentity {
         user_id: slots.user_id,
         agent_id: slots.agent_id,
         agent_scope: slots.agent_scope,
+        claimed_agent,
     };
 
     let totals = compute_totals(&decisions, &requests, &events);

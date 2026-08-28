@@ -71,6 +71,12 @@
           <span>{{summary.agent_id}}{{#if summary.agent_scope}} <em>({{summary.agent_scope}})</em>{{/if}}</span>
         </div>
       {{/if}}
+      {{#if summary.claimed_agent}}
+        <div class="trace-detail__field">
+          <span class="trace-detail__label">Agent (claimed)</span>
+          <span>{{summary.claimed_agent}}</span>
+        </div>
+      {{/if}}
       <div class="trace-detail__field">
         <span class="trace-detail__label">Session</span>
         <a href="{{summary.session_url}}"><code class="code-inline" title="{{summary.session_id}}">{{summary.session_id_short}}</code></a>

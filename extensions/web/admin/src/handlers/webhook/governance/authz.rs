@@ -21,7 +21,7 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use sqlx::PgPool;
-use systemprompt::identifiers::{Actor, SessionId};
+use systemprompt::identifiers::SessionId;
 use systemprompt::loader::ConfigLoader;
 use systemprompt_security::authz::{
     AccessControlRepository, AccessRule, AuthzDecision, AuthzRequest, ChainSources, Decision,
@@ -143,11 +143,13 @@ async fn audit_decision(
         "roles": req.roles,
         "attributes": req.attributes,
         "context": req.context,
+        "actor": req.actor(),
+        "client_id": req.client_id,
         "entity": entity,
         "justification": justification_opt,
         "rules": rules,
     });
-    let actor = Actor::user(req.user_id.clone());
+    let actor = req.actor();
     // Why: enforcement sites without an explicit context still need one the
     // session's other rows join to; deriving keeps them in a single context.
     let context_id = req.context_id.clone().unwrap_or_else(|| {
@@ -166,10 +168,8 @@ async fn audit_decision(
         // field.
         session_id: req.session_id.as_ref().map_or("", SessionId::as_str),
         tool_name: entity_id_str,
-        agent_id: None,
-        // Why: authz decisions are entity-keyed, not agent-keyed; entity_type
-        // remains in evaluated_rules above for forensic lookup.
-        agent_scope: None,
+        agent_id: req.verified_agent_id(),
+        agent_scope: req.access_scope,
         decision: decision_tag,
         policy: POLICY_NAME,
         reason: &reason_str,

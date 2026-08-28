@@ -5,8 +5,25 @@ All notable changes to this repository are documented here. The format follows
 
 ## [Unreleased]
 
+### Security
+
+- `POST /hooks/govern` no longer lets the hook body's `agent_id` raise the
+  caller's access scope. The value is a self-report (Claude Code's subagent
+  id), and looking it up against `services/agents/*.yaml` handed a user-scoped
+  token the admin tier — waiving the tool blocklist and the approval hold —
+  whenever it named an admin-scoped agent. Scope now comes from the token and
+  the user's stored roles only. Calls that relied on the escalation are denied
+  as their real scope dictates.
+
 ### Changed
 
+- Governance audit rows record who acted and through what: the hook's
+  self-reported agent id is kept in `evaluated_rules` under
+  `principal.claimed` and shown on the audit detail page as "Agent (claimed)";
+  the `agent_id` identity column holds only credential-derived identity. The
+  `/govern/authz` handler records the enforcement surface (`actor_kind = mcp`
+  for MCP tool calls), the verified delegate, the caller's access scope and
+  the OAuth `client_id` instead of a bare `user` actor with null agent columns.
 - Bridge rebuilt against systemprompt-core 0.38.0 (`bridge/CORE_REF` bumped to
   the v0.38.0 release commit) and republished as `bridge-v0.18.0`.
 - Adopted systemprompt core 0.38.0 from crates.io (typed marketplace keep-sets,
