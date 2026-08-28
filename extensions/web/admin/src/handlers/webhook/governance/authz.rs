@@ -21,7 +21,7 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use sqlx::PgPool;
-use systemprompt::identifiers::SessionId;
+use systemprompt::identifiers::{ClientId, SessionId};
 use systemprompt::loader::ConfigLoader;
 use systemprompt_security::authz::{
     AccessControlRepository, AccessRule, AuthzDecision, AuthzRequest, ChainSources, Decision,
@@ -182,6 +182,7 @@ async fn audit_decision(
             .as_ref()
             .map(systemprompt::identifiers::TaskId::as_str),
         trace_id: Some(req.trace_id.as_str()),
+        client_id: req.client_id.as_ref().map(ClientId::as_str),
     };
     if let Err(e) = insert_governance_decision(pool, &record).await {
         tracing::error!(error = %e, "Failed to record authz decision");

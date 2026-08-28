@@ -60,6 +60,8 @@ pub(super) async fn audit(pool: &sqlx::PgPool, milestone: Milestone<'_>) {
             agent_session: None,
             agent_id: None,
             agent_scope: AccessScope::from_roles(&roles),
+            client_id: ctx.client_id().cloned(),
+            claimed: None,
         },
         target: AuditTarget {
             tool_name: tool_name.to_owned(),
