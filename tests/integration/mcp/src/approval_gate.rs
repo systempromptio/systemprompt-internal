@@ -120,7 +120,10 @@ async fn a_waiting_call_observes_an_approval_made_by_another_task() {
         };
 
         let outcome = wait_for_decision(&repo, call.as_str(), Duration::from_secs(10)).await;
-        approver.await.expect("approver task").expect("resolved row");
+        approver
+            .await
+            .expect("approver task")
+            .expect("resolved row");
 
         match outcome {
             ApprovalOutcome::Approved(request) => {
@@ -196,7 +199,10 @@ async fn a_retry_rejoins_the_same_approval_rather_than_opening_a_second() {
 
         // A later round asks for a much longer expiry. If `open` upserted, the
         // deadline would move every retry and the call could never expire.
-        let second = repo.open(&fx.held(&call, 9_000)).await.expect("second open");
+        let second = repo
+            .open(&fx.held(&call, 9_000))
+            .await
+            .expect("second open");
 
         assert_eq!(first.call_id, second.call_id);
         assert_eq!(
@@ -231,7 +237,10 @@ async fn a_decision_already_taken_cannot_be_overwritten() {
 
         // A second admin clicking Deny on the same queue entry.
         let second = repo
-            .resolve(call.as_str(), &verdict(ApprovalStatus::Denied, "someone-else"))
+            .resolve(
+                call.as_str(),
+                &verdict(ApprovalStatus::Denied, "someone-else"),
+            )
             .await
             .expect("second resolve");
         assert!(second.is_none(), "a resolved call must not be re-decided");

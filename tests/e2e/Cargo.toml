@@ -20,6 +20,7 @@ systemprompt-web-extension = { workspace = true }
 # names, and hardcoding those strings in the test would let a rename break the
 # approval gate while the test kept passing.
 systemprompt-mcp-email = { workspace = true }
+systemprompt-mcp-comms = { workspace = true }
 # The brand `ArtifactTheme` is registered here, and `inventory` registrations
 # only reach a binary that references the crate. Declared directly so the
 # artifact gallery's theme assertions cannot be broken by an unrelated
@@ -33,6 +34,7 @@ tokio = { workspace = true }
 sqlx = { workspace = true }
 uuid = { workspace = true }
 serde_json = { workspace = true }
+serde_yaml = { workspace = true }
 url = { workspace = true }
 chrono = { workspace = true }
 wiremock = { workspace = true }

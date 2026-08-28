@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT odoo_login, odoo_uid, created_at FROM odoo_identity WHERE user_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "odoo_login",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "odoo_identity",
+            "name": "odoo_login"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "odoo_uid",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "odoo_identity",
+            "name": "odoo_uid"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "odoo_identity",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "4bc17f39c5f183c73ef5cb1bc99e625ff1e4cae918e940cbccb46e47d5d7c0ed"
+}

@@ -21,14 +21,15 @@ Decide which host you are running in, then load and follow the matching skill:
 | Codex CLI | OpenAI Codex CLI environment, no Cowork artifact tools | `systemprompt_setup_codex` |
 
 If neither matches (plain Claude Code, another MCP client), there is nothing host-specific to
-install: verify the Odoo MCP connection works by listing the available Odoo tools, and point the
-user at their profile page (`/admin/profile`) to connect Odoo if tools fail with a missing-identity
-error.
+install: call `comms_whoami` with `{}` — it reports who the user is, their roles, whether Odoo is
+linked, and which plugins, servers and skills they were granted — and point the user at their
+profile page (`/admin/profile`) to connect Odoo if it reports the link missing.
 
-**Admin users, in Cowork only:** there is a second set of dashboards — users, activity, usage —
-installed by `admin_workspace_setup_cowork` from the admin plugin. It is separate from the CRM
-dashboards and needs the admin role. Mention it after the CRM setup finishes; it is subject to the
-same host rule below.
+**One setup, every role.** There is no separate admin setup. In Cowork the setup skill installs the
+dashboards of every plugin bundle the bridge mounted, and the bridge mounts exactly what the user's
+signed manifest granted — so an admin simply ends up with the control-plane dashboards (users,
+activity, usage) alongside the workspace ones, and a salesperson does not. Never tell an admin to
+look for a second setup skill; run the same one.
 
 ## Dashboards are a Cowork feature — everywhere else, say so
 

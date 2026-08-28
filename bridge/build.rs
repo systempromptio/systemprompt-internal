@@ -24,6 +24,7 @@ fn main() {
     for f in [
         "window-icon-1024.png",
         "tray-icon.png",
+        "app-icon.ico",
         "icon.svg",
         "logo.svg",
         "theme.css",

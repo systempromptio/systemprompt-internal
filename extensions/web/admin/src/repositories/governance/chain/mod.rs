@@ -20,6 +20,7 @@ pub struct ChainIdentity {
     pub user_id: UserId,
     pub agent_id: Option<AgentId>,
     pub agent_scope: Option<String>,
+    pub claimed_agent: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]

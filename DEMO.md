@@ -47,13 +47,13 @@ Accounts, passwords, and how to run the demo as a real user instead of the seede
 **`RUN-DEMO.md`** (the cast list).
 
 1. **Stack up** (`TESTING-INSTRUCTIONS.md` §1): `just db-up local` → `just build` → `just start` →
-   `just e2e-live` (seeds `e2e-admin@systemprompt.local` / `e2e-sales@systemprompt.local`, password
+   `just e2e-live` (seeds `ed@systemprompt.io` / `ed+notadmin@systemprompt.io`, password
    `e2e-live-password-2026`, plus a demo lead).
 2. **Seed richer data (optional but better on screen):** create a handful of leads/notes via the `crm`
    skill or Odoo UI (`http://localhost:8070`, `admin`/`admin`) so triage has something to rank.
 3. **Cowork:** on the demo machine, `systemprompt-internal-bridge login … --gateway http://localhost:8081`,
-   `bridge sync`, run **systemprompt-setup-cowork** (installs the six user dashboards); as admin also run
-   **admin_workspace_setup_cowork** (the three admin dashboards).
+   `bridge sync`, run **systemprompt-setup-cowork** — one skill for every role: a salesperson gets the
+   eight user dashboards, an admin gets those plus the three admin dashboards from the admin bundle.
 4. **Verify the manifest** carries the five demo skills (§3 curl in TESTING-INSTRUCTIONS.md):
    steps 1–3 for both users, 4–5 only for `e2e-admin`.
 

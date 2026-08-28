@@ -1,10 +1,10 @@
 //! Effective-permissions computation for the user-detail page.
 //!
-//! For a given user's roles, runs the pure
-//! [`systemprompt_security::authz::resolve`] resolver against every gateway
-//! route and every MCP server, returning per-entity Allow/Deny decisions
-//! with the rule that decided. The view layer renders these as collapsible
-//! sections under an "Effective Permissions" tab.
+//! For a given user's roles, resolves every gateway route and every MCP
+//! server through core's parent-chain resolver — the same chain the
+//! enforcement webhook and the bridge manifest use — returning per-entity
+//! Allow/Deny decisions with the rule that decided. The view layer renders
+//! these as collapsible sections under an "Effective Permissions" tab.
 //!
 //! Every subject dimension this extension declares participates, not just user
 //! and role: the department a user belongs to is looked up once per page via
@@ -17,9 +17,10 @@ use std::sync::Arc;
 use serde::Serialize;
 use sqlx::PgPool;
 use systemprompt::identifiers::{McpServerId, RouteId, UserId};
+use systemprompt::loader::ConfigLoader;
 use systemprompt_security::authz::{
-    AccessControlRepository, AccessRule, Decision, EntityKind, EntityRef, MatchedBy, ResolveInput,
-    SubjectAttributes, SubjectDimension, resolve,
+    AccessControlRepository, AccessRule, ChainSources, Decision, EntityKind, EntityRef, MatchedBy,
+    ParentChainIndex, ResolveBase, SubjectAttributes, SubjectDimension,
 };
 
 use crate::authz::{dimensions, subject_attributes_for};
@@ -52,6 +53,7 @@ pub async fn compute_effective_permissions(
     let repo = AccessControlRepository::from_pool(Arc::new(pool.clone()));
     let attributes = subject_attributes_for(pool, user_id).await;
     let dimensions = dimensions(pool);
+    let index = load_chain_index(&repo).await;
 
     let gateway_rules = repo
         .list_rules_bulk(EntityKind::GatewayRoute, &gateway_ids)
@@ -75,6 +77,7 @@ pub async fn compute_effective_permissions(
             .flatten()
             .map(|e| e.default_included);
         gateway_routes.push(decide(DecideArgs {
+            index: &index,
             entity: EntityRef::GatewayRoute(RouteId::new(id.clone())),
             rules: &rules,
             user_id: user_id.as_str(),
@@ -98,6 +101,7 @@ pub async fn compute_effective_permissions(
             .flatten()
             .map(|e| e.default_included);
         mcp_servers.push(decide(DecideArgs {
+            index: &index,
             entity: EntityRef::McpServer(McpServerId::new(id.clone())),
             rules: &rules,
             user_id: user_id.as_str(),
@@ -114,7 +118,24 @@ pub async fn compute_effective_permissions(
     }
 }
 
+async fn load_chain_index(repo: &AccessControlRepository) -> ParentChainIndex {
+    let services = match ConfigLoader::load() {
+        Ok(services) => services,
+        Err(e) => {
+            tracing::warn!(error = %e, "effective: services config unavailable; no parent cascade");
+            return ParentChainIndex::default();
+        },
+    };
+    ParentChainIndex::load(repo, ChainSources::from_services(&services))
+        .await
+        .unwrap_or_else(|e| {
+            tracing::warn!(error = %e, "effective: parent chain load failed; no parent cascade");
+            ParentChainIndex::default()
+        })
+}
+
 struct DecideArgs<'a> {
+    index: &'a ParentChainIndex,
     entity: EntityRef,
     rules: &'a [AccessRule],
     user_id: &'a str,
@@ -126,6 +147,7 @@ struct DecideArgs<'a> {
 
 fn decide(args: DecideArgs<'_>) -> EntityDecision {
     let DecideArgs {
+        index,
         entity,
         rules,
         user_id,
@@ -135,16 +157,18 @@ fn decide(args: DecideArgs<'_>) -> EntityDecision {
         dimensions,
     } = args;
     let uid = UserId::new(user_id);
-    let dec = resolve(ResolveInput {
-        entity: &entity,
-        rules,
-        user_id: &uid,
-        user_roles,
-        default_included,
-        parents: &[],
-        attributes,
-        dimensions,
-    });
+    let dec = index.resolve(
+        entity.kind(),
+        entity.id_str(),
+        ResolveBase {
+            rules,
+            user_id: &uid,
+            user_roles,
+            default_included,
+            attributes,
+            dimensions,
+        },
+    );
     let (decision, reason) = match dec {
         Decision::Allow { matched_by } => ("allow".to_owned(), allow_reason(&uid, &matched_by)),
         Decision::Deny { reason } => ("deny".to_owned(), reason.to_string()),

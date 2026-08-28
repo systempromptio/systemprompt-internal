@@ -18,9 +18,20 @@
                 will sign in as the account below.
             </p>
             <div class="device-link-identity mb-3">
-                <div class="text-base text-primary"><strong>{{user_email}}</strong></div>
+                <div class="text-base text-primary"><strong>{{account_email}}</strong></div>
+                {{#if account_name}}<div class="text-sm text-tertiary">{{account_name}}</div>{{/if}}
+                {{#if signed_in_via}}<div class="text-sm text-tertiary">Signed in via {{signed_in_via}}</div>{{/if}}
                 <a class="text-sm" href="{{switch_account_href}}">Not you? Use a different account</a>
             </div>
+            {{#if email_mismatch}}
+            <div class="device-link-mismatch mb-3">
+                <strong>Check this before you continue.</strong>
+                Your browser session says <strong>{{session_email}}</strong>, but this platform
+                account is <strong>{{account_email}}</strong>. The token will be issued to
+                <strong>{{account_email}}</strong>. If that is not the account you meant, use
+                &ldquo;Not you?&rdquo; above and sign in again.
+            </div>
+            {{/if}}
             <p class="text-sm text-tertiary mb-4">
                 Only approve if you started <code>{{#if redirect_host}}sp-bridge-auth{{else}}systemprompt-internal-bridge login{{/if}}</code> yourself. The helper will receive a one-time code (valid for {{code_ttl_seconds}}&nbsp;seconds) and exchange it for a durable personal access token that signs in as you until you revoke it.
             </p>
@@ -28,6 +39,7 @@
             <div class="form-actions device-link-actions">
                 <form method="POST" action="/bridge-auth/device-link/approve" class="device-link-form">
                     {{#if redirect}}<input type="hidden" name="redirect" value="{{redirect}}">{{/if}}
+                    <input type="hidden" name="confirm_account" value="{{account_email}}">
                     <button type="submit" class="btn btn-primary w-full">Allow</button>
                 </form>
                 <form method="POST" action="/bridge-auth/device-link/deny" class="device-link-form">

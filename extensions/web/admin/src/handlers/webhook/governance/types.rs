@@ -10,7 +10,8 @@ use serde::Serialize;
 use std::sync::Arc;
 
 use sqlx::PgPool;
-use systemprompt::identifiers::{AgentId, PluginId, SessionId};
+use systemprompt::identifiers::{PluginId, SessionId};
+use systemprompt_security::policy::ClaimedAgent;
 use systemprompt::oauth::SessionCreationService;
 use systemprompt_security::authz::{Decision, DecisionTag};
 
@@ -72,7 +73,7 @@ pub(super) struct AuthDenialParams<'a> {
     // Why: Echoed into the response envelope so a `UserPromptSubmit` caller is not
     // answered with a `PreToolUse` denial it has to reinterpret.
     pub hook_event_name: &'static str,
-    pub agent_id: Option<&'a AgentId>,
+    pub claimed: Option<&'a ClaimedAgent>,
     pub plugin_id: Option<&'a PluginId>,
     pub session_service: &'a Arc<SessionCreationService>,
     pub headers: &'a HeaderMap,

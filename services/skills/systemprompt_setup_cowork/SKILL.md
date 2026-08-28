@@ -1,13 +1,13 @@
 # Set Up My Workspace
 
-Bring the Artifacts library into line with the Odoo dashboards this plugin ships: install any that
-are missing, leave the ones already there alone, and report a clear "installed X of Y" result. Safe
-to run on every new session — it reconciles rather than seeds, so re-running is the point, not a
-waste.
+Bring the Artifacts library into line with the dashboards your plugins ship: install any that are
+missing, leave the ones already there alone, and report a clear "installed X of Y" result. Safe to
+run on every new session — it reconciles rather than seeds, so re-running is the point, not a waste.
 
-This is the workspace counterpart to `admin_workspace_setup_cowork`, which installs the
-control-plane dashboards (users, activity, usage). The two do not overlap: each installs only what
-its own plugin ships.
+This one skill serves every role. The bridge mounts exactly the plugin bundles your signed manifest
+granted you, and each bundle carries its own dashboards — so a salesperson's mounts hold the Odoo,
+knowledge and team-inbox pages plus the Who Am I panel, and an admin's mounts additionally hold the
+control-plane pages (users, activity, usage). You never decide who gets what; the mount already did.
 
 ## Before you start — this skill only works in Claude Cowork
 
@@ -18,8 +18,8 @@ The Artifacts library is a Cowork feature. Check for it before doing anything el
 - **Codex CLI** — follow `systemprompt_setup_codex` instead. Codex has no artifact library at all,
   and its inline visualizations are blocked from calling MCP tools (`callMcp` rejects with "Inline
   visualizations cannot call tools"), so a dashboard could not load data even if you rendered one.
-- **Plain Claude Code or any other MCP client** — nothing to install. Verify the Odoo MCP server
-  answers (`crm_lead_search` with `{ "limit": 1 }`) and stop.
+- **Plain Claude Code or any other MCP client** — nothing to install. Verify one MCP server answers
+  (`comms_whoami` with `{}`) and stop.
 
 Stopping means stopping. Do **not** stage the HTML into `outputs/` "in case", do not write a
 receipt, and do not look for a CLI to install artifacts with — **there is no `coworkctl`, no
@@ -30,8 +30,8 @@ as a result; say plainly that the skill does not apply here.
 ## Ask me things like
 
 - "Set up my workspace."
-- "Install the Odoo dashboards."
-- "Are my CRM dashboards installed?"
+- "Install my dashboards."
+- "Are my dashboards installed?"
 - "Re-run workspace setup — did anything change?"
 
 ## How installation works (read this first)
@@ -55,73 +55,65 @@ parallel; install one dashboard at a time, verifying as you go.
   locations with the find one-liner in Step 3.
 
 **Caching contract:** Cowork only caches a dashboard's MCP tool results when the gateway tool
-advertises `annotations.readOnlyHint: true`. Every read-only tool a dashboard calls (searches,
-lists, overviews) must carry that annotation in its server's tool catalog — without it, every
-re-render refetches from Odoo and rendering becomes racy. If you add a dashboard that calls a new
-tool, check the tool is annotated before shipping.
+advertises `annotations.readOnlyHint: true`. Every read-only tool a dashboard calls must carry that
+annotation in its server's tool catalog — without it, every re-render refetches and rendering becomes
+racy. The admin CLI tool (`mcp__systemprompt__systemprompt`) is deliberately *not* annotated, so the
+admin dashboards are never cached; that is intended.
 
-## Step 1 — Read the manifest this skill ships
+## Step 1 — Read the manifests the mounted bundles ship
 
-This skill's own directory contains `assets/artifacts/`, holding:
+Every mounted plugin bundle lays its dashboards out at its root as `artifacts/manifest.json` —
+`{ "artifacts": [ { "id", "name", "description", "version", "isStarred", "mcpTools": [...] }, ... ] }`
+— with one `artifacts/<id>.html` beside it per record. Run the staging script in Step 3 first; it
+prints every record it found, across every bundle, deduplicated by `id`. That printed set **is** the
+bundled set: count it, never assume it. A plugin with no dashboards ships no `artifacts/` directory,
+which is normal.
 
-- `manifest.json` — one metadata record per dashboard:
-  `{ "artifacts": [ { "id", "name", "description", "version", "isStarred", "mcpTools": [...] }, ... ] }`
-- `<id>.html` — the finished dashboard page for each record.
-
-Expect six: `business-overview`, `pipeline-open-deals`, `leads-inbound-prospects`,
-`recent-activity`, `todo-bulletin`, `knowledge-feed`. Treat `manifest.json` as the authoritative
-list and count — if it ships more or fewer, the manifest wins.
-
-Read **only `manifest.json`**. Do not read the `.html` files into context — they are large, and you
+Read **only** the manifests. Do not read the `.html` files into context — they are large, and you
 never need their contents: they get copied, not retyped.
-
-**If `assets/artifacts/` is missing or empty:** fall back to the plugin bundle — the plugin root
-(two levels up from this skill: `../../artifacts/`) carries one `<id>.json` per artifact with the
-HTML embedded in a `content` field. If that is missing too, stop and tell the user to open the
-Systemprompt Internal bridge app, sign in, run a sync, then start a **new** Cowork session. An empty
-directory means the sync has not happened — it is never "nothing to do".
 
 ## Step 2 — Diff bundled against installed
 
-List the artifacts already in the Artifacts library. Match manifest records to installed ones **by
-`id` only**. Never match by name, title, or "close enough" description — the library also holds the
-admin dashboards, and their names are near-homographs of these (e.g. "Activity — Recent Requests"
-vs "Recent Activity — Team Notes"); a name match is exactly how a dashboard ends up installed with
-another dashboard's tool allowlist. If the library genuinely exposes no id for an entry, treat that
-entry as unmatchable: leave it alone and report it, never adopt it as one of ours. Build four
-groups:
+List the artifacts already in the Artifacts library. Match records to installed ones **by `id`
+only**. Never match by name, title, or "close enough" description — several dashboards have
+near-homograph names (e.g. "Activity — Recent Requests" vs "Recent Activity — Team Notes"); a name
+match is exactly how a dashboard ends up installed with another dashboard's tool allowlist. If the
+library genuinely exposes no id for an entry, treat that entry as unmatchable: leave it alone and
+report it, never adopt it as one of ours. Build four groups:
 
 - **Missing** — bundled but not in the library.
 - **Present** — bundled and already in the library.
 - **Stale** — present, but the bundled `version` differs from what was installed.
 - **Superseded** — a library entry whose id is one of the retired ids `salesforce-accounts`,
   `salesforce-activities`, `salesforce-cases`, `salesforce-contacts`, `salesforce-leads`,
-  `salesforce-opportunities`: an install from before this workspace moved to Odoo. Offer to remove
-  it — the Odoo dashboards in the manifest are its replacement, and it can no longer load data.
+  `salesforce-opportunities`, `admin-users`, `admin-activity`, `admin-usage`: an install from before
+  this workspace moved to Odoo or before the admin dashboards were renamed. Offer to remove it — the
+  bundled dashboards are its replacement, and it can no longer load data.
 
 ## Step 3 — Install what is missing
 
-Run this skill's staging script **once** with this exact shell command (it finds the script
-wherever the skills mount lands — do not substitute a guessed path, and never a Windows path):
+Run this skill's staging script **once** with this exact shell command (it finds the script wherever
+the skills mount lands — do not substitute a guessed path, and never a Windows path):
 
 ```
 SETUP=$(find "$HOME/mnt" /sessions/*/mnt -name setup.sh -path '*systemprompt?setup?cowork*' 2>/dev/null | head -1) \
   && sh "$SETUP" || echo "SETUP_SCRIPT_NOT_FOUND"
 ```
 
-The script copies every bundled
-dashboard into the session `outputs/` directory and prints `OUTPUTS_DIR=`, then one ready-made
-`create_artifact` parameter block per artifact — `id`, `description`, `html_path`, `mcp_tools`,
-plus a comment with `name`/`starred` values.
+The script walks every mounted bundle's `artifacts/` directory, copies every dashboard page into the
+session `outputs/` directory, prints `OUTPUTS_DIR=`, `PLUGINS=` (the bundles it found) and
+`COPIED=`, then one ready-made `create_artifact` parameter block per record — `id`, `description`,
+`html_path`, `mcp_tools`, plus a comment with `name`/`starred`/`version` — and finally
+`TOTAL_RECORDS=`.
 
-Then, for each **missing** record, call the built-in `create_artifact` tool with exactly the
-printed block — sequentially, never in parallel. Include the `mcp_tools` list every time: without
-it the dashboard cannot call the Odoo MCP server and will never load data. Also pass the commented
+Then, for each **missing** record, call the built-in `create_artifact` tool with exactly the printed
+block — sequentially, never in parallel. Include the `mcp_tools` list every time: without it the
+dashboard cannot call its MCP server and will never load data. Also pass the commented
 `name`/star values if the tool's schema exposes such fields; if it does not, skip them silently.
 
 **Verify** with one `list_artifacts` after the whole batch: every bundled id must appear, **and for
 each one the installed record must carry the same tool allowlist as its manifest record** — compare
-the listed `mcp_tools` (however the library names the field) against the manifest's `mcpTools` for
+the listed `mcp_tools` (however the library names the field) against the record's `mcpTools` for
 that id, verbatim. A dashboard installed with another dashboard's allowlist renders but every data
 fetch fails with "not in this artifact's mcp_tools allowlist", so a mismatch is a failed install:
 delete that one artifact, re-run its `create_artifact` from the printed block, and re-verify. An
@@ -132,11 +124,11 @@ before the final listing.
 **Fallback ladder** — take each step only after the previous one provably failed:
 
 1. The find-and-run one-liner above.
-2. If it printed `SETUP_SCRIPT_NOT_FOUND`: locate the assets the same way —
-   `find "$HOME/mnt" /sessions/*/mnt -type d -path '*systemprompt?setup?cowork/assets/artifacts' 2>/dev/null | head -1`
-   — and bash-`cp` every `*.html` from it into the outputs dir (`$HOME/mnt/outputs`, or discover it:
-   `find "$HOME/mnt" /sessions/*/mnt -maxdepth 2 -type d -name outputs`).
-3. Only if **both** finds return nothing (the mounts genuinely lack this skill): Read the plugin
+2. If it printed `SETUP_SCRIPT_NOT_FOUND`: locate the bundles the same way —
+   `find "$HOME/mnt" /sessions/*/mnt -type d -path '*/artifacts' 2>/dev/null`
+   — `cat` each `manifest.json` and bash-`cp` every `*.html` beside it into the outputs dir
+   (`$HOME/mnt/outputs`, or discover it: `find "$HOME/mnt" /sessions/*/mnt -maxdepth 2 -type d -name outputs`).
+3. Only if **both** finds return nothing (the mounts genuinely lack the bundles): Read each plugin
    bundle's `artifacts/<id>.json` (Windows paths, file tools) and Write its `content` string to
    `outputs/<id>.html` **verbatim and unmodified** — no edits, no reformatting, no "improvements" —
    then create as above, and say in the final report that the slow path was used and why.
@@ -161,13 +153,13 @@ Write the receipt through the same script so the timestamp is real, not typed:
 
 ```
 SETUP=$(find "$HOME/mnt" /sessions/*/mnt -name setup.sh -path '*systemprompt?setup?cowork*' 2>/dev/null | head -1) \
-  && sh "$SETUP" receipt '{ "checkedAt": "__NOW__", "bundled": N, "installed": N,
+  && sh "$SETUP" receipt '{ "checkedAt": "__NOW__", "plugins": ["..."], "bundled": N, "installed": N,
   "created": [{ "id": "...", "name": "...", "ref": "..." }],
   "alreadyPresent": [{ "id": "...", "name": "...", "ref": "..." }],
-  "stale": ["..."], "failed": [] }'
+  "stale": ["..."], "superseded": ["..."], "failed": [] }'
 ```
 
-`bundled` is the number of records in `manifest.json` — count them, never assume.
+`plugins` is the `PLUGINS=` line; `bundled` is `TOTAL_RECORDS=` — count them, never assume.
 
 The script replaces `__NOW__` with the current UTC time and writes
 `outputs/setup-receipt.json` (never write into the plugin or skills directories — they are
@@ -177,24 +169,34 @@ to `outputs/setup-receipt.json` yourself with the timestamp from `date -u`.
 `installed` must be the count confirmed by the final library listing, nothing else. If the write
 fails, do not fail the run: report the same receipt inline in Step 6 so the result is still visible.
 
-## Step 5 — Check the Odoo connection
+## Step 5 — Check the connections the dashboards need
 
-The dashboards fetch through the Odoo MCP server (`knowledge-feed` through the knowledge-bank
-server), executed as the signed-in user. Run one small probe — `crm_lead_search` with `{ "limit": 1 }` — through that server. The dashboards fetch their
-own data when opened (each page calls the MCP tool itself on load, and Reload re-runs it), so a
-working probe means the dashboards will populate.
+Collect the distinct MCP servers named across the installed records' `mcpTools` (the part between
+`mcp__` and the next `__`) and run one small read-only probe per server, executed as the signed-in
+user:
 
-If it fails with an authentication or missing-identity error, say the artifacts are installed but
-Odoo is not reachable for this account, and point the user at linking their Odoo login and API key
-on `/admin/profile` rather than at the dashboards — the HTML is fine, the credential is not.
+| server | probe |
+|--------|-------|
+| `comms` | `comms_whoami` with `{}` |
+| `odoo` | `crm_lead_search` with `{ "limit": 1 }` |
+| `knowledge-bank` | `list_documents` with `{ "limit": 1 }` |
+| `systemprompt` (admins only) | `systemprompt` with `{ "command": "core skills list" }` |
+
+The dashboards fetch their own data when opened (each page calls its MCP tool itself on load, and
+Reload re-runs it), so a working probe means the dashboards will populate.
+
+If the Odoo probe fails with an authentication or missing-identity error, say the artifacts are
+installed but Odoo is not reachable for this account, and point the user at linking their Odoo login
+and API key on `/admin/profile` rather than at the dashboards — the HTML is fine, the credential is
+not. The Who Am I panel shows the same link status.
 
 ## Step 6 — Report honestly
 
-State plainly: **"N of M dashboards installed"**, where N comes from the verified library listing —
-never report a number you did not verify, and report a partial result as partial. Then list what was
-created and what was already there **by name, each with its Step 4 reference** — not just a count —
-so the user can jump straight to a dashboard instead of hunting the Library for it; fall back to
-naming it plainly if no `ref` was available for that one. Then note anything stale, superseded, or
-failed, and whether the Odoo server answered. If everything was already present, say so — that is a
-successful run, not a no-op. Suggest opening one dashboard (e.g. "Business Overview — Daily
-Briefing") as a first step: it loads live data automatically.
+never report a number you did not verify, and report a partial result as partial. Name the plugins
+the dashboards came from. Then list what was created and what was already there **by name, each with
+its Step 4 reference** — not just a count — so the user can jump straight to a dashboard instead of
+hunting the Library for it; fall back to naming it plainly if no `ref` was available for that one.
+Then note anything stale, superseded, or failed, and which servers answered. If everything was
+already present, say so — that is a successful run, not a no-op. Suggest opening **Who Am I** first:
+it shows the user their roles, their Odoo link, and exactly which plugins, servers and skills they
+were granted — the same grant that decided which dashboards just got installed.

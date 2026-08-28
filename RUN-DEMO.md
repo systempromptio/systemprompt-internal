@@ -13,8 +13,8 @@ All local test data — never reuse these anywhere real.
 
 | Plays | Account | Password | Platform roles | Demo steps |
 |---|---|---|---|---|
-| The salesperson (Act I) | `e2e-sales@systemprompt.local` | `e2e-live-password-2026` | `user` | 1–3 |
-| The admin (Act II) | `e2e-admin@systemprompt.local` | `e2e-live-password-2026` | `admin, user` | 1–5 |
+| The salesperson (Act I) | `ed+notadmin@systemprompt.io` | `e2e-live-password-2026` | `user` | 1–3 |
+| The admin (Act II) | `ed@systemprompt.io` | `e2e-live-password-2026` | `admin, user` | 1–5 |
 | Odoo back office (proof shots) | `admin` / `admin` | — | (Odoo UI only, `http://localhost:8070`, db `odoo_local`) | show chatter in beat 3 |
 
 Both e2e users are (re)seeded idempotently by `just e2e-live`. Verify roles after first sign-in with

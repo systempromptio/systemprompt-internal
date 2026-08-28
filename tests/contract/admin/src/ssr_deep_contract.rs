@@ -387,14 +387,13 @@ async fn organization_pages_render_a_seeded_customer() {
     let credentials = principal::provision(&db.pool).await;
     let app = App::new(&db.pool, credentials);
 
-    // Migration `025_demo_organizations` seeds three demo customers; the page
-    // is driven against whichever one the schema installed rather than a
-    // fixture, because the enterprise pages read the *seeded* rollups.
-    let slug: Option<String> =
-        sqlx::query_scalar("SELECT slug FROM organizations WHERE is_platform IS NOT TRUE LIMIT 1")
-            .fetch_optional(&*db.pool)
-            .await
-            .expect("read a seeded organization");
+    // The customer pages need a customer. This used to adopt whichever tenant
+    // migration `025_demo_organizations` had seeded, which made every
+    // assertion below conditional on that migration existing; now that the
+    // demo tenants are gone, the same code would have skipped the customer
+    // detail page silently and still passed. So the fixture owns its own row
+    // and the assertions are unconditional.
+    let slug = seed_customer(&db.pool).await;
 
     let mut failures = Vec::new();
 
@@ -403,26 +402,22 @@ async fn organization_pages_render_a_seeded_customer() {
         .await;
     if status != StatusCode::OK {
         failures.push(format!("  the customer roster -> {}", status.as_u16()));
-    } else if let Some(ref s) = slug
-        && !body.contains(s.as_str())
-    {
+    } else if !body.contains(slug.as_str()) {
         failures.push(format!(
-            "  the customer roster never listed the seeded {s:?}"
+            "  the customer roster never listed the seeded {slug:?}"
         ));
     }
 
-    if let Some(ref s) = slug {
-        let path = format!("/admin/enterprises/{s}");
-        let (status, body) = app.call(Call::get(&path, Principal::Admin)).await;
-        if status != StatusCode::OK {
-            failures.push(format!(
-                "  {path} -> {} (expected 200): {}",
-                status.as_u16(),
-                body.chars().take(200).collect::<String>()
-            ));
-        } else if !body.contains("Members") {
-            failures.push(format!("  {path} rendered without the members panel"));
-        }
+    let path = format!("/admin/enterprises/{slug}");
+    let (status, body) = app.call(Call::get(&path, Principal::Admin)).await;
+    if status != StatusCode::OK {
+        failures.push(format!(
+            "  {path} -> {} (expected 200): {}",
+            status.as_u16(),
+            body.chars().take(200).collect::<String>()
+        ));
+    } else if !body.contains("Members") {
+        failures.push(format!("  {path} rendered without the members panel"));
     }
 
     let (status, _) = app
@@ -564,4 +559,50 @@ async fn analytics_pages_aggregate_the_seeded_trail() {
         failures.len(),
         failures.join("\n")
     );
+}
+
+// Seed one non-platform customer with a member, and return its slug.
+//
+// The enterprise pages render a roster and a per-customer detail page with a
+// members panel, so the row needs a member to be worth asserting on. Ids are
+// UUID-suffixed for the same reason every other fixture here is: so a hit is
+// this test's row and not something the schema installed.
+async fn seed_customer(pool: &PgPool) -> String {
+    let suffix = uuid::Uuid::new_v4().simple().to_string();
+    let slug = format!("contract-customer-{suffix}");
+    let org_id = format!("contract-org-{suffix}");
+    let user_id = format!("contract-member-{suffix}");
+    let email = format!("member-{suffix}@contract.example");
+
+    sqlx::query(
+        "INSERT INTO organizations (id, slug, name, plan_id, status, email_domains)
+         VALUES ($1, $2, 'Contract Customer', NULL, 'active', ARRAY['contract.example'])",
+    )
+    .bind(&org_id)
+    .bind(&slug)
+    .execute(pool)
+    .await
+    .expect("seed a customer organization");
+
+    sqlx::query(
+        "INSERT INTO users (id, name, email, display_name, status, email_verified, roles)
+         VALUES ($1, $2, $2, 'Contract Member', 'active', TRUE, ARRAY['user'])",
+    )
+    .bind(&user_id)
+    .bind(&email)
+    .execute(pool)
+    .await
+    .expect("seed a customer member");
+
+    sqlx::query(
+        "INSERT INTO organization_members (user_id, org_id, org_role)
+         VALUES ($1, $2, 'owner')",
+    )
+    .bind(&user_id)
+    .bind(&org_id)
+    .execute(pool)
+    .await
+    .expect("join the customer organization");
+
+    slug
 }

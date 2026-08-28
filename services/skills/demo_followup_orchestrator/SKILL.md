@@ -17,7 +17,7 @@ in front of the audience, on the real system.
 
 ## Before you start: run this as a salesperson, not as an admin
 
-Sign in as `e2e-sales@systemprompt.local` (RUN-DEMO.md has the cast list). The approval stage carries
+Sign in as `ed+notadmin@systemprompt.io` (RUN-DEMO.md has the cast list). The approval stage carries
 `exempt_scopes: [admin]`, so **an admin caller is never held** — the approver and the requester must
 be different people or it is a rubber stamp, not a control. Demoing this as an admin shows no hold at
 all and looks like the control is broken. It isn't; you're exempt.

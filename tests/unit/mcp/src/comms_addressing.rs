@@ -7,7 +7,10 @@ use systemprompt_mcp_comms::store::{Address, DeliveryClass, classify, parse_addr
 
 #[test]
 fn a_bare_user_is_an_inbox_address() {
-    assert_eq!(parse_address("@ed").ok(), Some(Address::User("ed".to_owned())));
+    assert_eq!(
+        parse_address("@ed").ok(),
+        Some(Address::User("ed".to_owned()))
+    );
 }
 
 #[test]
@@ -50,7 +53,10 @@ fn a_channel_is_recognised_by_its_hash() {
 
 #[test]
 fn addresses_are_case_insensitive() {
-    assert_eq!(parse_address("@Ed").ok(), Some(Address::User("ed".to_owned())));
+    assert_eq!(
+        parse_address("@Ed").ok(),
+        Some(Address::User("ed".to_owned()))
+    );
 }
 
 #[test]

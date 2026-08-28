@@ -1,22 +1,26 @@
 #!/bin/sh
 # One-shot staging for the systemprompt_setup_cowork skill, run inside the Cowork session VM.
 #
-#   setup.sh              copy every bundled dashboard into the session outputs
-#                         dir and print one create_artifact parameter block per
-#                         artifact, ready to mirror into tool calls
+#   setup.sh              find every plugin bundle the bridge mounted, copy each
+#                         bundled dashboard into the session outputs dir, and
+#                         print one create_artifact parameter block per artifact
 #   setup.sh receipt '<json>'
 #                         write the given receipt JSON to outputs/setup-receipt.json,
 #                         replacing the literal token __NOW__ with the current
 #                         ISO-8601 UTC timestamp
+#
+# Plugin-agnostic by design: the set of dashboards is whatever the mounted
+# bundles carry, and the bridge mounts exactly the plugins the signed manifest
+# granted this user — so the mount is the role grant and no skill needs to know
+# who is asking. Every bundle lays its dashboards out as
+# artifacts/manifest.json (install records) plus one artifacts/<id>.html per
+# record (the page, verbatim).
 #
 # POSIX sh; no arguments beyond the mode. Prints OUTPUTS_DIR= on success so the
 # caller never has to guess the mount layout.
 set -eu
 
 RECEIPT_FILE="setup-receipt.json"
-
-SKILL_DIR=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
-ASSETS="$SKILL_DIR/assets/artifacts"
 
 find_outputs() {
     for candidate in "$HOME/mnt/outputs" /sessions/*/mnt/outputs; do
@@ -30,6 +34,10 @@ find_outputs() {
     return 1
 }
 
+find_manifests() {
+    find "$HOME/mnt" /sessions/*/mnt -maxdepth 6 -type f -name manifest.json -path '*/artifacts/manifest.json' 2>/dev/null | sort -u
+}
+
 OUTPUTS=$(find_outputs)
 
 if [ "${1:-}" = "receipt" ]; then
@@ -41,39 +49,58 @@ if [ "${1:-}" = "receipt" ]; then
     exit 0
 fi
 
-[ -d "$ASSETS" ] || { echo "ERROR: $ASSETS missing — bridge sync has not staged the dashboards" >&2; exit 1; }
+MANIFESTS=$(find_manifests)
+[ -n "$MANIFESTS" ] || { echo "ERROR: no plugin bundle under the mounts carries artifacts/manifest.json — bridge sync has not mounted any dashboards" >&2; exit 1; }
 
 count=0
-for f in "$ASSETS"/*.html; do
-    [ -e "$f" ] || break
-    cp "$f" "$OUTPUTS/"
-    count=$((count + 1))
+plugins=""
+for manifest in $MANIFESTS; do
+    dir=$(dirname -- "$manifest")
+    plugin=$(basename -- "$(dirname -- "$dir")")
+    plugins="$plugins $plugin"
+    for f in "$dir"/*.html; do
+        [ -e "$f" ] || continue
+        cp "$f" "$OUTPUTS/"
+        count=$((count + 1))
+    done
 done
-[ "$count" -gt 0 ] || { echo "ERROR: no dashboard HTML files in $ASSETS" >&2; exit 1; }
+[ "$count" -gt 0 ] || { echo "ERROR: the mounted bundles list dashboards but ship no HTML beside them" >&2; exit 1; }
 
 echo "OUTPUTS_DIR=$OUTPUTS"
+echo "PLUGINS=$(printf '%s' "$plugins" | sed 's/^ //')"
 echo "COPIED=$count"
 echo
-echo "== create_artifact parameter blocks (one call per block, sequential) =="
+echo "== create_artifact parameter blocks (one call per block, sequential; deduped by id) =="
 if command -v python3 >/dev/null 2>&1; then
-    python3 - "$ASSETS/manifest.json" "$OUTPUTS" <<'PY'
+    printf '%s\n' "$MANIFESTS" | python3 - "$OUTPUTS" <<'PY'
 import json, sys
-manifest, outputs = sys.argv[1], sys.argv[2]
-for a in json.load(open(manifest))["artifacts"]:
-    block = {
-        "id": a["id"],
-        "description": a["description"],
-        "html_path": f"{outputs}/{a['id']}.html",
-        "mcp_tools": a["mcpTools"],
-    }
-    print(json.dumps(block, ensure_ascii=False))
-    extras = {"name": a["name"], "starred": a["isStarred"]}
-    print(f"# also pass, if the tool schema exposes such fields: {json.dumps(extras, ensure_ascii=False)}")
-    print()
+outputs = sys.argv[1]
+seen = set()
+for manifest in (line.strip() for line in sys.stdin if line.strip()):
+    with open(manifest, encoding="utf-8") as fh:
+        records = json.load(fh)["artifacts"]
+    for a in records:
+        if a["id"] in seen:
+            continue
+        seen.add(a["id"])
+        block = {
+            "id": a["id"],
+            "description": a["description"],
+            "html_path": f"{outputs}/{a['id']}.html",
+            "mcp_tools": a["mcpTools"],
+        }
+        print(json.dumps(block, ensure_ascii=False))
+        extras = {"name": a["name"], "starred": a["isStarred"], "version": a["version"]}
+        print(f"# also pass, if the tool schema exposes such fields: {json.dumps(extras, ensure_ascii=False)}")
+        print()
+print(f"TOTAL_RECORDS={len(seen)}")
 PY
 else
-    echo "(python3 unavailable — read the manifest below and build the blocks yourself:"
+    echo "(python3 unavailable — read each manifest below and build the blocks yourself:"
     echo " html_path is $OUTPUTS/<id>.html; pass id, description, mcp_tools, and name/star if supported)"
     echo
-    cat "$ASSETS/manifest.json"
+    for manifest in $MANIFESTS; do
+        echo "== $manifest =="
+        cat "$manifest"
+    done
 fi

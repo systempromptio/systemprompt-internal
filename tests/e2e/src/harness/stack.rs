@@ -229,6 +229,14 @@ async fn reapply_seeds(pool: &Arc<PgPool>) {
         .expect("re-apply extension seeds after provisioning the admin");
 }
 
+// The real logins, matching the live suite and the production clone. This
+// harness seeds a throwaway database and talks to a wiremock Odoo, so nothing
+// here reaches a real account — but the identities the assertions are written
+// against should still be the ones the system actually carries, so a manifest
+// or role expectation means the same thing in both tiers.
+const ADMIN_EMAIL: &str = "ed@systemprompt.io";
+const USER_EMAIL: &str = "ed+notadmin@systemprompt.io";
+
 impl Stack {
     pub async fn create() -> Option<Self> {
         let db = TempDb::create().await?;
@@ -257,8 +265,8 @@ impl Stack {
         // Why: `AppContextBuilder::build` resolves the profile's system_admin
         // by name and refuses to boot without an active admin row — the same
         // startup requirement the real server has.
-        let admin_id = seed_user(&db.pool, "admin", "e2e-admin@e2e.test", &["admin", "user"]).await;
-        let user_id = seed_user(&db.pool, "e2e-user", "e2e-user@e2e.test", &["user"]).await;
+        let admin_id = seed_user(&db.pool, "admin", ADMIN_EMAIL, &["admin", "user"]).await;
+        let user_id = seed_user(&db.pool, "e2e-user", USER_EMAIL, &["user"]).await;
         reapply_seeds(&db.pool).await;
 
         // Why: the manifest filter resolves grants from access_control_rules,
@@ -268,12 +276,18 @@ impl Stack {
         systemprompt_web_admin::repositories::config::acl_yaml_loader::load_from_yaml(
             &db.pool,
             &repo_root().join("services"),
+            // Why: `RegisteredEntities` names the ids a `gateway_route` grant is
+            // allowed to reference, and only the caller knows where that truth
+            // lives. The real loader fills it from the live gateway catalog; no
+            // gateway is bootstrapped here, and an empty set is documented to
+            // enforce nothing rather than to reject every route.
+            &systemprompt::security::authz::RegisteredEntities::default(),
         )
         .await
         .expect("ingest services/access-control into the throwaway database");
 
-        let admin_token = mint_token(&db.pool, &admin_id, "e2e-admin@e2e.test").await;
-        let user_token = mint_user_token(&db.pool, &user_id, "e2e-user@e2e.test").await;
+        let admin_token = mint_token(&db.pool, &admin_id, ADMIN_EMAIL).await;
+        let user_token = mint_user_token(&db.pool, &user_id, USER_EMAIL).await;
 
         let ctx = Arc::new(
             AppContextBuilder::new()

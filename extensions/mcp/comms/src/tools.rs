@@ -17,6 +17,7 @@ pub const TOOL_INBOX: &str = "comms_inbox";
 pub const TOOL_HISTORY: &str = "comms_history";
 pub const TOOL_CHANNELS: &str = "comms_channels";
 pub const TOOL_SESSIONS: &str = "comms_sessions";
+pub const TOOL_WHOAMI: &str = "comms_whoami";
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct SendInput {
@@ -53,6 +54,13 @@ pub struct ChannelsInput {}
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
 pub struct SessionsInput {}
+
+#[expect(
+    clippy::empty_structs_with_brackets,
+    reason = "must deserialize from the empty JSON object an MCP client sends"
+)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
+pub struct WhoamiInput {}
 
 struct ToolDef<'a> {
     name: &'a str,
@@ -140,6 +148,17 @@ pub fn list_tools() -> Vec<Tool> {
                           branch they are working in, and what they are doing. Use this to \
                           find the handle before sending to a session.",
             input_schema: schemars::schema_for!(SessionsInput).to_value(),
+            read_only: true,
+        }),
+        create_tool(&ToolDef {
+            name: TOOL_WHOAMI,
+            title: "Who Am I",
+            description: "Who you are on this platform: your account, roles and department, \
+                          whether your Odoo login is linked (never the key), exactly which \
+                          marketplaces, plugins, MCP servers and skills your role grants — the \
+                          same resolver the bridge manifest uses — and your own live sessions. \
+                          Returns JSON.",
+            input_schema: schemars::schema_for!(WhoamiInput).to_value(),
             read_only: true,
         }),
     ]

@@ -10,9 +10,13 @@ pub mod fanout;
 pub mod reads;
 pub mod render;
 pub mod send;
+pub mod whoami;
+mod whoami_grants;
 
 use crate::store::CommsStore;
-use crate::tools::{TOOL_CHANNELS, TOOL_HISTORY, TOOL_INBOX, TOOL_SEND, TOOL_SESSIONS};
+use crate::tools::{
+    TOOL_CHANNELS, TOOL_HISTORY, TOOL_INBOX, TOOL_SEND, TOOL_SESSIONS, TOOL_WHOAMI,
+};
 use rmcp::ErrorData as McpError;
 use rmcp::model::{CallToolRequestParams, CallToolResult};
 use rmcp::service::{RequestContext, RoleServer};
@@ -25,6 +29,7 @@ use systemprompt_mcp_shared::{record_mcp_access, record_mcp_access_rejected};
 
 use reads::{ChannelsHandler, HistoryHandler, InboxHandler, SessionsHandler};
 use send::SendHandler;
+use whoami::WhoamiHandler;
 
 #[doc(hidden)]
 #[derive(Debug)]
@@ -119,10 +124,16 @@ pub async fn dispatch_tool(
             })
             .await
         },
+        TOOL_WHOAMI => {
+            ctx.run(&WhoamiHandler {
+                store: store.clone(),
+            })
+            .await
+        },
         _ => Err(McpError::invalid_params(
             format!(
                 "Unknown tool: '{tool_name}'. Available tools: {TOOL_SEND}, {TOOL_INBOX}, \
-                 {TOOL_HISTORY}, {TOOL_CHANNELS}, {TOOL_SESSIONS}."
+                 {TOOL_HISTORY}, {TOOL_CHANNELS}, {TOOL_SESSIONS}, {TOOL_WHOAMI}."
             ),
             None,
         )),

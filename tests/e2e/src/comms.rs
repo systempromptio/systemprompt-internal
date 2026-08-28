@@ -13,7 +13,7 @@
 use crate::harness::mcp;
 use crate::harness::stack::Stack;
 
-const RECIPIENT_EMAIL: &str = "e2e-user@e2e.test";
+const RECIPIENT_EMAIL: &str = "ed+notadmin@systemprompt.io";
 const RECIPIENT: &str = "e2e-user";
 const SESSION_A: &str = "e2e-sess-a";
 const SESSION_B: &str = "e2e-sess-b";

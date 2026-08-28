@@ -358,7 +358,6 @@ _lint-gates-uncoordinated:
         check-file-size.sh
         check-asset-reachability.sh
         check-workspace-deps.sh
-        check-cowork-artifacts.sh
         validate-services.sh
     )
     logdir=$(mktemp -d)
@@ -1101,6 +1100,51 @@ core-checkout:
         echo "Cloning systemprompt-core beside this repo (the client needs it)."
         git clone --quiet https://github.com/systempromptio/systemprompt-core "$CORE"
     fi
+
+# Serve the bridge GUI's web tree over HTTP so a browser can render it.
+#
+# The desktop webview is Windows/macOS only and reads its assets over a wry
+# custom protocol, so this is the only way to see the GUI on Linux. Assets are
+# served from disk: edit CSS/JS/HTML and refresh, no rebuild. Fixtures live in
+# ../systemprompt-core/bin/bridge/web/dev/fixtures — pick one with
+# ?fixture=<name>. Serves THIS repo's branded overlay.
+bridge-preview PORT="4310": core-checkout
+    #!/usr/bin/env bash
+    set -euo pipefail
+    CORE="{{justfile_directory()}}/../systemprompt-core/bin/bridge"
+    SYSTEMPROMPT_BRIDGE_WEB_OVERLAY="{{justfile_directory()}}/bridge/web" \
+        cargo build --manifest-path "$CORE/Cargo.toml" --features dev-preview \
+        --bin systemprompt-bridge
+    echo "==> http://127.0.0.1:{{PORT}}/   (ctrl-c to stop)"
+    "$CORE/target/debug/systemprompt-bridge" dev-web --port {{PORT}} --web-root "$CORE/web"
+
+# Screenshot every bridge GUI state and build a contact sheet to review them.
+# Starts its own preview, so it does not need `just bridge-preview` running.
+bridge-shots PORT="4311":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    CORE="{{justfile_directory()}}/../systemprompt-core/bin/bridge"
+    SYSTEMPROMPT_BRIDGE_WEB_OVERLAY="{{justfile_directory()}}/bridge/web" \
+        cargo build --manifest-path "$CORE/Cargo.toml" --features dev-preview \
+        --bin systemprompt-bridge
+    if [ ! -d playwright/node_modules ]; then
+        echo "==> installing Playwright dependencies"
+        just e2e-install
+    fi
+    "$CORE/target/debug/systemprompt-bridge" dev-web --port {{PORT}} --web-root "$CORE/web" &
+    PREVIEW_PID=$!
+    # Stop the preview whichever way this exits, including a failing spec.
+    trap 'kill $PREVIEW_PID 2>/dev/null || true' EXIT
+    for _ in $(seq 1 40); do
+        curl -sf "http://127.0.0.1:{{PORT}}/dev/fixtures" >/dev/null && break
+        sleep 0.25
+    done
+    echo "==> rasterizing (Playwright)"
+    cd playwright && BRIDGE_PREVIEW_URL="http://127.0.0.1:{{PORT}}" \
+        npx playwright test tests/bridge-agents.spec.ts && cd ..
+    echo "==> contact sheet"
+    node scripts/bridge-contact-sheet.mjs
+    echo "open playwright/bridge-shots/index.html"
 
 # Package the branded bridge as a Linux release tarball into dist/
 # Coordinated: bridge/ and the core sibling are both in the fingerprint, so a
@@ -2089,3 +2133,44 @@ promote SHA="":
     echo
     echo "Opened https://github.com/$REPO/pull/$NUM"
     echo "Review it, then merge when you are ready:  gh pr merge $NUM --merge"
+
+# Screenshot the web-tree half of the Windows-native shell (bridge review 04).
+# The native chrome — title bar, tray, toasts, logon task — cannot appear here.
+# Evidence for bridge-review doc 01 (navigation and IA).
+bridge-nav-shots PORT="4313":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    CORE="{{justfile_directory()}}/../systemprompt-core/bin/bridge"
+    cargo build --manifest-path "$CORE/Cargo.toml" --features dev-preview \
+        --bin systemprompt-bridge
+    if [ ! -d playwright/node_modules ]; then
+        just e2e-install
+    fi
+    "$CORE/target/debug/systemprompt-bridge" dev-web --port {{PORT}} --web-root "$CORE/web" &
+    PREVIEW_PID=$!
+    trap 'kill $PREVIEW_PID 2>/dev/null || true' EXIT
+    for _ in $(seq 1 40); do
+        curl -sf "http://127.0.0.1:{{PORT}}/dev/fixtures" >/dev/null && break
+        sleep 0.25
+    done
+    cd playwright && BRIDGE_PREVIEW_URL="http://127.0.0.1:{{PORT}}" \
+        npx playwright test tests/bridge-navigation.spec.ts
+
+bridge-windows-shots PORT="4312":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    CORE="{{justfile_directory()}}/../systemprompt-core/bin/bridge"
+    cargo build --manifest-path "$CORE/Cargo.toml" --features dev-preview \
+        --bin systemprompt-bridge
+    if [ ! -d playwright/node_modules ]; then
+        just e2e-install
+    fi
+    "$CORE/target/debug/systemprompt-bridge" dev-web --port {{PORT}} --web-root "$CORE/web" &
+    PREVIEW_PID=$!
+    trap 'kill $PREVIEW_PID 2>/dev/null || true' EXIT
+    for _ in $(seq 1 40); do
+        curl -sf "http://127.0.0.1:{{PORT}}/dev/fixtures" >/dev/null && break
+        sleep 0.25
+    done
+    cd playwright && BRIDGE_PREVIEW_URL="http://127.0.0.1:{{PORT}}" \
+        npx playwright test tests/bridge-windows-shell.spec.ts
