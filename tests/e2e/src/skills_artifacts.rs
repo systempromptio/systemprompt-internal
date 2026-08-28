@@ -98,6 +98,23 @@ async fn every_manifest_named_skill_file_is_fetchable() {
         "recent-activity's allowlist is note_search and nothing else — the cross-wire regression"
     );
 
+    // leads-inbound-prospects gained note_list alongside crm_lead_search so a
+    // lead row can expand its own chatter inline — pin both, in order, so a
+    // future edit can't silently drop the allowlist entry the expand feature
+    // depends on (that failure mode is exactly the cross-wire regression
+    // above, just for a different dashboard).
+    let leads = parsed["artifacts"]
+        .as_array()
+        .expect("artifact records")
+        .iter()
+        .find(|a| a["id"] == "leads-inbound-prospects")
+        .expect("leads-inbound-prospects bundled");
+    assert_eq!(
+        leads["mcpTools"],
+        serde_json::json!(["mcp__odoo__crm_lead_search", "mcp__odoo__note_list"]),
+        "leads-inbound-prospects must allow crm_lead_search and note_list, nothing else"
+    );
+
     stack.db.cleanup().await;
 }
 

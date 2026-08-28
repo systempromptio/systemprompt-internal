@@ -241,3 +241,7 @@ storage/files/css/admin-bundle.css
 # them is hand-maintained and tracked.
 /storage/files/plugins/*/
 !/storage/files/plugins/.claude-plugin/
+
+# Personal, local-only running notes kept by Claude Code across sessions.
+# Never commit: may reference credential file locations.
+/SESSION-NOTES.md

@@ -112,6 +112,19 @@ tbody td.overdue{color:var(--accent);font-weight:600;}
 .av{width:22px;height:22px;flex:none;display:grid;place-items:center;border-radius:7px 2px 7px 7px;
   font-size:10px;font-weight:700;color:oklch(0.98 0 0);background:var(--av-bg,oklch(0.30 0 0));
   border:1px solid oklch(1 0 0 / 0.14);text-shadow:0 1px 1px oklch(0 0 0 / 0.3);}
+tbody tr.data-row{cursor:pointer;}
+tr.notes-row td{padding:0;border-bottom:1px solid var(--line-soft);background:oklch(0.13 0 0 / 0.45);}
+tr.notes-row.open td{padding:14px 18px 16px 40px;}
+.notes-panel{display:flex;flex-direction:column;gap:10px;}
+.notes-panel .n-hd{font-size:11px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:var(--muted);}
+.notes-panel .n-empty,.notes-panel .n-err,.notes-panel .n-wait{color:var(--muted);font-size:12.5px;}
+.notes-panel .n-err{color:var(--accent);}
+.note-item{padding:10px 14px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--line);}
+.note-item .n-top{display:flex;align-items:baseline;gap:8px;font-size:11.5px;color:var(--muted);margin-bottom:4px;}
+.note-item .n-top .n-who{color:var(--ink-2);font-weight:600;}
+.note-item .n-body{font-size:13px;color:var(--ink-2);white-space:pre-wrap;line-height:1.5;}
+.row-caret{display:inline-block;width:10px;color:var(--muted);transition:transform .15s ease;}
+tr.data-row.expanded .row-caret{transform:rotate(90deg);color:var(--accent);}
 thead th.sortable{cursor:pointer;user-select:none;transition:color .18s ease;}
 thead th.sortable:hover{color:var(--ink-2);}
 thead th.sortable.active{color:var(--accent);}
@@ -344,9 +357,87 @@ var CONFIG = {
     var body = $("rows");
     body.className = animate ? "enter" : "";
     body.innerHTML = recs.map(function (r, ri) {
-      return '<tr style="--i:' + ri + '">' + CONFIG.columns.map(function (c) { return cell(c, r, stats); }).join("") + "</tr>";
+      var first = '<td class="strong"><span class="row-caret">▸</span> ' + esc(get(r, CONFIG.columns[0].path) || "—") + "</td>";
+      var rest = CONFIG.columns.slice(1).map(function (c) { return cell(c, r, stats); }).join("");
+      return '<tr class="data-row" data-id="' + esc(r.id) + '" style="--i:' + ri + '">' + first + rest + "</tr>" +
+        '<tr class="notes-row" id="notes-' + esc(r.id) + '"><td colspan="' + CONFIG.columns.length + '"></td></tr>';
     }).join("");
     bindSort();
+    bindRowToggle();
+  };
+
+  // A lead row's notes are that record's Odoo chatter (mail.message), read
+  // via note_list rather than reopening crm_lead_search — same tool the
+  // Recent Activity dashboard's note_search feeds from, just scoped to one
+  // record instead of "everything". Parses note_list's `thread_row` markdown
+  // shape: "- **date** — author (type)" then an indented body line.
+  var THREAD_HEAD = /^- \*\*(.+?)\*\* — (.*?) \((.*?)\)$/;
+  var parseThread = function (md) {
+    var notes = [], cur = null;
+    md.split("\n").forEach(function (line) {
+      var m = line.match(THREAD_HEAD);
+      if (m) { cur = { date: m[1], author: m[2], type: m[3], body: "" }; notes.push(cur); return; }
+      if (cur && line.trim()) cur.body += (cur.body ? " " : "") + line.trim();
+    });
+    return notes;
+  };
+
+  var noteToolContent = function (r) {
+    var payload = r && r.structuredContent;
+    if (payload == null) { try { payload = JSON.parse(r.content[0].text); } catch (e) { payload = null; } }
+    if (payload && typeof payload.content === "string") return payload.content;
+    if (r && r.content && r.content[0] && typeof r.content[0].text === "string") return r.content[0].text;
+    return null;
+  };
+
+  var NOTES_CACHE = {};
+
+  var renderNotesPanel = function (leadId, state) {
+    var el = $("notes-" + leadId);
+    if (!el) return;
+    var td = el.firstElementChild;
+    if (state.status === "wait") { td.innerHTML = '<div class="n-wait">Loading notes…</div>'; return; }
+    if (state.status === "error") { td.innerHTML = '<div class="n-err">' + esc(state.message) + "</div>"; return; }
+    if (!state.notes.length) { td.innerHTML = '<div class="n-empty">No notes on this lead yet.</div>'; return; }
+    td.innerHTML = '<div class="notes-panel"><div class="n-hd">Recent activity — ' + state.notes.length + " note" + (state.notes.length === 1 ? "" : "s") + "</div>" +
+      state.notes.map(function (n) {
+        return '<div class="note-item"><div class="n-top"><span class="n-who">' + esc(n.author || "Unknown") + "</span><span>" + esc(n.date || "") +
+          (n.type ? " · " + esc(n.type) : "") + '</span></div><div class="n-body">' + esc(n.body || "(empty note)") + "</div></div>";
+      }).join("") + "</div>";
+  };
+
+  var loadNotes = function (leadId) {
+    if (NOTES_CACHE[leadId]) { renderNotesPanel(leadId, NOTES_CACHE[leadId]); return; }
+    renderNotesPanel(leadId, { status: "wait" });
+    timedCall("mcp__odoo__note_list", { model: "crm.lead", res_id: Number(leadId), limit: 20 }).then(function (r) {
+      if (r && r.isError) {
+        var msg = "The notes query failed.";
+        try { msg = (r.content && r.content[0] && r.content[0].text) || msg; } catch (e) {}
+        var errState = { status: "error", message: msg };
+        NOTES_CACHE[leadId] = errState; renderNotesPanel(leadId, errState);
+        return;
+      }
+      var text = noteToolContent(r) || "";
+      var notes = text.indexOf("matched. This is Odoo's answer") !== -1 ? [] : parseThread(text);
+      var readyState = { status: "ready", notes: notes };
+      NOTES_CACHE[leadId] = readyState; renderNotesPanel(leadId, readyState);
+    }).catch(function (e) {
+      var errState = { status: "error", message: String((e && e.message) || e) };
+      NOTES_CACHE[leadId] = errState; renderNotesPanel(leadId, errState);
+    });
+  };
+
+  var bindRowToggle = function () {
+    Array.prototype.forEach.call($("rows").querySelectorAll("tr.data-row"), function (tr) {
+      tr.addEventListener("click", function () {
+        var id = tr.getAttribute("data-id");
+        var notesRow = $("notes-" + id);
+        var opening = !tr.classList.contains("expanded");
+        tr.classList.toggle("expanded", opening);
+        notesRow.classList.toggle("open", opening);
+        if (opening) loadNotes(id);
+      });
+    });
   };
 
   var setStatus = function (mode, count) {

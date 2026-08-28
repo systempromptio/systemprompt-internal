@@ -149,12 +149,22 @@ but a workspace-path rejection is not a failure to record, it is a signal you sk
 
 ## Step 4 — Write a receipt
 
+Each entry in `created` and `alreadyPresent` is an object, not a bare id — capture whatever
+identifying reference `create_artifact`'s response and the `list_artifacts` verification entries
+actually expose for that record (an id, a url, however the library names it — same caution as the
+`mcp_tools` field in Step 3: read what the tool gives back, do not assume a field name). At minimum
+carry `id` and `name`; add `ref` when the tool exposes something beyond the id (a url or a distinct
+artifact identifier). This is what lets Step 6 point the user at each dashboard by name instead of
+just a count.
+
 Write the receipt through the same script so the timestamp is real, not typed:
 
 ```
 SETUP=$(find "$HOME/mnt" /sessions/*/mnt -name setup.sh -path '*systemprompt?setup?cowork*' 2>/dev/null | head -1) \
   && sh "$SETUP" receipt '{ "checkedAt": "__NOW__", "bundled": N, "installed": N,
-  "created": ["..."], "alreadyPresent": ["..."], "stale": ["..."], "failed": [] }'
+  "created": [{ "id": "...", "name": "...", "ref": "..." }],
+  "alreadyPresent": [{ "id": "...", "name": "...", "ref": "..." }],
+  "stale": ["..."], "failed": [] }'
 ```
 
 `bundled` is the number of records in `manifest.json` — count them, never assume.
@@ -182,7 +192,9 @@ on `/admin/profile` rather than at the dashboards — the HTML is fine, the cred
 
 State plainly: **"N of M dashboards installed"**, where N comes from the verified library listing —
 never report a number you did not verify, and report a partial result as partial. Then list what was
-created, what was already there, anything stale, superseded, or failed, and whether the Odoo server
-answered. If everything was already present, say so — that is a successful run, not a no-op. Suggest
-opening one dashboard (e.g. "Business Overview — Daily Briefing") as a first step: it loads live
-data automatically.
+created and what was already there **by name, each with its Step 4 reference** — not just a count —
+so the user can jump straight to a dashboard instead of hunting the Library for it; fall back to
+naming it plainly if no `ref` was available for that one. Then note anything stale, superseded, or
+failed, and whether the Odoo server answered. If everything was already present, say so — that is a
+successful run, not a no-op. Suggest opening one dashboard (e.g. "Business Overview — Daily
+Briefing") as a first step: it loads live data automatically.
