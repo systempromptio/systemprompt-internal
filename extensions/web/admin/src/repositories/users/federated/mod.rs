@@ -54,20 +54,23 @@ use sqlx::PgPool;
 use systemprompt::identifiers::UserId;
 use systemprompt_web_shared::error::MarketplaceError;
 
-use crate::repositories::organizations;
 
 mod lookup;
+mod provisioning;
+mod roles;
 
+use provisioning::create_federated;
+use roles::{RoleAuthority, RoleUpdate, apply_roles};
 use lookup::{
     FederatedIdentitySummary, find_active_user_by_email, find_active_user_by_odoo_uid,
     find_mapping, link_existing, list_federated_identities, load_user,
 };
 
-/// Lists the external identities a user can currently sign in through.
-///
-/// Public face of [`lookup::list_federated_identities`], for screens that must
-/// state *how* a session authenticated rather than only which row it resolved
-/// to.
+// Why: lists the external identities a user can currently sign in through.
+//
+// Public face of [`lookup::list_federated_identities`], for screens that must
+// state *how* a session authenticated rather than only which row it resolved
+// to.
 pub async fn list_federated_identities_for_user(
     pool: &PgPool,
     user_id: &UserId,
@@ -143,238 +146,52 @@ pub async fn delete_federated_identities_for_issuer(
     Ok(deleted)
 }
 
-/// How much authority the provider has over this row's roles on *this* sign-in.
-///
-/// Why it varies: the provider earns role authority from an established
-/// binding, not from the mere fact of authenticating. A first attachment to a
-/// pre-existing local account is exactly the moment where granting would turn
-/// control of an external account into control of a local one.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum RoleAuthority {
-    /// Returning sign-in on an established `(issuer, external_sub)` mapping.
-    /// The provider is the authority: grants and revocations both apply,
-    /// which is what makes group mapping work.
-    Sync,
-    /// First attachment to a pre-existing local row. Revocations apply, grants
-    /// do not — a first bind must never hand out a role the account did not
-    /// have.
-    ///
-    /// A row being *created* has no authority question to answer, so it does
-    /// not appear here: `create_federated` writes its roles directly,
-    /// through the same [`strip_gated_grants`] filter.
-    DowngradeOnly,
-}
-
-/// Roles a federated claim may never *add* without being explicitly permitted
-/// to.
-const GATED_ROLES: [&str; 1] = ["admin"];
-
-/// Env flag permitting a federated claim to add [`GATED_ROLES`]. Default off.
-const ALLOW_GRANT_ENV: &str = "FEDERATED_ROLES_MAY_GRANT_ADMIN";
-
-fn federated_may_grant_gated_roles() -> bool {
-    std::env::var(ALLOW_GRANT_ENV)
-        .is_ok_and(|v| matches!(v.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes"))
-}
-
-/// Drops role additions that a federated claim is not permitted to make.
-///
-/// Why this applies on provisioning too: a brand-new account is where the grant
-/// is least visible and most valuable to an attacker. If control of an external
-/// account could mint a *platform admin* on first sign-in, the external
-/// system's user list would silently become the platform's admin list.
-///
-/// Removals are never gated — only additions of [`GATED_ROLES`] the account
-/// does not already hold.
-fn strip_gated_grants(issuer: &str, stored: &[String], next: &mut Vec<String>) {
-    if federated_may_grant_gated_roles() {
-        return;
-    }
-    next.retain(|role| {
-        let is_new_gated_grant = GATED_ROLES.contains(&role.as_str()) && !stored.contains(role);
-        if is_new_gated_grant {
-            tracing::warn!(
-                issuer = %issuer,
-                role = %role,
-                "Federated sign-in tried to grant a gated role; dropped. Set {} to permit it.",
-                ALLOW_GRANT_ENV
-            );
-        }
-        !is_new_gated_grant
-    });
-}
-
-// JSON: JSONB column — `user_activity.metadata`
-#[derive(serde::Serialize)]
-struct RoleChangeMetadata<'a> {
-    issuer: &'a str,
-    authority: &'a str,
-    previous_roles: &'a [String],
-    new_roles: &'a [String],
-}
-
-/// Applies provider-computed roles within the authority this sign-in carries.
-///
-/// `None` means the caller could not compute roles this time; the stored set
-/// stands. Dropped grants are logged and skipped rather than raised: a sign-in
-/// should not fail because the provider tried to over-grant.
-async fn apply_roles(
-    pool: &PgPool,
-    user_id: &UserId,
-    issuer: &str,
-    stored: Vec<String>,
-    desired: Option<&[String]>,
-    authority: RoleAuthority,
-) -> Result<Vec<String>, MarketplaceError> {
-    let Some(desired) = desired else {
-        return Ok(stored);
-    };
-
-    let mut next: Vec<String> = match authority {
-        RoleAuthority::Sync => desired.to_vec(),
-        // Keep only what the account already had: revocations land, grants do not.
-        RoleAuthority::DowngradeOnly => desired
-            .iter()
-            .filter(|r| stored.contains(r))
-            .cloned()
-            .collect(),
-    };
-
-    strip_gated_grants(issuer, &stored, &mut next);
-
-    if stored == next {
-        return Ok(stored);
-    }
-
-    sqlx::query!(
-        "UPDATE users SET roles = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $1",
-        user_id.as_str(),
-        &next,
-    )
-    .execute(pool)
-    .await?;
-
-    tracing::info!(
-        user_id = %user_id,
-        issuer = %issuer,
-        authority = ?authority,
-        previous = ?stored,
-        roles = ?next,
-        "Federated sign-in updated platform roles"
-    );
-
-    // Why audited, not just logged: this is the one path where an external system
-    // changes local privilege, so it belongs in the timeline an operator reads.
-    let metadata = serde_json::to_value(RoleChangeMetadata {
-        issuer,
-        authority: match authority {
-            RoleAuthority::Sync => "sync",
-            RoleAuthority::DowngradeOnly => "downgrade_only",
-        },
-        previous_roles: &stored,
-        new_roles: &next,
-    })
-    .unwrap_or(serde_json::Value::Null);
-
-    crate::repositories::users::activity::record(
-        pool,
-        crate::activity::NewActivity {
-            user_id: user_id.clone(),
-            category: crate::activity::ActivityCategory::UserManagement,
-            action: crate::activity::ActivityAction::Updated,
-            entity: None,
-            description: format!("Federated sign-in via {issuer} updated platform roles"),
-            metadata,
-        },
-    )
-    .await;
-
-    Ok(next)
-}
-
-async fn create_federated(
-    pool: &PgPool,
-    claims: &FederatedClaims<'_>,
-    desired_roles: Option<&[String]>,
-) -> Result<ResolvedFederatedUser, MarketplaceError> {
-    let FederatedClaims {
-        issuer,
-        external_sub,
-        email,
-        display_name,
-    } = *claims;
-    // Why: the seat check runs before the user exists, so a full plan rejects
-    // the login rather than creating an orphaned account that cannot reach
-    // anything. An unclaimed email domain is not an error — that arrival is
-    // not on anyone's contract and lands unattached.
-    let org_id = organizations::crud::find_organization_for_email(pool, email).await?;
-    if let Some(org_id) = org_id.as_deref() {
-        organizations::seats::assert_seat_available(pool, org_id).await?;
-    }
-
-    let user_id = uuid::Uuid::new_v4().to_string();
-    let mut roles = desired_roles.map_or_else(|| vec!["user".to_owned()], <[String]>::to_vec);
-    // A row being created holds nothing yet, so every gated role in `desired` is
-    // a new grant. See [`strip_gated_grants`].
-    strip_gated_grants(issuer, &[], &mut roles);
-    let mut tx = pool.begin().await?;
-
-    sqlx::query!(
-        r#"
-        INSERT INTO users (id, name, email, display_name, status, email_verified, roles)
-        VALUES ($1, $2, $3, $4, 'active', true, $5)
-        "#,
-        &user_id,
-        display_name,
-        email,
-        display_name,
-        &roles,
-    )
-    .execute(&mut *tx)
-    .await?;
-
-    sqlx::query!(
-        "INSERT INTO federated_identities (issuer, external_sub, user_id) VALUES ($1, $2, $3)",
-        issuer,
-        external_sub,
-        &user_id,
-    )
-    .execute(&mut *tx)
-    .await?;
-
-    if let Some(org_id) = org_id.as_deref() {
-        sqlx::query!(
-            "INSERT INTO organization_members (user_id, org_id, org_role)
-             VALUES ($1, $2, 'member')",
-            &user_id,
-            org_id,
-        )
-        .execute(&mut *tx)
-        .await?;
-    }
-
-    tx.commit().await?;
-
-    Ok(ResolvedFederatedUser {
-        user_id: UserId::new(user_id),
-        email: email.to_owned(),
-        display_name: display_name.to_owned(),
-        roles,
-    })
-}
-
-/// Masks an address enough to be recognised by its owner and useless to anyone
-/// else.
-///
-/// The conflict this appears in is shown to whoever just authenticated against
-/// the *external* system, who may not hold the platform account named. They
-/// need enough to recognise it if it is theirs; they are owed nothing more.
+// Why: masks an address enough to be recognised by its owner and useless to anyone
+// else.
+//
+// The conflict this appears in is shown to whoever just authenticated against
+// the *external* system, who may not hold the platform account named. They
+// need enough to recognise it if it is theirs; they are owed nothing more.
 fn mask_email(email: &str) -> String {
     let Some((local, domain)) = email.split_once('@') else {
         return "***".to_owned();
     };
     let head = local.chars().next().map_or_else(String::new, String::from);
     format!("{head}***@{domain}")
+}
+
+// Why: the binding already exists, which is the only case that earns
+// `RoleAuthority::Sync` — the provider has been trusted with this row before,
+// so it may raise as well as lower.
+async fn resolve_established_binding(
+    pool: &PgPool,
+    issuer: &str,
+    external_sub: &str,
+    desired_roles: Option<&[String]>,
+) -> Result<Option<ResolvedFederatedUser>, MarketplaceError> {
+    let Some(user_id) = find_mapping(pool, issuer, external_sub).await? else {
+        return Ok(None);
+    };
+    let Some(user) = load_user(pool, &user_id).await? else {
+        return Ok(None);
+    };
+    let roles = apply_roles(
+        pool,
+        RoleUpdate {
+            user_id: &user.id,
+            issuer,
+            stored: user.roles,
+            desired: desired_roles,
+            authority: RoleAuthority::Sync,
+        },
+    )
+    .await?;
+    Ok(Some(ResolvedFederatedUser {
+        user_id: user.id,
+        email: user.email,
+        display_name: user.display_name,
+        roles,
+    }))
 }
 
 pub async fn resolve_federated_user(
@@ -389,35 +206,21 @@ pub async fn resolve_federated_user(
         email,
         display_name: _,
     } = *claims;
-    if let Some(user_id) = find_mapping(pool, issuer, external_sub).await?
-        && let Some(user) = load_user(pool, &user_id).await?
-    {
-        let roles = apply_roles(
-            pool,
-            &user.id,
-            issuer,
-            user.roles,
-            desired_roles,
-            RoleAuthority::Sync,
-        )
-        .await?;
-        return Ok(Some(ResolvedFederatedUser {
-            user_id: user.id,
-            email: user.email,
-            display_name: user.display_name,
-            roles,
-        }));
+    if let Some(resolved) = resolve_established_binding(pool, issuer, external_sub, desired_roles).await? {
+        return Ok(Some(resolved));
     }
 
     if let Some(user) = find_active_user_by_email(pool, email).await? {
         link_existing(pool, issuer, external_sub, &user.id).await?;
         let roles = apply_roles(
             pool,
-            &user.id,
-            issuer,
-            user.roles,
-            desired_roles,
-            RoleAuthority::DowngradeOnly,
+            RoleUpdate {
+                user_id: &user.id,
+                issuer,
+                stored: user.roles,
+                desired: desired_roles,
+                authority: RoleAuthority::DowngradeOnly,
+            },
         )
         .await?;
         return Ok(Some(ResolvedFederatedUser {
@@ -434,7 +237,7 @@ pub async fn resolve_federated_user(
     if issuer.starts_with("odoo:")
         && let Some(user) = find_active_user_by_odoo_uid(pool, external_sub).await?
     {
-        // Why refuse rather than link: the addresses disagreeing means this Odoo
+        // Why: refuse rather than link: the addresses disagreeing means this Odoo
         // login is about to sign somebody in as an account that does not carry
         // their name. Whether that is correct is a judgement only a person holding
         // both accounts can make, and every screen downstream — the bridge consent
@@ -461,11 +264,13 @@ pub async fn resolve_federated_user(
         link_existing(pool, issuer, external_sub, &user.id).await?;
         let roles = apply_roles(
             pool,
-            &user.id,
-            issuer,
-            user.roles,
-            desired_roles,
-            RoleAuthority::DowngradeOnly,
+            RoleUpdate {
+                user_id: &user.id,
+                issuer,
+                stored: user.roles,
+                desired: desired_roles,
+                authority: RoleAuthority::DowngradeOnly,
+            },
         )
         .await?;
         return Ok(Some(ResolvedFederatedUser {

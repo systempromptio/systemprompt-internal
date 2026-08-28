@@ -2133,3 +2133,44 @@ promote SHA="":
     echo
     echo "Opened https://github.com/$REPO/pull/$NUM"
     echo "Review it, then merge when you are ready:  gh pr merge $NUM --merge"
+
+# Screenshot the web-tree half of the Windows-native shell (bridge review 04).
+# The native chrome — title bar, tray, toasts, logon task — cannot appear here.
+# Evidence for bridge-review doc 01 (navigation and IA).
+bridge-nav-shots PORT="4313":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    CORE="{{justfile_directory()}}/../systemprompt-core/bin/bridge"
+    cargo build --manifest-path "$CORE/Cargo.toml" --features dev-preview \
+        --bin systemprompt-bridge
+    if [ ! -d playwright/node_modules ]; then
+        just e2e-install
+    fi
+    "$CORE/target/debug/systemprompt-bridge" dev-web --port {{PORT}} --web-root "$CORE/web" &
+    PREVIEW_PID=$!
+    trap 'kill $PREVIEW_PID 2>/dev/null || true' EXIT
+    for _ in $(seq 1 40); do
+        curl -sf "http://127.0.0.1:{{PORT}}/dev/fixtures" >/dev/null && break
+        sleep 0.25
+    done
+    cd playwright && BRIDGE_PREVIEW_URL="http://127.0.0.1:{{PORT}}" \
+        npx playwright test tests/bridge-navigation.spec.ts
+
+bridge-windows-shots PORT="4312":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    CORE="{{justfile_directory()}}/../systemprompt-core/bin/bridge"
+    cargo build --manifest-path "$CORE/Cargo.toml" --features dev-preview \
+        --bin systemprompt-bridge
+    if [ ! -d playwright/node_modules ]; then
+        just e2e-install
+    fi
+    "$CORE/target/debug/systemprompt-bridge" dev-web --port {{PORT}} --web-root "$CORE/web" &
+    PREVIEW_PID=$!
+    trap 'kill $PREVIEW_PID 2>/dev/null || true' EXIT
+    for _ in $(seq 1 40); do
+        curl -sf "http://127.0.0.1:{{PORT}}/dev/fixtures" >/dev/null && break
+        sleep 0.25
+    done
+    cd playwright && BRIDGE_PREVIEW_URL="http://127.0.0.1:{{PORT}}" \
+        npx playwright test tests/bridge-windows-shell.spec.ts

@@ -111,8 +111,8 @@ impl AdminError {
             | Self::RateLimited(msg)
             | Self::Unavailable(msg)
             | Self::BridgeRepo(BridgeRepoError::Validation(msg))
-            // Why Conflict's message is public: it is the only thing telling a
-            // signed-in user *which* account already holds their external
+            // Why: Conflict's message is public because it is the only thing
+            // telling a signed-in user *which* account already holds their external
             // identity and what to do about it. Swallowing it into "Internal
             // server error" leaves them with a dead end and no next step.
             | Self::Marketplace(

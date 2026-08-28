@@ -7,27 +7,21 @@
 //! admin extension declares) are not evaluated here; a grant conferred only
 //! by such a dimension shows on the admin access matrix, not in this panel.
 
-use std::collections::{BTreeSet, HashSet};
+
 
 use rmcp::ErrorData as McpError;
-use systemprompt::identifiers::{McpExecutionId, PluginId};
+use systemprompt::identifiers::McpExecutionId;
 use systemprompt::loader::ConfigLoader;
 use systemprompt::mcp::McpToolHandler;
 use systemprompt::models::artifacts::CliArtifact;
 use systemprompt::models::execution::context::RequestContext as SysRequestContext;
-use systemprompt::models::services::ServicesConfig;
-use systemprompt::security::authz::{
-    AccessControlRepository, BulkKeepQuery, ChainSources, EntityKind, NO_SUBJECT_ATTRIBUTES,
-    ParentChainIndex, allowed_ids,
-};
 
-use crate::store::{CommsStore, IdentityRow};
+use crate::store::CommsStore;
 use crate::tools::{TOOL_WHOAMI, WhoamiInput};
-use crate::whoami::{
-    GrantSource, GrantedEntity, OdooLinkStatus, OwnSession, WhoamiGrants, WhoamiReport, WhoamiUser,
-};
+use crate::whoami::{OdooLinkStatus, OwnSession, WhoamiReport, WhoamiUser};
 
 use super::common::{internal, text_artifact};
+use super::whoami_grants::resolve_grants;
 
 pub(super) struct WhoamiHandler {
     pub(super) store: CommsStore,
@@ -128,119 +122,4 @@ impl McpToolHandler for WhoamiHandler {
         );
         Ok((text_artifact("Who Am I", &body), summary))
     }
-}
-
-async fn resolve_grants(
-    db: &systemprompt::database::DbPool,
-    services: &ServicesConfig,
-    identity: &IdentityRow,
-) -> Result<WhoamiGrants, systemprompt::security::authz::AuthzError> {
-    let repo = AccessControlRepository::new(db)?;
-    let sources = ChainSources::from_services(services);
-    let index = ParentChainIndex::load(&repo, sources.clone()).await?;
-
-    let marketplace_id = sources
-        .marketplace
-        .as_ref()
-        .map(|m| m.id.as_str().to_owned());
-    let plugin_ids: Vec<String> = sources.plugins.iter().map(|id| id.as_str().to_owned()).collect();
-    let mcp_ids: Vec<String> = services
-        .mcp_servers
-        .iter()
-        .filter(|(_, d)| d.enabled)
-        .map(|(name, _)| name.clone())
-        .collect();
-    let skill_ids: Vec<String> = sources
-        .skill_owners
-        .keys()
-        .map(|id| id.as_str().to_owned())
-        .collect();
-
-    let allowed = |kind: EntityKind, ids: &[String]| {
-        let index = &index;
-        let repo = &repo;
-        let ids = ids.to_vec();
-        async move {
-            allowed_ids(
-                repo,
-                BulkKeepQuery {
-                    user_id: &identity.id,
-                    roles: &identity.roles,
-                    kind,
-                    ids: &ids,
-                    chains: index,
-                    attributes: &NO_SUBJECT_ATTRIBUTES,
-                    dimensions: &[],
-                },
-            )
-            .await
-        }
-    };
-
-    let marketplace_ids: Vec<String> = marketplace_id.iter().cloned().collect();
-    let marketplaces = allowed(EntityKind::Marketplace, &marketplace_ids).await?;
-    let plugins = allowed(EntityKind::Plugin, &plugin_ids).await?;
-    let mcp_servers = allowed(EntityKind::McpServer, &mcp_ids).await?;
-    let skills = allowed(EntityKind::Skill, &skill_ids).await?;
-
-    let own_plugins = repo
-        .list_rules_bulk(EntityKind::Plugin, &plugin_ids)
-        .await?;
-    let own_mcp = repo
-        .list_rules_bulk(EntityKind::McpServer, &mcp_ids)
-        .await?;
-    let own_skills = repo.list_rules_bulk(EntityKind::Skill, &skill_ids).await?;
-    let has_own = |rules: &std::collections::HashMap<String, Vec<_>>, id: &str| {
-        rules.get(id).is_some_and(|r| !r.is_empty())
-    };
-
-    let via_marketplace = || {
-        marketplace_id
-            .clone()
-            .map_or(GrantSource::Own, GrantSource::Marketplace)
-    };
-    let granted = |ids: &[String], allowed: &HashSet<String>, via: &dyn Fn(&str) -> GrantSource| {
-        ids.iter()
-            .filter(|id| allowed.contains(*id))
-            .map(|id| GrantedEntity {
-                id: id.clone(),
-                via: via(id),
-            })
-            .collect::<Vec<_>>()
-    };
-
-    Ok(WhoamiGrants {
-        marketplaces: granted(&marketplace_ids, &marketplaces, &|_| GrantSource::Own),
-        plugins: granted(&plugin_ids, &plugins, &|id| {
-            if has_own(&own_plugins, id) {
-                GrantSource::Own
-            } else {
-                via_marketplace()
-            }
-        }),
-        mcp_servers: granted(&mcp_ids, &mcp_servers, &|id| {
-            if has_own(&own_mcp, id) {
-                GrantSource::Own
-            } else {
-                via_marketplace()
-            }
-        }),
-        skills: granted(&skill_ids, &skills, &|id| {
-            if has_own(&own_skills, id) {
-                return GrantSource::Own;
-            }
-            // `SkillId` and `PluginId` impl `Borrow<str>`, so the map still
-            // takes the plain `&str` that `granted` hands this closure — only
-            // the value type changed when core made these ids typed.
-            let owners: &BTreeSet<PluginId> = match sources.skill_owners.get(id) {
-                Some(owners) => owners,
-                None => return via_marketplace(),
-            };
-            owners
-                .iter()
-                .find(|owner| plugins.contains(owner.as_str()))
-                .map(|owner| owner.as_str().to_owned())
-                .map_or_else(via_marketplace, GrantSource::Plugin)
-        }),
-    })
 }

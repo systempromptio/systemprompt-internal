@@ -52,14 +52,14 @@ pub(super) async fn find_active_user_by_email(
     }))
 }
 
-// Why `odoo_uid` only: it is the identifier Odoo issued and cannot be chosen by
+// Why: `odoo_uid` only: it is the identifier Odoo issued and cannot be chosen by
 // whoever creates the account. The login can be. Matching on either meant
 // anyone able to create an Odoo user with a chosen login could resolve onto the
 // platform account holding that login — and this lookup deliberately returns
 // accounts whose platform email differs, so the collision was invisible to the
-// caller. A re-created Odoo user (new uid, same login) no longer resolves here;
-// that is a rare operator event whose remedy is to re-link from the profile
-// page.
+// caller. A re-created Odoo user (new uid, same login) therefore does not
+// resolve here; that is a rare operator event whose remedy is to re-link from
+// the profile page.
 //
 // Returns `email` so the caller can compare it against the claim. Resolving
 // onto a differently-addressed account is a decision the caller must take
@@ -99,11 +99,11 @@ pub struct FederatedIdentitySummary {
     pub external_sub: String,
 }
 
-/// Lists the external identities bound to a user.
-///
-/// Read by consent screens so they can state *how* the current session
-/// authenticated, not merely which row it landed on. When those two disagree,
-/// the operator is the only one who can tell whether that is correct.
+// Why: lists the external identities bound to a user.
+//
+// Read by consent screens so they can state *how* the current session
+// authenticated, not merely which row it landed on. When those two disagree,
+// the operator is the only one who can tell whether that is correct.
 pub(super) async fn list_federated_identities(
     pool: &PgPool,
     user_id: &UserId,

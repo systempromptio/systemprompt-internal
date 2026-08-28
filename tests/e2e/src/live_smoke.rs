@@ -33,14 +33,14 @@ const ADMIN_LOGIN: &str = "ed@systemprompt.io";
 const SALES_LOGIN: &str = "ed+notadmin@systemprompt.io";
 const PASSWORD: &str = "e2e-live-password-2026";
 
-/// Refuse to run against anything that is not a local stack.
-///
-/// This suite seeds users, rewrites their passwords, and creates CRM leads. It
-/// does that against the real logins now, which is only sound while the target
-/// is a clone. The guarantee cannot be a convention in a comment: one exported
-/// `E2E_ODOO_URL` pointing at the Fly app would run all of it against
-/// production, as the people it names. So both endpoints are checked against
-/// the loopback host and the test aborts before its first write otherwise.
+// Refuse to run against anything that is not a local stack.
+//
+// This suite seeds users, rewrites their passwords, and creates CRM leads. It
+// does that against the real logins now, which is only sound while the target
+// is a clone. The guarantee cannot be a convention in a comment: one exported
+// `E2E_ODOO_URL` pointing at the Fly app would run all of it against
+// production, as the people it names. So both endpoints are checked against
+// the loopback host and the test aborts before its first write otherwise.
 fn require_local_stack(base: &str, odoo: &str) {
     for (label, url) in [("E2E_BASE_URL", base), ("E2E_ODOO_URL", odoo)] {
         let host = url

@@ -11,6 +11,7 @@ pub mod reads;
 pub mod render;
 pub mod send;
 pub mod whoami;
+mod whoami_grants;
 
 use crate::store::CommsStore;
 use crate::tools::{

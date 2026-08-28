@@ -18,6 +18,7 @@ pub(crate) mod list_view;
 pub(crate) mod ssr_analytics_requests;
 mod ssr_approvals;
 mod ssr_bridge_device_link;
+mod ssr_bridge_device_link_view;
 mod ssr_bridge_setup;
 mod ssr_chain;
 mod ssr_context_detail;

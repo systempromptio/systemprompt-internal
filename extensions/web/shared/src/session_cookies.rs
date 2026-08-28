@@ -11,24 +11,24 @@
 use axum::http::HeaderMap;
 use axum::http::header::SET_COOKIE;
 
-/// Cookie holding the session JWT. Scoped to the whole site.
+// Why: cookie holding the session JWT. Scoped to the whole site.
 const ACCESS_COOKIE: &str = "access_token";
 const ACCESS_PATH: &str = "/";
 
-/// Cookie holding the refresh token. Deliberately narrower in scope.
+// Why: cookie holding the refresh token. Deliberately narrower in scope.
 const REFRESH_COOKIE: &str = "refresh_token";
 const REFRESH_PATH: &str = "/api/public/auth";
 
-/// Whether cookies should carry `Secure`, from the same config the setter
-/// reads.
+// Why: whether cookies should carry `Secure`, from the same config the setter
+// reads.
 fn is_secure_context() -> bool {
     systemprompt::models::Config::get().map_or(true, |c| c.use_https)
 }
 
-/// Builds the `Set-Cookie` headers that expire both session cookies.
-///
-/// Mirrors the setter's name, `Path`, `HttpOnly`, `SameSite` and `Secure`, so
-/// the browser treats these as the same cookies and actually drops them.
+// Why: builds the `Set-Cookie` headers that expire both session cookies.
+//
+// Mirrors the setter's name, `Path`, `HttpOnly`, `SameSite` and `Secure`, so
+// the browser treats these as the same cookies and actually drops them.
 pub fn clear() -> HeaderMap {
     let secure_flag = if is_secure_context() { "; Secure" } else { "" };
 

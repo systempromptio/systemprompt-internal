@@ -229,11 +229,11 @@ async fn reapply_seeds(pool: &Arc<PgPool>) {
         .expect("re-apply extension seeds after provisioning the admin");
 }
 
-/// The real logins, matching the live suite and the production clone. This
-/// harness seeds a throwaway database and talks to a wiremock Odoo, so nothing
-/// here reaches a real account — but the identities the assertions are written
-/// against should still be the ones the system actually carries, so a manifest
-/// or role expectation means the same thing in both tiers.
+// The real logins, matching the live suite and the production clone. This
+// harness seeds a throwaway database and talks to a wiremock Odoo, so nothing
+// here reaches a real account — but the identities the assertions are written
+// against should still be the ones the system actually carries, so a manifest
+// or role expectation means the same thing in both tiers.
 const ADMIN_EMAIL: &str = "ed@systemprompt.io";
 const USER_EMAIL: &str = "ed+notadmin@systemprompt.io";
 

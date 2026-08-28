@@ -45,6 +45,9 @@ async function openAgents(page: Page, fixture: string): Promise<string[]> {
 
 test.describe('bridge Agents tab', () => {
   test('every fixture renders cleanly and is captured', async ({ page }) => {
+    // One shot per fixture, and the fixture set keeps growing; the default
+    // 30s budget stopped covering the loop somewhere around the twelfth.
+    test.setTimeout(120_000);
     test.skip(fixtures.length === 0, `no preview at ${PREVIEW} — run \`just bridge-shots\``);
     await page.setViewportSize({ width: 1280, height: 860 });
     for (const fixture of fixtures) {
@@ -98,7 +101,7 @@ test.describe('bridge Agents tab', () => {
     // click away, rather than having been dropped in the redesign.
     const advanced = drawer.locator('summary', { hasText: 'Technical detail' });
     await advanced.click();
-    for (const value of ['Config location', 'Profile UUID', 'Payload UUID', 'Host kind',
+    for (const value of ['Config location', 'Configuration profile ID', 'Payload ID', 'Agent kind',
                          'Config format', 'Resolved profile keys']) {
       await expect(drawer).toContainText(value);
     }
@@ -125,5 +128,122 @@ test.describe('bridge Agents tab', () => {
     await row.locator('[data-kind="repair"]').click();
     await expect(row).toContainText('Working', { timeout: 5000 });
     await page.screenshot({ path: path.join(SHOTS, 'stale--after-repair.png') });
+  });
+  // A screenshot run that cannot tell a populated pane from an empty one is not
+  // verification: the first round of shots for this review offered four
+  // `loading…` cards as evidence that a layout had been fixed.
+  test('no pane is left stuck in a loading or skeleton state', async ({ page, request }) => {
+    test.setTimeout(120_000);
+    test.skip(fixtures.length === 0, `no preview at ${PREVIEW} — run \`just bridge-shots\``);
+    for (const fixture of fixtures) {
+      const state = await (await request.get(`${PREVIEW}/dev/state?fixture=${fixture}`)).json();
+      // Two states are legitimately mid-flight: a first run in progress, and a
+      // gateway that has not answered. Those are what the wizard's own
+      // "still checking" state is for, and it is asserted separately.
+      if (state.first_run?.active) { continue; }
+      if (state.gateway_status?.state !== 'reachable') { continue; }
+      for (const tab of ['agents', 'marketplace']) {
+        await page.addInitScript((t) => localStorage.setItem('bridge.tab', t), tab);
+        await page.goto(`${PREVIEW}/?fixture=${fixture}`, { waitUntil: 'domcontentloaded' });
+        await page.waitForTimeout(700);
+        const stuck = await page.evaluate(() => {
+          const selectors = ['[data-state="probing"]', '.sp-mkt-item--skeleton'];
+          const hits: string[] = [];
+          for (const sel of selectors) {
+            for (const el of Array.from(document.querySelectorAll(sel))) {
+              if ((el as HTMLElement).offsetParent !== null) { hits.push(sel); }
+            }
+          }
+          if (document.body.innerText.includes('loading…')) { hits.push('loading…'); }
+          return hits;
+        });
+        expect(stuck, `"${fixture}" left ${tab} loading`).toEqual([]);
+      }
+    }
+  });
+
+  test('a failed listing says so and offers a retry, rather than reading as empty', async ({ page }) => {
+    test.skip(!fixtures.includes('library-error'), 'library-error fixture absent');
+    await page.addInitScript(() => localStorage.setItem('bridge.tab', 'marketplace'));
+    await page.goto(`${PREVIEW}/?fixture=library-error`, { waitUntil: 'networkidle' });
+    const list = page.locator('sp-marketplace-list');
+    await expect(list.locator('.sp-mkt-empty__title')).toContainText('Could not load');
+    await expect(list.locator('[data-action="retry"]')).toBeVisible();
+    // The failure is reported once, not twice: the Rust `finish()` emits on the
+    // error channel as well as rejecting the request.
+    await expect(page.locator('sp-toast')).toBeVisible();
+    await page.screenshot({ path: path.join(SHOTS, 'library-error.png') });
+  });
+
+  test('a library that has never synced offers the sync, and says why it is empty', async ({ page }) => {
+    test.skip(!fixtures.includes('not-synced'), 'not-synced fixture absent');
+    await page.addInitScript(() => localStorage.setItem('bridge.tab', 'marketplace'));
+    await page.goto(`${PREVIEW}/?fixture=not-synced`, { waitUntil: 'networkidle' });
+    const empty = page.locator('sp-marketplace-list .sp-mkt-empty--with-sync');
+    await expect(empty).toContainText('has not synced');
+    await expect(empty.locator('[data-action="sync"]')).toBeVisible();
+  });
+
+  test('first run cannot hang without saying so', async ({ page }) => {
+    test.skip(!fixtures.includes('gateway-unreachable'), 'gateway-unreachable fixture absent');
+    await page.goto(`${PREVIEW}/?fixture=gateway-unreachable`, { waitUntil: 'networkidle' });
+    // The wizard used to wait for every host to report with no timeout and no
+    // error path, so one host that never answered sat there indefinitely.
+    const notice = page.locator('.sp-setup__note--warn');
+    await expect(notice).toBeVisible({ timeout: 20000 });
+    await expect(page.locator('[data-action="retry-settle"]')).toBeVisible();
+    await expect(page.locator('[data-action="continue-anyway"]')).toBeVisible();
+    await page.screenshot({ path: path.join(SHOTS, 'gateway-unreachable--settle.png') });
+  });
+
+  test('finishing setup with nothing installed asks first', async ({ page }) => {
+    test.skip(!fixtures.includes('nothing-installed'), 'nothing-installed fixture absent');
+    await page.goto(`${PREVIEW}/?fixture=nothing-installed`, { waitUntil: 'networkidle' });
+    await page.locator('[data-action="finish"]').click();
+    await expect(page.locator('[data-action="finish-anyway"]')).toBeVisible();
+  });
+
+  test('signed out lands on the wizard rather than a half-populated app', async ({ page }) => {
+    test.skip(!fixtures.includes('signed-out'), 'signed-out fixture absent');
+    await page.goto(`${PREVIEW}/?fixture=signed-out`, { waitUntil: 'networkidle' });
+    await expect(page.locator('sp-setup-gateway')).toBeVisible();
+    await page.screenshot({ path: path.join(SHOTS, 'signed-out.png') });
+  });
+
+  test('the model filter tracks its own edits and reports the save', async ({ page }) => {
+    test.skip(!fixtures.includes('healthy'), 'healthy fixture absent');
+    await openAgents(page, 'healthy');
+    await page.locator('.sp-agent-row__main').first().click();
+    const drawer = page.locator('[role="dialog"]');
+    const save = drawer.locator('[data-action="saveModelFilter"]');
+    // Save was always enabled and always silent, so a failed save was
+    // indistinguishable from a successful one.
+    await expect(save).toBeDisabled();
+    await drawer.locator('[data-proto="gemini"]').check();
+    await expect(save).toBeEnabled();
+    await expect(drawer.locator('.sp-drawer__dirty')).toBeVisible();
+    await save.click();
+    await expect(page.locator('sp-toast')).toContainText('Model filter saved');
+    await expect(save).toBeDisabled();
+  });
+
+  test('an agent can be removed, and the removal is confirmed first', async ({ page }) => {
+    test.skip(!fixtures.includes('healthy'), 'healthy fixture absent');
+    await openAgents(page, 'healthy');
+    await page.locator('.sp-agent-row__main').first().click();
+    const drawer = page.locator('[role="dialog"]');
+    await drawer.locator('.sp-drawer__body').evaluate((el) => { el.scrollTop = el.scrollHeight; });
+    await drawer.locator('[data-action="remove-agent"]').click();
+    await expect(drawer).toContainText('Remove Claude Desktop');
+    await page.screenshot({ path: path.join(SHOTS, 'healthy--remove-confirm.png') });
+    await drawer.locator('[data-action="confirm-remove"]').click();
+    await expect(page.locator('sp-toast')).toContainText('removed');
+  });
+
+  test('repair names the file it wrote', async ({ page }) => {
+    test.skip(!fixtures.includes('stale'), 'stale fixture absent');
+    await openAgents(page, 'stale');
+    await page.locator('sp-agent-row [data-kind="repair"]').first().click();
+    await expect(page.locator('sp-toast')).toContainText('Restart');
   });
 });

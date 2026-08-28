@@ -561,12 +561,12 @@ async fn analytics_pages_aggregate_the_seeded_trail() {
     );
 }
 
-/// Seed one non-platform customer with a member, and return its slug.
-///
-/// The enterprise pages render a roster and a per-customer detail page with a
-/// members panel, so the row needs a member to be worth asserting on. Ids are
-/// UUID-suffixed for the same reason every other fixture here is: so a hit is
-/// this test's row and not something the schema installed.
+// Seed one non-platform customer with a member, and return its slug.
+//
+// The enterprise pages render a roster and a per-customer detail page with a
+// members panel, so the row needs a member to be worth asserting on. Ids are
+// UUID-suffixed for the same reason every other fixture here is: so a hit is
+// this test's row and not something the schema installed.
 async fn seed_customer(pool: &PgPool) -> String {
     let suffix = uuid::Uuid::new_v4().simple().to_string();
     let slug = format!("contract-customer-{suffix}");

@@ -162,3 +162,25 @@ extensions/web/admin/src/repositories/dashboard/usage_aggregations/daily.rs	# in
 # ---------------------------------------------------------------------
 extensions/mcp/shared/src/lib.rs	# internal declares the approval gate and the brand ArtifactTheme; the template ships neither
 extensions/web/admin/src/handlers/ssr/ssr_setup.rs	# each fork's setup cards link into its own documentation site; the two sites have different pages
+
+# ---------------------------------------------------------------------
+# CORE AUTHZ RE-EXPORT (2026-08-28) - core moved `resolve` and
+# `ResolveInput` off `systemprompt_security::authz` and left them on
+# `authz::resolver`. Internal builds against the sibling core (0.41) and
+# has to take the new path; the template's pin is 0.40, which silently
+# resolves the published crate where the old re-export still exists, so
+# the same import there would not compile. This converges by itself at
+# the template's next core bump — port it then and delete these two lines.
+# ---------------------------------------------------------------------
+extensions/web/admin/src/handlers/gateway_catalog.rs	# internal imports ResolveInput from authz::resolver; the template's core 0.40 still re-exports it from authz
+extensions/web/admin/src/repositories/config/gateway_acl.rs	# internal re-exports resolve from authz::resolver; the template's core 0.40 still re-exports it from authz
+
+# ---------------------------------------------------------------------
+# BRIDGE DEVICE LINK (2026-08-28) - the consent screen reads the account
+# fresh from the database rather than trusting the JWT it was reached
+# with, because the address shown is the whole basis on which an operator
+# hands out a durable credential. `queries/identity.rs` is unique to
+# internal and is scope, not drift; only the re-export that publishes it
+# lands here. Converges when the device-link flow ships in the template.
+# ---------------------------------------------------------------------
+extensions/web/admin/src/repositories/users/queries/mod.rs	# internal re-exports find_user_identity for the device-link consent screen; the template has no such screen
