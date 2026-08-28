@@ -393,7 +393,7 @@ the APM fallback now uses `COALESCE(ended_at, last_event_at)`.
 **Phase 2 — comms, pull-only.** `extensions/mcp/comms` on **port 5060**, not
 5050: email already held that port and had published it across the demo docs.
 Five tools, four tables, and the `team-inbox` artifact bundled through
-**`systemprompt-crm`** — not `systemprompt-commons` as §9 first anticipated,
+**`systemprompt-user`** (formerly `systemprompt-crm`) — not `systemprompt-commons` as §9 first anticipated,
 because commons is disabled for the MVP marketplace and the sync script only
 bundles crm and admin. `knowledge-feed` sits there for the same reason.
 

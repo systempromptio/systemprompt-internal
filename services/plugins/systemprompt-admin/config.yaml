@@ -1,12 +1,15 @@
 plugin:
   id: systemprompt-admin
   name: "Systemprompt Admin — Control Plane"
-  description: "Admin-only control plane: who is using the platform, what it costs, what failed, and why. Ships the systemprompt CLI server plus governance, analytics, and operations skills, and three live dashboards."
-  version: "1.0.0"
-  # Enabled but admin-gated: roles.yaml grants this plugin, its skills, and the
-  # systemprompt MCP server to [admin] with default_included: false, so a
-  # user-role manifest never carries it. Disabling it here would hide the
-  # admin surface from admins too (tests/e2e/src/manifest_roles.rs pins this).
+  description: "Admin-only control plane: who is using the platform, what it costs, what failed, and why. Ships the systemprompt CLI server plus governance, analytics, and operations skills, the two admin-only demo steps, and three live dashboards."
+  version: "2.0.0"
+  # Admin-scoped: roles.yaml grants this plugin to [admin] with
+  # default_included: false. That single rule closes every skill and artifact
+  # below to every other role — they carry no rule of their own, and the
+  # nearest declared level of the cascade decides (core resolver). A user-role
+  # manifest never carries this plugin, its skills, or its dashboards.
+  # Disabling it here would hide the admin surface from admins too
+  # (tests/e2e/src/manifest_roles.rs pins this).
   enabled: true
   author:
     name: systemprompt.io
@@ -17,7 +20,6 @@ plugin:
   skills:
     source: explicit
     include:
-      - admin_workspace_setup_cowork
       - admin_user_report
       - admin_activity_report
       - analytics_dashboards
@@ -29,26 +31,27 @@ plugin:
       - manage_services
       - inspect_mcp_and_skills
       - systemprompt_cli
+      # Enterprise demo steps 4–5 (DEMO.md): governed writes and the metered
+      # bill. They run the admin CLI server, so they live with it.
+      - demo_governed_operations
+      - demo_command_center
   agents:
     source: explicit
     include: []
-  # The admin CLI-passthrough server. Gated to the admin role twice over: an
-  # entity rule in services/access-control/roles.yaml keeps it out of a
-  # non-admin's signed manifest, and oauth.scopes in services/mcp/systemprompt.yaml
-  # rejects the call at runtime if it gets there anyway.
+  # The admin CLI-passthrough server. Gated to the admin role three times
+  # over: this plugin's rule and the server's own entity rule in
+  # services/access-control/roles.yaml keep it out of a non-admin's signed
+  # manifest, and oauth.scopes in services/mcp/systemprompt.yaml rejects the
+  # call at runtime if it gets there anyway.
   mcp_servers:
     source: explicit
     include:
       - systemprompt
   content_sources: {}
-  # Dashboards seeded into the Cowork Artifacts library for users of this
-  # plugin. Selection is plugin-driven (core's selected_artifact_ids), so an
-  # artifact reaches a client only if a selected plugin names it here.
   artifacts:
     source: explicit
     include:
       - admin-users-directory
       - admin-activity-requests
       - admin-usage-costs
-  # No hooks: systemprompt-commons owns the session-global governance hooks, and
-  # each extra owner is another govern call per tool.
+  # No hooks: systemprompt-commons owns the session-global governance hooks.

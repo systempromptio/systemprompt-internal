@@ -17,8 +17,8 @@ use serde::Serialize;
 use sqlx::PgPool;
 use systemprompt::identifiers::{RuleId, UserId};
 use systemprompt_security::authz::{
-    Access, AccessRule, Decision, DenyReason, EntityKind, EntityRef, MatchedBy, ResolveInput,
-    SubjectAttributes, SubjectDimension, resolve,
+    Access, AccessControlRepository, AccessRule, ChainSources, Decision, DenyReason, EntityKind,
+    MatchedBy, ParentChainIndex, ResolveBase, SubjectAttributes, SubjectDimension,
 };
 
 use super::rules::list_all_rules;
@@ -90,6 +90,7 @@ pub async fn resolve_user_matrix(
     // the decision see identical subject values.
     let attributes = subject_attributes_for(pool, user_id).await;
     let dimensions = dimensions(pool);
+    let index = load_chain_index(pool).await;
 
     let mut sections: Vec<MatrixSection> = Vec::with_capacity(sections_in.len());
     for (entity_type, label, rows_in) in sections_in {
@@ -100,6 +101,7 @@ pub async fn resolve_user_matrix(
                 .copied()
                 .unwrap_or(false);
             let (effective, source) = resolve_effective(&MatrixCell {
+                index: &index,
                 all_rules: &all_rules,
                 entity_type: &entity_type,
                 entity_id: &entity_id,
@@ -189,7 +191,27 @@ fn as_access_rule(row: &AccessControlRule) -> AccessRule {
     }
 }
 
+// Why: the same chain the enforcement webhook resolves through, so a cell here
+// and a decision at the enforcement point cannot disagree about inheritance.
+async fn load_chain_index(pool: &PgPool) -> ParentChainIndex {
+    let services = match systemprompt::loader::ConfigLoader::load() {
+        Ok(services) => services,
+        Err(e) => {
+            tracing::warn!(error = %e, "matrix: services config unavailable; no parent cascade");
+            return ParentChainIndex::default();
+        },
+    };
+    let repo = AccessControlRepository::from_pool(std::sync::Arc::new(pool.clone()));
+    ParentChainIndex::load(&repo, ChainSources::from_services(&services))
+        .await
+        .unwrap_or_else(|e| {
+            tracing::warn!(error = %e, "matrix: parent chain load failed; no parent cascade");
+            ParentChainIndex::default()
+        })
+}
+
 struct MatrixCell<'a> {
+    index: &'a ParentChainIndex,
     all_rules: &'a [AccessControlRule],
     entity_type: &'a str,
     entity_id: &'a str,
@@ -214,7 +236,6 @@ fn resolve_effective(cell: &MatrixCell<'_>) -> (String, MatrixSource) {
             },
         );
     };
-    let entity = EntityRef::from_kind_and_id(kind, cell.entity_id);
     let rules: Vec<AccessRule> = cell
         .all_rules
         .iter()
@@ -223,16 +244,18 @@ fn resolve_effective(cell: &MatrixCell<'_>) -> (String, MatrixSource) {
         .collect();
 
     let uid = UserId::new(&cell.user.id);
-    let decision = resolve(ResolveInput {
-        entity: &entity,
-        rules: &rules,
-        user_id: &uid,
-        user_roles: &cell.user.roles,
-        default_included: Some(cell.default_included),
-        parents: &[],
-        attributes: cell.attributes,
-        dimensions: cell.dimensions,
-    });
+    let decision = cell.index.resolve(
+        kind,
+        cell.entity_id,
+        ResolveBase {
+            rules: &rules,
+            user_id: &uid,
+            user_roles: &cell.user.roles,
+            default_included: Some(cell.default_included),
+            attributes: cell.attributes,
+            dimensions: cell.dimensions,
+        },
+    );
 
     match decision {
         Decision::Allow { matched_by } => ("allow".to_owned(), allow_source(&uid, &matched_by)),

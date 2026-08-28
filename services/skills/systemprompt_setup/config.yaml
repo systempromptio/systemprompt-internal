@@ -1,10 +1,7 @@
 id: systemprompt_setup
 name: "Systemprompt Setup"
-description: "Start here to set up systemprompt.io in your workspace: routes to the right host-specific setup skill (Claude Cowork dashboards, Codex CLI gateway wiring) and checks the Odoo connection"
-# Retired: host targeting on the two real setup skills means each host now
-# sees exactly one — the router this skill provided is redundant and only
-# cluttered the picker with a third near-identical entry.
-enabled: false
+description: "Start here to set up systemprompt.io in your workspace, whatever your role: routes to the host-specific setup (Claude Cowork dashboards for every plugin you were granted, Codex CLI gateway wiring) and checks the MCP connections"
+enabled: true
 file: SKILL.md
 tags:
   - setup

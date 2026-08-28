@@ -8,7 +8,8 @@
 //! silently fails to evict is worst precisely there: it leaves the previous
 //! session live on a screen whose next step mints a durable credential.
 
-use axum::http::{HeaderMap, header::SET_COOKIE};
+use axum::http::HeaderMap;
+use axum::http::header::SET_COOKIE;
 
 /// Cookie holding the session JWT. Scoped to the whole site.
 const ACCESS_COOKIE: &str = "access_token";
@@ -18,21 +19,23 @@ const ACCESS_PATH: &str = "/";
 const REFRESH_COOKIE: &str = "refresh_token";
 const REFRESH_PATH: &str = "/api/public/auth";
 
-/// Whether cookies should carry `Secure`, from the same config the setter reads.
+/// Whether cookies should carry `Secure`, from the same config the setter
+/// reads.
 fn is_secure_context() -> bool {
     systemprompt::models::Config::get().map_or(true, |c| c.use_https)
 }
 
 /// Builds the `Set-Cookie` headers that expire both session cookies.
 ///
-/// Mirrors the setter's name, `Path`, `HttpOnly`, `SameSite` and `Secure`, so the
-/// browser treats these as the same cookies and actually drops them.
+/// Mirrors the setter's name, `Path`, `HttpOnly`, `SameSite` and `Secure`, so
+/// the browser treats these as the same cookies and actually drops them.
 pub fn clear() -> HeaderMap {
     let secure_flag = if is_secure_context() { "; Secure" } else { "" };
 
     let mut headers = HeaderMap::new();
     for (name, path) in [(ACCESS_COOKIE, ACCESS_PATH), (REFRESH_COOKIE, REFRESH_PATH)] {
-        let cookie = format!("{name}=; Path={path}; HttpOnly; SameSite=Lax; Max-Age=0{secure_flag}");
+        let cookie =
+            format!("{name}=; Path={path}; HttpOnly; SameSite=Lax; Max-Age=0{secure_flag}");
         if let Ok(value) = cookie.parse() {
             headers.append(SET_COOKIE, value);
         }

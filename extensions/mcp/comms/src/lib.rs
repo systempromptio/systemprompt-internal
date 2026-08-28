@@ -16,5 +16,6 @@ pub mod schema;
 pub mod server;
 pub mod store;
 pub mod tools;
+pub mod whoami;
 
 pub use server::CommsServer;

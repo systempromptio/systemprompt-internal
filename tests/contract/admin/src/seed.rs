@@ -7,10 +7,12 @@
 //! empty state correctly and its populated state not at all passes the first
 //! and fails here, which is the split worth having.
 //!
-//! Ids are UUID-suffixed. Migration `025_demo_organizations` seeds three demo
-//! customers with ten users and roughly a thousand `ai_requests`, so a fixture
-//! that reused a plausible id would be asserting against seeded rows without
-//! knowing it.
+//! Ids are UUID-suffixed, so a fixture that reused a plausible id cannot end
+//! up asserting against a row it did not create. Migration
+//! `025_demo_organizations` used to seed three demo customers with ten users
+//! and roughly a thousand `ai_requests` into this same database, which is what
+//! made that a live hazard rather than a precaution; it has been removed, and
+//! the suffixing stays because the property it buys is worth keeping.
 
 use std::collections::BTreeMap;
 

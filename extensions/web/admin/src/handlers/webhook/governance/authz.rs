@@ -2,8 +2,9 @@
 //! [`systemprompt_security::authz::AuthzDecisionHook`] as an HTTP endpoint.
 //!
 //! Core's gateway and MCP enforcement sites POST an [`AuthzRequest`] here;
-//! this handler loads the matching rules from `access_control_rules`, runs
-//! the pure deny-overrides resolver, audits the decision to
+//! this handler loads the matching rules from `access_control_rules`, resolves
+//! them through the entity's plugin and marketplace parent chain (the same
+//! chain the bridge manifest is filtered with), audits the decision to
 //! `governance_decisions`, and returns an [`AuthzDecision`] for core to act
 //! on. The audit row's `policy` is `authz` regardless of `entity_type`, so
 //! `infra logs audit` can correlate gateway and MCP decisions in one stream.
@@ -20,10 +21,11 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use sqlx::PgPool;
-use systemprompt::identifiers::{Actor, MarketplaceId, SessionId};
+use systemprompt::identifiers::{Actor, SessionId};
+use systemprompt::loader::ConfigLoader;
 use systemprompt_security::authz::{
-    AccessControlRepository, AccessRule, AuthzDecision, AuthzRequest, Decision, DecisionTag,
-    DenyReason, EntityKind, EntityRef, EntityRow, ResolveInput, ResolveParent, resolve,
+    AccessControlRepository, AccessRule, AuthzDecision, AuthzRequest, ChainSources, Decision,
+    DecisionTag, DenyReason, EntityRow, ParentChainIndex, ResolveBase,
 };
 use tokio::sync::RwLock;
 
@@ -32,60 +34,51 @@ use systemprompt_security::authz::{GovernanceDecisionRecord, insert_governance_d
 
 const POLICY_NAME: &str = "authz";
 
-struct CachedMarketplaceParents {
-    entries: Vec<(EntityRef, Vec<AccessRule>, Option<bool>)>,
+struct CachedChainIndex {
+    index: Arc<ParentChainIndex>,
     fetched_at: Instant,
 }
 
-static MARKETPLACE_PARENT_CACHE: LazyLock<RwLock<Option<CachedMarketplaceParents>>> =
+static CHAIN_INDEX_CACHE: LazyLock<RwLock<Option<CachedChainIndex>>> =
     LazyLock::new(|| RwLock::new(None));
-const MARKETPLACE_PARENT_TTL: Duration = Duration::from_mins(5);
+const CHAIN_INDEX_TTL: Duration = Duration::from_mins(5);
 
-async fn marketplace_parent_entries(
-    repo: &AccessControlRepository,
-) -> Vec<(EntityRef, Vec<AccessRule>, Option<bool>)> {
+// Why: the same `entity → plugin → marketplace` chain the bridge manifest is
+// filtered with (core `keep_sets`), so a decision here and the listing agree.
+// Cached for the TTL because every governed tool call lands here; a rule edit
+// binds within five minutes, which matches the marketplace cache above it.
+async fn chain_index(repo: &AccessControlRepository) -> Arc<ParentChainIndex> {
     {
-        let cache = MARKETPLACE_PARENT_CACHE.read().await;
+        let cache = CHAIN_INDEX_CACHE.read().await;
         if let Some(ref cached) = *cache
-            && cached.fetched_at.elapsed() < MARKETPLACE_PARENT_TTL
+            && cached.fetched_at.elapsed() < CHAIN_INDEX_TTL
         {
-            return cached.entries.clone();
+            return Arc::clone(&cached.index);
         }
     }
 
-    let entries = match repo.list_entities(EntityKind::Marketplace).await {
-        Ok(rows) => {
-            let mut out = Vec::with_capacity(rows.len());
-            for row in rows {
-                let rules = repo
-                    .list_rules_for_entity(EntityKind::Marketplace, &row.id)
-                    .await
-                    .unwrap_or_else(|e| {
-                        tracing::warn!(error = %e, marketplace_id = %row.id, "marketplace_parent_entries: rules lookup failed; treating marketplace as no-rules");
-                        Vec::new()
-                    });
-                out.push((
-                    EntityRef::Marketplace(MarketplaceId::new(&row.id)),
-                    rules,
-                    Some(row.default_included),
-                ));
-            }
-            out
-        },
+    let index = match ConfigLoader::load() {
+        Ok(services) => ParentChainIndex::load(repo, ChainSources::from_services(&services))
+            .await
+            .unwrap_or_else(|e| {
+                tracing::warn!(error = %e, "chain_index: parent load failed; resolving without cascade");
+                ParentChainIndex::default()
+            }),
         Err(e) => {
-            tracing::warn!(error = %e, "marketplace_parent_entries: list_entities failed; resolving without cascade parent");
-            Vec::new()
+            tracing::warn!(error = %e, "chain_index: services config unavailable; resolving without cascade");
+            ParentChainIndex::default()
         },
     };
+    let index = Arc::new(index);
 
     {
-        let mut cache = MARKETPLACE_PARENT_CACHE.write().await;
-        *cache = Some(CachedMarketplaceParents {
-            entries: entries.clone(),
+        let mut cache = CHAIN_INDEX_CACHE.write().await;
+        *cache = Some(CachedChainIndex {
+            index: Arc::clone(&index),
             fetched_at: Instant::now(),
         });
     }
-    entries
+    index
 }
 
 async fn load_rules(
@@ -208,31 +201,25 @@ pub(crate) async fn govern_authz(
         Err(resp) => return resp,
     };
 
-    let mp_entries = marketplace_parent_entries(&repo).await;
-    let parents: Vec<ResolveParent<'_>> = mp_entries
-        .iter()
-        .map(|(entity, rules, default_included)| ResolveParent {
-            entity,
-            rules,
-            default_included: *default_included,
-        })
-        .collect();
+    let index = chain_index(&repo).await;
 
     // Why: resolved by lookup rather than read off the request, so a department
     // change or a revocation binds on the next call instead of waiting for the
     // caller's token to refresh.
     let attributes = subject_attributes_for(&pool, &req.user_id).await;
 
-    let decision = resolve(ResolveInput {
-        entity: &req.entity,
-        rules: &rules,
-        user_id: &req.user_id,
-        user_roles: &req.roles,
-        default_included: entity.as_ref().map(|e| e.default_included),
-        parents: &parents,
-        attributes: &attributes,
-        dimensions: dimensions(&pool),
-    });
+    let decision = index.resolve(
+        req.entity.kind(),
+        req.entity.id_str(),
+        ResolveBase {
+            rules: &rules,
+            user_id: &req.user_id,
+            user_roles: &req.roles,
+            default_included: entity.as_ref().map(|e| e.default_included),
+            attributes: &attributes,
+            dimensions: dimensions(&pool),
+        },
+    );
 
     audit_decision(&pool, &req, &rules, entity.as_ref(), &decision).await;
 

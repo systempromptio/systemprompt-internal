@@ -12,7 +12,7 @@
 # `email_send` note in services/governance/config.yaml. Note that
 # `exempt_scopes: [admin]` means an ADMIN CALLER IS NEVER HELD by the second
 # layer; demoing or testing the hold requires a non-admin account
-# (e2e-sales@systemprompt.local).
+# (ed+notadmin@systemprompt.io).
 #
 # A client that does not implement MRTR never gets past round one and never
 # sends. There is deliberately no draft/send tool pair and no token to work

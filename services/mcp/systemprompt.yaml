@@ -4,9 +4,16 @@ mcp_servers:
     binary: systemprompt-mcp-agent
     package: systemprompt
     port: 5010
-    # Disabled 2026-08-07: the CLI-executor surface is not wanted on managed
-    # clients for now. The extension code stays; flip this back to re-enable.
-    enabled: false
+    # Re-enabled 2026-08-28: the admin control plane depends on it — the three
+    # admin dashboards and the governance/analytics skills all call
+    # mcp__systemprompt__systemprompt. It never reaches a non-admin: the
+    # systemprompt-admin plugin rule and this server's own rule in
+    # services/access-control/roles.yaml keep it out of a user's signed
+    # manifest, and oauth.scopes below rejects a non-admin call at runtime.
+    # Disabling it while systemprompt-admin is enabled now fails config
+    # validation at boot (core ServicesConfig::validate) and in CI
+    # (scripts/validate-services.sh).
+    enabled: true
     display_in_web: false
     removable: false
     description: Systemprompt MCP Server - Execute CLI commands (admin only)

@@ -320,9 +320,7 @@ mod wire_shape {
         let schema = &request["params"]["requestedSchema"];
         assert_eq!(schema["properties"][CONFIRM_FIELD]["type"], "boolean");
         assert_eq!(
-            schema["required"]
-                .as_array()
-                .expect("required is an array")[0],
+            schema["required"].as_array().expect("required is an array")[0],
             CONFIRM_FIELD
         );
     }

@@ -301,11 +301,74 @@ pub async fn spawn_email_mcp() -> Option<McpServerProc> {
         }
         tokio::time::sleep(Duration::from_millis(200)).await;
     }
-    panic!("systemprompt-mcp-email never opened port {port} — check the profile it was spawned with")
+    panic!(
+        "systemprompt-mcp-email never opened port {port} — check the profile it was spawned with"
+    )
 }
 
 fn email_binary() -> Option<PathBuf> {
     newest_binary("systemprompt-mcp-email")
+}
+
+// The admin CLI-passthrough server: the profile tells it where the
+// `systemprompt` binary lives, so it needs no service-specific env beyond its
+// id.
+pub async fn spawn_systemprompt_mcp() -> Option<McpServerProc> {
+    let bin = newest_binary("systemprompt-mcp-agent")?;
+    let port = free_port();
+    let child = std::process::Command::new(&bin)
+        .env(
+            "SYSTEMPROMPT_PROFILE",
+            super::stack::profile_path().join("profile.yaml"),
+        )
+        .env("MCP_PORT", port.to_string())
+        .env("MCP_SERVICE_ID", "systemprompt")
+        .stdout(log_sink())
+        .stderr(log_sink())
+        .spawn()
+        .expect("spawn systemprompt-mcp-agent");
+    let proc = McpServerProc { child, port };
+
+    for _ in 0..100 {
+        if std::net::TcpStream::connect(("127.0.0.1", port)).is_ok() {
+            return Some(proc);
+        }
+        tokio::time::sleep(Duration::from_millis(200)).await;
+    }
+    panic!(
+        "systemprompt-mcp-agent never opened port {port} — check the profile it was spawned with"
+    )
+}
+
+// initialize → tools/list → cancel; the tool names and their annotations.
+pub async fn list_tools(port: u16, bearer: &str) -> Result<Vec<rmcp::model::Tool>, String> {
+    let request_context = RequestContext::new(
+        SessionId::new(uuid::Uuid::new_v4().to_string()),
+        TraceId::generate(),
+        ContextId::generate(),
+        AgentName::new("e2e-tests".to_owned()),
+    );
+    let config =
+        StreamableHttpClientTransportConfig::with_uri(format!("http://127.0.0.1:{port}/mcp"))
+            .auth_header(bearer.to_owned());
+    let transport = StreamableHttpClientTransport::with_client(
+        HttpClientWithContext::new(request_context),
+        config,
+    );
+    let client_info = ClientInfo::new(
+        ClientCapabilities::default(),
+        Implementation::new("e2e-tests", "0.0.0"),
+    );
+    let client = tokio::time::timeout(Duration::from_secs(30), client_info.serve(transport))
+        .await
+        .map_err(|_| "initialize timed out".to_owned())?
+        .map_err(|e| format!("initialize failed: {e}"))?;
+    let tools = client
+        .list_all_tools()
+        .await
+        .map_err(|e| format!("tools/list failed: {e}"))?;
+    let _ = client.cancel().await;
+    Ok(tools)
 }
 
 pub async fn spawn_comms_mcp() -> Option<McpServerProc> {
@@ -330,7 +393,9 @@ pub async fn spawn_comms_mcp() -> Option<McpServerProc> {
         }
         tokio::time::sleep(Duration::from_millis(200)).await;
     }
-    panic!("systemprompt-mcp-comms never opened port {port} — check the profile it was spawned with")
+    panic!(
+        "systemprompt-mcp-comms never opened port {port} — check the profile it was spawned with"
+    )
 }
 
 // Why an explicit session id rather than the random one `raw_call` mints: the
@@ -351,8 +416,7 @@ pub async fn call_tool_as_session(
         ContextId::generate(),
         AgentName::new("e2e-tests".to_owned()),
     );
-    let config = StreamableHttpClientTransportConfig::with_uri(url)
-        .auth_header(bearer.to_owned());
+    let config = StreamableHttpClientTransportConfig::with_uri(url).auth_header(bearer.to_owned());
     let transport = StreamableHttpClientTransport::with_client(
         HttpClientWithContext::new(request_context),
         config,
@@ -401,10 +465,9 @@ impl MrtrClient {
             ContextId::generate(),
             AgentName::new("e2e-tests".to_owned()),
         );
-        let config = StreamableHttpClientTransportConfig::with_uri(format!(
-            "http://127.0.0.1:{port}/mcp"
-        ))
-        .auth_header(bearer.to_owned());
+        let config =
+            StreamableHttpClientTransportConfig::with_uri(format!("http://127.0.0.1:{port}/mcp"))
+                .auth_header(bearer.to_owned());
         // Why: core's `HttpClientWithContext` stamps the SEP-2575 `_meta` that a
         // 2026-07-28 server requires, and that is also what makes rmcp derive
         // the `Mcp-Method` / `Mcp-Name` headers. Nothing test-specific needed.
@@ -475,14 +538,13 @@ pub fn with_confirmation(
 // arrive at the test as a bare HTTP status with no cause. Setting
 // E2E_MCP_LOG=<path> tees its output somewhere readable.
 fn log_sink() -> std::process::Stdio {
-    std::env::var("E2E_MCP_LOG").ok().map_or_else(
-        std::process::Stdio::null,
-        |path| {
+    std::env::var("E2E_MCP_LOG")
+        .ok()
+        .map_or_else(std::process::Stdio::null, |path| {
             std::fs::OpenOptions::new()
                 .create(true)
                 .append(true)
                 .open(&path)
                 .map_or_else(|_| std::process::Stdio::null(), std::process::Stdio::from)
-        },
-    )
+        })
 }

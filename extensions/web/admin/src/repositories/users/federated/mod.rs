@@ -35,14 +35,15 @@
 //!    mapping, and — when the email's domain is claimed by a customer
 //!    organization — its membership row, in a single transaction.
 //!
-//! **Role authority.** A federated sign-in can carry freshly-computed roles, and
-//! the provider is the role authority *once the binding is established* — that is
-//! what makes flipping a user's Odoo groups change their platform roles. It is not
-//! the authority at the moment it first attaches to a pre-existing row: a first
-//! bind that could *grant* would let control of an external account escalate a
-//! local one. So authority is scoped by which step resolved (see [`RoleAuthority`]),
-//! and adding the `admin` role from a federated claim is gated separately again —
-//! on provisioning too, where the grant would otherwise be least visible.
+//! **Role authority.** A federated sign-in can carry freshly-computed roles,
+//! and the provider is the role authority *once the binding is established* —
+//! that is what makes flipping a user's Odoo groups change their platform
+//! roles. It is not the authority at the moment it first attaches to a
+//! pre-existing row: a first bind that could *grant* would let control of an
+//! external account escalate a local one. So authority is scoped by which step
+//! resolved (see [`RoleAuthority`]), and adding the `admin` role from a
+//! federated claim is gated separately again — on provisioning too, where the
+//! grant would otherwise be least visible.
 //!
 //! Just-in-time provisioning is one of the two doors a seat can be minted
 //! through, so the seat limit is checked here as well as on operator-created
@@ -58,14 +59,15 @@ use crate::repositories::organizations;
 mod lookup;
 
 use lookup::{
-    FederatedIdentitySummary, find_active_user_by_email, find_active_user_by_odoo_uid, find_mapping,
-    link_existing, list_federated_identities, load_user,
+    FederatedIdentitySummary, find_active_user_by_email, find_active_user_by_odoo_uid,
+    find_mapping, link_existing, list_federated_identities, load_user,
 };
 
 /// Lists the external identities a user can currently sign in through.
 ///
 /// Public face of [`lookup::list_federated_identities`], for screens that must
-/// state *how* a session authenticated rather than only which row it resolved to.
+/// state *how* a session authenticated rather than only which row it resolved
+/// to.
 pub async fn list_federated_identities_for_user(
     pool: &PgPool,
     user_id: &UserId,
@@ -143,26 +145,28 @@ pub async fn delete_federated_identities_for_issuer(
 
 /// How much authority the provider has over this row's roles on *this* sign-in.
 ///
-/// Why it varies: the provider earns role authority from an established binding,
-/// not from the mere fact of authenticating. A first attachment to a pre-existing
-/// local account is exactly the moment where granting would turn control of an
-/// external account into control of a local one.
+/// Why it varies: the provider earns role authority from an established
+/// binding, not from the mere fact of authenticating. A first attachment to a
+/// pre-existing local account is exactly the moment where granting would turn
+/// control of an external account into control of a local one.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum RoleAuthority {
-    /// Returning sign-in on an established `(issuer, external_sub)` mapping. The
-    /// provider is the authority: grants and revocations both apply, which is
-    /// what makes group mapping work.
+    /// Returning sign-in on an established `(issuer, external_sub)` mapping.
+    /// The provider is the authority: grants and revocations both apply,
+    /// which is what makes group mapping work.
     Sync,
-    /// First attachment to a pre-existing local row. Revocations apply, grants do
-    /// not — a first bind must never hand out a role the account did not have.
+    /// First attachment to a pre-existing local row. Revocations apply, grants
+    /// do not — a first bind must never hand out a role the account did not
+    /// have.
     ///
-    /// A row being *created* has no authority question to answer, so it does not
-    /// appear here: `create_federated` writes its roles directly, through the same
-    /// [`strip_gated_grants`] filter.
+    /// A row being *created* has no authority question to answer, so it does
+    /// not appear here: `create_federated` writes its roles directly,
+    /// through the same [`strip_gated_grants`] filter.
     DowngradeOnly,
 }
 
-/// Roles a federated claim may never *add* without being explicitly permitted to.
+/// Roles a federated claim may never *add* without being explicitly permitted
+/// to.
 const GATED_ROLES: [&str; 1] = ["admin"];
 
 /// Env flag permitting a federated claim to add [`GATED_ROLES`]. Default off.
@@ -177,18 +181,17 @@ fn federated_may_grant_gated_roles() -> bool {
 ///
 /// Why this applies on provisioning too: a brand-new account is where the grant
 /// is least visible and most valuable to an attacker. If control of an external
-/// account could mint a *platform admin* on first sign-in, the external system's
-/// user list would silently become the platform's admin list.
+/// account could mint a *platform admin* on first sign-in, the external
+/// system's user list would silently become the platform's admin list.
 ///
-/// Removals are never gated — only additions of [`GATED_ROLES`] the account does
-/// not already hold.
+/// Removals are never gated — only additions of [`GATED_ROLES`] the account
+/// does not already hold.
 fn strip_gated_grants(issuer: &str, stored: &[String], next: &mut Vec<String>) {
     if federated_may_grant_gated_roles() {
         return;
     }
     next.retain(|role| {
-        let is_new_gated_grant =
-            GATED_ROLES.contains(&role.as_str()) && !stored.contains(role);
+        let is_new_gated_grant = GATED_ROLES.contains(&role.as_str()) && !stored.contains(role);
         if is_new_gated_grant {
             tracing::warn!(
                 issuer = %issuer,
@@ -360,11 +363,12 @@ async fn create_federated(
     })
 }
 
-/// Masks an address enough to be recognised by its owner and useless to anyone else.
+/// Masks an address enough to be recognised by its owner and useless to anyone
+/// else.
 ///
 /// The conflict this appears in is shown to whoever just authenticated against
-/// the *external* system, who may not hold the platform account named. They need
-/// enough to recognise it if it is theirs; they are owed nothing more.
+/// the *external* system, who may not hold the platform account named. They
+/// need enough to recognise it if it is theirs; they are owed nothing more.
 fn mask_email(email: &str) -> String {
     let Some((local, domain)) = email.split_once('@') else {
         return "***".to_owned();

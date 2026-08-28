@@ -14,7 +14,8 @@
 use rmcp::model::CallToolResponse;
 use systemprompt_mcp_email::draft::{APPROVE_KEY, CONFIRM_FIELD};
 
-use crate::harness::{mcp, stack::Stack};
+use crate::harness::mcp;
+use crate::harness::stack::Stack;
 
 const TOOL: &str = "email_send";
 const RECIPIENT: &str = "oliver@example.com";
@@ -216,13 +217,12 @@ async fn a_confirmed_send_reaches_the_relay_exactly_once_with_the_message_id_we_
 
     // The ledger closes the loop: this draft had no Odoo anchor, so it should
     // be `sent` rather than `logged`, and it must name the same id.
-    let (status, outbox_id): (String, String) = sqlx::query_as(
-        "SELECT status, message_id FROM email_outbox WHERE message_id = $1",
-    )
-    .bind(&message_id)
-    .fetch_one(&*stack.db.pool)
-    .await
-    .expect("the send left an outbox row");
+    let (status, outbox_id): (String, String) =
+        sqlx::query_as("SELECT status, message_id FROM email_outbox WHERE message_id = $1")
+            .bind(&message_id)
+            .fetch_one(&*stack.db.pool)
+            .await
+            .expect("the send left an outbox row");
     assert_eq!(status, "sent");
     assert_eq!(outbox_id, message_id);
 
@@ -247,12 +247,8 @@ async fn a_non_admin_send_is_held_for_a_second_human_and_only_flies_once_approve
         .await
         .expect("connect to the email MCP server");
 
-    let confirmed = mcp::with_confirmation(
-        mcp::call_params(TOOL, draft()),
-        APPROVE_KEY,
-        true,
-        true,
-    );
+    let confirmed =
+        mcp::with_confirmation(mcp::call_params(TOOL, draft()), APPROVE_KEY, true, true);
 
     // The call blocks for up to `hold_seconds` waiting on a decision, so the
     // approval has to happen while it is in flight.
@@ -337,12 +333,8 @@ async fn a_denied_send_never_reaches_the_relay() {
         .await
         .expect("connect to the email MCP server");
 
-    let confirmed = mcp::with_confirmation(
-        mcp::call_params(TOOL, draft()),
-        APPROVE_KEY,
-        true,
-        true,
-    );
+    let confirmed =
+        mcp::with_confirmation(mcp::call_params(TOOL, draft()), APPROVE_KEY, true, true);
     let call = tokio::spawn({
         let params = confirmed.clone();
         async move { client.call_once(params).await.map(|r| (client, r)) }
@@ -357,7 +349,10 @@ async fn a_denied_send_never_reaches_the_relay() {
             None,
         )
         .await;
-    assert!(status.is_success() || status.is_redirection(), "got {status}");
+    assert!(
+        status.is_success() || status.is_redirection(),
+        "got {status}"
+    );
 
     let (client, response) = tokio::time::timeout(std::time::Duration::from_secs(90), call)
         .await
@@ -399,7 +394,9 @@ async fn the_gateway_proxies_the_email_mcp_route() {
     // Why: no bearer and no body, matching the odoo mount check — the property
     // is that the gateway OWNS the route (auth challenge or upstream failure)
     // rather than 404ing, and adding credentials only moves the failure mode.
-    let (status, body) = stack.send("POST", "/api/v1/mcp/email/mcp", None, None).await;
+    let (status, body) = stack
+        .send("POST", "/api/v1/mcp/email/mcp", None, None)
+        .await;
     assert_ne!(
         status,
         axum::http::StatusCode::NOT_FOUND,
@@ -424,5 +421,7 @@ async fn wait_for_pending_approval(stack: &Stack) -> String {
         }
         tokio::time::sleep(std::time::Duration::from_millis(100)).await;
     }
-    panic!("no approval request was ever opened for {TOOL} — was email_send removed from require_approval.patterns?")
+    panic!(
+        "no approval request was ever opened for {TOOL} — was email_send removed from require_approval.patterns?"
+    )
 }

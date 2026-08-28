@@ -5,10 +5,12 @@
 //! is live, which is what lets a `session`-class send degrade to `inbox`
 //! instead of failing when the target has gone away.
 
+pub mod identity;
 pub mod query;
 pub mod reads;
 pub mod rows;
 
+pub use identity::{IdentityRow, OdooLinkRow};
 pub use query::{
     Address, DeliveryClass, INBOX_SCOPE, MAX_BODY_BYTES, channel_scope, check_body, clamp_limit,
     classify, parse_address,
@@ -33,6 +35,11 @@ impl CommsStore {
     #[must_use]
     pub const fn new(pool: DbPool) -> Self {
         Self { pool }
+    }
+
+    #[must_use]
+    pub const fn db_pool(&self) -> &DbPool {
+        &self.pool
     }
 
     fn read(&self) -> Result<Arc<sqlx::PgPool>, CommsError> {

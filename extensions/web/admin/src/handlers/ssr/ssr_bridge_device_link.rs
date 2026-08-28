@@ -45,12 +45,12 @@ pub(crate) struct DeviceLinkApproveForm {
 // Why: unconfigured branding must stay a missing key rather than a null, so
 // the template's `{{#if}}` guard behaves. `redirect`/`redirect_host` follow the
 // same rule: absent, not empty, when there is no callback to return to.
-// Why the account fields are DB-sourced and the session field is not: they answer
-// different questions. `account_*` is who the durable token will belong to, which
-// only the `users` row can say. `session_email` is what the browser's JWT claims,
-// which is what the operator *thinks* they are. When those disagree the page has
-// to show both — silently preferring either one is how a consent screen ends up
-// naming somebody the token is not for.
+// Why the account fields are DB-sourced and the session field is not: they
+// answer different questions. `account_*` is who the durable token will belong
+// to, which only the `users` row can say. `session_email` is what the browser's
+// JWT claims, which is what the operator *thinks* they are. When those disagree
+// the page has to show both — silently preferring either one is how a consent
+// screen ends up naming somebody the token is not for.
 #[derive(Debug, Serialize)]
 struct DeviceLinkContext<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -178,8 +178,13 @@ fn render_blocked(
 ///
 /// Best-effort: this is context, not a gate, so a lookup failure degrades to
 /// showing nothing rather than blocking a legitimate authorisation.
-async fn describe_sign_in(pool: &PgPool, user_id: &systemprompt::identifiers::UserId) -> Option<String> {
-    let identities = list_federated_identities_for_user(pool, user_id).await.ok()?;
+async fn describe_sign_in(
+    pool: &PgPool,
+    user_id: &systemprompt::identifiers::UserId,
+) -> Option<String> {
+    let identities = list_federated_identities_for_user(pool, user_id)
+        .await
+        .ok()?;
     if identities.is_empty() {
         return None;
     }

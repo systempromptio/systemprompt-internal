@@ -22,9 +22,10 @@ use systemprompt::mcp::services::ui_renderer::{RenderTarget, artifact_ui_resourc
 // same rule the crate's own module docs spell out for the MCP servers.
 const _THEME_CRATE_ANCHOR: usize = systemprompt_mcp_shared::MAX_REASON_LEN;
 
-// The brand accent, verbatim from `extensions/mcp/shared/src/artifact_theme.rs`.
-// Core ships cool-blue neutral tokens; if this string is missing the theme did
-// not arrive and every artifact Cowork shows is unbranded.
+// The brand accent, verbatim from
+// `extensions/mcp/shared/src/artifact_theme.rs`. Core ships cool-blue neutral
+// tokens; if this string is missing the theme did not arrive and every artifact
+// Cowork shows is unbranded.
 pub const BRAND_ACCENT: &str = "oklch(0.67 0.18 50)";
 // The notched top-right corner — the other half of the brand, and the one a
 // colour-only assertion would not catch.

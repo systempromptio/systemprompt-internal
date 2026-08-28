@@ -14,9 +14,10 @@
 //! a route with no `access_control_entities` row and no rules is invisible,
 //! so the interesting transition is empty-to-populated rather than the other
 //! way round. And the detector sweeps *every* recent request in the database,
-//! including the ~1080 that migration `025_demo_organizations` seeds, so
-//! nothing asserts on a global count — the evidence is the row written
-//! against the user the case created.
+//! so nothing asserts on a global count — the evidence is the row written
+//! against the user the case created. (Migration `025_demo_organizations` used
+//! to put ~1080 synthetic requests here; it is gone, but a sweep over shared
+//! state is still no place for an absolute count.)
 
 use axum::http::StatusCode;
 use serde_json::Value;

@@ -8,9 +8,9 @@
 
 use axum::http::StatusCode;
 
+use crate::artifact_gallery::BRAND_ACCENT;
 use crate::harness::mcp;
 use crate::harness::odoo_mock::GOOD_CREDENTIAL;
-use crate::artifact_gallery::BRAND_ACCENT;
 use crate::harness::stack::Stack;
 
 const LOGIN: &str = "e2e-notes@systemprompt.local";

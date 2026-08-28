@@ -56,18 +56,22 @@ A client `POST /v1/messages` with `model: claude-haiku-4-5` then returns `model:
 
 ## Routes are access-controlled
 
-Each route is gated by an `access_control_entities` row keyed on its id, which is content-addressed (`hash(model_pattern, provider)`). Changing a route's provider mints a *new* id, so a freshly-edited route is denied (`unknown to access control`) until the entity is materialised. The `admin config` CLI edits the profile only; it does **not** reconcile the access-control catalog. Materialise it one of two ways:
+Each route is gated by an `access_control_entities` row keyed on its id, which is content-addressed (`hash(model_pattern, provider)`). Changing a route's provider mints a *new* id, so a freshly-edited route is denied (`unknown to access control`) until the catalog is reconciled. Reconciliation makes the catalog equal to the live profile's routes — new ids are registered, and rows no route produces any more are deleted along with their grants — and it happens in two places:
 
-- **Re-run the publish pipeline** — `systemprompt infra jobs run publish_pipeline` (also runs via `just publish`). It registers every route in the live profile and the `gateway_route: "*"` wildcard in `services/access-control/roles.yaml` grants them. Dynamic, but must be re-run after every route change.
-- **Pin it in `services/access-control/roles.yaml`** (committed, survives a clean install) — add an explicit grant so the ACL loader self-materialises the row at publish time:
+- **At boot** — the `governance_bootstrap` job reconciles the catalog from the running profile, then ingests `services/access-control/roles.yaml` against it.
+- **After a CLI edit** — `systemprompt admin config gateway route …` reconciles immediately, so the edit takes effect without a restart.
 
-  ```yaml
-  - entity_type: gateway_route
-    entity_id: claude-star-39ccd3   # synthesize_route_id("claude-*", "gemini")
-    access: allow
-    default_included: true
-    roles: [user]
-  ```
+Routes are granted by `entity_match`, never by a literal `entity_id`:
+
+```yaml
+- entity_type: gateway_route
+  entity_match: "*"
+  access: allow
+  default_included: true
+  roles: [user]
+```
+
+Route ids are generated, so there is no id to write out — a literal `gateway_route` `entity_id` fails the boot by name, and `scripts/validate-services.sh` rejects it in CI. A route that needs a narrower grant gets a narrower glob over its slug (`entity_match: "claude-star-*"`), not a pinned hash.
 
 ## Extensible provider registry
 

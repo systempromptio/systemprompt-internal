@@ -376,19 +376,37 @@ Each plugin is a directory holding one `config.yaml` — `services/plugins/<id>/
 ```yaml
 plugin:
   id: systemprompt-commons
-  name: "Systemprompt Commons — Workspace Setup"
-  version: "2.0.0"
+  name: "Systemprompt Commons — Setup & Brand"
+  version: "3.0.0"
   enabled: true
   skills:
     source: explicit
     include:
-      - cowork_setup
+      - systemprompt_setup
+      - systemprompt_setup_cowork
       - apply_brand_voice
   agents:
     source: explicit
     include: []
-  mcp_servers: {}
+  mcp_servers:
+    source: explicit
+    include: [comms]
+  artifacts:
+    source: explicit
+    include: [whoami]
 ```
+
+**A plugin is the role boundary.** Every plugin has exactly one `entity_type: plugin` rule in
+`services/access-control/roles.yaml` — `[user]` (shared by every role; admins hold `user` too) or
+`[admin]` — and every skill and artifact inside it inherits that rule. The cascade is
+skill/artifact → plugin → marketplace and the nearest level that declares any rule decides, so a
+`[admin]` plugin closes its ruleless skills to users even though the marketplace admits them. Never
+write a per-skill `allow` rule; never mix scopes in one plugin. Four plugins ship here:
+`systemprompt-commons` (setup, whoami, brand — everyone), `systemprompt-user` (Business on Odoo),
+`systemprompt-demo` (demo steps 1–3), `systemprompt-admin` (control plane + demo steps 4–5).
+`scripts/validate-services.sh` fails CI on a plugin without a scope rule, an orphaned enabled skill
+or artifact, an allow-type skill rule, two governance-hook owners, or any enabled plugin/skill/artifact
+that depends on a disabled MCP server; core's `ServicesConfig::validate` refuses the last one at boot.
 
 `source:` selects where members come from — keep it `explicit` and list ids under `include:`. Leaving it to default to `Instance` makes the plugin claim every skill and agent on the instance, which is how the marketplace once showed every plugin with all 230 skills.
 

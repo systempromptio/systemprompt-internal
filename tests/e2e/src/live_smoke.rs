@@ -16,9 +16,54 @@ use std::collections::BTreeSet;
 use base64::Engine;
 use sha2::Digest;
 
-const ADMIN_LOGIN: &str = "e2e-admin@systemprompt.local";
-const SALES_LOGIN: &str = "e2e-sales@systemprompt.local";
+// The real people, not invented ones. The local stack is a clone of
+// production, so the accounts the tests sign in as are the accounts production
+// has — a test that passes for `e2e-sales@systemprompt.local` proves the role
+// mapping works for a user who exists nowhere but the test.
+//
+// `ed+notadmin@` is the same person deliberately holding no admin group: the
+// manifest diff is only evidence of anything if one side genuinely lacks what
+// the other has, and a plus-address is a real deliverable mailbox rather than a
+// second identity to keep in step.
+//
+// Safe only because `require_local_stack` below refuses to let this file point
+// at anything but a local host. It writes: it resets both passwords to
+// `PASSWORD` and creates leads.
+const ADMIN_LOGIN: &str = "ed@systemprompt.io";
+const SALES_LOGIN: &str = "ed+notadmin@systemprompt.io";
 const PASSWORD: &str = "e2e-live-password-2026";
+
+/// Refuse to run against anything that is not a local stack.
+///
+/// This suite seeds users, rewrites their passwords, and creates CRM leads. It
+/// does that against the real logins now, which is only sound while the target
+/// is a clone. The guarantee cannot be a convention in a comment: one exported
+/// `E2E_ODOO_URL` pointing at the Fly app would run all of it against
+/// production, as the people it names. So both endpoints are checked against
+/// the loopback host and the test aborts before its first write otherwise.
+fn require_local_stack(base: &str, odoo: &str) {
+    for (label, url) in [("E2E_BASE_URL", base), ("E2E_ODOO_URL", odoo)] {
+        let host = url
+            .split("://")
+            .nth(1)
+            .unwrap_or(url)
+            .split('/')
+            .next()
+            .unwrap_or("")
+            .rsplit('@')
+            .next()
+            .unwrap_or("")
+            .split(':')
+            .next()
+            .unwrap_or("");
+        assert!(
+            matches!(host, "localhost" | "127.0.0.1" | "[::1]" | "::1"),
+            "{label} points at {host:?}, which is not a local host. This suite \
+             signs in as real accounts and writes to them; it runs against a \
+             local clone only. Refusing to continue."
+        );
+    }
+}
 
 fn env_or(key: &str, default: &str) -> String {
     std::env::var(key).unwrap_or_else(|_| default.to_owned())
@@ -241,6 +286,15 @@ async fn sign_in(
 }
 
 async fn manifest_skills(http: &reqwest::Client, base: &str, bearer: &str) -> BTreeSet<String> {
+    manifest_ids(http, base, bearer, "skills").await
+}
+
+async fn manifest_ids(
+    http: &reqwest::Client,
+    base: &str,
+    bearer: &str,
+    key: &str,
+) -> BTreeSet<String> {
     let envelope: serde_json::Value = http
         .get(format!("{base}/v1/bridge/manifest"))
         .bearer_auth(bearer)
@@ -253,12 +307,17 @@ async fn manifest_skills(http: &reqwest::Client, base: &str, bearer: &str) -> BT
     let payload: serde_json::Value =
         serde_json::from_str(envelope["payload"].as_str().expect("payload present"))
             .expect("payload parses");
-    payload["skills"]
+    payload[key]
         .as_array()
-        .map(|skills| {
-            skills
+        .map(|entries| {
+            entries
                 .iter()
-                .filter_map(|s| s["id"].as_str().map(str::to_owned))
+                .filter_map(|e| {
+                    e.get("id")
+                        .or_else(|| e.get("name"))
+                        .and_then(|v| v.as_str())
+                        .map(str::to_owned)
+                })
                 .collect()
         })
         .unwrap_or_default()
@@ -268,6 +327,7 @@ async fn manifest_skills(http: &reqwest::Client, base: &str, bearer: &str) -> BT
 async fn live_stack_walks_the_two_role_journey() {
     let base = env_or("E2E_BASE_URL", "http://localhost:8081");
     let odoo_url = env_or("E2E_ODOO_URL", "http://localhost:8070");
+    require_local_stack(&base, &odoo_url);
     let http = reqwest::Client::new();
 
     step("server health");
@@ -318,14 +378,32 @@ async fn live_stack_walks_the_two_role_journey() {
     let admin_skills = manifest_skills(&http, &base, &admin_bearer).await;
     let sales_skills = manifest_skills(&http, &base, &sales_bearer).await;
     assert!(
-        admin_skills.contains("admin_workspace_setup_cowork"),
+        admin_skills.contains("admin_user_report"),
         "the Odoo administrator's manifest carries the admin skills — if this set has no admin_* \
-         entries, the RUNNING server predates the role-mapping / systemprompt-admin-plugin \
-         changes: rebuild and restart it, then re-run. admin skills: {admin_skills:?}"
+         entries, the RUNNING server predates the plugin-cascade core change (skills inherit \
+         their plugin's rule): rebuild and restart it, then re-run. admin skills: \
+         {admin_skills:?}"
     );
     assert!(
-        !sales_skills.contains("admin_workspace_setup_cowork"),
-        "the salesperson's manifest must not: {sales_skills:?}"
+        !sales_skills.contains("admin_user_report"),
+        "admin_user_report carries no rule of its own; the systemprompt-admin plugin rule must \
+         close it to the salesperson: {sales_skills:?}"
+    );
+    assert!(
+        sales_skills.contains("systemprompt_setup_cowork"),
+        "the one setup skill ships in commons for every role: {sales_skills:?}"
+    );
+
+    step("the admin CLI server is enabled and admin-only");
+    let admin_servers = manifest_ids(&http, &base, &admin_bearer, "managed_mcp_servers").await;
+    let sales_servers = manifest_ids(&http, &base, &sales_bearer, "managed_mcp_servers").await;
+    assert!(
+        admin_servers.contains("systemprompt"),
+        "services/mcp/systemprompt.yaml is enabled and granted to [admin]: {admin_servers:?}"
+    );
+    assert!(
+        !sales_servers.contains("systemprompt"),
+        "the admin CLI server must not reach the salesperson: {sales_servers:?}"
     );
     assert!(
         !sales_skills.is_empty(),

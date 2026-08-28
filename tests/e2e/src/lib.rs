@@ -32,6 +32,10 @@ mod mcp_proxy_odoo;
 mod odoo_login_roles;
 #[cfg(test)]
 mod skills_artifacts;
+#[cfg(test)]
+mod systemprompt_server;
+#[cfg(test)]
+mod whoami;
 
 #[cfg(all(test, feature = "live"))]
 mod live_smoke;
