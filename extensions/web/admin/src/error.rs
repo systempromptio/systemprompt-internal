@@ -87,7 +87,9 @@ impl AdminError {
             | Self::Marketplace(MarketplaceError::BadRequest(_)) => StatusCode::BAD_REQUEST,
             Self::Unauthorized(_) | Self::Unauthenticated(_) => StatusCode::UNAUTHORIZED,
             Self::Forbidden(_) => StatusCode::FORBIDDEN,
-            Self::Conflict(_) => StatusCode::CONFLICT,
+            Self::Conflict(_) | Self::Marketplace(MarketplaceError::Conflict(_)) => {
+                StatusCode::CONFLICT
+            },
             Self::RateLimited(_) => StatusCode::TOO_MANY_REQUESTS,
             Self::Unavailable(_) => StatusCode::SERVICE_UNAVAILABLE,
             Self::Upstream(_) => StatusCode::BAD_GATEWAY,
@@ -109,8 +111,14 @@ impl AdminError {
             | Self::RateLimited(msg)
             | Self::Unavailable(msg)
             | Self::BridgeRepo(BridgeRepoError::Validation(msg))
+            // Why Conflict's message is public: it is the only thing telling a
+            // signed-in user *which* account already holds their external
+            // identity and what to do about it. Swallowing it into "Internal
+            // server error" leaves them with a dead end and no next step.
             | Self::Marketplace(
-                MarketplaceError::BadRequest(msg) | MarketplaceError::NotFound(msg),
+                MarketplaceError::BadRequest(msg)
+                | MarketplaceError::NotFound(msg)
+                | MarketplaceError::Conflict(msg),
             ) => msg.clone(),
             Self::Upstream(_) => "Upstream service error".to_owned(),
             Self::Unauthenticated(_) => "Unauthorized".to_owned(),

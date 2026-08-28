@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT u.id AS \"id: UserId\", COALESCE(u.display_name, u.name) AS \"display_name!\", u.roles AS \"roles!: Vec<String>\"\n        FROM odoo_identity oi\n        JOIN users u ON u.id = oi.user_id\n        WHERE (oi.odoo_uid = $1 OR LOWER(oi.odoo_login) = LOWER($2))\n          AND u.status = 'active'\n        ORDER BY (oi.odoo_uid = $1) DESC\n        LIMIT 1\n        ",
+  "query": "\n        SELECT u.id AS \"id: UserId\", u.email, COALESCE(u.display_name, u.name) AS \"display_name!\", u.roles AS \"roles!: Vec<String>\"\n        FROM odoo_identity oi\n        JOIN users u ON u.id = oi.user_id\n        WHERE oi.odoo_uid = $1\n          AND u.status = 'active'\n        LIMIT 1\n        ",
   "describe": {
     "columns": [
       {
@@ -16,12 +16,23 @@
       },
       {
         "ordinal": 1,
+        "name": "email",
+        "type_info": "Varchar",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "email"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
         "name": "display_name!",
         "type_info": "Varchar",
         "origin": "Expression"
       },
       {
-        "ordinal": 2,
+        "ordinal": 3,
         "name": "roles!: Vec<String>",
         "type_info": "TextArray",
         "origin": {
@@ -34,15 +45,15 @@
     ],
     "parameters": {
       "Left": [
-        "Int4",
-        "Text"
+        "Int4"
       ]
     },
     "nullable": [
+      false,
       false,
       null,
       false
     ]
   },
-  "hash": "fde9bf62dc2f2abae8c1369cfac9cbcad65685044adea1a1e5d4616934b207c6"
+  "hash": "ec6c79e09bdeb40ab1b28c598cf120f8b5fdbafac98c69899f6aff3757ed9078"
 }

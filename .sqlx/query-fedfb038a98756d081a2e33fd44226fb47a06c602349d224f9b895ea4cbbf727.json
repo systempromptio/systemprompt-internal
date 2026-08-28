@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT id AS \"id: UserId\", COALESCE(display_name, name) AS \"display_name!\", roles AS \"roles!: Vec<String>\"\n        FROM users\n        WHERE LOWER(email) = LOWER($1) AND status = 'active'\n        ",
+  "query": "\n        SELECT id AS \"id: UserId\", email, COALESCE(display_name, name) AS \"display_name!\", roles AS \"roles!: Vec<String>\"\n        FROM users\n        WHERE LOWER(email) = LOWER($1) AND status = 'active'\n        ",
   "describe": {
     "columns": [
       {
@@ -16,12 +16,23 @@
       },
       {
         "ordinal": 1,
+        "name": "email",
+        "type_info": "Varchar",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "email"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
         "name": "display_name!",
         "type_info": "Varchar",
         "origin": "Expression"
       },
       {
-        "ordinal": 2,
+        "ordinal": 3,
         "name": "roles!: Vec<String>",
         "type_info": "TextArray",
         "origin": {
@@ -39,9 +50,10 @@
     },
     "nullable": [
       false,
+      false,
       null,
       false
     ]
   },
-  "hash": "413caa13eb8e09015cc854c9719e06d9648d54759901b35d3b276426e1a3ee1f"
+  "hash": "fedfb038a98756d081a2e33fd44226fb47a06c602349d224f9b895ea4cbbf727"
 }

@@ -134,6 +134,23 @@
     background: var(--sp-bg-surface-raised-gradient);
 }
 
+/* Why loud: this block is the only thing standing between a mismatched session
+   and a durable token issued to an account the operator did not mean. It has to
+   read as an interruption, not as a footnote. */
+.device-link-mismatch {
+    padding: var(--sp-space-3);
+    border: 1px solid color-mix(in oklch, var(--sp-warning) 45%, transparent);
+    border-radius: var(--sp-radius-md);
+    background: var(--sp-bg-warning);
+    color: var(--sp-text-primary);
+    font-size: var(--sp-text-sm);
+    line-height: 1.5;
+}
+
+.device-link-mismatch strong {
+    color: var(--sp-warning);
+}
+
 .device-link-actions {
     display: flex;
     gap: var(--sp-space-3);
