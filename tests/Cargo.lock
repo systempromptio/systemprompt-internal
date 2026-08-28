@@ -5296,7 +5296,6 @@ dependencies = [
  "chrono",
  "flate2",
  "futures-util",
- "governor",
  "hex",
  "http",
  "inventory",
