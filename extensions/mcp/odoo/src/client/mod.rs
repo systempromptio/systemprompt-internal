@@ -10,7 +10,7 @@ pub mod rpc;
 
 use serde::Serialize;
 
-use crate::apps::map_missing_app;
+use crate::apps::{map_access_denied, map_missing_app};
 use crate::error::OdooError;
 pub use rpc::{ODOO_DB_ENV, ODOO_URL_ENV, OdooConnection};
 
@@ -106,11 +106,13 @@ impl OdooClient {
             call.kwargs,
         ];
         // Why: every model call funnels through here, so this is the one place
-        // a missing-app fault can be recognised while the model name is still
-        // in hand. Callers get an error naming the app, not the table.
+        // a fault can be recognised while the model name and the acting login
+        // are still in hand. Callers get an error naming the app or the
+        // credential, not the table.
         rpc::call(&self.http, &self.conn, "object", "execute_kw", &rpc_args)
             .await
             .map_err(|e| map_missing_app(call.model, e))
+            .map_err(|e| map_access_denied(&creds.login, call.model, e))
     }
 
     pub async fn search_read(

@@ -31,7 +31,7 @@ narrating each write with the id Odoo returns:
    a few days.
 2. **Meeting** — `calendar_event_create`: a short call linked to the lead, with a sensible near-future
    slot (confirm the time with the user first).
-3. **Note** — draft the follow-up message applying the house voice (the `apply_brand_voice` skill defines
+3. **Note** — draft the follow-up message applying the house voice (the `brand` skill's voice pass defines
    it — apply its rules; do not restate them), then log it on the lead with `note_add`.
 4. **Email** — `email_send` the follow-up to the lead's own address. This is the centrepiece; work it
    in three beats, below.

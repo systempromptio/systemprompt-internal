@@ -18,15 +18,14 @@ const USER_PLUGINS: &[&str] = &[
     "systemprompt-demo",
 ];
 const ADMIN_PLUGINS: &[&str] = &["systemprompt-admin"];
+// whoami, todo-bulletin, knowledge-feed and team-inbox are shelved with the
+// comms and knowledge surfaces (each config.yaml carries enabled: false), so
+// they are no longer named by any plugin and must not reach a manifest.
 const USER_ARTIFACTS: &[&str] = &[
-    "whoami",
     "business-overview",
     "leads-inbound-prospects",
     "pipeline-open-deals",
     "recent-activity",
-    "todo-bulletin",
-    "knowledge-feed",
-    "team-inbox",
 ];
 const ADMIN_ARTIFACTS: &[&str] = &[
     "admin-users-directory",
@@ -148,12 +147,18 @@ async fn an_admin_manifest_carries_the_admin_surface_and_a_users_does_not() {
 
     let admin_mcp = ids(&admin, "managed_mcp_servers");
     let user_mcp = ids(&user, "managed_mcp_servers");
-    for server in ["odoo", "comms", "knowledge-bank", "email"] {
+    // comms is shelved (services/mcp/comms.yaml, enabled: false) and
+    // knowledge-bank now reaches a user only through the demo plugin.
+    for server in ["odoo", "email"] {
         assert!(
             user_mcp.contains(server),
             "{server} is granted to [user]: {user_mcp:?}"
         );
     }
+    assert!(
+        !user_mcp.contains("comms"),
+        "a disabled server must not reach any manifest: {user_mcp:?}"
+    );
     assert!(
         admin_mcp.contains("systemprompt"),
         "the admin CLI server is enabled and granted to [admin]: {admin_mcp:?}"
@@ -182,6 +187,37 @@ async fn a_ruleless_skill_in_an_admin_plugin_never_reaches_a_user() {
         leaked.is_empty(),
         "admin skills reached a user manifest: {leaked:?} — the plugin-level cascade is not \
          closing them (is the server built against a core with the plugin parent chain?)"
+    );
+
+    stack.db.cleanup().await;
+}
+
+#[tokio::test]
+async fn setup_is_split_by_role_and_both_roles_keep_the_shared_front_door() {
+    let Some(stack) = Stack::create().await else {
+        return;
+    };
+
+    let user_skills = ids(&stack.manifest(&stack.user_token).await, "skills");
+    let admin_skills = ids(&stack.manifest(&stack.admin_token).await, "skills");
+
+    // The router ships in systemprompt-commons, which every role holds.
+    for (role, skills) in [("user", &user_skills), ("admin", &admin_skills)] {
+        assert!(
+            skills.contains("systemprompt_setup"),
+            "{role} lost the shared setup front door: {skills:?}"
+        );
+    }
+
+    // The control-plane installer ships only in the admin plugin, so the split
+    // is enforced by the grant — not by a branch inside a shared skill.
+    assert!(
+        admin_skills.contains("systemprompt_setup_admin"),
+        "admin lost the control-plane setup: {admin_skills:?}"
+    );
+    assert!(
+        !user_skills.contains("systemprompt_setup_admin"),
+        "the control-plane setup reached a user manifest: {user_skills:?}"
     );
 
     stack.db.cleanup().await;

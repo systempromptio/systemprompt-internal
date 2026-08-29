@@ -1,0 +1,113 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT s.handle AS \"handle!\", s.user_id AS \"user_id: UserId\", u.display_name, s.workspace,\n                      s.git_branch, s.current_activity, s.model, s.last_event_at\n               FROM plugin_session_summaries s\n               LEFT JOIN users u ON u.id = s.user_id\n               WHERE s.user_id = $1\n                 AND s.handle IS NOT NULL\n                 AND s.ended_at IS NULL\n                 AND s.last_event_at > NOW() - make_interval(mins => $2)\n               ORDER BY s.last_event_at DESC\n               LIMIT 50",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "handle!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "plugin_session_summaries",
+            "name": "handle"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id: UserId",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "plugin_session_summaries",
+            "name": "user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "display_name",
+        "type_info": "Varchar",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "display_name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "workspace",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "plugin_session_summaries",
+            "name": "workspace"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "git_branch",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "plugin_session_summaries",
+            "name": "git_branch"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "current_activity",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "plugin_session_summaries",
+            "name": "current_activity"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "model",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "plugin_session_summaries",
+            "name": "model"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "last_event_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "plugin_session_summaries",
+            "name": "last_event_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "7b228f74a0a5a2d6a4d8809efc1d05771c13b4680d635efbcabcd49901496149"
+}

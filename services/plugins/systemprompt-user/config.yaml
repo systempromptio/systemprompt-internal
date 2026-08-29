@@ -15,27 +15,27 @@ plugin:
   skills:
     source: explicit
     include:
+      # crm carries leads, chatter notes, and follow-up activities; manage_work
+      # carries project tasks and the calendar. They were six skills until the
+      # single-verb ones (add_note, schedule_activity, manage_tasks,
+      # manage_calendar) were folded in — one front door per job, not per tool.
+      # team_chat and capture_knowledge are shelved with the comms and
+      # knowledge surfaces; their config.yaml carries enabled: false.
       - crm
+      - manage_work
       - business_overview
-      - add_note
-      - schedule_activity
-      - manage_tasks
-      - manage_calendar
-      - team_chat
-      - capture_knowledge
   agents:
     source: explicit
     include: []
   # Every server a user-scope skill or dashboard calls, declared here so this
-  # plugin is self-describing: odoo (per-user identity link), the knowledge
-  # bank, team comms (team-inbox), and outbound email (draft_client_email's
-  # send path, held by the require_approval stage).
+  # plugin is self-describing: odoo (per-user identity link) and outbound email
+  # (draft_client_email's send path, held by the require_approval stage).
+  # comms is shelved; knowledge-bank left with the demo plugin, since both of
+  # this plugin's knowledge members are shelved too.
   mcp_servers:
     source: explicit
     include:
       - odoo
-      - knowledge-bank
-      - comms
       - email
   content_sources: {}
   # The workspace dashboards. Selection is plugin-driven (core's
@@ -44,12 +44,12 @@ plugin:
   # <id>.html per record, which systemprompt_setup_cowork installs.
   artifacts:
     source: explicit
+    # todo-bulletin, knowledge-feed and team-inbox are shelved; each carries
+    # enabled: false and is not named here, since a plugin may only include
+    # enabled members.
     include:
       - business-overview
       - leads-inbound-prospects
       - pipeline-open-deals
       - recent-activity
-      - todo-bulletin
-      - knowledge-feed
-      - team-inbox
   # No hooks: systemprompt-commons owns the session-global governance hooks.

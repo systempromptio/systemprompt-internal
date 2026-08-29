@@ -1,0 +1,15 @@
+id: brand
+name: Brand
+description: "Everything that goes out of the company in one place: the systemprompt.io voice, the customer-document skeleton and formatting conventions, the approved boilerplate catalogue, and the customer-email genres."
+enabled: true
+file: SKILL.md
+tags:
+  - brand
+  - voice
+  - editing
+  - formatting
+  - deliverables
+  - email
+  - boilerplate
+category: brand
+display_category: "Brand & Workspace"

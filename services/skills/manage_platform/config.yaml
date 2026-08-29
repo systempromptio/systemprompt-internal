@@ -1,0 +1,15 @@
+id: manage_platform
+name: Manage Platform
+description: "Operate the stack and its permissions: start and inspect services, the database and scheduled jobs, and change a user's roles while watching governance honour the flip live."
+enabled: true
+file: SKILL.md
+tags:
+  - cli
+  - services
+  - database
+  - jobs
+  - permissions
+  - rbac
+  - admin
+category: operations
+display_category: "Platform & Operations"

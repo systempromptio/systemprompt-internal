@@ -1,7 +1,8 @@
 id: capture_knowledge
 name: Capture Knowledge
 description: "Ingest a meeting transcript, document, or email thread into the company knowledge bank — full text searchable forever — and anchor a summary note onto the Odoo record it concerns."
-enabled: true
+# Shelved 2026-08-28: the knowledge-bank surface is off for now.
+enabled: false
 file: SKILL.md
 tags:
   - knowledge

@@ -384,7 +384,7 @@ plugin:
     include:
       - systemprompt_setup
       - systemprompt_setup_cowork
-      - apply_brand_voice
+      - brand
   agents:
     source: explicit
     include: []
@@ -393,7 +393,7 @@ plugin:
     include: [comms]
   artifacts:
     source: explicit
-    include: [whoami]
+    include: []
 ```
 
 **A plugin is the role boundary.** Every plugin has exactly one `entity_type: plugin` rule in
@@ -402,8 +402,11 @@ plugin:
 skill/artifact → plugin → marketplace and the nearest level that declares any rule decides, so a
 `[admin]` plugin closes its ruleless skills to users even though the marketplace admits them. Never
 write a per-skill `allow` rule; never mix scopes in one plugin. Four plugins ship here:
-`systemprompt-commons` (setup, whoami, brand — everyone), `systemprompt-user` (Business on Odoo),
-`systemprompt-demo` (demo steps 1–3), `systemprompt-admin` (control plane + demo steps 4–5).
+`systemprompt-commons` (the shared setup router, its host installers, and `brand` — everyone),
+`systemprompt-user` (Business on Odoo),
+`systemprompt-demo` (demo steps 1–3), `systemprompt-admin` (control plane, its own
+`systemprompt_setup_admin`, and demo steps 4–5). Setup is split by role at that plugin boundary:
+everyone gets `systemprompt_setup`, only admins additionally get `systemprompt_setup_admin`.
 `scripts/validate-services.sh` fails CI on a plugin without a scope rule, an orphaned enabled skill
 or artifact, an allow-type skill rule, two governance-hook owners, or any enabled plugin/skill/artifact
 that depends on a disabled MCP server; core's `ServicesConfig::validate` refuses the last one at boot.

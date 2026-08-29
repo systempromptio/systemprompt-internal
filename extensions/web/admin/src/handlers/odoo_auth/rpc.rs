@@ -175,6 +175,29 @@ pub(crate) async fn has_group(
     Ok(result.as_ref().and_then(serde_json::Value::as_bool) == Some(true))
 }
 
+// Why: authenticating is not the same as being able to drive `execute_kw`,
+// and only the second one keeps the MCP tools working. Odoo does accept a
+// password for external RPC, so this is not a password-versus-key test — it
+// is a test that the credential we are about to persist actually works on the
+// path it will be used on, rather than only on the path that just proved it.
+//
+// One `has_group` probe settles it: the cheapest execute_kw Odoo answers for
+// any user about their own account, so a failure here means the credential is
+// unusable for RPC rather than that the account lacks something.
+pub(crate) async fn credential_supports_rpc(session: &OdooUserSession<'_>) -> bool {
+    match has_group(session, "base.group_user").await {
+        Ok(_) => true,
+        Err(e) => {
+            tracing::warn!(
+                error = %e,
+                odoo_uid = session.uid,
+                "Odoo credential authenticated but cannot make RPC calls; not storing it"
+            );
+            false
+        },
+    }
+}
+
 #[doc(hidden)]
 #[must_use]
 pub fn uid_from_result(result: Option<&serde_json::Value>) -> Option<i32> {

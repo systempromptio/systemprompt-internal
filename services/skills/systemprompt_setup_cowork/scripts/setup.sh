@@ -1,23 +1,31 @@
 #!/bin/sh
-# One-shot staging for the systemprompt_setup_cowork skill, run inside the Cowork session VM.
+# One-shot staging for the Cowork setup skills, run inside the Cowork session VM.
+# Shared by systemprompt_setup_cowork (workspace dashboards) and
+# systemprompt_setup_admin (control-plane dashboards); it ships once, here.
 #
 #   setup.sh              find every plugin bundle the bridge mounted, copy each
 #                         bundled dashboard into the session outputs dir, and
 #                         print one create_artifact parameter block per artifact
+#   setup.sh -- <plugin>  the same, restricted to bundles whose directory name
+#                         contains <plugin>; prefix with '!' to exclude instead.
+#                         Used by the role-split setup skills so the user setup
+#                         ('!systemprompt-admin') and the admin setup
+#                         ('systemprompt-admin') each stage only their own
+#                         dashboards rather than every mounted bundle.
 #   setup.sh receipt '<json>'
 #                         write the given receipt JSON to outputs/setup-receipt.json,
 #                         replacing the literal token __NOW__ with the current
 #                         ISO-8601 UTC timestamp
 #
-# Plugin-agnostic by design: the set of dashboards is whatever the mounted
-# bundles carry, and the bridge mounts exactly the plugins the signed manifest
-# granted this user — so the mount is the role grant and no skill needs to know
-# who is asking. Every bundle lays its dashboards out as
-# artifacts/manifest.json (install records) plus one artifacts/<id>.html per
-# record (the page, verbatim).
+# The mount is still the role grant: the bridge mounts exactly the plugins the
+# signed manifest granted this user, so a bundle the caller was not granted is
+# never present to be filtered in the first place. The filter only decides which
+# of the caller's own bundles a given setup skill installs. Every bundle lays
+# its dashboards out as artifacts/manifest.json (install records) plus one
+# artifacts/<id>.html per record (the page, verbatim).
 #
-# POSIX sh; no arguments beyond the mode. Prints OUTPUTS_DIR= on success so the
-# caller never has to guess the mount layout.
+# POSIX sh. Prints OUTPUTS_DIR= on success so the caller never has to guess the
+# mount layout.
 set -eu
 
 RECEIPT_FILE="setup-receipt.json"
@@ -35,8 +43,31 @@ find_outputs() {
 }
 
 find_manifests() {
-    find "$HOME/mnt" /sessions/*/mnt -maxdepth 6 -type f -name manifest.json -path '*/artifacts/manifest.json' 2>/dev/null | sort -u
+    all=$(find "$HOME/mnt" /sessions/*/mnt -maxdepth 6 -type f -name manifest.json -path '*/artifacts/manifest.json' 2>/dev/null | sort -u)
+    [ -n "$PLUGIN_FILTER" ] || { printf '%s\n' "$all"; return 0; }
+    case "$PLUGIN_FILTER" in
+        !*) want=0; pat=${PLUGIN_FILTER#!} ;;
+        *)  want=1; pat=$PLUGIN_FILTER ;;
+    esac
+    printf '%s\n' "$all" | while IFS= read -r m; do
+        [ -n "$m" ] || continue
+        hit=0
+        case "$(basename -- "$(dirname -- "$(dirname -- "$m")")")" in
+            *"$pat"*) hit=1 ;;
+        esac
+        if [ "$hit" = "$want" ]; then
+            printf '%s\n' "$m"
+        fi
+    done
+    return 0
 }
+
+PLUGIN_FILTER=""
+if [ "${1:-}" = "--" ]; then
+    [ $# -ge 2 ] || { echo "usage: setup.sh -- <plugin-id>" >&2; exit 2; }
+    PLUGIN_FILTER="$2"
+    shift 2
+fi
 
 OUTPUTS=$(find_outputs)
 
@@ -50,7 +81,14 @@ if [ "${1:-}" = "receipt" ]; then
 fi
 
 MANIFESTS=$(find_manifests)
-[ -n "$MANIFESTS" ] || { echo "ERROR: no plugin bundle under the mounts carries artifacts/manifest.json — bridge sync has not mounted any dashboards" >&2; exit 1; }
+if [ -z "$MANIFESTS" ]; then
+    if [ -n "$PLUGIN_FILTER" ]; then
+        echo "ERROR: no mounted bundle selected by '$PLUGIN_FILTER' carries artifacts/manifest.json — either it was not granted to this user or bridge sync has not mounted it" >&2
+    else
+        echo "ERROR: no plugin bundle under the mounts carries artifacts/manifest.json — bridge sync has not mounted any dashboards" >&2
+    fi
+    exit 1
+fi
 
 count=0
 plugins=""
@@ -72,11 +110,12 @@ echo "COPIED=$count"
 echo
 echo "== create_artifact parameter blocks (one call per block, sequential; deduped by id) =="
 if command -v python3 >/dev/null 2>&1; then
-    printf '%s\n' "$MANIFESTS" | python3 - "$OUTPUTS" <<'PY'
+    # shellcheck disable=SC2086 # manifest paths are newline-separated, no globs
+    python3 - "$OUTPUTS" $MANIFESTS <<'PY'
 import json, sys
 outputs = sys.argv[1]
 seen = set()
-for manifest in (line.strip() for line in sys.stdin if line.strip()):
+for manifest in sys.argv[2:]:
     with open(manifest, encoding="utf-8") as fh:
         records = json.load(fh)["artifacts"]
     for a in records:

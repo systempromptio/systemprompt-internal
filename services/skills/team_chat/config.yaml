@@ -1,7 +1,8 @@
 id: team_chat
 name: Team Chat
 description: "Post updates into the team's Odoo Discuss channels — deal summaries, briefs, announcements — so the team reads them where they already talk, and everything said stays searchable."
-enabled: true
+# Shelved 2026-08-28: the team-messaging surface is off for now.
+enabled: false
 file: SKILL.md
 tags: [odoo, discuss, channels, communication]
 category: collaboration

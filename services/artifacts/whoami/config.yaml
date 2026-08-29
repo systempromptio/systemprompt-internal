@@ -2,7 +2,8 @@ id: whoami
 name: "Who Am I — Identity & Access"
 description: "Who you are on this platform: account, roles and department; whether your Odoo login is linked; exactly which plugins, MCP servers and skills your role grants (the same resolver the bridge uses — what you see here is what got installed); and your own live agent sessions. Refresh re-runs comms_whoami as you."
 version: "1.0.0"
-enabled: true
+# Shelved 2026-08-28: its only data source, comms_whoami, is on the disabled comms server.
+enabled: false
 starred: true
 category: identity
 tags:

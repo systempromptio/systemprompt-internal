@@ -359,6 +359,7 @@ _lint-gates-uncoordinated:
         check-asset-reachability.sh
         check-workspace-deps.sh
         validate-services.sh
+        check-mcp-tool-names.sh
     )
     logdir=$(mktemp -d)
     trap 'rm -rf "$logdir"' EXIT

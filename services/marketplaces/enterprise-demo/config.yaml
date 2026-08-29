@@ -33,7 +33,6 @@ marketplace:
       - odoo
       - systemprompt
       - knowledge-bank
-      - comms
       - email
     exclude: []
   # No agents are published by this marketplace. Plugins ship skills, the

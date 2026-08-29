@@ -5,7 +5,7 @@ is now provable from this installation's own metered data. This is the analytics
 Agentforce answers it with a credit statement priced per conversation; here every task decomposes into
 requests, tokens, tools, and dollars, queryable to the row.
 
-Admin-only. The `analytics_dashboards`, `admin_activity_report`, and `inspect_ai_requests` skills carry
+Admin-only. The `report` and `inspect` skills carry
 the deep command references — lean on them; this skill is the demo sequence.
 
 ## Script

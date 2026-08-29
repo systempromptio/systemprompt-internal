@@ -60,6 +60,10 @@ static SYSTEMPROMPT_BRAND: Brand = Brand {
     autostart_label: "io.systemprompt.internal-bridge-gui",
     autostart_task_name: "SystempromptInternalBridgeGui",
     aumid: "io.systemprompt.internal-bridge",
+    // Why: the systemprompt.io palette is one dark surface with a single orange
+    // accent (assets/theme.css) — there is no light theme to switch to, so the
+    // GUI and its title bar stay dark whatever the OS asks for.
+    force_dark: true,
     // Why: embedded from OUT_DIR (build.rs copies them there) so a regenerated
     // asset re-embeds under incremental/sccache builds.
     assets: BrandAssets {

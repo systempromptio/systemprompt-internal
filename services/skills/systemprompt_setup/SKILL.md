@@ -1,8 +1,8 @@
 # Systemprompt Setup
 
 The front door for setting up systemprompt.io in whatever host you are running in. This skill does
-not do the setup itself — it works out where you are and hands over to the matching host-specific
-skill, so users only ever have to remember one name.
+not do the setup itself — it works out who you are and where you are, then hands over to the
+matching skill, so users only ever have to remember one name.
 
 ## Ask me things like
 
@@ -11,9 +11,24 @@ skill, so users only ever have to remember one name.
 - "Get me connected to the CRM."
 - "Is my systemprompt setup complete?"
 
-## How to route
+## Step 1 — Establish what this account can reach
 
-Decide which host you are running in, then load and follow the matching skill:
+There is no identity tool on this instance right now: the comms server that carried `comms_whoami`
+is disabled, and with it the Who Am I panel. Do not call `comms_whoami`, and do not tell the user to
+open Who Am I — neither exists until comms is switched back on.
+
+Establish the two things setup actually depends on, from what you can see:
+
+- **Which skills you were handed.** Your own skill list *is* the grant — the bridge syncs exactly
+  what the signed manifest allowed. If `systemprompt_setup_admin` is among them, this is an admin
+  account; if it is not, it is a user account, and that skill is not missing.
+- **Whether Odoo is linked.** Call `crm_lead_search` with `{ "limit": 1 }`. A result means linked; an
+  authentication or missing-identity error means it is not — say so and point at `/admin/profile` to
+  add an Odoo login and API key. Carry on routing either way.
+
+State both back in one short sentence before you route, so the user knows which path they are on.
+
+## Step 2 — Route on host
 
 | You are running in | Signs | Use |
 |--------------------|-------|-----|
@@ -21,15 +36,22 @@ Decide which host you are running in, then load and follow the matching skill:
 | Codex CLI | OpenAI Codex CLI environment, no Cowork artifact tools | `systemprompt_setup_codex` |
 
 If neither matches (plain Claude Code, another MCP client), there is nothing host-specific to
-install: call `comms_whoami` with `{}` — it reports who the user is, their roles, whether Odoo is
-linked, and which plugins, servers and skills they were granted — and point the user at their
-profile page (`/admin/profile`) to connect Odoo if it reports the link missing.
+install: the Odoo check from Step 1 is the whole of setup. Say so and stop.
 
-**One setup, every role.** There is no separate admin setup. In Cowork the setup skill installs the
-dashboards of every plugin bundle the bridge mounted, and the bridge mounts exactly what the user's
-signed manifest granted — so an admin simply ends up with the control-plane dashboards (users,
-activity, usage) alongside the workspace ones, and a salesperson does not. Never tell an admin to
-look for a second setup skill; run the same one.
+## Step 3 — Route on role
+
+Setup is split by role, and the split is enforced by the grant, not by this skill: an admin holds
+`systemprompt_setup_admin`, a user does not, and nothing you do here can change that.
+
+- **`systemprompt_setup_admin` is in your skill list**, and you are in Cowork: after
+  `systemprompt_setup_cowork` finishes the workspace dashboards, run `systemprompt_setup_admin` for
+  the control-plane dashboards (users, activity, usage) and the admin CLI check. Two skills, run in
+  that order — the workspace ones are the ones an admin uses daily too.
+- **It is not in your skill list**: the host skill is the whole of setup. `systemprompt_setup_admin`
+  is not in your grant, is not missing, and must not be mentioned — there is nothing for you there.
+
+Never infer a role from an email address or a username. The presence of the admin setup skill in
+your own list is the only source, because that list is what the manifest actually granted.
 
 ## Dashboards are a Cowork feature — everywhere else, say so
 

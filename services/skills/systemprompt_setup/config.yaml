@@ -1,6 +1,6 @@
 id: systemprompt_setup
 name: "Systemprompt Setup"
-description: "Start here to set up systemprompt.io in your workspace, whatever your role: routes to the host-specific setup (Claude Cowork dashboards for every plugin you were granted, Codex CLI gateway wiring) and checks the MCP connections"
+description: "Start here to set up systemprompt.io in your workspace: reports who you are and what you were granted, then routes to the setup for your host (Claude Cowork dashboards, Codex CLI gateway wiring) and — for admins only — the separate control-plane setup"
 enabled: true
 file: SKILL.md
 tags:

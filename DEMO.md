@@ -31,7 +31,10 @@ total is already earned.
 All five ship in the dedicated **`systemprompt-demo`** plugin
 (`services/plugins/systemprompt-demo/config.yaml`) on the enterprise-demo marketplace — separate from
 the CRM and admin plugins, so the demo surface can be enabled, versioned, or removed as one unit.
-Steps 4–5 stay admin-only via skill rules in `services/access-control/roles.yaml`.
+Steps 4–5 stay admin-only because they ship in the `systemprompt-admin` plugin, which
+`services/access-control/roles.yaml` grants to `[admin]`. The enforcement is that one
+plugin rule — the skills carry no rule of their own, and an allow-type skill rule is
+forbidden.
 
 ## Difficulty ramp
 
@@ -52,8 +55,9 @@ Accounts, passwords, and how to run the demo as a real user instead of the seede
 2. **Seed richer data (optional but better on screen):** create a handful of leads/notes via the `crm`
    skill or Odoo UI (`http://localhost:8070`, `admin`/`admin`) so triage has something to rank.
 3. **Cowork:** on the demo machine, `systemprompt-internal-bridge login … --gateway http://localhost:8081`,
-   `bridge sync`, run **systemprompt-setup-cowork** — one skill for every role: a salesperson gets the
-   eight user dashboards, an admin gets those plus the three admin dashboards from the admin bundle.
+   `bridge sync`, run **systemprompt-setup-cowork** — it installs the four workspace dashboards for
+   every role. An admin then runs **systemprompt-setup-admin**, a separate admin-only skill, for the
+   three control-plane dashboards.
 4. **Verify the manifest** carries the five demo skills (§3 curl in TESTING-INSTRUCTIONS.md):
    steps 1–3 for both users, 4–5 only for `e2e-admin`.
 

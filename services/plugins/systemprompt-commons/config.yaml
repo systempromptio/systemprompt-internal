@@ -25,23 +25,24 @@ plugin:
       - systemprompt_setup
       - systemprompt_setup_cowork
       - systemprompt_setup_codex
-      - apply_brand_voice
-      - format_client_document
-      - draft_client_email
-      - company_boilerplate
+      # One brand skill, four passes (voice, structure, boilerplate, email).
+      # It was four separate skills until a person had to know which of them
+      # to reach for before they could write anything.
+      - brand
   agents:
     source: explicit
     include: []
-  # Team comms carries comms_whoami, the data source of the Who Am I panel.
+  # Team comms is shelved (services/mcp/comms.yaml, enabled: false), so it is
+  # not named here — a plugin may only include enabled members. Restoring it
+  # means re-listing `comms` below and `whoami` under artifacts.
   mcp_servers:
     source: explicit
-    include:
-      - comms
+    include: []
   content_sources: {}
+  # Who Am I is shelved with comms: comms_whoami was its only data source.
   artifacts:
     source: explicit
-    include:
-      - whoami
+    include: []
   # Claude Code runs plugin hooks session-globally, so the governance hooks are
   # declared once, here, and cover every tool call in the session. No other
   # plugin may set this — each extra owner is another govern call per tool,

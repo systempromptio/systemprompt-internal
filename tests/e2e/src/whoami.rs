@@ -1,6 +1,11 @@
 //! `comms_whoami` over the real MCP wire: the report is the caller's own, the
 //! grants come from the same resolver the bridge manifest uses, and the Odoo
 //! key never leaves the database.
+//!
+//! The comms server is shelved in `services/mcp/comms.yaml` (`enabled: false`)
+//! while the team-messaging surface is off, but the harness spawns the binary
+//! directly rather than from that config, so this coverage stays live and the
+//! resolver keeps being exercised — the grants it reports are the shipped ones.
 
 use systemprompt_mcp_comms::whoami::{GrantSource, WhoamiReport};
 
@@ -79,7 +84,7 @@ async fn whoami_reports_the_caller_and_the_grants_their_role_resolves_to() {
     let skills = ids(&user.grants.skills);
     assert!(skills.contains(&"systemprompt_setup_cowork"), "{skills:?}");
     assert!(
-        !skills.contains(&"admin_user_report"),
+        !skills.contains(&"report"),
         "a ruleless admin skill is closed by its plugin: {skills:?}"
     );
     let setup = user
@@ -94,7 +99,7 @@ async fn whoami_reports_the_caller_and_the_grants_their_role_resolves_to() {
         "a ruleless skill is attributed to the plugin that admitted it"
     );
     let servers = ids(&user.grants.mcp_servers);
-    assert!(servers.contains(&"comms"));
+    assert!(servers.contains(&"odoo"), "{servers:?}");
     assert!(!servers.contains(&"systemprompt"), "{servers:?}");
 
     let admin = whoami(server.port, &stack.admin_token).await;
@@ -105,7 +110,7 @@ async fn whoami_reports_the_caller_and_the_grants_their_role_resolves_to() {
         "{admin_plugins:?}"
     );
     assert!(
-        ids(&admin.grants.skills).contains(&"admin_user_report"),
+        ids(&admin.grants.skills).contains(&"report"),
         "an admin resolves the admin skills through the plugin rule"
     );
     assert!(ids(&admin.grants.mcp_servers).contains(&"systemprompt"));

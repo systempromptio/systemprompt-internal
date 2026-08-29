@@ -84,7 +84,7 @@ governance endpoint. This is what the repo's `demo/governance/*` scripts do.
 For `scope_check` and `tool_blocklist`, use the **user-scope** token (`demo/.token.user`), not the admin
 `demo/.token` — both policies exempt admins, so the admin token would be **allowed**. `00-preflight.sh`
 provisions `demo/.token.user` by minting a plugin token for `demo_user@demo.local` and demoting it to the
-`user` role (the same recipe `manage_permissions` documents); governance reads the role live, so the token
+`user` role (the same recipe `manage_platform` documents); governance reads the role live, so the token
 resolves to User scope.
 
 ```bash

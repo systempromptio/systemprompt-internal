@@ -66,8 +66,9 @@ rules:
     default_included: true
     roles: [user]
 
-  # Project knowledge bank (stub RAG MCP). Read tools for every user; the
-  # upload_document tool is additionally admin-gated inside the server (see
+  # Project knowledge bank (Postgres full-text search, not a stub and not a
+  # proxy). Read tools for every user; the upload_document tool is
+  # additionally admin-gated inside the server (see
   # services/mcp/knowledge-bank.yaml).
   - entity_type: mcp_server
     entity_id: knowledge-bank

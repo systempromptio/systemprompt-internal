@@ -80,10 +80,6 @@ async fn every_manifest_named_bundle_file_is_fetchable_and_dashboards_ship_with_
             .any(|p| p.contains("systemprompt-setup-cowork")),
         "the one setup skill ships in commons: {commons:?}"
     );
-    assert!(
-        commons.contains(&"artifacts/whoami.html"),
-        "the Who Am I panel ships in commons: {commons:?}"
-    );
     // Host targeting: the bundle is the Claude-family skill surface, so the
     // codex-only setup skill must not reach the Cowork picker — while the
     // manifest still carries it (Codex's own emitter reads manifest.skills).

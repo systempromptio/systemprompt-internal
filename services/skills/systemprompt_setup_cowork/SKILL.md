@@ -4,10 +4,11 @@ Bring the Artifacts library into line with the dashboards your plugins ship: ins
 missing, leave the ones already there alone, and report a clear "installed X of Y" result. Safe to
 run on every new session — it reconciles rather than seeds, so re-running is the point, not a waste.
 
-This one skill serves every role. The bridge mounts exactly the plugin bundles your signed manifest
-granted you, and each bundle carries its own dashboards — so a salesperson's mounts hold the Odoo,
-knowledge and team-inbox pages plus the Who Am I panel, and an admin's mounts additionally hold the
-control-plane pages (users, activity, usage). You never decide who gets what; the mount already did.
+**This skill installs the workspace dashboards only** — the four Odoo pages (business overview,
+inbound leads, open pipeline, recent activity) from the `systemprompt-user` bundle. It does not touch the control-plane dashboards (users, activity, usage): those belong to
+`systemprompt_setup_admin`, a separate skill that only admins hold. If you are an admin, run this
+skill first for your workspace, then that one for the control plane. If you are not, that skill does
+not exist for you and nothing here is missing.
 
 ## Before you start — this skill only works in Claude Cowork
 
@@ -19,7 +20,7 @@ The Artifacts library is a Cowork feature. Check for it before doing anything el
   and its inline visualizations are blocked from calling MCP tools (`callMcp` rejects with "Inline
   visualizations cannot call tools"), so a dashboard could not load data even if you rendered one.
 - **Plain Claude Code or any other MCP client** — nothing to install. Verify one MCP server answers
-  (`comms_whoami` with `{}`) and stop.
+  (`crm_lead_search` with `{ "limit": 1 }`) and stop.
 
 Stopping means stopping. Do **not** stage the HTML into `outputs/` "in case", do not write a
 receipt, and do not look for a CLI to install artifacts with — **there is no `coworkctl`, no
@@ -57,8 +58,7 @@ parallel; install one dashboard at a time, verifying as you go.
 **Caching contract:** Cowork only caches a dashboard's MCP tool results when the gateway tool
 advertises `annotations.readOnlyHint: true`. Every read-only tool a dashboard calls must carry that
 annotation in its server's tool catalog — without it, every re-render refetches and rendering becomes
-racy. The admin CLI tool (`mcp__systemprompt__systemprompt`) is deliberately *not* annotated, so the
-admin dashboards are never cached; that is intended.
+racy. Every tool the workspace dashboards call carries it.
 
 ## Step 1 — Read the manifests the mounted bundles ship
 
@@ -86,9 +86,9 @@ report it, never adopt it as one of ours. Build four groups:
 - **Stale** — present, but the bundled `version` differs from what was installed.
 - **Superseded** — a library entry whose id is one of the retired ids `salesforce-accounts`,
   `salesforce-activities`, `salesforce-cases`, `salesforce-contacts`, `salesforce-leads`,
-  `salesforce-opportunities`, `admin-users`, `admin-activity`, `admin-usage`: an install from before
-  this workspace moved to Odoo or before the admin dashboards were renamed. Offer to remove it — the
-  bundled dashboards are its replacement, and it can no longer load data.
+  `salesforce-opportunities`: an install from before this workspace moved to Odoo. Offer to remove
+  it — the bundled dashboards are its replacement, and it can no longer load data. Leave any
+  `admin-*` entry alone: it is not yours to reconcile, and `systemprompt_setup_admin` owns it.
 
 ## Step 3 — Install what is missing
 
@@ -96,8 +96,8 @@ Run this skill's staging script **once** with this exact shell command (it finds
 the skills mount lands — do not substitute a guessed path, and never a Windows path):
 
 ```
-SETUP=$(find "$HOME/mnt" /sessions/*/mnt -name setup.sh -path '*systemprompt?setup?cowork*' 2>/dev/null | head -1) \
-  && sh "$SETUP" || echo "SETUP_SCRIPT_NOT_FOUND"
+SETUP=$(find "$HOME/mnt" /sessions/*/mnt -name setup.sh -path '*systemprompt?setup*' 2>/dev/null | head -1) \
+  && sh "$SETUP" -- '!systemprompt-admin' || echo "SETUP_SCRIPT_NOT_FOUND"
 ```
 
 The script walks every mounted bundle's `artifacts/` directory, copies every dashboard page into the
@@ -152,7 +152,7 @@ just a count.
 Write the receipt through the same script so the timestamp is real, not typed:
 
 ```
-SETUP=$(find "$HOME/mnt" /sessions/*/mnt -name setup.sh -path '*systemprompt?setup?cowork*' 2>/dev/null | head -1) \
+SETUP=$(find "$HOME/mnt" /sessions/*/mnt -name setup.sh -path '*systemprompt?setup*' 2>/dev/null | head -1) \
   && sh "$SETUP" receipt '{ "checkedAt": "__NOW__", "plugins": ["..."], "bundled": N, "installed": N,
   "created": [{ "id": "...", "name": "...", "ref": "..." }],
   "alreadyPresent": [{ "id": "...", "name": "...", "ref": "..." }],
@@ -177,10 +177,18 @@ user:
 
 | server | probe |
 |--------|-------|
-| `comms` | `comms_whoami` with `{}` |
 | `odoo` | `crm_lead_search` with `{ "limit": 1 }` |
-| `knowledge-bank` | `list_documents` with `{ "limit": 1 }` |
-| `systemprompt` (admins only) | `systemprompt` with `{ "command": "core skills list" }` |
+| `knowledge-bank` | `list_documents` with `{}` |
+
+Call each probe by its **full wire name**, `mcp__<server-id>__<tool>`. The server segment is the id
+exactly as `services/mcp/*.yaml` spells it, **hyphens and all** — it is `mcp__knowledge-bank__list_documents`,
+never `mcp__knowledge_bank__...`. Nothing normalises a hyphen to an underscore, so the underscore
+form is not a near miss that still resolves; it is "No such tool available". Read the name off the
+installed record's `mcpTools`, which already carries the correct string, rather than retyping it.
+
+Pass the arguments in the table verbatim. These tools reject unknown keys, so a plausible-looking
+extra (`limit` on `list_documents`, which takes only `project` and `source`) fails the probe and
+reads as a broken server.
 
 The dashboards fetch their own data when opened (each page calls its MCP tool itself on load, and
 Reload re-runs it), so a working probe means the dashboards will populate.
@@ -188,7 +196,12 @@ Reload re-runs it), so a working probe means the dashboards will populate.
 If the Odoo probe fails with an authentication or missing-identity error, say the artifacts are
 installed but Odoo is not reachable for this account, and point the user at linking their Odoo login
 and API key on `/admin/profile` rather than at the dashboards — the HTML is fine, the credential is
-not. The Who Am I panel shows the same link status.
+not.
+
+If the Odoo probe fails with **Access Denied**, do not report it as a connection or session problem
+— there is no session to refresh, the credential is a long-lived API key and it authenticated fine.
+It means the linked Odoo account lacks rights on the model. The error now names the account and the
+app; relay that, and point at an Odoo administrator granting it access rather than at relinking.
 
 ## Step 6 — Report honestly
 

@@ -45,7 +45,7 @@ The `systemprompt` MCP server (admin-only) exposes a single tool, also named `sy
 systemprompt plugins mcp call systemprompt systemprompt --args '{"command":"core skills list"}'
 ```
 
-Prefer this over raw bash when operating remotely or as an agent: the server handles authentication, profile routing, and session context automatically. See the `inspect_mcp_and_skills` skill for listing and calling MCP tools.
+Prefer this over raw bash when operating remotely or as an agent: the server handles authentication, profile routing, and session context automatically. See the `inspect` skill for listing and calling MCP tools.
 
 ### Common options
 
@@ -63,13 +63,14 @@ This skill is the index. For an actual task, jump to the skill that owns it:
 | You want to... | Skill |
 |----------------|-------|
 | Exercise all four governance stages and read the audit | `demonstrate_governance` |
-| Edit a user's roles and watch a request flip allow/deny | `manage_permissions` |
-| Reconstruct the live conversation's structured data | `inspect_conversation` |
-| Deep-dive one AI gateway request and its trace | `inspect_ai_requests` |
-| Fleet rollups: cost, agents, tools, sessions | `analytics_dashboards` |
-| Discover, validate, and message agents | `inspect_agents` |
-| List/call MCP tools and sync skills | `inspect_mcp_and_skills` |
-| Start/inspect services, database, and jobs | `manage_services` |
+| Edit a user's roles and watch a request flip allow/deny | `manage_platform` |
+| Start/inspect services, the database, and jobs | `manage_platform` |
+| Reconstruct one conversation's structured data | `inspect` |
+| Deep-dive one AI gateway request and its trace | `inspect` |
+| List/call MCP tools and sync the skills catalogue | `inspect` |
+| The roster: who is on the platform, and their roles | `report` |
+| Recent activity: requests, failures, spend | `report` |
+| Fleet rollups: cost, tools, sessions | `report` |
 
 ### Examples
 

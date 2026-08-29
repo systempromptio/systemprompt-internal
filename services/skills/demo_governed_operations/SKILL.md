@@ -6,7 +6,7 @@ row per decision to Postgres. This step trips it on purpose, three ways, then pr
 the data.
 
 Admin-only. Two sibling admin skills carry the deep recipes — `demonstrate_governance` (the four
-stages, with runnable curl recipes and token guidance) and `manage_permissions` (live RBAC flips).
+stages, with runnable curl recipes and token guidance) and `manage_platform` (live RBAC flips).
 This skill sequences them into the demo beat; follow their instructions for each move rather than
 improvising payloads.
 
@@ -30,7 +30,7 @@ the file: a missing file means all stages ENABLED by default.
    credential prefix into the conversation (the gateway scanner would re-scan it every turn).
 4. **Blocklist deny** — a destructively-named tool (`delete_records`) for user scope, denied by
    `tool_blocklist`.
-5. **The live flip** — the manage_permissions beat: revoke a role, the same call is denied; re-grant
+5. **The live flip** — the `manage_platform` beat: revoke a role, the same call is denied; re-grant
    it, the call succeeds. Same bearer token, no restart, no redeploy. Authority is data.
 6. **Reconstruct** — prove all of it from the spine:
    ```bash

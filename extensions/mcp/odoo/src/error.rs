@@ -15,6 +15,9 @@ pub enum OdooError {
     #[error("Odoo app not installed: {0}")]
     AppMissing(String),
 
+    #[error("Odoo denied access: {0}")]
+    AccessDenied(String),
+
     #[error("Odoo rejected the call: {0}")]
     Odoo(String),
 
@@ -34,6 +37,7 @@ impl ExtensionError for OdooError {
             Self::NotConfigured(_) => "NOT_CONFIGURED",
             Self::NotLinked(_) => "NOT_LINKED",
             Self::AppMissing(_) => "APP_NOT_INSTALLED",
+            Self::AccessDenied(_) => "ODOO_ACCESS_DENIED",
             Self::Odoo(_) => "ODOO_REJECTED",
             Self::Transport(_) => "UPSTREAM_UNAVAILABLE",
             Self::Serialization(_) => "SERIALIZATION_ERROR",
@@ -44,7 +48,7 @@ impl ExtensionError for OdooError {
     fn status(&self) -> StatusCode {
         match self {
             Self::NotConfigured(_) | Self::Transport(_) => StatusCode::SERVICE_UNAVAILABLE,
-            Self::NotLinked(_) => StatusCode::FORBIDDEN,
+            Self::NotLinked(_) | Self::AccessDenied(_) => StatusCode::FORBIDDEN,
             Self::AppMissing(_) => StatusCode::NOT_IMPLEMENTED,
             Self::Odoo(_) => StatusCode::BAD_GATEWAY,
             Self::Serialization(_) | Self::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
@@ -62,9 +66,14 @@ impl ExtensionError for OdooError {
 impl From<OdooError> for rmcp::ErrorData {
     fn from(err: OdooError) -> Self {
         match err {
+            // Why: these four are all resolved by the caller doing something
+            // — linking, installing, or being granted rights — so they carry
+            // their remedy in the message and must not be flattened into an
+            // internal error that hides it.
             OdooError::NotLinked(msg)
             | OdooError::NotConfigured(msg)
-            | OdooError::AppMissing(msg) => Self::invalid_request(msg, None),
+            | OdooError::AppMissing(msg)
+            | OdooError::AccessDenied(msg) => Self::invalid_request(msg, None),
             other => Self::internal_error(other.to_string(), None),
         }
     }

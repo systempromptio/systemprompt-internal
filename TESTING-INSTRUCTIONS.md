@@ -195,8 +195,8 @@ surfaces, owned by a different piece of code, edited a different way.
 ![The setup skill running in Cowork](docs/testing/setup-skill-run.png)
 
 `/systemprompt-setup-cowork` executing in Cowork: the agent reads the
-bundled manifest, stages the HTML, calls `create_artifact` six times, and
-verifies the install — the six dashboards appear under *Pinned*. The
+bundled manifest, stages the HTML, calls `create_artifact` once per record,
+and verifies the install — the workspace dashboards appear under *Pinned*. The
 behaviour is **prose, not code**:
 `services/skills/systemprompt_setup_cowork/SKILL.md` plus its
 `scripts/setup.sh`. Edit the SKILL.md to change how the agent installs or

@@ -20,17 +20,22 @@ plugin:
   skills:
     source: explicit
     include:
-      - admin_user_report
-      - admin_activity_report
-      - analytics_dashboards
-      - inspect_ai_requests
-      - inspect_conversation
-      - manage_permissions
+      # Three front doors, not nine. `report` is the fleet/roster/activity
+      # view, `inspect` is the per-request/per-conversation microscope, and
+      # `manage_platform` is the two things that mutate live state (the stack
+      # and a user's roles). They absorbed admin_user_report,
+      # admin_activity_report, analytics_dashboards, inspect_ai_requests,
+      # inspect_conversation, inspect_agents, inspect_mcp_and_skills,
+      # manage_permissions and manage_services.
+      - report
+      - inspect
+      - manage_platform
       - demonstrate_governance
-      - inspect_agents
-      - manage_services
-      - inspect_mcp_and_skills
       - systemprompt_cli
+      # Control-plane first-run setup. Admin-only by this plugin's grant alone —
+      # a user's manifest never carries it, so systemprompt_setup never names it
+      # to them.
+      - systemprompt_setup_admin
       # Enterprise demo steps 4–5 (DEMO.md): governed writes and the metered
       # bill. They run the admin CLI server, so they live with it.
       - demo_governed_operations

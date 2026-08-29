@@ -2,7 +2,8 @@ id: team-inbox
 name: "Team Inbox — Messages & Live Sessions"
 description: "Unread messages addressed to you, and the directory of agent sessions running right now with the handle to reach each one. Refresh re-runs comms_inbox and comms_sessions as you, so you only ever see what was addressed to you."
 version: "1.0.0"
-enabled: true
+# Shelved 2026-08-28: the comms server it reads is disabled.
+enabled: false
 starred: true
 # `category`, `tags` and `query` are forward-compatible metadata — the core
 # loader ignores them today; the call also lives in `description` and view.html.
