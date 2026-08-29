@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE knowledge_documents\n        SET category = $1, structured = $2, status = 'categorized'\n        WHERE id = $3 AND status = 'raw'\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Jsonb",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9b9d17d6ebb723559251650b71b8a64ed7b767995c5980b53fd9ec46b2c22965"
+}

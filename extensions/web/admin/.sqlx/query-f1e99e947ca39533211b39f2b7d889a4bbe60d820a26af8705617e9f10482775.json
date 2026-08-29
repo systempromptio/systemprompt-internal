@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT issuer, external_sub FROM federated_identities WHERE user_id = $1 ORDER BY last_seen_at DESC NULLS LAST, issuer",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "issuer",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "federated_identities",
+            "name": "issuer"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "external_sub",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "federated_identities",
+            "name": "external_sub"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "f1e99e947ca39533211b39f2b7d889a4bbe60d820a26af8705617e9f10482775"
+}
