@@ -13,11 +13,8 @@ matching skill, so users only ever have to remember one name.
 
 ## Step 1 — Establish what this account can reach
 
-There is no identity tool on this instance right now: the comms server that carried `comms_whoami`
-is disabled, and with it the Who Am I panel. Do not call `comms_whoami`, and do not tell the user to
-open Who Am I — neither exists until comms is switched back on.
-
-Establish the two things setup actually depends on, from what you can see:
+There is no identity tool on this instance: nothing reports back who the account is or what it was
+granted. Establish the two things setup actually depends on, from what you can see:
 
 - **Which skills you were handed.** Your own skill list *is* the grant — the bridge syncs exactly
   what the signed manifest allowed. If `systemprompt_setup_admin` is among them, this is an admin

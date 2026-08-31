@@ -19,24 +19,31 @@ plugin:
       # carries project tasks and the calendar. They were six skills until the
       # single-verb ones (add_note, schedule_activity, manage_tasks,
       # manage_calendar) were folded in — one front door per job, not per tool.
-      # team_chat and capture_knowledge are shelved with the comms and
-      # knowledge surfaces; their config.yaml carries enabled: false.
+      # capture_knowledge is shelved with the knowledge surface; its
+      # config.yaml carries enabled: false.
       - crm
       - manage_work
       - business_overview
+      # lead_factsheet spans the three servers below: it captures a lead in
+      # Odoo, renders a personalised sheet, attaches it, and emails it.
+      - lead_factsheet
   agents:
     source: explicit
     include: []
   # Every server a user-scope skill or dashboard calls, declared here so this
   # plugin is self-describing: odoo (per-user identity link) and outbound email
   # (draft_client_email's send path, held by the require_approval stage).
-  # comms is shelved; knowledge-bank left with the demo plugin, since both of
-  # this plugin's knowledge members are shelved too.
+  # knowledge-bank is left with the demo plugin, since this plugin's knowledge
+  # members are shelved.
   mcp_servers:
     source: explicit
     include:
       - odoo
       - email
+      # factsheet renders the house sheet template to a PDF. It reads no
+      # business data and reaches no third party, so it is granted as broadly
+      # as the skills that call it.
+      - factsheet
   content_sources: {}
   # The workspace dashboards. Selection is plugin-driven (core's
   # selected_artifact_ids): an artifact reaches a client only if a granted

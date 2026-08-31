@@ -5427,6 +5427,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "systemprompt-factsheet"
+version = "0.39.0"
+dependencies = [
+ "base64 0.22.1",
+ "handlebars",
+ "schemars",
+ "serde",
+ "serde_json",
+ "serde_yaml_ng",
+ "thiserror 2.0.19",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "systemprompt-files"
 version = "0.41.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5663,27 +5678,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "systemprompt-mcp-comms"
-version = "0.39.0"
-dependencies = [
- "anyhow",
- "axum",
- "chrono",
- "inventory",
- "rmcp",
- "schemars",
- "serde",
- "serde_json",
- "sqlx",
- "systemprompt",
- "systemprompt-mcp-shared",
- "thiserror 2.0.19",
- "tokio",
- "tracing",
- "uuid",
-]
-
-[[package]]
 name = "systemprompt-mcp-email"
 version = "0.39.0"
 dependencies = [
@@ -5703,6 +5697,26 @@ dependencies = [
  "tokio",
  "tracing",
  "uuid",
+]
+
+[[package]]
+name = "systemprompt-mcp-factsheet"
+version = "0.39.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "base64 0.22.1",
+ "rmcp",
+ "schemars",
+ "serde",
+ "serde_json",
+ "serde_yaml_ng",
+ "systemprompt",
+ "systemprompt-factsheet",
+ "systemprompt-mcp-shared",
+ "thiserror 2.0.19",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]

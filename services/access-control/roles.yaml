@@ -55,23 +55,22 @@ rules:
     default_included: true
     roles: [user]
 
-  # Team comms MCP server. Granted to every user because the whole point is
-  # reaching a colleague or their agent; the control that matters is addressing,
-  # not the caller's role. A message enters a running conversation only when it
-  # names that session — `@user` and `#channel` raise an unread count and never
-  # interrupt — so a broad grant cannot become a broadcast channel.
-  - entity_type: mcp_server
-    entity_id: comms
-    access: allow
-    default_included: true
-    roles: [user]
-
   # Project knowledge bank (Postgres full-text search, not a stub and not a
   # proxy). Read tools for every user; the upload_document tool is
   # additionally admin-gated inside the server (see
   # services/mcp/knowledge-bank.yaml).
   - entity_type: mcp_server
     entity_id: knowledge-bank
+    access: allow
+    default_included: true
+    roles: [user]
+
+  # Factsheet MCP server. Rendering a sheet reads no business data and reaches
+  # no third party — it turns a content model into a PDF — so authentication is
+  # the only gate that applies. Sending the result to a customer is a separate
+  # act on a separate server, and that is where approval belongs.
+  - entity_type: mcp_server
+    entity_id: factsheet
     access: allow
     default_included: true
     roles: [user]

@@ -8,6 +8,14 @@ left behind.
 It is organised by **what could be wrong**, not by commit, because the commit
 order is an artifact of who finished when and tells a reviewer very little.
 
+> **Superseded 2026-08-31 — team comms was removed.** Realtime comms was shelved
+> on 2026-08-28 and has now been deleted outright: the `systemprompt-mcp-comms`
+> crate, `services/mcp/comms.yaml`, the `team-inbox` and `whoami` artifacts, the
+> `team_chat` skill, and their tests are gone from the tree. Every comms path
+> named below (`extensions/mcp/comms/`, `tests/e2e/src/comms.rs`, the
+> `comms_drain` hook) is history, not a review target. The rest of this document
+> still stands.
+
 Everything below is on `next`. Nothing has gone to `main` — no gate, no promote,
 no release PR, and deliberately no `bridge-v*` tag.
 

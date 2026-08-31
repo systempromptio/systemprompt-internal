@@ -3,12 +3,9 @@
 /reports/
 demo/RELEASE-TEST-REPORT-*.md
 
-# Client-personalized factsheet PDFs are ignored by default.
-# Whitelist each PDF that is cleared for publishing.
-pdf/*.pdf
-!pdf/systemprompt-io-factsheet.pdf
-!pdf/systemprompt-io-factsheet-scaled.pdf
-!pdf/systemprompt-io-factsheet-airgap.pdf
+# Factsheets are no longer built as loose PDFs in the repo. They are data under
+# storage/files/factsheet/sheets/, rendered on demand by the factsheet MCP
+# server, and every rendered PDF is registered in the files domain.
 
 # Rust build artifacts
 /target/

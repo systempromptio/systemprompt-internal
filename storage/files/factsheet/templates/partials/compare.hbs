@@ -1,0 +1,15 @@
+  <table class="compare">
+    <thead>
+      <tr>
+        <th></th>
+{{#each columns}}        <th{{#if spcol}} class="spcol"{{/if}}>{{text}}</th>
+{{/each}}      </tr>
+    </thead>
+    <tbody>
+{{#each sections}}{{#if label}}      <tr class="band"><td colspan="{{../colspan}}">{{label}}</td></tr>
+{{/if}}{{#each rows}}      <tr>
+        <td class="dim">{{label}}</td>
+{{#each cells}}        <td{{#if spcol}} class="spcol"{{/if}}>{{{inline value}}}</td>
+{{/each}}      </tr>
+{{/each}}{{/each}}    </tbody>
+  </table>

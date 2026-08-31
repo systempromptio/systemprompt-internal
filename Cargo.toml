@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "extensions/brand",
+    "extensions/factsheet",
     "extensions/web",
     "extensions/web/shared",
     "extensions/web/admin",
@@ -13,7 +14,7 @@ members = [
     "extensions/mcp/knowledge-bank",
     "extensions/mcp/shared",
     "extensions/mcp/odoo",
-    "extensions/mcp/comms",
+    "extensions/mcp/factsheet",
     "extensions/mcp/email",
 ]
 # The test workspace under tests/ is a separate workspace so it never compiles
@@ -54,6 +55,7 @@ systemprompt-extension = { version = "0.41.0" }
 # LOCAL EXTENSIONS
 # ============================================
 systemprompt-internal-brand = { path = "extensions/brand" }
+systemprompt-factsheet = { path = "extensions/factsheet" }
 systemprompt-web-extension = { path = "extensions/web" }
 systemprompt-web-shared = { path = "extensions/web/shared" }
 systemprompt-web-admin = { path = "extensions/web/admin" }

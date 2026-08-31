@@ -18,9 +18,9 @@ const USER_PLUGINS: &[&str] = &[
     "systemprompt-demo",
 ];
 const ADMIN_PLUGINS: &[&str] = &["systemprompt-admin"];
-// whoami, todo-bulletin, knowledge-feed and team-inbox are shelved with the
-// comms and knowledge surfaces (each config.yaml carries enabled: false), so
-// they are no longer named by any plugin and must not reach a manifest.
+// todo-bulletin and knowledge-feed are shelved with the knowledge surface
+// (each config.yaml carries enabled: false), so they are no longer named by any
+// plugin and must not reach a manifest.
 const USER_ARTIFACTS: &[&str] = &[
     "business-overview",
     "leads-inbound-prospects",
@@ -147,7 +147,6 @@ async fn an_admin_manifest_carries_the_admin_surface_and_a_users_does_not() {
 
     let admin_mcp = ids(&admin, "managed_mcp_servers");
     let user_mcp = ids(&user, "managed_mcp_servers");
-    // comms is shelved (services/mcp/comms.yaml, enabled: false) and
     // knowledge-bank now reaches a user only through the demo plugin.
     for server in ["odoo", "email"] {
         assert!(
@@ -155,10 +154,6 @@ async fn an_admin_manifest_carries_the_admin_surface_and_a_users_does_not() {
             "{server} is granted to [user]: {user_mcp:?}"
         );
     }
-    assert!(
-        !user_mcp.contains("comms"),
-        "a disabled server must not reach any manifest: {user_mcp:?}"
-    );
     assert!(
         admin_mcp.contains("systemprompt"),
         "the admin CLI server is enabled and granted to [admin]: {admin_mcp:?}"

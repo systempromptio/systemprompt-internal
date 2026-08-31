@@ -390,7 +390,7 @@ plugin:
     include: []
   mcp_servers:
     source: explicit
-    include: [comms]
+    include: [odoo]
   artifacts:
     source: explicit
     include: []

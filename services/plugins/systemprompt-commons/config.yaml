@@ -1,7 +1,7 @@
 plugin:
   id: systemprompt-commons
   name: "Systemprompt Commons — Setup & Brand"
-  description: "What every role gets: the one workspace setup skill (installs every dashboard the plugins you were granted ship), the Who Am I identity panel, team comms, and the shared brand skills — voice, document formatting, client email, company boilerplate."
+  description: "What every role gets: the one workspace setup skill (installs every dashboard the plugins you were granted ship) and the shared brand skills — voice, document formatting, client email, company boilerplate."
   version: "3.0.0"
   # User-scoped and shared by every role: roles.yaml grants this plugin to
   # [user], and admins hold the user role too (services/access-control/
@@ -32,14 +32,10 @@ plugin:
   agents:
     source: explicit
     include: []
-  # Team comms is shelved (services/mcp/comms.yaml, enabled: false), so it is
-  # not named here — a plugin may only include enabled members. Restoring it
-  # means re-listing `comms` below and `whoami` under artifacts.
   mcp_servers:
     source: explicit
     include: []
   content_sources: {}
-  # Who Am I is shelved with comms: comms_whoami was its only data source.
   artifacts:
     source: explicit
     include: []

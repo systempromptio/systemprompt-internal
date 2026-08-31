@@ -1,0 +1,4 @@
+  <div class="prov{{#if spaced}} spaced{{/if}}">
+    <div class="k">{{kicker}}</div>
+{{#each rows}}    <div class="row">{{#if text}}{{{inline text}}}{{/if}}{{#each groups}}<span class="g">{{label}}</span> {{value}}{{#unless @last}} &nbsp;&nbsp; {{/unless}}{{/each}}</div>
+{{/each}}  </div>

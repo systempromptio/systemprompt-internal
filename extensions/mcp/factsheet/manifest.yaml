@@ -1,0 +1,8 @@
+extension:
+  type: mcp
+  name: factsheet
+  binary: systemprompt-mcp-factsheet
+  description: Factsheets - render the house sheet template to a branded PDF from sheet data
+  port: 5070
+  build_type: workspace
+  enabled: true
