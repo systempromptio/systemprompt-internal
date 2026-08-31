@@ -229,8 +229,13 @@ async fn a_manifest_names_the_user_it_was_assembled_for() {
 
     let manifest = stack.manifest(&stack.user_token).await;
     let email = manifest["user"]["email"].as_str().unwrap_or_default();
+    // Assert against the seed constant, never a second copy of the literal:
+    // this test spent its life asserting `e2e-user@e2e.test` against a harness
+    // that seeds `ed+notadmin@systemprompt.io`, and nothing caught it because
+    // nothing ran it.
     assert_eq!(
-        email, "e2e-user@e2e.test",
+        email,
+        crate::harness::stack::USER_EMAIL,
         "the manifest is per-user, not a shared document: {manifest:#}"
     );
 

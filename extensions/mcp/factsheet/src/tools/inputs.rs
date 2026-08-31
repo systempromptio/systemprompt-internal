@@ -15,7 +15,8 @@ pub struct ListInput {}
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct GetInput {
-    /// Sheet id, as returned by `factsheet_list` — the filename stem, e.g. `ceo`.
+    /// Sheet id, as returned by `factsheet_list` — the filename stem, e.g.
+    /// `ceo`.
     pub id: String,
 }
 

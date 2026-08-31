@@ -27,7 +27,7 @@ pub(crate) fn load_skills_page_config() -> Result<Option<Arc<SkillsPageConfig>>,
     // Why: the page is public and prerendered, so it can only advertise what
     // a `user`-scoped plugin claims — an admin skill listed here is one no
     // visitor could ever run. See config_loader::skill_scope.
-    if let Some(public_ids) = super::skill_scope::public_skill_ids(services_dir.as_ref()) {
+    if let Some(public_ids) = super::skill_scope::public_skill_ids(services_dir) {
         let before = skills.len();
         skills.retain(|s| public_ids.contains(&s.id));
         tracing::info!(

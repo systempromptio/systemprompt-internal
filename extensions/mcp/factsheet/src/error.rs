@@ -19,7 +19,7 @@ pub enum ServerError {
 impl From<ServerError> for McpError {
     fn from(error: ServerError) -> Self {
         match &error {
-            // A bad sheet id or an overlong sheet is the caller's to fix, and
+            // Why: A bad sheet id or an overlong sheet is the caller's to fix, and
             // the message says how — so it must reach them as invalid params
             // rather than as an opaque internal error.
             ServerError::Engine(

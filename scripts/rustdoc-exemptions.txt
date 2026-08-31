@@ -6,3 +6,12 @@
 # tool parameter description the model reads. Converting it to `// Why:` empties
 # the description from the generated schema, so the placement rule cannot apply.
 extensions/mcp/systemprompt/src/tools.rs
+
+# Same rule, the factsheet surface: `FactsheetDoc` and its `Inline` spans are
+# accepted inline as MCP tool input (`factsheet_render`'s `doc` parameter), so
+# every `///` on their fields is a schema description the model reads when it
+# builds a sheet. `tools/inputs.rs` is the parameter struct itself.
+extensions/factsheet/src/model.rs
+extensions/factsheet/src/inline.rs
+extensions/mcp/factsheet/src/tools/inputs.rs
+extensions/factsheet/src/blocks.rs

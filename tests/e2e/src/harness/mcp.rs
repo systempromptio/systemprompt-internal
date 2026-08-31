@@ -189,6 +189,13 @@ async fn raw_call_as(
         HttpClientWithContext::new(request_context),
         config,
     );
+    // Why: every MCP server here advertises 2026-07-28, and rmcp refuses to
+    // hand an `InputRequiredResult` to a peer that negotiated below it — so a
+    // tool held by the `require_approval` stage (note_add, channel_post,
+    // email_send) comes back as "-32600: InputRequiredResult requires
+    // negotiated protocol version 2026-07-28 or newer" rather than as the hold
+    // it actually is. The default is older, so say it explicitly; the sibling
+    // client in `McpSession::connect` has always done this.
     let client_info = if ui_capable {
         ui_capable_client_info()
     } else {
@@ -196,7 +203,8 @@ async fn raw_call_as(
             ClientCapabilities::default(),
             Implementation::new("e2e-tests", "0.0.0"),
         )
-    };
+    }
+    .with_protocol_version(rmcp::model::ProtocolVersion::V_2026_07_28);
     let client = tokio::time::timeout(Duration::from_secs(30), client_info.serve(transport))
         .await
         .map_err(|_| "initialize timed out".to_owned())?

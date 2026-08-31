@@ -3,19 +3,19 @@
 //! The split is deliberate. Everything that decides what the page *says* —
 //! loading sheet data, numbering sections, inlining assets, applying the
 //! template — happens here in Rust. The subprocess at the end does one thing:
-//! turn a finished, self-contained HTML string into a PDF. `WeasyPrint`'s layout
-//! engine is Python and has no Rust binding, so that boundary has to exist; it
-//! is kept as thin as it can be so that almost nothing about a factsheet is
-//! defined outside this crate.
+//! turn a finished, self-contained HTML string into a PDF. `WeasyPrint`'s
+//! layout engine is Python and has no Rust binding, so that boundary has to
+//! exist; it is kept as thin as it can be so that almost nothing about a
+//! factsheet is defined outside this crate.
 
-use handlebars::{Context, Handlebars, Helper, HelperResult, Output, RenderContext, RenderErrorReason};
+use handlebars::Handlebars;
 use std::path::{Path, PathBuf};
 use tokio::process::Command;
 
 use crate::assets::Assets;
 use crate::error::{FactsheetError, FactsheetResult};
-use crate::inline::Inline;
 use crate::model::FactsheetDoc;
+use crate::template_data::{RenderReport, css_string, inline_helper, lines_helper, prepare_blocks};
 
 const MAIN_TEMPLATE: &str = "factsheet";
 
@@ -24,9 +24,9 @@ const MAIN_TEMPLATE: &str = "factsheet";
 pub struct RenderedFactsheet {
     pub id: String,
     pub pdf_path: PathBuf,
-    /// One PNG per page, in page order. These are the preview surface — the
-    /// skill shows them, the reader reacts, the data changes, and the sheet is
-    /// rendered again.
+    // Why: One PNG per page, in page order. These are the preview surface — the
+    // skill shows them, the reader reacts, the data changes, and the sheet is
+    // rendered again.
     pub page_images: Vec<PathBuf>,
     pub page_count: usize,
 }
@@ -34,11 +34,11 @@ pub struct RenderedFactsheet {
 /// Where the engine's inputs live on disk.
 #[derive(Debug, Clone)]
 pub struct EnginePaths {
-    /// `storage/files/factsheet`
+    // Why: `storage/files/factsheet`
     pub root: PathBuf,
-    /// The `factsheet-render.py` sidecar.
+    // Why: The `factsheet-render.py` sidecar.
     pub script: PathBuf,
-    /// Python interpreter. A venv path in a deployed image, `python3` locally.
+    // Why: Python interpreter. A venv path in a deployed image, `python3` locally.
     pub python: PathBuf,
 }
 
@@ -93,7 +93,7 @@ impl FactsheetEngine {
             })?;
             let path = entry.path();
             if path.extension().is_some_and(|ext| ext == "hbs") {
-                // The partial's file stem is the block's serde tag; that is how
+                // Why: The partial's file stem is the block's serde tag; that is how
                 // the template dispatches, so the two cannot drift apart.
                 let Some(name) = path.file_stem().and_then(|s| s.to_str()) else {
                     continue;
@@ -119,7 +119,6 @@ impl FactsheetEngine {
         })
     }
 
-    /// The sheet ids this instance ships.
     pub fn list_sheets(&self) -> FactsheetResult<Vec<String>> {
         let dir = self.paths.sheets_dir();
         let entries = std::fs::read_dir(&dir).map_err(|source| FactsheetError::Io {
@@ -163,8 +162,8 @@ impl FactsheetEngine {
         })
     }
 
-    /// Apply the template. The result is self-contained: fonts and diagrams are
-    /// embedded, so it needs neither a network nor a base URL.
+    // Why: Apply the template. The result is self-contained: fonts and diagrams are
+    // embedded, so it needs neither a network nor a base URL.
     pub fn render_html(&self, doc: &FactsheetDoc) -> FactsheetResult<String> {
         let mut doc = doc.clone();
         doc.number_sections();
@@ -192,10 +191,10 @@ impl FactsheetEngine {
             .map_err(|e| FactsheetError::Template(e.to_string()))
     }
 
-    /// Render to PDF plus one PNG per page, writing into `out_dir`.
-    ///
-    /// Fails when the sheet overruns its page budget — see
-    /// [`FactsheetError::PageBudget`].
+    // Why: Render to PDF plus one PNG per page, writing into `out_dir`.
+    //
+    // Fails when the sheet overruns its page budget — see
+    // [`FactsheetError::PageBudget`].
     pub async fn render_pdf(
         &self,
         doc: &FactsheetDoc,
@@ -211,7 +210,9 @@ impl FactsheetEngine {
             })?;
 
         let pdf_path = out_dir.join(format!("{}.pdf", doc.id));
-        let report = self.run_renderer(&html, &pdf_path, out_dir, &doc.id).await?;
+        let report = self
+            .run_renderer(&html, &pdf_path, out_dir, &doc.id)
+            .await?;
 
         if report.page_count > doc.max_pages {
             return Err(FactsheetError::PageBudget {
@@ -287,154 +288,4 @@ impl FactsheetEngine {
             ))
         })
     }
-}
-
-#[derive(Debug, serde::Deserialize)]
-struct RenderReport {
-    page_count: usize,
-    page_images: Vec<String>,
-}
-
-/// Walk the serialised document, resolving what the templates cannot compute.
-fn prepare_blocks(value: &mut serde_json::Value) {
-    match value {
-        serde_json::Value::Array(items) => {
-            for item in items {
-                prepare_blocks(item);
-            }
-        },
-        serde_json::Value::Object(object) => {
-            match object.get("type").and_then(serde_json::Value::as_str) {
-                Some("compare") => rewrite_compare(object),
-                Some("ctable") => insert_span(object),
-                Some("cuts") => {
-                    if let Some(panels) =
-                        object.get_mut("panels").and_then(serde_json::Value::as_array_mut)
-                    {
-                        for panel in panels {
-                            if let Some(panel) = panel.as_object_mut() {
-                                insert_span(panel);
-                            }
-                        }
-                    }
-                },
-                _ => {},
-            }
-            for (_, child) in object.iter_mut() {
-                prepare_blocks(child);
-            }
-        },
-        _ => {},
-    }
-}
-
-/// A banded row spans the whole table, so it needs the column count.
-fn insert_span(block: &mut serde_json::Map<String, serde_json::Value>) {
-    let span = block
-        .get("headers")
-        .and_then(serde_json::Value::as_array)
-        .map_or(1, Vec::len);
-    block.insert("span".to_owned(), span.into());
-}
-
-/// Resolve a comparison table's highlighted column into per-cell flags.
-///
-/// The template could walk back up the context stack to find `highlight`, but
-/// the path depth differs between the header row and a body cell, so a small
-/// change to the markup silently highlights the wrong column. Computing the
-/// flags here keeps that decision in one place and the template dumb.
-fn rewrite_compare(block: &mut serde_json::Map<String, serde_json::Value>) {
-    let highlight = block
-        .get("highlight")
-        .and_then(serde_json::Value::as_u64)
-        .map(|index| index as usize);
-
-    let column_count = block
-        .get("columns")
-        .and_then(serde_json::Value::as_array)
-        .map_or(0, Vec::len);
-    // The stub column has no heading of its own but still spans the band rows.
-    block.insert("colspan".to_owned(), (column_count + 1).into());
-
-    if let Some(columns) = block.get_mut("columns").and_then(serde_json::Value::as_array_mut) {
-        for (index, column) in columns.iter_mut().enumerate() {
-            let text = column.take();
-            *column = serde_json::json!({
-                "text": text,
-                "spcol": highlight == Some(index),
-            });
-        }
-    }
-
-    let Some(sections) = block.get_mut("sections").and_then(serde_json::Value::as_array_mut) else {
-        return;
-    };
-    for section in sections {
-        let Some(rows) = section.get_mut("rows").and_then(serde_json::Value::as_array_mut) else {
-            continue;
-        };
-        for row in rows {
-            let Some(cells) = row.get_mut("cells").and_then(serde_json::Value::as_array_mut) else {
-                continue;
-            };
-            for (index, cell) in cells.iter_mut().enumerate() {
-                let value = cell.take();
-                *cell = serde_json::json!({
-                    "value": value,
-                    "spcol": highlight == Some(index),
-                });
-            }
-        }
-    }
-}
-
-/// Escape a string for use as a CSS `content:` value.
-fn css_string(raw: &str) -> String {
-    raw.replace('\\', "\\\\").replace('"', "\\\"")
-}
-
-/// `{{{lines field}}}` — escape text, rendering newlines as line breaks.
-///
-/// Table cells in the partner sheet stack a calculation over two lines. Putting
-/// a literal `<br>` in the data would mean accepting markup from the caller;
-/// a newline is data, and this is where it becomes markup.
-fn lines_helper(
-    helper: &Helper<'_>,
-    _: &Handlebars<'_>,
-    _: &Context,
-    _: &mut RenderContext<'_, '_>,
-    out: &mut dyn Output,
-) -> HelperResult {
-    let raw = helper
-        .param(0)
-        .ok_or_else(|| RenderErrorReason::ParamNotFoundForIndex("lines", 0))?
-        .value()
-        .as_str()
-        .unwrap_or_default()
-        .to_owned();
-    let rendered = raw
-        .split('\n')
-        .map(crate::inline::escape)
-        .collect::<Vec<_>>()
-        .join("<br/>");
-    out.write(&rendered)?;
-    Ok(())
-}
-
-/// `{{{inline field}}}` — render an [`Inline`] to safe HTML.
-fn inline_helper(
-    helper: &Helper<'_>,
-    _: &Handlebars<'_>,
-    _: &Context,
-    _: &mut RenderContext<'_, '_>,
-    out: &mut dyn Output,
-) -> HelperResult {
-    let value = helper
-        .param(0)
-        .ok_or_else(|| RenderErrorReason::ParamNotFoundForIndex("inline", 0))?
-        .value();
-    let inline: Inline = serde_json::from_value(value.clone())
-        .map_err(|e| RenderErrorReason::Other(format!("inline: {e}")))?;
-    out.write(&inline.to_html())?;
-    Ok(())
 }

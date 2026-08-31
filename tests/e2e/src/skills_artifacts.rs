@@ -11,6 +11,28 @@ use axum::http::StatusCode;
 
 use crate::harness::stack::Stack;
 
+// The artifact ids a plugin declares, read from the shipped config rather than
+// duplicated here — a plugin that ships no dashboards (commons) must not be
+// asserted to carry an artifact install manifest.
+fn plugin_artifact_ids(plugin_id: &str) -> Vec<String> {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .ancestors()
+        .nth(2)
+        .expect("repo root");
+    let text =
+        std::fs::read_to_string(root.join(format!("services/plugins/{plugin_id}/config.yaml")))
+            .expect("plugin config");
+    let doc: serde_yaml::Value = serde_yaml::from_str(&text).expect("plugin yaml");
+    doc["plugin"]["artifacts"]["include"]
+        .as_sequence()
+        .map(|seq| {
+            seq.iter()
+                .filter_map(|v| v.as_str().map(str::to_owned))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 fn bundle_paths<'a>(manifest: &'a serde_json::Value, plugin_id: &str) -> Vec<&'a str> {
     manifest["plugins"]
         .as_array()
@@ -34,10 +56,20 @@ async fn every_manifest_named_bundle_file_is_fetchable_and_dashboards_ship_with_
     let manifest = stack.manifest(&stack.user_token).await;
     for plugin_id in ["systemprompt-commons", "systemprompt-user"] {
         let paths = bundle_paths(&manifest, plugin_id);
-        assert!(
-            paths.contains(&"artifacts/manifest.json"),
-            "{plugin_id} ships its artifact install manifest; bundle had {paths:?}"
-        );
+        let declared = plugin_artifact_ids(plugin_id);
+        if declared.is_empty() {
+            assert!(
+                !paths.contains(&"artifacts/manifest.json"),
+                "{plugin_id} declares no artifacts, so it must ship no install \
+                 manifest; bundle had {paths:?}"
+            );
+        } else {
+            assert!(
+                paths.contains(&"artifacts/manifest.json"),
+                "{plugin_id} declares {declared:?} so it ships an artifact install \
+                 manifest; bundle had {paths:?}"
+            );
+        }
         for path in &paths {
             let (status, body) = stack
                 .send(
@@ -49,6 +81,10 @@ async fn every_manifest_named_bundle_file_is_fetchable_and_dashboards_ship_with_
                 .await;
             assert_eq!(status, StatusCode::OK, "{path} must be fetchable: {body}");
             assert!(!body.is_empty(), "{path} served empty");
+        }
+
+        if declared.is_empty() {
+            continue;
         }
 
         let (_, body) = stack

@@ -348,6 +348,7 @@ _lint-gates-uncoordinated:
         lint-inline-comments.sh
         check-duplicate-types.sh
         check-repository-naming.sh
+        check-web-transport.sh
         check-admin-template-links.sh
         check-admin-template-assets.sh
         # admin-css-classes + frontend-standards now run as cargo tests in
@@ -1978,13 +1979,32 @@ odoo-local-init:
     EXISTS=$(PGPASSWORD=123 psql -h localhost -p "$PG_PORT" -U systemprompt -d systemprompt \
       -tAc "SELECT 1 FROM pg_database WHERE datname='odoo_local'")
     if [ "$EXISTS" = "1" ]; then
-        echo "odoo_local database already exists — nothing to do."
+        echo "odoo_local database already exists."
     else
         echo "Initialising odoo_local (base module, no demo data)..."
         docker compose -p "$PROJECT" -f "$COMPOSE_FILE" \
           run --rm odoo odoo -d odoo_local -i base --without-demo=all --stop-after-init
-        echo "odoo_local initialised. Login: admin / admin."
+        echo "odoo_local initialised."
     fi
+    # Why: not "nothing to do" on an existing database. The demo-data cleanup
+    # that archived `admin` in production was applied here too, and an archived
+    # admin cannot authenticate over RPC — which is exactly the credential
+    # `just e2e-live` signs in with, so Tier B failed with "no Odoo at
+    # http://localhost:8070 or bad admin credential" on a perfectly healthy
+    # Odoo. Re-assert the local dev admin every run; it is idempotent, and this
+    # database is a local fixture, never a real one.
+    echo "Ensuring the local admin is active with the dev password..."
+    docker compose -p "$PROJECT" -f "$COMPOSE_FILE" exec -T odoo \
+      odoo shell -d odoo_local --db_host=postgres --db_user=odoo --db_password=odoo \
+        --no-http --log-level=warn <<'ODOO_SHELL'
+    u = env['res.users'].with_context(active_test=False).search([('login', '=', 'admin')], limit=1)
+    if u:
+        u.write({'active': True, 'password': 'admin'})
+        env.cr.commit()
+        print('local Odoo admin is active. Login: admin / admin.')
+    else:
+        print('WARNING: no `admin` user in odoo_local; e2e-live will not authenticate.')
+    ODOO_SHELL
 
 # Tail the local Odoo sidecar's logs (it starts/stops with `just db-up`/`db-down`)
 odoo-local-logs:

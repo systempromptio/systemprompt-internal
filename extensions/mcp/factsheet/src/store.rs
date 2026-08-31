@@ -96,16 +96,13 @@ async fn upload(
         .await
         .map_err(|e| ServerError::Storage(format!("reading {}: {e}", path.display())))?;
 
-    let request = FileUploadRequestBuilder::new(
-        mime_type,
-        STANDARD.encode(&bytes),
-        ctx.context_id().clone(),
-    )
-    .with_name(name)
-    .with_user_id(ctx.user_id().clone())
-    .with_session_id(ctx.session_id().clone())
-    .with_trace_id(ctx.trace_id().clone())
-    .build();
+    let request =
+        FileUploadRequestBuilder::new(mime_type, STANDARD.encode(&bytes), ctx.context_id().clone())
+            .with_name(name)
+            .with_user_id(ctx.user_id().clone())
+            .with_session_id(ctx.session_id().clone())
+            .with_trace_id(ctx.trace_id().clone())
+            .build();
 
     let uploaded = service
         .upload_file(request)

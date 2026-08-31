@@ -142,14 +142,14 @@ pub(crate) async fn odoo_login(
         )
     })?;
 
-    auto_link_identity(
-        &conn,
-        &deps.write_pool,
-        &resolved.user_id,
-        &login,
+    auto_link_identity(AutoLink {
+        conn: &conn,
+        pool: &deps.write_pool,
+        user_id: &resolved.user_id,
+        login: &login,
         uid,
-        &credential,
-    )
+        credential: &credential,
+    })
     .await;
 
     let code = mint_authorization_code(&deps.oauth_repo, &req, &resolved.user_id).await?;
@@ -210,14 +210,28 @@ fn validate_request(req: &OdooLoginRequest, login: &str, credential: &str) -> Ad
 // Best-effort in the other direction too — sign-in must not fail because the
 // link write did. First-link only, so a working key from the profile page is
 // never overwritten.
-async fn auto_link_identity(
-    conn: &OdooConnection,
-    pool: &sqlx::PgPool,
-    user_id: &UserId,
-    login: &str,
+// Why: the six values that describe one auto-link, carried together so the
+// signature cannot be called with `login` and `credential` the wrong way round
+// — they are both plain strings at the call site. Same reasoning as
+// `RoleUpdate` in the federated role repository.
+struct AutoLink<'a> {
+    conn: &'a OdooConnection,
+    pool: &'a sqlx::PgPool,
+    user_id: &'a UserId,
+    login: &'a str,
     uid: i32,
-    credential: &str,
-) {
+    credential: &'a str,
+}
+
+async fn auto_link_identity(link: AutoLink<'_>) {
+    let AutoLink {
+        conn,
+        pool,
+        user_id,
+        login,
+        uid,
+        credential,
+    } = link;
     let session = OdooUserSession {
         conn,
         uid,

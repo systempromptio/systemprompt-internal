@@ -60,7 +60,6 @@ pub struct ServerConfig {
     pub service_id: McpServerId,
     pub paths: EnginePaths,
     pub files_config: FilesConfig,
-    /// Scratch space for renders, before they are stored as files.
     pub work_dir: PathBuf,
 }
 

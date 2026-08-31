@@ -9,15 +9,16 @@ use systemprompt::files::FilesConfig;
 use systemprompt::identifiers::McpServerId;
 use systemprompt::system::AppContext;
 use systemprompt_factsheet::EnginePaths;
-use systemprompt_mcp_factsheet::server::ServerConfig;
 use systemprompt_mcp_factsheet::FactsheetServer;
+use systemprompt_mcp_factsheet::server::ServerConfig;
 use tokio::net::TcpListener;
 
 const DEFAULT_SERVICE_ID: &str = "factsheet";
 const DEFAULT_PORT: u16 = 5070;
 
-/// Interpreter for the `WeasyPrint` sidecar. A deployed image points this at the
-/// venv that has `WeasyPrint` installed; locally the system `python3` will do.
+// Why: Interpreter for the `WeasyPrint` sidecar. A deployed image points this
+// at the venv that has `WeasyPrint` installed; locally the system `python3`
+// will do.
 const PYTHON_ENV: &str = "FACTSHEET_PYTHON";
 const DEFAULT_PYTHON: &str = "python3";
 
@@ -67,7 +68,10 @@ async fn main() -> Result<()> {
 
     let engine_paths = EnginePaths {
         root: app_paths.storage().files().join("factsheet"),
-        script: app_paths.system().root().join("scripts/factsheet-render.py"),
+        script: app_paths
+            .system()
+            .root()
+            .join("scripts/factsheet-render.py"),
         python: env::var(PYTHON_ENV).map_or_else(|_| PathBuf::from(DEFAULT_PYTHON), PathBuf::from),
     };
     let work_dir = env::temp_dir().join("systemprompt-factsheet");

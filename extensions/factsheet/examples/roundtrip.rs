@@ -1,4 +1,5 @@
-//! Prove that what `factsheet_get` hands out is what `factsheet_render` accepts.
+//! Prove that what `factsheet_get` hands out is what `factsheet_render`
+//! accepts.
 //!
 //! The edit loop depends on this: the tool serialises a `FactsheetDoc` to YAML,
 //! the caller changes some blocks, and the result comes back as `doc`. If a

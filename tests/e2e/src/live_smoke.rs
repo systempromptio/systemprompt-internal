@@ -363,7 +363,15 @@ async fn live_stack_walks_the_two_role_journey() {
     let group_system = odoo.group_id("base", "group_system").await;
     let group_user = odoo.group_id("base", "group_user").await;
     let group_salesman = odoo.group_id("sales_team", "group_sale_salesman").await;
-    odoo.ensure_user(ADMIN_LOGIN, &[group_system, group_user])
+    let group_sale_manager = odoo.group_id("sales_team", "group_sale_manager").await;
+    // Why a Sales group on the admin, and the MANAGER one: `group_system` is
+    // platform administration, not Sales access, so without it Odoo's own
+    // record rules refuse a `mail.message` create on a crm.lead ("Operation:
+    // create, Document type: Message") — which is the chatter round-trip below.
+    // Salesman is not enough either: it sees only its own documents, and the
+    // lead belongs to the salesperson. A real admin running this workspace
+    // holds Sales Manager.
+    odoo.ensure_user(ADMIN_LOGIN, &[group_system, group_user, group_sale_manager])
         .await;
     let sales_uid = odoo
         .ensure_user(SALES_LOGIN, &[group_user, group_salesman])
@@ -410,13 +418,21 @@ async fn live_stack_walks_the_two_role_journey() {
         "the salesperson still gets the workspace skills"
     );
 
-    step("chatter round-trip through the MCP proxy as the salesperson");
+    // Why the admin and not the salesperson: `note_add` is named in
+    // `require_approval.patterns`, so a salesperson's call is HELD for a second
+    // human — it blocks for `hold_seconds` and then comes back as an MRTR
+    // `input_required` round, which is correct behaviour and not something this
+    // smoke test can resolve (nobody is watching the approvals queue). The
+    // stage carries `exempt_scopes: [admin]`, so the admin's call runs
+    // unattended and gives the real chatter round-trip this step is for. The
+    // hold itself is pinned in Tier A by the `email_send` approval tests.
+    step("chatter round-trip through the MCP proxy as the admin");
     let mcp_resource = format!("{base}/api/v1/mcp/odoo/mcp");
-    let sales_mcp_bearer = sign_in(&http, &base, SALES_LOGIN, Some(&mcp_resource)).await;
+    let admin_mcp_bearer = sign_in(&http, &base, ADMIN_LOGIN, Some(&mcp_resource)).await;
     let note = format!("E2E live note {}", uuid::Uuid::new_v4().simple());
     let added = crate::harness::mcp::call_tool_at(
         &format!("{base}/api/v1/mcp/odoo/mcp"),
-        &sales_mcp_bearer,
+        &admin_mcp_bearer,
         "note_add",
         serde_json::json!({ "model": "crm.lead", "res_id": lead_id, "body": note }),
     )
@@ -426,7 +442,7 @@ async fn live_stack_walks_the_two_role_journey() {
 
     let searched = crate::harness::mcp::call_tool_at(
         &format!("{base}/api/v1/mcp/odoo/mcp"),
-        &sales_mcp_bearer,
+        &admin_mcp_bearer,
         "note_search",
         serde_json::json!({ "query": "%", "limit": 50 }),
     )

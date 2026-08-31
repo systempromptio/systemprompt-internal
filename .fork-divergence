@@ -59,6 +59,7 @@ extensions/web/admin/src/routes/ssr.rs	# internal mounts the Odoo account-linkin
 # tenant. The template is single-tenant, has no such tenant to belong to, and
 # gates on the admin role alone.
 extensions/web/admin/src/types/user_context.rs	# internal carries is_platform_admin alongside is_admin
+extensions/web/admin/src/types/mod.rs	# re-exports internal's IdentitySource, which exists because internal has several credential stores (bridge JWT, cloud creds, CLI session) and the template has one
 extensions/web/admin/src/handlers/ssr/context.rs	# internal exposes is_platform_admin to the page shell, which is what the nav renders on
 extensions/web/admin/src/middleware/gates.rs	# internal adds the platform-admin gate guarding the cross-customer pages
 extensions/web/admin/src/handlers/ssr/types/mod.rs	# declares internal's enterprise page context types
@@ -139,8 +140,8 @@ extensions/web/admin/src/gateway_safety.rs	# internal adds the WordBlocklistScan
 # that carries Pending, port them and delete these five lines.
 # ---------------------------------------------------------------------
 extensions/web/admin/src/handlers/webhook/governance/authz.rs	# internal degrades a hold to a deny on a plane that cannot park a request, and audits it verbatim; template's core has no Pending to match on
+extensions/web/admin/src/handlers/webhook/governance/handler/authn.rs	# internal is on core 0.42.0, where DenyReason::HookUnavailable separates policy from detail; port when the template adopts 0.42.0
 extensions/web/admin/src/handlers/webhook/governance/handler/mod.rs	# internal renders a hold as a [GOVERNANCE] reason on the hook plane; template's core has no Pending to match on
-extensions/web/admin/src/handlers/webhook/governance/types.rs	# internal carries the `Ask` wire value — Pending rendered for a caller at a terminal, asked in place rather than parked; template's core has no Pending
 extensions/web/admin/src/repositories/governance/effective.rs	# internal reports a hold as its own "pending" verdict rather than collapsing it to allow or deny; template's core has no Pending
 extensions/web/admin/src/repositories/users/access_control/matrix.rs	# internal renders the "pending" cell in the access matrix; template's core has no Pending
 
@@ -172,8 +173,6 @@ extensions/web/admin/src/handlers/ssr/ssr_setup.rs	# each fork's setup cards lin
 # the same import there would not compile. This converges by itself at
 # the template's next core bump — port it then and delete these two lines.
 # ---------------------------------------------------------------------
-extensions/web/admin/src/handlers/gateway_catalog.rs	# internal imports ResolveInput from authz::resolver; the template's core 0.40 still re-exports it from authz
-extensions/web/admin/src/repositories/config/gateway_acl.rs	# internal re-exports resolve from authz::resolver; the template's core 0.40 still re-exports it from authz
 
 # ---------------------------------------------------------------------
 # BRIDGE DEVICE LINK (2026-08-28) - the consent screen reads the account

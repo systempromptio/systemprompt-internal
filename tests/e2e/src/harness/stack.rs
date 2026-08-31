@@ -17,6 +17,7 @@ use std::sync::Arc;
 
 use axum::Router;
 use axum::body::Body;
+use axum::extract::ConnectInfo;
 use axum::http::{Request, StatusCode, header};
 use http_body_util::BodyExt;
 use sqlx::PgPool;
@@ -234,8 +235,8 @@ async fn reapply_seeds(pool: &Arc<PgPool>) {
 // here reaches a real account — but the identities the assertions are written
 // against should still be the ones the system actually carries, so a manifest
 // or role expectation means the same thing in both tiers.
-const ADMIN_EMAIL: &str = "ed@systemprompt.io";
-const USER_EMAIL: &str = "ed+notadmin@systemprompt.io";
+pub const ADMIN_EMAIL: &str = "ed@systemprompt.io";
+pub const USER_EMAIL: &str = "ed+notadmin@systemprompt.io";
 
 impl Stack {
     pub async fn create() -> Option<Self> {
@@ -304,7 +305,17 @@ impl Stack {
             .expect("adopt the governance hook listener");
         let hook_router = router.clone();
         tokio::spawn(async move {
-            let _ = axum::serve(hook_listener, hook_router).await;
+            // `into_make_service_with_connect_info` is what production serves
+            // with, and it is what puts `ConnectInfo` in the extensions. Serving
+            // the bare router leaves `ip_ban_middleware` unable to resolve a
+            // client address, so it denies — and a spawned MCP server reports
+            // that as `authz hook unavailable`, which reads like an outage
+            // rather than a harness defect.
+            let _ = axum::serve(
+                hook_listener,
+                hook_router.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+            )
+            .await;
         });
 
         Some(Self {
@@ -328,13 +339,23 @@ impl Stack {
         if let Some(token) = bearer {
             req = req.header(header::AUTHORIZATION, format!("Bearer {token}"));
         }
-        let req = match body {
+        let mut req = match body {
             Some(json) => req
                 .header(header::CONTENT_TYPE, "application/json")
                 .body(Body::from(json.to_string())),
             None => req.body(Body::empty()),
         }
         .expect("build request");
+        // Production serves with `into_make_service_with_connect_info`, so every
+        // real request carries a peer address. `tower::oneshot` does not add
+        // one, and `ip_ban_middleware` denies a request whose client address it
+        // cannot resolve — correctly, since an unattributable caller cannot be
+        // ban-checked. Without this the whole suite 403s on `ip-unresolvable`.
+        req.extensions_mut()
+            .insert(ConnectInfo(std::net::SocketAddr::from((
+                [127, 0, 0, 1],
+                50000,
+            ))));
 
         let response = self
             .router

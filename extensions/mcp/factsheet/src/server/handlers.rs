@@ -21,7 +21,6 @@ pub struct Call {
     pub engine: Arc<FactsheetEngine>,
     pub db_pool: DbPool,
     pub files_config: Arc<FilesConfig>,
-    /// Scratch directory for renders before they are stored.
     pub work_dir: Arc<std::path::PathBuf>,
 }
 
@@ -92,7 +91,10 @@ impl McpToolHandler for GetHandler {
     ) -> impl Future<Output = Result<(Self::Output, String), McpError>> + Send {
         let call = self.call.clone();
         async move {
-            let doc = call.engine.load_sheet(&input.id).map_err(ServerError::Engine)?;
+            let doc = call
+                .engine
+                .load_sheet(&input.id)
+                .map_err(ServerError::Engine)?;
             let yaml = serde_yaml::to_string(&doc)
                 .map_err(|e| ServerError::Internal(format!("serialising sheet: {e}")))?;
             let blocks: usize = doc.pages.iter().map(|page| page.blocks.len()).sum();
@@ -149,7 +151,7 @@ impl McpToolHandler for RenderHandler {
 
             let stored = store::store(&call.db_pool, &call.files_config, &rendered, &ctx).await?;
 
-            // Best effort: the render succeeded, so failing to tidy the scratch
+            // Why: Best effort: the render succeeded, so failing to tidy the scratch
             // directory must not fail the call.
             if let Err(error) = tokio::fs::remove_dir_all(&work_dir).await {
                 tracing::warn!(
@@ -180,10 +182,10 @@ impl McpToolHandler for RenderHandler {
                 "{} · page 1 of {} · PDF: {}",
                 doc.title, stored.page_count, stored.pdf.public_url
             );
-            let preview = stored
-                .pages
-                .first()
-                .map_or_else(|| stored.pdf.public_url.clone(), |page| page.public_url.clone());
+            let preview = stored.pages.first().map_or_else(
+                || stored.pdf.public_url.clone(),
+                |page| page.public_url.clone(),
+            );
 
             let artifact = ImageArtifact::new(preview)
                 .with_alt(format!("Factsheet {}, page 1", doc.id))
@@ -195,7 +197,7 @@ impl McpToolHandler for RenderHandler {
     }
 }
 
-/// An inline document wins over a sheet id; one of the two must be present.
+// Why: An inline document wins over a sheet id; one of the two must be present.
 fn resolve_doc(engine: &FactsheetEngine, input: RenderInput) -> Result<FactsheetDoc, ServerError> {
     if let Some(doc) = input.doc {
         return Ok(doc);

@@ -41,7 +41,7 @@
 //! roles. It is not the authority at the moment it first attaches to a
 //! pre-existing row: a first bind that could *grant* would let control of an
 //! external account escalate a local one. So authority is scoped by which step
-//! resolved (see [`RoleAuthority`]), and adding the `admin` role from a
+//! resolved (see `RoleAuthority`), and adding the `admin` role from a
 //! federated claim is gated separately again — on provisioning too, where the
 //! grant would otherwise be least visible.
 //!
@@ -59,12 +59,12 @@ mod lookup;
 mod provisioning;
 mod roles;
 
-use provisioning::create_federated;
-use roles::{RoleAuthority, RoleUpdate, apply_roles};
 use lookup::{
     FederatedIdentitySummary, find_active_user_by_email, find_active_user_by_odoo_uid,
     find_mapping, link_existing, list_federated_identities, load_user,
 };
+use provisioning::create_federated;
+use roles::{RoleAuthority, RoleUpdate, apply_roles};
 
 // Why: lists the external identities a user can currently sign in through.
 //
@@ -146,8 +146,8 @@ pub async fn delete_federated_identities_for_issuer(
     Ok(deleted)
 }
 
-// Why: masks an address enough to be recognised by its owner and useless to anyone
-// else.
+// Why: masks an address enough to be recognised by its owner and useless to
+// anyone else.
 //
 // The conflict this appears in is shown to whoever just authenticated against
 // the *external* system, who may not hold the platform account named. They
@@ -206,7 +206,9 @@ pub async fn resolve_federated_user(
         email,
         display_name: _,
     } = *claims;
-    if let Some(resolved) = resolve_established_binding(pool, issuer, external_sub, desired_roles).await? {
+    if let Some(resolved) =
+        resolve_established_binding(pool, issuer, external_sub, desired_roles).await?
+    {
         return Ok(Some(resolved));
     }
 
@@ -231,54 +233,10 @@ pub async fn resolve_federated_user(
         }));
     }
 
-    // Why: an Odoo uid proves the same identity the profile-page link flow
-    // recorded, so a user who linked Odoo under another platform email resolves
-    // to that account rather than being duplicated (see module doc, step 3).
-    if issuer.starts_with("odoo:")
-        && let Some(user) = find_active_user_by_odoo_uid(pool, external_sub).await?
+    if let Some(resolved) =
+        resolve_by_odoo_uid(pool, issuer, external_sub, email, desired_roles).await?
     {
-        // Why: refuse rather than link: the addresses disagreeing means this Odoo
-        // login is about to sign somebody in as an account that does not carry
-        // their name. Whether that is correct is a judgement only a person holding
-        // both accounts can make, and every screen downstream — the bridge consent
-        // page above all — would show the resolved row's address as the operator's
-        // identity. Refusing keeps the duplicate-account outcome step 3 exists to
-        // prevent (nothing is created here) while making the re-point explicit.
-        if !user.email.eq_ignore_ascii_case(email) {
-            tracing::warn!(
-                user_id = %user.id,
-                issuer = %issuer,
-                odoo_uid = %external_sub,
-                claim_email = %email,
-                account_email = %user.email,
-                "Odoo identity resolves to an account with a different platform email; refusing"
-            );
-            return Err(MarketplaceError::Conflict(format!(
-                "This Odoo account is already connected to the platform account {}. Sign in to \
-                 that account and re-confirm the Odoo connection from your profile, or ask an \
-                 administrator.",
-                mask_email(&user.email)
-            )));
-        }
-
-        link_existing(pool, issuer, external_sub, &user.id).await?;
-        let roles = apply_roles(
-            pool,
-            RoleUpdate {
-                user_id: &user.id,
-                issuer,
-                stored: user.roles,
-                desired: desired_roles,
-                authority: RoleAuthority::DowngradeOnly,
-            },
-        )
-        .await?;
-        return Ok(Some(ResolvedFederatedUser {
-            user_id: user.id,
-            email: user.email,
-            display_name: user.display_name,
-            roles,
-        }));
+        return Ok(Some(resolved));
     }
 
     if !auto_provision {
@@ -288,4 +246,65 @@ pub async fn resolve_federated_user(
     create_federated(pool, claims, desired_roles)
         .await
         .map(Some)
+}
+
+// Why: an Odoo uid proves the same identity the profile-page link flow
+// recorded, so a user who linked Odoo under another platform email resolves to
+// that account rather than being duplicated (see module doc, step 3). `None`
+// means no such binding — the caller carries on to provisioning.
+async fn resolve_by_odoo_uid(
+    pool: &PgPool,
+    issuer: &str,
+    external_sub: &str,
+    email: &str,
+    desired_roles: Option<&[String]>,
+) -> Result<Option<ResolvedFederatedUser>, MarketplaceError> {
+    if !issuer.starts_with("odoo:") {
+        return Ok(None);
+    }
+    let Some(user) = find_active_user_by_odoo_uid(pool, external_sub).await? else {
+        return Ok(None);
+    };
+    // Why: refuse rather than link: the addresses disagreeing means this Odoo
+    // login is about to sign somebody in as an account that does not carry
+    // their name. Whether that is correct is a judgement only a person holding
+    // both accounts can make, and every screen downstream — the bridge consent
+    // page above all — would show the resolved row's address as the operator's
+    // identity. Refusing keeps the duplicate-account outcome step 3 exists to
+    // prevent (nothing is created here) while making the re-point explicit.
+    if !user.email.eq_ignore_ascii_case(email) {
+        tracing::warn!(
+            user_id = %user.id,
+            issuer = %issuer,
+            odoo_uid = %external_sub,
+            claim_email = %email,
+            account_email = %user.email,
+            "Odoo identity resolves to an account with a different platform email; refusing"
+        );
+        return Err(MarketplaceError::Conflict(format!(
+            "This Odoo account is already connected to the platform account {}. Sign in to \
+             that account and re-confirm the Odoo connection from your profile, or ask an \
+             administrator.",
+            mask_email(&user.email)
+        )));
+    }
+
+    link_existing(pool, issuer, external_sub, &user.id).await?;
+    let roles = apply_roles(
+        pool,
+        RoleUpdate {
+            user_id: &user.id,
+            issuer,
+            stored: user.roles,
+            desired: desired_roles,
+            authority: RoleAuthority::DowngradeOnly,
+        },
+    )
+    .await?;
+    Ok(Some(ResolvedFederatedUser {
+        user_id: user.id,
+        email: user.email,
+        display_name: user.display_name,
+        roles,
+    }))
 }
