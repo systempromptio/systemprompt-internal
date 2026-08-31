@@ -17,18 +17,21 @@ plugin:
   skills:
     source: explicit
     include:
-      # Setup. The router is what a person types ("set up systemprompt"); the
-      # two host-specific skills are what it hands off to, each guarded on its
-      # own host. The Cowork one is plugin-agnostic: it installs the artifacts
-      # of every plugin bundle the bridge mounted, which is exactly the set the
-      # signed manifest granted this user.
+      # Setup is one skill. It establishes the grant, branches on host (Cowork
+      # dashboards, Codex gateway wiring), and is plugin-agnostic: it installs
+      # the artifacts of every plugin bundle the bridge mounted, which is
+      # exactly the set the signed manifest granted this user. It was three
+      # skills — a router plus two host bodies that restated each other's
+      # preconditions word for word.
       - systemprompt_setup
-      - systemprompt_setup_cowork
-      - systemprompt_setup_codex
       # One brand skill, four passes (voice, structure, boilerplate, email).
       # It was four separate skills until a person had to know which of them
       # to reach for before they could write anything.
       - brand
+      # The per-task cost and audit readback. It lives here, once, because
+      # every other skill that needs to state a cost defers to it — that block
+      # was copy-pasted into five demo skills before this existed.
+      - governance_readback
   agents:
     source: explicit
     include: []

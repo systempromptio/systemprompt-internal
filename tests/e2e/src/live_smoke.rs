@@ -390,7 +390,7 @@ async fn live_stack_walks_the_two_role_journey() {
          close it to the salesperson: {sales_skills:?}"
     );
     assert!(
-        sales_skills.contains("systemprompt_setup_cowork"),
+        sales_skills.contains("systemprompt_setup"),
         "the one setup skill ships in commons for every role: {sales_skills:?}"
     );
 

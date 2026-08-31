@@ -383,8 +383,8 @@ plugin:
     source: explicit
     include:
       - systemprompt_setup
-      - systemprompt_setup_cowork
       - brand
+      - governance_readback
   agents:
     source: explicit
     include: []
@@ -401,12 +401,14 @@ plugin:
 `[admin]` — and every skill and artifact inside it inherits that rule. The cascade is
 skill/artifact → plugin → marketplace and the nearest level that declares any rule decides, so a
 `[admin]` plugin closes its ruleless skills to users even though the marketplace admits them. Never
-write a per-skill `allow` rule; never mix scopes in one plugin. Four plugins ship here:
-`systemprompt-commons` (the shared setup router, its host installers, and `brand` — everyone),
-`systemprompt-user` (Business on Odoo),
-`systemprompt-demo` (demo steps 1–3), `systemprompt-admin` (control plane, its own
-`systemprompt_setup_admin`, and demo steps 4–5). Setup is split by role at that plugin boundary:
-everyone gets `systemprompt_setup`, only admins additionally get `systemprompt_setup_admin`.
+write a per-skill `allow` rule; never mix scopes in one plugin. Three plugins ship here, 12 skills
+in total, each plugin holding 3–5: `systemprompt-commons` (`systemprompt_setup`, `brand`,
+`governance_readback` — everyone), `systemprompt-user` (Business on Odoo: `crm`, `manage_work`,
+`business_overview`, `lead_factsheet`), and `systemprompt-admin` (control plane: `report`,
+`inspect`, `manage_platform`, `demonstrate_governance`, `systemprompt_setup_admin`). There is no
+demo plugin — `DEMO.md` drives these skills directly rather than a parallel set that re-narrated
+them. Setup is split by role at the plugin boundary: everyone gets `systemprompt_setup` (one
+host-agnostic skill), only admins additionally get `systemprompt_setup_admin`.
 `scripts/validate-services.sh` fails CI on a plugin without a scope rule, an orphaned enabled skill
 or artifact, an allow-type skill rule, two governance-hook owners, or any enabled plugin/skill/artifact
 that depends on a disabled MCP server; core's `ServicesConfig::validate` refuses the last one at boot.

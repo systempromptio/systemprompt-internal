@@ -75,19 +75,8 @@ async fn every_manifest_named_bundle_file_is_fetchable_and_dashboards_ship_with_
 
     let commons = bundle_paths(&manifest, "systemprompt-commons");
     assert!(
-        commons
-            .iter()
-            .any(|p| p.contains("systemprompt-setup-cowork")),
+        commons.iter().any(|p| p.contains("systemprompt-setup")),
         "the one setup skill ships in commons: {commons:?}"
-    );
-    // Host targeting: the bundle is the Claude-family skill surface, so the
-    // codex-only setup skill must not reach the Cowork picker — while the
-    // manifest still carries it (Codex's own emitter reads manifest.skills).
-    assert!(
-        !commons
-            .iter()
-            .any(|p| p.contains("systemprompt-setup-codex")),
-        "the codex setup skill leaked into the Claude bundle: {commons:?}"
     );
     let skills: Vec<&str> = manifest["skills"]
         .as_array()
@@ -95,11 +84,29 @@ async fn every_manifest_named_bundle_file_is_fetchable_and_dashboards_ship_with_
         .iter()
         .filter_map(|s| s["id"].as_str())
         .collect();
-    assert!(skills.contains(&"systemprompt_setup_codex"));
     assert!(
         skills.contains(&"systemprompt_setup"),
-        "the router is the one name every role types: {skills:?}"
+        "setup is the one name every role types: {skills:?}"
     );
+    // Setup was a router plus two host-specific bodies that restated each
+    // other; it is now one host-agnostic skill. The retired ids must not come
+    // back through a stale bundle or a re-added config.
+    for retired in [
+        "systemprompt_setup_cowork",
+        "systemprompt_setup_codex",
+        "systemprompt_cli",
+        "capture_knowledge",
+        "demo_lead_triage",
+        "demo_account_360",
+        "demo_followup_orchestrator",
+        "demo_governed_operations",
+        "demo_command_center",
+    ] {
+        assert!(
+            !skills.contains(&retired),
+            "{retired} was consolidated away and must not reach a manifest: {skills:?}"
+        );
+    }
 
     let (_, body) = stack
         .send(

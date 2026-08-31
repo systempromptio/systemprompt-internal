@@ -2,7 +2,7 @@ plugin:
   id: systemprompt-user
   name: "Systemprompt User — Business on Odoo"
   description: "Run the business from the conversation with Odoo as the system of record: create, update, and report on CRM leads, log notes, book meetings, manage tasks, post to team channels, capture knowledge, and pull a live business overview — every action executed in Odoo as the acting user."
-  version: "2.0.0"
+  version: "2.1.0"
   # User-scoped: roles.yaml grants this plugin to [user]. Every skill and
   # artifact below inherits that grant; none carries a rule of its own.
   enabled: true
@@ -33,8 +33,8 @@ plugin:
   # Every server a user-scope skill or dashboard calls, declared here so this
   # plugin is self-describing: odoo (per-user identity link) and outbound email
   # (draft_client_email's send path, held by the require_approval stage).
-  # knowledge-bank is left with the demo plugin, since this plugin's knowledge
-  # members are shelved.
+  # knowledge-bank is deliberately absent: the server and its ingestion jobs
+  # still run, but no skill reaches it, so no role is granted it.
   mcp_servers:
     source: explicit
     include:

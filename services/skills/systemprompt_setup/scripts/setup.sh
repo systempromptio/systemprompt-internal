@@ -1,6 +1,6 @@
 #!/bin/sh
 # One-shot staging for the Cowork setup skills, run inside the Cowork session VM.
-# Shared by systemprompt_setup_cowork (workspace dashboards) and
+# Shared by systemprompt_setup (workspace dashboards) and
 # systemprompt_setup_admin (control-plane dashboards); it ships once, here.
 #
 #   setup.sh              find every plugin bundle the bridge mounted, copy each

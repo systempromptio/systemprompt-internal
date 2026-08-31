@@ -23,6 +23,43 @@ also named `systemprompt` — taking a single `command` argument. Pass the CLI c
 The server is admin-only. A non-admin caller gets
 `Insufficient permissions. User must have one of: ["admin"]` — that is the gate working, not a bug.
 
+## Finding a command
+
+The CLI is self-documenting and most commands nest two or three levels deep, so walk the help tree
+rather than guessing:
+
+```bash
+systemprompt --help                       # top-level: the 8 domains
+systemprompt analytics --help             # a domain's subcommands
+systemprompt analytics costs --help       # a subcommand's own commands (summary, trends, breakdown)
+```
+
+Every command follows one shape: `systemprompt <domain> <subcommand> [args] [options]`.
+
+| Domain | Owns |
+|--------|------|
+| `core` | Skills, content, files, contexts, plugins, hooks, artifacts |
+| `infra` | Services, database, jobs, logs (view, stream, request, trace, audit) |
+| `admin` | Users, agents, config, setup, session |
+| `cloud` | Auth, deploy, sync, secrets, tenant, domain, profiles |
+| `analytics` | Overview, conversations, agents, tools, requests, sessions, content, traffic, costs |
+| `web` | Content-types, templates, assets, sitemap, validate |
+| `plugins` | Extensions, MCP servers, capabilities |
+| `build` | Build the core workspace and MCP extensions |
+
+Most `analytics` subcommands need a further verb — `analytics costs summary`, `analytics requests
+stats`, `analytics agents list`.
+
+Options that apply nearly everywhere: `--json` / `--yaml` for structured output (use `--json` when
+parsing), `--profile <name>` to target a profile without switching the active session,
+`-n, --limit <N>` to cap rows, and `--since <dur>` (`1h`, `24h`, `7d`) for the window.
+
+**Which skill owns the task.** This skill is the microscope: one request, one conversation, one
+server. For the fleet-wide view — the roster, recent activity, cost and tool rollups — use `report`.
+To change live state (services, database, jobs, a user's roles) use `manage_platform`. To exercise
+the policy stages and read back the decisions, `demonstrate_governance`. For a per-task cost
+readback anyone can run, `governance_readback`.
+
 ---
 
 # 1. One request

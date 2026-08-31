@@ -12,11 +12,7 @@ use std::collections::BTreeSet;
 
 use crate::harness::stack::Stack;
 
-const USER_PLUGINS: &[&str] = &[
-    "systemprompt-commons",
-    "systemprompt-user",
-    "systemprompt-demo",
-];
+const USER_PLUGINS: &[&str] = &["systemprompt-commons", "systemprompt-user"];
 const ADMIN_PLUGINS: &[&str] = &["systemprompt-admin"];
 // todo-bulletin and knowledge-feed are shelved with the knowledge surface
 // (each config.yaml carries enabled: false), so they are no longer named by any
@@ -147,7 +143,8 @@ async fn an_admin_manifest_carries_the_admin_surface_and_a_users_does_not() {
 
     let admin_mcp = ids(&admin, "managed_mcp_servers");
     let user_mcp = ids(&user, "managed_mcp_servers");
-    // knowledge-bank now reaches a user only through the demo plugin.
+    // knowledge-bank carries no grant at all now: the server and its ingestion
+    // jobs still run, but no skill reaches it, so it must reach no manifest.
     for server in ["odoo", "email"] {
         assert!(
             user_mcp.contains(server),
@@ -162,6 +159,12 @@ async fn an_admin_manifest_carries_the_admin_surface_and_a_users_does_not() {
         !user_mcp.contains("systemprompt"),
         "the admin-gated systemprompt MCP server must not reach a user: {user_mcp:?}"
     );
+    for scope in [&user_mcp, &admin_mcp] {
+        assert!(
+            !scope.contains("knowledge-bank"),
+            "knowledge-bank carries no role grant and must reach no manifest: {scope:?}"
+        );
+    }
 
     stack.db.cleanup().await;
 }

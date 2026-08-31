@@ -1,8 +1,8 @@
 plugin:
   id: systemprompt-admin
   name: "Systemprompt Admin — Control Plane"
-  description: "Admin-only control plane: who is using the platform, what it costs, what failed, and why. Ships the systemprompt CLI server plus governance, analytics, and operations skills, the two admin-only demo steps, and three live dashboards."
-  version: "2.0.0"
+  description: "Admin-only control plane: who is using the platform, what it costs, what failed, and why. Ships the systemprompt CLI server plus governance, analytics, and operations skills, and three live dashboards."
+  version: "3.0.0"
   # Admin-scoped: roles.yaml grants this plugin to [admin] with
   # default_included: false. That single rule closes every skill and artifact
   # below to every other role — they carry no rule of their own, and the
@@ -26,20 +26,17 @@ plugin:
       # and a user's roles). They absorbed admin_user_report,
       # admin_activity_report, analytics_dashboards, inspect_ai_requests,
       # inspect_conversation, inspect_agents, inspect_mcp_and_skills,
-      # manage_permissions and manage_services.
+      # manage_permissions and manage_services — and, since, systemprompt_cli
+      # (a restatement of inspect + report) and the two admin demo steps, whose
+      # sequences are now sections of demonstrate_governance and report.
       - report
       - inspect
       - manage_platform
       - demonstrate_governance
-      - systemprompt_cli
       # Control-plane first-run setup. Admin-only by this plugin's grant alone —
       # a user's manifest never carries it, so systemprompt_setup never names it
       # to them.
       - systemprompt_setup_admin
-      # Enterprise demo steps 4–5 (DEMO.md): governed writes and the metered
-      # bill. They run the admin CLI server, so they live with it.
-      - demo_governed_operations
-      - demo_command_center
   agents:
     source: explicit
     include: []

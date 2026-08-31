@@ -1,6 +1,6 @@
 # The Enterprise Demo — "Claude Force"
 
-**The aim.** One sitting, one admin, five skills, and by the end the audience has watched an AI
+**The aim.** One sitting, one admin, five beats, and by the end the audience has watched an AI
 workforce triage leads, brief accounts, execute governed writes into the system of record, trip a real
 trust layer, and then read back the **exact cost of everything it just did** — set against Salesforce
 Agentforce's ~$2-per-conversation list price. The claim is not "we are like Agentforce but cheaper";
@@ -17,30 +17,33 @@ dashboard artifacts → the `infra logs` / `analytics` readback.
 
 | # | Agentforce sells | We run | Skill | Underlying machinery |
 |---|---|---|---|---|
-| 1 | SDR Agent — lead qualification | Lead Inbox Triage | `demo_lead_triage` | `crm_lead_search` typed table, per-user Odoo record rules, leads dashboard artifact |
-| 2 | Service Agent + Data Cloud 360 | Account 360 Brief | `demo_account_360` | Multi-tool orchestration across two MCP servers (odoo + knowledge-bank) |
-| 3 | Sales Engagement — follow-ups | Follow-Up Orchestrator | `demo_followup_orchestrator` | Governed writes: `activity_create`, `calendar_event_create`, `note_add`, `email_send`, `channel_post` — as the signed-in user; the last three **held for human approval** (MCP MRTR, SEP-2322). The email is confirmed in-band by its drafter first, and its provenance logged back to the lead by the same call |
-| 4 | Einstein Trust Layer | Governed Operations | `demo_governed_operations` (admin) | 5-stage governance pipeline, secret scan, live RBAC flip, `governance_decisions` audit rows including the approver stamp |
-| 5 | Agentforce Analytics + Flex credits | Command Center | `demo_command_center` (admin) | `analytics costs/requests/tools`, `ai_requests` per-request pricing, 3 admin dashboards |
+| 1 | SDR Agent — lead qualification | The morning briefing | `business_overview` | `business_overview_data` typed table, per-user Odoo record rules, leads dashboard artifact |
+| 2 | Service Agent + Data Cloud 360 | Account 360 Brief | `crm` | Multi-tool orchestration on one lead: `crm_lead_get`, `note_list`, `activity_list` |
+| 3 | Sales Engagement — follow-ups | Governed writes | `crm` + `lead_factsheet` | `activity_create`, `calendar_event_create`, `note_add`, `email_send` — as the signed-in user; the outbound ones **held for human approval** (MCP MRTR, SEP-2322). The email is confirmed in-band by its drafter first, and its provenance logged back to the lead by the same call |
+| 4 | Einstein Trust Layer | Governed Operations | `demonstrate_governance` (admin) | 5-stage governance pipeline, secret scan, live RBAC flip, `governance_decisions` audit rows including the approver stamp |
+| 5 | Agentforce Analytics + Flex credits | Command Center | `report` (admin) | `analytics costs/requests/tools`, `ai_requests` per-request pricing, 3 admin dashboards |
 
 The thread through all five: **self-hosted, per-user identity (no service account), every call audited
 with a trace id, every task priced to the cent — and three outcomes, not two: allow, deny, and *held
-for a human*.** Each skill ends with a cost readback so the finale's
+for a human*.** Each beat ends with a cost readback via `governance_readback`, so the finale's
 total is already earned.
 
-All five ship in the dedicated **`systemprompt-demo`** plugin
-(`services/plugins/systemprompt-demo/config.yaml`) on the enterprise-demo marketplace — separate from
-the CRM and admin plugins, so the demo surface can be enabled, versioned, or removed as one unit.
-Steps 4–5 stay admin-only because they ship in the `systemprompt-admin` plugin, which
-`services/access-control/roles.yaml` grants to `[admin]`. The enforcement is that one
-plugin rule — the skills carry no rule of their own, and an allow-type skill rule is
-forbidden.
+**There is no demo plugin.** The demo drives the skills a customer actually gets. There used to be
+five parallel `demo_*` skills that re-narrated the real ones — `demo_lead_triage` was
+`crm_lead_search` plus a ranking, and the two admin ones said in their own bodies that the real
+recipes lived in `demonstrate_governance` and `report`. That surface is gone: what the audience
+watches is what they are buying, which is the stronger demo anyway.
+
+Steps 4–5 stay admin-only because `demonstrate_governance` and `report` ship in the
+`systemprompt-admin` plugin, which `services/access-control/roles.yaml` grants to `[admin]`. The
+enforcement is that one plugin rule — the skills carry no rule of their own, and an allow-type skill
+rule is forbidden.
 
 ## Difficulty ramp
 
-The skills go easy → hard on purpose: 1 is a single tool call; 2 is cross-server orchestration; 3 adds
-governed mutations and a permission-denial beat; 4 flips live policy and reconstructs the audit chain;
-5 synthesizes business reporting, fleet analytics, and the economics close.
+The beats go easy → hard on purpose: 1 is a single tool call; 2 is multi-tool orchestration on one
+record; 3 adds governed mutations and the approval hold; 4 flips live policy and reconstructs the
+audit chain; 5 synthesizes business reporting, fleet analytics, and the economics close.
 
 ---
 
@@ -55,11 +58,11 @@ Accounts, passwords, and how to run the demo as a real user instead of the seede
 2. **Seed richer data (optional but better on screen):** create a handful of leads/notes via the `crm`
    skill or Odoo UI (`http://localhost:8070`, `admin`/`admin`) so triage has something to rank.
 3. **Cowork:** on the demo machine, `systemprompt-internal-bridge login … --gateway http://localhost:8081`,
-   `bridge sync`, run **systemprompt-setup-cowork** — it installs the four workspace dashboards for
-   every role. An admin then runs **systemprompt-setup-admin**, a separate admin-only skill, for the
-   three control-plane dashboards.
-4. **Verify the manifest** carries the five demo skills (§3 curl in TESTING-INSTRUCTIONS.md):
-   steps 1–3 for both users, 4–5 only for `e2e-admin`.
+   `bridge sync`, run **systemprompt_setup** — one skill for every role and every host; in Cowork it
+   installs the four workspace dashboards. An admin then runs **systemprompt_setup_admin**, a separate
+   admin-only skill, for the three control-plane dashboards.
+4. **Verify the manifest** (§3 curl in TESTING-INSTRUCTIONS.md): both users carry `business_overview`,
+   `crm` and `lead_factsheet`; only `e2e-admin` carries `demonstrate_governance` and `report`.
 
 ## Governance
 
@@ -78,14 +81,19 @@ The gateway safety scanners (`services/gateway/policies.yaml`) are a separate pl
 Run in order; each skill's SKILL.md is the script and ends by handing off to the next.
 
 **Act I — as `e2e-sales` (a plain user):**
-1. `/demo_lead_triage` — one call, ranked leads, inline typed table, leads dashboard, first cost line.
-2. `/demo_account_360` — four reads across two servers on the hottest lead; the 360 brief.
-3. `/demo_followup_orchestrator` — five writes as the salesperson, four into Odoo and one leaving the
-   building as real email. Two land unattended; the three outbound-facing ones (`note_add`,
-   `email_send`, `channel_post`) **block** — governance holds them and no Odoo round trip and no SMTP
-   connection happens at all. `email_send` is confirmed in-band by its drafter *before* it parks, so
+1. `/business_overview` — one call, the pipeline by stage and the week's new leads as an inline typed
+   table; open the **Leads — Inbound Prospects** dashboard, which fetches over the same wire, same
+   identity, same audit row. Flag the hottest lead by name and Odoo id. Close with
+   `/governance_readback` for the first cost line.
+2. `/crm` — drill into that lead: `crm_lead_get`, its chatter via `note_list`, its open activities.
+   The 360 brief, assembled from typed results rather than scraped screens.
+3. `/crm` then `/lead_factsheet` — the writes, as the salesperson. Log a note and schedule a
+   follow-up activity; then render the lead a branded factsheet and email it. The Odoo writes land
+   unattended; the outbound-facing ones (`note_add`, `email_send`) **block** — governance holds them
+   and no Odoo round trip and no SMTP connection happens at all. `email_send` is confirmed in-band by
+   its drafter *before* it parks, so
    the audience sees both layers: the writer checking their own text, then a different person
-   releasing it. Leave all three waiting and switch to Act II.
+   releasing it. Leave both waiting and switch to Act II.
    Then the beat that never reaches an approver: a second send whose body pastes a config snippet
    containing an `sk-ant-…` key is refused outright by `secret_scan` on the arguments — before SMTP,
    before the hold, at **$0**. Optionally also the record-rules denial beat (a record the salesperson
@@ -96,12 +104,11 @@ Run in order; each skill's SKILL.md is the script and ends by handing off to the
 **Act II — as `e2e-admin`:**
 
 3b. **Approve the held calls.** Open **Governance → Approvals** in the admin console
-   (`/admin/governance/approvals`). All three parked calls are listed with the exact arguments that
+   (`/admin/governance/approvals`). Both parked calls are listed with the exact arguments that
    will run — for `email_send` that includes the full recipient list and body, so the approver reviews
    what actually goes on the wire, not a summary of it. Approve the email and watch it send and log
-   its own provenance back to the lead's chatter. Approve one of the others and watch the
-   salesperson's blocked call resume and land in Odoo; deny the other
-   and watch it come back refused with Odoo never touched. The approver is necessarily a different
+   its own provenance back to the lead's chatter. Then deny the held `note_add` and watch it come
+   back refused with Odoo never touched — both outcomes, on one queue. The approver is necessarily a different
    person from the requester — an admin's own calls are exempt, so this is a control rather than a
    rubber stamp.
 
@@ -112,13 +119,15 @@ Run in order; each skill's SKILL.md is the script and ends by handing off to the
    and the console renders that as an ordinary outcome rather than an error — so a late click cannot
    revive an abandoned call and two admins cannot both own one decision. Pinned by
    `a_decision_already_taken_cannot_be_overwritten`.
-4. `/demo_governed_operations` — the allow, three engineered denials (scope, secret, blocklist), the
+4. `/demonstrate_governance` — its §"Running it as the demo beat": the allow, three engineered
+   denials (scope, secret, blocklist), the
    live RBAC flip, then `infra logs audit` reconstructing the chain — now including the held calls'
    `pending` rows and the approver stamped on the row that resumed them. Denied and held calls both
    cost $0: enforcement fires before the model spend, and a call waiting on a human is not burning
    anything.
-5. `/demo_command_center` — pipeline report, fleet analytics, the three admin dashboards, and the bill:
-   *"everything you just watched cost $X.XX"* vs Agentforce's ~$2/conversation list price.
+5. `/report` — its §"Running it as the demo close": pipeline report, fleet analytics, the three admin
+   dashboards, and the bill: *"everything you just watched cost $X.XX"* vs Agentforce's
+   ~$2/conversation list price.
 
 Every number in the demo comes from the running system. If a step can't prove its claim from a command
 output, the skills are written to say so rather than improvise.
@@ -136,5 +145,5 @@ Inspector), not a UI bug. A 401 on the MCP proxy is a token/resource mismatch �
   `use_dangerous_secret` / `manage_permissions` showcase skills, air-gap and scaled-deployment proof
   scenarios with committed results, and recording/SVG assets.
 - `../systemprompt-demo` is demo.systemprompt.io — the public marketplace and Bridge onboarding flow.
-  Backporting these five skills there (swapping Odoo for its documentation MCP) is the path to a
+  Backporting this runbook there (swapping Odoo for its documentation MCP) is the path to a
   self-serve public version of this demo.

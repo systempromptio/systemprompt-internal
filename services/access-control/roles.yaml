@@ -55,15 +55,11 @@ rules:
     default_included: true
     roles: [user]
 
-  # Project knowledge bank (Postgres full-text search, not a stub and not a
-  # proxy). Read tools for every user; the upload_document tool is
-  # additionally admin-gated inside the server (see
-  # services/mcp/knowledge-bank.yaml).
-  - entity_type: mcp_server
-    entity_id: knowledge-bank
-    access: allow
-    default_included: true
-    roles: [user]
+  # No knowledge-bank grant. The server still runs and its scheduled ingestion
+  # jobs (services/scheduler/config.yaml: knowledge_email_ingestion,
+  # knowledge_categorization) still write to `knowledge_documents` — but no
+  # skill reaches it, so no role is granted it. Restore this rule alongside
+  # whichever skill next needs the read path.
 
   # Factsheet MCP server. Rendering a sheet reads no business data and reaches
   # no third party — it turns a content model into a PDF — so authentication is
@@ -115,11 +111,6 @@ rules:
     roles: [user]
   - entity_type: plugin
     entity_id: systemprompt-user
-    access: allow
-    default_included: true
-    roles: [user]
-  - entity_type: plugin
-    entity_id: systemprompt-demo
     access: allow
     default_included: true
     roles: [user]

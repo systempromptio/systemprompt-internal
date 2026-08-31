@@ -10,17 +10,15 @@ session: it reconciles rather than seeds, so re-running is the point, not a wast
 never mounted for them. Nothing in this file re-checks the role; by the time you are reading it, the
 check has already passed.
 
-**Run `systemprompt_setup_cowork` first.** That skill installs the workspace dashboards (the four
-Odoo pages) — which admins use daily too. This one adds the control plane on top. The two do not overlap: each stages only its own bundles.
+**Run `systemprompt_setup` first.** That skill establishes the grant, routes on host, and installs
+the workspace dashboards (the four Odoo pages) — which admins use daily too. This one adds the
+control plane on top. The two do not overlap: each stages only its own bundles.
 
-## Before you start — this skill only works in Claude Cowork
-
-The Artifacts library is a Cowork feature. You need a **`create_artifact` tool that takes an
-`html_path`**, a `list_artifacts` tool, and a session `outputs/` directory. If any is absent, stop
-and say so. Do **not** stage HTML "in case", do not write a receipt, and do not look for a CLI to
-install artifacts with — there is no `coworkctl`, no `cowork` command, and no HTTP endpoint for
-this. A receipt reporting `installed: 0` on a host with no library is a wrong answer dressed as a
-result.
+**Preconditions are `systemprompt_setup`'s, not restated here.** It owns the Cowork host check, the
+`create_artifact` / `html_path` contract, the path rules, and the standing rule that there is no
+`coworkctl` and no zero-install receipt. If you reached this skill through `systemprompt_setup`,
+those checks have already passed; if you were invoked directly on a host with no Artifacts library,
+stop and say the skill does not apply here.
 
 ## Ask me things like
 
@@ -63,7 +61,7 @@ with the other's tool allowlist. Build four groups:
   `admin-usage`: an install from before these dashboards were renamed. Offer to remove it; the
   bundled dashboards are its replacement and it can no longer load data.
 
-Leave every non-`admin-*` entry alone. It belongs to `systemprompt_setup_cowork` and is not yours to
+Leave every non-`admin-*` entry alone. It belongs to `systemprompt_setup` and is not yours to
 reconcile here.
 
 ## Step 3 — Install what is missing

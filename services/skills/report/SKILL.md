@@ -185,3 +185,41 @@ report it as one. Say "spend is gateway inference, not attributed to named agent
 5. `analytics costs breakdown --by model` — where the money went (mind the attribution note).
 6. Drill into anything anomalous with `inspect`.
 7. Close with a short verdict: volume, spend, error rate, and the one thing worth acting on.
+
+---
+
+## Running it as the demo close
+
+DEMO.md step 5 is this skill, sequenced — the finale, and the reason the earlier steps kept reading
+costs back: the "cheaper, faster" claim becomes provable from this installation's own metered data.
+Agentforce answers the same question with a credit statement priced per conversation; here every task
+decomposes into requests, tokens, tools, and dollars, queryable to the row.
+
+1. **Business close** — `crm_lead_report` grouped by stage: the pipeline as it stands after the
+   demo's writes.
+2. **Fleet view** — the commands from §3 above, in this order, narrated as one paragraph covering
+   spend, request count, cache-hit rate, tool reliability, and latency:
+   ```bash
+   systemprompt analytics overview --since 24h
+   systemprompt analytics costs summary
+   systemprompt analytics costs breakdown --by model
+   systemprompt analytics tools stats
+   systemprompt analytics requests stats
+   ```
+3. **Dashboards** — open the three admin artifacts installed by `systemprompt_setup_admin`:
+   **Usage & Costs**, **Activity & Requests**, **Users Directory**. Same data plane, standing views.
+4. **The bill for this demo** — total what the audience just watched:
+   ```bash
+   systemprompt infra logs request list --since 2h
+   systemprompt analytics costs trends --since 24h
+   ```
+   Sum the session's requests and state it plainly: *"Everything you just saw — a pipeline briefing,
+   CRM writes, three governance denials, and this report — cost $X.XX."*
+5. **The comparison** — set that number against Agentforce's list pricing (approximately $2 per
+   conversation on Flex Credits, per Salesforce's published pricing). **Label it as list price**, not
+   a measurement, and let the audience correct it if they have negotiated rates. Typically the whole
+   demo costs less than one Agentforce conversation. Add the structural points: self-hosted (flat
+   infra cost, no per-seat Einstein SKUs), per-user identity, and an audit row for every cent.
+
+Every number spoken must come from a command run in this session — the comparison only lands if our
+side of it is verifiably real. Never estimate our costs; the rules in `governance_readback` apply.
