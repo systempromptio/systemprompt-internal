@@ -111,10 +111,9 @@ async fn approve(
         return Ok(SettleOutcome::Failed(error));
     };
 
-    let Some((creds, client)) = resolve_writer(store, &doc, request, &approver).await? else {
-        return Ok(SettleOutcome::Failed(
-            doc.proposal_error.clone().unwrap_or_default(),
-        ));
+    let (creds, client) = match resolve_writer(store, &doc, request, &approver).await? {
+        Writer::Ready(creds, client) => (creds, client),
+        Writer::Deferred(error) => return Ok(SettleOutcome::Failed(error)),
     };
     let pg = store.write_pool()?;
     let rfc5322_id = doc.rfc5322_id();
@@ -148,18 +147,23 @@ async fn approve(
     Ok(error.map_or_else(|| SettleOutcome::Applied(outcome), SettleOutcome::Failed))
 }
 
+enum Writer {
+    Ready(Credentials, OdooClient),
+    Deferred(String),
+}
+
 // Why: every failure here is recorded on the document as `failed`, with
-// backoff, and reported as `None` — the approval stands, only the apply is
-// deferred until the approver links Odoo or Odoo comes back.
+// backoff, and handed back as `Deferred` — the approval stands, only the
+// apply waits until the approver links Odoo or Odoo comes back.
 async fn resolve_writer(
     store: &KnowledgeStore,
     doc: &ProposalDocument,
     request: &ApprovalRequest,
     approver: &UserId,
-) -> Result<Option<(Credentials, OdooClient)>, KnowledgeBankError> {
+) -> Result<Writer, KnowledgeBankError> {
     let failed = |error: String| async move {
         store.set_applied(doc.id, None, Some(&error)).await?;
-        Ok(None)
+        Ok(Writer::Deferred(error))
     };
     let creds = match resolve_credentials(store.pool(), approver).await {
         Ok(creds) => creds,
@@ -174,7 +178,7 @@ async fn resolve_writer(
         Err(e) => return failed(e.to_string()).await,
     };
     match OdooClient::from_env() {
-        Ok(client) => Ok(Some((creds, client))),
+        Ok(client) => Ok(Writer::Ready(creds, client)),
         Err(e) => failed(e.to_string()).await,
     }
 }
