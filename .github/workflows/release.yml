@@ -473,6 +473,11 @@ jobs:
         with:
           tag_name: ${{ needs.version.outputs.tag }}
           target_commitish: ${{ github.sha }}
+          # Why explicit: two release series share this repo, and GitHub hands
+          # `releases/latest` to whichever release was created most recently.
+          # Every `releases/latest` consumer in the tree wants a bridge asset,
+          # so the bridge release claims latest and the gateway one declines it.
+          make_latest: "true"
           name: ${{ needs.version.outputs.tag }}
           body: |
             ## Systemprompt Internal Bridge ${{ needs.version.outputs.tag }}
@@ -528,6 +533,24 @@ jobs:
             dist/SHA256SUMS.pem
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Why probed after publishing: the 0.43.0 run was green on every job
+      # while every releases/latest bridge link 404'd (the gateway release had
+      # taken `latest`). A release whose published links do not resolve is a
+      # failed release, whatever the jobs said.
+      - name: Assert the published download links resolve
+        env:
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          sleep 15
+          for asset in install.sh SHA256SUMS               systemprompt-internal-bridge-macos.dmg               systemprompt-internal-bridge-windows.exe               systemprompt-internal-bridge-linux-x86_64.tar.gz               systemprompt-internal-bridge-linux-aarch64.tar.gz; do
+            for base in "releases/download/${TAG}" "releases/latest/download"; do
+              url="https://github.com/${GITHUB_REPOSITORY}/${base}/${asset}?nocache=$RANDOM"
+              curl -fsIL -o /dev/null "$url" || { echo "::error::unresolvable: $url"; exit 1; }
+            done
+          done
+          echo "all published bridge links resolve (versioned and latest)"
 
   gateway:
     name: Build gateway ${{ matrix.name }}
@@ -655,7 +678,7 @@ jobs:
           if gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release edit "$TAG" -R "$GITHUB_REPOSITORY" --title "$TAG" --notes-file notes.md
           else
-            gh release create "$TAG" -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "$TAG" --notes-file notes.md
+            gh release create "$TAG" -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --latest=false --title "$TAG" --notes-file notes.md
           fi
           gh release upload "$TAG" -R "$GITHUB_REPOSITORY" --clobber dist/*
 
