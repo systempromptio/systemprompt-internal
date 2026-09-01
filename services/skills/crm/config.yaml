@@ -1,0 +1,16 @@
+id: crm
+name: CRM — Odoo Leads
+description: "Run the sales pipeline in Odoo: create, update, and report on leads, log notes onto any record, and schedule or complete follow-up activities. Every action runs in Odoo as the acting user, so changes carry real ownership and a real audit trail."
+enabled: true
+file: SKILL.md
+tags:
+  - crm
+  - odoo
+  - leads
+  - pipeline
+  - sales
+  - notes
+  - activities
+  - followups
+category: crm
+display_category: "Business on Odoo"

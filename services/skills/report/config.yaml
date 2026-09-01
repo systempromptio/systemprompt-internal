@@ -1,0 +1,14 @@
+id: report
+name: Report
+description: "The control-plane report: who is on the platform, what the platform did over a time window, and the fleet-wide rollups of spend, requests, tools and sessions."
+enabled: true
+file: SKILL.md
+tags:
+  - cli
+  - users
+  - analytics
+  - costs
+  - reporting
+  - admin
+category: governance
+display_category: "Governance & Analytics"

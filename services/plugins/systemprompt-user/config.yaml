@@ -1,0 +1,62 @@
+plugin:
+  id: systemprompt-user
+  name: "Systemprompt User — Business on Odoo"
+  description: "Run the business from the conversation with Odoo as the system of record: create, update, and report on CRM leads, log notes, book meetings, manage tasks, post to team channels, capture knowledge, and pull a live business overview — every action executed in Odoo as the acting user."
+  version: "2.1.0"
+  # User-scoped: roles.yaml grants this plugin to [user]. Every skill and
+  # artifact below inherits that grant; none carries a rule of its own.
+  enabled: true
+  author:
+    name: systemprompt.io
+    email: ed@systemprompt.io
+  keywords: [crm, odoo, leads, pipeline, notes, activities, tasks, calendar, knowledge, briefing]
+  license: proprietary
+  category: crm
+  skills:
+    source: explicit
+    include:
+      # crm carries leads, chatter notes, and follow-up activities; manage_work
+      # carries project tasks and the calendar. They were six skills until the
+      # single-verb ones (add_note, schedule_activity, manage_tasks,
+      # manage_calendar) were folded in — one front door per job, not per tool.
+      # capture_knowledge is shelved with the knowledge surface; its
+      # config.yaml carries enabled: false.
+      - crm
+      - manage_work
+      - business_overview
+      # lead_factsheet spans the three servers below: it captures a lead in
+      # Odoo, renders a personalised sheet, attaches it, and emails it.
+      - lead_factsheet
+  agents:
+    source: explicit
+    include: []
+  # Every server a user-scope skill or dashboard calls, declared here so this
+  # plugin is self-describing: odoo (per-user identity link) and outbound email
+  # (draft_client_email's send path, held by the require_approval stage).
+  # knowledge-bank is deliberately absent: the server and its ingestion jobs
+  # still run, but no skill reaches it, so no role is granted it.
+  mcp_servers:
+    source: explicit
+    include:
+      - odoo
+      - email
+      # factsheet renders the house sheet template to a PDF. It reads no
+      # business data and reaches no third party, so it is granted as broadly
+      # as the skills that call it.
+      - factsheet
+  content_sources: {}
+  # The workspace dashboards. Selection is plugin-driven (core's
+  # selected_artifact_ids): an artifact reaches a client only if a granted
+  # plugin names it here. The bundle ships artifacts/manifest.json plus one
+  # <id>.html per record, which systemprompt_setup_cowork installs.
+  artifacts:
+    source: explicit
+    # todo-bulletin, knowledge-feed and team-inbox are shelved; each carries
+    # enabled: false and is not named here, since a plugin may only include
+    # enabled members.
+    include:
+      - business-overview
+      - leads-inbound-prospects
+      - pipeline-open-deals
+      - recent-activity
+  # No hooks: systemprompt-commons owns the session-global governance hooks.
