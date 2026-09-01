@@ -86,7 +86,7 @@ pub const ALL_TOOLS: [&str; 25] = [
 /// gate, this is the hint a well-behaved client uses to decide whether to ask
 /// the user before calling.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Effect {
+pub enum Effect {
     ReadOnly,
     Write,
     Destructive,
