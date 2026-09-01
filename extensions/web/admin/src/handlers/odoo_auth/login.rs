@@ -32,7 +32,7 @@ use systemprompt::oauth::repository::MintAuthCodeParams;
 use systemprompt::oauth::services::validation::validate_redirect_uri;
 
 use super::OdooAuthError;
-use super::rpc::{OdooConnection, authenticate};
+use super::rpc::{OdooConnection, OdooUserSession, authenticate, credential_supports_rpc};
 use crate::error::{AdminError, AdminResult};
 use crate::handlers::auth_deps::AuthDeps;
 use crate::repositories::users::federated::{FederatedClaims, resolve_federated_user};
@@ -142,13 +142,14 @@ pub(crate) async fn odoo_login(
         )
     })?;
 
-    auto_link_identity(
-        &deps.write_pool,
-        &resolved.user_id,
-        &login,
+    auto_link_identity(AutoLink {
+        conn: &conn,
+        pool: &deps.write_pool,
+        user_id: &resolved.user_id,
+        login: &login,
         uid,
-        &credential,
-    )
+        credential: &credential,
+    })
     .await;
 
     let code = mint_authorization_code(&deps.oauth_repo, &req, &resolved.user_id).await?;
@@ -197,19 +198,54 @@ fn validate_request(req: &OdooLoginRequest, login: &str, credential: &str) -> Ad
     Ok(())
 }
 
-// Why: the credential just proved itself over RPC, so auto-linking it keeps
-// Odoo MCP tools working without a profile-page step (see the module doc).
-// Best-effort: sign-in must not fail because the link write did. First-link
-// only: the sign-in credential may be a password, and overwriting an API key
-// stored from the profile page with a password would break RPC the moment
-// Odoo enforces API keys.
-async fn auto_link_identity(
-    pool: &sqlx::PgPool,
-    user_id: &UserId,
-    login: &str,
+// Why: auto-linking keeps the Odoo MCP tools working without a profile-page
+// step (see the module doc), but only a credential shown to drive `execute_kw`
+// may be stored. Signing in does not show that on its own, and the column this
+// lands in is read by every later tool call, so anything stored here that
+// cannot make an RPC call becomes a link that reports itself as connected and
+// fails every dashboard with an opaque "Access Denied".
+//
+// Declining to store is the better failure: the profile page then says "not
+// linked", which is true and actionable, and the artifacts already render it.
+// Best-effort in the other direction too — sign-in must not fail because the
+// link write did. First-link only, so a working key from the profile page is
+// never overwritten.
+// Why: the six values that describe one auto-link, carried together so the
+// signature cannot be called with `login` and `credential` the wrong way round
+// — they are both plain strings at the call site. Same reasoning as
+// `RoleUpdate` in the federated role repository.
+struct AutoLink<'a> {
+    conn: &'a OdooConnection,
+    pool: &'a sqlx::PgPool,
+    user_id: &'a UserId,
+    login: &'a str,
     uid: i32,
-    credential: &str,
-) {
+    credential: &'a str,
+}
+
+async fn auto_link_identity(link: AutoLink<'_>) {
+    let AutoLink {
+        conn,
+        pool,
+        user_id,
+        login,
+        uid,
+        credential,
+    } = link;
+    let session = OdooUserSession {
+        conn,
+        uid,
+        credential,
+    };
+    if !credential_supports_rpc(&session).await {
+        tracing::info!(
+            user_id = %user_id,
+            login,
+            "Odoo sign-in succeeded but the credential cannot make RPC calls; leaving the \
+             Odoo identity unlinked so the profile page asks for a working credential"
+        );
+        return;
+    }
     if let Err(e) = odoo_identity::insert_if_absent(pool, user_id, login, uid, credential).await {
         tracing::error!(
             error = %e,

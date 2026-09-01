@@ -5,8 +5,59 @@ All notable changes to this repository are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `.github/workflows/release.yml` publishes on every merge to `main`: the
+  desktop bridge for macOS (signed + notarized), Windows and Linux as GitHub
+  Release `bridge-v<version>`, and the container image
+  `ghcr.io/systempromptio/systemprompt-internal:<version>` (`docker.yml`,
+  multi-arch, cosign-signed), and the gateway server binaries (`linux-amd64`,
+  `linux-arm64`, `darwin-arm64` tarballs) as GitHub Release `v<version>`.
+  Nothing publishes unless CI and Quality pass on the merge commit and
+  `bridge/CORE_REF` names a core commit of the pinned version.
+- `ghcr-prune.yml` + `scripts/prune-releases.sh`: retention for images
+  (newest 5 versions, `sha-*`/untagged after 4 weeks) and bridge releases
+  (newest 5).
+- `scripts/check-release-version.sh` lint gate: the bridge carries the
+  workspace version; on `main` every pin is checked by
+  `sync-release-version.sh`, which now also owns `bridge/Cargo.toml` and
+  `bridge/CORE_REF` (`v<version>`).
+
 ### Changed
 
+- The bridge is versioned with core and the gateway — one number for the
+  workspace, the core pin, the bridge, the release tag and the image tag.
+  `next` is synced to `0.42.0` (workspace, bridge, chart, deploy pins);
+  bridge `0.1.10 → 0.42.0` also clears core's `MIN_BRIDGE_VERSION` floor
+  (`0.28.0`) that every branded heartbeat tripped.
+- The admin Bridge Setup page, the profile connect snippet and the docs link
+  the GitHub release matching the running gateway's version
+  (`releases/download/bridge-v<version>/…`) for all four platforms, instead
+  of a same-origin `/files/downloads` staged by `just deploy` (Windows and
+  Linux only, no version). `build-all` no longer builds the bridge;
+  `package-bridge-*.sh` write to `dist/` for local use only.
+- The in-app self-updater is enabled via `gateway.bridge_releases` in the
+  production profile (no pin: `main` is the only publisher).
+
+### Security
+
+- `POST /hooks/govern` no longer lets the hook body's `agent_id` raise the
+  caller's access scope. The value is a self-report (Claude Code's subagent
+  id), and looking it up against `services/agents/*.yaml` handed a user-scoped
+  token the admin tier — waiving the tool blocklist and the approval hold —
+  whenever it named an admin-scoped agent. Scope now comes from the token and
+  the user's stored roles only. Calls that relied on the escalation are denied
+  as their real scope dictates.
+
+### Changed
+
+- Governance audit rows record who acted and through what: the hook's
+  self-reported agent id is kept in `evaluated_rules` under
+  `principal.claimed` and shown on the audit detail page as "Agent (claimed)";
+  the `agent_id` identity column holds only credential-derived identity. The
+  `/govern/authz` handler records the enforcement surface (`actor_kind = mcp`
+  for MCP tool calls), the verified delegate, the caller's access scope and
+  the OAuth `client_id` instead of a bare `user` actor with null agent columns.
 - Bridge rebuilt against systemprompt-core 0.38.0 (`bridge/CORE_REF` bumped to
   the v0.38.0 release commit) and republished as `bridge-v0.18.0`.
 - Adopted systemprompt core 0.38.0 from crates.io (typed marketplace keep-sets,

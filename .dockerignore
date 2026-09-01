@@ -1,4 +1,6 @@
 target/
+.core-sibling/target/
+.core-sibling/.git/
 # Scaled scenario binaries are staged into deploy/scenarios/scaled/.bin/ (a real
 # dir inside the context) because `target` is a symlink escaping the context.
 .git/

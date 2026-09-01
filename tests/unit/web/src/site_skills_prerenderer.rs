@@ -132,7 +132,7 @@ fn items_carries_every_skill_in_its_declared_order() {
 fn the_curated_category_order_survives_into_the_render_data() {
     let spec = prepare(skills(&[
         ("ops", Some("Platform & Operations")),
-        ("odoo", Some("Odoo")),
+        ("odoo", Some("Business on Odoo")),
     ]));
 
     let names: Vec<&str> = spec.base_data["skills"]["categories"]
@@ -144,7 +144,7 @@ fn the_curated_category_order_survives_into_the_render_data() {
 
     assert_eq!(
         names,
-        vec!["Odoo", "Platform & Operations"],
+        vec!["Business on Odoo", "Platform & Operations"],
         "the curated order wins over the alphabetical grouping order"
     );
 }

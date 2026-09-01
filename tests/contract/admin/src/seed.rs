@@ -7,10 +7,12 @@
 //! empty state correctly and its populated state not at all passes the first
 //! and fails here, which is the split worth having.
 //!
-//! Ids are UUID-suffixed. Migration `025_demo_organizations` seeds three demo
-//! customers with ten users and roughly a thousand `ai_requests`, so a fixture
-//! that reused a plausible id would be asserting against seeded rows without
-//! knowing it.
+//! Ids are UUID-suffixed, so a fixture that reused a plausible id cannot end
+//! up asserting against a row it did not create. Migration
+//! `025_demo_organizations` used to seed three demo customers with ten users
+//! and roughly a thousand `ai_requests` into this same database, which is what
+//! made that a live hazard rather than a precaution; it has been removed, and
+//! the suffixing stays because the property it buys is worth keeping.
 
 use std::collections::BTreeMap;
 
@@ -241,9 +243,9 @@ pub async fn insert_decision(pool: &PgPool, spec: &DecisionSpec<'_>) {
 pub async fn insert_summary(pool: &PgPool, session_id: &str, user_id: &UserId, title: &str) {
     sqlx::query(
         "INSERT INTO plugin_session_summaries
-             (id, session_id, user_id, started_at, tool_uses, prompts, errors,
-              model, status, ai_title, total_events)
-         VALUES ($1, $2, $3, NOW() - INTERVAL '1 hour', 3, 2, 0,
+             (id, session_id, user_id, started_at, last_event_at, tool_uses, prompts,
+              errors, model, status, ai_title, total_events)
+         VALUES ($1, $2, $3, NOW() - INTERVAL '1 hour', NOW(), 3, 2, 0,
                  'claude-contract-model', 'active', $4, 5)",
     )
     .bind(unique("summary"))

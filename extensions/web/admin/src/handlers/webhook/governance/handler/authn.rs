@@ -5,7 +5,7 @@
 
 use axum::http::HeaderMap;
 use axum::response::Response;
-use systemprompt::identifiers::UserId;
+use systemprompt::identifiers::{ClientId, UserId};
 use systemprompt::models::auth::JwtAudience;
 use systemprompt::oauth::OauthError;
 use systemprompt_security::authz::{Decision, DenyReason};
@@ -20,12 +20,14 @@ use super::{build_response, spawn_auth_denial};
 pub(super) struct Principal {
     pub user_id: UserId,
     pub token_scope: AccessScope,
+    pub client_id: Option<ClientId>,
 }
 
 pub(super) fn deny_for_auth_failure(reason: &str) -> Decision {
     Decision::Deny {
         reason: DenyReason::HookUnavailable {
-            policy: format!("auth_failure: {reason}"),
+            policy: "auth_failure".to_owned(),
+            detail: reason.to_owned(),
         },
     }
 }
@@ -86,6 +88,7 @@ pub(super) fn authenticate_request(
     Ok(Principal {
         user_id: UserId::new(&claims.sub),
         token_scope: scope_from_permissions(claims.permissions()),
+        client_id: claims.client_id.clone(),
     })
 }
 

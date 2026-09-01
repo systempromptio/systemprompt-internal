@@ -16,7 +16,9 @@ pub(crate) mod entity_urls;
 pub(crate) mod format;
 pub(crate) mod list_view;
 pub(crate) mod ssr_analytics_requests;
+mod ssr_approvals;
 mod ssr_bridge_device_link;
+mod ssr_bridge_device_link_view;
 mod ssr_bridge_setup;
 mod ssr_chain;
 mod ssr_context_detail;
@@ -41,6 +43,7 @@ mod ssr_users_sessions;
 pub(crate) mod types;
 
 pub(crate) use ssr_analytics_requests::analytics_requests_page;
+pub(crate) use ssr_approvals::{approval_approve, approval_deny, approvals_page};
 pub(crate) use ssr_bridge_device_link::{
     device_link_approve, device_link_deny, device_link_page, device_link_switch,
 };

@@ -1,0 +1,8 @@
+extension:
+  type: mcp
+  name: email
+  binary: systemprompt-mcp-email
+  description: Outbound email - drafts a message, previews it, and sends only after explicit human approval
+  port: 5050
+  build_type: workspace
+  enabled: true

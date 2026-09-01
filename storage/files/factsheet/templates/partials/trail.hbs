@@ -1,0 +1,8 @@
+  <div class="trail">
+{{#each steps}}{{#unless @first}}    <div class="arrow">&gt;</div>
+{{/unless}}    <div class="step {{kind}}">
+      <div class="n">{{n}}</div>
+      <h6>{{heading}}</h6>
+      <p>{{{inline body}}}</p>
+    </div>
+{{/each}}  </div>

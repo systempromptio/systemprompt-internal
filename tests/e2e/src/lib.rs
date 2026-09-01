@@ -17,7 +17,13 @@
 mod harness;
 
 #[cfg(test)]
+mod artifact_gallery;
+#[cfg(test)]
+mod email_send;
+#[cfg(test)]
 mod health;
+#[cfg(all(test, feature = "live"))]
+mod live_smoke;
 #[cfg(test)]
 mod manifest_roles;
 #[cfg(test)]
@@ -26,6 +32,5 @@ mod mcp_proxy_odoo;
 mod odoo_login_roles;
 #[cfg(test)]
 mod skills_artifacts;
-
-#[cfg(all(test, feature = "live"))]
-mod live_smoke;
+#[cfg(test)]
+mod systemprompt_server;

@@ -144,8 +144,8 @@ async fn an_issued_token_unlocks_that_user_s_manifest() {
     assert_eq!(url, manifest_path(&token), "the url embeds the token");
     assert_eq!(
         token.split(':').count(),
-        3,
-        "the token is user:version:mac, got {token}"
+        4,
+        "the token is user:version:expiry:mac, got {token}"
     );
 
     let (status, body) = app.call(Call::get(&url, Principal::Anonymous)).await;
@@ -245,13 +245,13 @@ async fn a_tampered_token_is_refused() {
 
     // Flip one hex digit of the MAC, keeping the length identical so the
     // constant-time compare — not the length precheck — is what rejects it.
-    let mac = parts[2];
+    let mac = parts[3];
     let flipped = if let Some(rest) = mac.strip_prefix('0') {
         format!("1{rest}")
     } else {
         format!("0{}", &mac[1..])
     };
-    let forged = format!("{}:{}:{flipped}", parts[0], parts[1]);
+    let forged = format!("{}:{}:{}:{flipped}", parts[0], parts[1], parts[2]);
     let (status, body) = app
         .call(Call::get(&manifest_path(&forged), Principal::Anonymous))
         .await;
@@ -261,7 +261,7 @@ async fn a_tampered_token_is_refused() {
     // Same MAC, different user. A token that carried over to another id would
     // be the worst possible failure of this endpoint.
     let other = b64.encode(b"someone-else");
-    let swapped = format!("{other}:{}:{}", parts[1], parts[2]);
+    let swapped = format!("{other}:{}:{}:{}", parts[1], parts[2], parts[3]);
     let (status, body) = app
         .call(Call::get(&manifest_path(&swapped), Principal::Anonymous))
         .await;
@@ -269,7 +269,7 @@ async fn a_tampered_token_is_refused() {
 
     // Same MAC, different version.
     let bumped = b64.encode(b"99");
-    let reversioned = format!("{}:{bumped}:{}", parts[0], parts[2]);
+    let reversioned = format!("{}:{bumped}:{}:{}", parts[0], parts[2], parts[3]);
     let (status, _) = app
         .call(Call::get(
             &manifest_path(&reversioned),

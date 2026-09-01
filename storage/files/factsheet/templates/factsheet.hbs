@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>{{title}}</title>
+<style>
+{{{font_face}}}
+
+  @page {
+    size: A4; margin: 9mm 11mm 11mm 11mm;
+    @bottom-left { content: "{{{footer_css}}}"; font-family: 'Inter', sans-serif; font-size: 6pt; color: #8893A3; letter-spacing: 0.3pt; }
+    @bottom-right { content: "Page " counter(page) " of " counter(pages); font-family: 'Inter', sans-serif; font-size: 6pt; font-weight: 700; color: #8893A3; }
+  }
+{{{base_css}}}
+</style>
+{{#if variant_css}}
+<!-- variant extras: only what this sheet alone needs -->
+<style>
+{{{variant_css}}}
+</style>
+{{/if}}
+</head>
+<body>
+{{#each pages}}
+<section class="page{{#if fill}} fill{{/if}}{{#if dense}} dense{{/if}}">
+
+  <header class="masthead">
+    <div class="logo">{{{@root.logo}}}</div>
+    <div class="meta">
+{{#each masthead}}      <div class="item"><span class="k">{{label}}</span><span class="v">{{value}}</span></div>
+{{/each}}    </div>
+  </header>
+{{#each blocks}}
+{{> (lookup this "type") }}
+{{/each}}
+</section>
+{{/each}}
+</body>
+</html>

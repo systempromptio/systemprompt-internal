@@ -9,7 +9,6 @@ pub mod odoo_identity;
 pub mod passkey;
 pub mod queries;
 pub mod share_token;
-pub mod usage;
 pub mod user_queries;
 pub mod user_settings;
 

@@ -1,19 +1,22 @@
-# Governance policy chain. Every stage is disabled in this installation — no
-# scope, secret, blocklist or rate-limit checking runs. The per-stage settings
-# below are kept intact so governance can be turned back on by flipping the four
-# `enabled` flags.
+# Governance policy chain. All four original stages are ENABLED (settled on 2026-08-27
+# for local and production alike — the enterprise demo, DEMO.md, depends on
+# them firing). To disable a stage, flip its `enabled` flag to false — never
+# by deleting this file or emptying `policies`: a missing or malformed file
+# falls back to GovernanceConfig::defaults(), which is all four stages
+# ENABLED. Explicit `enabled: false` is the only reliable off.
 #
-# Do not disable governance by deleting this file or emptying `policies`: a
-# missing or malformed file falls back to GovernanceConfig::defaults(), which is
-# all four stages ENABLED. Explicit `enabled: false` is the only reliable off.
+# `require_approval` is the fifth stage and the exception to that rule: it is
+# NOT in defaults(), because a stage that blocks waiting on a human is the one
+# kind of enforcement you must never inherit by accident. It holds nothing
+# until `patterns` names something.
 #
 # The gateway safety scanners are a second, independent plane — see
-# services/gateway/policies.yaml. They are switched off there.
+# services/gateway/policies.yaml. They remain switched off there.
 
 governance:
   policies:
   - id: secret_scan
-    enabled: false
+    enabled: true
     # The 32 vendor patterns (AWS, GitHub, Stripe, sk-ant-, PEM, DB URLs) are
     # fixed. The high-entropy backstop that catches prefixless keys is tunable
     # here, so one false positive no longer forces the whole stage off:
@@ -27,16 +30,47 @@ governance:
     #
     # Omit the block for the built-in defaults shown above.
   - id: scope_check
-    enabled: false
+    enabled: true
     admin_only_prefixes:
     - mcp__systemprompt__
   - id: tool_blocklist
-    enabled: false
+    enabled: true
     patterns:
     - delete
     - drop
     - destroy
   - id: rate_limit
-    enabled: false
+    enabled: true
     requests_per_window: 300
     window_secs: 60
+  - id: require_approval
+    enabled: true
+    # The outbound-facing writes. Everything else on the odoo server —
+    # including the other writes in the same demo step — still runs unattended,
+    # so the contrast on stage is between an allowed write and a held one.
+    #
+    # `email_send` (the email MCP server) is layered, and the two layers are
+    # deliberately different approvals rather than one repeated twice. The tool
+    # itself elicits in-band first, so the drafter confirms their own text; this
+    # stage then holds the call for a SECOND human, which is what `exempt_scopes`
+    # below actually buys — the drafter cannot be the approver. In-band alone
+    # would be self-approval and would prove nothing.
+    #
+    # Matching here is a substring of the TOOL NAME only, so this holds every
+    # send, not just the ones leaving our domain. That is correct but noisy;
+    # narrowing it to external recipients needs argument conditioning in the
+    # require_approval policy, which does not exist yet. `note_add` and
+    # `channel_post` are unconditional for the same reason.
+    patterns:
+    - channel_post
+    - note_add
+    - email_send
+    # An admin approving their own call would be a rubber stamp, not a control;
+    # exempting the scope keeps the approver and the requester distinct.
+    exempt_scopes:
+    - admin
+    # How long one round blocks before the wait is handed back to the client as
+    # an MRTR round. Ten rounds is rmcp's client-side ceiling.
+    hold_seconds: 60
+    # How long the request stays answerable at all.
+    expiry_seconds: 900

@@ -1,8 +1,0 @@
-id: team_chat
-name: Team Chat
-description: "Post updates into the team's Odoo Discuss channels — deal summaries, briefs, announcements — so the team reads them where they already talk, and everything said stays searchable."
-enabled: true
-file: SKILL.md
-tags: [odoo, discuss, channels, communication]
-category: collaboration
-display_category: "Business on Odoo"

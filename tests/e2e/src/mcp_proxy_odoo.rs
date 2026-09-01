@@ -8,6 +8,7 @@
 
 use axum::http::StatusCode;
 
+use crate::artifact_gallery::BRAND_ACCENT;
 use crate::harness::mcp;
 use crate::harness::odoo_mock::GOOD_CREDENTIAL;
 use crate::harness::stack::Stack;
@@ -90,6 +91,75 @@ async fn a_signed_in_user_posts_and_finds_notes_over_the_mcp_wire() {
     assert_eq!(first["stage_id"], "New", "many2one collapsed to its name");
     assert_eq!(first["email_from"], "buyer@acme.test");
     assert_eq!(first["expected_revenue"], 1250.5);
+
+    drop(server);
+    stack.db.cleanup().await;
+}
+
+// The whole chain in one assertion: real binary, real protocol, real identity,
+// and the artifact HTML exactly as Cowork receives it — theme included. The
+// gallery's other twelve entries are rendered in-process; this is the one that
+// proves the branding survives the process boundary into a shipped binary.
+#[tokio::test]
+async fn the_crm_table_arrives_as_a_branded_ui_resource() {
+    let Some(stack) = Stack::create().await else {
+        return;
+    };
+    let (status, body) = stack.odoo_login(LOGIN, GOOD_CREDENTIAL).await;
+    assert_eq!(status, StatusCode::OK, "odoo sign-in: {body}");
+    let bearer = stack.token_for_email(LOGIN).await;
+
+    let Some(server) = mcp::spawn_odoo_mcp(&stack.odoo.url()).await else {
+        stack.db.cleanup().await;
+        return;
+    };
+
+    let ui = mcp::call_tool_resource(
+        &format!("http://127.0.0.1:{}/mcp", server.port),
+        &bearer,
+        "crm_lead_search",
+        serde_json::json!({ "limit": 10 }),
+    )
+    .await
+    .expect("crm_lead_search returns an embedded UI resource");
+
+    assert!(
+        ui.uri.starts_with("ui://"),
+        "the host dispatches on this scheme: {}",
+        ui.uri
+    );
+    assert_eq!(
+        ui.mime_type.as_deref(),
+        Some("text/html;profile=mcp-app"),
+        "the mime is what tells Cowork to mount this as an app, not show it as text"
+    );
+    assert!(
+        ui.html.contains(BRAND_ACCENT),
+        "the shipped binary renders unbranded — the ArtifactTheme registration \
+         in systemprompt-mcp-shared did not survive linking"
+    );
+    crate::artifact_gallery::write_gallery_entry(
+        &crate::artifact_gallery::gallery_dir(),
+        "wire-crm-lead-search",
+        &ui.html,
+    );
+    // The table is rendered client-side from this column spec, so there is no
+    // `<th>` in the served HTML to read. Assert the mapping itself: the Odoo
+    // field name survives as the data key while the header is the human label.
+    // Why not a bare `!html.contains("STAGE_ID")` — core's own stylesheet
+    // carries a comment naming that string as the bug it prevents, so the
+    // negative matched prose and failed on correct output.
+    for (key, header) in [
+        ("stage_id", "Stage"),
+        ("user_id", "Salesperson"),
+        ("expected_revenue", "Expected revenue"),
+    ] {
+        assert!(
+            ui.html
+                .contains(&format!(r#""key":"{key}","header":"{header}""#)),
+            "column {key} must be headed {header:?}, not its raw field name"
+        );
+    }
 
     drop(server);
     stack.db.cleanup().await;

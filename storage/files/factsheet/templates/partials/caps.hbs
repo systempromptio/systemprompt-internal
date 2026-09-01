@@ -1,0 +1,9 @@
+  <div class="caps">
+{{#each cards}}    <div class="sp-card{{#if brand_tone}} brand-tone{{/if}}">
+      <div class="top"><div class="sp-icon">&gt;</div><div class="kicker">{{kicker}}</div></div>
+      <h4>{{heading}}</h4>
+      <p>{{{inline body}}}</p>
+{{#if pill}}      <span class="sp-pill{{#if pill.mono}} mono{{/if}}">{{pill.text}}</span>
+{{/if}}{{#if src}}      <span class="src">{{src}}</span>
+{{/if}}    </div>
+{{/each}}  </div>

@@ -231,8 +231,23 @@ async fn resolve_federated_user_refuses_to_provision_past_the_seat_limit() {
     db.cleanup().await;
 }
 
+
+// Why: granting `admin` from a federated claim is gated by default; these two
+// tests are about role propagation, so they opt in. The default is pinned by
+// the e2e suite (`an_odoo_admin_is_not_granted_platform_admin_by_default`).
+//
+// # Safety
+// nextest runs each test in its own process, so this mutates no other test's
+// environment, and it is set before the resolver reads it.
+fn permit_federated_admin_grants() {
+    unsafe {
+        std::env::set_var("FEDERATED_ROLES_MAY_GRANT_ADMIN", "1");
+    }
+}
+
 #[tokio::test]
 async fn resolve_federated_user_provisions_with_the_callers_roles() {
+    permit_federated_admin_grants();
     let Some(db) = TempDb::create().await else {
         return;
     };
@@ -257,6 +272,7 @@ async fn resolve_federated_user_provisions_with_the_callers_roles() {
 
 #[tokio::test]
 async fn resolve_federated_user_refreshes_roles_on_a_returning_login() {
+    permit_federated_admin_grants();
     let Some(db) = TempDb::create().await else {
         return;
     };

@@ -66,6 +66,7 @@ pub struct SessionSummaryParams<'a> {
     pub is_subagent_stop: bool,
     pub file_path: Option<&'a str>,
     pub is_from_subagent: bool,
+    pub cwd: Option<&'a str>,
 }
 
 pub async fn increment_session_summary(params: &SessionSummaryParams<'_>) {
@@ -80,13 +81,16 @@ pub async fn increment_session_summary(params: &SessionSummaryParams<'_>) {
     let user_prompt_inc = i32::from(is_prompt && !params.is_from_subagent);
     let automated_inc = i32::from(is_tool_use && params.is_from_subagent);
 
+    let cwd = params.cwd.filter(|c| !c.is_empty());
+    let workspace = cwd.and_then(super::super::session_registry::derive_workspace);
+
     let id = format!("sess_{}", params.session_id.as_str());
     let result = sqlx::query!(
         r"INSERT INTO plugin_session_summaries
             (id, session_id, user_id, total_events, tool_uses, prompts, errors,
              content_input_bytes, content_output_bytes, subagent_spawns,
-             user_prompts, automated_actions, started_at)
-           VALUES ($1, $2, $3, 1, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+             user_prompts, automated_actions, started_at, cwd, workspace, last_event_at)
+           VALUES ($1, $2, $3, 1, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), $12, $13, NOW())
            ON CONFLICT (session_id) DO UPDATE SET
              total_events = plugin_session_summaries.total_events + 1,
              tool_uses = plugin_session_summaries.tool_uses + $4,
@@ -97,6 +101,9 @@ pub async fn increment_session_summary(params: &SessionSummaryParams<'_>) {
              subagent_spawns = plugin_session_summaries.subagent_spawns + $9,
              user_prompts = plugin_session_summaries.user_prompts + $10,
              automated_actions = plugin_session_summaries.automated_actions + $11,
+             cwd = COALESCE(plugin_session_summaries.cwd, $12),
+             workspace = COALESCE(plugin_session_summaries.workspace, $13),
+             last_event_at = NOW(),
              updated_at = NOW()",
         id,
         params.session_id.as_str(),
@@ -109,6 +116,8 @@ pub async fn increment_session_summary(params: &SessionSummaryParams<'_>) {
         subagent_inc,
         user_prompt_inc,
         automated_inc,
+        cwd,
+        workspace,
     )
     .execute(params.pool)
     .await;

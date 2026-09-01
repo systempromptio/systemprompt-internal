@@ -50,6 +50,20 @@ static SYSTEMPROMPT_BRAND: Brand = Brand {
     schedule_label: "io.systemprompt.internal-bridge-sync",
     schedule_unit: "systemprompt-internal-bridge-sync",
     schedule_task_name: "SystempromptBridgeSync",
+    // Why: the autostart entry is a *separate* registration from the sync
+    // schedule above — it launches the GUI at login, where the schedule runs
+    // headless sync — so it needs its own label and task name or the two
+    // overwrite each other. `aumid` is the Windows Application User Model ID
+    // that groups the taskbar window and owns toast notifications; it must be
+    // distinct from the upstream bridge's, or an installed systemprompt bridge
+    // and this one collide on the same identity.
+    autostart_label: "io.systemprompt.internal-bridge-gui",
+    autostart_task_name: "SystempromptInternalBridgeGui",
+    aumid: "io.systemprompt.internal-bridge",
+    // Why: the systemprompt.io palette is one dark surface with a single orange
+    // accent (assets/theme.css) — there is no light theme to switch to, so the
+    // GUI and its title bar stay dark whatever the OS asks for.
+    force_dark: true,
     // Why: embedded from OUT_DIR (build.rs copies them there) so a regenerated
     // asset re-embeds under incremental/sccache builds.
     assets: BrandAssets {
@@ -57,6 +71,7 @@ static SYSTEMPROMPT_BRAND: Brand = Brand {
         logo_svg: include_str!(concat!(env!("OUT_DIR"), "/logo.svg")),
         window_icon_png: include_bytes!(concat!(env!("OUT_DIR"), "/window-icon-1024.png")),
         tray_icon_png: include_bytes!(concat!(env!("OUT_DIR"), "/tray-icon.png")),
+        app_icon_ico: include_bytes!(concat!(env!("OUT_DIR"), "/app-icon.ico")),
         theme_css: include_str!(concat!(env!("OUT_DIR"), "/theme.css")),
     },
 };

@@ -3,17 +3,29 @@
 The process for shipping a new gateway release when a new `systemprompt` core
 version lands on crates.io.
 
-**This repository runs no hosted CI.** There are no GitHub Actions workflows:
-it is a private repo and paying for runner minutes buys nothing a local
-machine cannot do. Every gate is a local command, and every artifact is built
-by hand. Nothing happens automatically when you push a branch or a tag — if
-you did not run it, it did not run.
+**What is automatic and what is not.** Nothing gates a push to `next`. The
+release pull request onto `main` (`just gate` → `just promote`) runs CI and
+Quality. Merging it is the release act: `.github/workflows/release.yml` fires
+on the push to `main`, re-runs CI and Quality on the merge commit, and — only
+if both pass — publishes the desktop bridge for macOS, Windows and Linux as
+GitHub Release `bridge-v<version>` and the container image
+`ghcr.io/systempromptio/systemprompt-internal:<version>` (also `:latest`).
+Deploying the instance (`just deploy`) is still a hand step.
 
 ## Versioning policy
 
 The fork tracks core in lockstep: core `X.Y.Z` on crates.io → workspace
 `version = X.Y.Z` → git tag `vX.Y.Z` → Helm `appVersion: X.Y.Z` (the chart's
-own `version:` gets a minor bump per release, handled by the sync script).
+own `version:` gets a minor bump per release, handled by the sync script)
+→ bridge `bridge/Cargo.toml` `version = X.Y.Z` and `bridge/CORE_REF` =
+`vX.Y.Z` → GitHub Release `bridge-vX.Y.Z` → image tag `:X.Y.Z`. One number
+everywhere; `scripts/sync-release-version.sh` writes it and
+`scripts/check-release-version.sh` (a lint gate) refuses drift. The release
+workflow will not publish a `main` whose pins disagree, or whose
+`bridge/CORE_REF` names a core commit whose own version is not that number
+(`CORE_REF` is `vX.Y.Z` after `just core-bump`; on `next` it is a SHA on core
+`next`). Every release job builds against that core checkout, exactly as CI
+does — with the patch active it is the sibling, without it crates.io.
 
 ## Step A0 — adopting an *unpublished* core (the patched path)
 
@@ -117,22 +129,50 @@ just release X.Y.Z
 ```
 
 Checks the tree is clean, HEAD == origin/main, every pin matches
-(`sync-release-version.sh --check`), and `just verify` passes, then pushes the
-`vX.Y.Z` tag. The tag is a marker: nothing consumes it.
+(`sync-release-version.sh --check`), and prints the `vX.Y.Z` and
+`bridge-vX.Y.Z` releases the merge published (Step C). Nothing is tagged by
+hand any more — both tags are created by the workflow at the merge commit.
 
-## Step C — build and publish artifacts
+## Step C — the merge publishes the artifacts
 
-By hand, from a clean checkout of the tag:
+When the release PR merges, `release.yml` on `main`:
 
-```bash
-just build-all                    # release binary, MCP servers, web assets
-just docker-build X.Y.Z           # container image, if one is being shipped
-```
+1. `version` — reads `bridge/Cargo.toml`, runs the sync check, checks out
+   core at `CORE_REF` and asserts its version is `X.Y.Z`. If `bridge-vX.Y.Z`
+   already exists (a merge with no bump) every later job is skipped with a
+   notice.
+2. `ci` + `quality` — the full workflows, called on the merge commit.
+3. `checks` → `build` → `release` — bridge fmt/clippy, the four platform
+   builds (macOS signed + notarized), cosign-signed assets, GitHub Release
+   `bridge-vX.Y.Z` at the merge commit.
+4. `gateway` → `release-gateway` — `cargo build --release --workspace` for
+   `linux-amd64`, `linux-arm64`, `darwin-arm64`; tarballs with `bin/`
+   (gateway + MCP servers), `services/`, extension manifests, `scripts/`;
+   cosign-signed `SHA256SUMS`; GitHub Release `vX.Y.Z` at the merge commit.
+5. `publish-image` — `docker.yml`: multi-arch image, `:X.Y.Z`, `:X.Y`, `:X`,
+   `:latest`, `:sha-…`, cosign-signed, smoke-run.
 
-Push the image, attach binaries to a GitHub release, and package the Helm
-chart only if that release is actually being distributed. Most releases of
-this fork are deployed straight to the instance with `just deploy` and need
-none of it.
+Re-publish a release without re-merging with
+`gh workflow run release.yml -f bridge_tag=bridge-vX.Y.Z` (the tag must equal
+the manifest version). Deploy the instance with `just deploy`; the admin
+Bridge Setup page links `releases/download/bridge-vX.Y.Z/…` by the running
+binary's version, so the links are right the moment the deploy lands.
+
+The desktop bridge's self-updater reads `gateway.bridge_releases` from the
+production profile (repo, `tag_prefix: bridge-v`, the four `assets:`, no
+`pinned_version`): `main` is the only publisher, so "newest release" is the
+build shipped with the deployed core. `SYSTEMPROMPT_BRIDGE_RELEASES_TOKEN`
+(fine-grained PAT, contents:read) keeps the gateway off GitHub's anonymous
+rate limit.
+
+### Retention
+
+`ghcr-prune.yml` runs weekly and after every successful release: it keeps the
+5 newest `X.Y.Z` images (alias tags follow), drops `sha-*` tags and untagged
+manifests older than 4 weeks, and keeps the 5 newest `bridge-v*` releases
+(`scripts/prune-releases.sh`; drafts and prereleases are never touched). It
+needs `GHCR_PRUNE_TOKEN` — a classic PAT with `read:packages` +
+`delete:packages` — and fails loudly without it.
 
 ## Rollback
 
@@ -145,6 +185,9 @@ none of it.
 ## Post-release checklist
 
 - [ ] `just verify` green on the tagged commit
+- [ ] `gh run list --workflow=release.yml --limit 1` green: release
+      `bridge-vX.Y.Z` and image `:X.Y.Z` exist
 - [ ] the deployed instance serves the new version (`just server-status`)
-- [ ] any published image or chart actually pushed — nothing does it for you
+      and `/admin/bridge/setup` links `bridge-vX.Y.Z`
+- [ ] Helm chart packaged only if that release is actually being distributed
 - [ ] update docs-internal/STATE.md release row

@@ -16,9 +16,54 @@ use std::collections::BTreeSet;
 use base64::Engine;
 use sha2::Digest;
 
-const ADMIN_LOGIN: &str = "e2e-admin@systemprompt.local";
-const SALES_LOGIN: &str = "e2e-sales@systemprompt.local";
+// The real people, not invented ones. The local stack is a clone of
+// production, so the accounts the tests sign in as are the accounts production
+// has — a test that passes for `e2e-sales@systemprompt.local` proves the role
+// mapping works for a user who exists nowhere but the test.
+//
+// `ed+notadmin@` is the same person deliberately holding no admin group: the
+// manifest diff is only evidence of anything if one side genuinely lacks what
+// the other has, and a plus-address is a real deliverable mailbox rather than a
+// second identity to keep in step.
+//
+// Safe only because `require_local_stack` below refuses to let this file point
+// at anything but a local host. It writes: it resets both passwords to
+// `PASSWORD` and creates leads.
+const ADMIN_LOGIN: &str = "ed@systemprompt.io";
+const SALES_LOGIN: &str = "ed+notadmin@systemprompt.io";
 const PASSWORD: &str = "e2e-live-password-2026";
+
+// Refuse to run against anything that is not a local stack.
+//
+// This suite seeds users, rewrites their passwords, and creates CRM leads. It
+// does that against the real logins now, which is only sound while the target
+// is a clone. The guarantee cannot be a convention in a comment: one exported
+// `E2E_ODOO_URL` pointing at the Fly app would run all of it against
+// production, as the people it names. So both endpoints are checked against
+// the loopback host and the test aborts before its first write otherwise.
+fn require_local_stack(base: &str, odoo: &str) {
+    for (label, url) in [("E2E_BASE_URL", base), ("E2E_ODOO_URL", odoo)] {
+        let host = url
+            .split("://")
+            .nth(1)
+            .unwrap_or(url)
+            .split('/')
+            .next()
+            .unwrap_or("")
+            .rsplit('@')
+            .next()
+            .unwrap_or("")
+            .split(':')
+            .next()
+            .unwrap_or("");
+        assert!(
+            matches!(host, "localhost" | "127.0.0.1" | "[::1]" | "::1"),
+            "{label} points at {host:?}, which is not a local host. This suite \
+             signs in as real accounts and writes to them; it runs against a \
+             local clone only. Refusing to continue."
+        );
+    }
+}
 
 fn env_or(key: &str, default: &str) -> String {
     std::env::var(key).unwrap_or_else(|_| default.to_owned())
@@ -241,6 +286,15 @@ async fn sign_in(
 }
 
 async fn manifest_skills(http: &reqwest::Client, base: &str, bearer: &str) -> BTreeSet<String> {
+    manifest_ids(http, base, bearer, "skills").await
+}
+
+async fn manifest_ids(
+    http: &reqwest::Client,
+    base: &str,
+    bearer: &str,
+    key: &str,
+) -> BTreeSet<String> {
     let envelope: serde_json::Value = http
         .get(format!("{base}/v1/bridge/manifest"))
         .bearer_auth(bearer)
@@ -253,12 +307,17 @@ async fn manifest_skills(http: &reqwest::Client, base: &str, bearer: &str) -> BT
     let payload: serde_json::Value =
         serde_json::from_str(envelope["payload"].as_str().expect("payload present"))
             .expect("payload parses");
-    payload["skills"]
+    payload[key]
         .as_array()
-        .map(|skills| {
-            skills
+        .map(|entries| {
+            entries
                 .iter()
-                .filter_map(|s| s["id"].as_str().map(str::to_owned))
+                .filter_map(|e| {
+                    e.get("id")
+                        .or_else(|| e.get("name"))
+                        .and_then(|v| v.as_str())
+                        .map(str::to_owned)
+                })
                 .collect()
         })
         .unwrap_or_default()
@@ -268,6 +327,7 @@ async fn manifest_skills(http: &reqwest::Client, base: &str, bearer: &str) -> BT
 async fn live_stack_walks_the_two_role_journey() {
     let base = env_or("E2E_BASE_URL", "http://localhost:8081");
     let odoo_url = env_or("E2E_ODOO_URL", "http://localhost:8070");
+    require_local_stack(&base, &odoo_url);
     let http = reqwest::Client::new();
 
     step("server health");
@@ -303,7 +363,15 @@ async fn live_stack_walks_the_two_role_journey() {
     let group_system = odoo.group_id("base", "group_system").await;
     let group_user = odoo.group_id("base", "group_user").await;
     let group_salesman = odoo.group_id("sales_team", "group_sale_salesman").await;
-    odoo.ensure_user(ADMIN_LOGIN, &[group_system, group_user])
+    let group_sale_manager = odoo.group_id("sales_team", "group_sale_manager").await;
+    // Why a Sales group on the admin, and the MANAGER one: `group_system` is
+    // platform administration, not Sales access, so without it Odoo's own
+    // record rules refuse a `mail.message` create on a crm.lead ("Operation:
+    // create, Document type: Message") — which is the chatter round-trip below.
+    // Salesman is not enough either: it sees only its own documents, and the
+    // lead belongs to the salesperson. A real admin running this workspace
+    // holds Sales Manager.
+    odoo.ensure_user(ADMIN_LOGIN, &[group_system, group_user, group_sale_manager])
         .await;
     let sales_uid = odoo
         .ensure_user(SALES_LOGIN, &[group_user, group_salesman])
@@ -318,27 +386,53 @@ async fn live_stack_walks_the_two_role_journey() {
     let admin_skills = manifest_skills(&http, &base, &admin_bearer).await;
     let sales_skills = manifest_skills(&http, &base, &sales_bearer).await;
     assert!(
-        admin_skills.contains("admin_workspace_setup_cowork"),
-        "the Odoo administrator's manifest carries the admin skills — if this set has no admin_* \
-         entries, the RUNNING server predates the role-mapping / systemprompt-admin-plugin \
-         changes: rebuild and restart it, then re-run. admin skills: {admin_skills:?}"
+        admin_skills.contains("report"),
+        "the Odoo administrator's manifest carries the admin skills — if this set has no admin \
+         entries, the RUNNING server predates the plugin-cascade core change (skills inherit \
+         their plugin's rule): rebuild and restart it, then re-run. admin skills: \
+         {admin_skills:?}"
     );
     assert!(
-        !sales_skills.contains("admin_workspace_setup_cowork"),
-        "the salesperson's manifest must not: {sales_skills:?}"
+        !sales_skills.contains("report"),
+        "report carries no rule of its own; the systemprompt-admin plugin rule must \
+         close it to the salesperson: {sales_skills:?}"
+    );
+    assert!(
+        sales_skills.contains("systemprompt_setup"),
+        "the one setup skill ships in commons for every role: {sales_skills:?}"
+    );
+
+    step("the admin CLI server is enabled and admin-only");
+    let admin_servers = manifest_ids(&http, &base, &admin_bearer, "managed_mcp_servers").await;
+    let sales_servers = manifest_ids(&http, &base, &sales_bearer, "managed_mcp_servers").await;
+    assert!(
+        admin_servers.contains("systemprompt"),
+        "services/mcp/systemprompt.yaml is enabled and granted to [admin]: {admin_servers:?}"
+    );
+    assert!(
+        !sales_servers.contains("systemprompt"),
+        "the admin CLI server must not reach the salesperson: {sales_servers:?}"
     );
     assert!(
         !sales_skills.is_empty(),
         "the salesperson still gets the workspace skills"
     );
 
-    step("chatter round-trip through the MCP proxy as the salesperson");
+    // Why the admin and not the salesperson: `note_add` is named in
+    // `require_approval.patterns`, so a salesperson's call is HELD for a second
+    // human — it blocks for `hold_seconds` and then comes back as an MRTR
+    // `input_required` round, which is correct behaviour and not something this
+    // smoke test can resolve (nobody is watching the approvals queue). The
+    // stage carries `exempt_scopes: [admin]`, so the admin's call runs
+    // unattended and gives the real chatter round-trip this step is for. The
+    // hold itself is pinned in Tier A by the `email_send` approval tests.
+    step("chatter round-trip through the MCP proxy as the admin");
     let mcp_resource = format!("{base}/api/v1/mcp/odoo/mcp");
-    let sales_mcp_bearer = sign_in(&http, &base, SALES_LOGIN, Some(&mcp_resource)).await;
+    let admin_mcp_bearer = sign_in(&http, &base, ADMIN_LOGIN, Some(&mcp_resource)).await;
     let note = format!("E2E live note {}", uuid::Uuid::new_v4().simple());
     let added = crate::harness::mcp::call_tool_at(
         &format!("{base}/api/v1/mcp/odoo/mcp"),
-        &sales_mcp_bearer,
+        &admin_mcp_bearer,
         "note_add",
         serde_json::json!({ "model": "crm.lead", "res_id": lead_id, "body": note }),
     )
@@ -348,7 +442,7 @@ async fn live_stack_walks_the_two_role_journey() {
 
     let searched = crate::harness::mcp::call_tool_at(
         &format!("{base}/api/v1/mcp/odoo/mcp"),
-        &sales_mcp_bearer,
+        &admin_mcp_bearer,
         "note_search",
         serde_json::json!({ "query": "%", "limit": 50 }),
     )

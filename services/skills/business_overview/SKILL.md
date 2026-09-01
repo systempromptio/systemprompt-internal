@@ -20,7 +20,6 @@ shows exactly what that user is permitted to see in Odoo — nothing more.
 | `crm_lead_get` / `crm_lead_search` | Drill into any lead the brief surfaces |
 | `activity_list` | Full activity list when the overdue section needs expansion |
 | `note_search` | Chase a topic the brief surfaced across every record's chatter |
-| `search_project_context` | Pull related transcripts/documents from the knowledge bank |
 
 ## Brief Structure
 

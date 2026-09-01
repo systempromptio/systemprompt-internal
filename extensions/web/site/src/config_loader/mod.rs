@@ -13,6 +13,7 @@ use systemprompt::models::AppPaths;
 use thiserror::Error;
 
 #[doc(hidden)]
+pub mod skill_scope;
 pub mod skills;
 
 pub(crate) use skills::load_skills_page_config;

@@ -1,10 +1,11 @@
 #!/bin/sh
 # Systemprompt Internal Bridge client installer for Linux.
 #
-# Published same-origin by scripts/package-bridge-linux.sh, which substitutes
-# @DOWNLOAD_BASE@ with the serving origin's /files/downloads URL, and run as:
+# Published as an asset of every bridge-v* GitHub release by
+# .github/workflows/release.yml, which substitutes @DOWNLOAD_BASE@ with that
+# release's download URL, and run as:
 #
-#     curl -fsSL https://internal.systemprompt.io/files/downloads/install.sh | sh
+#     curl -fsSL https://github.com/systempromptio/systemprompt-internal/releases/download/bridge-v<version>/install.sh | sh
 #
 # NOT to be confused with scripts/install.sh, which installs the *gateway*
 # server. This one takes a bare Linux box to a working `claude`:
@@ -24,15 +25,15 @@ warn() { printf '\033[33mwarn:\033[0m %s\n' "$*" >&2; }
 fail() { printf '\033[31mERROR:\033[0m %s\n' "$*" >&2; exit 1; }
 
 # ── Arguments ─────────────────────────────────────────────────────────────────
-# Defaults target the production release + gateway so a piped install needs no
-# arguments; both are overridable for dev servers and forks.
-# @DOWNLOAD_BASE@ is substituted by scripts/package-bridge-linux.sh at publish
-# time; a copy run straight from the repo (placeholder intact) falls back to
-# the production origin below.
+# Defaults target the release this copy shipped in + the production gateway
+# so a piped install needs no arguments; both are overridable for dev servers
+# and forks. @DOWNLOAD_BASE@ is substituted by the release workflow; a copy
+# run straight from the repo (placeholder intact) falls back to the newest
+# release.
 DEFAULT_DOWNLOAD_BASE="@DOWNLOAD_BASE@"
 DEFAULT_GATEWAY_URL="https://internal.systemprompt.io"
 case "$DEFAULT_DOWNLOAD_BASE" in
-    @*) DEFAULT_DOWNLOAD_BASE="$DEFAULT_GATEWAY_URL/files/downloads" ;;
+    @*) DEFAULT_DOWNLOAD_BASE="https://github.com/systempromptio/systemprompt-internal/releases/latest/download" ;;
 esac
 DOWNLOAD_BASE="${SYSTEMPROMPT_DOWNLOAD_BASE:-}"
 GATEWAY_URL="${SYSTEMPROMPT_GATEWAY_URL:-}"
@@ -72,14 +73,7 @@ while [ $# -gt 0 ]; do
 done
 [ -n "$DOWNLOAD_BASE" ] || DOWNLOAD_BASE="$DEFAULT_DOWNLOAD_BASE"
 DOWNLOAD_BASE="${DOWNLOAD_BASE%/}"
-if [ -z "$GATEWAY_URL" ]; then
-    # A download base ending in /files/downloads implies the gateway that
-    # serves it; anything else falls back to prod.
-    case "$DOWNLOAD_BASE" in
-        */files/downloads) GATEWAY_URL="${DOWNLOAD_BASE%/files/downloads}" ;;
-        *)                 GATEWAY_URL="$DEFAULT_GATEWAY_URL" ;;
-    esac
-fi
+[ -n "$GATEWAY_URL" ] || GATEWAY_URL="$DEFAULT_GATEWAY_URL"
 
 # ── Preconditions ─────────────────────────────────────────────────────────────
 command -v curl >/dev/null 2>&1 || fail "curl is required"

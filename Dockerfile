@@ -1,5 +1,6 @@
 # syntax=docker/dockerfile:1.7
-# Multi-stage build for systemprompt-template.
+# Multi-stage build for systemprompt-internal (published to
+# ghcr.io/systempromptio/systemprompt-internal by .github/workflows/docker.yml).
 # Stage 1 compiles the Rust workspace against the repo's .sqlx/ offline cache.
 # Stage 2 ships a slim Debian runtime with the binaries + services/ YAML tree.
 
@@ -16,6 +17,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /src
 COPY . /src
+# The workspace may patch systemprompt-* to ../systemprompt-core (the core
+# checkout bridge/CORE_REF names). CI materialises it as .core-sibling inside
+# the context; a local build without it resolves core from crates.io.
+RUN if [ -d /src/.core-sibling ]; then mv /src/.core-sibling /systemprompt-core; fi
 
 ENV SQLX_OFFLINE=true \
     CC=clang \
@@ -26,7 +31,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     cargo build --release --workspace \
     && mkdir -p /out/bin \
     && cp target/release/systemprompt /out/bin/ \
-    && cp target/release/systemprompt-mcp-agent /out/bin/
+    && find target/release -maxdepth 1 -type f -perm -u+x -name 'systemprompt-mcp-*' -exec cp {} /out/bin/ \;
 
 # hey powers the demo/performance load tests; its upstream S3 binary host is
 # dead (403), so build it from source and ship it on PATH — demo/_common.sh's
@@ -38,11 +43,11 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 FROM debian:bookworm-slim AS runtime
 
-LABEL org.opencontainers.image.title="systemprompt" \
+LABEL org.opencontainers.image.title="systemprompt-internal" \
       org.opencontainers.image.description="AI governance gateway for Claude, OpenAI, and Gemini — policy, audit, and MCP orchestration" \
-      org.opencontainers.image.source="https://github.com/systempromptio/systemprompt-template" \
+      org.opencontainers.image.source="https://github.com/systempromptio/systemprompt-internal" \
       org.opencontainers.image.url="https://systemprompt.io" \
-      org.opencontainers.image.documentation="https://github.com/systempromptio/systemprompt-template/tree/main/docs" \
+      org.opencontainers.image.documentation="https://github.com/systempromptio/systemprompt-internal/tree/main/docs" \
       org.opencontainers.image.vendor="systemprompt.io"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -54,7 +59,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     lsof \
     jq \
     python3 \
+    python3-venv \
+    # WeasyPrint's rendering stack. Its layout engine is Python with no Rust
+    # binding, so the factsheet MCP server shells out to it; these are the
+    # system libraries it loads through cffi. libcairo is deliberately absent —
+    # WeasyPrint >= 53 writes PDF directly via pydyf and no longer needs it.
+    libpango-1.0-0 \
+    libpangoft2-1.0-0 \
+    libharfbuzz0b \
+    libfontconfig1 \
     && rm -rf /var/lib/apt/lists/*
+
+# A venv rather than --break-system-packages: Debian's Python is the system's,
+# and WeasyPrint pulls a substantial dependency tree.
+RUN python3 -m venv /app/.venv \
+    && /app/.venv/bin/pip install --no-cache-dir weasyprint pymupdf
 
 RUN useradd -m -u 1000 app
 WORKDIR /app
@@ -74,6 +93,10 @@ COPY demo /app/demo
 # globs extensions/mcp/*/manifest.yaml to resolve binary -> manifest.
 COPY extensions/mcp /app/extensions/mcp
 
+# The factsheet renderer sidecar; the MCP server resolves it relative to the
+# system root.
+COPY scripts /app/scripts
+
 COPY docker/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh /app/bin/* \
     && chown -R app:app /app
@@ -88,6 +111,7 @@ ENV HOST=0.0.0.0 \
     SYSTEMPROMPT_SERVICES_PATH=/app/services \
     SYSTEMPROMPT_MCP_PATH=/app/bin \
     SYSTEMPROMPT_PROFILE=/app/.systemprompt/profiles/docker/profile.yaml \
+    FACTSHEET_PYTHON=/app/.venv/bin/python3 \
     WEB_DIR=/app/web
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \

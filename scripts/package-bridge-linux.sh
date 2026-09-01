@@ -6,7 +6,7 @@
 # with: extensions/web/admin/src/handlers/ssr/ssr_bridge_setup.rs
 # (DOWNLOAD_BASE_URL), the ARTIFACTS map in
 # storage/files/js/pages/admin-bridge-setup.js, and the build matrix in
-# .github/workflows/bridge-release.yml.
+# .github/workflows/release.yml.
 #
 # Releases are produced by that workflow (GitHub Releases is the download
 # source of truth); this script is the shared packaging step and a local dev
@@ -14,7 +14,6 @@
 #   SKIP_BUILD=1        use an existing binary instead of building
 #   BRIDGE_BIN=<path>   path to a prebuilt binary (implies SKIP_BUILD)
 #   ASSET_ARCH=<arch>   override the arch suffix (defaults to uname -m)
-#   PUBLISH=0           skip copying into storage/files/downloads/
 #
 # Verify the result on a machine with no config using: just clean-client
 set -euo pipefail
@@ -84,7 +83,7 @@ Version ${VERSION} (${COMMIT}, ${ASSET_ARCH})
 Prefer the installer — it verifies the checksum, installs to the right place,
 and writes the environment for you:
 
-    curl -fsSL https://internal.systemprompt.io/files/downloads/install.sh | sh
+    curl -fsSL https://github.com/systempromptio/systemprompt-internal/releases/download/bridge-v${VERSION}/install.sh | sh
 
 The rest of this file is the manual equivalent.
 
@@ -159,20 +158,3 @@ echo
 echo "==> $DIST_DIR/$ASSET"
 echo "    $(cd "$DIST_DIR" && cut -d' ' -f1 "$ASSET.sha256")"
 echo "    version ${VERSION} (${COMMIT})  size $(du -h "$DIST_DIR/$ASSET" | cut -f1)"
-# ── Publish to the served downloads dir ──────────────────────────────────────
-# The website is the download source of truth: `just deploy` ships whatever is
-# in storage/files/downloads/, served at /files/downloads. The installer is
-# templated so its default --download-base points at the deployed origin
-# (override with INSTALL_BASE_URL for another environment). PUBLISH=0 (CI)
-# skips this step.
-INSTALL_BASE_URL="${INSTALL_BASE_URL:-https://internal.systemprompt.io/files/downloads}"
-if [ "${PUBLISH:-1}" = "1" ]; then
-    PUBLISH_DIR="$REPO_ROOT/storage/files/downloads"
-    mkdir -p "$PUBLISH_DIR"
-    install -m 0644 "$DIST_DIR/$ASSET" "$PUBLISH_DIR/$ASSET"
-    install -m 0644 "$DIST_DIR/$ASSET.sha256" "$PUBLISH_DIR/$ASSET.sha256"
-    sed "s|@DOWNLOAD_BASE@|${INSTALL_BASE_URL%/}|" \
-        "$REPO_ROOT/scripts/install-bridge.sh" > "$PUBLISH_DIR/install.sh"
-    chmod 0644 "$PUBLISH_DIR/install.sh"
-    echo "==> published to $PUBLISH_DIR (tarball, .sha256, install.sh @ ${INSTALL_BASE_URL%/})"
-fi

@@ -7,6 +7,12 @@
 # Covered pins:
 #   Cargo.toml            workspace version + systemprompt/-security/-extension pins
 #   tests/Cargo.toml      its own systemprompt/-security pins (separate workspace)
+#   bridge/Cargo.toml     the desktop bridge's version — one number with core, so
+#                         the bridge-v<X.Y.Z> release cut on main names the core
+#                         it was built against and clears core's MIN_BRIDGE_VERSION
+#   bridge/CORE_REF       v<X.Y.Z> on apply; --check also accepts a commit SHA
+#                         (next tracks core next by SHA — the release workflow
+#                         proves that commit's own version is X.Y.Z)
 #   helm/gateway/Chart.yaml  appVersion + artifacthub images annotation
 #                            (chart `version:` is bumped separately on apply)
 #   deploy/casaos/docker-compose.yml                exact image tag
@@ -76,6 +82,25 @@ check_or_apply tests/Cargo.toml \
     "s|^systemprompt-security = { version = \"[0-9.]*\"|systemprompt-security = { version = \"$VERSION\"|" \
     "^systemprompt-security = \\{ version = \"$VERSION\"" \
     "systemprompt-security core pin (test workspace)"
+
+# bridge/Cargo.toml — first `version =` is the package's own.
+check_or_apply bridge/Cargo.toml \
+    "s|^version = \"[0-9.]*\"|version = \"$VERSION\"|" \
+    "^version = \"$VERSION\"" \
+    "bridge version"
+
+# bridge/CORE_REF — a tag, not a SHA, so the pin is legible and provably the
+# core this version was released against.
+if [ "$MODE" = "--check" ]; then
+    core_ref=$(tr -d '[:space:]' < bridge/CORE_REF)
+    case "$core_ref" in
+        "v$VERSION") ;;
+        *[!0-9a-f]*|"") echo "DRIFT: bridge/CORE_REF is '$core_ref', expected v$VERSION or a commit SHA"; fail=1 ;;
+        *) [ ${#core_ref} -eq 40 ] || { echo "DRIFT: bridge/CORE_REF '$core_ref' is not a full SHA"; fail=1; } ;;
+    esac
+else
+    printf 'v%s\n' "$VERSION" > bridge/CORE_REF
+fi
 
 # Residual sweep: any core pin in any manifest that the rules above do not
 # already move. A pin added to a new crate would otherwise sit stale forever,

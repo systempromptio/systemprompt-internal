@@ -85,6 +85,8 @@ mod secrets_scanner_response;
 #[cfg(test)]
 mod seed_contract;
 #[cfg(test)]
+mod session_registry_handle;
+#[cfg(test)]
 mod shared_errors;
 #[cfg(test)]
 mod shared_ids;

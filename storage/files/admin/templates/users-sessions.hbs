@@ -3,21 +3,81 @@
     {{#*inline "content"}}
     {{> components/page-header title=title}}
 
-    <section aria-label="Current session">
-        <h2 class="section-heading">Current Session</h2>
-        {{#if current_session}}
+    <section aria-label="Live agent sessions">
+        <h2 class="section-heading">Live Sessions <span class="badge badge-info">{{session_count}}</span></h2>
+        <p class="text-muted">Sessions that reported activity in the last {{window_minutes}} minutes. <strong>Handle</strong> is the address used to reach a session.</p>
+        {{#if sessions}}
         {{#> components/data-table}}
-            <thead><tr><th>Field</th><th>Value</th></tr></thead>
+            <thead>
+                <tr>
+                    <th>Handle</th>
+                    <th>User</th>
+                    <th>Workspace</th>
+                    <th>Branch</th>
+                    <th>Activity</th>
+                    <th>Model</th>
+                    <th class="numeric">Tools</th>
+                    <th class="numeric">Prompts</th>
+                    <th class="numeric">Errors</th>
+                    <th class="numeric">Cost</th>
+                    <th class="numeric">Context</th>
+                    <th>Last seen</th>
+                </tr>
+            </thead>
             <tbody>
-                <tr><td>User ID</td><td><code class="code-inline">{{current_session.user_id}}</code></td></tr>
-                <tr><td>Username</td><td>{{current_session.username}}</td></tr>
-                <tr><td>Email</td><td>{{current_session.email}}</td></tr>
-                <tr><td>Admin</td><td>{{#if current_session.is_admin}}<span class="badge badge-success">Yes</span>{{else}}<span class="badge badge-secondary">No</span>{{/if}}</td></tr>
-                <tr><td>Roles</td><td>{{#each current_session.roles}}<span class="badge badge-info">{{this}}</span> {{/each}}</td></tr>
+                {{#each sessions}}
+                <tr>
+                    <td><a href="{{this.detail_url}}"><code class="code-inline">{{this.handle}}</code></a></td>
+                    <td>{{this.display_name}}</td>
+                    <td title="{{this.cwd}}">{{this.workspace}}</td>
+                    <td>{{this.git_branch}}</td>
+                    <td>{{this.current_activity}}</td>
+                    <td>{{this.model}}</td>
+                    <td class="numeric">{{this.tool_uses}}</td>
+                    <td class="numeric">{{this.prompts}}</td>
+                    <td class="numeric">{{#if this.errors}}<span class="badge badge-danger">{{this.errors}}</span>{{else}}0{{/if}}</td>
+                    <td class="numeric">{{this.cost}}</td>
+                    <td class="numeric">{{#if this.context_pct}}{{this.context_pct}}%{{else}}—{{/if}}</td>
+                    <td>{{this.idle_for}}</td>
+                </tr>
+                {{/each}}
             </tbody>
         {{/components/data-table}}
         {{else}}
-        {{> components/empty-state message="No active session."}}
+        {{> components/empty-state message="No sessions have reported activity in the liveness window."}}
+        {{/if}}
+    </section>
+
+    <section aria-label="Cost by workspace">
+        <h2 class="section-heading">Cost by Workspace</h2>
+        <p class="text-muted">Inference spend attributed to the repository the session was working in, last {{cost_days}} days.</p>
+        {{#if workspaces}}
+        {{#> components/data-table}}
+            <thead>
+                <tr>
+                    <th>Workspace</th>
+                    <th class="numeric">Sessions</th>
+                    <th class="numeric">Requests</th>
+                    <th class="numeric">Input tokens</th>
+                    <th class="numeric">Output tokens</th>
+                    <th class="numeric">Cost</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#each workspaces}}
+                <tr>
+                    <td><code class="code-inline">{{this.workspace}}</code></td>
+                    <td class="numeric">{{this.session_count}}</td>
+                    <td class="numeric">{{this.request_count}}</td>
+                    <td class="numeric">{{this.input_tokens}}</td>
+                    <td class="numeric">{{this.output_tokens}}</td>
+                    <td class="numeric">{{this.cost}}</td>
+                </tr>
+                {{/each}}
+            </tbody>
+        {{/components/data-table}}
+        {{else}}
+        {{> components/empty-state message="No sessions have recorded a workspace yet."}}
         {{/if}}
     </section>
     {{/inline}}

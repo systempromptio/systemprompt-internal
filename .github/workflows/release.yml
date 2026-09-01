@@ -1,0 +1,659 @@
+name: Release — bridge binaries + container image
+
+# Runs on every merge to main (and on a hand-pushed bridge-v* tag or a
+# dispatch) and publishes the two things a release of this repo ships:
+#
+#   * the desktop bridge for Linux (x86_64 + aarch64), macOS (universal2,
+#     signed + notarized) and Windows, as GitHub Release `bridge-v<version>`
+#   * the gateway server binaries (linux amd64/arm64, darwin arm64 tarballs
+#     with services/, extension manifests and scripts) as GitHub Release
+#     `v<version>`
+#   * the container image ghcr.io/systempromptio/systemprompt-internal
+#     (:X.Y.Z, :X.Y, :X, :latest, :sha-<sha>) via docker.yml
+#
+# The version is bridge/Cargo.toml's, which scripts/sync-release-version.sh
+# keeps equal to the workspace version and the core pin — one number for
+# core, gateway, bridge and image. A merge that does not bump it (nothing to
+# release) is a no-op: the `version` job sees the release already exists and
+# every downstream job is skipped.
+#
+# Nothing publishes unless the full CI and Quality workflows pass on this
+# exact commit, and unless main is honest about what it builds against:
+# every pin on one version, and bridge/CORE_REF naming a core commit whose
+# own version is that number (the tag v<version>, or a SHA on its line).
+# Every job here builds against that core checkout, exactly as CI does.
+#
+# Asset names are load-bearing and version-less. Keep them in lockstep with:
+# extensions/web/admin/src/services/bridge_downloads.rs, the HOSTED_ARTIFACTS
+# map in storage/files/js/pages/admin-bridge-setup.js, the links in
+# storage/files/admin/templates/bridge-setup.hbs, and the `assets:` map of
+# the gateway's `bridge_releases` config (the in-app self-updater). macOS
+# publishes two artifacts: the .dmg humans download, and a .zip of the same
+# signed bundle that the updater consumes.
+#
+# The bridge crate depends on systemprompt-bridge by path
+# (../../systemprompt-core/bin/bridge), which is not on crates.io — so every
+# job checks out systempromptio/systemprompt-core as a sibling directory at
+# the ref in bridge/CORE_REF.
+
+on:
+  push:
+    branches: [main]
+    tags: ["bridge-v*"]
+  workflow_dispatch:
+    inputs:
+      bridge_tag:
+        description: "Bridge release tag (e.g. bridge-v0.40.0) — re-publish without re-merging; must match bridge/Cargo.toml"
+        required: true
+
+concurrency:
+  group: release-${{ github.event.inputs.bridge_tag || github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  id-token: write
+  packages: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  version:
+    name: Resolve version & release state
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      tag: ${{ steps.v.outputs.tag }}
+      publish: ${{ steps.v.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read pinned core ref
+        id: core
+        shell: bash
+        run: echo "ref=$(tr -d '[:space:]' < bridge/CORE_REF)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: systempromptio/systemprompt-core
+          ref: ${{ steps.core.outputs.ref }}
+          path: .core-sibling
+      - name: Link sibling core beside the workspace
+        shell: bash
+        run: ln -sfn "$GITHUB_WORKSPACE/.core-sibling" "$GITHUB_WORKSPACE/../systemprompt-core"
+      - name: Assert CORE_REF is the core of the pinned version
+        run: |
+          version=$(sed -n 's/^version = "\([0-9.]*\)"/\1/p' bridge/Cargo.toml | head -1)
+          core=$(sed -n 's/^version = "\([0-9.]*\)"/\1/p' .core-sibling/Cargo.toml | head -1)
+          if [ "$core" != "$version" ]; then
+            echo "::error::bridge/CORE_REF ($(cat bridge/CORE_REF)) is core $core, but this release is $version."
+            exit 1
+          fi
+          echo "core at CORE_REF is $core"
+      - name: Read version and check every pin agrees
+        id: v
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          REQUESTED: ${{ github.event.inputs.bridge_tag || github.ref_name }}
+        run: |
+          version=$(sed -n 's/^version = "\([0-9.]*\)"/\1/p' bridge/Cargo.toml | head -1)
+          scripts/sync-release-version.sh "$version" --check
+          tag="bridge-v$version"
+          if [ "$EVENT" != "push" ] || [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            if [ "$REQUESTED" != "$tag" ]; then
+              echo "::error::requested $REQUESTED but bridge/Cargo.toml is $version — the tag must equal bridge-v<version>."
+              exit 1
+            fi
+          fi
+          publish=true
+          if [ "$EVENT" = "push" ] && gh release view "$tag" >/dev/null 2>&1; then
+            echo "::notice::release $tag already exists — nothing to publish for this merge."
+            publish=false
+          fi
+          {
+            echo "version=$version"
+            echo "tag=$tag"
+            echo "publish=$publish"
+          } >> "$GITHUB_OUTPUT"
+
+  # Why called, not required by branch protection: the release must be proven
+  # on the merge commit itself, and a run started by this workflow is the only
+  # thing that can block the jobs below.
+  ci:
+    name: CI
+    needs: version
+    if: needs.version.outputs.publish == 'true'
+    uses: ./.github/workflows/ci.yml
+    with:
+      ref: ${{ github.sha }}
+    secrets: inherit
+
+  quality:
+    name: Quality
+    needs: version
+    if: needs.version.outputs.publish == 'true'
+    uses: ./.github/workflows/quality.yml
+    with:
+      ref: ${{ github.sha }}
+    secrets: inherit
+
+  checks:
+    name: Bridge quality gate
+    needs: [version, ci, quality]
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: systemprompt-internal
+      - name: Read pinned core ref
+        id: core
+        run: echo "ref=$(tr -d '[:space:]' < systemprompt-internal/bridge/CORE_REF)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: systempromptio/systemprompt-core
+          ref: ${{ steps.core.outputs.ref }}
+          path: systemprompt-core
+      # keyring → dbus-secret-service → libdbus-sys builds from pkg-config.
+      - run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rustfmt
+      # Scope the gate to the bridge crate: it is a standalone workspace, and
+      # unrelated churn elsewhere must not block a bridge release.
+      - run: cargo fmt --manifest-path systemprompt-internal/bridge/Cargo.toml -p systemprompt-internal-bridge -- --check
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: systemprompt-internal/bridge
+      - run: cargo clippy --manifest-path systemprompt-internal/bridge/Cargo.toml --all-targets -- -D warnings
+
+  build:
+    name: Build ${{ matrix.asset }}
+    needs: [version, checks]
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # ubuntu-22.04: oldest supported runner glibc, so the binaries run
+          # on as many distributions as possible.
+          - runner: ubuntu-22.04
+            asset: systemprompt-internal-bridge-linux-x86_64.tar.gz
+            arch: x86_64
+          - runner: ubuntu-22.04-arm
+            asset: systemprompt-internal-bridge-linux-aarch64.tar.gz
+            arch: aarch64
+          - runner: macos-14
+            asset: systemprompt-internal-bridge-macos.dmg
+            # What the in-app updater downloads; the dmg stays the human one.
+            updater_asset: systemprompt-internal-bridge-macos.zip
+            rust_targets: aarch64-apple-darwin,x86_64-apple-darwin
+          - runner: windows-latest
+            asset: systemprompt-internal-bridge-windows.exe
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: systemprompt-internal
+      - name: Read pinned core ref
+        id: core
+        shell: bash
+        run: echo "ref=$(tr -d '[:space:]' < systemprompt-internal/bridge/CORE_REF)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: systempromptio/systemprompt-core
+          ref: ${{ steps.core.outputs.ref }}
+          path: systemprompt-core
+      - name: Install libdbus (linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_targets }}
+
+      # Deliberately no build cache in the release job. A warm target/ served
+      # the Linux 0.1.3 build a binary predating the overlay fix, so the
+      # published artifact would not have matched the tag it was cut from —
+      # the macOS jobs escaped only because their --target dirs were cold.
+      # A signed release is worth the extra few minutes of a cold build.
+
+      # SYSTEMPROMPT_BRIDGE_WEB_OVERLAY is set here rather than left to
+      # bridge/.cargo/config.toml, which cargo only discovers when the working
+      # directory is inside bridge/. Building from the workspace root skipped
+      # it, so every release up to bridge-v0.1.2 shipped core's stock GUI
+      # instead of the white-label overlay. Setting it explicitly also keeps
+      # the workspace root as the cwd, so systemprompt-internal/rust-toolchain.toml
+      # does not override the toolchain this job installed targets for.
+      - name: Build release binary
+        if: runner.os != 'macOS'
+        shell: bash
+        env:
+          SYSTEMPROMPT_BRIDGE_WEB_OVERLAY: ${{ github.workspace }}/systemprompt-internal/bridge/web
+        run: cargo build --manifest-path systemprompt-internal/bridge/Cargo.toml --release --locked
+
+      # Both slices, so make-mac-app.sh --universal can lipo them into one
+      # universal2 executable: the runner is Apple Silicon, but the .dmg has to
+      # run on Intel Macs too.
+      - name: Build release binaries (macos, universal2)
+        if: runner.os == 'macOS'
+        env:
+          SYSTEMPROMPT_BRIDGE_WEB_OVERLAY: ${{ github.workspace }}/systemprompt-internal/bridge/web
+        run: |
+          for target in aarch64-apple-darwin x86_64-apple-darwin; do
+            cargo build --manifest-path systemprompt-internal/bridge/Cargo.toml \
+              --release --locked --target "$target"
+          done
+
+      # The overlay leaves no trace in the build log — it either got compiled
+      # in or it did not. Assert on a string only the overlay carries, so a
+      # release can never again quietly lose the branding.
+      #
+      # macOS and Windows only: core gates `pub mod gui` on those two targets
+      # (the wry/winit/tray-icon deps are declared per-target), so the Linux
+      # bridge is CLI-only and embeds no web assets to overlay.
+      - name: Verify the brand overlay was compiled in
+        if: runner.os != 'Linux'
+        shell: bash
+        working-directory: systemprompt-internal/bridge
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            BIN=target/release/systemprompt-internal-bridge.exe
+          else
+            BIN=target/aarch64-apple-darwin/release/systemprompt-internal-bridge
+          fi
+          if ! grep -qa "systemprompt.io brand overrides for the bridge GUI" "$BIN"; then
+            echo "::error::$BIN has no brand overlay — SYSTEMPROMPT_BRIDGE_WEB_OVERLAY was not applied."
+            exit 1
+          fi
+          echo "brand overlay present in $BIN"
+
+      - name: Package tarball (linux)
+        if: runner.os == 'Linux'
+        run: |
+          ASSET_ARCH=${{ matrix.arch }} SKIP_BUILD=1 PUBLISH=0 \
+            systemprompt-internal/scripts/package-bridge-linux.sh
+          cp systemprompt-internal/dist/${{ matrix.asset }} "${{ matrix.asset }}"
+
+      # A fork, or this repo before the Apple secrets were configured, still
+      # produces a working (if unsigned) dmg rather than a red build.
+      - name: Detect Apple signing credentials (macos)
+        id: signing
+        if: runner.os == 'macOS'
+        env:
+          APPLE_CERT_P12_BASE64: ${{ secrets.APPLE_CERT_P12_BASE64 }}
+        run: |
+          if [[ -n "$APPLE_CERT_P12_BASE64" ]]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Apple signing secrets are absent — publishing an UNSIGNED macOS build."
+          fi
+
+      - name: Import signing identity (macos)
+        if: steps.signing.outputs.enabled == 'true'
+        env:
+          APPLE_CERT_P12_BASE64: ${{ secrets.APPLE_CERT_P12_BASE64 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          APPLE_API_KEY_P8_BASE64: ${{ secrets.APPLE_API_KEY_P8_BASE64 }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          # Default is a 5-minute idle lock, which expires mid-notarization.
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+
+          echo "$APPLE_CERT_P12_BASE64" | base64 -d > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" \
+            -P "$APPLE_CERT_PASSWORD" -f pkcs12 -T /usr/bin/codesign
+          rm -f "$RUNNER_TEMP/cert.p12"
+
+          # Without this codesign blocks on a GUI prompt for the private key.
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" > /dev/null
+
+          # Prepend, keeping the system keychains searchable for the Apple roots.
+          security list-keychains -d user -s "$KEYCHAIN" \
+            $(security list-keychains -d user | tr -d '"')
+          security find-identity -v -p codesigning "$KEYCHAIN"
+
+          echo "$APPLE_API_KEY_P8_BASE64" | base64 -d > "$RUNNER_TEMP/notary.p8"
+          chmod 600 "$RUNNER_TEMP/notary.p8"
+
+      - name: Package .app (macos)
+        if: runner.os == 'macOS'
+        run: systemprompt-internal/bridge/scripts/make-mac-app.sh --universal
+
+      # Sign and staple the bundle before it goes into the dmg, so the ticket
+      # travels with the app itself and first launch works offline.
+      - name: Sign & notarize .app (macos)
+        if: steps.signing.outputs.enabled == 'true'
+        env:
+          SIGN_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          NOTARY_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          NOTARY_ISSUER: ${{ secrets.APPLE_API_ISSUER_ID }}
+        run: |
+          NOTARY_KEY="$RUNNER_TEMP/notary.p8" \
+            systemprompt-internal/bridge/scripts/sign-mac-app.sh \
+            "systemprompt-internal/bridge/target/release/Systemprompt Internal Bridge.app"
+
+      # The self-updater's artifact. It consumes a zip rather than the dmg
+      # because mounting a disk image from a background process is slow and
+      # needs cleanup, whereas this unpacks straight into a staging directory.
+      # Built from the same signed+stapled bundle as the dmg, and with ditto so
+      # the symlinks, xattrs, and notarization ticket the signature covers all
+      # survive the round trip — a plain `zip` strips them and the result fails
+      # Gatekeeper on the other side.
+      - name: Zip .app for the updater (macos)
+        if: runner.os == 'macOS'
+        run: |
+          ditto -c -k --keepParent \
+            "systemprompt-internal/bridge/target/release/Systemprompt Internal Bridge.app" \
+            "${{ matrix.updater_asset }}"
+
+      # Stage the app next to an /Applications symlink and image the staging dir,
+      # not the .app itself. Imaging the bundle directly puts it alone at the
+      # volume root with nothing to drag it onto, so users run the app straight
+      # off the read-only mounted image — where it cannot be updated and does not
+      # survive an eject.
+      - name: Build dmg (macos)
+        if: runner.os == 'macOS'
+        run: |
+          STAGE="$RUNNER_TEMP/dmg-stage"
+          rm -rf "$STAGE"
+          mkdir -p "$STAGE"
+          # ditto, not cp: it preserves the extended attributes and the stapled
+          # notarization ticket that the signature depends on.
+          ditto "systemprompt-internal/bridge/target/release/Systemprompt Internal Bridge.app" \
+            "$STAGE/Systemprompt Internal Bridge.app"
+          ln -s /Applications "$STAGE/Applications"
+          hdiutil create -volname "Systemprompt Internal Bridge" \
+            -srcfolder "$STAGE" \
+            -format UDZO "${{ matrix.asset }}"
+
+      - name: Sign & notarize dmg (macos)
+        if: steps.signing.outputs.enabled == 'true'
+        env:
+          SIGN_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          NOTARY_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          NOTARY_ISSUER: ${{ secrets.APPLE_API_ISSUER_ID }}
+        run: |
+          NOTARY_KEY="$RUNNER_TEMP/notary.p8" \
+            systemprompt-internal/bridge/scripts/sign-mac-app.sh "${{ matrix.asset }}"
+
+      - name: Tear down signing keychain (macos)
+        if: always() && runner.os == 'macOS'
+        run: |
+          rm -f "$RUNNER_TEMP/notary.p8" "$RUNNER_TEMP/cert.p12"
+          security delete-keychain "$RUNNER_TEMP/signing.keychain-db" 2>/dev/null || true
+
+      - name: Rename output (windows)
+        if: runner.os == 'Windows'
+        run: Copy-Item "systemprompt-internal\bridge\target\release\systemprompt-internal-bridge.exe" "${{ matrix.asset }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: ${{ matrix.asset }}
+          if-no-files-found: error
+          retention-days: 7
+
+      # Separate upload rather than a second path on the step above: only the
+      # macOS leg sets `updater_asset`, and an empty path fails `if-no-files-found`.
+      - uses: actions/upload-artifact@v4
+        if: matrix.updater_asset != ''
+        with:
+          name: ${{ matrix.updater_asset }}
+          path: ${{ matrix.updater_asset }}
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Sign & publish bridge
+    needs: [version, build]
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ needs.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: systemprompt-internal
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      # The installer's default download base is baked at publish time so the
+      # piped one-liner from this release always fetches this release.
+      - name: Add installer
+        run: |
+          sed "s|@DOWNLOAD_BASE@|https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}|" \
+            systemprompt-internal/scripts/install-bridge.sh > dist/install.sh
+          chmod 0755 dist/install.sh
+          grep -q "releases/download/${TAG}" dist/install.sh
+
+      - name: Generate checksums
+        working-directory: dist
+        run: sha256sum systemprompt-internal-bridge-* install.sh > SHA256SUMS
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign artifacts (keyless)
+        working-directory: dist
+        run: |
+          for f in systemprompt-internal-bridge-* install.sh SHA256SUMS; do
+            cosign sign-blob --yes \
+              --output-signature "${f}.sig" \
+              --output-certificate "${f}.pem" \
+              "${f}"
+          done
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: ${{ needs.version.outputs.tag }}
+          body: |
+            ## Systemprompt Internal Bridge ${{ needs.version.outputs.tag }}
+
+            Built against systemprompt-core ${{ needs.version.outputs.version }}
+            and published with the gateway image
+            `ghcr.io/systempromptio/systemprompt-internal:${{ needs.version.outputs.version }}`.
+
+            Desktop bridge for Claude Code, Claude Desktop, and Codex CLI —
+            connects them to the Systemprompt Internal governance gateway.
+
+            ### Install (Linux)
+
+            ```bash
+            curl -fsSL https://github.com/systempromptio/systemprompt-internal/releases/download/${{ needs.version.outputs.tag }}/install.sh | sh -s -- --code <code>
+            ```
+
+            ### macOS
+
+            The dmg is a universal2 build (Apple Silicon + Intel), signed with
+            our Developer ID, notarized by Apple and stapled — mount it, drag
+            the app to Applications, and open it. No quarantine flag to clear.
+
+            Check the signature yourself:
+
+            ```bash
+            spctl --assess --type open --context context:primary-signature -vv systemprompt-internal-bridge-macos.dmg
+            codesign -dv --verbose=4 "/Applications/Systemprompt Internal Bridge.app"
+            ```
+
+            ### Windows
+
+            Binaries are unsigned. Choose "More info → Run anyway" at the
+            SmartScreen prompt.
+
+            ### Verifying a signature (cosign keyless)
+
+            ```bash
+            cosign verify-blob \
+              --certificate-identity-regexp='https://github.com/systempromptio/systemprompt-internal/' \
+              --certificate-oidc-issuer='https://token.actions.githubusercontent.com' \
+              --signature systemprompt-internal-bridge-linux-x86_64.tar.gz.sig \
+              --certificate systemprompt-internal-bridge-linux-x86_64.tar.gz.pem \
+              systemprompt-internal-bridge-linux-x86_64.tar.gz
+            ```
+          files: |
+            dist/systemprompt-internal-bridge-*
+            dist/install.sh
+            dist/install.sh.sig
+            dist/install.sh.pem
+            dist/SHA256SUMS
+            dist/SHA256SUMS.sig
+            dist/SHA256SUMS.pem
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  gateway:
+    name: Build gateway ${{ matrix.name }}
+    needs: [version, ci, quality]
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Native 22.04 runners: a glibc 2.35 floor, so the binaries run on
+          # every distribution newer than that. Windows is not a gateway
+          # target (core's process/daemon layer is Unix-only) — run the image.
+          - target: x86_64-unknown-linux-gnu
+            name: linux-amd64
+            os: ubuntu-22.04
+          - target: aarch64-unknown-linux-gnu
+            name: linux-arm64
+            os: ubuntu-22.04-arm
+          - target: aarch64-apple-darwin
+            name: darwin-arm64
+            os: macos-14
+    env:
+      SQLX_OFFLINE: "true"
+      CC: clang
+      CXX: clang++
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read pinned core ref
+        id: core
+        shell: bash
+        run: echo "ref=$(tr -d '[:space:]' < bridge/CORE_REF)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: systempromptio/systemprompt-core
+          ref: ${{ steps.core.outputs.ref }}
+          path: .core-sibling
+      - name: Link sibling core beside the workspace
+        shell: bash
+        run: ln -sfn "$GITHUB_WORKSPACE/.core-sibling" "$GITHUB_WORKSPACE/../systemprompt-core"
+      - name: Install build deps (linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get -o Acquire::Retries=5 install -y clang pkg-config libssl-dev libpq-dev libdbus-1-dev
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: Build
+        run: cargo build --release --workspace --locked --target ${{ matrix.target }}
+      - name: Stage
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          stage="systemprompt-internal-${VERSION}-${{ matrix.name }}"
+          out="target/${{ matrix.target }}/release"
+          mkdir -p "dist/${stage}/bin" "dist/${stage}/extensions/mcp"
+          cp "${out}/systemprompt" "dist/${stage}/bin/"
+          find "$out" -maxdepth 1 -type f -perm -u+x -name 'systemprompt-mcp-*' -exec cp {} "dist/${stage}/bin/" \;
+          cp -r services scripts "dist/${stage}/"
+          for m in extensions/mcp/*/manifest.yaml; do
+            d="dist/${stage}/$(dirname "$m")"; mkdir -p "$d"; cp "$m" "$d/"
+          done
+          cp LICENSE README.md "dist/${stage}/" 2>/dev/null || true
+          (cd dist && tar -czf "${stage}.tar.gz" "${stage}")
+          "dist/${stage}/bin/systemprompt" --version
+          echo "STAGE=${stage}" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gateway-${{ matrix.name }}
+          path: dist/${{ env.STAGE }}.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+
+  release-gateway:
+    name: Sign & publish gateway
+    needs: [version, gateway]
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    env:
+      TAG: v${{ needs.version.outputs.version }}
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: gateway-*
+          merge-multiple: true
+      - name: Checksums
+        working-directory: dist
+        run: |
+          sha256sum systemprompt-internal-*.tar.gz > SHA256SUMS
+          cat SHA256SUMS
+      - uses: sigstore/cosign-installer@v3
+      - name: Sign (keyless)
+        working-directory: dist
+        run: |
+          for f in systemprompt-internal-*.tar.gz SHA256SUMS; do
+            cosign sign-blob --yes --output-signature "${f}.sig" --output-certificate "${f}.pem" "${f}"
+          done
+      - name: Create or update release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > notes.md <<EOF
+          ## Systemprompt Internal gateway ${TAG}
+
+          Built against systemprompt-core ${VERSION}. Ships with the desktop bridge
+          release [bridge-v${VERSION}](https://github.com/${GITHUB_REPOSITORY}/releases/tag/bridge-v${VERSION})
+          and the container image \`ghcr.io/systempromptio/systemprompt-internal:${VERSION}\`.
+
+          Tarballs (\`linux-amd64\`, \`linux-arm64\`, \`darwin-arm64\`) carry \`bin/systemprompt\`,
+          the \`bin/systemprompt-mcp-*\` servers, \`services/\`, extension manifests and
+          \`scripts/\`. Verify against the cosign-signed \`SHA256SUMS\`:
+
+          \`\`\`bash
+          cosign verify-blob \\
+            --certificate-identity-regexp='https://github.com/systempromptio/systemprompt-internal/' \\
+            --certificate-oidc-issuer='https://token.actions.githubusercontent.com' \\
+            --signature SHA256SUMS.sig --certificate SHA256SUMS.pem SHA256SUMS
+          \`\`\`
+          EOF
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --title "$TAG" --notes-file notes.md
+          else
+            gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --notes-file notes.md
+          fi
+          gh release upload "$TAG" --clobber dist/*
+
+  # Why called, not triggered: a release created with GITHUB_TOKEN raises no
+  # events, so a `release: published` listener would never fire.
+  publish-image:
+    name: Publish image
+    needs: [version, ci, quality]
+    if: needs.version.outputs.publish == 'true'
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    uses: ./.github/workflows/docker.yml
+    with:
+      version: ${{ needs.version.outputs.version }}

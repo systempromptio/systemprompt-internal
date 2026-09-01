@@ -7,8 +7,9 @@ use systemprompt::ai::AiService;
 use systemprompt::identifiers::{SessionId, UserId};
 
 use crate::event_hub::EventHub;
-use crate::numeric;
-use crate::repositories::dashboard::{conversation_analytics, hooks_track, usage_aggregations};
+use crate::repositories::dashboard::{
+    conversation_analytics, hooks_track, session_registry, usage_aggregations,
+};
 
 use crate::types::webhook::{HookEvent, HookEventPayload};
 use crate::types::{ENTITY_SKILL, EVENT_SESSION_END, EVENT_SESSION_START, EVENT_STOP};
@@ -61,7 +62,6 @@ pub(super) async fn process_inserted_event(params: &ProcessInsertedEventParams<'
 
     if event_type == EVENT_STOP && has_session {
         handle_session_analysis(params).await;
-        handle_apm_and_concurrent(params).await;
     }
 
     if event_type == EVENT_SESSION_END && has_session {
@@ -84,8 +84,12 @@ async fn update_session_tracking(params: &ProcessInsertedEventParams<'_>) {
         is_subagent_stop: matches!(&params.payload.event, HookEvent::SubagentStop(_)),
         file_path: file_path.as_deref(),
         is_from_subagent,
+        cwd: Some(params.payload.common.cwd.as_str()),
     })
     .await;
+
+    assign_handle_if_new(params).await;
+    record_current_activity(params).await;
 
     if params.event_type == EVENT_SESSION_START
         && let HookEvent::SessionStart(ref data) = params.payload.event
@@ -109,6 +113,26 @@ async fn update_session_tracking(params: &ProcessInsertedEventParams<'_>) {
         )
         .await;
     }
+}
+
+async fn record_current_activity(params: &ProcessInsertedEventParams<'_>) {
+    let activity = match params.payload.event {
+        HookEvent::UserPromptSubmit(ref data) if !data.prompt.is_empty() => {
+            helpers::derive_title(&data.prompt)
+        },
+        _ => match params.tool_name {
+            Some(tool) if !tool.is_empty() => tool.to_owned(),
+            _ => return,
+        },
+    };
+    session_registry::update_session_activity(params.pool, params.session_id, &activity).await;
+}
+
+async fn assign_handle_if_new(params: &ProcessInsertedEventParams<'_>) {
+    let Some(workspace) = session_registry::derive_workspace(&params.payload.common.cwd) else {
+        return;
+    };
+    session_registry::assign_session_handle(params.pool, params.session_id, &workspace).await;
 }
 
 async fn track_session_entity(
@@ -192,33 +216,4 @@ async fn run_ai_analysis(params: &ProcessInsertedEventParams<'_>) {
         })
         .await;
     }
-}
-
-async fn handle_apm_and_concurrent(params: &ProcessInsertedEventParams<'_>) {
-    let pool = params.pool;
-    let user_id = params.user_id;
-    let session_id = params.session_id;
-
-    let (apm, eapm) =
-        crate::repositories::dashboard::apm_metrics::calculate_session_apm(pool, session_id).await;
-
-    let concurrent_raw =
-        match hooks_track::count_concurrent_sessions(pool, user_id, session_id).await {
-            Ok(v) => v,
-            Err(e) => {
-                tracing::error!(
-                    error = %e,
-                    session_id = %session_id.as_str(),
-                    "Failed to count concurrent sessions for APM"
-                );
-                return;
-            },
-        };
-
-    let concurrent = numeric::saturating_i32(concurrent_raw) + 1;
-
-    crate::repositories::dashboard::apm_metrics::update_session_apm(
-        pool, session_id, apm, eapm, concurrent,
-    )
-    .await;
 }

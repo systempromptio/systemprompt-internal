@@ -1,0 +1,5 @@
+  <div class="invoice">
+    <span class="dim">// {{comment}}</span><br/>
+    {{#each parts}}<span class="{{tone}}">{{text}}</span>{{#unless @last}} · {{/unless}}{{/each}}{{#if footnote}}<br/>
+    <span class="dim">// {{footnote}}</span>{{/if}}
+  </div>

@@ -16,6 +16,15 @@
 # never grants admin on a failed lookup, and never strips roles it could not
 # recompute.
 #
+# `admin` is GATED IN ONE DIRECTION. A sign-in may REMOVE it, but it may not
+# ADD it — not even on first provision — unless the deployment sets the env
+# flag `FEDERATED_ROLES_MAY_GRANT_ADMIN=1`. Nothing sets it here, so mapping a
+# group to `admin` below demotes anyone who loses that group while never
+# promoting anyone who gains it: the first platform admin is bootstrapped by an
+# operator, and Odoo's user list can never quietly become the admin list. See
+# `strip_gated_grants` in
+# extensions/web/admin/src/repositories/users/federated/roles.rs.
+#
 # Platform roles referenced here must match the roles used in roles.yaml —
 # `admin` is what gates the systemprompt MCP server, the systemprompt-admin
 # plugin, and the admin skills.

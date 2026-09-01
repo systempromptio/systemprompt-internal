@@ -14,59 +14,35 @@ use systemprompt::identifiers::{TenantId, UserId};
 use systemprompt::models::Config;
 use uuid::Uuid;
 
-use crate::repositories::bridge::{BridgeUserRow, find_bridge_user};
-use crate::repositories::users::usage as usage_repo;
+use systemprompt::analytics::ProfileUsageService;
+use systemprompt::models::api::cloud::BridgeProfileUsage;
 
-use super::{AgentItem, AgentsBlock, BridgeProfileBlock, ProfileUsage};
+use crate::repositories::bridge::{BridgeUserRow, find_bridge_user};
+
+use super::{AgentItem, AgentsBlock, BridgeProfileBlock};
 
 pub(super) struct UsageSections {
-    pub(super) d1: usage_repo::UsageWindow,
-    pub(super) d7: usage_repo::UsageWindow,
-    pub(super) d30: usage_repo::UsageWindow,
-    pub(super) top_models: Vec<usage_repo::ModelShare>,
-    pub(super) conversations: usage_repo::ConversationSummary,
+    pub(super) usage: BridgeProfileUsage,
     pub(super) bridge_user: Option<BridgeUserRow>,
 }
 
+// Why: the windows come from core's `ProfileUsageService` — the same derivation
+// `/v1/bridge/profile/usage` serves. This page used to run its own SQL, so the
+// two surfaces could and did report different numbers for one metric.
 pub(super) async fn load_usage_sections(pool: &Arc<PgPool>, user_id: &UserId) -> UsageSections {
-    let pool_for_d1 = Arc::clone(pool);
-    let pool_for_d7 = Arc::clone(pool);
-    let pool_for_d30 = Arc::clone(pool);
-    let pool_for_models = Arc::clone(pool);
-    let pool_for_conv = Arc::clone(pool);
+    let usage_service = ProfileUsageService::from_pool(Arc::clone(pool));
     let pool_for_user = Arc::clone(pool);
-
-    let user_id_d1 = user_id.to_owned();
-    let user_id_d7 = user_id.to_owned();
-    let user_id_d30 = user_id.to_owned();
-    let user_id_models = user_id.to_owned();
-    let user_id_conv = user_id.to_owned();
+    let user_id_usage = user_id.to_owned();
     let user_id_user = user_id.to_owned();
 
-    let (d1, d7, d30, top_models, conversations, bridge_user) = tokio::join!(
+    let (usage, bridge_user) = tokio::join!(
         async move {
-            usage_repo::get_usage_window(&pool_for_d1, &user_id_d1, 1)
+            usage_service
+                .get_profile_usage(&user_id_usage, chrono::Utc::now())
                 .await
-                .unwrap_or_default()
-        },
-        async move {
-            usage_repo::get_usage_window(&pool_for_d7, &user_id_d7, 7)
-                .await
-                .unwrap_or_default()
-        },
-        async move {
-            usage_repo::get_usage_window(&pool_for_d30, &user_id_d30, 30)
-                .await
-                .unwrap_or_default()
-        },
-        async move {
-            usage_repo::list_top_models(&pool_for_models, &user_id_models, 5)
-                .await
-                .unwrap_or_default()
-        },
-        async move {
-            usage_repo::get_conversation_summary(&pool_for_conv, &user_id_conv)
-                .await
+                .inspect_err(|e| {
+                    tracing::warn!(error = %e, user_id = %user_id_usage, "bridge_profile: profile usage failed");
+                })
                 .unwrap_or_default()
         },
         async move {
@@ -80,24 +56,11 @@ pub(super) async fn load_usage_sections(pool: &Arc<PgPool>, user_id: &UserId) ->
         }
     );
 
-    UsageSections {
-        d1,
-        d7,
-        d30,
-        top_models,
-        conversations,
-        bridge_user,
-    }
+    UsageSections { usage, bridge_user }
 }
 
-pub(super) fn build_usage(sections: UsageSections) -> ProfileUsage {
-    ProfileUsage {
-        d1: sections.d1,
-        d7: sections.d7,
-        d30: sections.d30,
-        top_models: sections.top_models,
-        conversations: sections.conversations,
-    }
+pub(super) fn build_usage(sections: UsageSections) -> BridgeProfileUsage {
+    sections.usage
 }
 
 pub(super) fn read_config_strings() -> (Option<String>, Option<String>) {

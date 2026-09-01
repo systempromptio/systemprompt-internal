@@ -2,9 +2,8 @@
 //! `just publish` copies exactly what is declared here. Two things can silently
 //! break a deploy — a source path assembled off the wrong storage root, and a
 //! duplicate destination, where one file quietly overwrites another. Both are
-//! pinned here, along with the deliberate omission of
-//! `storage/files/downloads`, which is served straight from storage and must
-//! not be copied.
+//! pinned here, along with the rule that undeclared storage subtrees (served
+//! straight from `/files/**`) are never copied.
 
 use std::path::{Path, PathBuf};
 use systemprompt::extension::{AssetPaths, AssetType};
@@ -79,7 +78,7 @@ fn javascript_sources_hang_off_the_storage_js_root_and_publish_under_js() {
 }
 
 #[test]
-fn the_full_manifest_has_unique_destinations_and_skips_client_downloads() {
+fn the_full_manifest_has_unique_destinations_and_only_declared_roots() {
     let assets = web_assets(&FakePaths::new());
 
     let mut destinations: Vec<&str> = assets.iter().map(|a| a.destination()).collect();
@@ -99,9 +98,10 @@ fn the_full_manifest_has_unique_destinations_and_skips_client_downloads() {
         "the homepage showreel must be declared"
     );
     assert!(
-        !assets
-            .iter()
-            .any(|a| a.destination().starts_with("downloads/")),
-        "client downloads are served from storage and must not be copied to dist"
+        assets.iter().all(|a| {
+            let d = a.destination();
+            d.starts_with("css/") || d.starts_with("js/") || d.starts_with("video/")
+        }),
+        "only the css, js and video roots are published — anything else under storage/files is served in place"
     );
 }

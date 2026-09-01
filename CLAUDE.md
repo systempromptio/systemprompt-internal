@@ -202,7 +202,8 @@ systemprompt core skills show --help
 - `src/main.rs` is a thin entry point that delegates to the published `systemprompt` core crates (sibling checkout at `../systemprompt-core`, patched in via `[patch.crates-io]` for cross-repo work). All customization is **compile-time** via the [`inventory`](https://docs.rs/inventory) crate — there is no dynamic plugin loader.
 - Rust code lives in `extensions/`: `extensions/mcp/*` for MCP server extensions, `extensions/web` for page data and template rendering. Each MCP extension has its own crate with `Cargo.toml` + `.sqlx/` offline cache.
 - Configuration is YAML under `services/`, loaded through `services/config/config.yaml`'s explicit `includes:` list. Unknown keys error loudly (`#[serde(deny_unknown_fields)]`).
-- Governance is a four-stage synchronous pipeline on every tool call: **scope check → secret scan (35+ patterns) → blocklist → rate limit**. Every decision is audited to Postgres with a trace_id linking identity → agent → tool → result → cost. **All four stages are disabled in this installation** (`services/governance/config.yaml`), as are the gateway safety scanners (`services/gateway/policies.yaml`) — both files carry the reason and the instructions to switch them back on. The chain still runs and still audits: calls are recorded as `decision=allow, policy=governance_disabled`. Authentication is separate and is *not* disabled — an invalid or expired token is still denied, with `policy=authentication`. Do not disable governance by deleting the config file: a missing file falls back to defaults, which is all four stages **enabled**.
+- Governance is a five-stage synchronous pipeline on every tool call: **scope check → secret scan (35+ patterns) → blocklist → rate limit → require approval**. Every decision is audited to Postgres with a trace_id linking identity → agent → tool → result → cost. **All five stages are enabled in this installation** (`services/governance/config.yaml`, settled 2026-08-27 — the enterprise demo depends on them). The gateway safety scanners (`services/gateway/policies.yaml`) remain switched off; that file carries the reason. If a stage is ever disabled, the chain still runs and still audits: calls are recorded as `decision=allow, policy=governance_disabled`. Authentication is separate and is *not* disabled — an invalid or expired token is still denied, with `policy=authentication`. Do not disable governance by deleting the config file: a missing file falls back to defaults, which is all four original stages **enabled**.
+- `require_approval` is the fifth stage and the only one that returns a third verdict, `Decision::Pending` — the call is neither allowed nor denied but **held for a named human**. It is deliberately *not* in `GovernanceConfig::defaults()`: every other stage fails toward more enforcement on a bad config read, which is right for a stage that refuses and wrong for one that blocks waiting on a person who may not be watching. It holds nothing until `patterns` names something. A held MCP tool call parks on an `approval_requests` row keyed by a **derived** call id (`sha256(user | server | tool | args digest)`, stable across retries) and blocks; an admin resolves it at `/admin/governance/approvals`; the approver is stamped into the audit row via the `ApproverStamp` field. If the wait outlives one round the server answers with MCP `resultType: "input_required"` (**MRTR**, SEP-2322, protocol `2026-07-28`) and the client retries — which is why all three MCP servers advertise `2026-07-28` and not `2025-06-18`. On the Claude Code `PreToolUse` webhook the same verdict renders as `permissionDecision: "ask"` instead, so the user is prompted in-terminal.
 - Per-clone Docker Postgres: `just db-up / db-down / db-logs [tenant=local]`. Project name is derived from a hash of the repo path, so multiple clones on one host get isolated containers and volumes. There is no destructive reset recipe — recover migration checksum drift in place with `just repair-migrations`.
 - Deploy flow: `just build-all` (release binary + MCP servers + web assets) then `just deploy`. The `publish_pipeline` job also runs automatically at server startup.
 
@@ -375,19 +376,42 @@ Each plugin is a directory holding one `config.yaml` — `services/plugins/<id>/
 ```yaml
 plugin:
   id: systemprompt-commons
-  name: "Systemprompt Commons — Workspace Setup"
-  version: "2.0.0"
+  name: "Systemprompt Commons — Setup & Brand"
+  version: "3.0.0"
   enabled: true
   skills:
     source: explicit
     include:
-      - cowork_setup
-      - apply_brand_voice
+      - systemprompt_setup
+      - brand
+      - governance_readback
   agents:
     source: explicit
     include: []
-  mcp_servers: {}
+  mcp_servers:
+    source: explicit
+    include: [odoo]
+  artifacts:
+    source: explicit
+    include: []
 ```
+
+**A plugin is the role boundary.** Every plugin has exactly one `entity_type: plugin` rule in
+`services/access-control/roles.yaml` — `[user]` (shared by every role; admins hold `user` too) or
+`[admin]` — and every skill and artifact inside it inherits that rule. The cascade is
+skill/artifact → plugin → marketplace and the nearest level that declares any rule decides, so a
+`[admin]` plugin closes its ruleless skills to users even though the marketplace admits them. Never
+write a per-skill `allow` rule; never mix scopes in one plugin. Three plugins ship here, 12 skills
+in total, each plugin holding 3–5: `systemprompt-commons` (`systemprompt_setup`, `brand`,
+`governance_readback` — everyone), `systemprompt-user` (Business on Odoo: `crm`, `manage_work`,
+`business_overview`, `lead_factsheet`), and `systemprompt-admin` (control plane: `report`,
+`inspect`, `manage_platform`, `demonstrate_governance`, `systemprompt_setup_admin`). There is no
+demo plugin — `DEMO.md` drives these skills directly rather than a parallel set that re-narrated
+them. Setup is split by role at the plugin boundary: everyone gets `systemprompt_setup` (one
+host-agnostic skill), only admins additionally get `systemprompt_setup_admin`.
+`scripts/validate-services.sh` fails CI on a plugin without a scope rule, an orphaned enabled skill
+or artifact, an allow-type skill rule, two governance-hook owners, or any enabled plugin/skill/artifact
+that depends on a disabled MCP server; core's `ServicesConfig::validate` refuses the last one at boot.
 
 `source:` selects where members come from — keep it `explicit` and list ids under `include:`. Leaving it to default to `Instance` makes the plugin claim every skill and agent on the instance, which is how the marketplace once showed every plugin with all 230 skills.
 

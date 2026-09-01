@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE plugin_session_summaries\n          SET model = COALESCE($2, model),\n              live_cost_microdollars = COALESCE($3, live_cost_microdollars),\n              context_pct = COALESCE($4, context_pct),\n              last_event_at = NOW(),\n              updated_at = NOW()\n          WHERE session_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Int8",
+        "Int2"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "354331a69941c6636faaceab0e37a4a045aea4d9d79c659a26268fc62521f87e"
+}

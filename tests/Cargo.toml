@@ -10,6 +10,7 @@
 [workspace]
 members = [
     "unit/mcp",
+    "unit/email",
     "unit/web",
     "integration/admin-config",
     "integration/mcp",
@@ -42,6 +43,8 @@ systemprompt-mcp-shared = { path = "../extensions/mcp/shared" }
 systemprompt-mcp-agent = { path = "../extensions/mcp/systemprompt" }
 systemprompt-mcp-knowledge-bank = { path = "../extensions/mcp/knowledge-bank" }
 systemprompt-mcp-odoo = { path = "../extensions/mcp/odoo" }
+systemprompt-mcp-email = { path = "../extensions/mcp/email" }
+systemprompt-email = { path = "../extensions/email" }
 systemprompt-knowledge-jobs = { path = "../extensions/knowledge/jobs" }
 systemprompt-web-shared = { path = "../extensions/web/shared" }
 systemprompt-web-admin = { path = "../extensions/web/admin", features = ["governance-ssr"] }
@@ -54,8 +57,8 @@ systemprompt-web-site = { path = "../extensions/web/site" }
 # The contract crate additionally enables `full`, which links the core
 # extension crates whose `register_extension!` registrations carry the
 # migrations the admin schema needs.
-systemprompt = { version = "0.40.0", default-features = false, features = ["core", "database"] }
-systemprompt-security = { version = "0.40.0" }
+systemprompt = { version = "0.42.0", default-features = false, features = ["core", "database"] }
+systemprompt-security = { version = "0.42.0" }
 
 # HTTP contract harness — drives the real admin router in-process.
 axum = "0.8"
@@ -83,14 +86,16 @@ base64 = "0.22"
 # hook audiences validate against core's own decoder.
 jsonwebtoken = { version = "10", features = ["rust_crypto"] }
 wiremock = "0.6"
+futures = "0.3"
+sse-stream = "0.2.4"
 sha2 = "0.10"
-
-# Mirrors the root workspace's local-core patch. `[patch]` only applies from
-# the manifest of the workspace being built, and tests/ is a separate
-# workspace, so without this the test crates resolve core from crates.io
-# while the extensions under test resolve it from the local checkout.
-#
-# ACTIVE: core 0.40.0 is unreleased — this next branch builds against core next.
+# Core 0.42.0 is published; the patch below is dormant. Uncomment (together with the mirror in
+# tests/Cargo.toml — [patch] only applies per-workspace) to work against
+# ../systemprompt-core, and add an "ACTIVE: core X.Y.Z is unreleased" marker,
+# which the pre-commit hook requires before an active patch may be committed.
+# The version requirements above must track whatever the patch points at: a
+# patch whose version does not satisfy them is silently ignored and the build
+# falls back to the last published release.
 [patch.crates-io]
 systemprompt = { path = "../../systemprompt-core/systemprompt" }
 systemprompt-models = { path = "../../systemprompt-core/crates/shared/models" }

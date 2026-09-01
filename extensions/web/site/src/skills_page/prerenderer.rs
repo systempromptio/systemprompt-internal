@@ -25,8 +25,8 @@ impl SkillsPagePrerenderer {
 }
 
 const CATEGORY_ORDER: [&str; 5] = [
-    "Odoo",
-    "Consultancy Workflows",
+    "Business on Odoo",
+    "Enterprise Demo",
     "Brand & Workspace",
     "Governance & Analytics",
     "Platform & Operations",

@@ -1,0 +1,51 @@
+# Outbound email MCP server.
+#
+# The only tool on this instance that reaches outside the company, and the only
+# one that cannot be made to act without a human. `email_send` answers in two
+# MRTR rounds (SEP-2322): the first returns a draft preview artifact plus an
+# `inputRequests` elicitation for the drafter to confirm their own text; the
+# second runs the `require_approval` governance stage, which holds the call for
+# a SECOND human at /admin/governance/approvals. Only past both does anything
+# reach the relay.
+#
+# Those two layers are different controls, not the same one twice — see the
+# `email_send` note in services/governance/config.yaml. Note that
+# `exempt_scopes: [admin]` means an ADMIN CALLER IS NEVER HELD by the second
+# layer; demoing or testing the hold requires a non-admin account
+# (ed+notadmin@systemprompt.io).
+#
+# A client that does not implement MRTR never gets past round one and never
+# sends. There is deliberately no draft/send tool pair and no token to work
+# around it: the tool fails closed by construction.
+#
+# Transport is SMTP (extensions/email, lettre), configured from the profile's
+# smtp_* secrets. The production profile already carries them; a local profile
+# does not by default, so locally the tool drafts and then refuses to send —
+# which is the correct half to exercise anyway, since the MRTR round-trip is
+# what the design turns on.
+#
+# Schema ownership lives with the crate — extensions/mcp/email/schema/
+# 01_email_outbox.sql, applied at server startup, since this server is its own
+# process and cannot assume the host binary migrated on its behalf. The outbox
+# is a reconciliation ledger, not a queue: it exists so an email that was really
+# sent but could not be logged onto its Odoo record leaves evidence.
+#
+# RBAC: granted to the `user` role in services/access-control/roles.yaml. There
+# is no additional in-server role gate, because the approval chain — not the
+# caller's role — is what authorises a send.
+
+mcp_servers:
+  email:
+    type: internal
+    binary: systemprompt-mcp-email
+    package: email
+    port: 5050
+    enabled: true
+    display_in_web: true
+    description: "Outbound email — drafts a message, previews it, and sends only after explicit human approval"
+    oauth:
+      required: true
+      scopes:
+      - user
+      audience: mcp
+      client_id: null

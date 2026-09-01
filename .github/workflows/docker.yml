@@ -1,0 +1,170 @@
+name: Docker
+
+# Publishes ghcr.io/systempromptio/systemprompt-internal — the gateway image
+# Docker deployments pull. Called from release.yml on every merge to main
+# (one run per release: bridge binaries + image), or dispatched by hand to
+# rebuild a version from the current ref.
+#
+#   :X.Y.Z, :X.Y, :X   immutable release + floating aliases
+#   :latest            newest release (main is the only publisher)
+#   :sha-<sha>         the commit the image was built from
+#
+# Multi-arch is built natively per-arch (amd64 + arm64 runners), pushed by
+# digest, then merged into one manifest list — QEMU cross-building the Rust
+# workspace is too slow to be practical. The image builds against the core
+# checkout bridge/CORE_REF names, materialised inside the build context as
+# .core-sibling and moved beside /src by the Dockerfile so the workspace's
+# ../systemprompt-core paths resolve exactly as they do in CI.
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: "Semver (X.Y.Z) to tag this build with — set by release.yml"
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Semver (X.Y.Z) to tag this build with"
+        required: true
+
+concurrency:
+  group: docker-${{ inputs.version }}
+  cancel-in-progress: true
+
+env:
+  IMAGE: ghcr.io/systempromptio/systemprompt-internal
+
+jobs:
+  build:
+    name: Build (${{ matrix.arch }})
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read pinned core ref
+        id: core
+        run: echo "ref=$(tr -d '[:space:]' < bridge/CORE_REF)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: systempromptio/systemprompt-core
+          ref: ${{ steps.core.outputs.ref }}
+          path: .core-sibling
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ env.IMAGE }}
+
+      - uses: docker/build-push-action@v6
+        id: build
+        with:
+          context: .
+          platforms: linux/${{ matrix.arch }}
+          labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
+
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    name: Merge manifest, tag, sign
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve version tags
+        id: ver
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          v="$INPUT_VERSION"
+          case "$v" in
+            *[!0-9.]*|*..*|.*|*.) echo "::error::'$v' is not a plain semver"; exit 1 ;;
+          esac
+          {
+            echo "full=$v"
+            echo "majmin=${v%.*}"
+            echo "maj=${v%%.*}"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=sha
+            type=raw,value=${{ steps.ver.outputs.full }}
+            type=raw,value=${{ steps.ver.outputs.majmin }}
+            type=raw,value=${{ steps.ver.outputs.maj }}
+            type=raw,value=latest
+
+      - name: Create and push manifest list
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create \
+            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< '${{ steps.meta.outputs.json }}') \
+            $(printf "$IMAGE@sha256:%s " *)
+
+      - name: Resolve manifest digest
+        id: digest
+        run: |
+          digest=$(docker buildx imagetools inspect "$IMAGE:${{ steps.ver.outputs.full }}" --format '{{json .Manifest.Digest}}' | tr -d '"')
+          echo "digest=${digest}" >> "$GITHUB_OUTPUT"
+
+      - uses: sigstore/cosign-installer@v3
+
+      - name: Cosign sign (keyless)
+        run: cosign sign --yes "$IMAGE@${{ steps.digest.outputs.digest }}"
+
+      - name: Smoke the published image
+        run: |
+          docker run --rm --platform linux/amd64 "$IMAGE:${{ steps.ver.outputs.full }}" /app/bin/systemprompt --version

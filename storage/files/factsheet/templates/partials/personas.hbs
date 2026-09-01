@@ -1,0 +1,8 @@
+  <div class="personas{{#if spaced}} spaced{{/if}}">
+{{#each cards}}    <div class="sp-card">
+      <div class="k">{{kicker}}</div>
+      <h5>{{heading}}</h5>
+      <p>{{{inline body}}}</p>
+      <div class="outcome"><span class="o">{{outcome_label}}:</span> {{outcome}}</div>
+    </div>
+{{/each}}  </div>

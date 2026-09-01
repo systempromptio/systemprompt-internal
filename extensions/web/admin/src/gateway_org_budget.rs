@@ -27,7 +27,8 @@ use systemprompt::extension::{
     GatewayDenyReason, GatewayGuardRequest, GatewayRequestGuard, register_gateway_guard,
 };
 use systemprompt::identifiers::UserId;
-use systemprompt_security::authz::{Decision, EntityRef, ResolveInput, resolve};
+use systemprompt_security::authz::resolver::{ResolveInput, resolve};
+use systemprompt_security::authz::{Decision, EntityRef};
 
 use crate::authz;
 use crate::repositories::config::gateway_acl;

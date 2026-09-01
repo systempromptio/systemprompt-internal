@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT odoo_login, odoo_uid, updated_at FROM odoo_identity WHERE user_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "odoo_login",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "odoo_identity",
+            "name": "odoo_login"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "odoo_uid",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "odoo_identity",
+            "name": "odoo_uid"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "odoo_identity",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "08b351f262d12dd328206fda18d34e935a6cd866b149e960dde931ff7e0bf7ac"
+}

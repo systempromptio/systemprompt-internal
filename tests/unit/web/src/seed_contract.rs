@@ -7,8 +7,16 @@
 const ADMIN_OAUTH_CLIENT: &str =
     include_str!("../../../../extensions/web/schema/seeds/admin_oauth_client.sql");
 
+// Why: the boot-time linter parses seeds with pg_query, for which a `--`
+// comment is not a token; this contract splits text, so it has to drop the
+// comment lines itself or a commented statement reads as "starts with --".
 fn statements(sql: &str) -> Vec<String> {
-    sql.split(';')
+    let code: String = sql
+        .lines()
+        .filter(|line| !line.trim_start().starts_with("--"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    code.split(';')
         .map(str::trim)
         .filter(|s| !s.is_empty())
         .map(str::to_uppercase)

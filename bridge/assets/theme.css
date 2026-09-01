@@ -14,13 +14,23 @@
   --sp-accent-ring:   oklch(0.755 0.154 61 / 0.40);
   --sp-accent-deep:   oklch(0.650 0.165 52);
 
-  /* Neutral (hue-less) greys */
-  --sp-bg:            oklch(0.17 0 0);
-  --sp-bg-elev-1:     oklch(0.20 0 0);
-  --sp-bg-elev-2:     oklch(0.24 0 0);
-  --sp-bg-glass:      oklch(0.15 0 0 / 0.72);
-  --sp-line:          oklch(0.30 0 0);
-  --sp-line-soft:     oklch(0.30 0 0 / 0.5);
+  /* Warm near-black surfaces, carrying a trace of the accent hue.
+   *
+   * These were chroma-0 true neutrals, and for a while that made no visible
+   * difference: theme.js mapped `prefers-color-scheme: light` onto the
+   * elevated-contrast DARK palette, whose `[data-contrast]` selector outranks
+   * this :root block, so the app was painted with core's warm darks whatever
+   * this file said. Once contrast became its own axis these values finally
+   * applied, and the splash screen lost the faded orange wash — the panel
+   * gradient in web/css/setup.css is a low-chroma warm light over the surface
+   * beneath it, and a hue-less surface leaves it reading as grey smoke. The
+   * warmth belongs in the brand, not in a contrast mode we do not select. */
+  --sp-bg:            oklch(0.14 0.01 45);
+  --sp-bg-elev-1:     oklch(0.17 0.01 48);
+  --sp-bg-elev-2:     oklch(0.20 0.01 48);
+  --sp-bg-glass:      oklch(0.12 0.01 45 / 0.85);
+  --sp-line:          oklch(0.30 0.01 48);
+  --sp-line-soft:     oklch(0.30 0.01 48 / 0.5);
 
   --sp-text:          oklch(0.97 0 0);
   --sp-muted:         oklch(0.68 0 0);

@@ -58,7 +58,7 @@ export function renderGatewayForm(state) {
   const signInLabel = snap.sign_in_label || "Sign in to your gateway";
   const signInHint = snap.sign_in_hint || "Opens your browser to sign in on the gateway; this device is linked automatically.";
   const signInBusy = state.signingIn;
-  const signInText = signInBusy ? t("setup-signing-in") : signInLabel;
+  const signInText = signInBusy ? (t("setup-signing-in") || "Waiting for your browser…") : signInLabel;
   const keepChecked = state.keepSignedIn === false ? "" : "checked";
   // The device-link flow round-trips through the gateway's browser login, so an
   // unreachable gateway can only ever fail — gate the button and say why rather
@@ -67,10 +67,10 @@ export function renderGatewayForm(state) {
   const signInDisabled = signInBusy || state.pending || !reachable;
   const gateReason = reachable || signInBusy || state.pending
     ? ""
-    : `<p class="sp-setup__hint sp-setup__hint--gate">${escapeHtml(t("setup-gateway-required"))}</p>`;
+    : `<p class="sp-setup__hint sp-setup__hint--gate">${escapeHtml(t("setup-gateway-required") || "Check the gateway URL under Advanced, then try again.")}</p>`;
   const cancelBtn = signInBusy
     ? `<button class="sp-btn-ghost" type="button" data-action="cancel-sign-in">
-        <span class="sp-btn__label">${escapeHtml(t("setup-sign-in-cancel"))}</span>
+        <span class="sp-btn__label">${escapeHtml(t("setup-sign-in-cancel") || "Cancel")}</span>
       </button>`
     : "";
   // The gateway URL is pre-filled from the brand default and almost never

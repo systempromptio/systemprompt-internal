@@ -47,9 +47,14 @@ body.is-setup-mode .sp-setup {
   flex-direction: column;
   justify-content: space-between;
   gap: var(--sp-space-10);
-  padding: var(--sp-space-10) var(--sp-space-10) var(--sp-space-8);
+  padding: clamp(40px, 3.2vw, 110px) clamp(40px, 3.4vw, 120px) clamp(32px, 2.6vw, 90px);
+  /* The wash is the brand on this screen, so it is a real light source rather
+   * than a tint: a warm near-accent hue at low chroma, wide enough that its
+   * falloff is the whole panel. It reads weak below ~0.04 chroma once the
+   * surface under it carries the same hue. */
   background:
-    radial-gradient(120% 90% at 0% 0%, oklch(0.24 0.02 45) 0%, transparent 60%),
+    radial-gradient(120% 95% at 0% 0%, oklch(0.32 0.055 52) 0%, transparent 62%),
+    radial-gradient(70% 55% at 8% 6%, oklch(0.38 0.075 55 / 0.55) 0%, transparent 55%),
     linear-gradient(180deg, var(--sp-bg-elev-1) 0%, var(--sp-bg) 100%);
   border-right: 1px solid var(--sp-line);
 }
@@ -59,13 +64,23 @@ body.is-setup-mode .sp-setup {
   width: fit-content;
   max-width: 100%;
 }
-.sp-setup__mark svg { height: 30px; width: auto; max-width: 100%; display: block; }
+/* Every size on this screen is fluid. It was fixed px, tuned against a ~2400px
+ * window, so the same layout on a 4K display rendered a postage stamp in a
+ * field of black — the splash is the one screen with no content to fill the
+ * slack. Each clamp keeps the old value as its floor, so small windows are
+ * unchanged, and grows to roughly 2x by ~3800px. */
+.sp-setup__mark svg {
+  height: clamp(30px, 1.7vw, 62px);
+  width: auto;
+  max-width: 100%;
+  display: block;
+}
 
 .sp-setup__pitch { max-width: 30ch; }
 .sp-setup__pitch-head {
   margin: 0;
   font-family: var(--sp-font-display);
-  font-size: clamp(1.75rem, 2.6vw, 2.75rem);
+  font-size: clamp(1.75rem, 2.2vw, 5rem);
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.1;
@@ -73,7 +88,7 @@ body.is-setup-mode .sp-setup {
 }
 .sp-setup__pitch-body {
   margin: var(--sp-space-3) 0 0;
-  font-size: 15px;
+  font-size: clamp(15px, 0.62vw, 22px);
   line-height: 1.55;
   color: var(--sp-muted-strong);
 }
@@ -82,7 +97,7 @@ body.is-setup-mode .sp-setup {
 .sp-setup__demo {
   margin: 0;
   max-width: 46ch;
-  font-size: 12px;
+  font-size: clamp(12px, 0.5vw, 17px);
   line-height: 1.5;
   color: var(--sp-muted);
 }
@@ -94,15 +109,15 @@ body.is-setup-mode .sp-setup {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--sp-space-10) var(--sp-space-8);
+  padding: clamp(40px, 3.2vw, 110px) clamp(32px, 2.6vw, 90px);
   background: var(--sp-bg);
 }
-.sp-setup__panel-inner { width: 100%; max-width: 440px; }
+.sp-setup__panel-inner { width: 100%; max-width: clamp(440px, 26vw, 760px); }
 
 .sp-setup__panel h1 {
   margin: 0 0 var(--sp-space-2);
   font-family: var(--sp-font-display);
-  font-size: 26px;
+  font-size: clamp(26px, 1.15vw, 44px);
   font-weight: 700;
   letter-spacing: -0.015em;
   line-height: 1.2;
@@ -110,14 +125,14 @@ body.is-setup-mode .sp-setup {
 .sp-setup__lede {
   margin: 0 0 var(--sp-space-8);
   color: var(--sp-muted);
-  font-size: 14px;
+  font-size: clamp(14px, 0.58vw, 20px);
   line-height: 1.6;
 }
 
 .sp-setup__identity {
   margin: 0 0 var(--sp-space-4);
   font-family: var(--sp-font-display);
-  font-size: 18px;
+  font-size: clamp(18px, 0.75vw, 26px);
   font-weight: 600;
   letter-spacing: -0.01em;
 }
@@ -125,13 +140,18 @@ body.is-setup-mode .sp-setup {
 /* Shared form primitives (also consumed by sp-setup-agents) ---------------- */
 
 .sp-setup__field { margin-bottom: var(--sp-space-4-5); display: flex; flex-direction: column; gap: var(--sp-space-1-5); }
-.sp-setup__field input { width: 100%; border-radius: var(--sp-corners-sm); padding: var(--sp-space-3) var(--sp-space-3-5); }
+.sp-setup__field input {
+  width: 100%;
+  border-radius: var(--sp-corners-sm);
+  padding: clamp(12px, 0.55vw, 20px) var(--sp-space-3-5);
+  font-size: clamp(14px, 0.58vw, 20px);
+}
 .sp-setup__field input:focus {
   border-color: var(--sp-accent);
   box-shadow: 0 0 0 3px var(--sp-accent-ring);
 }
 .sp-setup__field label {
-  font-size: 11px;
+  font-size: clamp(11px, 0.46vw, 15px);
   color: var(--sp-muted);
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -143,7 +163,7 @@ body.is-setup-mode .sp-setup {
   display: flex;
   align-items: flex-start;
   gap: var(--sp-space-1-5);
-  font-size: 12px;
+  font-size: clamp(12px, 0.5vw, 17px);
   min-height: 18px;
   line-height: 1.45;
 }
@@ -151,13 +171,13 @@ body.is-setup-mode .sp-setup {
 
 .sp-setup__hint {
   margin: var(--sp-space-2) 0 0;
-  font-size: 12px;
+  font-size: clamp(12px, 0.5vw, 17px);
   color: var(--sp-muted);
   line-height: 1.5;
 }
 .sp-setup__hint--gate { color: var(--sp-warn); }
 
-.sp-setup__keep { display: flex; align-items: center; gap: var(--sp-space-2); font-size: 13px; }
+.sp-setup__keep { display: flex; align-items: center; gap: var(--sp-space-2); font-size: clamp(13px, 0.54vw, 18px); }
 
 .sp-setup__pat-link {
   color: var(--sp-accent);
@@ -182,13 +202,13 @@ body.is-setup-mode .sp-setup {
 }
 .sp-setup__actions .sp-btn-primary,
 .sp-setup__actions .sp-btn-ghost {
-  padding: var(--sp-space-3) var(--sp-space-4-5);
-  font-size: 13px;
+  padding: clamp(12px, 0.62vw, 22px) var(--sp-space-4-5);
+  font-size: clamp(13px, 0.56vw, 19px);
 }
 .sp-setup__error {
   display: block;
   margin-top: var(--sp-space-3);
-  font-size: 12px;
+  font-size: clamp(12px, 0.5vw, 17px);
   color: var(--sp-err);
   line-height: 1.4;
 }
@@ -200,7 +220,7 @@ body.is-setup-mode .sp-setup {
 }
 .sp-setup__advanced > summary {
   cursor: pointer;
-  font-size: 12px;
+  font-size: clamp(12px, 0.5vw, 17px);
   color: var(--sp-muted);
   list-style: none;
 }
@@ -216,7 +236,7 @@ body.is-setup-mode .sp-setup {
 .sp-setup__warning {
   margin: var(--sp-space-6) 0 0;
   padding: var(--sp-space-3) var(--sp-space-3-5);
-  font-size: 13px;
+  font-size: clamp(13px, 0.54vw, 18px);
   line-height: 1.5;
   color: oklch(0.86 0.13 80);
   background: oklch(0.78 0.15 75 / 0.10);
@@ -227,7 +247,7 @@ body.is-setup-mode .sp-setup {
 
 .sp-setup__meta {
   margin: 0;
-  font-size: 12px;
+  font-size: clamp(12px, 0.5vw, 17px);
   color: var(--sp-muted);
   display: flex;
   flex-wrap: wrap;

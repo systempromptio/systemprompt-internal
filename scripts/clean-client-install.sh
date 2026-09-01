@@ -6,8 +6,9 @@
 # Takes a PAT and proves the whole claim: a machine that has never seen Systemprompt Internal
 # ends up running Claude Code against the gateway with the managed MCP servers
 # already authenticated. Everything between those two points is automated —
-# repackage the tarball, boot a config-free container, run the published
-# installer exactly as a user would, then assert the result.
+# boot a config-free container, run the published installer exactly as a user
+# would, then assert the result. DOWNLOAD_BASE selects the release under test
+# (default: the bridge-v<version> release matching bridge/Cargo.toml).
 #
 # Get the PAT from the running server first (both steps are manual by design —
 # the code is a credential and is deliberately not automatable):
@@ -26,7 +27,8 @@ CONTAINER="systemprompt-clean-client-install"
 
 # The gateway is reached from inside the container, so it cannot be localhost.
 GATEWAY="${GATEWAY:-http://host.docker.internal:8080}"
-SKIP_PACKAGE="${SKIP_PACKAGE:-0}"
+BRIDGE_VERSION="$(sed -n 's/^version = "\([0-9.]*\)"/\1/p' "$REPO_ROOT/bridge/Cargo.toml" | head -1)"
+DOWNLOAD_BASE="${DOWNLOAD_BASE:-https://github.com/systempromptio/systemprompt-internal/releases/download/bridge-v$BRIDGE_VERSION}"
 
 say()  { printf '\033[1m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[33mwarn:\033[0m %s\n' "$*" >&2; }
@@ -43,28 +45,17 @@ esac
 
 command -v docker >/dev/null 2>&1 || fail "docker is required"
 
-# ── Repackage ─────────────────────────────────────────────────────────────────
-# The installer downloads the tarball the gateway serves, so a stale artefact
-# silently tests yesterday's binary. package-bridge-linux.sh publishes into
-# storage/files/downloads, which the gateway serves at /files/downloads.
-if [ "$SKIP_PACKAGE" = "1" ]; then
-    warn "SKIP_PACKAGE=1 — testing whatever tarball is already published."
-else
-    say "building and publishing the Linux bridge tarball"
-    ( cd "$REPO_ROOT/bridge" && cargo build --release ) \
-        || fail "bridge release build failed"
-    "$REPO_ROOT/scripts/package-bridge-linux.sh" \
-        || fail "packaging failed"
+# ── Release + gateway reachability ────────────────────────────────────────────
+# Checked from the host first: a failure here is almost always "the release
+# is not published yet" or "the server is not running", and finding that out
+# before the container starts saves a confusing error inside it.
+if ! curl -fsSL -o /dev/null --max-time 15 "$DOWNLOAD_BASE/install.sh"; then
+    fail "no installer at $DOWNLOAD_BASE/install.sh — is bridge-v$BRIDGE_VERSION published?
+       Override with DOWNLOAD_BASE=<url> to test another release."
 fi
-
-# ── Gateway reachability ──────────────────────────────────────────────────────
-# Checked from the host against the equivalent loopback URL: a failure here is
-# almost always "the server is not running", and finding that out before the
-# container starts saves a confusing download error inside it.
 PROBE="${GATEWAY/host.docker.internal/localhost}"
-if ! curl -fsS -o /dev/null --max-time 5 "$PROBE/files/downloads/install.sh"; then
-    fail "the gateway is not serving $PROBE/files/downloads/install.sh
-       Start it with 'just start' and make sure 'just publish' has run."
+if ! curl -fsS -o /dev/null --max-time 5 "$PROBE/v1/auth/bridge/capabilities"; then
+    fail "the gateway is not answering at $PROBE — start it with 'just start'."
 fi
 
 # ── Image ─────────────────────────────────────────────────────────────────────
@@ -90,7 +81,7 @@ docker run --rm --name "$CONTAINER" \
     --entrypoint bash \
     "$IMAGE" -lc '
 set -euo pipefail
-GATEWAY="$1"; PAT="$2"
+GATEWAY="$1"; PAT="$2"; DOWNLOAD_BASE="$3"
 
 # Stand in for MDM: delegate the enterprise policy directory to the user who
 # runs the installer. Without this the bridge cannot write managed-mcp.json and
@@ -98,8 +89,8 @@ GATEWAY="$1"; PAT="$2"
 # not the one this run is trying to prove.
 sudo install -d -o tester -g tester -m 0755 /etc/claude-code
 
-curl -fsSL "$GATEWAY/files/downloads/install.sh" \
-  | sh -s -- --download-base "$GATEWAY/files/downloads" \
+curl -fsSL "$DOWNLOAD_BASE/install.sh" \
+  | sh -s -- --download-base "$DOWNLOAD_BASE" \
              --gateway "$GATEWAY" \
              --pat "$PAT"
 
@@ -141,6 +132,6 @@ echo "claude plugin list:"
 claude plugin list || true
 
 exit $rc
-' _ "$GATEWAY" "$PAT"
+' _ "$GATEWAY" "$PAT" "$DOWNLOAD_BASE"
 
 say "done"

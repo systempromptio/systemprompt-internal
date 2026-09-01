@@ -61,14 +61,23 @@ CREATE TABLE IF NOT EXISTS plugin_session_summaries (
     ai_summary TEXT,
     ai_tags TEXT,
     ai_description TEXT,
-    apm REAL,
-    eapm REAL,
-    peak_concurrent INT,
     permission_mode TEXT,
     client_source TEXT,
     subagent_spawns BIGINT NOT NULL DEFAULT 0,
     user_prompts INT,
     automated_actions INT,
+    -- Session registry: where the work is happening, whether the session is
+    -- still alive, and what it has spent. `handle` is the address other people
+    -- and agents use to reach it. See migrations/030_session_registry.sql for
+    -- the transition applied to databases that predate these columns.
+    cwd TEXT,
+    workspace TEXT,
+    git_branch TEXT,
+    handle TEXT,
+    last_event_at TIMESTAMPTZ,
+    current_activity TEXT,
+    live_cost_microdollars BIGINT,
+    context_pct SMALLINT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -76,6 +85,15 @@ CREATE INDEX IF NOT EXISTS idx_session_summary_user ON plugin_session_summaries(
 CREATE INDEX IF NOT EXISTS idx_session_summary_session ON plugin_session_summaries(session_id);
 CREATE INDEX IF NOT EXISTS idx_session_summary_source ON plugin_session_summaries(user_id, client_source);
 CREATE INDEX IF NOT EXISTS idx_session_summary_mode ON plugin_session_summaries(user_id, permission_mode);
+-- One live handle per user; partial so an ended session releases its address
+-- rather than consuming it forever.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_session_summary_handle
+    ON plugin_session_summaries (user_id, handle)
+    WHERE handle IS NOT NULL AND ended_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_session_summary_workspace
+    ON plugin_session_summaries (workspace) WHERE workspace IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_session_summary_last_event
+    ON plugin_session_summaries (last_event_at DESC);
 
 CREATE TABLE IF NOT EXISTS session_transcripts (
     id TEXT PRIMARY KEY,

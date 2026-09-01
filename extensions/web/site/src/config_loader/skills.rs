@@ -15,13 +15,27 @@ pub(crate) fn load_skills_page_config() -> Result<Option<Arc<SkillsPageConfig>>,
         },
     };
 
-    let skills_dir = paths.system().services().join("skills");
+    let services_dir = paths.system().services();
+    let skills_dir = services_dir.join("skills");
 
     let Some(entries) = read_skills_dir(&skills_dir)? else {
         return Ok(None);
     };
 
     let mut skills = parse_skill_entries(entries);
+
+    // Why: the page is public and prerendered, so it can only advertise what
+    // a `user`-scoped plugin claims — an admin skill listed here is one no
+    // visitor could ever run. See config_loader::skill_scope.
+    if let Some(public_ids) = super::skill_scope::public_skill_ids(services_dir) {
+        let before = skills.len();
+        skills.retain(|s| public_ids.contains(&s.id));
+        tracing::info!(
+            dropped = before - skills.len(),
+            kept = skills.len(),
+            "Filtered the skills page to user-scoped plugins"
+        );
+    }
 
     if skills.is_empty() {
         tracing::debug!("No skills loaded for skills page");

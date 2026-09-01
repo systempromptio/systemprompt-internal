@@ -59,11 +59,11 @@ Without the repo, the installer does the same thing directly (it prompts for the
 code if omitted):
 
 ```bash
-curl -fsSL https://internal.systemprompt.io/files/downloads/install.sh | sh -s -- --code <code>
+curl -fsSL https://github.com/systempromptio/systemprompt-internal/releases/latest/download/install.sh | sh -s -- --code <code>
 ```
 
 Against a dev server, add `--gateway http://localhost:8081` and, to use a
-locally packaged tarball, `--download-base https://your-gateway/files/downloads`.
+locally packaged tarball served from somewhere, `--download-base <url>`.
 
 The installer verifies the tarball checksum (refusing to proceed on a mismatch),
 installs to `~/.local/bin` (or `/usr/local/bin` as root), installs Claude Code if
@@ -135,41 +135,35 @@ just bridge-package-linux     # → dist/systemprompt-internal-bridge-linux-<arc
 ```
 
 Real releases come from CI (see **Releases** below); this recipe is the local
-path. It also publishes the tarball, its `.sha256`, and
-`scripts/install-bridge.sh` (as `install.sh`) into `storage/files/downloads/`,
-which the admin Bridge Setup page can serve same-origin on a dev server. The
-archive carries the binary plus an `INSTALL.md` stating the above. Asset names
-are load-bearing — they must match `DOWNLOAD_BASE_URL` in
-`extensions/web/admin/src/handlers/ssr/ssr_bridge_setup.rs`, the links in
-`storage/files/admin/templates/bridge-setup.hbs`, `ARTIFACTS` in
+path and only writes `dist/`. The archive carries the binary plus an
+`INSTALL.md` stating the above. Asset names are load-bearing — they must match
+`extensions/web/admin/src/services/bridge_downloads.rs`, the links in
+`storage/files/admin/templates/bridge-setup.hbs`, `HOSTED_ARTIFACTS` in
 `storage/files/js/pages/admin-bridge-setup.js`, and the build matrix in
-`.github/workflows/bridge-release.yml`. Test the result on a machine with no
+`.github/workflows/release.yml`. Test a published release on a machine with no
 config using `just clean-client` (see `deploy/clean-client/`).
 
 ## Releases
 
-Versioned binaries for Linux (x86_64 + aarch64 tarballs), macOS (Apple Silicon
-`.dmg`), and Windows (`.exe`) are built and published to GitHub Releases by
-`.github/workflows/bridge-release.yml`. Assets carry version-less names so
-`releases/latest/download/<asset>` URLs stay stable across releases.
+Binaries for Linux (x86_64 + aarch64 tarballs), macOS (universal2 `.dmg`,
+signed and notarized), and Windows (`.exe`) are built and published to GitHub
+Release `bridge-v<version>` by `.github/workflows/release.yml` **on every merge
+to `main`** — nobody tags by hand. The version is this crate's, held equal to
+the workspace version and the core pin by `scripts/sync-release-version.sh`
+(`just core-bump <version>` in the release flow), so one release of `main`
+means one core version, one gateway image, and one bridge. A merge that does
+not change the version publishes nothing. Assets carry version-less names so
+`releases/download/bridge-v<version>/<asset>` is a permanent link and the
+admin Bridge Setup page can point at exactly the build released with the
+gateway it runs on.
 
-To cut a release:
+`bridge/CORE_REF` holds the core tag (`v<version>`) CI checks out to resolve
+the path dependency; the release workflow refuses to publish if it disagrees
+with the version, or if `[patch.crates-io]` is still active on `main`.
 
-1. Bump `version` in `bridge/Cargo.toml`.
-2. If core moved, update `bridge/CORE_REF` to the new `systemprompt-core`
-   commit SHA — CI checks core out at that ref to resolve the path dependency.
-3. Tag and push:
-
-   ```bash
-   git tag bridge-v0.1.0 && git push origin bridge-v0.1.0
-   ```
-
-Binaries carry **no OS code signature** (no Apple notarisation, no Windows
-Authenticode) for now: macOS users must clear the quarantine flag
-(`xattr -dr com.apple.quarantine "/Applications/Systemprompt Internal Bridge.app"`)
-and Windows users get a SmartScreen prompt ("More info → Run anyway").
-Supply-chain integrity is covered separately: every release asset is
-cosign-signed (keyless, GitHub OIDC) with a `SHA256SUMS` manifest; verify with:
+Windows carries no Authenticode signature for now, so users get a SmartScreen
+prompt ("More info → Run anyway"). Supply-chain integrity: every release asset
+is cosign-signed (keyless, GitHub OIDC) with a `SHA256SUMS` manifest; verify with:
 
 ```bash
 cosign verify-blob \
@@ -236,8 +230,8 @@ no forking of the bridge source:
    brand-level plugin-name field to set.
 4. Update `build.rs` (Windows metadata), `macos/Info.plist` (bundle id + names),
    and `scripts/make-mac-app.sh` (bundle/app name).
-5. Copy `.github/workflows/bridge-release.yml` (and `bridge/CORE_REF`) and
-   adjust the repo names — tagging `bridge-v*` then builds and publishes the
+5. Copy `.github/workflows/release.yml` (and `bridge/CORE_REF`) and adjust
+   the repo names — every merge to `main` then builds and publishes the
    per-platform artifacts to GitHub Releases.
 
 Everything else — auth, sync, proxy, GUI, host integrations — is inherited from

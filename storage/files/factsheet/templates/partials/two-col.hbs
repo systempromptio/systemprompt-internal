@@ -1,0 +1,8 @@
+  <div class="two-col">
+    <div class="col-left">
+{{#each left}}{{> (lookup this "type") }}
+{{/each}}    </div>
+    <div class="col-right">
+{{#each right}}{{> (lookup this "type") }}
+{{/each}}    </div>
+  </div>

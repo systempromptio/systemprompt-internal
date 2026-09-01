@@ -1,0 +1,15 @@
+id: inspect
+name: Inspect
+description: "The control-plane microscope: reconstruct one AI gateway request end to end, rebuild the full data trail behind a live conversation, and exercise the MCP surface and skills catalogue."
+enabled: true
+file: SKILL.md
+tags:
+  - cli
+  - gateway
+  - tracing
+  - audit
+  - conversations
+  - mcp
+  - admin
+category: governance
+display_category: "Governance & Analytics"

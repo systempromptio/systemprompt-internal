@@ -1,0 +1,221 @@
+# The CEO briefing — the canonical sheet. Its design system is the one every
+# other sheet now shares, so if this renders correctly the base template is
+# correct. Ported from factsheet-ceo.html; the prose is unchanged.
+id: ceo
+title: "systemprompt.io · Own how your company uses AI"
+footer: "AI you own · systemprompt.io"
+diagram: exec-3layer.svg
+max_pages: 2
+
+pages:
+  - fill: true
+    masthead:
+      - { label: Document, value: "Executive Briefing" }
+      - { label: For, value: "CEO & Board" }
+      - { label: Deployment, value: "Self-hosted" }
+      - { label: Web, value: "systemprompt.io" }
+    blocks:
+      - type: hero-row
+        kicker: "For the CEO"
+        headline:
+          - text: "Stop renting AI. "
+          - { text: "Own the system.", tone: accent }
+        lede: >-
+          Your teams already use AI every day, whether you approved it or not.
+          Until now the choice was to rent it, where the tool is never yours and
+          the bill never stops, or to build governance in-house and watch it fall
+          behind the day you ship. systemprompt.io is the third way: the only AI
+          infrastructure you actually own. One self-hosted system runs the agents
+          your people already use, Claude, Codex, Gemini or your own, under one
+          set of rules you control. The agents, the data, the skills and the
+          economics stay yours.
+        glance:
+          kicker: "At a glance"
+          heading: "Your AI. Your rules. Your property."
+          cells:
+            - { n: "Every", l: "AI action checked before it runs" }
+            - { n: "Any", l: "Model: Claude, Codex or your own" }
+            - { n: "0", l: "Vendor lock-in, swap with a setting" }
+            - { n: "Yours", l: "One binary you keep, even if we vanish" }
+
+      - type: pov
+        kicker: "Our point of view"
+        statement:
+          - text: >-
+              AI now runs your business, yet a foreign-controlled research lab
+              holds the model, the terms and the access, with your data flowing
+              through it. 71% of leaders now call sovereign AI a strategic
+              imperative, yet only about 15% own it at board level.
+          - text: " "
+          - tone: accent
+            text: >-
+                Own the layer and the lab becomes a supplier you swap or
+                self-host, not a landlord you depend on.
+        src: "McKinsey · The sovereign AI agenda, 2026"
+
+      - type: sec-head
+        title: "What your company is exposed to right now"
+
+      - type: caps
+        cards:
+          - kicker: "Shadow AI"
+            heading: "Nobody can answer the question"
+            body: >-
+              Your people already use AI on tools you never chose. More than a
+              third of employees admit they have already put sensitive company
+              data into AI apps you never approved.
+            src: "Grant Thornton · 2026 AI Impact Survey"
+          - kicker: "Runaway cost"
+            heading: "A bill that only climbs"
+            body: >-
+              Rented AI is metered per seat and per action. 79% of enterprises
+              overspent on AI last year, by about 31% on average, and you have no
+              lever to bring it down.
+            src: "DoiT · AI Spending Survey, 2026"
+          - kicker: "No proof"
+            heading: "Proof, not a policy PDF"
+            body: >-
+              Monitoring tells you what happened after the fact. The EU AI Act
+              carries fines up to 7% of global turnover, and firms with a real
+              governance layer are 3.4x more likely to govern AI effectively.
+            src: "EU AI Act · Gartner 2026"
+
+      - type: sec-head
+        title: "What owning the layer gives you"
+
+      - type: caps
+        cards:
+          - kicker: "Own it"
+            heading: "The system is your property"
+            brand_tone: true
+            body: >-
+              One self-hosted binary, source-available, running inside your
+              perimeter. Your data never leaves. Everything your teams build on
+              it stays yours to keep.
+          - kicker: "Standardize it"
+            heading: "One rulebook, every team"
+            brand_tone: true
+            body: >-
+              The same skills, the same connectors, the same rules reach every
+              department automatically. Best practice is shared once, not
+              reinvented desk by desk.
+          - kicker: "Prove it"
+            heading: "Governance you can show"
+            brand_tone: true
+            body: >-
+              Every AI action is checked against your rules before it runs, and
+              risky ones are stopped. Each one is logged and joined to a person,
+              ready for any audit.
+
+      - type: prov
+        kicker: "Runs on the model you choose"
+        rows:
+          - groups:
+                - { label: "Cloud:", value: "Bedrock · Vertex AI · Azure Foundry" }
+                - { label: "Direct:", value: "Anthropic · OpenAI · Gemini · Groq · Kimi" }
+                - { label: "Self-hosted:", value: "Llama · Qwen" }
+
+      - type: cta
+        headline:
+          - text: "Stop paying rent on your own AI. "
+          - { text: "Start with a pilot on your highest-impact team.", tone: accent }
+        body: >-
+          45 minutes to map the team, pick the first skills, and scope the
+          rollout. No commitment.
+        email: "ed@systemprompt.io"
+
+  - masthead:
+      - { label: Section, value: "Architecture · Economics · Rollout" }
+      - { label: Licence, value: "BSL-1.1" }
+      - { label: Engagement, value: "Training · Platform · Rollout" }
+      - { label: Web, value: "systemprompt.io" }
+    blocks:
+      - type: sec-head
+        title: "One layer between your people and your systems"
+
+      - type: diagram
+
+      - type: flow-caption
+        variant: under-diagram
+        label: "The person stays in charge"
+        text: >-
+          Your people direct the AI in plain language. The middle layer, the one
+          you own, is operated centrally and shared across the company, so the
+          right capability reaches the right team automatically. Your systems get
+          first-class execution on live data, and every call is governed and
+          logged as a matter of course.
+
+      - type: sec-head
+        title: "Own the layer, own the economics"
+
+      - type: bento4
+        hero:
+          kicker: "What you actually pay"
+          dim: "Raw inference, no per-seat markup"
+          big: "~$0.03"
+          body: >-
+            Per agent action on Claude Sonnet, and about 70% less on a cheaper
+            model. You pay for the work done, not for every seat and every
+            conversation.
+        top:
+          - heading: "Metered pricing climbs"
+            body: >-
+              Rented tools charge per seat and per action, so the bill rises with
+              every hire and every conversation.
+          - heading: "Your cost base"
+            body: >-
+              A fixed, self-hosted footprint plus raw API inference. Predictable,
+              and it does not scale per seat.
+        wide:
+          heading: "Never captive to one lab"
+          body: >-
+            Swap providers, or self-host a sovereign model, with a setting. No
+            foreign lab holds your price, your access or your roadmap, and your
+            governance never changes.
+
+      - type: flow-caption
+        variant: after-panel
+        label: "Illustrative"
+        text: >-
+          Per-action figure assumes an agent interaction of about 4,000 input and
+          1,000 output tokens at published Claude Sonnet API rates ($3 and $15
+          per million tokens); a cheaper frontier model runs about 70% lower. A
+          metered platform rises with every seat and action; a layer you own lets
+          you pick a cheaper model and cut the bill with no change to your
+          governance.
+
+      - type: sec-head
+        title: "How we roll it out"
+
+      - type: personas
+        cards:
+          - kicker: "01 · Training"
+            heading: "People who know how to use it"
+            body: >-
+              Role-based training and an exec briefing so each team learns the
+              skills built for their work. Adoption that sticks, not software
+              that sits on the shelf.
+            outcome: "Every team confident on day one."
+          - kicker: "02 · Platform"
+            heading: "The AI layer, self-hosted"
+            body: >-
+              The systemprompt.io software runs in your environment, wired to
+              your identity and your security tooling. It is where all your
+              skills, connectors and policies live, under your control.
+            outcome: "One place that holds everything."
+          - kicker: "03 · Personalized rollout"
+            heading: "The right bundle to every person"
+            body: >-
+              Each person's connectors and skills are bundled for their role and
+              pushed to their machine, signed and kept current. First-class AI
+              usage that ships with one click.
+            outcome: "Everyone equipped, no manual setup."
+
+      - type: cta
+        headline:
+          - text: "Ready to own how your company uses AI? "
+          - { text: "From first team to full rollout.", tone: accent }
+        body: >-
+          Book a 45-minute working session to pick the first team, choose the
+          skills, and map the rollout.
+        email: "ed@systemprompt.io"

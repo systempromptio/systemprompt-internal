@@ -50,7 +50,8 @@ plugins, skills and MCP servers into Claude Desktop, Cowork and Codex CLI.
 
 Linux (`-linux-x86_64.tar.gz`, `-linux-aarch64.tar.gz`) and Windows
 (`-windows.exe`) assets ship on the same `bridge-v*` release; see the macOS doc
-for the download and login flow, which is otherwise identical.
+for the download and login flow, which is otherwise identical. A release is cut
+on every merge to `main`, with the same version as the gateway image.
 
 ### Running a second clone side-by-side
 

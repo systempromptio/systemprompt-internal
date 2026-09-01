@@ -2,6 +2,7 @@
 
 mod detail;
 mod events;
+mod identity;
 mod listing;
 mod role;
 mod runtime;
@@ -10,6 +11,7 @@ pub use detail::{
     find_user_detail, list_user_event_type_breakdown, list_user_sessions, list_user_top_tools,
 };
 pub use events::list_user_usage;
+pub use identity::{UserIdentity, find_user_identity};
 pub use listing::{list_distinct_roles, list_users};
 pub use role::find_user_roles_department;
 pub use runtime::{

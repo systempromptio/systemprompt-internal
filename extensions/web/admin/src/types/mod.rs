@@ -47,7 +47,7 @@ pub use plugins_requests::{
     UpdateMcpRequest, UpdatePluginEnvRequest, UpdatePluginRequest, UpdatePluginSkillsRequest,
     UpdateSkillFileRequest, UserQuery,
 };
-pub use user_context::UserContext;
+pub use user_context::{IdentitySource, UserContext};
 
 #[derive(Debug, Default, Clone, serde::Deserialize)]
 pub struct IdQuery {

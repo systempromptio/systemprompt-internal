@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 330" role="img" font-family="Inter, system-ui, sans-serif">
+  <title>Air-gap deployment — sealed internal network, single demarcation, double-witnessed closure</title>
+
+  <!-- ============ HOST ============ -->
+  <rect x="8" y="60" width="160" height="170" rx="14" fill="#FAFAF9" stroke="#E9E5DD" stroke-width="1"/>
+  <path d="M 8 74 A 14 14 0 0 1 22 60 L 154 60 A 14 14 0 0 1 168 74 L 8 74 Z" fill="#2A6FB5"/>
+
+  <text x="24" y="86" font-size="9.5" font-weight="700" fill="#2A6FB5" letter-spacing="1.6">HOST</text>
+  <text x="24" y="100" font-size="8" fill="#55606E">Operator workstation</text>
+
+  <rect x="24" y="116" width="128" height="50" rx="10" fill="#ffffff" stroke="#E9E5DD"/>
+  <text x="88" y="135" text-anchor="middle" font-size="10" font-weight="700" fill="#0F172A">curl /v1/messages</text>
+  <text x="88" y="149" text-anchor="middle" font-size="7.5" fill="#55606E" font-family="ui-monospace, monospace">localhost:8090</text>
+  <text x="88" y="160" text-anchor="middle" font-size="7" fill="#55606E">the only host-routable port</text>
+
+  <rect x="24" y="174" width="128" height="42" rx="10" fill="#FFF6EF" stroke="#F38318"/>
+  <text x="88" y="190" text-anchor="middle" font-size="7" font-weight="700" fill="#F38318" letter-spacing="1.4">NO OTHER PATH</text>
+  <text x="88" y="203" text-anchor="middle" font-size="7.5" fill="#55606E">app never joins a bridge</text>
+  <text x="88" y="213" text-anchor="middle" font-size="7.5" fill="#55606E">network — cannot egress</text>
+
+  <!-- Arrow host → ingress -->
+  <rect x="170" y="138" width="38" height="8" fill="#0F172A"/>
+  <path d="M 208 130 L 222 142 L 208 154 Z" fill="#0F172A"/>
+  <text x="189" y="124" text-anchor="middle" font-size="8" font-weight="700" fill="#0F172A" letter-spacing="1">TCP</text>
+
+  <!-- ============ OUTER BRIDGE NETWORK (airgap-ingress) ============ -->
+  <rect x="224" y="14" width="160" height="288" rx="14" fill="#FAFAF9" stroke="#2A6FB5" stroke-width="1.2"/>
+  <path d="M 224 28 A 14 14 0 0 1 238 14 L 370 14 A 14 14 0 0 1 384 28 L 224 28 Z" fill="#2A6FB5"/>
+
+  <text x="240" y="40" font-size="9" font-weight="700" fill="#2A6FB5" letter-spacing="1.4">AIRGAP-INGRESS (BRIDGE)</text>
+  <text x="240" y="54" font-size="7.5" fill="#55606E">routable · the only demarcation</text>
+
+  <!-- Ingress socat (straddles both) -->
+  <rect x="240" y="120" width="128" height="80" rx="10" fill="#ffffff" stroke="#2A6FB5" stroke-width="1.5"/>
+  <text x="304" y="140" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0F172A">ingress (socat)</text>
+  <text x="304" y="155" text-anchor="middle" font-size="7.5" fill="#55606E">dumb TCP forwarder</text>
+  <text x="304" y="168" text-anchor="middle" font-size="7" fill="#55606E" font-family="ui-monospace, monospace">:8090 → app:8080</text>
+  <text x="304" y="183" text-anchor="middle" font-size="7" fill="#F38318" font-weight="700">runs no systemprompt code</text>
+  <text x="304" y="194" text-anchor="middle" font-size="7" fill="#F38318" font-weight="700">on BOTH networks</text>
+
+  <text x="240" y="232" font-size="7" font-weight="700" fill="#2A6FB5" letter-spacing="1.4">CLOSURE WITNESSES</text>
+  <text x="240" y="246" font-size="7" fill="#55606E" font-family="ui-monospace, monospace">1. ss / conntrack snapshot</text>
+  <text x="240" y="258" font-size="7" fill="#55606E" font-family="ui-monospace, monospace">   from monitor sidecar</text>
+  <text x="240" y="272" font-size="7" fill="#55606E" font-family="ui-monospace, monospace">2. mock /stats unchanged</text>
+  <text x="240" y="284" font-size="7" fill="#55606E" font-family="ui-monospace, monospace">   on denied burst</text>
+
+  <!-- ============ INNER SEALED NETWORK (airgap-internal) ============ -->
+  <rect x="400" y="14" width="492" height="288" rx="14" fill="#FFF6EF" stroke="#F38318" stroke-width="2"/>
+  <path d="M 400 28 A 14 14 0 0 1 414 14 L 878 14 A 14 14 0 0 1 892 28 L 400 28 Z" fill="#F38318"/>
+
+  <text x="416" y="40" font-size="9.5" font-weight="700" fill="#F38318" letter-spacing="1.6">AIRGAP-INTERNAL · internal: true · NO GATEWAY · NO NAT</text>
+  <text x="416" y="54" font-size="7.5" fill="#55606E">sealed: no host-routable interface · belt + braces (network + config)</text>
+
+  <!-- Arrow ingress -> app (the single legitimate path) -->
+  <rect x="370" y="156" width="44" height="8" fill="#F38318"/>
+  <path d="M 414 148 L 428 160 L 414 172 Z" fill="#F38318"/>
+  <text x="392" y="142" text-anchor="middle" font-size="7" font-weight="700" fill="#F38318" letter-spacing="1">ONLY PATH IN</text>
+
+  <!-- app -->
+  <rect x="416" y="68" width="208" height="86" rx="10" fill="#ffffff" stroke="#F38318" stroke-width="1.4"/>
+  <text x="520" y="86" text-anchor="middle" font-size="11" font-weight="700" fill="#0F172A">app · systemprompt-template</text>
+  <text x="520" y="100" text-anchor="middle" font-size="7.5" fill="#55606E" font-family="ui-monospace, monospace">PROFILE_DIR=/profiles/airgap (:ro)</text>
+  <text x="520" y="113" text-anchor="middle" font-size="7.5" fill="#55606E">deny-first gateway · 4-stage governance</text>
+  <text x="520" y="125" text-anchor="middle" font-size="7" fill="#F38318" font-weight="700" font-family="ui-monospace, monospace">PolicyResolver.resolve()</text>
+  <text x="520" y="137" text-anchor="middle" font-size="7" fill="#55606E">403 BEFORE any upstream connect</text>
+  <text x="520" y="148" text-anchor="middle" font-size="7" fill="#55606E">audit_events · governance_decisions</text>
+
+  <!-- mock-inference -->
+  <rect x="636" y="68" width="240" height="86" rx="10" fill="#ffffff" stroke="#F38318"/>
+  <text x="756" y="86" text-anchor="middle" font-size="11" font-weight="700" fill="#0F172A">mock-inference</text>
+  <text x="756" y="100" text-anchor="middle" font-size="7.5" fill="#55606E" font-family="ui-monospace, monospace">:8080 · Anthropic Messages</text>
+  <text x="756" y="114" text-anchor="middle" font-size="7.5" fill="#55606E">deterministic responder · /stats counter</text>
+  <text x="756" y="128" text-anchor="middle" font-size="7" fill="#55606E">resolves from ${ANTHROPIC_ENDPOINT}</text>
+  <text x="756" y="139" text-anchor="middle" font-size="7" fill="#55606E">in this scenario; swap for on-prem vLLM</text>
+  <text x="756" y="150" text-anchor="middle" font-size="7" fill="#55606E">or sovereign cloud in production.</text>
+
+  <!-- postgres -->
+  <rect x="416" y="166" width="208" height="76" rx="10" fill="#ffffff" stroke="#F38318"/>
+  <text x="520" y="184" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0F172A" font-family="ui-monospace, monospace">postgres</text>
+  <text x="520" y="198" text-anchor="middle" font-size="7.5" fill="#55606E">audit + state · 4 writes per call</text>
+  <text x="520" y="210" text-anchor="middle" font-size="7" fill="#55606E" font-family="ui-monospace, monospace">governance_decisions</text>
+  <text x="520" y="220" text-anchor="middle" font-size="7" fill="#55606E" font-family="ui-monospace, monospace">ai_requests INSERT → logs → UPDATE</text>
+  <text x="520" y="234" text-anchor="middle" font-size="7" font-weight="700" fill="#F38318">SIEM-ready · in your DB</text>
+
+  <!-- monitor sidecar -->
+  <rect x="636" y="166" width="240" height="76" rx="10" fill="#ffffff" stroke="#F38318"/>
+  <text x="756" y="184" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0F172A">monitor (netshoot)</text>
+  <text x="756" y="198" text-anchor="middle" font-size="7.5" fill="#55606E">shares airgap-internal</text>
+  <text x="756" y="210" text-anchor="middle" font-size="7" fill="#55606E" font-family="ui-monospace, monospace">ss -tunp · conntrack -L</text>
+  <text x="756" y="221" text-anchor="middle" font-size="7" fill="#55606E">sees every connection</text>
+  <text x="756" y="233" text-anchor="middle" font-size="7" font-weight="700" fill="#F38318">no external IP → pass</text>
+
+  <!-- gateway-policies allow-list strip -->
+  <rect x="416" y="254" width="460" height="38" rx="10" fill="#FAFAF9" stroke="#F38318" stroke-opacity="0.6"/>
+  <text x="646" y="270" text-anchor="middle" font-size="8" font-weight="700" fill="#F38318" letter-spacing="1.4">VERSION-CONTROLLED ALLOW-LIST</text>
+  <text x="646" y="284" text-anchor="middle" font-size="7" fill="#55606E" font-family="ui-monospace, monospace">services/ai/gateway-policies.yaml · ingested by run_gateway_policy_load · delete_orphans: true</text>
+
+  <!-- BLOCKED EGRESS arrow attempting to leave the sealed wall -->
+  <line x1="876" y1="120" x2="894" y2="120" stroke="#C03030" stroke-width="2.5"/>
+  <path d="M 890 114 L 898 120 L 890 126 Z" fill="#C03030"/>
+  <line x1="884" y1="108" x2="896" y2="132" stroke="#C03030" stroke-width="2.5"/>
+  <line x1="896" y1="108" x2="884" y2="132" stroke="#C03030" stroke-width="2.5"/>
+  <text x="886" y="98" text-anchor="end" font-size="7.5" font-weight="700" fill="#C03030" letter-spacing="0.6">NO EGRESS</text>
+
+  <!-- Caption -->
+  <text x="450" y="320" text-anchor="middle" font-size="9" font-weight="700" fill="#0F172A" letter-spacing="1.4">TWO NETWORKS · ONE DEMARCATION · ZERO OUTBOUND · DOUBLE-WITNESSED CLOSURE</text>
+</svg>

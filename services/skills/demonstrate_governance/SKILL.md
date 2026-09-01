@@ -84,7 +84,7 @@ governance endpoint. This is what the repo's `demo/governance/*` scripts do.
 For `scope_check` and `tool_blocklist`, use the **user-scope** token (`demo/.token.user`), not the admin
 `demo/.token` — both policies exempt admins, so the admin token would be **allowed**. `00-preflight.sh`
 provisions `demo/.token.user` by minting a plugin token for `demo_user@demo.local` and demoting it to the
-`user` role (the same recipe `manage_permissions` documents); governance reads the role live, so the token
+`user` role (the same recipe `manage_platform` documents); governance reads the role live, so the token
 resolves to User scope.
 
 ```bash
@@ -134,3 +134,47 @@ from those two policies (`secret_scan` still denies for any scope, as the recipe
 2. Attempt the secret (step 2) - confirm it is denied.
 3. `infra db query` the audit table (step 3) - see both rows with their policy and reason.
 4. `analytics costs breakdown --by agent` (step 4) - tie enforcement to spend per identity.
+
+---
+
+## Running it as the demo beat
+
+DEMO.md step 4 is this skill, sequenced. The recipes above are the moves; this is the order to make
+them in front of an audience. Salesforce's answer to the same question is the Einstein Trust Layer —
+a described property. Here it is a synchronous policy pipeline on **every** tool call, writing one
+auditable row per decision to Postgres. Trip it on purpose, three ways, then prove each denial from
+the data.
+
+**Precondition — check first.** All five stages are enabled in this installation
+(`services/governance/config.yaml`). Confirm before the beat: any in-scope tool call should land a
+`decision=allow` row with a real policy id. A row reading `policy=governance_disabled` means the
+stages were switched off; re-enable them and restart before demoing. Never change state by deleting
+the file — a missing file means the original four stages ENABLED by default.
+
+1. **The allow** — a normal in-scope tool call (e.g. a `crm_lead_search`). It executes; a
+   `decision=allow` row lands. This is §1 above.
+2. **Scope deny** — as a *user-scope* identity, attempt an admin-prefixed tool
+   (`mcp__systemprompt__*`). Denied by `scope_check` before execution. Use the recipe in
+   §"Forcing a specific decision" — the user-scope token matters; admins are exempt from this stage.
+3. **Secret deny** — a plaintext credential in tool input, denied by `secret_scan` for **any** scope,
+   admin included. Run `demo/governance/06-secret-breach.sh` out-of-band — never paste a live
+   credential prefix into the conversation, as the gateway scanner would re-scan it every turn.
+4. **Blocklist deny** — a destructively-named tool (`delete_records`, non-prefixed for the reason
+   given in §"Forcing a specific decision") for user scope, denied by `tool_blocklist`.
+5. **The live flip** — hand to `manage_platform` §"Permissions, and proving they are live": revoke a
+   role, the same call is denied; re-grant it, the call succeeds. Same bearer token, no restart, no
+   redeploy. Authority is data. Restore any role you revoked.
+6. **Reconstruct** — prove all of it from the spine, as in §3 above:
+   ```bash
+   systemprompt infra db query "SELECT decision, tool_name, agent_scope, policy, reason FROM governance_decisions ORDER BY created_at DESC LIMIT 10"
+   systemprompt infra logs trace list --limit 10
+   systemprompt infra logs audit <request-id>
+   ```
+
+**The cost angle.** Every denial above cost **$0 of model spend** — denied calls never reach a
+provider. Show it with `governance_readback`: no new priced request rows for the denied calls,
+against the allow's priced row. Guardrails that fire *before* the spend are themselves a cost
+feature.
+
+Every claim about a decision must be read back from `governance_decisions` — show the row. Then hand
+to `report` for the fleet close.

@@ -1,0 +1,7 @@
+  <div class="qbox spaced">
+{{#if kicker}}    <div class="k">{{kicker}}</div>
+{{/if}}{{#if items}}    <ol>
+{{#each items}}      <li>{{question}} <span>{{aside}}</span></li>
+{{/each}}    </ol>
+{{/if}}{{#each paragraphs}}    <p>{{{inline this}}}</p>
+{{/each}}  </div>

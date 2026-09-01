@@ -9,8 +9,16 @@ use systemprompt::models::artifacts::CliArtifact;
 
 pub const SERVER_NAME: &str = "systemprompt";
 
+// Why: a const rather than a literal at the call site so the wire name is
+// extractable from source. `scripts/check-mcp-tool-names.sh` builds its
+// catalog from these declarations — a tool that only names itself inline is
+// a tool the gate cannot vouch for.
+pub const TOOL_SYSTEMPROMPT: &str = "systemprompt";
+
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct CliInput {
+    /// The CLI command to execute (without 'systemprompt' prefix). Examples:
+    /// 'plugins run discord send "message"', 'core skills list'
     pub command: String,
 }
 
@@ -86,7 +94,7 @@ pub fn list_tools() -> Vec<Tool> {
     );
     vec![create_tool(&ToolDef {
         server_name: SERVER_NAME,
-        name: "systemprompt",
+        name: TOOL_SYSTEMPROMPT,
         title: "SystemPrompt CLI",
         description: &desc,
         input_schema: &input_schema(),

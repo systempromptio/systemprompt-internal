@@ -55,6 +55,7 @@ dependencies = [
  "serde_json",
  "sqlx",
  "systemprompt",
+ "systemprompt-security",
  "systemprompt-web-admin",
  "systemprompt-web-extension",
  "tokio",
@@ -1303,12 +1304,16 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "http-body-util",
+ "jsonwebtoken",
  "reqwest 0.12.28",
  "rmcp",
  "serde_json",
+ "serde_yaml_ng",
  "sha2 0.10.9",
  "sqlx",
  "systemprompt",
+ "systemprompt-mcp-email",
+ "systemprompt-mcp-shared",
  "systemprompt-security",
  "systemprompt-web-admin",
  "systemprompt-web-extension",
@@ -1407,6 +1412,31 @@ dependencies = [
  "subtle",
  "zeroize",
 ]
+
+[[package]]
+name = "email-encoding"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "420b9da095f052ea597503e39073b5b3c522f7db933fbac202d91d24492693fd"
+dependencies = [
+ "base64 0.23.0",
+ "memchr",
+]
+
+[[package]]
+name = "email-unit-tests"
+version = "0.0.0"
+dependencies = [
+ "rmcp",
+ "serde_json",
+ "systemprompt-mcp-email",
+]
+
+[[package]]
+name = "email_address"
+version = "0.2.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e079f19b08ca6239f47f8ba8509c11cf3ea30095831f7fed61441475edd8c449"
 
 [[package]]
 name = "encode_unicode"
@@ -2551,6 +2581,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "lettre"
+version = "0.11.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f2c646bd5cc763b1087b15493e29a64be6147ba8f19342004fa52048ee596eae"
+dependencies = [
+ "async-trait",
+ "base64 0.23.0",
+ "email-encoding",
+ "email_address",
+ "fastrand",
+ "futures-io",
+ "futures-util",
+ "httpdate",
+ "idna",
+ "mime",
+ "nom 8.0.0",
+ "percent-encoding",
+ "quoted_printable",
+ "rustls",
+ "socket2",
+ "tokio",
+ "tokio-rustls",
+ "url",
+ "webpki-roots 1.0.9",
+]
+
+[[package]]
 name = "lexical-core"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2706,6 +2763,7 @@ dependencies = [
 name = "mcp-integration-tests"
 version = "0.0.0"
 dependencies = [
+ "serde_json",
  "sqlx",
  "systemprompt",
  "systemprompt-mcp-shared",
@@ -2881,6 +2939,15 @@ checksum = "d273983c5a657a70a3e8f2a01329822f3b8c8172b73826411a55751e404a0a4a"
 dependencies = [
  "memchr",
  "minimal-lexical",
+]
+
+[[package]]
+name = "nom"
+version = "8.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df9761775871bdef83bee530e60050f7e54b1105350d6884eb0fb4f46c2f9405"
+dependencies = [
+ "memchr",
 ]
 
 [[package]]
@@ -3765,6 +3832,12 @@ checksum = "1fbf4db142a473a8d80c26bbf18454ed458bf8d26c8219c331daecfdbd079001"
 dependencies = [
  "proc-macro2",
 ]
+
+[[package]]
+name = "quoted_printable"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "478e0585659a122aa407eb7e3c0e1fa51b1d8a870038bd29f0cf4a8551eea972"
 
 [[package]]
 name = "r-efi"
@@ -5079,7 +5152,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "axum",
  "rmcp",
@@ -5117,7 +5190,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-agent"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "async-trait",
  "axum",
@@ -5154,7 +5227,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-ai"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -5183,7 +5256,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-analytics"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -5207,7 +5280,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-api"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "anyhow",
  "async-stream",
@@ -5219,7 +5292,6 @@ dependencies = [
  "chrono",
  "flate2",
  "futures-util",
- "governor",
  "hex",
  "http",
  "inventory",
@@ -5277,7 +5349,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-cli"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -5339,7 +5411,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-client"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "chrono",
  "futures",
@@ -5355,7 +5427,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-cloud"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "axum",
  "base64 0.22.1",
@@ -5380,7 +5452,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-config"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "base64 0.22.1",
  "rand 0.10.2",
@@ -5399,7 +5471,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-content"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -5426,7 +5498,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-database"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -5450,8 +5522,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "systemprompt-email"
+version = "0.42.0"
+dependencies = [
+ "lettre",
+ "systemprompt",
+ "thiserror 2.0.19",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "systemprompt-evaluation"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "chrono",
  "inventory",
@@ -5468,7 +5551,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-events"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "axum",
  "chrono",
@@ -5486,7 +5569,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-extension"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "async-trait",
  "axum",
@@ -5503,7 +5586,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-files"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -5532,7 +5615,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-generator"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -5561,7 +5644,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-identifiers"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "chrono",
  "schemars",
@@ -5574,11 +5657,11 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-internal-brand"
-version = "0.39.0"
+version = "0.42.0"
 
 [[package]]
 name = "systemprompt-knowledge-jobs"
-version = "0.39.0"
+version = "0.42.0"
 dependencies = [
  "async-trait",
  "imap",
@@ -5600,7 +5683,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-loader"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "serde",
  "serde_yaml_ng",
@@ -5613,7 +5696,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-logging"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -5639,7 +5722,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-marketplace"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "async-trait",
  "hex",
@@ -5659,7 +5742,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-mcp"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "async-trait",
  "axum",
@@ -5696,7 +5779,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-mcp-agent"
-version = "0.39.0"
+version = "0.42.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -5713,8 +5796,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "systemprompt-mcp-email"
+version = "0.42.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "rmcp",
+ "schemars",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "systemprompt",
+ "systemprompt-email",
+ "systemprompt-mcp-odoo",
+ "systemprompt-mcp-shared",
+ "thiserror 2.0.19",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "systemprompt-mcp-knowledge-bank"
-version = "0.39.0"
+version = "0.42.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -5735,7 +5838,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-mcp-odoo"
-version = "0.39.0"
+version = "0.42.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -5758,17 +5861,23 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-mcp-shared"
-version = "0.39.0"
+version = "0.42.0"
 dependencies = [
+ "chrono",
+ "inventory",
+ "rmcp",
  "serde",
+ "serde_json",
+ "sha2 0.10.9",
  "sqlx",
  "systemprompt",
  "tracing",
+ "uuid",
 ]
 
 [[package]]
 name = "systemprompt-models"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "async-trait",
  "axum",
@@ -5801,7 +5910,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-oauth"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "base64 0.22.1",
  "bcrypt",
@@ -5834,7 +5943,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-provider-contracts"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -5849,7 +5958,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-runtime"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "axum",
  "indicatif",
@@ -5883,7 +5992,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-scheduler"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -5916,7 +6025,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-security"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "async-trait",
  "axum",
@@ -5945,6 +6054,7 @@ dependencies = [
  "systemprompt-identifiers",
  "systemprompt-models",
  "thiserror 2.0.19",
+ "tokio",
  "tracing",
  "url",
  "uuid",
@@ -5952,7 +6062,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-slack"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "hex",
  "hmac 0.13.0",
@@ -5970,7 +6080,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-teams"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "inventory",
  "jsonwebtoken",
@@ -5986,7 +6096,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-template-provider"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "async-trait",
  "systemprompt-provider-contracts",
@@ -5996,7 +6106,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-templates"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "handlebars",
  "serde",
@@ -6010,7 +6120,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-traits"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "async-trait",
  "axum",
@@ -6030,7 +6140,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-users"
-version = "0.40.0"
+version = "0.42.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -6054,7 +6164,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-web-admin"
-version = "0.39.0"
+version = "0.42.0"
 dependencies = [
  "async-trait",
  "axum",
@@ -6087,7 +6197,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-web-content"
-version = "0.39.0"
+version = "0.42.0"
 dependencies = [
  "axum",
  "chrono",
@@ -6106,7 +6216,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-web-extension"
-version = "0.39.0"
+version = "0.42.0"
 dependencies = [
  "axum",
  "inventory",
@@ -6122,7 +6232,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-web-jobs"
-version = "0.39.0"
+version = "0.42.0"
 dependencies = [
  "async-trait",
  "inventory",
@@ -6141,7 +6251,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-web-shared"
-version = "0.39.0"
+version = "0.42.0"
 dependencies = [
  "axum",
  "chrono",
@@ -6159,7 +6269,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-web-site"
-version = "0.39.0"
+version = "0.42.0"
 dependencies = [
  "async-trait",
  "chrono",

@@ -17,8 +17,8 @@ use systemprompt::traits::SessionAnalytics;
 use systemprompt_security::authz::Decision;
 use systemprompt_security::policy::types::AccessScope;
 use systemprompt_security::policy::{
-    AgentScope, AuditOrigin, AuditTarget, ChainEntryOutcome, ChainEntryResult, DecisionAudit,
-    PolicyContext, PrincipalSnapshot, record_decision,
+    AgentScope, AuditOrigin, AuditTarget, ChainEntryOutcome, ChainEntryResult, ClaimedAgent,
+    DecisionAudit, PolicyContext, PrincipalSnapshot, record_decision,
 };
 
 use crate::types::webhook::{GovernQuery, HookEventPayload};
@@ -43,6 +43,7 @@ fn build_response(decision: &Decision, hook_event_name: &'static str) -> Respons
     let permission_decision_reason = match decision {
         Decision::Allow { .. } => None,
         Decision::Deny { reason } => Some(format!("[GOVERNANCE] {reason}")),
+        Decision::Pending { reason } => Some(format!("[GOVERNANCE] {reason}")),
     };
     let response = GovernanceResponse {
         hook_specific_output: HookSpecificOutput {
@@ -77,7 +78,13 @@ pub(crate) async fn govern_tool_use(
         "PreToolUse"
     };
     let session_id = SessionId::new(payload.session_id());
-    let agent_id = payload.common.agent_id.as_ref();
+    // Why: the hook body's agent id is a self-report (a Claude Code subagent
+    // id, not a platform agent). It is kept for display and never becomes an
+    // identity or a scope input.
+    let claimed = payload.common.agent_id.as_ref().map(|id| ClaimedAgent {
+        agent_id: id.as_str().to_owned(),
+        agent_type: payload.common.agent_type.clone(),
+    });
     let plugin_id = query.plugin_id.as_ref();
 
     let denial_params = AuthDenialParams {
@@ -85,7 +92,7 @@ pub(crate) async fn govern_tool_use(
         session_id: &session_id,
         tool_name: target.as_str(),
         hook_event_name: response_event,
-        agent_id,
+        claimed: claimed.as_ref(),
         plugin_id,
         session_service: &session_service,
         headers: &headers,
@@ -98,10 +105,7 @@ pub(crate) async fn govern_tool_use(
     let user_id = principal.user_id;
 
     let db_scope = scope::scope_from_user_roles(&pool, &user_id).await;
-    let principal_scope = scope::higher_privilege(principal.token_scope, db_scope);
-    let access_scope = agent_id.map_or(principal_scope, |id| {
-        scope::higher_privilege(principal_scope, scope::resolve_agent_scope(id))
-    });
+    let access_scope = scope::higher_privilege(principal.token_scope, db_scope);
 
     // Why: one POST is one call, and this hook is the only point that sees it —
     // an out-of-process agent has no second enforcement point to inherit from.
@@ -128,8 +132,10 @@ pub(crate) async fn govern_tool_use(
             user_id,
             session_id: session_id.clone(),
             agent_session: None,
-            agent_id: agent_id.cloned(),
+            agent_id: None,
             agent_scope: access_scope,
+            client_id: principal.client_id,
+            claimed,
         },
         target: AuditTarget {
             tool_name: target.as_str().to_owned(),
@@ -153,7 +159,7 @@ fn spawn_auth_denial(params: &AuthDenialParams<'_>, reason: &str) {
     let reason = reason.to_owned();
     let session_id = params.session_id.clone();
     let tool_name = params.tool_name.to_owned();
-    let agent_id = params.agent_id.cloned();
+    let claimed = params.claimed.cloned();
     let plugin_id = params.plugin_id.cloned();
     let session_service = Arc::clone(params.session_service);
     let headers = params.headers.clone();
@@ -192,8 +198,10 @@ fn spawn_auth_denial(params: &AuthDenialParams<'_>, reason: &str) {
                 user_id,
                 session_id: session_id.clone(),
                 agent_session: None,
-                agent_id,
+                agent_id: None,
                 agent_scope: AccessScope::Unknown,
+                client_id: None,
+                claimed,
             },
             target: AuditTarget {
                 tool_name,

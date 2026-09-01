@@ -38,11 +38,10 @@ rules:
     default_included: true
     roles: [user]
 
-  # Skills, plugins, agents, and mcp servers shipped with enterprise-demo need NO
-  # per-entity rule: they inherit the marketplace grant above via the parent
-  # cascade in marketplace_filter.rs (the bridge listing) and authz.rs (runtime
-  # authz). Add an entity-level rule here only to DENY a specific member — an
-  # entity-level deny overrides the inherited marketplace allow (deny-overrides).
+  # Skills and artifacts need NO per-entity rule: they inherit their plugin's
+  # rule (declared below), and a plugin with no rule of its own would inherit
+  # this marketplace grant. Add an entity-level rule here only to DENY a
+  # specific member — an entity-level deny overrides the inherited allow.
 
   # No `entity_type: agent` rules — this instance defines no A2A agents, so
   # there is nothing for a user-role member to list or invoke.
@@ -56,91 +55,77 @@ rules:
     default_included: true
     roles: [user]
 
-  # Project knowledge bank (stub RAG MCP). Read tools for every user; the
-  # upload_document tool is additionally admin-gated inside the server (see
-  # services/mcp/knowledge-bank.yaml).
+  # No knowledge-bank grant. The server still runs and its scheduled ingestion
+  # jobs (services/scheduler/config.yaml: knowledge_email_ingestion,
+  # knowledge_categorization) still write to `knowledge_documents` — but no
+  # skill reaches it, so no role is granted it. Restore this rule alongside
+  # whichever skill next needs the read path.
+
+  # Factsheet MCP server. Rendering a sheet reads no business data and reaches
+  # no third party — it turns a content model into a PDF — so authentication is
+  # the only gate that applies. Sending the result to a customer is a separate
+  # act on a separate server, and that is where approval belongs.
   - entity_type: mcp_server
-    entity_id: knowledge-bank
+    entity_id: factsheet
     access: allow
     default_included: true
     roles: [user]
 
-  # Admin control plane (systemprompt-admin plugin). These entities are members of
-  # the enterprise-demo marketplace, so without a rule of their own they would
-  # inherit its [user] grant. Declaring any rule on an entity opts it out of the
-  # marketplace cascade — the resolver falls back to a parent only when the
-  # entity declares no rules at all — and that is what makes `roles: [admin]`
-  # below restrictive rather than merely additive. Each entry therefore closes
-  # its entity to every role but admin, in the signed manifest and at runtime
-  # authz alike. The systemprompt MCP server is additionally gated by
-  # oauth.scopes in services/mcp/systemprompt.yaml.
+  # Outbound email MCP server. Granted to every user, because the control on
+  # sending is the approval chain, not the caller's role: `email_send` elicits
+  # an in-band confirmation from the drafter and then holds the call for a
+  # second human via the `require_approval` governance stage. Restricting the
+  # grant to admin would be worse, not safer — `exempt_scopes: [admin]` on that
+  # stage means an admin caller is never held, so an admin-only grant would make
+  # every send self-approved.
   - entity_type: mcp_server
-    entity_id: systemprompt
+    entity_id: email
     access: allow
-    default_included: false
-    roles: [admin]
+    default_included: true
+    roles: [user]
+
+  # --- Plugin scope declarations: one `entity_type: plugin` rule per plugin, always.
+  #
+  # A plugin is the role boundary. The cascade runs three levels deep —
+  # skill/artifact → plugin → marketplace — and the NEAREST level that declares
+  # any rule decides (core resolver): a level with no rules is transparent, a
+  # level with rules is closed to every role it does not name. So:
+  #
+  #   * a user-scoped plugin declares [user] and default_included: true; every
+  #     ruleless skill and dashboard inside it is visible to users (and to
+  #     admins, who hold the user role too — see odoo-roles.yaml);
+  #   * an admin-scoped plugin declares [admin] and default_included: false;
+  #     every ruleless skill and dashboard inside it is closed to users even
+  #     though the marketplace above admits them.
+  #
+  # Never add an `entity_type: skill` rule with `access: allow` — skills
+  # inherit their plugin, and a per-skill allow is the drift this design
+  # removes. A skill rule is for `access: deny` only (a targeted exclusion
+  # inside an otherwise-granted plugin). scripts/validate-services.sh enforces
+  # both, plus: every plugin has exactly one rule here, admin ⇒
+  # default_included: false, and no enabled skill or artifact is orphaned.
+  - entity_type: plugin
+    entity_id: systemprompt-commons
+    access: allow
+    default_included: true
+    roles: [user]
+  - entity_type: plugin
+    entity_id: systemprompt-user
+    access: allow
+    default_included: true
+    roles: [user]
   - entity_type: plugin
     entity_id: systemprompt-admin
     access: allow
     default_included: false
     roles: [admin]
-  - entity_type: skill
-    entity_id: admin_workspace_setup_cowork
-    access: allow
-    default_included: false
-    roles: [admin]
-  - entity_type: skill
-    entity_id: admin_user_report
-    access: allow
-    default_included: false
-    roles: [admin]
-  - entity_type: skill
-    entity_id: admin_activity_report
-    access: allow
-    default_included: false
-    roles: [admin]
-  - entity_type: skill
-    entity_id: analytics_dashboards
-    access: allow
-    default_included: false
-    roles: [admin]
-  - entity_type: skill
-    entity_id: inspect_ai_requests
-    access: allow
-    default_included: false
-    roles: [admin]
-  - entity_type: skill
-    entity_id: inspect_conversation
-    access: allow
-    default_included: false
-    roles: [admin]
-  - entity_type: skill
-    entity_id: manage_permissions
-    access: allow
-    default_included: false
-    roles: [admin]
-  - entity_type: skill
-    entity_id: demonstrate_governance
-    access: allow
-    default_included: false
-    roles: [admin]
-  - entity_type: skill
-    entity_id: inspect_agents
-    access: allow
-    default_included: false
-    roles: [admin]
-  - entity_type: skill
-    entity_id: manage_services
-    access: allow
-    default_included: false
-    roles: [admin]
-  - entity_type: skill
-    entity_id: inspect_mcp_and_skills
-    access: allow
-    default_included: false
-    roles: [admin]
-  - entity_type: skill
-    entity_id: systemprompt_cli
+
+  # The admin CLI-passthrough server. Its own rule (not just the admin plugin's)
+  # because MCP servers are marketplace members in their own right and the
+  # runtime MCP RBAC check resolves the server, not the plugin. Additionally
+  # gated by oauth.scopes in services/mcp/systemprompt.yaml.
+  - entity_type: mcp_server
+    entity_id: systemprompt
     access: allow
     default_included: false
     roles: [admin]
@@ -167,31 +152,24 @@ rules:
     default_included: true
     roles: [user, admin]
 
-  # Per-model Anthropic reroutes. Each claude-* model fans out to a different
-  # upstream (gemini, openai, minimax, native anthropic). The wildcard above
-  # only GRANTS routes the publish pipeline already materialised from the live
-  # profile; it cannot create the entity row. An explicit entity_id is a
-  # RuleTarget::Id, so the ACL loader self-materialises the row (upsert_entity)
-  # at every boot, independent of profile-route registration or pipeline
-  # timing, so each reroute survives a clean install. Ids match the route ids
-  # in the profile gateway.routes.
-  - entity_type: gateway_route
-    entity_id: claude-opus-4-8-gemini
-    access: allow
-    default_included: true
-    roles: [user]
-  - entity_type: gateway_route
-    entity_id: claude-sonnet-4-6-openai
-    access: allow
-    default_included: true
-    roles: [user]
-  - entity_type: gateway_route
-    entity_id: claude-3-7-sonnet-minimax
-    access: allow
-    default_included: true
-    roles: [user]
-  - entity_type: gateway_route
-    entity_id: claude-haiku-4-5-anthropic
-    access: allow
-    default_included: true
-    roles: [user]
+  # NOTE: gateway routes are granted by the wildcard above and NOTHING ELSE.
+  # Never add a `gateway_route` rule with a literal `entity_id` here.
+  #
+  # Route ids are generated, not authored: core derives them as
+  # synthesize_route_id(model_pattern, provider) = slug + "-" + fnv1a6, e.g.
+  # ("claude-*", "anthropic") -> claude-star-4203d1. There is no id a human can
+  # work out from the model name, so a hand-written one names a route that does
+  # not exist.
+  #
+  # This block used to hold four such ids — claude-opus-4-8-gemini,
+  # claude-sonnet-4-6-openai, claude-3-7-sonnet-minimax and
+  # claude-haiku-4-5-anthropic — added in 2999fabf to grant per-model reroutes.
+  # None ever matched a route in any profile. They were invisible because core
+  # ingestion self-materialised a catalog row for each one at every boot, so the
+  # grants looked healthy while pointing at nothing dispatchable.
+  #
+  # Two things now stop that recurring: the governance bootstrap hands core the
+  # profile's real route ids as the authoritative catalog, so a literal id that
+  # names no route fails the boot with the id in the message; and
+  # scripts/validate-services.sh rejects a literal gateway_route entity_id in CI,
+  # which catches it without needing a profile (profiles are gitignored).

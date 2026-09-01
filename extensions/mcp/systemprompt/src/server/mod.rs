@@ -75,7 +75,7 @@ impl ServerHandler for SystempromptServer {
                 .enable_extensions_with(build_extension_capabilities())
                 .build(),
         )
-        .with_protocol_version(ProtocolVersion::V_2025_06_18)
+        .with_protocol_version(ProtocolVersion::V_2026_07_28)
         .with_server_info(
             Implementation::new(
                 format!("SystemPrompt ({})", self.service_id),

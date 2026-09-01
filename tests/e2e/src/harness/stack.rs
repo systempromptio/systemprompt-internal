@@ -17,6 +17,7 @@ use std::sync::Arc;
 
 use axum::Router;
 use axum::body::Body;
+use axum::extract::ConnectInfo;
 use axum::http::{Request, StatusCode, header};
 use http_body_util::BodyExt;
 use sqlx::PgPool;
@@ -35,6 +36,7 @@ pub struct Stack {
     pub router: Router,
     pub db: TempDb,
     pub odoo: super::odoo_mock::OdooMock,
+    pub smtp: super::smtp_mock::SmtpMock,
     pub admin_token: String,
     pub user_token: String,
 }
@@ -53,7 +55,14 @@ pub fn profile_path() -> PathBuf {
     repo_root().join(format!("tests/target/e2e-profile-{}", std::process::id()))
 }
 
-fn install_profile(database_url: &str, odoo_url: &str, govern_port: u16) {
+struct FixtureSecrets<'a> {
+    database_url: &'a str,
+    odoo_url: &'a str,
+    smtp_host: &'a str,
+    smtp_port: u16,
+}
+
+fn install_profile(secrets: &FixtureSecrets<'_>, govern_port: u16) {
     let root = repo_root();
     let dir = profile_path();
     std::fs::create_dir_all(&dir).expect("create fixture profile directory");
@@ -62,9 +71,18 @@ fn install_profile(database_url: &str, odoo_url: &str, govern_port: u16) {
         .replace("__PROFILE_DIR__", &dir.to_string_lossy())
         .replace("__GOVERN_PORT__", &govern_port.to_string());
     std::fs::write(dir.join("profile.yaml"), yaml).expect("write fixture profile");
-    // odoo_url / odoo_db ride along as custom secret keys — the same channel
-    // `just setup-local` uses — so the Odoo login handler resolves the mock
-    // without touching process env.
+    // odoo_url / odoo_db and the smtp_* keys ride along as custom secret keys —
+    // the same channel `just setup-local` uses — so the Odoo login handler and
+    // the mail transport both resolve their mocks without touching process env.
+    // `smtp_security: plaintext` is the opt-out that lets the transport reach a
+    // plaintext listener: the capture server negotiates no TLS, and without it
+    // every send would fail in STARTTLS before lettre ever built a message.
+    let FixtureSecrets {
+        database_url,
+        odoo_url,
+        smtp_host,
+        smtp_port,
+    } = *secrets;
     let secrets = format!(
         r#"{{
   "database_url": "{database_url}",
@@ -72,7 +90,13 @@ fn install_profile(database_url: &str, odoo_url: &str, govern_port: u16) {
   "manifest_signing_secret_seed": "ZTJlLXN1aXRlLXNlZWQtbm90LXJlYWwtMDAwMDAwMDA=",
   "encryption_master_key": "{MASTER_KEY_HEX}",
   "odoo_url": "{odoo_url}",
-  "odoo_db": "e2e_odoo"
+  "odoo_db": "e2e_odoo",
+  "smtp_host": "{smtp_host}",
+  "smtp_port": "{smtp_port}",
+  "smtp_username": "e2e-smtp-user",
+  "smtp_password": "e2e-smtp-password",
+  "smtp_from": "systemprompt.io <hello@systemprompt.io>",
+  "smtp_security": "plaintext"
 }}"#
     );
     std::fs::write(dir.join("secrets.json"), secrets).expect("write fixture secrets");
@@ -99,8 +123,13 @@ fn jwt_issuer() -> String {
         .clone()
 }
 
+// Why: a bare UUID, not a readable `{name}-{uuid}`. `UserId` parses as a UUID
+// on the MCP auth path (`build_authenticated_context` in core's rbac
+// middleware), so a prefixed id is rejected with "Invalid user ID in JWT" the
+// moment a token reaches an MCP server. The in-process router never parses it,
+// which is why the prefix survived until a subprocess test used these tokens.
 async fn seed_user(pool: &PgPool, name: &str, email: &str, roles: &[&str]) -> UserId {
-    let user_id = UserId::new(format!("{name}-{}", uuid::Uuid::new_v4().simple()));
+    let user_id = UserId::new(uuid::Uuid::new_v4().to_string());
     sqlx::query(
         "INSERT INTO users (id, name, email, roles, email_verified, status)
          VALUES ($1, $2, $3, $4, true, 'active')",
@@ -140,6 +169,57 @@ async fn mint_token(pool: &PgPool, user_id: &UserId, email: &str) -> String {
     .to_owned()
 }
 
+// Why: `JwtService::generate_admin_token` hardcodes `roles: ["admin","user"]`
+// and `UserType::Admin`, so it cannot express a plain user. The in-process
+// router never noticed — `user_context_middleware` reads roles from the
+// `users` row — but the MCP auth path builds its `AuthenticatedUser` from the
+// JWT's own claims, so every token minted that way is an admin there. Anything
+// asserting on non-admin behaviour over the MCP wire needs a token whose claims
+// really say `user`, which means assembling one here.
+async fn mint_user_token(pool: &PgPool, user_id: &UserId, email: &str) -> String {
+    use jsonwebtoken::{Algorithm, Header, encode};
+
+    let session_id = SessionId::new(uuid::Uuid::new_v4().to_string());
+    sqlx::query(
+        "INSERT INTO user_sessions (session_id, user_id, session_source) VALUES ($1, $2, 'bridge')",
+    )
+    .bind(session_id.as_str())
+    .bind(user_id.as_str())
+    .execute(pool)
+    .await
+    .expect("seed user session");
+
+    let now = chrono::Utc::now();
+    let claims = systemprompt::oauth::JwtClaims {
+        sub: user_id.to_string(),
+        iat: now.timestamp(),
+        exp: (now + chrono::Duration::hours(1)).timestamp(),
+        nbf: Some(now.timestamp()),
+        iss: jwt_issuer(),
+        aud: systemprompt::models::auth::JwtAudience::standard(),
+        jti: uuid::Uuid::new_v4().to_string(),
+        scope: vec![systemprompt::models::auth::Permission::User],
+        username: email.to_owned(),
+        email: email.to_owned(),
+        user_type: systemprompt::models::auth::UserType::User,
+        roles: vec!["user".to_owned()],
+        attributes: std::collections::BTreeMap::new(),
+        client_id: None,
+        token_type: systemprompt::models::auth::TokenType::Bearer,
+        auth_time: now.timestamp(),
+        session_id: Some(session_id),
+        rate_limit_tier: None,
+        plugin_id: None,
+        act: None,
+    };
+
+    let kid = systemprompt_security::keys::authority::active_kid().expect("an active signing kid");
+    let mut header = Header::new(Algorithm::RS256);
+    header.kid = Some(kid.to_owned());
+    let key = systemprompt_security::keys::authority::encoding_key().expect("an encoding key");
+    encode(&header, &claims, key).expect("sign the user token")
+}
+
 async fn reapply_seeds(pool: &Arc<PgPool>) {
     let database =
         systemprompt::database::Database::from_pools(Arc::clone(pool), Some(Arc::clone(pool)));
@@ -150,10 +230,19 @@ async fn reapply_seeds(pool: &Arc<PgPool>) {
         .expect("re-apply extension seeds after provisioning the admin");
 }
 
+// The real logins, matching the live suite and the production clone. This
+// harness seeds a throwaway database and talks to a wiremock Odoo, so nothing
+// here reaches a real account — but the identities the assertions are written
+// against should still be the ones the system actually carries, so a manifest
+// or role expectation means the same thing in both tiers.
+pub const ADMIN_EMAIL: &str = "ed@systemprompt.io";
+pub const USER_EMAIL: &str = "ed+notadmin@systemprompt.io";
+
 impl Stack {
     pub async fn create() -> Option<Self> {
         let db = TempDb::create().await?;
         let odoo = super::odoo_mock::OdooMock::start().await;
+        let smtp = super::smtp_mock::SmtpMock::start().await;
         // Why: the profile's authz hook URL must be live before any config is
         // built, so the port is reserved first and the assembled router is
         // served on it below — a spawned MCP subprocess fail-closes on an
@@ -164,13 +253,21 @@ impl Stack {
             .local_addr()
             .expect("read the governance hook port")
             .port();
-        install_profile(&db.url, &odoo.url(), govern_port);
+        install_profile(
+            &FixtureSecrets {
+                database_url: &db.url,
+                odoo_url: &odoo.url(),
+                smtp_host: &smtp.host,
+                smtp_port: smtp.port,
+            },
+            govern_port,
+        );
 
         // Why: `AppContextBuilder::build` resolves the profile's system_admin
         // by name and refuses to boot without an active admin row — the same
         // startup requirement the real server has.
-        let admin_id = seed_user(&db.pool, "admin", "e2e-admin@e2e.test", &["admin", "user"]).await;
-        let user_id = seed_user(&db.pool, "e2e-user", "e2e-user@e2e.test", &["user"]).await;
+        let admin_id = seed_user(&db.pool, "admin", ADMIN_EMAIL, &["admin", "user"]).await;
+        let user_id = seed_user(&db.pool, "e2e-user", USER_EMAIL, &["user"]).await;
         reapply_seeds(&db.pool).await;
 
         // Why: the manifest filter resolves grants from access_control_rules,
@@ -180,12 +277,18 @@ impl Stack {
         systemprompt_web_admin::repositories::config::acl_yaml_loader::load_from_yaml(
             &db.pool,
             &repo_root().join("services"),
+            // Why: `RegisteredEntities` names the ids a `gateway_route` grant is
+            // allowed to reference, and only the caller knows where that truth
+            // lives. The real loader fills it from the live gateway catalog; no
+            // gateway is bootstrapped here, and an empty set is documented to
+            // enforce nothing rather than to reject every route.
+            &systemprompt::security::authz::RegisteredEntities::default(),
         )
         .await
         .expect("ingest services/access-control into the throwaway database");
 
-        let admin_token = mint_token(&db.pool, &admin_id, "e2e-admin@e2e.test").await;
-        let user_token = mint_token(&db.pool, &user_id, "e2e-user@e2e.test").await;
+        let admin_token = mint_token(&db.pool, &admin_id, ADMIN_EMAIL).await;
+        let user_token = mint_user_token(&db.pool, &user_id, USER_EMAIL).await;
 
         let ctx = Arc::new(
             AppContextBuilder::new()
@@ -202,13 +305,24 @@ impl Stack {
             .expect("adopt the governance hook listener");
         let hook_router = router.clone();
         tokio::spawn(async move {
-            let _ = axum::serve(hook_listener, hook_router).await;
+            // `into_make_service_with_connect_info` is what production serves
+            // with, and it is what puts `ConnectInfo` in the extensions. Serving
+            // the bare router leaves `ip_ban_middleware` unable to resolve a
+            // client address, so it denies — and a spawned MCP server reports
+            // that as `authz hook unavailable`, which reads like an outage
+            // rather than a harness defect.
+            let _ = axum::serve(
+                hook_listener,
+                hook_router.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+            )
+            .await;
         });
 
         Some(Self {
             router,
             db,
             odoo,
+            smtp,
             admin_token,
             user_token,
         })
@@ -225,13 +339,23 @@ impl Stack {
         if let Some(token) = bearer {
             req = req.header(header::AUTHORIZATION, format!("Bearer {token}"));
         }
-        let req = match body {
+        let mut req = match body {
             Some(json) => req
                 .header(header::CONTENT_TYPE, "application/json")
                 .body(Body::from(json.to_string())),
             None => req.body(Body::empty()),
         }
         .expect("build request");
+        // Production serves with `into_make_service_with_connect_info`, so every
+        // real request carries a peer address. `tower::oneshot` does not add
+        // one, and `ip_ban_middleware` denies a request whose client address it
+        // cannot resolve — correctly, since an unattributable caller cannot be
+        // ban-checked. Without this the whole suite 403s on `ip-unresolvable`.
+        req.extensions_mut()
+            .insert(ConnectInfo(std::net::SocketAddr::from((
+                [127, 0, 0, 1],
+                50000,
+            ))));
 
         let response = self
             .router

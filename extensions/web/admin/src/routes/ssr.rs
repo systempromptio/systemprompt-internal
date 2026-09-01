@@ -163,6 +163,19 @@ fn entity_routes() -> Router<Arc<PgPool>> {
             "/entities/requests/{request_id}",
             get(handlers::ssr::governance_audit_detail_page),
         )
+        // Why: the approval queue sits on this router deliberately — it
+        // inherits the same session auth and admin gate as every other
+        // mutation here, so a held tool call cannot be approved by anyone who
+        // could not already change policy.
+        .route("/governance/approvals", get(handlers::ssr::approvals_page))
+        .route(
+            "/governance/approvals/{call_id}/approve",
+            post(handlers::ssr::approval_approve),
+        )
+        .route(
+            "/governance/approvals/{call_id}/deny",
+            post(handlers::ssr::approval_deny),
+        )
         .route(
             "/entities/sessions",
             get(handlers::ssr::users_sessions_page),

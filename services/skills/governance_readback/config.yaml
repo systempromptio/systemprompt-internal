@@ -1,0 +1,12 @@
+id: governance_readback
+name: "Governance Readback"
+description: "Read back what a piece of work actually cost and how it was governed: the tool calls it made, the AI requests it fired, the policy decision on each, and the price in dollars — from the audit spine, never an estimate."
+enabled: true
+file: SKILL.md
+tags:
+  - governance
+  - cost
+  - audit
+  - traces
+category: governance
+display_category: "Brand & Workspace"

@@ -292,6 +292,10 @@ e2e:
         echo "building systemprompt-mcp-odoo (the MCP wire test needs it)…"
         cargo build -p systemprompt-mcp-odoo
     fi
+    if [ ! -x target/release/systemprompt-mcp-email ] && [ ! -x target/debug/systemprompt-mcp-email ]; then
+        echo "building systemprompt-mcp-email (the email_send wire tests need it)…"
+        cargo build -p systemprompt-mcp-email
+    fi
     if [ -z "${SYSTEMPROMPT_TEST_DATABASE_URL:-}" ] && [ -f .systemprompt/profiles/local/secrets.json ]; then
         SYSTEMPROMPT_TEST_DATABASE_URL=$(python3 -c "
     import json, urllib.parse as up
@@ -313,7 +317,7 @@ e2e-fast:
     print(up.urlunsplit((u.scheme, u.netloc, '/postgres', '', '')))")
         export SYSTEMPROMPT_TEST_DATABASE_URL
     fi
-    cargo nextest run --manifest-path tests/Cargo.toml -p e2e-tests -E 'not test(a_signed_in_user)'
+    cargo nextest run --manifest-path tests/Cargo.toml -p e2e-tests -E 'not test(a_signed_in_user) and not test(email_send)'
 
 # End-to-end smoke (Tier B): drives the RUNNING local stack over real HTTP —
 # seeds e2e-admin@/e2e-sales@ in Odoo, signs in as both, diffs their
@@ -344,6 +348,7 @@ _lint-gates-uncoordinated:
         lint-inline-comments.sh
         check-duplicate-types.sh
         check-repository-naming.sh
+        check-web-transport.sh
         check-admin-template-links.sh
         check-admin-template-assets.sh
         # admin-css-classes + frontend-standards now run as cargo tests in
@@ -354,8 +359,9 @@ _lint-gates-uncoordinated:
         check-file-size.sh
         check-asset-reachability.sh
         check-workspace-deps.sh
-        check-cowork-artifacts.sh
         validate-services.sh
+        check-mcp-tool-names.sh
+        check-release-version.sh
     )
     logdir=$(mktemp -d)
     trap 'rm -rf "$logdir"' EXIT
@@ -423,19 +429,14 @@ _doc-check-uncoordinated:
     SQLX_OFFLINE=true RUSTDOCFLAGS="-D warnings" cargo doc --manifest-path tests/Cargo.toml --workspace --no-deps
     RUSTDOCFLAGS="-D warnings" cargo doc --manifest-path bridge/Cargo.toml --no-deps
 
-# The workspace must build on the declared minimum supported Rust version
-# (rust-version in Cargo.toml). Requires: rustup toolchain install 1.94.0
+# Both workspaces must build on the declared minimum supported Rust version,
+# and must declare the same one. The number is read from the manifests, never
+# hardcoded — see scripts/check-msrv.sh for why that matters.
 msrv-check:
     @scripts/build-coordinator.sh run msrv-check "" -- {{just_executable()}} _msrv-check-uncoordinated
 
 _msrv-check-uncoordinated:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    if ! rustup toolchain list | grep -q '^1\.94\.0'; then
-        echo "msrv-check: toolchain 1.94.0 missing — run: rustup toolchain install 1.94.0" >&2
-        exit 1
-    fi
-    SQLX_OFFLINE=true cargo +1.94.0 check --workspace
+    bash scripts/check-msrv.sh
 
 # ══════════════════════════════════════════════════════════════════════════════
 # COVERAGE (raw llvm-cov; floor + ratchet vs tracked coverage/baseline.json)
@@ -550,89 +551,7 @@ lint-no-synthesis:
 
 # Prepare SQLx offline query cache (requires running database)
 prepare:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    SECRETS_FILE="{{justfile_directory()}}/.systemprompt/profiles/local/secrets.json"
-    if [ ! -f "$SECRETS_FILE" ]; then
-        echo "Error: No local profile secrets found at $SECRETS_FILE"
-        echo "Run 'just db-up' first to start the database"
-        exit 1
-    fi
-    DB_URL=$(jq -r '.database_url // empty' "$SECRETS_FILE" 2>/dev/null)
-    if [ -z "$DB_URL" ] || [ "$DB_URL" = "null" ]; then
-        echo "Error: No database_url in secrets"
-        exit 1
-    fi
-    PG_ISREADY=""
-    if command -v pg_isready >/dev/null 2>&1; then PG_ISREADY="pg_isready"
-    elif [ -x /opt/homebrew/opt/libpq/bin/pg_isready ]; then PG_ISREADY="/opt/homebrew/opt/libpq/bin/pg_isready"
-    elif [ -x /usr/local/opt/libpq/bin/pg_isready ]; then PG_ISREADY="/usr/local/opt/libpq/bin/pg_isready"
-    fi
-    if [ -z "$PG_ISREADY" ] || ! "$PG_ISREADY" -d "$DB_URL" -t 2 >/dev/null 2>&1; then
-        echo "Error: Database not reachable at $DB_URL"
-        echo "Run 'just db-up' first to start the database"
-        exit 1
-    fi
-    # Apply pending migrations before sqlx prepare — otherwise the macros
-    # see a schema older than the code references and fail with
-    # "relation ... does not exist". Skipped if no CLI binary exists yet
-    # (first-time bootstrap before any build).
-    if [ -x "{{CLI}}" ]; then
-        echo "Applying pending migrations..."
-        {{CLI}} infra db migrate --profile local
-    else
-        echo "Warning: no systemprompt binary yet; skipping migrate step."
-        echo "  If sqlx prepare fails with 'relation does not exist',"
-        echo "  build first ('just build') then re-run 'just prepare'."
-    fi
-    echo "Preparing SQLx offline cache..."
-    export DATABASE_URL="$DB_URL"
-    # Drop the incremental artifacts of every crate that uses sqlx, so each
-    # query macro re-expands against the freshly-migrated schema.
-    #
-    # This has to be all of them, not just the crate whose schema changed.
-    # `cargo sqlx prepare` collects query data emitted by macro expansion, so
-    # a crate cargo considers fresh contributes nothing to the run and its
-    # queries are pruned from .sqlx as though they no longer existed. That is
-    # what made prepare non-deterministic: a cold cache re-expanded everything
-    # and kept the full set, while a warm one silently dropped whatever it did
-    # not rebuild (the event_outbox queries from systemprompt-events being the
-    # usual casualty). The emitted set must not depend on target/ state.
-    #
-    # Dependencies count too, not just workspace members — their queries land
-    # in the workspace cache the same way.
-    SQLX_PKGS=$(cargo metadata --format-version 1 2>/dev/null \
-        | jq -r '.packages[] | select(.dependencies[]?.name == "sqlx") | .name' \
-        | sort -u)
-    if [ -z "$SQLX_PKGS" ]; then
-        echo "Error: could not resolve the sqlx-dependent package list."
-        echo "Without it, prepare would prune queries it simply did not rebuild."
-        exit 1
-    fi
-    for pkg in $SQLX_PKGS; do
-        cargo clean -p "$pkg" 2>/dev/null || true
-    done
-    # Workspace-level prepare (catches lib crates). The admin crate's
-    # governance-ssr queries are feature-gated off by default; the flag keeps
-    # their cache entries from being pruned as though they no longer existed.
-    cargo sqlx prepare --workspace -- --features governance-ssr
-    # Per-crate prepare for binary/extension crates that cargo sqlx skips
-    EXTENSION_DIRS="extensions/web extensions/mcp/shared extensions/mcp/systemprompt"
-    for dir in $EXTENSION_DIRS; do
-        if [ -f "{{justfile_directory()}}/$dir/Cargo.toml" ]; then
-            # Skip crates with no sqlx dependency — prepare would only
-            # resurrect an orphaned .sqlx cache.
-            if ! grep -qE '^sqlx' "{{justfile_directory()}}/$dir/Cargo.toml"; then
-                continue
-            fi
-            echo "  Preparing $dir..."
-            (cd "{{justfile_directory()}}/$dir" && cargo sqlx prepare 2>&1 | tail -1) || true
-            if ls "{{justfile_directory()}}/$dir/.sqlx/"*.json >/dev/null 2>&1; then
-                cp "{{justfile_directory()}}/$dir/.sqlx/"*.json "{{justfile_directory()}}/.sqlx/"
-            fi
-        fi
-    done
-    echo "SQLx cache prepared successfully ($(ls {{justfile_directory()}}/.sqlx/ | wc -l) queries cached)"
+    scripts/sqlx-prepare.sh "{{CLI}}"
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SERVICES & DATABASE
@@ -1034,11 +953,12 @@ _build-mcp-uncoordinated:
     DATABASE_URL="$(just _db-url)" {{CLI}} build mcp --release
 
 # Build everything for deployment (Rust binary + MCP servers + web assets)
+# The bridge is NOT built here: it ships from the GitHub release that
+# .github/workflows/release.yml cuts on every merge to main, and the admin
+# pages link to that release by version.
 build-all:
     just build --release
     just build-mcp
-    just bridge-package-linux
-    just bridge-package-windows
     just web-build
     {{CLI_RELEASE}} infra jobs run publish_pipeline
     @echo "All components built"
@@ -1071,11 +991,11 @@ web-build:
 
 # Build Docker image for local testing
 docker-build TAG="local":
-    docker build -f .systemprompt/Dockerfile -t systemprompt-template:{{TAG}} .
+    docker build -f Dockerfile -t systemprompt-internal:{{TAG}} .
 
 # Run image locally for testing
 docker-run TAG="local":
-    docker run -p 8080:8080 --env-file .env systemprompt-template:{{TAG}}
+    docker run -p 8080:8080 --env-file .env systemprompt-internal:{{TAG}}
 
 # Build the branded bridge. Its own standalone workspace, NOT the server
 # workspace — `just build` does not touch it, and a bare `cargo build` from the
@@ -1103,6 +1023,51 @@ core-checkout:
         git clone --quiet https://github.com/systempromptio/systemprompt-core "$CORE"
     fi
 
+# Serve the bridge GUI's web tree over HTTP so a browser can render it.
+#
+# The desktop webview is Windows/macOS only and reads its assets over a wry
+# custom protocol, so this is the only way to see the GUI on Linux. Assets are
+# served from disk: edit CSS/JS/HTML and refresh, no rebuild. Fixtures live in
+# ../systemprompt-core/bin/bridge/web/dev/fixtures — pick one with
+# ?fixture=<name>. Serves THIS repo's branded overlay.
+bridge-preview PORT="4310": core-checkout
+    #!/usr/bin/env bash
+    set -euo pipefail
+    CORE="{{justfile_directory()}}/../systemprompt-core/bin/bridge"
+    SYSTEMPROMPT_BRIDGE_WEB_OVERLAY="{{justfile_directory()}}/bridge/web" \
+        cargo build --manifest-path "$CORE/Cargo.toml" --features dev-preview \
+        --bin systemprompt-bridge
+    echo "==> http://127.0.0.1:{{PORT}}/   (ctrl-c to stop)"
+    "$CORE/target/debug/systemprompt-bridge" dev-web --port {{PORT}} --web-root "$CORE/web"
+
+# Screenshot every bridge GUI state and build a contact sheet to review them.
+# Starts its own preview, so it does not need `just bridge-preview` running.
+bridge-shots PORT="4311":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    CORE="{{justfile_directory()}}/../systemprompt-core/bin/bridge"
+    SYSTEMPROMPT_BRIDGE_WEB_OVERLAY="{{justfile_directory()}}/bridge/web" \
+        cargo build --manifest-path "$CORE/Cargo.toml" --features dev-preview \
+        --bin systemprompt-bridge
+    if [ ! -d playwright/node_modules ]; then
+        echo "==> installing Playwright dependencies"
+        just e2e-install
+    fi
+    "$CORE/target/debug/systemprompt-bridge" dev-web --port {{PORT}} --web-root "$CORE/web" &
+    PREVIEW_PID=$!
+    # Stop the preview whichever way this exits, including a failing spec.
+    trap 'kill $PREVIEW_PID 2>/dev/null || true' EXIT
+    for _ in $(seq 1 40); do
+        curl -sf "http://127.0.0.1:{{PORT}}/dev/fixtures" >/dev/null && break
+        sleep 0.25
+    done
+    echo "==> rasterizing (Playwright)"
+    cd playwright && BRIDGE_PREVIEW_URL="http://127.0.0.1:{{PORT}}" \
+        npx playwright test tests/bridge-agents.spec.ts && cd ..
+    echo "==> contact sheet"
+    node scripts/bridge-contact-sheet.mjs
+    echo "open playwright/bridge-shots/index.html"
+
 # Package the branded bridge as a Linux release tarball into dist/
 # Coordinated: bridge/ and the core sibling are both in the fingerprint, so a
 # failed deploy retried on the same tree skips straight past this step.
@@ -1112,7 +1077,7 @@ bridge-package-linux:
 # Cross-compile the Windows bridge exe (x86_64-pc-windows-msvc via cargo-xwin —
 # msvc is required: it statically links WebView2Loader, a -gnu build ships a
 # bare exe that dies at start on "WebView2Loader.dll was not found") and stage
-# it into storage/files/downloads/. Follow with `just publish`.
+# it into dist/. Real releases come from .github/workflows/release.yml.
 bridge-package-windows: core-checkout
     @scripts/build-coordinator.sh run bridge-package-windows "" -- scripts/package-bridge-windows.sh
 
@@ -1120,8 +1085,11 @@ bridge-package-windows: core-checkout
 # re-binds the machine to whoever that code belongs to.
 # Point Claude Code on THIS host at the gateway (CODE comes from /admin/profile)
 connect CODE GATEWAY="http://localhost:8080":
-    curl -fsSL {{GATEWAY}}/files/downloads/install.sh | sh -s -- \
-        --download-base {{GATEWAY}}/files/downloads --code {{CODE}}
+    #!/usr/bin/env bash
+    set -euo pipefail
+    BASE="${DOWNLOAD_BASE:-https://github.com/systempromptio/systemprompt-internal/releases/download/bridge-v$(sed -n 's/^version = "\([0-9.]*\)"/\1/p' bridge/Cargo.toml | head -1)}"
+    curl -fsSL "$BASE/install.sh" | sh -s -- \
+        --download-base "$BASE" --gateway {{GATEWAY}} --code {{CODE}}
 
 # Signing in is needed the first time only: the credential persists in a
 # per-gateway volume, so later runs are just `just claude`. With no CODE the
@@ -1547,6 +1515,36 @@ e2e-install:
 playwright *ARGS:
     cd playwright && npx playwright test {{ARGS}}
 
+# Render every artifact type through the real MCP UI renderer, rasterize each in
+# light / dark / 375px-narrow, and assemble a contact sheet.
+#
+# Local and opt-in: CI has no browser, and cross-machine font rendering makes
+# golden-image diffing flaky. The functional half — that all twelve types render
+# and carry the brand theme — is a normal Rust test that CI does run.
+artifact-gallery:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "==> rendering artifacts (Rust)"
+    # The wire entry (`wire-crm-lead-search.html`) comes from `just e2e`, which
+    # needs a database; this render pass does not, so it stays runnable on its
+    # own and the spec picks the wire entry up whenever it is present.
+    cargo nextest run --manifest-path tests/Cargo.toml -p e2e-tests -E 'test(artifact_gallery)' --no-capture
+    if [ ! -d playwright/node_modules ]; then
+        echo "==> installing Playwright dependencies"
+        just e2e-install
+    fi
+    echo "==> rasterizing (Playwright)"
+    cd playwright && npx playwright test tests/artifact-gallery.spec.ts && cd ..
+    # Drives core's real artifact shell as a host would. It reads the HTML the
+    # step above just rendered, because `frame.js` is include_str!'d into each
+    # artifact at render time — run against a stale gallery it tests the old
+    # copy of the very file it is checking.
+    echo "==> host theme handshake (Playwright)"
+    cd playwright && npx playwright test tests/artifact-host-theme.spec.ts && cd ..
+    echo "==> contact sheet"
+    node scripts/artifact-contact-sheet.mjs
+    echo "open playwright/artifact-shots/index.html"
+
 # Test build without pushing
 docker-test:
     just build-all
@@ -1862,24 +1860,24 @@ core-bump version:
     @! grep -q '^\[patch\.crates-io\]' Cargo.toml || (echo "ERROR: [patch.crates-io] is active — publish core and re-comment it first" && exit 1)
     scripts/sync-release-version.sh {{version}}
     cargo update -w
+    cargo update -w --manifest-path bridge/Cargo.toml
     just db-up
     cargo run --bin systemprompt -- infra db migrate || true
     just build
     just clippy
     @echo "core-bump {{version}} complete — review the diff, run tests, commit to main, push, then: just release {{version}}"
 
-# Step B: tag the release. Nothing downstream is automatic — this repo runs no
-# hosted CI, so the tag is a marker and the artifacts are built here by hand
-# (just build-all, just docker-build) when a release actually needs shipping.
+# Step B: confirm the release. The v<version> and bridge-v<version> releases
+# (and their tags) are cut by .github/workflows/release.yml when the release
+# PR merges to main; this just proves they exist (see docs/RELEASING.md).
 release version:
     @test -z "$(git status --porcelain)" || (echo "ERROR: working tree not clean" && exit 1)
     git fetch origin main
     @test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" || (echo "ERROR: HEAD != origin/main — push first" && exit 1)
     scripts/sync-release-version.sh {{version}} --check
-    just verify
-    git tag "v{{version}}"
-    git push origin "v{{version}}"
-    @echo "v{{version}} tagged and pushed. No CI will pick it up — build artifacts locally with 'just build-all'."
+    gh release view "v{{version}}" --json url,assets --jq '.url, (.assets[].name)'
+    gh release view "bridge-v{{version}}" --json url --jq .url
+    @echo "v{{version}}: gateway + bridge releases exist (cut by release.yml on the merge to main). Deploy with 'just deploy'."
 
 # --- Odoo companion app (Fly) --------------------------------------------
 # Odoo CE runs as its own Fly app (sp-88906bfd0afd-odoo) with a volume for
@@ -1986,13 +1984,32 @@ odoo-local-init:
     EXISTS=$(PGPASSWORD=123 psql -h localhost -p "$PG_PORT" -U systemprompt -d systemprompt \
       -tAc "SELECT 1 FROM pg_database WHERE datname='odoo_local'")
     if [ "$EXISTS" = "1" ]; then
-        echo "odoo_local database already exists — nothing to do."
+        echo "odoo_local database already exists."
     else
         echo "Initialising odoo_local (base module, no demo data)..."
         docker compose -p "$PROJECT" -f "$COMPOSE_FILE" \
           run --rm odoo odoo -d odoo_local -i base --without-demo=all --stop-after-init
-        echo "odoo_local initialised. Login: admin / admin."
+        echo "odoo_local initialised."
     fi
+    # Why: not "nothing to do" on an existing database. The demo-data cleanup
+    # that archived `admin` in production was applied here too, and an archived
+    # admin cannot authenticate over RPC — which is exactly the credential
+    # `just e2e-live` signs in with, so Tier B failed with "no Odoo at
+    # http://localhost:8070 or bad admin credential" on a perfectly healthy
+    # Odoo. Re-assert the local dev admin every run; it is idempotent, and this
+    # database is a local fixture, never a real one.
+    echo "Ensuring the local admin is active with the dev password..."
+    docker compose -p "$PROJECT" -f "$COMPOSE_FILE" exec -T odoo \
+      odoo shell -d odoo_local --db_host=postgres --db_user=odoo --db_password=odoo \
+        --no-http --log-level=warn <<'ODOO_SHELL'
+    u = env['res.users'].with_context(active_test=False).search([('login', '=', 'admin')], limit=1)
+    if u:
+        u.write({'active': True, 'password': 'admin'})
+        env.cr.commit()
+        print('local Odoo admin is active. Login: admin / admin.')
+    else:
+        print('WARNING: no `admin` user in odoo_local; e2e-live will not authenticate.')
+    ODOO_SHELL
 
 # Tail the local Odoo sidecar's logs (it starts/stops with `just db-up`/`db-down`)
 odoo-local-logs:
@@ -2060,3 +2077,44 @@ promote SHA="":
     echo
     echo "Opened https://github.com/$REPO/pull/$NUM"
     echo "Review it, then merge when you are ready:  gh pr merge $NUM --merge"
+
+# Screenshot the web-tree half of the Windows-native shell (bridge review 04).
+# The native chrome — title bar, tray, toasts, logon task — cannot appear here.
+# Evidence for bridge-review doc 01 (navigation and IA).
+bridge-nav-shots PORT="4313":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    CORE="{{justfile_directory()}}/../systemprompt-core/bin/bridge"
+    cargo build --manifest-path "$CORE/Cargo.toml" --features dev-preview \
+        --bin systemprompt-bridge
+    if [ ! -d playwright/node_modules ]; then
+        just e2e-install
+    fi
+    "$CORE/target/debug/systemprompt-bridge" dev-web --port {{PORT}} --web-root "$CORE/web" &
+    PREVIEW_PID=$!
+    trap 'kill $PREVIEW_PID 2>/dev/null || true' EXIT
+    for _ in $(seq 1 40); do
+        curl -sf "http://127.0.0.1:{{PORT}}/dev/fixtures" >/dev/null && break
+        sleep 0.25
+    done
+    cd playwright && BRIDGE_PREVIEW_URL="http://127.0.0.1:{{PORT}}" \
+        npx playwright test tests/bridge-navigation.spec.ts
+
+bridge-windows-shots PORT="4312":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    CORE="{{justfile_directory()}}/../systemprompt-core/bin/bridge"
+    cargo build --manifest-path "$CORE/Cargo.toml" --features dev-preview \
+        --bin systemprompt-bridge
+    if [ ! -d playwright/node_modules ]; then
+        just e2e-install
+    fi
+    "$CORE/target/debug/systemprompt-bridge" dev-web --port {{PORT}} --web-root "$CORE/web" &
+    PREVIEW_PID=$!
+    trap 'kill $PREVIEW_PID 2>/dev/null || true' EXIT
+    for _ in $(seq 1 40); do
+        curl -sf "http://127.0.0.1:{{PORT}}/dev/fixtures" >/dev/null && break
+        sleep 0.25
+    done
+    cd playwright && BRIDGE_PREVIEW_URL="http://127.0.0.1:{{PORT}}" \
+        npx playwright test tests/bridge-windows-shell.spec.ts

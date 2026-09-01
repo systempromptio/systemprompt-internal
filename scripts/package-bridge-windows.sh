@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Cross-compile the branded bridge for Windows and stage it as the single-file
-# download the admin Bridge Setup page links to
-# (storage/files/downloads/systemprompt-internal-bridge-windows.exe).
+# Cross-compile the branded bridge for Windows into dist/ for local testing.
+# Real releases are built natively by .github/workflows/release.yml.
 #
 # Target is x86_64-pc-windows-msvc, NOT -gnu, and that is load-bearing:
 # webview2-com-sys statically links WebView2LoaderStatic.lib only on msvc
@@ -20,7 +19,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BRIDGE_DIR="$REPO_ROOT/bridge"
-DOWNLOADS_DIR="$REPO_ROOT/storage/files/downloads"
+DOWNLOADS_DIR="$REPO_ROOT/dist"
 TARGET="x86_64-pc-windows-msvc"
 ASSET="systemprompt-internal-bridge-windows.exe"
 BIN="$BRIDGE_DIR/target/$TARGET/release/systemprompt-internal-bridge.exe"
@@ -70,4 +69,3 @@ install -m 0644 "$BIN" "$DOWNLOADS_DIR/$ASSET"
 
 echo "==> staged $DOWNLOADS_DIR/$ASSET"
 cat "$DOWNLOADS_DIR/$ASSET.sha256"
-echo "Run 'just publish' to copy it into web/dist/."

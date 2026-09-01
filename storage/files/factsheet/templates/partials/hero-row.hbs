@@ -1,0 +1,15 @@
+  <div class="hero-row">
+    <div class="hero-left">
+      <div class="hero-kicker">{{kicker}}</div>
+      <h1>{{{inline headline}}}</h1>
+      <p class="lede">{{{inline lede}}}</p>
+{{#if extra_lede}}      <p class="lede continued">{{{inline extra_lede}}}</p>
+{{/if}}    </div>
+{{#if glance}}    <aside class="sp-card glance">
+      <div class="k">{{glance.kicker}}</div>
+      <h4>{{glance.heading}}</h4>
+      <div class="grid">
+{{#each glance.cells}}        <div><div class="n">{{n}}</div><div class="l">{{l}}</div></div>
+{{/each}}      </div>
+    </aside>
+{{/if}}  </div>

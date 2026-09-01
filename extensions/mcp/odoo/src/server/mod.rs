@@ -41,6 +41,7 @@ use systemprompt::mcp::{
     parse_artifact_resource_uri, read_artifact_resource, read_artifact_viewer_resource,
 };
 use systemprompt::security::authz::SharedAuthzHook;
+use systemprompt_mcp_shared::approval::{GateOutcome, enforce_approval};
 use systemprompt_mcp_shared::record_mcp_access;
 
 use crate::client::OdooClient;
@@ -105,7 +106,7 @@ impl ServerHandler for OdooServer {
                 .enable_extensions_with(build_extension_capabilities())
                 .build(),
         )
-        .with_protocol_version(ProtocolVersion::V_2025_06_18)
+        .with_protocol_version(ProtocolVersion::V_2026_07_28)
         .with_server_info(
             Implementation::new(
                 format!("Odoo ({})", self.service_id),
@@ -158,6 +159,24 @@ impl ServerHandler for OdooServer {
             &self.authz_hook,
         )
         .await?;
+
+        // Why: ahead of build_call — a held call must not resolve an Odoo
+        // credential or touch Odoo at all until a human has authorised it.
+        match enforce_approval(
+            &self.db_pool,
+            &server_name,
+            &tool_name,
+            &request,
+            &request_context,
+        )
+        .await
+        {
+            GateOutcome::Proceed => {},
+            GateOutcome::Held(result) => {
+                return Ok(CallToolResponse::InputRequired(*result));
+            },
+            GateOutcome::Refused(result) => return Ok((*result).into()),
+        }
 
         let call = match build_call(&self.db_pool, &self.client, &request_context).await {
             Ok(call) => call,

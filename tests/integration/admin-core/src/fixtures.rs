@@ -3,11 +3,11 @@
 //! IMPORTANT: the throwaway database is **not empty**.
 //! `install_extension_schemas` runs the web extension's migrations, and several
 //! of those seed rows — `022_organizations_backfill` creates the `house`
-//! organization (marked the platform tenant by `024`), `009` seeds the
-//! `Default` department, and `025_demo_organizations` inserts three demo
-//! customers with ten users and ~1080 `ai_requests`. Tests therefore assert on
-//! *their own* rows and on deltas, never on absolute table counts or on a list
-//! being empty.
+//! organization (marked the platform tenant by `024`) and `009` seeds the
+//! `Default` department. Tests therefore assert on *their own* rows and on
+//! deltas, never on absolute table counts or on a list being empty.
+//! (`025_demo_organizations` used to add three demo customers with ten users
+//! and ~1080 `ai_requests` on top of that; it has been removed.)
 //!
 //! Every id is suffixed with a fresh UUID so two tests sharing a database
 //! (they do not today, but the fixtures must not depend on that) cannot

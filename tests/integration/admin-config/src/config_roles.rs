@@ -8,7 +8,7 @@
 
 use std::path::Path;
 
-use systemprompt_security::authz::{Access, EntityKind, RuleType};
+use systemprompt_security::authz::{Access, EntityKind, RegisteredEntities, RuleType};
 use systemprompt_web_admin::authz::organization::organization_rule_type;
 use systemprompt_web_admin::repositories::config::acl_yaml_loader::load_from_yaml;
 use systemprompt_web_admin::repositories::config::acl_yaml_snapshot::render_yaml_snapshot;
@@ -43,7 +43,7 @@ async fn load_from_yaml_reports_nothing_when_no_files_exist() {
     };
     let dir = tempfile::tempdir().expect("temp services dir");
 
-    let report = load_from_yaml(&db.pool, dir.path())
+    let report = load_from_yaml(&db.pool, dir.path(), &RegisteredEntities::default())
         .await
         .expect("an empty services tree is not an error");
 
@@ -68,7 +68,7 @@ async fn load_from_yaml_ingests_role_rules() {
         ),
     );
 
-    let report = load_from_yaml(&db.pool, dir.path())
+    let report = load_from_yaml(&db.pool, dir.path(), &RegisteredEntities::default())
         .await
         .expect("load roles");
 
@@ -102,7 +102,7 @@ async fn load_from_yaml_rejects_a_malformed_roles_file() {
         "rules: \"not a list\"\n",
     );
 
-    let result = load_from_yaml(&db.pool, dir.path()).await;
+    let result = load_from_yaml(&db.pool, dir.path(), &RegisteredEntities::default()).await;
 
     assert!(
         result.is_err(),

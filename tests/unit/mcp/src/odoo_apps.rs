@@ -11,7 +11,7 @@
 //! the model, and translating one of those into "the app is not installed"
 //! would send someone to reinstall a working module.
 
-use systemprompt_mcp_odoo::apps::{app_for_model, map_missing_app};
+use systemprompt_mcp_odoo::apps::{app_for_model, map_access_denied, map_missing_app};
 use systemprompt_mcp_odoo::error::OdooError;
 
 #[test]
@@ -100,5 +100,74 @@ fn an_unknown_model_still_gets_a_usable_message() {
     assert!(
         message.contains("widget.thing"),
         "with no app name to give, name the model: {message}"
+    );
+}
+
+// Why: `AccessDenied` is Odoo's *authentication* failure, not its permission
+// one. Reading it as "you lack rights" is what sent a stale credential to an
+// administrator to be granted access the account already held, so the two
+// faults must not collapse into the same advice.
+#[test]
+fn a_failed_credential_is_not_reported_as_a_rights_problem() {
+    let fault = OdooError::Odoo("odoo.exceptions.AccessDenied".to_owned());
+
+    let OdooError::AccessDenied(message) =
+        map_access_denied("sales@example.com", "crm.lead", fault)
+    else {
+        panic!("expected AccessDenied");
+    };
+    assert!(
+        message.contains("sales@example.com"),
+        "the account whose credential failed is the one fact the user cannot \
+         recover themselves: {message}"
+    );
+    assert!(
+        message.contains("/admin/profile"),
+        "the remedy is relinking, not a group change: {message}"
+    );
+    assert!(
+        !message.contains("access rights"),
+        "must not send the user to be granted rights they already hold: {message}"
+    );
+}
+
+#[test]
+fn a_genuine_rights_refusal_names_the_app_to_grant() {
+    let fault =
+        OdooError::Odoo("AccessError: you are not allowed to access this document".to_owned());
+
+    let OdooError::AccessDenied(message) =
+        map_access_denied("sales@example.com", "crm.lead", fault)
+    else {
+        panic!("expected AccessDenied");
+    };
+    assert!(
+        message.contains("CRM"),
+        "name the app whose access rights need granting: {message}"
+    );
+}
+
+#[test]
+fn an_ordinary_odoo_fault_is_not_mistaken_for_a_permission_problem() {
+    // Why: sending someone to request access rights they already hold is the
+    // same failure as the missing-app mapping in reverse.
+    let fault = OdooError::Odoo("Object crm.lead doesn't exist".to_owned());
+
+    assert!(matches!(
+        map_access_denied("sales@example.com", "crm.lead", fault),
+        OdooError::Odoo(_)
+    ));
+}
+
+#[test]
+fn a_denied_call_reaches_the_caller_as_something_they_can_act_on() {
+    let denied = OdooError::AccessDenied("ask an administrator".to_owned());
+    let mcp_error: rmcp::ErrorData = denied.into();
+
+    assert!(
+        mcp_error.message.contains("ask an administrator"),
+        "the remedy must survive the conversion rather than being flattened \
+         into an opaque internal error: {}",
+        mcp_error.message
     );
 }

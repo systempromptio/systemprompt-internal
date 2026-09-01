@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE email_outbox SET status = 'logged', logged_at = NOW(), odoo_message_id = $2 WHERE message_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4456bc19e9c541400ad085ff9ba8f65ca027458d583396aac78124e631a8c6d1"
+}

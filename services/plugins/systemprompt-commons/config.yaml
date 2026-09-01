@@ -1,39 +1,53 @@
 plugin:
   id: systemprompt-commons
-  name: "Systemprompt Commons — Workspace Setup"
-  description: "Shared brand skills: voice, document formatting, client email, and company boilerplate"
-  version: "2.0.0"
-  enabled: false
+  name: "Systemprompt Commons — Setup & Brand"
+  description: "What every role gets: the one workspace setup skill (installs every dashboard the plugins you were granted ship) and the shared brand skills — voice, document formatting, client email, company boilerplate."
+  version: "3.0.0"
+  # User-scoped and shared by every role: roles.yaml grants this plugin to
+  # [user], and admins hold the user role too (services/access-control/
+  # odoo-roles.yaml default_roles). Skills and artifacts listed here carry no
+  # rule of their own — they inherit this plugin's grant.
+  enabled: true
   author:
     name: systemprompt.io
     email: ed@systemprompt.io
-  keywords: [setup, onboarding, artifacts, brand, voice, formatting, email, glossary]
+  keywords: [setup, onboarding, artifacts, identity, brand, voice, formatting, email, glossary]
   license: proprietary
   category: setup
   skills:
     source: explicit
     include:
-      - apply_brand_voice
-      - format_client_document
-      - draft_client_email
-      - company_boilerplate
+      # Setup is one skill. It establishes the grant, branches on host (Cowork
+      # dashboards, Codex gateway wiring), and is plugin-agnostic: it installs
+      # the artifacts of every plugin bundle the bridge mounted, which is
+      # exactly the set the signed manifest granted this user. It was three
+      # skills — a router plus two host bodies that restated each other's
+      # preconditions word for word.
+      - systemprompt_setup
+      # One brand skill, four passes (voice, structure, boilerplate, email).
+      # It was four separate skills until a person had to know which of them
+      # to reach for before they could write anything.
+      - brand
+      # The per-task cost and audit readback. It lives here, once, because
+      # every other skill that needs to state a cost defers to it — that block
+      # was copy-pasted into five demo skills before this existed.
+      - governance_readback
   agents:
     source: explicit
     include: []
-  mcp_servers: {}
+  mcp_servers:
+    source: explicit
+    include: []
   content_sources: {}
-  # Two of the Odoo CRM dashboards, so a commons-only install still gets the
-  # core sales views. The full workspace set (plus business-overview,
-  # recent-activity, todo-bulletin) belongs to systemprompt-crm, whose
-  # systemprompt_setup_cowork skill installs them; the admin-* dashboards belong to
-  # systemprompt-admin, which selects them itself.
   artifacts:
     source: explicit
-    include:
-      - leads-inbound-prospects
-      - pipeline-open-deals
+    include: []
   # Claude Code runs plugin hooks session-globally, so the governance hooks are
-  # declared once here and cover every tool call in the session. No other
-  # plugin should set this — each extra owner is another govern call per tool.
+  # declared once, here, and cover every tool call in the session. No other
+  # plugin may set this — each extra owner is another govern call per tool,
+  # and core refuses two enabled owners at load.
   hooks:
     governance: true
+    # No `comms: true`: the bridge's announcement-drain hooks (UserPromptSubmit
+    # and Stop running `comms-drain`) stay uninstalled. This instance publishes
+    # no announcements, so there is nothing for them to drain.

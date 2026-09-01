@@ -30,18 +30,12 @@ pub(crate) struct ProfileIdentity {
     pub jwt_issuer: Option<String>,
     pub gateway: Option<String>,
     pub is_admin: bool,
+    // Why: the store this identity was resolved from — the same one the usage
+    // query is keyed on, by construction, so the banner cannot claim an
+    // identity the data did not come from.
+    pub source: crate::types::IdentitySource,
 }
 
-pub(crate) use crate::repositories::users::usage::{ConversationSummary, ModelShare, UsageWindow};
-
-#[derive(Debug, Clone, Default, Serialize)]
-pub(crate) struct ProfileUsage {
-    pub d1: UsageWindow,
-    pub d7: UsageWindow,
-    pub d30: UsageWindow,
-    pub top_models: Vec<ModelShare>,
-    pub conversations: ConversationSummary,
-}
 
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct BridgeProfileBlock {
@@ -94,7 +88,7 @@ pub(crate) struct BridgeProfilePageData {
     pub identity: ProfileIdentity,
     pub bridge_connect: Option<BridgeConnectBlock>,
     pub bridge_profile: Option<BridgeProfileBlock>,
-    pub usage: ProfileUsage,
+    pub usage: systemprompt::models::api::cloud::BridgeProfileUsage,
     pub agents: AgentsBlock,
     pub odoo: OdooLinkBlock,
 }
@@ -120,10 +114,9 @@ async fn build_bridge_connect(
         .max(0);
 
     Some(BridgeConnectBlock {
-        install_command: format!(
-            "curl -fsSL {gateway}/files/downloads/install.sh | sh -s -- \
-             --download-base {gateway}/files/downloads --code {code}",
-            code = issued.code
+        install_command: crate::services::bridge_downloads::install_command(
+            &gateway,
+            Some(&issued.code),
         ),
         login_command: format!(
             "{BRIDGE_BINARY} login --code {code} --gateway {gateway}",
@@ -166,6 +159,7 @@ pub(crate) async fn build_bridge_profile_data(
         jwt_issuer,
         gateway: gateway_url,
         is_admin: user_ctx.is_admin,
+        source: user_ctx.source,
     };
 
     let usage = build_usage(sections);

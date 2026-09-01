@@ -16,10 +16,16 @@ pub(super) enum JwtConfigError {
 // Code hook can be running under: the hook audience proper, a plugin token, or
 // a plain API token for a caller driving the endpoint directly.
 pub(super) fn authenticate_webhook(headers: &HeaderMap) -> AdminResult<()> {
+    authenticate_webhook_claims(headers).map(|_| ())
+}
+
+pub(super) fn authenticate_webhook_claims(
+    headers: &HeaderMap,
+) -> AdminResult<systemprompt::models::auth::JwtClaims> {
     let token = extract_bearer_token(headers)
         .ok_or_else(|| AdminError::Unauthorized("Missing Authorization header".to_owned()))?;
     let jwt_issuer = get_jwt_issuer().map_err(AdminError::internal)?;
-    systemprompt::oauth::validate_jwt_token(
+    let claims = systemprompt::oauth::validate_jwt_token(
         token,
         &jwt_issuer,
         &[
@@ -28,7 +34,7 @@ pub(super) fn authenticate_webhook(headers: &HeaderMap) -> AdminResult<()> {
             JwtAudience::Api,
         ],
     )?;
-    Ok(())
+    Ok(claims)
 }
 
 pub(super) fn extract_bearer_token(headers: &HeaderMap) -> Option<&str> {
