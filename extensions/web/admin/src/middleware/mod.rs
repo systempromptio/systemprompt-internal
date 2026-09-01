@@ -74,6 +74,7 @@ pub(crate) async fn user_context_middleware(
         is_platform_admin,
         email_verified: false,
         session_id: session.session_id,
+        source: crate::types::IdentitySource::SessionCookie,
     };
 
     request.extensions_mut().insert(ctx);

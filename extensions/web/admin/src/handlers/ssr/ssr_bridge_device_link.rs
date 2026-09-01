@@ -23,9 +23,8 @@ use crate::templates::AdminTemplateEngine;
 use crate::types::UserContext;
 
 use super::ssr_bridge_device_link_view::{
-    DeviceCodeContext, DeviceLinkContext, bad_redirect_response,
-    consent_conflict_response, describe_sign_in, gateway_suffix, render_blocked, render_code_page,
-    validate_loopback_redirect,
+    DeviceCodeContext, DeviceLinkContext, bad_redirect_response, consent_conflict_response,
+    describe_sign_in, gateway_suffix, render_blocked, render_code_page, validate_loopback_redirect,
 };
 use super::ssr_helpers::branding_context;
 
@@ -70,8 +69,8 @@ pub(crate) async fn device_link_page(
         .await
         .map_err(AdminHtmlError::internal)?;
 
-    // Why: fail closed. A consent screen that cannot say whose token this would be must
-    // not offer to issue one.
+    // Why: fail closed. A consent screen that cannot say whose token this would be
+    // must not offer to issue one.
     let Some(UserIdentity {
         email: account_email,
         display_name: account_name,
@@ -122,11 +121,12 @@ pub(crate) async fn device_link_approve(
         return Ok(bad_redirect_response(redirect));
     }
 
-    // Why: re-read here: the page was rendered from one cookie and this POST arrives
-    // with whatever cookie the browser holds *now*. Between the two, a session can
-    // change — which is exactly the lingering-session hazard this flow is exposed
-    // to. Binding the approval to the account the operator was shown means a swap
-    // fails loudly instead of minting a durable token for someone they never saw.
+    // Why: re-read here: the page was rendered from one cookie and this POST
+    // arrives with whatever cookie the browser holds *now*. Between the two, a
+    // session can change — which is exactly the lingering-session hazard this
+    // flow is exposed to. Binding the approval to the account the operator was
+    // shown means a swap fails loudly instead of minting a durable token for
+    // someone they never saw.
     let identity = find_user_identity(&pool, &user_ctx.user_id)
         .await
         .map_err(AdminHtmlError::internal)?;
@@ -248,4 +248,3 @@ pub(crate) async fn device_link_switch(Query(query): Query<SwitchQuery>) -> Resp
 pub(crate) struct SwitchQuery {
     pub next: Option<String>,
 }
-

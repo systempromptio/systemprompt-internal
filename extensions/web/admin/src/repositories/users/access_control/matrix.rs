@@ -20,7 +20,9 @@ use systemprompt_security::authz::{
     MatchedBy, ParentChainIndex, ResolveBase, SubjectAttributes, SubjectDimension,
 };
 
-use super::matrix_types::{MatrixRow, MatrixSection, MatrixSource, SectionInput, UserMatrix, UserMatrixUser};
+use super::matrix_types::{
+    MatrixRow, MatrixSection, MatrixSource, SectionInput, UserMatrix, UserMatrixUser,
+};
 use super::rules::list_all_rules;
 use crate::authz::{dimensions, subject_attributes_for};
 use crate::types::access_control::{AccessControlRule, AccessDecision};
@@ -159,12 +161,15 @@ async fn load_chain_index(pool: &PgPool) -> ParentChainIndex {
         },
     };
     let repo = AccessControlRepository::from_pool(std::sync::Arc::new(pool.clone()));
-    ParentChainIndex::load(&repo, ChainSources::from_services(&services))
-        .await
-        .unwrap_or_else(|e| {
-            tracing::warn!(error = %e, "matrix: parent chain load failed; no parent cascade");
-            ParentChainIndex::default()
-        })
+    ParentChainIndex::load(
+        &repo,
+        std::sync::Arc::new(ChainSources::from_services(&services)),
+    )
+    .await
+    .unwrap_or_else(|e| {
+        tracing::warn!(error = %e, "matrix: parent chain load failed; no parent cascade");
+        ParentChainIndex::default()
+    })
 }
 
 struct MatrixCell<'a> {

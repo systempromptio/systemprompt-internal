@@ -37,8 +37,8 @@ pub(super) async fn create_federated(
 
     let user_id = uuid::Uuid::new_v4().to_string();
     let mut roles = desired_roles.map_or_else(|| vec!["user".to_owned()], <[String]>::to_vec);
-    // Why: a row being created holds nothing yet, so every gated role in `desired` is
-    // a new grant. See [`strip_gated_grants`].
+    // Why: a row being created holds nothing yet, so every gated role in `desired`
+    // is a new grant. See [`strip_gated_grants`].
     strip_gated_grants(issuer, &[], &mut roles);
     let mut tx = pool.begin().await?;
 

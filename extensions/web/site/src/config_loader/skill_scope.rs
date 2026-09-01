@@ -58,7 +58,8 @@ struct RoleRule {
 // Why: `None` means "scope undeterminable, do not filter" — never "filter
 // everything out". See the fail-open note in the module docs.
 pub(crate) fn public_skill_ids(services_dir: &Path) -> Option<HashSet<String>> {
-    let user_plugins = user_scoped_plugins(&services_dir.join("access-control").join("roles.yaml"))?;
+    let user_plugins =
+        user_scoped_plugins(&services_dir.join("access-control").join("roles.yaml"))?;
     let members = plugin_members(&services_dir.join("plugins"))?;
 
     let ids: HashSet<String> = members
@@ -68,7 +69,9 @@ pub(crate) fn public_skill_ids(services_dir: &Path) -> Option<HashSet<String>> {
         .collect();
 
     if ids.is_empty() {
-        tracing::warn!("No user-scoped plugin claims any skill; leaving the skills page unfiltered");
+        tracing::warn!(
+            "No user-scoped plugin claims any skill; leaving the skills page unfiltered"
+        );
         return None;
     }
     Some(ids)

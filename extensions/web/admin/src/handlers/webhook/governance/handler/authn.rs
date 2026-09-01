@@ -26,7 +26,8 @@ pub(super) struct Principal {
 pub(super) fn deny_for_auth_failure(reason: &str) -> Decision {
     Decision::Deny {
         reason: DenyReason::HookUnavailable {
-            policy: format!("auth_failure: {reason}"),
+            policy: "auth_failure".to_owned(),
+            detail: reason.to_owned(),
         },
     }
 }

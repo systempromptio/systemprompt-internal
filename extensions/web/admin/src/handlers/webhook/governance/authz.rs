@@ -58,7 +58,7 @@ async fn chain_index(repo: &AccessControlRepository) -> Arc<ParentChainIndex> {
     }
 
     let index = match ConfigLoader::load() {
-        Ok(services) => ParentChainIndex::load(repo, ChainSources::from_services(&services))
+        Ok(services) => ParentChainIndex::load(repo, Arc::new(ChainSources::from_services(&services)))
             .await
             .unwrap_or_else(|e| {
                 tracing::warn!(error = %e, "chain_index: parent load failed; resolving without cascade");

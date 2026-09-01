@@ -52,8 +52,8 @@ pub(super) async fn find_active_user_by_email(
     }))
 }
 
-// Why: `odoo_uid` only: it is the identifier Odoo issued and cannot be chosen by
-// whoever creates the account. The login can be. Matching on either meant
+// Why: `odoo_uid` only: it is the identifier Odoo issued and cannot be chosen
+// by whoever creates the account. The login can be. Matching on either meant
 // anyone able to create an Odoo user with a chosen login could resolve onto the
 // platform account holding that login — and this lookup deliberately returns
 // accounts whose platform email differs, so the collision was invisible to the

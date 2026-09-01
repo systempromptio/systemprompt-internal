@@ -64,7 +64,11 @@ fn unlisted_categories_tie_break_alphabetically() {
 #[test]
 fn display_category_wins_and_a_categoryless_skill_lands_in_general() {
     let grouped = group_by_category(&[
-        entry("override", Some("Business on Odoo"), Some("Brand & Workspace")),
+        entry(
+            "override",
+            Some("Business on Odoo"),
+            Some("Brand & Workspace"),
+        ),
         entry("bare", None, None),
     ]);
 

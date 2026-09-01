@@ -11,9 +11,9 @@ use std::sync::Arc;
 
 use sqlx::PgPool;
 use systemprompt::identifiers::{PluginId, SessionId};
-use systemprompt_security::policy::ClaimedAgent;
 use systemprompt::oauth::SessionCreationService;
 use systemprompt_security::authz::{Decision, DecisionTag};
+use systemprompt_security::policy::ClaimedAgent;
 
 /// Anthropic-mandated wire enum for `permissionDecision`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]

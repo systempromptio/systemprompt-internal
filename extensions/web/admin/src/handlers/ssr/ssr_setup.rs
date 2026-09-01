@@ -62,16 +62,20 @@ async fn read_setup_state(pool: &PgPool, user_ctx: &UserContext) -> SetupState {
     let device_enrolled =
         crate::repositories::bridge::list_api_keys_for_user(pool, &user_ctx.user_id)
             .await
-            .map(|keys| keys.iter().any(|k| k.revoked_at.is_none()))
-            .unwrap_or(false);
+            .is_ok_and(|keys| keys.iter().any(|k| k.revoked_at.is_none()));
 
     // Why: a request through the gateway is the only proof the client is wired
     // up and the skills are reachable — nothing else observes the other end.
+    // `PgPool` is internally reference-counted, so this clone is a handle copy.
     let gateway_used =
-        crate::repositories::users::usage::get_usage_window(pool, &user_ctx.user_id, 30)
+        systemprompt::analytics::ProfileUsageService::from_pool(Arc::new(pool.clone()))
+            .get_usage_window(
+                &user_ctx.user_id,
+                chrono::Utc::now(),
+                chrono::Duration::days(30),
+            )
             .await
-            .map(|w| w.requests > 0)
-            .unwrap_or(false);
+            .is_ok_and(|w| w.requests > 0);
 
     SetupState {
         odoo_linked,

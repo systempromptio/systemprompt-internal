@@ -11,7 +11,8 @@ use sqlx::PgPool;
 use systemprompt::identifiers::UserId;
 use systemprompt_web_shared::error::MarketplaceError;
 
-// Why: how much authority the provider has over this row's roles on *this* sign-in.
+// Why: how much authority the provider has over this row's roles on *this*
+// sign-in.
 //
 // Why it varies: the provider earns role authority from an established
 // binding, not from the mere fact of authenticating. A first attachment to a
@@ -33,11 +34,12 @@ pub(super) enum RoleAuthority {
     DowngradeOnly,
 }
 
-// Why: roles a federated claim may never *add* without being explicitly permitted
-// to.
+// Why: roles a federated claim may never *add* without being explicitly
+// permitted to.
 const GATED_ROLES: [&str; 1] = ["admin"];
 
-// Why: env flag permitting a federated claim to add [`GATED_ROLES`]. Default off.
+// Why: env flag permitting a federated claim to add [`GATED_ROLES`]. Default
+// off.
 const ALLOW_GRANT_ENV: &str = "FEDERATED_ROLES_MAY_GRANT_ADMIN";
 
 fn federated_may_grant_gated_roles() -> bool {
@@ -81,7 +83,8 @@ struct RoleChangeMetadata<'a> {
     new_roles: &'a [String],
 }
 
-// Why: applies provider-computed roles within the authority this sign-in carries.
+// Why: applies provider-computed roles within the authority this sign-in
+// carries.
 //
 // `None` means the caller could not compute roles this time; the stored set
 // stands. Dropped grants are logged and skipped rather than raised: a sign-in

@@ -111,7 +111,8 @@ fn an_unknown_model_still_gets_a_usable_message() {
 fn a_failed_credential_is_not_reported_as_a_rights_problem() {
     let fault = OdooError::Odoo("odoo.exceptions.AccessDenied".to_owned());
 
-    let OdooError::AccessDenied(message) = map_access_denied("sales@example.com", "crm.lead", fault)
+    let OdooError::AccessDenied(message) =
+        map_access_denied("sales@example.com", "crm.lead", fault)
     else {
         panic!("expected AccessDenied");
     };
@@ -132,11 +133,11 @@ fn a_failed_credential_is_not_reported_as_a_rights_problem() {
 
 #[test]
 fn a_genuine_rights_refusal_names_the_app_to_grant() {
-    let fault = OdooError::Odoo(
-        "AccessError: you are not allowed to access this document".to_owned(),
-    );
+    let fault =
+        OdooError::Odoo("AccessError: you are not allowed to access this document".to_owned());
 
-    let OdooError::AccessDenied(message) = map_access_denied("sales@example.com", "crm.lead", fault)
+    let OdooError::AccessDenied(message) =
+        map_access_denied("sales@example.com", "crm.lead", fault)
     else {
         panic!("expected AccessDenied");
     };

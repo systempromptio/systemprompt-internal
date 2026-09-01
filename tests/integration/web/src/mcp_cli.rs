@@ -452,7 +452,9 @@ fn a_missing_system_directory_is_named_rather_than_left_to_the_spawn() {
     let error = CliLocation::from_paths(&config).expect_err("the working directory is absent");
 
     assert!(
-        error.message.contains(&absent.to_string_lossy().into_owned()),
+        error
+            .message
+            .contains(&absent.to_string_lossy().into_owned()),
         "the absent working directory is named: {}",
         error.message
     );

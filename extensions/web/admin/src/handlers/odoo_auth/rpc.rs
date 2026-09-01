@@ -51,6 +51,8 @@ impl OdooConnection {
     }
 }
 
+// Why: Odoo is a genuinely external service, not this instance's own gateway,
+// so reaching it over HTTP is the only option. lint-ok: web-transport
 #[derive(Debug, thiserror::Error)]
 pub enum OdooRpcError {
     #[error("Odoo HTTP error: {0}")]
@@ -107,6 +109,7 @@ async fn call(
 
     // Why: without a request timeout a stalled Odoo hangs the sign-in handler
     // (and the browser) instead of failing with an error the user can act on.
+    // Why: external service, not our own gateway. lint-ok: web-transport
     let resp = reqwest::Client::builder()
         .connect_timeout(std::time::Duration::from_secs(5))
         .timeout(std::time::Duration::from_secs(20))

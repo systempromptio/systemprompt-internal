@@ -11,8 +11,7 @@ use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse, Response};
 use serde::Serialize;
 use sqlx::PgPool;
-use systemprompt_web_shared::BrandingConfig;
-use systemprompt_web_shared::html_escape;
+use systemprompt_web_shared::{BrandingConfig, html_escape};
 
 use crate::error::{AdminHtmlError, AdminHtmlResult};
 use crate::repositories::users::federated::list_federated_identities_for_user;
@@ -87,8 +86,8 @@ pub(super) fn render_blocked(
     Ok((StatusCode::FORBIDDEN, Html(html)).into_response())
 }
 
-// Why: describes how the current session authenticated, for the operator to check
-// against what they just did.
+// Why: describes how the current session authenticated, for the operator to
+// check against what they just did.
 //
 // Best-effort: this is context, not a gate, so a lookup failure degrades to
 // showing nothing rather than blocking a legitimate authorisation.

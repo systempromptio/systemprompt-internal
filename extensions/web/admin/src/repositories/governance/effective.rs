@@ -126,7 +126,7 @@ async fn load_chain_index(repo: &AccessControlRepository) -> ParentChainIndex {
             return ParentChainIndex::default();
         },
     };
-    ParentChainIndex::load(repo, ChainSources::from_services(&services))
+    ParentChainIndex::load(repo, Arc::new(ChainSources::from_services(&services)))
         .await
         .unwrap_or_else(|e| {
             tracing::warn!(error = %e, "effective: parent chain load failed; no parent cascade");
