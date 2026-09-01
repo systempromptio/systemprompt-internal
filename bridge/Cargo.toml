@@ -7,7 +7,7 @@
 
 [package]
 name = "systemprompt-internal-bridge"
-version = "0.42.0"
+version = "0.43.0"
 edition = "2024"
 # Why: declared so the MSRV job checks this workspace against a number it
 # asserts, rather than against one it inherited from nowhere. Kept equal to the
