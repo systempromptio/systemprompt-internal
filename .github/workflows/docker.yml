@@ -165,6 +165,10 @@ jobs:
       - name: Cosign sign (keyless)
         run: cosign sign --yes "$IMAGE@${{ steps.digest.outputs.digest }}"
 
+      # Why --entrypoint: the image's entrypoint refuses to start without an
+      # API key and DATABASE_URL, which is right for a deployment and wrong
+      # for proving the binary inside the manifest runs.
       - name: Smoke the published image
         run: |
-          docker run --rm --platform linux/amd64 "$IMAGE:${{ steps.ver.outputs.full }}" /app/bin/systemprompt --version
+          docker run --rm --platform linux/amd64 --entrypoint /app/bin/systemprompt \
+            "$IMAGE:${{ steps.ver.outputs.full }}" --version
