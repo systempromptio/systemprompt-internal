@@ -322,13 +322,14 @@ async fn seeded_list_pages_render_rows_rather_than_the_empty_state() {
             "Contract conversation".to_owned(),
             None,
         ),
-        // `/entities/sessions` is the signed-in principal's own session page,
-        // not a roster, so it is asserted on the viewer rather than the trail.
+        // `/entities/sessions` is the live agent-session board: a row per
+        // session whose summary reported activity inside the liveness window,
+        // linked by session id.
         (
-            "the current-session page",
+            "the live session board",
             "/admin/entities/sessions".to_owned(),
-            "contract-admin@contract.test".to_owned(),
-            None,
+            trail.session_id.clone(),
+            Some("No sessions have reported activity in the liveness window."),
         ),
         (
             "the roster",

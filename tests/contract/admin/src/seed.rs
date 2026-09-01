@@ -243,9 +243,9 @@ pub async fn insert_decision(pool: &PgPool, spec: &DecisionSpec<'_>) {
 pub async fn insert_summary(pool: &PgPool, session_id: &str, user_id: &UserId, title: &str) {
     sqlx::query(
         "INSERT INTO plugin_session_summaries
-             (id, session_id, user_id, started_at, tool_uses, prompts, errors,
-              model, status, ai_title, total_events)
-         VALUES ($1, $2, $3, NOW() - INTERVAL '1 hour', 3, 2, 0,
+             (id, session_id, user_id, started_at, last_event_at, tool_uses, prompts,
+              errors, model, status, ai_title, total_events)
+         VALUES ($1, $2, $3, NOW() - INTERVAL '1 hour', NOW(), 3, 2, 0,
                  'claude-contract-model', 'active', $4, 5)",
     )
     .bind(unique("summary"))
