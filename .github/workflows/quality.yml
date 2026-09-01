@@ -104,7 +104,7 @@ jobs:
       - run: BUILD_NO_COORD=1 just lint-gates
 
   msrv:
-    name: MSRV check (Rust 1.96)
+    name: MSRV check (rust-version from Cargo.toml)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -124,23 +124,39 @@ jobs:
           path: .core-sibling
       - name: Link sibling core beside the workspace
         run: ln -sfn "$GITHUB_WORKSPACE/.core-sibling" "$GITHUB_WORKSPACE/../systemprompt-core"
-      - uses: dtolnay/rust-toolchain@1.96.0
+      # Why read, not written here: Cargo.toml's rust-version is the MSRV.
+      # This job once hardcoded 1.94 after the manifest said 1.96 and failed
+      # every run until someone noticed; scripts/check-msrv.sh reads the
+      # same field, so local and CI can no longer disagree.
+      - name: Read the MSRV from Cargo.toml
+        id: msrv
+        run: |
+          v=$(grep -m1 '^rust-version = ' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')
+          [ -n "$v" ] || { echo "::error::no rust-version in Cargo.toml"; exit 1; }
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.msrv.outputs.version }}
       - uses: Swatinem/rust-cache@v2
       # `rust-toolchain.toml` pins a nightly, and a toolchain file overrides
       # rustup's default — so a bare `cargo check` here silently ran that
-      # nightly and this job never tested the MSRV at all. `+1.96.0` overrides
+      # nightly and this job never tested the MSRV at all. `+<msrv>` overrides
       # the file; the assertion is what stops it drifting back, because the
       # failure mode is a job that passes while proving nothing.
       - name: Assert the MSRV toolchain is the one actually in use
+        env:
+          MSRV: ${{ steps.msrv.outputs.version }}
         run: |
           set -euo pipefail
-          actual=$(cargo +1.96.0 --version)
+          actual=$(cargo "+$MSRV" --version)
           echo "cargo: $actual"
           case "$actual" in
-            "cargo 1.96.0 "*) ;;
-            *) echo "::error::expected cargo 1.96.0, got: $actual" >&2; exit 1 ;;
+            "cargo $MSRV"*) ;;
+            *) echo "::error::expected cargo $MSRV, got: $actual" >&2; exit 1 ;;
           esac
-      - run: cargo +1.96.0 check --workspace
+      - env:
+          MSRV: ${{ steps.msrv.outputs.version }}
+        run: cargo "+$MSRV" check --workspace
 
   audit:
     name: cargo-audit
