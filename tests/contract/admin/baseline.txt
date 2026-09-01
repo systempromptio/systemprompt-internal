@@ -35,6 +35,7 @@ GET    /admin/entities/sessions                              anonymous=307 non-a
 GET    /admin/entities/sessions/{session_id}                 anonymous=307 non-admin=303 admin=404
 GET    /admin/entities/traces                                anonymous=307 non-admin=303 admin=200
 GET    /admin/entities/traces/{trace_id}                     anonymous=307 non-admin=303 admin=404
+GET    /admin/governance/approvals                           anonymous=307 non-admin=303 admin=200
 GET    /admin/login                                          anonymous=200 non-admin=200 admin=200
 GET    /admin/login/operator                                 anonymous=200 non-admin=200 admin=200
 GET    /admin/profile                                        anonymous=307 non-admin=200 admin=200
@@ -73,6 +74,8 @@ POST   /admin/api/profile/odoo/unlink                        anonymous=307 non-a
 POST   /admin/auth/odoo/login                                anonymous=422 non-admin=422 admin=422
 POST   /admin/auth/passkey/register                          anonymous=422 non-admin=422 admin=422
 POST   /admin/devices/pats                                   anonymous=307 non-admin=303 admin=422
+POST   /admin/governance/approvals/{call_id}/approve         anonymous=307 non-admin=303 admin=303
+POST   /admin/governance/approvals/{call_id}/deny            anonymous=307 non-admin=303 admin=303
 POST   /api/public/admin/access-control/bulk-template        anonymous=401 non-admin=403 admin=422
 POST   /api/public/admin/access-control/entity/{entity_type}/{entity_id}/rules anonymous=401 non-admin=403 admin=422
 POST   /api/public/admin/gateway/routes                      anonymous=401 non-admin=403 admin=422
