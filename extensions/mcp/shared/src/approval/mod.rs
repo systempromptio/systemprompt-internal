@@ -29,20 +29,22 @@
 use rmcp::model::{CallToolRequestParams, CallToolResult, ContentBlock, InputRequiredResult};
 use sha2::{Digest, Sha256};
 use systemprompt::database::DbPool;
-use systemprompt::identifiers::{CallId, McpToolName};
+use systemprompt::identifiers::{CallId, McpToolName, UserId};
 
-mod audit;
+pub mod resolution;
 mod settle;
 
-use audit::Milestone;
 use settle::settle;
 use systemprompt::models::execution::context::RequestContext as SysRequestContext;
 use systemprompt::security::authz::{Decision, PendingReason};
 use systemprompt::security::policy::types::AccessScope;
 use systemprompt::security::policy::{
-    AgentScope, ApprovalRepository, ApprovalSettings, ApproverStamp, ChainEntryResult,
-    GovernanceEngine, GovernedInput, GovernedTarget, McpToolInput, NewApprovalRequest,
-    PolicyContext,
+    AgentScope, ApprovalRepository, ApprovalSettings, GovernanceEngine, GovernedInput,
+    GovernedTarget, McpToolInput, NewApprovalRequest, PolicyContext,
+};
+
+pub use resolution::{
+    DecisionPrincipal, DecisionSubject, approver_stamp, record_hold, record_verdict,
 };
 
 /// What the gate decided the caller should do next.
@@ -107,27 +109,6 @@ pub async fn enforce_approval(
     settle(&repo, &pg_pool, &held).await
 }
 
-impl<'a> Held<'a> {
-    const fn milestone(
-        &'a self,
-        decision: Decision,
-        result: ChainEntryResult,
-        detail: String,
-        approver: Option<ApproverStamp>,
-    ) -> Milestone<'a> {
-        Milestone {
-            call_id: &self.call_id,
-            server_name: self.server_name,
-            tool_name: self.tool_name,
-            ctx: self.ctx,
-            decision,
-            result,
-            detail,
-            approver,
-        }
-    }
-}
-
 fn held_call<'a>(
     server_name: &'a str,
     tool_name: &'a str,
@@ -143,7 +124,7 @@ fn held_call<'a>(
         .policies()
         .find(|(config, _)| config.id == "require_approval" && config.enabled)?;
 
-    let call_id = derive_call_id(ctx, server_name, tool_name, &arguments);
+    let call_id = derive_call_id(ctx.user_id(), server_name, tool_name, &arguments);
     let roles = ctx
         .user
         .as_ref()
@@ -208,14 +189,15 @@ async fn open_hold(repo: &ApprovalRepository, held: &Held<'_>) -> Result<(), sql
 // rounds before reaching this gate, and those change `input_responses` every
 // retry. Feeding them into the digest would move the id between rounds, so
 // each retry would open a fresh approval and the hold could never converge.
-fn derive_call_id(
-    ctx: &SysRequestContext,
+#[must_use]
+pub fn derive_call_id(
+    user_id: &UserId,
     server_name: &str,
     tool_name: &str,
     arguments: &serde_json::Value,
 ) -> CallId {
     let mut hasher = Sha256::new();
-    hasher.update(ctx.user_id().as_str().as_bytes());
+    hasher.update(user_id.as_str().as_bytes());
     hasher.update(b"\x1f");
     hasher.update(server_name.as_bytes());
     hasher.update(b"\x1f");

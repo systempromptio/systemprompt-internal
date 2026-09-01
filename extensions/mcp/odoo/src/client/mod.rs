@@ -226,6 +226,26 @@ impl OdooClient {
         Ok(result.as_bool().unwrap_or(false))
     }
 
+    pub async fn unlink(
+        &self,
+        creds: &Credentials,
+        model: &str,
+        ids: &[i64],
+    ) -> Result<bool, OdooError> {
+        let result = self
+            .execute_kw(
+                creds,
+                ModelCall {
+                    model,
+                    method: "unlink",
+                    args: unlink_args(ids),
+                    kwargs: serde_json::json!({}),
+                },
+            )
+            .await?;
+        Ok(result.as_bool().unwrap_or(false))
+    }
+
     pub async fn message_post(
         &self,
         creds: &Credentials,
@@ -250,4 +270,13 @@ impl OdooClient {
             .await?;
         Ok(result.as_i64().unwrap_or_default())
     }
+}
+
+// JSON: protocol boundary
+// Why: execute_kw takes a positional args list whose first element is the id
+// list, so the wire shape is `[[id]]`; a flat `[id]` is the classic Odoo
+// mistake and unlinks nothing.
+#[must_use]
+pub fn unlink_args(ids: &[i64]) -> serde_json::Value {
+    serde_json::json!([ids])
 }

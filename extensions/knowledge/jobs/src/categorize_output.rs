@@ -1,23 +1,16 @@
 //! Pure prompt-and-parse layer for the categorization job: builds the
 //! LLM prompt and JSON schema, and turns model output into the structured
 //! value written back to `knowledge_documents`. No AI calls, no database.
+//!
+//! One prompt produces both the category and the `crm_intent` the proposal
+//! job plans from — a second prompt per email would double the spend for no
+//! information the first call did not already have.
 
 use serde::Deserialize;
-
-pub const CATEGORIES: &[&str] = &[
-    "sales",
-    "client",
-    "product",
-    "operations",
-    "finance",
-    "legal",
-    "technical",
-    "recruiting",
-    "newsletter",
-    "notification",
-    "spam",
-    "other",
-];
+pub use systemprompt_mcp_knowledge_bank::proposal::intent::CATEGORIES;
+use systemprompt_mcp_knowledge_bank::proposal::intent::{
+    CrmIntent, Entity, StructuredSummary, crm_intent_schema,
+};
 
 // Why: prompts past this length only add cost — the categorization signal
 // lives in the subject and the opening of the body.
@@ -32,13 +25,8 @@ pub struct Categorization {
     pub entities: Vec<Entity>,
     #[serde(default)]
     pub action_items: Vec<String>,
-}
-
-#[derive(Debug, Clone, Deserialize, serde::Serialize)]
-pub struct Entity {
-    pub name: String,
-    #[serde(rename = "type")]
-    pub kind: String,
+    #[serde(default)]
+    pub crm_intent: Option<CrmIntent>,
 }
 
 #[must_use]
@@ -47,9 +35,19 @@ pub fn system_prompt() -> String {
         "You are a knowledge-bank categorization pipeline. You receive one \
          captured document (usually an email) and return structured JSON: a \
          category from this exact set [{}], a 2-3 sentence factual summary, \
-         the named entities (people, companies, products), and any concrete \
-         action items. Never invent facts that are not in the document. \
-         Respond with JSON only.",
+         the named entities (people, companies, products), any concrete \
+         action items, and a crm_intent object describing what the email is \
+         to the business. crm_intent.disposition is one of: opportunity (a \
+         prospect or customer asking for something we could sell or quote), \
+         existing_relationship (correspondence with a known customer, partner \
+         or supplier that is not a new opportunity), internal (from a \
+         colleague or our own systems), noise (marketing, notifications, \
+         spam). lead_title is a short CRM opportunity title or null; \
+         contact_name and company_name are the sender's, or null; \
+         note_summary is one paragraph a salesperson would want logged on the \
+         record; tasks are concrete follow-ups with an ISO date (YYYY-MM-DD) \
+         or null; confidence is 0-1. Never invent facts that are not in the \
+         document. Respond with JSON only.",
         CATEGORIES.join(", ")
     )
 }
@@ -63,6 +61,9 @@ pub fn user_prompt(title: &str, content: &str) -> String {
     format!("Title: {title}\n\nDocument:\n{body}")
 }
 
+// Why: hand-built rather than derived so it stays inside the subset every
+// provider's strict mode accepts — no oneOf/anyOf/$ref, every property
+// required, additionalProperties false.
 #[must_use]
 pub fn response_schema() -> serde_json::Value {
     serde_json::json!({
@@ -85,9 +86,10 @@ pub fn response_schema() -> serde_json::Value {
             "action_items": {
                 "type": "array",
                 "items": { "type": "string" }
-            }
+            },
+            "crm_intent": crm_intent_schema()
         },
-        "required": ["category", "summary", "entities", "action_items"],
+        "required": ["category", "summary", "entities", "action_items", "crm_intent"],
         "additionalProperties": false
     })
 }
@@ -108,9 +110,13 @@ pub fn parse_output(raw: &str) -> Option<Categorization> {
 
 #[must_use]
 pub fn structured_json(c: &Categorization) -> serde_json::Value {
-    serde_json::json!({
-        "summary": c.summary,
-        "entities": c.entities,
-        "action_items": c.action_items,
-    })
+    let summary = StructuredSummary {
+        summary: c.summary.clone(),
+        entities: c.entities.clone(),
+        action_items: c.action_items.clone(),
+        crm_intent: c.crm_intent.clone(),
+    };
+    // Why: `structured` is a JSONB column; the typed shape is serialised at
+    // the SQL boundary and never hand-assembled.
+    serde_json::to_value(summary).unwrap_or(serde_json::Value::Null)
 }

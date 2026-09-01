@@ -17,33 +17,36 @@ dashboard artifacts → the `infra logs` / `analytics` readback.
 
 | # | Agentforce sells | We run | Skill | Underlying machinery |
 |---|---|---|---|---|
-| 1 | SDR Agent — lead qualification | The morning briefing | `business_overview` | `business_overview_data` typed table, per-user Odoo record rules, leads dashboard artifact |
-| 2 | Service Agent + Data Cloud 360 | Account 360 Brief | `crm` | Multi-tool orchestration on one lead: `crm_lead_get`, `note_list`, `activity_list` |
-| 3 | Sales Engagement — follow-ups | Governed writes | `crm` + `lead_factsheet` | `activity_create`, `calendar_event_create`, `note_add`, `email_send` — as the signed-in user; the outbound ones **held for human approval** (MCP MRTR, SEP-2322). The email is confirmed in-band by its drafter first, and its provenance logged back to the lead by the same call |
-| 4 | Einstein Trust Layer | Governed Operations | `demonstrate_governance` (admin) | 5-stage governance pipeline, secret scan, live RBAC flip, `governance_decisions` audit rows including the approver stamp |
-| 5 | Agentforce Analytics + Flex credits | Command Center | `report` (admin) | `analytics costs/requests/tools`, `ai_requests` per-request pricing, 3 admin dashboards |
+| 1 | SDR Agent — lead qualification | The morning briefing | `show_activity` (admin) | A series of Odoo queries — `business_overview_data`, `crm_lead_report`, `note_search`, `calendar_event_list`, `task_list`, `activity_list` — into one brief; per-user Odoo record rules; the four business dashboards |
+| 2 | Service Agent + Data Cloud 360 | Walk my leads | `update_leads` (admin) | Per lead: `crm_lead_get`, `note_list`, `activity_list`, then a status question and the smallest write that answers it: `crm_lead_update`, `note_add`, `activity_create` |
+| 3 | Sales Engagement — follow-ups | Governed writes | `lead_factsheet` + `demo_approval_hold` (user) | `crm_lead_create`, `factsheet_render`, `attachment_add`, then `note_add` and `email_send` — as the signed-in salesperson; the outbound ones **held for human approval** (MCP MRTR, SEP-2322). The email is confirmed in-band by its drafter first, and its provenance logged back to the lead by the same call |
+| 4 | Einstein Trust Layer | Governed Operations | `demo_secret_refusal` + `demo_blocked_tool` (user), then `demonstrate_governance` (admin) | A credential refused for every caller at $0; a real destructive tool (`crm_lead_delete`) refused for a user and executed for an admin; then the stage-by-stage tour, the live RBAC flip, and `governance_decisions` audit rows including the approver stamp |
+| 5 | Agentforce Analytics + Flex credits | Command Center | `governance_readback` (admin) | `infra logs request/trace`, `analytics costs/requests/tools`, `ai_requests` per-request pricing, the three control-plane dashboards |
 
 The thread through all five: **self-hosted, per-user identity (no service account), every call audited
 with a trace id, every task priced to the cent — and three outcomes, not two: allow, deny, and *held
 for a human*.** Each beat ends with a cost readback via `governance_readback`, so the finale's
 total is already earned.
 
-**There is no demo plugin.** The demo drives the skills a customer actually gets. There used to be
-five parallel `demo_*` skills that re-narrated the real ones — `demo_lead_triage` was
-`crm_lead_search` plus a ranking, and the two admin ones said in their own bodies that the real
-recipes lived in `demonstrate_governance` and `report`. That surface is gone: what the audience
-watches is what they are buying, which is the stronger demo anyway.
+**The demo plugin stages verdicts, not narration.** `systemprompt-demo` ships three skills, one per
+verdict the pipeline can return — `demo_approval_hold` (held), `demo_secret_refusal` (refused for
+everyone), `demo_blocked_tool` (refused by identity) — plus `lead_factsheet`, the business arc that
+ends in a held send. Every step in them is a real tool call the user's own manifest carries. A first
+demo plugin whose five skills merely re-narrated the admin ones was deleted; its ids are banned in
+`tests/e2e/src/skills_artifacts.rs`.
 
-Steps 4–5 stay admin-only because `demonstrate_governance` and `report` ship in the
-`systemprompt-admin` plugin, which `services/access-control/roles.yaml` grants to `[admin]`. The
-enforcement is that one plugin rule — the skills carry no rule of their own, and an allow-type skill
+The demo plugin is granted to `[user]` on purpose: `require_approval` and `tool_blocklist` both exempt
+admin callers, so the beats only show for a non-admin. Steps 1, 2 and the readbacks are admin-only
+because `show_activity`, `update_leads`, `demonstrate_governance` and `governance_readback` ship in
+`systemprompt-admin`, which `services/access-control/roles.yaml` grants to `[admin]`. The enforcement
+is that one plugin rule per plugin — the skills carry no rule of their own, and an allow-type skill
 rule is forbidden.
 
 ## Difficulty ramp
 
-The beats go easy → hard on purpose: 1 is a single tool call; 2 is multi-tool orchestration on one
-record; 3 adds governed mutations and the approval hold; 4 flips live policy and reconstructs the
-audit chain; 5 synthesizes business reporting, fleet analytics, and the economics close.
+The beats go easy → hard on purpose: 1 is read-only queries into a brief; 2 is a per-record
+conversation ending in writes; 3 adds the outbound writes and the approval hold; 4 trips the refusing
+stages, flips live policy and reconstructs the audit chain; 5 is the economics close.
 
 ---
 
@@ -55,14 +58,15 @@ Accounts, passwords, and how to run the demo as a real user instead of the seede
 1. **Stack up** (`TESTING-INSTRUCTIONS.md` §1): `just db-up local` → `just build` → `just start` →
    `just e2e-live` (seeds `ed@systemprompt.io` / `ed+notadmin@systemprompt.io`, password
    `e2e-live-password-2026`, plus a demo lead).
-2. **Seed richer data (optional but better on screen):** create a handful of leads/notes via the `crm`
+2. **Seed richer data (optional but better on screen):** create a handful of leads/notes via the `update_leads`
    skill or Odoo UI (`http://localhost:8070`, `admin`/`admin`) so triage has something to rank.
 3. **Cowork:** on the demo machine, `systemprompt-internal-bridge login … --gateway http://localhost:8081`,
-   `bridge sync`, run **systemprompt_setup** — one skill for every role and every host; in Cowork it
-   installs the four workspace dashboards. An admin then runs **systemprompt_setup_admin**, a separate
-   admin-only skill, for the three control-plane dashboards.
-4. **Verify the manifest** (§3 curl in TESTING-INSTRUCTIONS.md): both users carry `business_overview`,
-   `crm` and `lead_factsheet`; only `e2e-admin` carries `demonstrate_governance` and `report`.
+   `bridge sync`, run **systemprompt_setup** — one skill for every role and every host. An admin then
+   runs **systemprompt_setup_admin**, a separate admin-only skill, which installs all seven dashboards
+   (the four business ones and the three control-plane ones ship with the admin bundle).
+4. **Verify the manifest** (§3 curl in TESTING-INSTRUCTIONS.md): both users carry `send_email`,
+   `lead_factsheet` and the three `demo_*` skills; only `e2e-admin` carries `show_activity`,
+   `update_leads`, `demonstrate_governance` and `governance_readback`.
 
 ## Governance
 
@@ -80,54 +84,42 @@ The gateway safety scanners (`services/gateway/policies.yaml`) are a separate pl
 
 Run in order; each skill's SKILL.md is the script and ends by handing off to the next.
 
+**Act 0 — as `e2e-admin`, the business:**
+1. `/show_activity` — a series of Odoo queries into one brief: pipeline by stage and owner, the week's
+   new leads, what people wrote, meetings, open work, what is overdue. Open the **Leads — Inbound
+   Prospects** dashboard, which fetches over the same wire, same identity, same audit row. Flag the
+   hottest lead by name and Odoo id. Close with `/governance_readback` for the first cost line.
+2. `/update_leads` — walk that admin's own leads one at a time: where it is, last touch, what is
+   scheduled, then "what's the status?" — and the smallest write that answers it (`crm_lead_update`
+   for a stage move, `note_add` for the reasoning, `activity_create` for the promise). The ledger at
+   the end names every id touched, old → new.
+
 **Act I — as `e2e-sales` (a plain user):**
-1. `/business_overview` — one call, the pipeline by stage and the week's new leads as an inline typed
-   table; open the **Leads — Inbound Prospects** dashboard, which fetches over the same wire, same
-   identity, same audit row. Flag the hottest lead by name and Odoo id. Close with
-   `/governance_readback` for the first cost line.
-2. `/crm` — drill into that lead: `crm_lead_get`, its chatter via `note_list`, its open activities.
-   The 360 brief, assembled from typed results rather than scraped screens.
-3. `/crm` then `/lead_factsheet` — the writes, as the salesperson. Log a note and schedule a
-   follow-up activity; then render the lead a branded factsheet and email it. The Odoo writes land
-   unattended; the outbound-facing ones (`note_add`, `email_send`) **block** — governance holds them
-   and no Odoo round trip and no SMTP connection happens at all. `email_send` is confirmed in-band by
-   its drafter *before* it parks, so
-   the audience sees both layers: the writer checking their own text, then a different person
-   releasing it. Leave both waiting and switch to Act II.
-   Then the beat that never reaches an approver: a second send whose body pastes a config snippet
-   containing an `sk-ant-…` key is refused outright by `secret_scan` on the arguments — before SMTP,
-   before the hold, at **$0**. Optionally also the record-rules denial beat (a record the salesperson
-   cannot touch — Odoo itself refuses). Show the chatter in Odoo under their name.
+3. `/lead_factsheet` then `/demo_approval_hold` — the writes, as the salesperson. Capture a lead,
+   render it a branded sheet, attach it, and email it; then the hold beat proper. The Odoo writes
+   land unattended; the outbound-facing ones (`note_add`, `email_send`) **block** — governance holds
+   them and no Odoo round trip and no SMTP connection happens at all. `email_send` is confirmed
+   in-band by its drafter *before* it parks, so the audience sees both layers: the writer checking
+   their own text, then a different person releasing it. Leave both waiting and switch to Act II.
    **Run Act I as `e2e-sales`, never as an admin:** `exempt_scopes: [admin]` exempts an admin
    *requester*, so an admin demo shows no hold at all and looks like the control is broken.
 
 **Act II — as `e2e-admin`:**
 
-3b. **Approve the held calls.** Open **Governance → Approvals** in the admin console
-   (`/admin/governance/approvals`). Both parked calls are listed with the exact arguments that
-   will run — for `email_send` that includes the full recipient list and body, so the approver reviews
-   what actually goes on the wire, not a summary of it. Approve the email and watch it send and log
-   its own provenance back to the lead's chatter. Then deny the held `note_add` and watch it come
-   back refused with Odoo never touched — both outcomes, on one queue. The approver is necessarily a different
-   person from the requester — an admin's own calls are exempt, so this is a control rather than a
-   rubber stamp.
-
-   **The race, if a second admin is on stage.** Have them click Deny on the call the first admin has
-   already approved. Nothing breaks and nothing is overwritten: the first decision stands, the
-   original approver is still the one stamped in the audit row, and the queue simply stops listing
-   it. `ApprovalRepository::resolve` returns `Ok(None)` for a row that is already decided or expired,
-   and the console renders that as an ordinary outcome rather than an error — so a late click cannot
-   revive an abandoned call and two admins cannot both own one decision. Pinned by
-   `a_decision_already_taken_cannot_be_overwritten`.
-4. `/demonstrate_governance` — its §"Running it as the demo beat": the allow, three engineered
-   denials (scope, secret, blocklist), the
-   live RBAC flip, then `infra logs audit` reconstructing the chain — now including the held calls'
-   `pending` rows and the approver stamped on the row that resumed them. Denied and held calls both
-   cost $0: enforcement fires before the model spend, and a call waiting on a human is not burning
-   anything.
-5. `/report` — its §"Running it as the demo close": pipeline report, fleet analytics, the three admin
-   dashboards, and the bill: *"everything you just watched cost $X.XX"* vs Agentforce's
-   ~$2/conversation list price.
+3b. **Approve the held calls** — the second half of `demo_approval_hold`, from the admin's chair:
+   Governance → Approvals lists both parked calls with the exact arguments that will run. Approve the
+   email, deny the note — both outcomes on one queue, the approver stamped on the row. The race with a
+   second admin is in the skill; pinned by `a_decision_already_taken_cannot_be_overwritten`.
+4. Back as `e2e-sales`: `/demo_secret_refusal` — a credential in a note body, refused before the
+   hold at $0, admin included; `/demo_blocked_tool` — a throwaway lead, `crm_lead_delete` refused by
+   name, the lead still there; then the same call as `e2e-admin` executes it. Then
+   `/demonstrate_governance` (admin) — the stage-by-stage tour, the live RBAC flip, and `infra logs
+   audit` reconstructing the chain, including the held calls' `pending` rows and the approver stamped
+   on the row that resumed them. Denied and held calls both cost $0: enforcement fires before the
+   model spend, and a call waiting on a human is not burning anything.
+5. `/governance_readback` — the close: every request and tool call of the sitting, priced from the
+   rows, plus the three control-plane dashboards, and the bill: *"everything you just watched cost
+   $X.XX"* vs Agentforce's ~$2/conversation list price — labelled as list price, never estimated.
 
 Every number in the demo comes from the running system. If a step can't prove its claim from a command
 output, the skills are written to say so rather than improvise.

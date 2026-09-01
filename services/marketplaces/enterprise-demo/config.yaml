@@ -1,8 +1,8 @@
 marketplace:
   id: enterprise-demo
   name: "Systemprompt Internal — Business on Odoo"
-  description: "The AI and communication layer for running the business, with Odoo as the system of record: one setup for every role, plain-English assistants for CRM leads, notes and business reporting, shared brand skills, and the admin control plane."
-  version: "6.0.0"
+  description: "The AI and communication layer for running the business, with Odoo as the system of record: one setup for every role, governed outbound email, a live governance demo, business administration over Odoo, and the admin control plane."
+  version: "7.0.0"
   visibility: public
   author:
     name: systemprompt.io
@@ -19,14 +19,14 @@ marketplace:
     roles: [user]
     justification: "Public Odoo CRM productivity workspace for signed-in users"
   # One scope per plugin, declared by its entity_type: plugin rule in
-  # services/access-control/roles.yaml: commons and user are [user] (shared by
+  # services/access-control/roles.yaml: commons and demo are [user] (shared by
   # every role — admins hold the user role too); admin is [admin]. The demo
-  # plugin is gone: DEMO.md now drives the real skills instead of a parallel
-  # set that re-narrated them.
+  # plugin stages the governance verdicts with real tool calls; it is not a
+  # parallel narration of the admin skills (that version was deleted once).
   plugins:
     include:
       - systemprompt-commons
-      - systemprompt-user
+      - systemprompt-demo
       - systemprompt-admin
   mcp_servers:
     source: explicit
@@ -34,6 +34,7 @@ marketplace:
       - odoo
       - systemprompt
       - email
+      - factsheet
     exclude: []
   # No agents are published by this marketplace. Plugins ship skills, the
   # Odoo MCP server, and artifacts only.

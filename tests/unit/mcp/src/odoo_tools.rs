@@ -2,7 +2,7 @@
 //! asked for something it does not have.
 
 use systemprompt_mcp_odoo::server::tool::unknown_tool;
-use systemprompt_mcp_odoo::tools::{ALL_TOOLS, SERVER_NAME, list_tools};
+use systemprompt_mcp_odoo::tools::{ALL_TOOLS, SERVER_NAME, TOOL_LEAD_DELETE, list_tools};
 
 #[test]
 fn every_declared_tool_is_advertised() {
@@ -73,10 +73,10 @@ fn the_search_tool_takes_only_optional_filters() {
 
 #[test]
 fn the_unknown_tool_error_lists_what_is_available() {
-    let err = unknown_tool("crm_lead_delete");
+    let err = unknown_tool("crm_lead_merge");
     let message = err.message.to_string();
 
-    assert!(message.contains("crm_lead_delete"), "got: {message}");
+    assert!(message.contains("crm_lead_merge"), "got: {message}");
     for name in ALL_TOOLS {
         assert!(
             message.contains(name),
@@ -84,4 +84,33 @@ fn the_unknown_tool_error_lists_what_is_available() {
              {name} missing from {message}"
         );
     }
+}
+
+#[test]
+fn the_delete_tool_is_advertised_destructive_and_not_read_only() {
+    let tools = list_tools();
+    let delete = tools
+        .iter()
+        .find(|t| t.name == TOOL_LEAD_DELETE)
+        .expect("crm_lead_delete is listed");
+    let annotations = delete
+        .annotations
+        .as_ref()
+        .expect("a destructive tool carries annotations");
+
+    assert_eq!(annotations.destructive_hint, Some(true));
+    assert_ne!(annotations.read_only_hint, Some(true));
+    assert_eq!(
+        delete.input_schema.get("required"),
+        Some(&serde_json::json!(["id"]))
+    );
+}
+
+#[test]
+fn the_delete_tool_name_matches_the_governance_blocklist() {
+    assert!(
+        TOOL_LEAD_DELETE.contains("delete"),
+        "the governance tool_blocklist stage matches the `delete` substring; renaming the tool \
+         would silently let it through"
+    );
 }

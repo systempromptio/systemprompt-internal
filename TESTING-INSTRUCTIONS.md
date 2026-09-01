@@ -167,7 +167,7 @@ existing example at every step — that is the intended workflow.
    `mcp_tools: ["mcp__odoo__won_leads"]`, and the embedded contract
    `{"tool": "mcp__odoo__won_leads", "arguments": {...}}`; adjust the
    `COLUMNS` array. The view reads `structuredContent.items` — no parsing.
-3. **Wire it into the plugin**: `services/plugins/systemprompt-user/config.yaml`
+3. **Wire it into the plugin**: `services/plugins/systemprompt-admin/config.yaml`
    → add the artifact id under `artifacts.include` (and the skill id under
    `skills.include` in step 4). Run `just publish`
    so the setup-skill bundle gains the new dashboard.

@@ -40,6 +40,11 @@ pub struct LeadGetInput {
     pub id: i64,
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
+pub struct LeadDeleteInput {
+    pub id: i64,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct LeadCreateInput {
     pub name: String,

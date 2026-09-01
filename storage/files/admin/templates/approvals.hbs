@@ -1,36 +1,48 @@
 {{#> layout title=title page=page}}
-    {{#*inline "content"}}
-    {{> components/page-header
-        title="Pending approvals"
-        subtitle="Tool calls held by the require_approval policy. Each one is a live request blocked on this page — approving resumes it, denying refuses it."}}
-
-    {{#if is_empty}}
-      {{> components/empty-state message="Nothing is waiting. Held calls appear here the moment a governed tool call matches an approval rule."}}
-    {{else}}
-    <section class="approvals" aria-label="Calls awaiting approval">
-      {{#each approvals}}
-      <article class="approval-card">
+    {{#*inline "approval-card"}}
+      <article class="approval-card{{#if this.is_ingestion}} approval-card--ingestion{{/if}}">
         <header class="approval-card__header">
           <div class="approval-card__title">
-            <code class="code-inline">{{this.tool_name}}</code>
-            {{> components/badge color="warning" text="held"}}
+            {{#if this.ingest}}
+              <span class="approval-card__subject">{{this.ingest.subject}}</span>
+              {{> components/badge color="info" text="proposal"}}
+            {{else}}
+              <code class="code-inline">{{this.tool_name}}</code>
+              {{> components/badge color="warning" text="held"}}
+            {{/if}}
           </div>
+          {{#if this.ingest}}
+          <p class="approval-card__meta">
+            From <strong>{{this.ingest.sender}}</strong>
+            · proposed by the brain@ pipeline as <code class="code-inline">{{this.requested_by}}</code>
+            · document <code class="code-inline">{{this.ingest.document_id}}</code>
+          </p>
+          {{else}}
           <p class="approval-card__meta">
             Requested by <strong>{{this.requested_by}}</strong>
             on <code class="code-inline">{{this.server_name}}</code>
             · matched rule <code class="code-inline">{{this.rule}}</code>
           </p>
+          {{/if}}
           <p class="approval-card__meta">
-            Waiting {{this.waiting_seconds}}s · expires in {{this.expires_in_seconds}}s
+            Waiting {{this.waiting_human}} · expires in {{this.expires_in_human}}
             {{#if this.trace_id}}
             · trace <code class="code-inline">{{this.trace_id}}</code>
             {{/if}}
           </p>
         </header>
 
+        {{#if this.ingest}}
+        <ul class="approval-card__summary">
+          {{#each this.ingest.actions}}
+          <li>{{this}}</li>
+          {{/each}}
+        </ul>
+        {{/if}}
+
         {{!-- The exact payload that will run, not a summary of it: approving a
               description of a call is not approving the call. --}}
-        <details class="approval-card__args" open>
+        <details class="approval-card__args"{{#unless this.ingest}} open{{/unless}}>
           <summary>Arguments</summary>
           <pre class="code-block"><code>{{this.arguments}}</code></pre>
         </details>
@@ -44,8 +56,29 @@
           </form>
         </footer>
       </article>
-      {{/each}}
+    {{/inline}}
+    {{#*inline "content"}}
+    {{> components/page-header
+        title="Pending approvals"
+        subtitle="Tool calls held by the require_approval policy, and inbound emails the brain@ pipeline proposes to project into Odoo. Approving a held call resumes it; approving a proposal writes to Odoo as you within a minute."}}
+
+    {{#if is_empty}}
+      {{> components/empty-state message="Nothing is waiting. Held calls appear here the moment a governed tool call matches an approval rule; ingestion proposals appear on the hour after brain@ receives an email."}}
+    {{else}}
+    {{#if has_live}}
+    <section class="approvals" aria-label="Calls awaiting approval">
+      <h2 class="approvals__heading">Live tool calls <span class="approvals__count">{{live_count}}</span></h2>
+      <p class="approvals__lede">Each one is a request blocked on this page right now.</p>
+      {{#each live}}{{> approval-card}}{{/each}}
     </section>
+    {{/if}}
+    {{#if has_ingestion}}
+    <section class="approvals approvals--ingestion" aria-label="Ingestion proposals awaiting approval">
+      <h2 class="approvals__heading">brain@ → Odoo proposals <span class="approvals__count">{{ingestion_count}}</span></h2>
+      <p class="approvals__lede">Nobody is blocked on these. Approve and the <code class="code-inline">knowledge_odoo_apply</code> job writes the actions to Odoo as your linked account; the Knowledge Feed dashboard shows the result. To untick individual actions, decide from the Approve Ingestion dashboard instead.</p>
+      {{#each ingestion}}{{> approval-card}}{{/each}}
+    </section>
+    {{/if}}
     {{/if}}
     {{/inline}}
 {{/layout}}

@@ -29,7 +29,20 @@ CREATE TABLE IF NOT EXISTS knowledge_documents (
     metadata JSONB,
     category TEXT,
     structured JSONB,
-    status TEXT NOT NULL DEFAULT 'raw'
+    status TEXT NOT NULL DEFAULT 'raw',
+    -- Odoo projection columns. `proposal` is the typed plan an admin approves;
+    -- `proposal_call_id` keys the approval_requests row that is the
+    -- governance hop; `applied` is what actually landed in Odoo.
+    proposal JSONB,
+    proposal_revision INTEGER NOT NULL DEFAULT 0,
+    proposal_call_id TEXT,
+    proposal_error TEXT,
+    skip_reason TEXT,
+    apply_attempts INTEGER NOT NULL DEFAULT 0,
+    next_attempt_at TIMESTAMPTZ,
+    applied JSONB,
+    decided_by TEXT,
+    decided_at TIMESTAMPTZ
 );
 
 -- Ranked search reads this and nothing else.
@@ -41,3 +54,11 @@ CREATE INDEX IF NOT EXISTS idx_knowledge_documents_content_tsv
 -- descends behind it.
 CREATE INDEX IF NOT EXISTS idx_knowledge_documents_project_created_at
     ON knowledge_documents (project, created_at DESC);
+
+-- The pipeline jobs and the proposal feed both select by state, newest first.
+CREATE INDEX IF NOT EXISTS idx_knowledge_documents_status_created_at
+    ON knowledge_documents (status, created_at DESC);
+
+-- The unique index on proposal_call_id lives in the knowledge jobs' migration
+-- 002 alongside the column it indexes: on a database that predates the
+-- column, this file re-runs as a no-op CREATE TABLE and must not reference it.

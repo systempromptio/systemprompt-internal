@@ -54,7 +54,7 @@ async fn every_manifest_named_bundle_file_is_fetchable_and_dashboards_ship_with_
     };
 
     let manifest = stack.manifest(&stack.user_token).await;
-    for plugin_id in ["systemprompt-commons", "systemprompt-user"] {
+    for plugin_id in ["systemprompt-commons", "systemprompt-demo"] {
         let paths = bundle_paths(&manifest, plugin_id);
         let declared = plugin_artifact_ids(plugin_id);
         if declared.is_empty() {
@@ -124,9 +124,10 @@ async fn every_manifest_named_bundle_file_is_fetchable_and_dashboards_ship_with_
         skills.contains(&"systemprompt_setup"),
         "setup is the one name every role types: {skills:?}"
     );
-    // Setup was a router plus two host-specific bodies that restated each
-    // other; it is now one host-agnostic skill. The retired ids must not come
-    // back through a stale bundle or a re-added config.
+    // Retired ids must not come back through a stale bundle or a re-added
+    // config: the setup router and its two host bodies, the first demo
+    // plugin's five narrations, and the CLI manuals (inspect, report) plus the
+    // user-plugin skills that show_activity and update_leads absorbed.
     for retired in [
         "systemprompt_setup_cowork",
         "systemprompt_setup_codex",
@@ -137,6 +138,11 @@ async fn every_manifest_named_bundle_file_is_fetchable_and_dashboards_ship_with_
         "demo_followup_orchestrator",
         "demo_governed_operations",
         "demo_command_center",
+        "inspect",
+        "report",
+        "crm",
+        "manage_work",
+        "business_overview",
     ] {
         assert!(
             !skills.contains(&retired),
@@ -147,8 +153,8 @@ async fn every_manifest_named_bundle_file_is_fetchable_and_dashboards_ship_with_
     let (_, body) = stack
         .send(
             "GET",
-            "/v1/bridge/plugins/systemprompt-user/artifacts/manifest.json",
-            Some(&stack.user_token),
+            "/v1/bridge/plugins/systemprompt-admin/artifacts/manifest.json",
+            Some(&stack.admin_token),
             None,
         )
         .await;
@@ -197,6 +203,8 @@ async fn the_admin_bundle_is_served_to_admins_and_refused_to_users() {
         "admin-users-directory",
         "admin-activity-requests",
         "admin-usage-costs",
+        "knowledge-feed",
+        "knowledge-approve-ingestion",
     ] {
         assert!(
             paths.contains(&format!("artifacts/{id}.html").as_str()),

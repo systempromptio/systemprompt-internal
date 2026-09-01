@@ -191,6 +191,9 @@ async fn ensure_schema(db: &DbPool, pool: &PgPool) -> Result<(), KnowledgeJobErr
     sqlx::raw_sql(crate::extension::MIGRATION_CATEGORIZATION)
         .execute(pool)
         .await?;
+    sqlx::raw_sql(crate::extension::MIGRATION_PROPOSAL)
+        .execute(pool)
+        .await?;
     Ok(())
 }
 

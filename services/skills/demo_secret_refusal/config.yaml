@@ -1,0 +1,12 @@
+id: demo_secret_refusal
+name: "Demo — The Refused Secret"
+description: "A credential in a tool's arguments is refused before the hold, before Odoo, before SMTP, and before any model spend — for every caller, admin included. The verdict nobody gets to approve."
+enabled: true
+file: SKILL.md
+tags:
+  - demo
+  - governance
+  - secret-scan
+  - audit
+category: demo
+display_category: "Governance Demo"

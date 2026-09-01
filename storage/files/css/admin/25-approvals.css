@@ -6,6 +6,30 @@
     gap: var(--sp-space-4);
 }
 
+.approvals__heading {
+    display: flex;
+    align-items: baseline;
+    gap: var(--sp-space-2);
+    margin: 0;
+    font-size: var(--sp-text-lg);
+}
+
+.approvals__count {
+    color: var(--sp-text-secondary);
+    font-size: var(--sp-text-sm);
+    font-variant-numeric: tabular-nums;
+}
+
+.approvals__lede {
+    margin: calc(-1 * var(--sp-space-2)) 0 0;
+    color: var(--sp-text-secondary);
+    font-size: var(--sp-text-sm);
+}
+
+.approvals--ingestion {
+    margin-top: var(--sp-space-8);
+}
+
 .approval-card {
     background: var(--sp-bg-surface-gradient);
     border: 1px solid var(--sp-border-subtle);
@@ -13,6 +37,22 @@
     border-radius: var(--sp-radius-card-brand);
     padding: var(--sp-space-5) var(--sp-space-6);
     box-shadow: var(--sp-shadow-card);
+}
+
+.approval-card--ingestion {
+    border-left-color: var(--sp-info);
+}
+
+.approval-card__subject {
+    font-weight: 600;
+}
+
+.approval-card__summary {
+    margin: var(--sp-space-4) 0 0;
+    padding-left: var(--sp-space-5);
+    color: var(--sp-text-primary);
+    font-size: var(--sp-text-sm);
+    line-height: 1.6;
 }
 
 .approval-card__header {

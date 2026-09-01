@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE knowledge_documents\n            SET status = $2, decided_by = $3, decided_at = $4\n            WHERE id = $1 AND status = 'proposed'\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9f86bfe5386837bb302b93a8321e2d6e9a64c5beb3cae49ba9eb832a763051c9"
+}

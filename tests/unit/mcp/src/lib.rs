@@ -40,6 +40,10 @@ mod knowledge_categorize_output;
 #[cfg(test)]
 mod knowledge_email_capture;
 #[cfg(test)]
+mod knowledge_proposal_plan;
+#[cfg(test)]
+mod knowledge_proposal_shapes;
+#[cfg(test)]
 mod odoo_apps;
 #[cfg(test)]
 mod odoo_attachment_kind;

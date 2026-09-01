@@ -90,9 +90,9 @@ scheduler:
         imap_user: brain@systemprompt.io
         mailbox: INBOX
 
-    # Phase 2: hourly LLM pass over status='raw' knowledge documents →
-    # category + structured JSON. Never writes to Odoo, never creates CRM
-    # leads. Cost-capped by batch_size per run.
+    # Hourly LLM pass over status='raw' knowledge documents → category,
+    # structured summary and crm_intent. Never touches Odoo. Cost-capped by
+    # batch_size per run.
     - name: knowledge_categorization
       extension: knowledge
       owner: admin
@@ -100,6 +100,34 @@ scheduler:
       enabled: true
       parameters:
         batch_size: "10"
+
+    # Plans an Odoo projection for each categorized email and opens the
+    # approval_requests row an admin answers (in the knowledge-approve-ingestion
+    # dashboard or on /admin/governance/approvals). Reads Odoo as the OWNER's
+    # linked account to find existing partners/leads — link it on
+    # /admin/profile or every run fails with a config error. Writes nothing.
+    # `task_project` names the Odoo project follow-ups become tasks in; leave it
+    # unset and they become activities on the record instead.
+    - name: knowledge_proposal
+      extension: knowledge
+      owner: admin
+      schedule: "0 25 * * * *"
+      enabled: true
+      parameters:
+        batch_size: "10"
+
+    # Settles answered approvals every minute: applies to Odoo as the APPROVER's
+    # linked account, records denials and expiries, sweeps expired rows, and
+    # retries failed applies with backoff. This and the proposal_decide tool are
+    # the pipeline's only Odoo writers, and both go through one executor
+    # (knowledge-bank proposal::settle).
+    - name: knowledge_odoo_apply
+      extension: knowledge
+      owner: admin
+      schedule: "0 * * * * *"
+      enabled: true
+      parameters:
+        batch_size: "50"
 
     # Standalone web extension jobs
     - name: content_analytics_aggregation

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE knowledge_documents\n            SET status = 'skipped', skip_reason = $2\n            WHERE id = $1 AND status = 'categorized'\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1e88be2b15eae399d9f814de76376844b8b6b90e9cec54ec3c52da9822a56c05"
+}

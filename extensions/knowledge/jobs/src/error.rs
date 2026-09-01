@@ -17,6 +17,12 @@ pub enum KnowledgeJobError {
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),
 
+    #[error("Knowledge bank error: {0}")]
+    KnowledgeBank(#[from] systemprompt_mcp_knowledge_bank::error::KnowledgeBankError),
+
+    #[error("Odoo error: {0}")]
+    Odoo(#[from] systemprompt_mcp_odoo::error::OdooError),
+
     #[error("{0}")]
     Other(String),
 }

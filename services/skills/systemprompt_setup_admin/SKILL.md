@@ -1,7 +1,8 @@
 # Set Up the Control Plane
 
-Install the control-plane dashboards — the user directory, request activity, and usage and costs —
-into the Artifacts library, and confirm the admin CLI server answers. Safe to run on every new
+Install the admin bundle's seven dashboards — the four business pages (business overview, inbound
+leads, open pipeline, recent activity) and the three control-plane ones (the user directory, request
+activity, and usage and costs) — into the Artifacts library, and confirm the admin CLI server answers. Safe to run on every new
 session: it reconciles rather than seeds, so re-running is the point, not a waste.
 
 **This skill is admin-only, and the grant is what enforces it.** It ships in the
@@ -11,8 +12,8 @@ never mounted for them. Nothing in this file re-checks the role; by the time you
 check has already passed.
 
 **Run `systemprompt_setup` first.** That skill establishes the grant, routes on host, and installs
-the workspace dashboards (the four Odoo pages) — which admins use daily too. This one adds the
-control plane on top. The two do not overlap: each stages only its own bundles.
+whatever the user-scoped bundles ship — on this instance, no dashboards, since all seven ride with the
+admin bundle. This one installs them. The two do not overlap: each stages only its own bundles.
 
 **Preconditions are `systemprompt_setup`'s, not restated here.** It owns the Cowork host check, the
 `create_artifact` / `html_path` contract, the path rules, and the standing rule that there is no
@@ -83,9 +84,9 @@ an artifact the user may have edited.
 
 **Caching contract:** Cowork caches a dashboard's MCP results only when the tool advertises
 `annotations.readOnlyHint: true`. The admin CLI tool (`mcp__systemprompt__systemprompt`) is
-deliberately *not* annotated, so these three dashboards are never cached and always refetch on
-render. That is intended — control-plane numbers must not be stale — and it is why they feel slower
-than the workspace pages.
+deliberately *not* annotated, so the three control-plane dashboards are never cached and always
+refetch on render. That is intended — control-plane numbers must not be stale — and it is why they
+feel slower than the four business pages, whose Odoo read tools are annotated and do cache.
 
 ## Step 4 — Check the admin connection
 
@@ -122,7 +123,8 @@ rather than failing the run.
 
 ## Step 6 — Report honestly
 
-State plainly **"N of M control-plane dashboards installed"**, N from the verified listing — never a
+State plainly **"N of M dashboards installed"** (M is the admin bundle's count — seven today — read from
+its manifest, never assumed), N from the verified listing — never a
 number you did not verify, and report a partial result as partial. Then list what was created, what
 was already there, anything stale, superseded, or failed, and whether the admin CLI answered.
 If everything was already present, say so — that is a successful run, not a no-op.

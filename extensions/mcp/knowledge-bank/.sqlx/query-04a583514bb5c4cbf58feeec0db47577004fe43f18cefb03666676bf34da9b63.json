@@ -1,0 +1,54 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT status, res_id, odoo_message_id\n        FROM knowledge_odoo_projection\n        WHERE document_id = $1 AND revision = $2 AND action_index = $3\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "knowledge_odoo_projection",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "res_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "knowledge_odoo_projection",
+            "name": "res_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "odoo_message_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "knowledge_odoo_projection",
+            "name": "odoo_message_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "04a583514bb5c4cbf58feeec0db47577004fe43f18cefb03666676bf34da9b63"
+}

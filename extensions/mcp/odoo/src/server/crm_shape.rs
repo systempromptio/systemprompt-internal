@@ -86,33 +86,16 @@ pub struct LeadRow {
     pub create_date: Option<String>,
 }
 
-/// Serde adapters for Odoo's wire idioms, usable by any record struct.
-pub mod odoo {
-    use serde::{Deserialize, Deserializer};
-
-    pub fn text<'de, D: Deserializer<'de>>(d: D) -> Result<Option<String>, D::Error> {
-        // JSON: protocol boundary — Odoo writes `false` where a field is empty.
-        let v = serde_json::Value::deserialize(d)?;
-        Ok(match v {
-            serde_json::Value::String(s) if !s.trim().is_empty() => Some(s),
-            _ => None,
-        })
-    }
-
-    pub fn many2one<'de, D: Deserializer<'de>>(d: D) -> Result<Option<String>, D::Error> {
-        // JSON: protocol boundary — `[id, "Display Name"]`, or `false`.
-        let v = serde_json::Value::deserialize(d)?;
-        Ok(v.as_array()
-            .and_then(|t| t.get(1))
-            .and_then(serde_json::Value::as_str)
-            .map(str::to_owned))
-    }
-
-    pub fn number<'de, D: Deserializer<'de>>(d: D) -> Result<Option<f64>, D::Error> {
-        let v = serde_json::Value::deserialize(d)?;
-        Ok(v.as_f64())
-    }
+/// The outcome of `crm_lead_delete`: the id that was unlinked and the name it
+/// carried, read before deletion so the summary can still say what is gone.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct LeadDeleted {
+    pub id: i64,
+    pub name: Option<String>,
+    pub deleted: bool,
 }
+
+pub use crate::shape as odoo;
 
 // Why: dashboards consume this as structured rows — a table artifact, not
 // prose. The markdown row below stays for the model-facing text rendering;

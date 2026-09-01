@@ -52,10 +52,11 @@ and finish that host's own setup.
 Bring the Artifacts library into line with the dashboards your plugins ship: install any that are
 missing, leave the ones already there alone, and report a clear "installed X of Y" result.
 
-This installs the **workspace dashboards** — the four Odoo pages (business overview, inbound leads,
-open pipeline, recent activity) from the `systemprompt-user` bundle. It does not touch the
-control-plane dashboards (users, activity, usage): those belong to `systemprompt_setup_admin`. If
-Step 1 showed you hold that skill, run this section first, then that one. If you do not hold it, that
+This installs whatever dashboards the **user-scoped** bundles you were granted ship. On this
+instance that is currently none — every dashboard, the four Odoo pages (business overview, inbound
+leads, open pipeline, recent activity) and the three control-plane ones (users, activity, usage), ships
+with the admin bundle and belongs to `systemprompt_setup_admin`. So: if Step 1 showed you hold that
+skill, run this section (expect "0 of 0", which is correct), then that one. If you do not hold it, that
 skill does not exist for you and nothing here is missing.
 
 ## How installation works (read this first)

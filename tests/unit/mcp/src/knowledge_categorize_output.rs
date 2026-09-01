@@ -19,6 +19,32 @@ fn schema_pins_the_closed_category_set() {
 }
 
 #[test]
+fn schema_requires_crm_intent_and_it_parses_back() {
+    let schema = response_schema();
+    let required: Vec<&str> = schema["required"]
+        .as_array()
+        .expect("required")
+        .iter()
+        .filter_map(|v| v.as_str())
+        .collect();
+    assert!(required.contains(&"crm_intent"));
+    assert_eq!(
+        schema["properties"]["crm_intent"]["additionalProperties"],
+        false
+    );
+    assert!(system_prompt().contains("opportunity"));
+
+    let raw = r#"{"category":"sales","summary":"s","entities":[],"action_items":[],
+        "crm_intent":{"disposition":"opportunity","lead_title":"Acme","contact_name":"V",
+        "company_name":"Acme","note_summary":"n","tasks":[{"title":"t","due_date":null,"detail":"d"}],"confidence":0.8}}"#;
+    let c = parse_output(raw).expect("parseable");
+    let intent = c.crm_intent.as_ref().expect("intent present");
+    assert_eq!(intent.tasks.len(), 1);
+    let s = structured_json(&c);
+    assert_eq!(s["crm_intent"]["disposition"], "opportunity");
+}
+
+#[test]
 fn parses_clean_json() {
     let raw = r#"{"category":"client","summary":"A client asks about pricing.","entities":[{"name":"Victor","type":"person"}],"action_items":["Reply with the tier sheet"]}"#;
     let c = parse_output(raw).expect("parseable");

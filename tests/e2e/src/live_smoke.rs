@@ -386,15 +386,15 @@ async fn live_stack_walks_the_two_role_journey() {
     let admin_skills = manifest_skills(&http, &base, &admin_bearer).await;
     let sales_skills = manifest_skills(&http, &base, &sales_bearer).await;
     assert!(
-        admin_skills.contains("report"),
+        admin_skills.contains("show_activity"),
         "the Odoo administrator's manifest carries the admin skills — if this set has no admin \
          entries, the RUNNING server predates the plugin-cascade core change (skills inherit \
          their plugin's rule): rebuild and restart it, then re-run. admin skills: \
          {admin_skills:?}"
     );
     assert!(
-        !sales_skills.contains("report"),
-        "report carries no rule of its own; the systemprompt-admin plugin rule must \
+        !sales_skills.contains("show_activity"),
+        "show_activity carries no rule of its own; the systemprompt-admin plugin rule must \
          close it to the salesperson: {sales_skills:?}"
     );
     assert!(

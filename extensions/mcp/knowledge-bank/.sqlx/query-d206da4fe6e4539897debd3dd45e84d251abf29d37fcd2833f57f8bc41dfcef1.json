@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE knowledge_odoo_projection\n        SET status = 'failed', error = $4\n        WHERE document_id = $1 AND revision = $2 AND action_index = $3\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4",
+        "Int4",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d206da4fe6e4539897debd3dd45e84d251abf29d37fcd2833f57f8bc41dfcef1"
+}

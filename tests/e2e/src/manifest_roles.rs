@@ -2,7 +2,7 @@
 //!
 //! The admin/salesperson demo depends on one property: the same gateway, the
 //! same marketplace, but a different manifest per role. roles.yaml declares
-//! one `entity_type: plugin` rule per plugin — commons/user/demo to `[user]`,
+//! one `entity_type: plugin` rule per plugin — commons/demo to `[user]`,
 //! admin to `[admin]` with `default_included: false` — and NO per-skill
 //! rules: every skill and artifact inherits its plugin. These tests pin that
 //! cascade at the wire, against the shipped `services/` tree, through the
@@ -12,21 +12,24 @@ use std::collections::BTreeSet;
 
 use crate::harness::stack::Stack;
 
-const USER_PLUGINS: &[&str] = &["systemprompt-commons", "systemprompt-user"];
+const USER_PLUGINS: &[&str] = &["systemprompt-commons", "systemprompt-demo"];
 const ADMIN_PLUGINS: &[&str] = &["systemprompt-admin"];
-// todo-bulletin and knowledge-feed are shelved with the knowledge surface
-// (each config.yaml carries enabled: false), so they are no longer named by any
-// plugin and must not reach a manifest.
-const USER_ARTIFACTS: &[&str] = &[
-    "business-overview",
-    "leads-inbound-prospects",
-    "pipeline-open-deals",
-    "recent-activity",
-];
+// The user-scoped plugins ship no dashboards: the four business dashboards
+// moved to the admin plugin with show_activity, todo-bulletin is shelved
+// (enabled: false), and the two knowledge dashboards are admin-only because
+// they carry inbound business email — so a user manifest carries no artifact
+// at all.
+const USER_ARTIFACTS: &[&str] = &[];
 const ADMIN_ARTIFACTS: &[&str] = &[
     "admin-users-directory",
     "admin-activity-requests",
     "admin-usage-costs",
+    "business-overview",
+    "leads-inbound-prospects",
+    "pipeline-open-deals",
+    "recent-activity",
+    "knowledge-feed",
+    "knowledge-approve-ingestion",
 ];
 
 fn ids(manifest: &serde_json::Value, key: &str) -> BTreeSet<String> {
@@ -145,7 +148,7 @@ async fn an_admin_manifest_carries_the_admin_surface_and_a_users_does_not() {
     let user_mcp = ids(&user, "managed_mcp_servers");
     // knowledge-bank carries no grant at all now: the server and its ingestion
     // jobs still run, but no skill reaches it, so it must reach no manifest.
-    for server in ["odoo", "email"] {
+    for server in ["odoo", "email", "factsheet"] {
         assert!(
             user_mcp.contains(server),
             "{server} is granted to [user]: {user_mcp:?}"

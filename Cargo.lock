@@ -5503,6 +5503,7 @@ name = "systemprompt-knowledge-jobs"
 version = "0.42.0"
 dependencies = [
  "async-trait",
+ "chrono",
  "imap",
  "inventory",
  "mail-parser",
@@ -5513,6 +5514,7 @@ dependencies = [
  "systemprompt",
  "systemprompt-extension",
  "systemprompt-mcp-knowledge-bank",
+ "systemprompt-mcp-odoo",
  "thiserror 2.0.19",
  "tokio",
  "tracing",
@@ -5688,6 +5690,7 @@ dependencies = [
  "serde_json",
  "sqlx",
  "systemprompt",
+ "systemprompt-mcp-odoo",
  "systemprompt-mcp-shared",
  "thiserror 2.0.19",
  "tokio",

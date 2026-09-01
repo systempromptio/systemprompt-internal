@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE knowledge_documents\n            SET status = $2, applied = COALESCE($3, applied), proposal_error = $4,\n                next_attempt_at = CASE WHEN $4::text IS NULL THEN NULL\n                    ELSE now() + make_interval(mins => (2 ^ LEAST(apply_attempts, 8))::int) END\n            WHERE id = $1 AND status = 'approved'\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Jsonb",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "212823505103c003a505dfa031fc295fdf4ba6d0158596798a920dd66ea20b57"
+}

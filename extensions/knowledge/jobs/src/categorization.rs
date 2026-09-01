@@ -1,26 +1,26 @@
 //! `knowledge_categorization` job: the Phase 2 pass over captured knowledge.
 //!
 //! Selects `status='raw'` documents oldest-first, asks the AI gateway for a
-//! category + structured summary (JSON-schema constrained), and writes
-//! `category`/`structured` back, flipping `status` to `categorized`. A
-//! document that fails stays `raw` and is retried on the next run. This job
-//! never writes to Odoo and never creates CRM leads.
+//! category + structured summary + `crm_intent` (JSON-schema constrained),
+//! and writes `category`/`structured` back, flipping `status` to
+//! `categorized`. A document that fails stays `raw` and is retried on the next
+//! run. This job never reads or writes Odoo and never creates CRM leads: what
+//! the intent *becomes* is the `knowledge_proposal` job's decision, and every
+//! Odoo write waits on a human.
 
 use std::sync::Arc;
 
 use sqlx::PgPool;
-use systemprompt::ai::{AiService, AiServiceProviders};
-use systemprompt::analytics::AnalyticsAiSessionProvider;
+use systemprompt::ai::AiService;
 use systemprompt::database::DbPool;
 use systemprompt::identifiers::{Actor, AgentName, ContextId, SessionId, TraceId};
-use systemprompt::loader::ConfigLoader;
-use systemprompt::mcp::McpToolProvider;
 use systemprompt::models::RequestContext;
 use systemprompt::models::ai::{AiMessage, AiRequest, ResponseFormat, StructuredOutputOptions};
 use systemprompt::system::AppContext;
 use systemprompt::traits::{Job, JobContext, JobResult};
 use uuid::Uuid;
 
+use crate::ai::build_ai_service;
 use crate::categorize_output::{
     parse_output, response_schema, structured_json, system_prompt, user_prompt,
 };
@@ -227,41 +227,6 @@ async fn categorize_one(
     .await?;
 
     Ok(categorization.category)
-}
-
-fn build_ai_service(
-    db_pool: &DbPool,
-    app_context: &Arc<AppContext>,
-) -> Result<Arc<AiService>, KnowledgeJobError> {
-    let services_config = ConfigLoader::load().map_err(other)?;
-    let profile = systemprompt::config::ProfileBootstrap::get().map_err(other)?;
-
-    let tool_provider = Arc::new(McpToolProvider::new(
-        Arc::clone(db_pool),
-        app_context.mcp_registry().clone(),
-        &services_config.ai.mcp.resilience,
-    ));
-    let session_provider = Arc::new(AnalyticsAiSessionProvider::from_repository(
-        app_context.analytics_repositories().sessions.clone(),
-    ));
-    Ok(Arc::new(
-        AiService::new(
-            db_pool,
-            &profile.providers,
-            &services_config.ai,
-            AiServiceProviders {
-                tools: tool_provider,
-                sessions: session_provider,
-            },
-            app_context.ai_repositories(),
-        )
-        .map_err(other)?
-        .with_context_materializer(app_context.context_materializer()),
-    ))
-}
-
-fn other(e: impl std::fmt::Display) -> KnowledgeJobError {
-    KnowledgeJobError::Other(e.to_string())
 }
 
 systemprompt::traits::submit_job!(&KnowledgeCategorizationJob);

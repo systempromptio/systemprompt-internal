@@ -17,7 +17,7 @@ use crate::tools::inputs::{
 use crate::tools::{TOOL_LEAD_CREATE, TOOL_LEAD_GET, TOOL_LEAD_SEARCH, TOOL_LEAD_UPDATE};
 
 use super::crm_shape::LEAD_LABELS;
-pub use super::crm_shape::{LeadRow, lead_domain, lead_row, lead_table, odoo};
+pub use super::crm_shape::{LeadDeleted, LeadRow, lead_domain, lead_row, lead_table, odoo};
 
 #[derive(Debug)]
 pub struct LeadSearchHandler {

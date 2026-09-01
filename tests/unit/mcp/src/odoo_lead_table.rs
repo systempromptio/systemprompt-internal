@@ -4,7 +4,7 @@
 //! many2one — must be absorbed at deserialization, because whatever comes out
 //! of `lead_table` is the structured contract the dashboards render verbatim.
 
-use systemprompt_mcp_odoo::server::crm::{LeadRow, lead_table};
+use systemprompt_mcp_odoo::server::crm::{LeadDeleted, LeadRow, lead_table};
 
 fn record() -> serde_json::Value {
     serde_json::json!({
@@ -75,5 +75,29 @@ fn a_malformed_record_is_dropped_not_shipped_half_parsed() {
         value["items"].as_array().map(Vec::len),
         Some(1),
         "the well-formed row survives; the id-less one must not become a phantom lead"
+    );
+}
+
+#[test]
+fn a_delete_precheck_record_types_into_lead_row_with_only_id_and_name() {
+    let row: LeadRow =
+        serde_json::from_value(serde_json::json!({"id": 47, "name": "Acme"})).expect("types");
+
+    assert_eq!(row.id, 47);
+    assert_eq!(row.name.as_deref(), Some("Acme"));
+    assert!(row.stage_id.is_none());
+}
+
+#[test]
+fn lead_deleted_serialises_id_name_and_deleted() {
+    let deleted = LeadDeleted {
+        id: 47,
+        name: Some("Acme".to_owned()),
+        deleted: true,
+    };
+
+    assert_eq!(
+        serde_json::to_value(deleted).expect("serialises"),
+        serde_json::json!({"id": 47, "name": "Acme", "deleted": true})
     );
 }
