@@ -134,9 +134,6 @@
     background: var(--sp-bg-surface-raised-gradient);
 }
 
-/* Why loud: this block is the only thing standing between a mismatched session
-   and a durable token issued to an account the operator did not mean. It has to
-   read as an interruption, not as a footnote. */
 .device-link-mismatch {
     padding: var(--sp-space-3);
     border: 1px solid color-mix(in oklch, var(--sp-warning) 45%, transparent);
