@@ -10,12 +10,14 @@ homepage.workspace = true
 publish = false
 
 [dependencies]
+# Why: only referenced from inside `register_artifact_theme!`, which
+# cargo-machete cannot see through.
+inventory = { workspace = true }
 # Audit: `systemprompt::mcp` (ArtifactTheme registration) is gated behind `full`.
 # The three MCP crates that depend on this one already enable it, so feature
 # unification means this costs nothing in a real build.
 systemprompt = { workspace = true, features = ["full"] }
 sqlx = { workspace = true }
-inventory = { workspace = true }
 # The approval gate: MRTR result types, the derived call id, and audit row ids.
 rmcp = { workspace = true }
 sha2 = { workspace = true }
@@ -27,3 +29,6 @@ tracing = { workspace = true }
 
 [lints]
 workspace = true
+
+[package.metadata.cargo-machete]
+ignored = ["inventory"]

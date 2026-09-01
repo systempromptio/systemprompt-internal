@@ -1303,7 +1303,6 @@ dependencies = [
  "axum",
  "base64 0.22.1",
  "chrono",
- "futures",
  "http-body-util",
  "jsonwebtoken",
  "reqwest 0.12.28",
@@ -1312,7 +1311,6 @@ dependencies = [
  "serde_yaml_ng",
  "sha2 0.10.9",
  "sqlx",
- "sse-stream",
  "systemprompt",
  "systemprompt-mcp-email",
  "systemprompt-mcp-shared",
@@ -5803,7 +5801,6 @@ version = "0.42.0"
 dependencies = [
  "anyhow",
  "axum",
- "chrono",
  "rmcp",
  "schemars",
  "serde",
@@ -5816,7 +5813,6 @@ dependencies = [
  "thiserror 2.0.19",
  "tokio",
  "tracing",
- "uuid",
 ]
 
 [[package]]

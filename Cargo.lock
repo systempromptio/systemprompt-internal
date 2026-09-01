@@ -5410,7 +5410,6 @@ dependencies = [
  "serde_yaml_ng",
  "thiserror 2.0.19",
  "tokio",
- "tracing",
 ]
 
 [[package]]
@@ -5641,7 +5640,6 @@ version = "0.42.0"
 dependencies = [
  "anyhow",
  "axum",
- "chrono",
  "rmcp",
  "schemars",
  "serde",
@@ -5654,7 +5652,6 @@ dependencies = [
  "thiserror 2.0.19",
  "tokio",
  "tracing",
- "uuid",
 ]
 
 [[package]]

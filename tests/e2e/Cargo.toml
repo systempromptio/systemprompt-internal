@@ -38,8 +38,6 @@ url = { workspace = true }
 chrono = { workspace = true }
 wiremock = { workspace = true }
 rmcp = { workspace = true }
-futures = { workspace = true }
-sse-stream = { workspace = true }
 reqwest = { workspace = true }
 sha2 = { workspace = true }
 jsonwebtoken = { workspace = true }
