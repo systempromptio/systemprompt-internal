@@ -48,3 +48,6 @@ plugin:
   # and core refuses two enabled owners at load.
   hooks:
     governance: true
+    # No `comms: true`: the bridge's announcement-drain hooks (UserPromptSubmit
+    # and Stop running `comms-drain`) stay uninstalled. This instance publishes
+    # no announcements, so there is nothing for them to drain.
