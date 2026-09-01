@@ -17,14 +17,16 @@
                         <a id="download-cta" class="download-cta" href="#" rel="noopener">Download&hellip;</a>
                     </p>
                     <details class="download-other">
-                        <summary>Other platforms</summary>
+                        <summary>All platforms &mdash; bridge {{bridge_version}}</summary>
                         <ul>
-                            <li><a href="{{download_base_url}}/systemprompt-internal-bridge-windows.exe">Windows (.exe)</a></li>
-                            <li><a href="{{download_base_url}}/systemprompt-internal-bridge-linux-x86_64.tar.gz">Linux (.tar.gz, x86_64)</a></li>
+                            <li><a href="{{download_base_url}}/{{asset_macos}}">macOS (.dmg, Apple Silicon + Intel)</a></li>
+                            <li><a href="{{download_base_url}}/{{asset_windows}}">Windows (.exe)</a></li>
+                            <li><a href="{{download_base_url}}/{{asset_linux_x86_64}}">Linux (.tar.gz, x86_64)</a></li>
+                            <li><a href="{{download_base_url}}/{{asset_linux_aarch64}}">Linux (.tar.gz, aarch64)</a></li>
                         </ul>
-                        <p class="text-tertiary text-sm">macOS and Linux aarch64 builds are not currently hosted &mdash; contact your administrator.</p>
+                        <p class="text-tertiary text-sm">Checksums and signatures: <a href="{{release_page_url}}" rel="noopener">release {{bridge_version}} on GitHub</a>.</p>
                     </details>
-                    <p class="text-tertiary text-sm">Binaries are served from this gateway and are unsigned for now. Windows: choose &ldquo;More info &rarr; Run anyway&rdquo; at the SmartScreen prompt.</p>
+                    <p class="text-tertiary text-sm">Bridge {{bridge_version}} is the build released with this gateway. macOS is signed and notarized. Windows is unsigned: choose &ldquo;More info &rarr; Run anyway&rdquo; at the SmartScreen prompt.</p>
                 </div>
             </div>
 
@@ -76,7 +78,7 @@
                         <p>One command &mdash; downloads, verifies the checksum, installs to <code>~/.local/bin</code>, and writes the environment.</p>
                         <div class="snippet">
                             <button type="button" class="btn btn-sm copy-btn" id="linux-copy-btn">Copy</button>
-                            <pre><code id="linux-snippet">curl -fsSL {{gateway_url}}{{download_base_url}}/install.sh | sh -s -- --download-base {{gateway_url}}{{download_base_url}} --gateway {{gateway_url}}</code></pre>
+                            <pre><code id="linux-snippet">{{install_command}}</code></pre>
                         </div>
                         <p class="text-tertiary text-sm">Then open a new login shell and run <code>claude</code>. No manual exports: the installer writes <code>~/.config/systemprompt-internal/env.sh</code> and a managed block in <code>~/.profile</code>, and registers the systemd user units for sync and the loopback proxy.</p>
                     </div>

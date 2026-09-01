@@ -5,6 +5,40 @@ All notable changes to this repository are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `.github/workflows/release.yml` publishes on every merge to `main`: the
+  desktop bridge for macOS (signed + notarized), Windows and Linux as GitHub
+  Release `bridge-v<version>`, and the container image
+  `ghcr.io/systempromptio/systemprompt-internal:<version>` (`docker.yml`,
+  multi-arch, cosign-signed), and the gateway server binaries (`linux-amd64`,
+  `linux-arm64`, `darwin-arm64` tarballs) as GitHub Release `v<version>`.
+  Nothing publishes unless CI and Quality pass on the merge commit and
+  `bridge/CORE_REF` names a core commit of the pinned version.
+- `ghcr-prune.yml` + `scripts/prune-releases.sh`: retention for images
+  (newest 5 versions, `sha-*`/untagged after 4 weeks) and bridge releases
+  (newest 5).
+- `scripts/check-release-version.sh` lint gate: the bridge carries the
+  workspace version; on `main` every pin is checked by
+  `sync-release-version.sh`, which now also owns `bridge/Cargo.toml` and
+  `bridge/CORE_REF` (`v<version>`).
+
+### Changed
+
+- The bridge is versioned with core and the gateway — one number for the
+  workspace, the core pin, the bridge, the release tag and the image tag.
+  `next` is synced to `0.42.0` (workspace, bridge, chart, deploy pins);
+  bridge `0.1.10 → 0.42.0` also clears core's `MIN_BRIDGE_VERSION` floor
+  (`0.28.0`) that every branded heartbeat tripped.
+- The admin Bridge Setup page, the profile connect snippet and the docs link
+  the GitHub release matching the running gateway's version
+  (`releases/download/bridge-v<version>/…`) for all four platforms, instead
+  of a same-origin `/files/downloads` staged by `just deploy` (Windows and
+  Linux only, no version). `build-all` no longer builds the bridge;
+  `package-bridge-*.sh` write to `dist/` for local use only.
+- The in-app self-updater is enabled via `gateway.bridge_releases` in the
+  production profile (no pin: `main` is the only publisher).
+
 ### Security
 
 - `POST /hooks/govern` no longer lets the hook body's `agent_id` raise the

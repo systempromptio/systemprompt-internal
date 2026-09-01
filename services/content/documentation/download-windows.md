@@ -22,7 +22,7 @@ holds your credential, syncs your organization's plugins and MCP servers into
 Claude Code, Claude Desktop, and Codex CLI, and runs the local inference proxy
 that routes every request through the governance gateway.
 
-**[⬇ Download for Windows (.exe)](https://internal.systemprompt.io/files/downloads/systemprompt-internal-bridge-windows.exe)**
+**[⬇ Download for Windows (.exe)](https://github.com/systempromptio/systemprompt-internal/releases/latest/download/systemprompt-internal-bridge-windows.exe)**
 
 ## Install
 
@@ -35,12 +35,12 @@ that routes every request through the governance gateway.
 
 ## Verify the download
 
-A `.sha256` checksum is published beside the binary. In PowerShell:
+A cosign-signed `SHA256SUMS` is published beside the binary. In PowerShell:
 
 ```powershell
 (Get-FileHash .\systemprompt-internal-bridge-windows.exe -Algorithm SHA256).Hash
 # compare against the digest in:
-# https://internal.systemprompt.io/files/downloads/systemprompt-internal-bridge-windows.exe.sha256
+# https://github.com/systempromptio/systemprompt-internal/releases/latest/download/SHA256SUMS
 ```
 
 ## Other platforms

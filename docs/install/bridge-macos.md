@@ -4,8 +4,10 @@ Installs **Systemprompt Internal Bridge** — the desktop app that runs the loca
 inference proxy, holds your gateway credentials, and syncs plugins, skills and
 MCP servers into Claude Desktop, Cowork and Codex CLI.
 
-This is a different product from the gateway server: it ships on its own
-`bridge-v*` tag series, not the gateway's `v*`.
+This is a different product from the gateway server, but it ships with it:
+every merge to `main` publishes GitHub Release `bridge-v<version>` with the
+same version as the gateway image, so `latest` is the build released with the
+deployed gateway. The admin **Bridge Setup** page links the exact version.
 
 ## Download
 
@@ -18,16 +20,8 @@ separate "Apple Silicon build" to choose — the release lipos the
 curl -LO https://github.com/systempromptio/systemprompt-internal/releases/latest/download/systemprompt-internal-bridge-macos.dmg
 ```
 
-> **Staleness check:** the website at `/files/downloads` (populated by
-> `just deploy`) is the download source of truth for Windows and Linux; macOS
-> only ships via `bridge-v*` GitHub releases, which can lag the deployed
-> gateway. Confirm the release's bridge version is compatible with the running
-> core before installing.
-
 Asset names are version-less on purpose, so `releases/latest/download/<asset>`
-stays a permanent link. `systemprompt-internal` is a private repository —
-downloading needs repo access (`gh release download` if you are authenticated
-with `gh`).
+and `releases/download/bridge-v<version>/<asset>` are permanent links.
 
 | OS | Arch | Asset |
 |---|---|---|

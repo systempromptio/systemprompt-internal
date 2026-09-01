@@ -1,5 +1,6 @@
 # syntax=docker/dockerfile:1.7
-# Multi-stage build for systemprompt-template.
+# Multi-stage build for systemprompt-internal (published to
+# ghcr.io/systempromptio/systemprompt-internal by .github/workflows/docker.yml).
 # Stage 1 compiles the Rust workspace against the repo's .sqlx/ offline cache.
 # Stage 2 ships a slim Debian runtime with the binaries + services/ YAML tree.
 
@@ -16,6 +17,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /src
 COPY . /src
+# The workspace may patch systemprompt-* to ../systemprompt-core (the core
+# checkout bridge/CORE_REF names). CI materialises it as .core-sibling inside
+# the context; a local build without it resolves core from crates.io.
+RUN if [ -d /src/.core-sibling ]; then mv /src/.core-sibling /systemprompt-core; fi
 
 ENV SQLX_OFFLINE=true \
     CC=clang \
@@ -26,7 +31,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     cargo build --release --workspace \
     && mkdir -p /out/bin \
     && cp target/release/systemprompt /out/bin/ \
-    && cp target/release/systemprompt-mcp-agent /out/bin/
+    && find target/release -maxdepth 1 -type f -perm -u+x -name 'systemprompt-mcp-*' -exec cp {} /out/bin/ \;
 
 # hey powers the demo/performance load tests; its upstream S3 binary host is
 # dead (403), so build it from source and ship it on PATH — demo/_common.sh's
@@ -38,11 +43,11 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 FROM debian:bookworm-slim AS runtime
 
-LABEL org.opencontainers.image.title="systemprompt" \
+LABEL org.opencontainers.image.title="systemprompt-internal" \
       org.opencontainers.image.description="AI governance gateway for Claude, OpenAI, and Gemini — policy, audit, and MCP orchestration" \
-      org.opencontainers.image.source="https://github.com/systempromptio/systemprompt-template" \
+      org.opencontainers.image.source="https://github.com/systempromptio/systemprompt-internal" \
       org.opencontainers.image.url="https://systemprompt.io" \
-      org.opencontainers.image.documentation="https://github.com/systempromptio/systemprompt-template/tree/main/docs" \
+      org.opencontainers.image.documentation="https://github.com/systempromptio/systemprompt-internal/tree/main/docs" \
       org.opencontainers.image.vendor="systemprompt.io"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \

@@ -7,6 +7,12 @@ on:
         description: "Commit SHA or branch to gate. Defaults to the triggering ref."
         type: string
         required: false
+  # release.yml calls this on the merge commit before it publishes anything.
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        required: true
   pull_request:
     branches: [main, next]
 

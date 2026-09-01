@@ -4693,11 +4693,11 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-internal-brand"
-version = "0.39.0"
+version = "0.42.0"
 
 [[package]]
 name = "systemprompt-internal-bridge"
-version = "0.1.10"
+version = "0.42.0"
 dependencies = [
  "inventory",
  "systemprompt-bridge",

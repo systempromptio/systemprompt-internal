@@ -1,0 +1,88 @@
+name: Retention
+
+# Retention for what release.yml publishes (policy in docs/RELEASING.md):
+#   - ghcr.io/systempromptio/systemprompt-internal: keep the 5 newest release
+#     versions (X.Y.Z) — alias tags (:X, :X.Y, :latest) point at kept digests;
+#     delete sha-* tags and untagged manifests older than 4 weeks (snok v3
+#     protects child manifests of kept multi-arch tags — never swap it for a
+#     naive delete-package-versions loop, that corrupts manifest lists)
+#   - GitHub Releases: keep the 5 newest bridge-v* releases (and their tags)
+#   - Actions artifacts: build outputs already expire (retention-days), so
+#     nothing to do here
+
+on:
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_run:
+    workflows: ["Release — bridge binaries + container image"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Log what would be deleted without deleting"
+        type: boolean
+        default: false
+
+jobs:
+  images:
+    name: Prune container images
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      # snok/container-retention-policy cannot delete org-owned package
+      # versions with the Actions GITHUB_TOKEN — it needs a classic PAT
+      # (read:packages + delete:packages) stored as GHCR_PRUNE_TOKEN.
+      - name: Require GHCR_PRUNE_TOKEN
+        run: |
+          if [ -z "${{ secrets.GHCR_PRUNE_TOKEN }}" ]; then
+            echo "::error::secrets.GHCR_PRUNE_TOKEN is not set (classic PAT with read:packages + delete:packages). See docs/RELEASING.md."
+            exit 1
+          fi
+
+      - name: Prune old release versions (keep newest 5)
+        uses: snok/container-retention-policy@v3.0.0
+        with:
+          account: systempromptio
+          token: ${{ secrets.GHCR_PRUNE_TOKEN }}
+          image-names: systemprompt-internal
+          image-tags: "[0-9]*.[0-9]*.[0-9]*"
+          tag-selection: tagged
+          keep-n-most-recent: 5
+          cut-off: 4w
+          dry-run: ${{ inputs.dry_run || false }}
+
+      - name: Prune stale sha-* tags
+        uses: snok/container-retention-policy@v3.0.0
+        with:
+          account: systempromptio
+          token: ${{ secrets.GHCR_PRUNE_TOKEN }}
+          image-names: systemprompt-internal
+          image-tags: "sha-*"
+          tag-selection: tagged
+          cut-off: 4w
+          dry-run: ${{ inputs.dry_run || false }}
+
+      - name: Prune untagged manifests
+        uses: snok/container-retention-policy@v3.0.0
+        with:
+          account: systempromptio
+          token: ${{ secrets.GHCR_PRUNE_TOKEN }}
+          image-names: systemprompt-internal
+          tag-selection: untagged
+          cut-off: 4w
+          dry-run: ${{ inputs.dry_run || false }}
+
+  releases:
+    name: Prune bridge releases (keep newest 5)
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          DRY_RUN: ${{ inputs.dry_run || false }}
+        run: scripts/prune-releases.sh --keep 5 $([ "$DRY_RUN" = "true" ] && echo --dry-run)

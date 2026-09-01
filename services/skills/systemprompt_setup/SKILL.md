@@ -258,16 +258,13 @@ purpose, so these stay permanent links:
 | Windows x86_64 | `systemprompt-internal-bridge-windows.exe` |
 
 ```bash
-# NOTE: the GitHub release may lag the deployed gateway — prefer the assets at
-# https://internal.systemprompt.io/files/downloads/ where hosted (Windows,
-# Linux x86_64); macOS is GitHub-only and may need a fresh bridge-v* release.
+# Every merge to main publishes bridge-v<version> beside the gateway image, so
+# `latest` is the build released with the deployed gateway; the admin Bridge
+# Setup page links the exact version.
 curl -LO https://github.com/systempromptio/systemprompt-internal/releases/latest/download/systemprompt-internal-bridge-macos.dmg
 ```
 
-`systemprompt-internal` is a **private repository**, so a plain `curl` only works for someone with
-repo access — otherwise use `gh release download --repo systempromptio/systemprompt-internal
---pattern 'systemprompt-internal-bridge-macos.dmg'` while authenticated with `gh`, or have the
-user's admin send them the installer. On macOS, open the dmg and drag **Systemprompt Internal
+On macOS, open the dmg and drag **Systemprompt Internal
 Bridge.app** to `/Applications`; the full walkthrough is `docs/install/bridge-macos.md`.
 
 Then have them sign in with their systemprompt account (Odoo credentials or passkey). Signing in

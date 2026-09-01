@@ -361,6 +361,7 @@ _lint-gates-uncoordinated:
         check-workspace-deps.sh
         validate-services.sh
         check-mcp-tool-names.sh
+        check-release-version.sh
     )
     logdir=$(mktemp -d)
     trap 'rm -rf "$logdir"' EXIT
@@ -952,11 +953,12 @@ _build-mcp-uncoordinated:
     DATABASE_URL="$(just _db-url)" {{CLI}} build mcp --release
 
 # Build everything for deployment (Rust binary + MCP servers + web assets)
+# The bridge is NOT built here: it ships from the GitHub release that
+# .github/workflows/release.yml cuts on every merge to main, and the admin
+# pages link to that release by version.
 build-all:
     just build --release
     just build-mcp
-    just bridge-package-linux
-    just bridge-package-windows
     just web-build
     {{CLI_RELEASE}} infra jobs run publish_pipeline
     @echo "All components built"
@@ -989,11 +991,11 @@ web-build:
 
 # Build Docker image for local testing
 docker-build TAG="local":
-    docker build -f .systemprompt/Dockerfile -t systemprompt-template:{{TAG}} .
+    docker build -f Dockerfile -t systemprompt-internal:{{TAG}} .
 
 # Run image locally for testing
 docker-run TAG="local":
-    docker run -p 8080:8080 --env-file .env systemprompt-template:{{TAG}}
+    docker run -p 8080:8080 --env-file .env systemprompt-internal:{{TAG}}
 
 # Build the branded bridge. Its own standalone workspace, NOT the server
 # workspace — `just build` does not touch it, and a bare `cargo build` from the
@@ -1075,7 +1077,7 @@ bridge-package-linux:
 # Cross-compile the Windows bridge exe (x86_64-pc-windows-msvc via cargo-xwin —
 # msvc is required: it statically links WebView2Loader, a -gnu build ships a
 # bare exe that dies at start on "WebView2Loader.dll was not found") and stage
-# it into storage/files/downloads/. Follow with `just publish`.
+# it into dist/. Real releases come from .github/workflows/release.yml.
 bridge-package-windows: core-checkout
     @scripts/build-coordinator.sh run bridge-package-windows "" -- scripts/package-bridge-windows.sh
 
@@ -1083,8 +1085,11 @@ bridge-package-windows: core-checkout
 # re-binds the machine to whoever that code belongs to.
 # Point Claude Code on THIS host at the gateway (CODE comes from /admin/profile)
 connect CODE GATEWAY="http://localhost:8080":
-    curl -fsSL {{GATEWAY}}/files/downloads/install.sh | sh -s -- \
-        --download-base {{GATEWAY}}/files/downloads --code {{CODE}}
+    #!/usr/bin/env bash
+    set -euo pipefail
+    BASE="${DOWNLOAD_BASE:-https://github.com/systempromptio/systemprompt-internal/releases/download/bridge-v$(sed -n 's/^version = "\([0-9.]*\)"/\1/p' bridge/Cargo.toml | head -1)}"
+    curl -fsSL "$BASE/install.sh" | sh -s -- \
+        --download-base "$BASE" --gateway {{GATEWAY}} --code {{CODE}}
 
 # Signing in is needed the first time only: the credential persists in a
 # per-gateway volume, so later runs are just `just claude`. With no CODE the
@@ -1855,24 +1860,24 @@ core-bump version:
     @! grep -q '^\[patch\.crates-io\]' Cargo.toml || (echo "ERROR: [patch.crates-io] is active — publish core and re-comment it first" && exit 1)
     scripts/sync-release-version.sh {{version}}
     cargo update -w
+    cargo update -w --manifest-path bridge/Cargo.toml
     just db-up
     cargo run --bin systemprompt -- infra db migrate || true
     just build
     just clippy
     @echo "core-bump {{version}} complete — review the diff, run tests, commit to main, push, then: just release {{version}}"
 
-# Step B: tag the release. Nothing downstream is automatic — this repo runs no
-# hosted CI, so the tag is a marker and the artifacts are built here by hand
-# (just build-all, just docker-build) when a release actually needs shipping.
+# Step B: confirm the release. The v<version> and bridge-v<version> releases
+# (and their tags) are cut by .github/workflows/release.yml when the release
+# PR merges to main; this just proves they exist (see docs/RELEASING.md).
 release version:
     @test -z "$(git status --porcelain)" || (echo "ERROR: working tree not clean" && exit 1)
     git fetch origin main
     @test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" || (echo "ERROR: HEAD != origin/main — push first" && exit 1)
     scripts/sync-release-version.sh {{version}} --check
-    just verify
-    git tag "v{{version}}"
-    git push origin "v{{version}}"
-    @echo "v{{version}} tagged and pushed. No CI will pick it up — build artifacts locally with 'just build-all'."
+    gh release view "v{{version}}" --json url,assets --jq '.url, (.assets[].name)'
+    gh release view "bridge-v{{version}}" --json url --jq .url
+    @echo "v{{version}}: gateway + bridge releases exist (cut by release.yml on the merge to main). Deploy with 'just deploy'."
 
 # --- Odoo companion app (Fly) --------------------------------------------
 # Odoo CE runs as its own Fly app (sp-88906bfd0afd-odoo) with a volume for

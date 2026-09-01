@@ -25,7 +25,7 @@ install, sign-in, environment, proxy, sync.
 ## One-line install (recommended)
 
 ```bash
-curl -fsSL https://internal.systemprompt.io/files/downloads/install.sh | sh
+curl -fsSL https://github.com/systempromptio/systemprompt-internal/releases/latest/download/install.sh | sh
 ```
 
 Signing in interactively is the default; for unattended installs pass
@@ -33,10 +33,12 @@ Signing in interactively is the default; for unattended installs pass
 
 ## Tarballs
 
-- **[⬇ Download for Linux x86_64 (.tar.gz)](https://internal.systemprompt.io/files/downloads/systemprompt-internal-bridge-linux-x86_64.tar.gz)**
+- **[⬇ Download for Linux x86_64 (.tar.gz)](https://github.com/systempromptio/systemprompt-internal/releases/latest/download/systemprompt-internal-bridge-linux-x86_64.tar.gz)**
+- **[⬇ Download for Linux aarch64 (.tar.gz)](https://github.com/systempromptio/systemprompt-internal/releases/latest/download/systemprompt-internal-bridge-linux-aarch64.tar.gz)**
 
-An aarch64 build is not currently hosted — ask your administrator if you need
-one.
+Both ship on every `bridge-v*` release, cut together with the gateway it
+runs against; the admin **Bridge Setup** page links the exact release for the
+gateway you are signed in to.
 
 Each archive carries the binary and an `INSTALL.md` with the manual steps.
 The binary dynamically links `libdbus-1`, `libcap`, `libgcrypt`, and
@@ -48,11 +50,11 @@ sudo apt-get install -y libdbus-1-3 libcap2 libgcrypt20 libsystemd0   # Debian/U
 
 ## Verify the download
 
-A `.sha256` checksum is published beside the tarball:
+A cosign-signed `SHA256SUMS` is published beside the assets:
 
 ```bash
-curl -fsSLO https://internal.systemprompt.io/files/downloads/systemprompt-internal-bridge-linux-x86_64.tar.gz.sha256
-sha256sum -c systemprompt-internal-bridge-linux-x86_64.tar.gz.sha256
+curl -fsSLO https://github.com/systempromptio/systemprompt-internal/releases/latest/download/SHA256SUMS
+sha256sum -c --ignore-missing SHA256SUMS
 ```
 
 ## Other platforms

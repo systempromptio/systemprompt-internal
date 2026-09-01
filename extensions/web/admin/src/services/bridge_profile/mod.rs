@@ -114,10 +114,9 @@ async fn build_bridge_connect(
         .max(0);
 
     Some(BridgeConnectBlock {
-        install_command: format!(
-            "curl -fsSL {gateway}/files/downloads/install.sh | sh -s -- \
-             --download-base {gateway}/files/downloads --code {code}",
-            code = issued.code
+        install_command: crate::services::bridge_downloads::install_command(
+            &gateway,
+            Some(&issued.code),
         ),
         login_command: format!(
             "{BRIDGE_BINARY} login --code {code} --gateway {gateway}",

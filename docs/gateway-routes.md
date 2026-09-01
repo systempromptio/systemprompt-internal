@@ -90,9 +90,11 @@ The `GatewayUpstream` trait (`async fn proxy(&self, ctx: UpstreamCtx<'_>)`) is t
 
 ## Bridge self-update feed
 
-The desktop bridge updates itself through this gateway. Release assets live in a
-private GitHub repository that the bridge holds no credential for, so the
-gateway resolves the newest `bridge-v*` release and proxies the bytes:
+The desktop bridge updates itself through this gateway, which resolves the
+newest `bridge-v*` release and proxies the bytes. `main` is the only publisher
+of those releases (`.github/workflows/release.yml`, one per merge, same version
+as the gateway image), so "newest" is by construction the bridge built beside
+the deployed core:
 
 | Route | Purpose |
 |-------|---------|
@@ -121,7 +123,7 @@ gateway:
 macOS points at the `.zip`, not the `.dmg`: the updater unpacks it with `ditto`
 and verifies the bundle's signature before swapping it into `/Applications`.
 The `.dmg` remains what the admin Bridge Setup page hands to humans. Asset names
-must match `.github/workflows/bridge-release.yml` exactly.
+must match `.github/workflows/release.yml` exactly.
 
 The advertised `sha256` is read from the release's `SHA256SUMS` — generated and
 cosign-signed by the release workflow — rather than computed here, so the digest

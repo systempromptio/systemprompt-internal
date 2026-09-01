@@ -149,8 +149,8 @@ Instead of mounting the binary, point the container at a running gateway and
 install the published artefact exactly as a customer would:
 
 ```bash
-curl -fsSL http://host.docker.internal:8080/files/downloads/install.sh | sh -s -- \
-  --download-base http://host.docker.internal:8080/files/downloads
+curl -fsSL https://github.com/systempromptio/systemprompt-internal/releases/latest/download/install.sh | sh -s -- \
+  --gateway http://host.docker.internal:8080
 ```
 
 It verifies the tarball checksum and refuses to proceed on a mismatch — corrupt
