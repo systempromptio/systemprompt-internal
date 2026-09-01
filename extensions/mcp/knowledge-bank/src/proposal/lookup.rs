@@ -97,15 +97,17 @@ async fn first_lead(
     // JSON: protocol boundary — an Odoo search domain. The partner match is
     // included so a lead created from a contact form, whose email_from is
     // blank but whose partner is set, is still found.
-    let domain = match partner_id {
-        Some(pid) => serde_json::json!([
-            ["active", "=", true],
-            "|",
-            ["email_from", "=ilike", email],
-            ["partner_id", "=", pid]
-        ]),
-        None => serde_json::json!([["active", "=", true], ["email_from", "=ilike", email]]),
-    };
+    let domain = partner_id.map_or_else(
+        || serde_json::json!([["active", "=", true], ["email_from", "=ilike", email]]),
+        |pid| {
+            serde_json::json!([
+                ["active", "=", true],
+                "|",
+                ["email_from", "=ilike", email],
+                ["partner_id", "=", pid]
+            ])
+        },
+    );
     let rows = client
         .search_read(creds, "crm.lead", domain, &options)
         .await?;

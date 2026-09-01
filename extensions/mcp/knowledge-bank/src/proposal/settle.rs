@@ -10,7 +10,7 @@
 use chrono::Utc;
 use systemprompt::identifiers::{SessionId, UserId};
 use systemprompt::security::policy::{ApprovalRequest, ApprovalStatus};
-use systemprompt_mcp_odoo::client::OdooClient;
+use systemprompt_mcp_odoo::client::{Credentials, OdooClient};
 use systemprompt_mcp_odoo::error::OdooError;
 use systemprompt_mcp_odoo::identity::resolve_credentials;
 use systemprompt_mcp_shared::approval::{
@@ -21,7 +21,7 @@ use uuid::Uuid;
 use super::apply::{AppliedOutcome, ApplyContext, ApplySource, apply_document};
 use super::body::{BodySource, chatter_body};
 use super::ledger::{LedgerKey, NewProjection, mark_excluded};
-use super::{ActionTarget, DocumentStatus, OdooAction, TOOL_APPLY_PROPOSAL};
+use super::{ActionTarget, DocumentStatus, OdooAction, Proposal, TOOL_APPLY_PROPOSAL};
 use crate::error::KnowledgeBankError;
 use crate::store::{KnowledgeStore, ProposalDocument};
 use crate::tools::SERVER_NAME;
@@ -111,73 +111,24 @@ async fn approve(
         return Ok(SettleOutcome::Failed(error));
     };
 
-    let creds = match resolve_credentials(store.pool(), &approver).await {
-        Ok(creds) => creds,
-        Err(OdooError::NotLinked(_)) => {
-            let error = format!(
-                "approver {} has no linked Odoo account; link one on /admin/profile and the \
-                 proposal will be retried",
-                request.approver_username.as_deref().unwrap_or("(unknown)")
-            );
-            store.set_applied(doc.id, None, Some(&error)).await?;
-            return Ok(SettleOutcome::Failed(error));
-        },
-        Err(e) => {
-            let error = e.to_string();
-            store.set_applied(doc.id, None, Some(&error)).await?;
-            return Ok(SettleOutcome::Failed(error));
-        },
+    let Some((creds, client)) = resolve_writer(store, &doc, request, &approver).await? else {
+        return Ok(SettleOutcome::Failed(
+            doc.proposal_error.clone().unwrap_or_default(),
+        ));
     };
-    let client = match OdooClient::from_env() {
-        Ok(client) => client,
-        Err(e) => {
-            let error = e.to_string();
-            store.set_applied(doc.id, None, Some(&error)).await?;
-            return Ok(SettleOutcome::Failed(error));
-        },
-    };
-
     let pg = store.write_pool()?;
     let rfc5322_id = doc.rfc5322_id();
-    for &index in exclude {
-        if let Some(action) = proposal.actions.get(index) {
-            mark_excluded(
-                pg.as_ref(),
-                &NewProjection {
-                    key: LedgerKey {
-                        document_id: doc.id,
-                        revision: proposal.revision,
-                        action_index: i32::try_from(index).unwrap_or(i32::MAX),
-                    },
-                    kind: action.kind(),
-                    res_model: action_model(action),
-                    rfc5322_id: &rfc5322_id,
-                    applied_by: approver.as_str(),
-                    odoo_login: &creds.login,
-                },
-            )
-            .await
-            .map_err(|e| KnowledgeBankError::Internal(format!("ledger exclusion failed: {e}")))?;
-        }
-    }
+    let ctx = ApplyContext {
+        pool: pg.as_ref(),
+        client: &client,
+        creds: &creds,
+        approver: &approver,
+    };
+    mark_exclusions(&ctx, &doc, &proposal, exclude).await?;
 
-    let received = doc.received().unwrap_or_default();
-    let document_id = doc.id.to_string();
-    let body_html = chatter_body(&BodySource {
-        sender: &proposal.sender,
-        subject: &doc.title,
-        received: &received,
-        rfc5322_id: &rfc5322_id,
-        content: &doc.content,
-        document_id: &document_id,
-    });
+    let body_html = render_body(&doc, &proposal);
     let outcome = apply_document(
-        &ApplyContext {
-            pool: pg.as_ref(),
-            client: &client,
-            creds: &creds,
-            approver: &approver,
-        },
+        &ctx,
         &ApplySource {
             document_id: doc.id,
             revision: proposal.revision,
@@ -190,21 +141,99 @@ async fn approve(
     )
     .await;
 
-    let error = (!outcome.all_ok).then(|| {
+    let error = failure_summary(&outcome);
+    store
+        .set_applied(doc.id, Some(&outcome), error.as_deref())
+        .await?;
+    Ok(error.map_or_else(|| SettleOutcome::Applied(outcome), SettleOutcome::Failed))
+}
+
+// Why: every failure here is recorded on the document as `failed`, with
+// backoff, and reported as `None` — the approval stands, only the apply is
+// deferred until the approver links Odoo or Odoo comes back.
+async fn resolve_writer(
+    store: &KnowledgeStore,
+    doc: &ProposalDocument,
+    request: &ApprovalRequest,
+    approver: &UserId,
+) -> Result<Option<(Credentials, OdooClient)>, KnowledgeBankError> {
+    let failed = |error: String| async move {
+        store.set_applied(doc.id, None, Some(&error)).await?;
+        Ok(None)
+    };
+    let creds = match resolve_credentials(store.pool(), approver).await {
+        Ok(creds) => creds,
+        Err(OdooError::NotLinked(_)) => {
+            return failed(format!(
+                "approver {} has no linked Odoo account; link one on /admin/profile and the \
+                 proposal will be retried",
+                request.approver_username.as_deref().unwrap_or("(unknown)")
+            ))
+            .await;
+        },
+        Err(e) => return failed(e.to_string()).await,
+    };
+    match OdooClient::from_env() {
+        Ok(client) => Ok(Some((creds, client))),
+        Err(e) => failed(e.to_string()).await,
+    }
+}
+
+fn render_body(doc: &ProposalDocument, proposal: &Proposal) -> String {
+    let rfc5322_id = doc.rfc5322_id();
+    let received = doc.received().unwrap_or_default();
+    let document_id = doc.id.to_string();
+    chatter_body(&BodySource {
+        sender: &proposal.sender,
+        subject: &doc.title,
+        received: &received,
+        rfc5322_id: &rfc5322_id,
+        content: &doc.content,
+        document_id: &document_id,
+    })
+}
+
+fn failure_summary(outcome: &AppliedOutcome) -> Option<String> {
+    (!outcome.all_ok).then(|| {
         outcome
             .actions
             .iter()
             .filter_map(|a| a.error.as_deref())
             .collect::<Vec<_>>()
             .join("; ")
-    });
-    store
-        .set_applied(doc.id, Some(&outcome), error.as_deref())
-        .await?;
-    Ok(match error {
-        Some(error) => SettleOutcome::Failed(error),
-        None => SettleOutcome::Applied(outcome),
     })
+}
+
+async fn mark_exclusions(
+    ctx: &ApplyContext<'_>,
+    doc: &ProposalDocument,
+    proposal: &Proposal,
+    exclude: &[usize],
+) -> Result<(), KnowledgeBankError> {
+    let rfc5322_id = doc.rfc5322_id();
+    for &index in exclude {
+        let Some(action) = proposal.actions.get(index) else {
+            continue;
+        };
+        mark_excluded(
+            ctx.pool,
+            &NewProjection {
+                key: LedgerKey {
+                    document_id: doc.id,
+                    revision: proposal.revision,
+                    action_index: i32::try_from(index).unwrap_or(i32::MAX),
+                },
+                kind: action.kind(),
+                res_model: action_model(action),
+                rfc5322_id: &rfc5322_id,
+                applied_by: ctx.approver.as_str(),
+                odoo_login: &ctx.creds.login,
+            },
+        )
+        .await
+        .map_err(|e| KnowledgeBankError::Internal(format!("ledger exclusion failed: {e}")))?;
+    }
+    Ok(())
 }
 
 fn action_model(action: &OdooAction) -> &str {
@@ -218,12 +247,12 @@ async fn audit_verdict(
     store: &KnowledgeStore,
     doc: &ProposalDocument,
     request: &ApprovalRequest,
-    approved: bool,
+    accepted: bool,
 ) {
     let Ok(pg) = store.write_pool() else {
         return;
     };
-    let stamp = approver_stamp(request, if approved { "approved" } else { "denied" });
+    let stamp = approver_stamp(request, if accepted { "approved" } else { "denied" });
     let approver = stamp.user_id.clone();
     let session_id = SessionId::generate();
     let trace_id = doc.id.to_string();
@@ -245,7 +274,7 @@ async fn audit_verdict(
             act_chain: &[],
         },
         stamp,
-        approved,
+        accepted,
     )
     .await;
 }

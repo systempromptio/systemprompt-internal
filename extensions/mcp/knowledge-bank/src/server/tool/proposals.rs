@@ -19,6 +19,7 @@ pub use super::proposal_outputs::{
     FeedRow, ProposalDecideOutput, ProposalGetOutput, ProposalListOutput, ViewerCapability,
 };
 use crate::proposal::DocumentStatus;
+use crate::proposal::apply::AppliedOutcome;
 use crate::proposal::body::{BodySource, chatter_body};
 use crate::proposal::plan::validate_selection;
 use crate::proposal::settle::{SettleOutcome, settle_document};
@@ -146,7 +147,7 @@ impl McpToolHandler for ProposalGetHandler {
                     .as_deref()
                     .and_then(crate::proposal::sender::parse_mailbox)
             })
-            .unwrap_or(crate::proposal::Sender {
+            .unwrap_or_else(|| crate::proposal::Sender {
                 name: None,
                 email: "unknown".to_owned(),
             });
@@ -249,28 +250,7 @@ impl McpToolHandler for ProposalDecideHandler {
         let outcome = settle_document(&self.store, id, &request, &input.exclude_actions)
             .await
             .map_err(internal)?;
-        let (status, applied, message) = match outcome {
-            SettleOutcome::Applied(applied) => {
-                let n = applied.actions.len();
-                (
-                    DocumentStatus::Applied,
-                    Some(applied),
-                    format!("Applied {n} action(s) to Odoo"),
-                )
-            },
-            SettleOutcome::Failed(error) => (
-                DocumentStatus::Failed,
-                None,
-                format!("Approved, but applying failed and will be retried: {error}"),
-            ),
-            SettleOutcome::Denied => (DocumentStatus::Denied, None, "Rejected".to_owned()),
-            SettleOutcome::Expired => (DocumentStatus::Expired, None, "Expired".to_owned()),
-            SettleOutcome::NotPending(status) => (
-                status,
-                None,
-                format!("Already {}; nothing changed", status.as_str()),
-            ),
-        };
+        let (status, applied, message) = describe(outcome);
         Ok((
             ProposalDecideOutput {
                 document_id: id.to_string(),
@@ -280,6 +260,31 @@ impl McpToolHandler for ProposalDecideHandler {
             },
             message,
         ))
+    }
+}
+
+fn describe(outcome: SettleOutcome) -> (DocumentStatus, Option<AppliedOutcome>, String) {
+    match outcome {
+        SettleOutcome::Applied(applied) => {
+            let n = applied.actions.len();
+            (
+                DocumentStatus::Applied,
+                Some(applied),
+                format!("Applied {n} action(s) to Odoo"),
+            )
+        },
+        SettleOutcome::Failed(error) => (
+            DocumentStatus::Failed,
+            None,
+            format!("Approved, but applying failed and will be retried: {error}"),
+        ),
+        SettleOutcome::Denied => (DocumentStatus::Denied, None, "Rejected".to_owned()),
+        SettleOutcome::Expired => (DocumentStatus::Expired, None, "Expired".to_owned()),
+        SettleOutcome::NotPending(status) => (
+            status,
+            None,
+            format!("Already {}; nothing changed", status.as_str()),
+        ),
     }
 }
 

@@ -206,8 +206,10 @@ pub struct Proposal {
 }
 
 /// The `approval_requests.arguments` payload: exactly what an approver is
-/// approving. The revision is part of it so a proposal re-opened after expiry
-/// derives a fresh call id instead of rejoining the expired row.
+/// approving.
+///
+/// The revision is part of it so a proposal re-opened after expiry derives a
+/// fresh call id instead of rejoining the expired row.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ProposalArguments {
     #[schemars(with = "String")]

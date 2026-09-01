@@ -99,18 +99,7 @@ impl Job for KnowledgeProposalJob {
         }
 
         let owner = ctx.actor().user_id.clone();
-        let creds = match resolve_credentials(db, &owner).await {
-            Ok(creds) => creds,
-            Err(OdooError::NotLinked(_)) => {
-                return Err(KnowledgeJobError::Config(format!(
-                    "the job owner ({}) has no linked Odoo account; link one on /admin/profile so \
-                     proposals can look up existing partners and leads",
-                    owner.as_str()
-                ))
-                .into());
-            },
-            Err(e) => return Err(KnowledgeJobError::Odoo(e).into()),
-        };
+        let creds = owner_credentials(db, &owner).await?;
         let client = OdooClient::from_env().map_err(KnowledgeJobError::Odoo)?;
         let capabilities = capabilities(&client, &creds)
             .await
@@ -124,29 +113,7 @@ impl Job for KnowledgeProposalJob {
             task_project: task_project.as_deref(),
         };
 
-        let mut success = 0u64;
-        let mut failed = 0u64;
-        for document in documents {
-            match propose_one(&run, &document).await {
-                Ok(outcome) => {
-                    success += 1;
-                    tracing::info!(
-                        document_id = %document.id,
-                        title = %document.title,
-                        outcome = ?outcome,
-                        "knowledge_proposal: planned"
-                    );
-                },
-                Err(e) => {
-                    failed += 1;
-                    tracing::warn!(
-                        document_id = %document.id,
-                        error = %e,
-                        "knowledge_proposal: left categorized for retry"
-                    );
-                },
-            }
-        }
+        let (success, failed) = propose_all(&run, documents).await;
 
         let duration_ms = u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX);
         tracing::info!(
@@ -159,6 +126,45 @@ impl Job for KnowledgeProposalJob {
             .with_stats(success, failed)
             .with_duration(duration_ms))
     }
+}
+
+async fn owner_credentials(db: &DbPool, owner: &UserId) -> Result<Credentials, KnowledgeJobError> {
+    match resolve_credentials(db, owner).await {
+        Ok(creds) => Ok(creds),
+        Err(OdooError::NotLinked(_)) => Err(KnowledgeJobError::Config(format!(
+            "the job owner ({}) has no linked Odoo account; link one on /admin/profile so \
+             proposals can look up existing partners and leads",
+            owner.as_str()
+        ))),
+        Err(e) => Err(KnowledgeJobError::Odoo(e)),
+    }
+}
+
+async fn propose_all(run: &Run<'_>, documents: Vec<ProposalDocument>) -> (u64, u64) {
+    let mut success = 0u64;
+    let mut failed = 0u64;
+    for document in documents {
+        match propose_one(run, &document).await {
+            Ok(outcome) => {
+                success += 1;
+                tracing::info!(
+                    document_id = %document.id,
+                    title = %document.title,
+                    outcome = ?outcome,
+                    "knowledge_proposal: planned"
+                );
+            },
+            Err(e) => {
+                failed += 1;
+                tracing::warn!(
+                    document_id = %document.id,
+                    error = %e,
+                    "knowledge_proposal: left categorized for retry"
+                );
+            },
+        }
+    }
+    (success, failed)
 }
 
 async fn propose_one(run: &Run<'_>, doc: &ProposalDocument) -> Result<Proposed, KnowledgeJobError> {

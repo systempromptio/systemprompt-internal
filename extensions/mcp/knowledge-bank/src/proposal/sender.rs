@@ -1,6 +1,8 @@
 //! The `From:` display line the ingestion job stored, reduced to a name and an
-//! address. Ingestion flattened the parsed address to `Name <a@b>` text, so
-//! the split is undone here rather than by re-parsing the MIME.
+//! address.
+//!
+//! Ingestion flattened the parsed address to `Name <a@b>` text, so the split
+//! is undone here rather than by re-parsing the MIME.
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -14,10 +16,10 @@ pub struct Sender {
 impl Sender {
     #[must_use]
     pub fn display(&self) -> String {
-        match &self.name {
-            Some(name) => format!("{name} <{}>", self.email),
-            None => self.email.clone(),
-        }
+        self.name.as_ref().map_or_else(
+            || self.email.clone(),
+            |name| format!("{name} <{}>", self.email),
+        )
     }
 }
 

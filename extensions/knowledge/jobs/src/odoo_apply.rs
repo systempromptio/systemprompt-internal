@@ -60,7 +60,7 @@ impl Job for KnowledgeOdooApplyJob {
         // expires on load, and it may not be loaded for days.
         match repo.expire_due().await {
             Ok(n) if n > 0 => {
-                tracing::info!(expired = n, "knowledge_odoo_apply: swept expired approvals")
+                tracing::info!(expired = n, "knowledge_odoo_apply: swept expired approvals");
             },
             Ok(_) => {},
             Err(e) => tracing::warn!(error = %e, "knowledge_odoo_apply: expiry sweep failed"),

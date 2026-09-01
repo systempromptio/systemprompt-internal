@@ -6,12 +6,12 @@
 //! | category / disposition            | Odoo already has | proposal                                  |
 //! |-----------------------------------|------------------|-------------------------------------------|
 //! | spam, newsletter, notification    | —                | skip                                      |
-//! | noise, internal                   | —                | skip                                      |
+//! | `noise`, `internal`               | —                | skip                                      |
 //! | anything else                     | an open lead     | log on the lead + follow-ups on the lead   |
-//! | opportunity                       | a partner        | new lead for that partner + log + follow-ups |
-//! | existing_relationship             | a partner        | log on the partner + follow-ups            |
-//! | opportunity                       | nothing          | new lead + log + follow-ups                |
-//! | existing_relationship             | nothing          | skip (no record to anchor to)              |
+//! | `opportunity`                     | a partner        | new lead for that partner + log + follow-ups |
+//! | `existing_relationship`           | a partner        | log on the partner + follow-ups            |
+//! | `opportunity`                     | nothing          | new lead + log + follow-ups                |
+//! | `existing_relationship`           | nothing          | skip (no record to anchor to)              |
 //!
 //! Follow-ups become `project.task`s only when Project is installed *and* a
 //! project was configured; otherwise they are `mail.activity`s on the record,
@@ -136,23 +136,26 @@ fn follow_up(input: &PlanInput<'_>, task: &IntentTask, anchor: &ActionTarget) ->
         .as_deref()
         .and_then(|d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
         .filter(|d| *d >= input.today);
-    match input.task_project.filter(|_| input.capabilities.project) {
-        Some(project) => OdooAction::CreateTask {
-            target: anchor.clone(),
-            project: project.to_owned(),
-            name: task.title.clone(),
-            description: task.detail.clone(),
-            date_deadline: deadline.map(|d| d.to_string()),
-        },
-        None => OdooAction::CreateActivity {
-            target: anchor.clone(),
-            summary: task.title.clone(),
-            note: task.detail.clone(),
-            date_deadline: deadline
-                .unwrap_or(input.today + Duration::days(DEFAULT_FOLLOW_UP_DAYS))
-                .to_string(),
-        },
-    }
+    input
+        .task_project
+        .filter(|_| input.capabilities.project)
+        .map_or_else(
+            || OdooAction::CreateActivity {
+                target: anchor.clone(),
+                summary: task.title.clone(),
+                note: task.detail.clone(),
+                date_deadline: deadline
+                    .unwrap_or(input.today + Duration::days(DEFAULT_FOLLOW_UP_DAYS))
+                    .to_string(),
+            },
+            |project| OdooAction::CreateTask {
+                target: anchor.clone(),
+                project: project.to_owned(),
+                name: task.title.clone(),
+                description: task.detail.clone(),
+                date_deadline: deadline.map(|d| d.to_string()),
+            },
+        )
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]

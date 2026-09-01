@@ -1,7 +1,8 @@
-//! Applying an approved proposal: one ledger claim, one Odoo write, one
-//! ledger finish per action, in order, with later actions able to land on the
-//! lead an earlier one created. The writes themselves live in
-//! [`super::writes`].
+//! Applying an approved proposal, one action at a time.
+//!
+//! Each action is one ledger claim, one Odoo write and one ledger finish, in
+//! order, with later actions able to land on the lead an earlier one created.
+//! The writes themselves live in [`super::writes`].
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -121,24 +122,8 @@ async fn apply_one(
         applied_by: ctx.approver.as_str(),
         odoo_login: &ctx.creds.login,
     };
-    match claim_action(ctx.pool, &row).await {
-        Ok(Claim::Open) => {},
-        Ok(Claim::Excluded) => {
-            result.status = AppliedStatus::Excluded;
-            return result;
-        },
-        Ok(Claim::Done { res_id, .. }) => {
-            result.status = AppliedStatus::Done;
-            result.res_id = res_id.or_else(|| target.as_ref().map(|(_, id)| *id));
-            result.url = result
-                .res_id
-                .map(|id| ctx.client.connection().record_url(&model, id));
-            return result;
-        },
-        Err(e) => {
-            result.error = Some(format!("ledger claim failed: {e}"));
-            return result;
-        },
+    if !claim(ctx, &row, target.as_ref().map(|(_, id)| *id), &mut result).await {
+        return result;
     }
 
     let written = match (action, target) {
@@ -169,6 +154,35 @@ async fn apply_one(
         },
     }
     result
+}
+
+// Why: a claim that finds the row already done or excluded is a finished
+// action, and the ledger — not the caller — decides which.
+async fn claim(
+    ctx: &ApplyContext<'_>,
+    row: &NewProjection<'_>,
+    target_id: Option<i64>,
+    result: &mut AppliedAction,
+) -> bool {
+    match claim_action(ctx.pool, row).await {
+        Ok(Claim::Open) => true,
+        Ok(Claim::Excluded) => {
+            result.status = AppliedStatus::Excluded;
+            false
+        },
+        Ok(Claim::Done { res_id, .. }) => {
+            result.status = AppliedStatus::Done;
+            result.res_id = res_id.or(target_id);
+            result.url = result
+                .res_id
+                .map(|id| ctx.client.connection().record_url(row.res_model, id));
+            false
+        },
+        Err(e) => {
+            result.error = Some(format!("ledger claim failed: {e}"));
+            false
+        },
+    }
 }
 
 // Why: a follow-up aimed at the lead this proposal creates resolves to that
