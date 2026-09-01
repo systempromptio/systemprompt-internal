@@ -81,10 +81,10 @@ pub const ALL_TOOLS: [&str; 25] = [
     TOOL_OVERVIEW,
 ];
 
-/// What a tool does to Odoo, as advertised to the client through
-/// `ToolAnnotations`. Advisory only: the governance chain is the enforced
-/// gate, this is the hint a well-behaved client uses to decide whether to ask
-/// the user before calling.
+/// What a tool does to Odoo, as advertised through `ToolAnnotations`.
+///
+/// Advisory only: the governance chain is the enforced gate; this is the hint
+/// a well-behaved client uses to decide whether to ask the user before calling.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Effect {
     ReadOnly,
