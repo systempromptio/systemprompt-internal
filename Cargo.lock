@@ -5507,7 +5507,6 @@ dependencies = [
  "inventory",
  "mail-parser",
  "rustls",
- "schemars",
  "serde",
  "serde_json",
  "sqlx",
