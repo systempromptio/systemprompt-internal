@@ -15,14 +15,14 @@ use systemprompt::ai::AiService;
 use systemprompt::database::DbPool;
 use systemprompt::identifiers::{Actor, AgentName, ContextId, SessionId, TraceId};
 use systemprompt::models::RequestContext;
-use systemprompt::models::ai::{AiMessage, AiRequest, ResponseFormat, StructuredOutputOptions};
+use systemprompt::models::ai::{AiMessage, AiRequest};
 use systemprompt::system::AppContext;
 use systemprompt::traits::{Job, JobContext, JobResult};
 use uuid::Uuid;
 
 use crate::ai::build_ai_service;
 use crate::categorize_output::{
-    parse_output, response_schema, structured_json, system_prompt, user_prompt,
+    parse_output, structured_json, structured_output_options, system_prompt, user_prompt,
 };
 use crate::error::KnowledgeJobError;
 
@@ -193,10 +193,7 @@ async fn categorize_one(
         context,
     )
     .with_system_prompt(system_prompt())
-    .with_structured_output(StructuredOutputOptions {
-        response_format: Some(ResponseFormat::json_schema(response_schema())),
-        ..StructuredOutputOptions::default()
-    })
+    .with_structured_output(structured_output_options())
     .build();
 
     let response = run
@@ -205,12 +202,7 @@ async fn categorize_one(
         .await
         .map_err(|e| KnowledgeJobError::Other(format!("ai generate: {e}")))?;
 
-    let categorization = parse_output(&response.content).ok_or_else(|| {
-        KnowledgeJobError::Other(format!(
-            "unparseable model output ({} chars)",
-            response.content.len()
-        ))
-    })?;
+    let categorization = parse_output(&response.content).map_err(KnowledgeJobError::Other)?;
 
     let structured = structured_json(&categorization);
     sqlx::query!(
@@ -219,14 +211,14 @@ async fn categorize_one(
         SET category = $1, structured = $2, status = 'categorized'
         WHERE id = $3 AND status = 'raw'
         "#,
-        categorization.category,
+        categorization.category.as_str(),
         structured,
         document.id,
     )
     .execute(run.pool)
     .await?;
 
-    Ok(categorization.category)
+    Ok(categorization.category.as_str().to_owned())
 }
 
 systemprompt::traits::submit_job!(&KnowledgeCategorizationJob);

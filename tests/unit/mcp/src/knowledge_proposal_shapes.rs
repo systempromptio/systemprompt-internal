@@ -117,13 +117,21 @@ fn crm_intent_schema_stays_inside_the_strict_subset() {
 }
 
 #[test]
-fn an_unknown_disposition_reads_as_noise_and_structured_tolerates_missing_intent() {
-    let intent: CrmIntent = serde_json::from_value(serde_json::json!({
+fn an_unknown_disposition_is_refused_and_structured_tolerates_missing_intent() {
+    let unknown = serde_json::from_value::<CrmIntent>(serde_json::json!({
         "disposition": "galactic", "lead_title": null, "contact_name": null,
+        "company_name": null, "note_summary": "x", "tasks": [], "confidence": 0.1
+    }));
+    assert!(
+        unknown.is_err(),
+        "the enum is closed; nothing is coerced to noise"
+    );
+    let known: CrmIntent = serde_json::from_value(serde_json::json!({
+        "disposition": "noise", "lead_title": null, "contact_name": null,
         "company_name": null, "note_summary": "x", "tasks": [], "confidence": 0.1
     }))
     .expect("parsed");
-    assert_eq!(intent.disposition, Disposition::Noise);
+    assert_eq!(known.disposition, Disposition::Noise);
 
     let legacy: StructuredSummary = serde_json::from_value(serde_json::json!({
         "summary": "s", "entities": [], "action_items": []

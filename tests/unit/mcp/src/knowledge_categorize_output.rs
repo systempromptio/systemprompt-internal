@@ -1,12 +1,36 @@
-//! Categorization prompt/parse layer: schema shape, output parsing with its
-//! brace-span fallback, the closed-category collapse, and prompt truncation.
+//! Categorization contract: the wire schema is derived from the Rust type and
+//! tightened to the strict subset every provider enforces; the response is
+//! validated against that schema before deserialization; nothing off-contract
+//! is repaired.
 
+use systemprompt::models::ai::ResponseFormat;
 use systemprompt_knowledge_jobs::internals::{
-    CATEGORIES, parse_output, response_schema, structured_json, system_prompt, user_prompt,
+    CATEGORIES, Category, parse_output, response_format, response_schema, structured_json,
+    system_prompt, user_prompt,
 };
 
+const GOOD: &str = r#"{"category":"sales","summary":"Victor asks for pricing.","entities":[{"name":"Acme","type":"company"}],"action_items":["Send the tier sheet"],
+  "crm_intent":{"disposition":"opportunity","lead_title":"Acme — pricing","contact_name":"Victor","company_name":"Acme",
+  "note_summary":"Pricing enquiry.","tasks":[{"title":"Send tier sheet","due_date":"2026-09-10","detail":"Enterprise tier"}],"confidence":0.9}}"#;
+
+fn walk(
+    value: &serde_json::Value,
+    f: &mut dyn FnMut(&str, &serde_json::Map<String, serde_json::Value>),
+) {
+    match value {
+        serde_json::Value::Object(map) => {
+            for (k, v) in map {
+                f(k, map);
+                walk(v, f);
+            }
+        },
+        serde_json::Value::Array(items) => items.iter().for_each(|v| walk(v, f)),
+        _ => {},
+    }
+}
+
 #[test]
-fn schema_pins_the_closed_category_set() {
+fn schema_is_derived_and_pins_the_closed_category_set() {
     let schema = response_schema();
     let enum_values: Vec<&str> = schema["properties"]["category"]["enum"]
         .as_array()
@@ -19,74 +43,99 @@ fn schema_pins_the_closed_category_set() {
 }
 
 #[test]
-fn schema_requires_crm_intent_and_it_parses_back() {
+fn schema_stays_inside_the_strict_subset_every_provider_enforces() {
     let schema = response_schema();
-    let required: Vec<&str> = schema["required"]
-        .as_array()
-        .expect("required")
-        .iter()
-        .filter_map(|v| v.as_str())
-        .collect();
-    assert!(required.contains(&"crm_intent"));
-    assert_eq!(
-        schema["properties"]["crm_intent"]["additionalProperties"],
-        false
+    let mut banned = Vec::new();
+    let mut loose_objects = Vec::new();
+    walk(&schema, &mut |key, map| {
+        if matches!(
+            key,
+            "oneOf" | "anyOf" | "allOf" | "$ref" | "$defs" | "definitions" | "format"
+        ) {
+            banned.push(key.to_owned());
+        }
+        if key == "type" && map.get("type").and_then(|t| t.as_str()) == Some("object") {
+            let props: Vec<&str> = map["properties"]
+                .as_object()
+                .map(|p| p.keys().map(String::as_str).collect())
+                .unwrap_or_default();
+            let required: Vec<&str> = map["required"]
+                .as_array()
+                .map(|r| r.iter().filter_map(|v| v.as_str()).collect())
+                .unwrap_or_default();
+            if map.get("additionalProperties") != Some(&serde_json::Value::Bool(false))
+                || props.iter().any(|p| !required.contains(p))
+            {
+                loose_objects.push(map.clone());
+            }
+        }
+    });
+    assert!(banned.is_empty(), "banned keywords present: {banned:?}");
+    assert!(
+        loose_objects.is_empty(),
+        "objects not strict: {loose_objects:#?}"
     );
-    assert!(system_prompt().contains("opportunity"));
+    assert_eq!(
+        schema["properties"]["crm_intent"]["properties"]["lead_title"]["type"],
+        serde_json::json!(["string", "null"])
+    );
+    assert!(matches!(
+        response_format(),
+        ResponseFormat::JsonSchema {
+            strict: Some(true),
+            ..
+        }
+    ));
+}
 
-    let raw = r#"{"category":"sales","summary":"s","entities":[],"action_items":[],
-        "crm_intent":{"disposition":"opportunity","lead_title":"Acme","contact_name":"V",
-        "company_name":"Acme","note_summary":"n","tasks":[{"title":"t","due_date":null,"detail":"d"}],"confidence":0.8}}"#;
-    let c = parse_output(raw).expect("parseable");
-    let intent = c.crm_intent.as_ref().expect("intent present");
-    assert_eq!(intent.tasks.len(), 1);
+#[test]
+fn a_conforming_response_parses_and_round_trips_into_structured() {
+    let c = parse_output(GOOD).expect("conforming response");
+    assert_eq!(c.category, Category::Sales);
+    assert_eq!(c.entities.len(), 1);
+    assert_eq!(c.crm_intent.tasks.len(), 1);
     let s = structured_json(&c);
+    assert_eq!(s["summary"], "Victor asks for pricing.");
+    assert_eq!(s["entities"][0]["name"], "Acme");
     assert_eq!(s["crm_intent"]["disposition"], "opportunity");
 }
 
 #[test]
-fn parses_clean_json() {
-    let raw = r#"{"category":"client","summary":"A client asks about pricing.","entities":[{"name":"Victor","type":"person"}],"action_items":["Reply with the tier sheet"]}"#;
-    let c = parse_output(raw).expect("parseable");
-    assert_eq!(c.category, "client");
-    assert_eq!(c.entities.len(), 1);
-    assert_eq!(c.action_items.len(), 1);
+fn an_off_enum_category_is_refused_not_collapsed() {
+    let raw = GOOD.replace(
+        "\"category\":\"sales\"",
+        "\"category\":\"galactic-affairs\"",
+    );
+    let err = parse_output(&raw).expect_err("off-enum category");
+    assert!(err.contains("category"), "names the failing path: {err}");
 }
 
 #[test]
-fn parses_json_wrapped_in_prose() {
-    let raw = "Here is the result:\n{\"category\":\"spam\",\"summary\":\"Junk.\",\"entities\":[],\"action_items\":[]}\nDone.";
-    let c = parse_output(raw).expect("parseable");
-    assert_eq!(c.category, "spam");
+fn a_missing_field_or_unknown_disposition_is_refused() {
+    let missing = GOOD.replace(",\"confidence\":0.9", "");
+    assert!(parse_output(&missing).is_err(), "confidence is required");
+    let bad = GOOD.replace(
+        "\"disposition\":\"opportunity\"",
+        "\"disposition\":\"maybe\"",
+    );
+    assert!(parse_output(&bad).is_err(), "disposition is a closed enum");
+    let extra = GOOD.replacen("{\"category\"", "{\"vibe\":\"good\",\"category\"", 1);
+    assert!(
+        parse_output(&extra).is_err(),
+        "additional properties are refused"
+    );
 }
 
 #[test]
-fn unknown_category_collapses_to_other() {
-    let raw = r#"{"category":"galactic-affairs","summary":"x","entities":[],"action_items":[]}"#;
-    let c = parse_output(raw).expect("parseable");
-    assert_eq!(c.category, "other");
+fn garbage_output_is_an_error() {
+    assert!(parse_output("no json here").is_err());
+    assert!(parse_output("{broken json").is_err());
 }
 
 #[test]
-fn garbage_output_is_none() {
-    assert!(parse_output("no json here").is_none());
-    assert!(parse_output("{broken json").is_none());
-}
-
-#[test]
-fn structured_json_carries_all_fields() {
-    let raw = r#"{"category":"sales","summary":"s","entities":[{"name":"Acme","type":"company"}],"action_items":["a"]}"#;
-    let c = parse_output(raw).expect("parseable");
-    let s = structured_json(&c);
-    assert_eq!(s["summary"], "s");
-    assert_eq!(s["entities"][0]["name"], "Acme");
-    assert_eq!(s["action_items"][0], "a");
-}
-
-#[test]
-fn user_prompt_truncates_long_content() {
-    let long = "x".repeat(50_000);
+fn user_prompt_is_truncated_to_the_budget() {
+    let long = "x".repeat(20_000);
     let prompt = user_prompt("t", &long);
-    assert!(prompt.len() < 20_000);
+    assert!(prompt.len() < 12_100);
     assert!(prompt.starts_with("Title: t"));
 }

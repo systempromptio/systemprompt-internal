@@ -39,8 +39,8 @@ pub use registry::{JOB_TAG, extension_jobs};
 #[doc(hidden)]
 pub mod internals {
     pub use crate::categorize_output::{
-        CATEGORIES, Categorization, parse_output, response_schema, structured_json, system_prompt,
-        user_prompt,
+        CATEGORIES, Categorization, Category, SCHEMA_NAME, parse_output, response_format,
+        response_schema, structured_json, structured_output_options, system_prompt, user_prompt,
     };
     pub use crate::mail::{CapturedEmail, captured_from_rfc822, metadata_json, render_document};
 }
