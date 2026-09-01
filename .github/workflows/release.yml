@@ -50,10 +50,15 @@ concurrency:
   group: release-${{ github.event.inputs.bridge_tag || github.ref }}
   cancel-in-progress: false
 
+# Why every grant a called workflow's job asks for is listed here: a reusable
+# workflow can only receive permissions its caller holds, and GitHub refuses
+# the whole run at startup otherwise. `checks: write` is quality.yml's audit
+# job; `packages`/`id-token` are docker.yml's.
 permissions:
   contents: write
   id-token: write
   packages: write
+  checks: write
 
 env:
   CARGO_TERM_COLOR: always
