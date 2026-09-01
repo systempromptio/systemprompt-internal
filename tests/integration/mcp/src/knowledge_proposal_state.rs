@@ -12,7 +12,9 @@ use systemprompt::identifiers::UserId;
 use systemprompt::security::policy::{ApprovalRepository, ApprovalStatus, ApprovalVerdict};
 use systemprompt_mcp_knowledge_bank::proposal::approval::{open_proposal_hold, proposal_call_id};
 use systemprompt_mcp_knowledge_bank::proposal::settle::{SettleOutcome, settle_document};
-use systemprompt_mcp_knowledge_bank::proposal::{ActionTarget, DocumentStatus, OdooAction, Proposal, Sender};
+use systemprompt_mcp_knowledge_bank::proposal::{
+    ActionTarget, DocumentStatus, OdooAction, Proposal, Sender,
+};
 use systemprompt_mcp_knowledge_bank::schema::schema_definitions;
 use systemprompt_mcp_knowledge_bank::store::KnowledgeStore;
 use uuid::Uuid;
@@ -54,7 +56,10 @@ async fn install(db: &TempDb) -> (KnowledgeStore, ApprovalRepository) {
             .expect("install knowledge schema");
     }
     for ddl in [APPROVALS, ODOO_IDENTITY] {
-        sqlx::query(ddl).execute(pool.as_ref()).await.expect("install table");
+        sqlx::query(ddl)
+            .execute(pool.as_ref())
+            .await
+            .expect("install table");
     }
     (
         KnowledgeStore::new(db.pool.clone()),
@@ -116,7 +121,12 @@ async fn status_of(db: &TempDb, id: Uuid) -> (String, Option<String>, Option<Str
 async fn propose(store: &KnowledgeStore, db: &TempDb, owner: &UserId, id: Uuid) -> String {
     let proposal = proposal();
     let call_id = proposal_call_id(owner, id, &proposal).expect("call id");
-    assert!(store.set_proposed(id, &proposal, call_id.as_str()).await.expect("set_proposed"));
+    assert!(
+        store
+            .set_proposed(id, &proposal, call_id.as_str())
+            .await
+            .expect("set_proposed")
+    );
     let pool = db.pool.pool().expect("pool");
     open_proposal_hold(pool.as_ref(), owner, id, &proposal)
         .await
@@ -143,17 +153,29 @@ async fn proposing_is_a_compare_and_set_and_opens_one_approval_row() {
 
         let call_id = propose(&store, &db, &owner, id).await;
         assert_eq!(status_of(&db, id).await.0, "proposed");
-        let row = repo.find(&call_id).await.expect("find").expect("row exists");
+        let row = repo
+            .find(&call_id)
+            .await
+            .expect("find")
+            .expect("row exists");
         assert_eq!(row.rule, "brain_email_ingest");
         assert_eq!(row.tool_name, "odoo_apply_proposal");
         assert_eq!(row.status, ApprovalStatus::Pending);
         assert_eq!(row.trace_id.as_deref(), Some(id.to_string().as_str()));
 
         // A second worker racing the same document loses the CAS.
-        assert!(!store.set_proposed(id, &proposal(), &call_id).await.expect("cas"));
+        assert!(
+            !store
+                .set_proposed(id, &proposal(), &call_id)
+                .await
+                .expect("cas")
+        );
 
         let settleable = store.list_settleable(10).await.expect("settleable");
-        assert!(settleable.is_empty(), "nothing is settleable while the row is pending");
+        assert!(
+            settleable.is_empty(),
+            "nothing is settleable while the row is pending"
+        );
     });
 }
 
@@ -182,14 +204,18 @@ async fn a_denial_from_the_admin_page_lands_on_the_document_when_settled() {
         assert_eq!(due[0].document_id, id);
 
         let request = repo.find(&call_id).await.expect("find").expect("row");
-        let outcome = settle_document(&store, id, &request, &[]).await.expect("settle");
+        let outcome = settle_document(&store, id, &request, &[])
+            .await
+            .expect("settle");
         assert_eq!(outcome, SettleOutcome::Denied);
         let (status, _, decided_by) = status_of(&db, id).await;
         assert_eq!(status, "denied");
         assert_eq!(decided_by.as_deref(), Some("approver-1"));
 
         // Settling twice is a no-op, not a second decision.
-        let again = settle_document(&store, id, &request, &[]).await.expect("settle again");
+        let again = settle_document(&store, id, &request, &[])
+            .await
+            .expect("settle again");
         assert_eq!(again, SettleOutcome::NotPending(DocumentStatus::Denied));
     });
 }
@@ -215,11 +241,16 @@ async fn an_approver_without_an_odoo_link_leaves_the_document_retryable() {
         .expect("resolve");
         let request = repo.find(&call_id).await.expect("find").expect("row");
 
-        let outcome = settle_document(&store, id, &request, &[]).await.expect("settle");
+        let outcome = settle_document(&store, id, &request, &[])
+            .await
+            .expect("settle");
         let SettleOutcome::Failed(error) = outcome else {
             panic!("an unlinked approver cannot write to Odoo: {outcome:?}");
         };
-        assert!(error.contains("sam"), "the error names the approver: {error}");
+        assert!(
+            error.contains("sam"),
+            "the error names the approver: {error}"
+        );
         assert!(error.contains("/admin/profile"), "and the remedy: {error}");
 
         let (status, stored_error, decided_by) = status_of(&db, id).await;
@@ -228,7 +259,13 @@ async fn an_approver_without_an_odoo_link_leaves_the_document_retryable() {
         assert_eq!(decided_by.as_deref(), Some("approver-2"));
 
         // The retry is scheduled with backoff, not immediately.
-        assert!(store.list_retry_due(10).await.expect("retry due").is_empty());
+        assert!(
+            store
+                .list_retry_due(10)
+                .await
+                .expect("retry due")
+                .is_empty()
+        );
         let pool = db.pool.pool().expect("pool");
         let attempts: i32 =
             sqlx::query_scalar("SELECT apply_attempts FROM knowledge_documents WHERE id = $1")
@@ -248,21 +285,29 @@ async fn the_feed_reads_every_state_back_typed() {
         let proposed = seed_categorized(&db, "Proposed one").await;
         propose(&store, &db, &owner, proposed).await;
         let skipped = seed_categorized(&db, "Newsletter").await;
-        assert!(store.set_skipped(skipped, "noise_category").await.expect("skip"));
+        assert!(
+            store
+                .set_skipped(skipped, "noise_category")
+                .await
+                .expect("skip")
+        );
 
-        let rows = store
-            .list_feed(&Default::default())
-            .await
-            .expect("feed");
+        let rows = store.list_feed(&Default::default()).await.expect("feed");
         assert_eq!(rows.len(), 2);
         let by_title = |t: &str| rows.iter().find(|r| r.title == t).expect("row");
         assert_eq!(by_title("Proposed one").status, DocumentStatus::Proposed);
         assert_eq!(
-            by_title("Proposed one").proposal.as_ref().map(|p| p.actions.len()),
+            by_title("Proposed one")
+                .proposal
+                .as_ref()
+                .map(|p| p.actions.len()),
             Some(2)
         );
         assert_eq!(by_title("Newsletter").status, DocumentStatus::Skipped);
-        assert_eq!(by_title("Newsletter").skip_reason.as_deref(), Some("noise_category"));
+        assert_eq!(
+            by_title("Newsletter").skip_reason.as_deref(),
+            Some("noise_category")
+        );
         assert_eq!(by_title("Newsletter").rfc5322_id(), "<m1@acme.example>");
     });
 }

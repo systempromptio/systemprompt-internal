@@ -43,7 +43,7 @@ fn exposes_exactly_the_six_contract_tools_in_order() {
 #[test]
 fn only_the_writes_drop_the_read_only_annotation() {
     for tool in list_tools() {
-        let read_only = tool.annotations.as_ref().and_then(|a| a.read_only) == Some(true);
+        let read_only = tool.annotations.as_ref().and_then(|a| a.read_only_hint) == Some(true);
         let is_write =
             tool.name.as_ref() == TOOL_UPLOAD || tool.name.as_ref() == TOOL_PROPOSAL_DECIDE;
         assert_eq!(read_only, !is_write, "{} read-only annotation", tool.name);

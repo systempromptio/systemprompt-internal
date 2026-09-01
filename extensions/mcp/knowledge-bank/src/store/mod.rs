@@ -19,8 +19,9 @@
 pub mod proposals;
 pub mod query;
 pub mod rows;
+pub mod settlement;
 
-pub use proposals::{FeedFilter, MAX_APPLY_ATTEMPTS};
+pub use proposals::FeedFilter;
 pub use query::{
     DEFAULT_SEARCH_LIMIT, MAX_CONTENT_BYTES, MAX_LIST_LIMIT, MAX_SEARCH_LIMIT, SearchMode,
     check_content_size, clamp_search_limit, like_pattern, normalize_optional, require_non_empty,
@@ -30,6 +31,7 @@ pub use rows::{
     DocumentSummary, EmailMetadata, NewDocument, ProposalDocument, SearchHit, SettleableRow,
     UploadedDocument,
 };
+pub use settlement::MAX_APPLY_ATTEMPTS;
 
 use systemprompt::database::DbPool;
 
