@@ -1,8 +1,0 @@
-id: manage_work
-name: Manage Work
-description: "Run the delivery side of the business in Odoo: create, list, and update project tasks, and read or book meetings linked to the leads and customers they concern."
-enabled: true
-file: SKILL.md
-tags: [odoo, project, tasks, todos, calendar, meetings, scheduling]
-category: collaboration
-display_category: "Business on Odoo"

@@ -88,8 +88,8 @@ pub async fn spawn_odoo_mcp(odoo_url: &str) -> Option<McpServerProc> {
         .env("MCP_SERVICE_ID", "odoo")
         .env("ODOO_URL", odoo_url)
         .env("ODOO_DB", "e2e_odoo")
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
+        .stdout(log_sink())
+        .stderr(log_sink())
         .spawn()
         .expect("spawn systemprompt-mcp-odoo");
     let proc = McpServerProc { child, port };
@@ -183,10 +183,17 @@ async fn raw_call_as(
     // Why: the transport calls `bearer_auth` on this value, which prepends
     // "Bearer " itself — passing a full header here reaches the server as
     // "Bearer Bearer <jwt>" and fails as a malformed token.
+    let capabilities = client_capabilities_for(ui_capable);
     let config = StreamableHttpClientTransportConfig::with_uri(url.to_owned())
         .auth_header(bearer.to_owned());
+    // Why: under 2026-07-28 (SEP-2575) the server reads the client's
+    // capabilities from every request's `_meta`, not from `initialize`, and
+    // core's `HttpClientWithContext` stamps that `_meta` with whatever it is
+    // given. Handing it a different set than the one declared at initialize
+    // made the server see a client without the UI extension, so no tool ever
+    // embedded its artifact — the exact thing `call_tool_resource` asserts.
     let transport = StreamableHttpClientTransport::with_client(
-        HttpClientWithContext::new(request_context),
+        HttpClientWithContext::new(request_context).with_client_capabilities(capabilities.clone()),
         config,
     );
     // Why: every MCP server here advertises 2026-07-28, and rmcp refuses to
@@ -196,15 +203,8 @@ async fn raw_call_as(
     // negotiated protocol version 2026-07-28 or newer" rather than as the hold
     // it actually is. The default is older, so say it explicitly; the sibling
     // client in `McpSession::connect` has always done this.
-    let client_info = if ui_capable {
-        ui_capable_client_info()
-    } else {
-        ClientInfo::new(
-            ClientCapabilities::default(),
-            Implementation::new("e2e-tests", "0.0.0"),
-        )
-    }
-    .with_protocol_version(rmcp::model::ProtocolVersion::V_2026_07_28);
+    let client_info = ClientInfo::new(capabilities, Implementation::new("e2e-tests", "0.0.0"))
+        .with_protocol_version(rmcp::model::ProtocolVersion::V_2026_07_28);
     let client = tokio::time::timeout(Duration::from_secs(30), client_info.serve(transport))
         .await
         .map_err(|_| "initialize timed out".to_owned())?
@@ -233,15 +233,17 @@ async fn raw_call_as(
 // summary alone, which is correct behaviour and means a test using
 // `ClientCapabilities::default()` can never see an artifact. This is the
 // capability set Cowork sends.
-fn ui_capable_client_info() -> ClientInfo {
+fn client_capabilities_for(ui_capable: bool) -> ClientCapabilities {
     let mut capabilities = ClientCapabilities::default();
-    let mut extensions = rmcp::model::ExtensionCapabilities::new();
-    extensions.insert(
-        "io.modelcontextprotocol/ui".to_owned(),
-        serde_json::Map::new(),
-    );
-    capabilities.extensions = Some(extensions);
-    ClientInfo::new(capabilities, Implementation::new("e2e-tests", "0.0.0"))
+    if ui_capable {
+        let mut extensions = rmcp::model::ExtensionCapabilities::new();
+        extensions.insert(
+            "io.modelcontextprotocol/ui".to_owned(),
+            serde_json::Map::new(),
+        );
+        capabilities.extensions = Some(extensions);
+    }
+    capabilities
 }
 
 // The embedded UI resource — `ui://` URI, mime, and HTML — which is what
@@ -280,7 +282,24 @@ pub async fn call_tool_resource(
             },
             _ => None,
         })
-        .ok_or_else(|| format!("{tool} returned no embedded text resource"))
+        .ok_or_else(|| {
+            // Why: the block kinds and `_meta` say whether the server took the
+            // client for UI-capable at all, which a bare "no resource" cannot.
+            let kinds: Vec<String> = result
+                .content
+                .iter()
+                .map(|b| {
+                    serde_json::to_value(b)
+                        .ok()
+                        .and_then(|v| v.get("type").and_then(|t| t.as_str()).map(str::to_owned))
+                        .unwrap_or_else(|| "?".to_owned())
+                })
+                .collect();
+            let meta = serde_json::to_string(&result.meta).unwrap_or_default();
+            format!(
+                "{tool} returned no embedded text resource; content kinds {kinds:?}, _meta {meta}"
+            )
+        })
 }
 
 // Why a second spawn fn rather than a parameter on the first: the two servers
