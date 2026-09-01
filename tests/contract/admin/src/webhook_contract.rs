@@ -218,15 +218,26 @@ async fn govern_answers_two_hundred_with_a_decision_either_way() {
 
     // The envelope's agent id is a self-report: it must reach the audit blob
     // as a claim and never the `agent_id` identity column.
-    let claimed: Vec<(Option<String>, Option<String>)> = sqlx::query_as(
-        "SELECT agent_id, evaluated_rules->'principal'->'claimed'->>'agent_id' \
-         FROM governance_decisions WHERE session_id = $1 \
-         AND evaluated_rules->'principal'->'claimed' IS NOT NULL",
-    )
-    .bind(&session)
-    .fetch_all(&*db.pool)
-    .await
-    .expect("read claimed-agent rows");
+    //
+    // Why polled: the decision is answered before its audit row is committed,
+    // so reading straight after the response races the write and fails on a
+    // loaded runner. The bound is generous; a row that never lands still fails.
+    let mut claimed: Vec<(Option<String>, Option<String>)> = Vec::new();
+    for _ in 0..50 {
+        claimed = sqlx::query_as(
+            "SELECT agent_id, evaluated_rules->'principal'->'claimed'->>'agent_id' \
+             FROM governance_decisions WHERE session_id = $1 \
+             AND evaluated_rules->'principal'->'claimed' IS NOT NULL",
+        )
+        .bind(&session)
+        .fetch_all(&*db.pool)
+        .await
+        .expect("read claimed-agent rows");
+        if !claimed.is_empty() {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    }
     if claimed.is_empty() {
         failures.push("  the subagent's self-reported id was not kept as a claim".to_owned());
     }
