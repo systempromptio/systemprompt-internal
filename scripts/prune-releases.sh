@@ -1,13 +1,17 @@
 #!/usr/bin/env bash
-# Retention for the bridge-v* GitHub Releases: keep the N newest (by
-# publish date), delete the rest together with their tags. Run by
-# .github/workflows/ghcr-prune.yml after every release and weekly; run by
-# hand with --dry-run to see what it would do.
+# Retention for the GitHub Releases this repo publishes. Every core release
+# yields exactly two: `v<X.Y.Z>` (gateway tarballs) and `bridge-v<X.Y.Z>`
+# (desktop bridge). Keep the N newest of each series (by publish date) and
+# delete the rest together with their tags; also drop a `bridge-v*` tag that
+# has no release behind it (a release deleted by hand leaves one).
 #
 #   scripts/prune-releases.sh [--keep N] [--dry-run] [--repo owner/name]
+#
+# Drafts and prereleases are never counted or deleted: a draft is someone's
+# work in progress, a prerelease is a deliberate hold-out.
 set -euo pipefail
 
-KEEP=5
+KEEP=3
 DRY_RUN=0
 REPO="${GITHUB_REPOSITORY:-systempromptio/systemprompt-internal}"
 while [ $# -gt 0 ]; do
@@ -21,24 +25,36 @@ done
 
 command -v gh >/dev/null || { echo "gh is required" >&2; exit 1; }
 
-# Drafts and prereleases are never counted or deleted: a draft is someone's
-# work in progress, a prerelease is a deliberate hold-out.
-stale=$(gh release list --repo "$REPO" --limit 200 \
+releases=$(gh release list --repo "$REPO" --limit 200 \
     --json tagName,publishedAt,isDraft,isPrerelease \
-    --jq '[.[] | select(.isDraft | not) | select(.isPrerelease | not)
-            | select(.tagName | startswith("bridge-v"))]
-          | sort_by(.publishedAt) | reverse | .['"$KEEP"':] | .[].tagName')
+    --jq '[.[] | select(.isDraft | not) | select(.isPrerelease | not)]')
 
-if [ -z "$stale" ]; then
-    echo "nothing to prune: at most $KEEP bridge-v* releases on $REPO"
-    exit 0
-fi
+act() { # $1=verb $2=what
+    if [ "$DRY_RUN" = 1 ]; then echo "would $1 $2"; else echo "$1 $2"; fi
+}
 
-for tag in $stale; do
-    if [ "$DRY_RUN" = 1 ]; then
-        echo "would delete release + tag $tag"
-    else
-        gh release delete "$tag" --repo "$REPO" --yes --cleanup-tag
-        echo "deleted release + tag $tag"
+deleted=0
+for prefix in "bridge-v" "v"; do
+    # `v` must not swallow `bridge-v`: match the prefix at the start only.
+    stale=$(printf '%s' "$releases" | jq -r --arg p "$prefix" --argjson keep "$KEEP" '
+        [.[] | select(.tagName | startswith($p))]
+        | map(select(($p == "v") | not or (.tagName | startswith("bridge-") | not)))
+        | sort_by(.publishedAt) | reverse | .[$keep:] | .[].tagName')
+    for tag in $stale; do
+        act "delete release + tag" "$tag"
+        [ "$DRY_RUN" = 1 ] || gh release delete "$tag" --repo "$REPO" --yes --cleanup-tag
+        deleted=$((deleted + 1))
+    done
+done
+
+# Orphan bridge tags: a tag with no release is not a download anyone can find.
+with_release=$(printf '%s' "$releases" | jq -r '.[].tagName')
+for tag in $(gh api "repos/$REPO/git/matching-refs/tags/bridge-v" --jq '.[].ref' | sed 's|refs/tags/||'); do
+    if ! printf '%s\n' "$with_release" | grep -qx "$tag"; then
+        act "delete orphan tag" "$tag"
+        [ "$DRY_RUN" = 1 ] || gh api -X DELETE "repos/$REPO/git/refs/tags/$tag" >/dev/null
+        deleted=$((deleted + 1))
     fi
 done
+
+[ "$deleted" -gt 0 ] || echo "nothing to prune: at most $KEEP releases per series on $REPO"

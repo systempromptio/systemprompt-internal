@@ -168,8 +168,10 @@ rate limit.
 ### Retention
 
 `ghcr-prune.yml` runs weekly and after every successful release: it keeps the
-5 newest `X.Y.Z` images (alias tags follow), drops `sha-*` tags and untagged
-manifests older than 4 weeks, and keeps the 5 newest `bridge-v*` releases
+3 newest `X.Y.Z` images (alias tags follow), drops `sha-*` tags and untagged
+manifests older than 4 weeks, and keeps the 3 newest `v*` and the 3 newest
+`bridge-v*` releases — one of each per core release — deleting older ones
+with their tags and any `bridge-v*` tag left without a release
 (`scripts/prune-releases.sh`; drafts and prereleases are never touched). It
 needs `GHCR_PRUNE_TOKEN` — a classic PAT with `read:packages` +
 `delete:packages` — and fails loudly without it.
