@@ -16,8 +16,8 @@ All notable changes to this repository are documented here. The format follows
   Nothing publishes unless CI and Quality pass on the merge commit and
   `bridge/CORE_REF` names a core commit of the pinned version.
 - `ghcr-prune.yml` + `scripts/prune-releases.sh`: retention for images
-  (newest 5 versions, `sha-*`/untagged after 4 weeks) and bridge releases
-  (newest 5).
+  (newest 3 versions, `sha-*`/untagged after 4 weeks) and releases (newest 3
+  `v*` and 3 `bridge-v*` — one of each per core release — plus orphan tags).
 - `scripts/check-release-version.sh` lint gate: the bridge carries the
   workspace version; on `main` every pin is checked by
   `sync-release-version.sh`, which now also owns `bridge/Cargo.toml` and
