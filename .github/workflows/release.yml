@@ -646,12 +646,14 @@ jobs:
             --signature SHA256SUMS.sig --certificate SHA256SUMS.pem SHA256SUMS
           \`\`\`
           EOF
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release edit "$TAG" --title "$TAG" --notes-file notes.md
+          # Why -R: this job has no checkout, and gh otherwise infers the
+          # repository from git and aborts with "not a git repository".
+          if gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release edit "$TAG" -R "$GITHUB_REPOSITORY" --title "$TAG" --notes-file notes.md
           else
-            gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --notes-file notes.md
+            gh release create "$TAG" -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "$TAG" --notes-file notes.md
           fi
-          gh release upload "$TAG" --clobber dist/*
+          gh release upload "$TAG" -R "$GITHUB_REPOSITORY" --clobber dist/*
 
   # Why called, not triggered: a release created with GITHUB_TOKEN raises no
   # events, so a `release: published` listener would never fire.
