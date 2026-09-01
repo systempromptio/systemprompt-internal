@@ -161,12 +161,16 @@ jobs:
           path: systemprompt-core
       # keyring → dbus-secret-service → libdbus-sys builds from pkg-config.
       - run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config
-      - uses: dtolnay/rust-toolchain@nightly
-        with:
-          components: rustfmt
+      # Why `rustup show` inside the checkout rather than a nightly action: the
+      # repo pins its rustfmt nightly in rust-toolchain.toml, which cargo only
+      # honours from inside the tree. A floating nightly formats differently
+      # and failed the first release from main on code that is clean locally.
+      - run: rustup show
+        working-directory: systemprompt-internal
       # Scope the gate to the bridge crate: it is a standalone workspace, and
       # unrelated churn elsewhere must not block a bridge release.
-      - run: cargo fmt --manifest-path systemprompt-internal/bridge/Cargo.toml -p systemprompt-internal-bridge -- --check
+      - run: cargo fmt --manifest-path bridge/Cargo.toml -p systemprompt-internal-bridge -- --check
+        working-directory: systemprompt-internal
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
