@@ -47,6 +47,8 @@ static SYSTEMPROMPT_BRAND: Brand = Brand {
     sign_in_label: "Sign in with systemprompt",
     sign_in_hint: "Opens your browser — sign in there with your Odoo email and password (or a \
                    passkey). The account you approve as is the one this computer links to.",
+    docs_url: "https://systemprompt.io/docs/bridge",
+    contact_email: "ed@systemprompt.io",
     schedule_label: "io.systemprompt.internal-bridge-sync",
     schedule_unit: "systemprompt-internal-bridge-sync",
     schedule_task_name: "SystempromptBridgeSync",
