@@ -37,8 +37,8 @@ deleted=0
 for prefix in "bridge-v" "v"; do
     # `v` must not swallow `bridge-v`: match the prefix at the start only.
     stale=$(printf '%s' "$releases" | jq -r --arg p "$prefix" --argjson keep "$KEEP" '
-        [.[] | select(.tagName | startswith($p))]
-        | map(select(($p == "v") | not or (.tagName | startswith("bridge-") | not)))
+        [.[] | select(.tagName | startswith($p))
+             | select(($p != "v") or ((.tagName | startswith("bridge-")) | not))]
         | sort_by(.publishedAt) | reverse | .[$keep:] | .[].tagName')
     for tag in $stale; do
         act "delete release + tag" "$tag"
