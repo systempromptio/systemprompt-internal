@@ -432,10 +432,14 @@ jobs:
         with:
           path: systemprompt-internal
 
+      # Why the pattern: the run also uploads gateway tarballs and image
+      # digests; merging every artifact of the run into dist/ pulls hundreds
+      # of megabytes this job never publishes.
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
           path: dist
+          pattern: systemprompt-internal-bridge-*
           merge-multiple: true
 
       # The installer's default download base is baked at publish time so the
