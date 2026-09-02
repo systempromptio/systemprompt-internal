@@ -183,3 +183,24 @@ extensions/web/admin/src/handlers/ssr/ssr_setup.rs	# each fork's setup cards lin
 # lands here. Converges when the device-link flow ships in the template.
 # ---------------------------------------------------------------------
 extensions/web/admin/src/repositories/users/queries/mod.rs	# internal re-exports find_user_identity for the device-link consent screen; the template has no such screen
+
+# ---------------------------------------------------------------------
+# CORE 0.44 CONFIG MOVE (2026-09-02) - core 0.44 moved the provider
+# catalog and gateway routes out of the profile and into the services
+# tree. `internal` tracks core `next` through the active patch and has
+# adopted 0.44; the template consumes the published crate and is on
+# 0.42.1, where `ServicesBootstrap`, `ServicesConfig::gateway_config`
+# and `models::services::{slugify_pattern, synthesize_route_id,
+# GatewayState}` do not exist yet. Porting these files now would not
+# compile there. Converges when the template adopts 0.44 — at which
+# point these entries stop differing and the gate deletes them for us.
+# ---------------------------------------------------------------------
+extensions/web/admin/src/repositories/config/gateway/catalog.rs	# reads the gateway + providers from ServicesBootstrap; the template still reads profile.gateway / profile.providers
+extensions/web/admin/src/repositories/config/gateway/matching.rs	# slugify_pattern and synthesize_route_id moved models::profile -> models::services in core 0.44
+extensions/web/admin/src/repositories/config/gateway/mod.rs	# re-exports registered_routes_from_services; the template still exports registered_routes_from_profile
+extensions/web/admin/src/handlers/access_control.rs	# calls registered_routes_from_services, renamed with the source of the routes
+extensions/web/admin/src/handlers/entity_access/mod.rs	# calls registered_routes_from_services, renamed with the source of the routes
+extensions/web/admin/src/handlers/entity_access/support.rs	# collects gateway_route ids from ServicesBootstrap rather than ProfileBootstrap
+extensions/web/jobs/src/governance_bootstrap.rs	# reconciles routes read from the services tree, and stamps provenance as services:<path>
+extensions/web/jobs/src/error.rs	# JobError converts ConfigLoadError, which only the services bootstrap raises
+extensions/web/shared/src/error.rs	# MarketplaceError gains a Services variant for ConfigLoadError from the services bootstrap

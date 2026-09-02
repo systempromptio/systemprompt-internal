@@ -5,10 +5,10 @@
 //! 0. Validate `services/governance/config.yaml`, failing the boot rather than
 //!    letting an unparseable file degrade to the built-in defaults unnoticed,
 //!    and warn when the resulting chain enforces nothing.
-//! 1. Reconcile the profile's gateway-route entities into
+//! 1. Reconcile the services tree's gateway-route entities into
 //!    `access_control_entities` (so the FK on `access_control_rules` is
 //!    satisfied and a `gateway_route` `entity_match` glob has routes to expand
-//!    over), deleting catalog rows no profile route claims.
+//!    over), deleting catalog rows no declared route claims.
 //! 2. Project `services/access-control/*.yaml` into the authz tables via core
 //!    ingestion, handing it step 1's route ids as the authoritative
 //!    `gateway_route` catalog. For a kind it is not handed, core ingestion
@@ -154,7 +154,8 @@ struct GatewayCatalog {
 }
 
 async fn bootstrap_gateway_entities(db_pool: &DbPool) -> Result<GatewayCatalog, JobError> {
-    let profile_path = systemprompt::config::ProfileBootstrap::get_path()?;
+    let profile = systemprompt::config::ProfileBootstrap::get()?;
+    let services_path = &profile.paths.services;
 
     let services = systemprompt::loader::ServicesBootstrap::get()?;
     let route_ids = dispatchable_route_ids(services);
@@ -167,7 +168,7 @@ async fn bootstrap_gateway_entities(db_pool: &DbPool) -> Result<GatewayCatalog, 
     // catalog, so leave it untouched and let step 2 run unenforced.
     if id_refs.is_empty() {
         tracing::warn!(
-            profile = %profile_path,
+            services = %services_path,
             "services tree declares no dispatchable gateway routes — leaving the \
              gateway_route catalog untouched and not enforcing route ids in roles.yaml"
         );
@@ -177,7 +178,7 @@ async fn bootstrap_gateway_entities(db_pool: &DbPool) -> Result<GatewayCatalog, 
         });
     }
 
-    let source = format!("profile:{profile_path}");
+    let source = format!("services:{services_path}");
     let repo = systemprompt::security::authz::AccessControlRepository::new(db_pool)
         .map_err(|e| MarketplaceError::Internal(e.to_string()))?;
     let report =
