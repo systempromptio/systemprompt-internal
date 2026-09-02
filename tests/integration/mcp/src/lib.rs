@@ -14,6 +14,8 @@ mod approval_gate;
 #[cfg(test)]
 mod common;
 #[cfg(test)]
+mod knowledge_live_wires;
+#[cfg(test)]
 mod knowledge_proposal_state;
 #[cfg(test)]
 mod record_access;

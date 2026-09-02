@@ -58,6 +58,7 @@ systemprompt-web-site = { path = "../extensions/web/site" }
 # extension crates whose `register_extension!` registrations carry the
 # migrations the admin schema needs.
 systemprompt = { version = "0.43.0", default-features = false, features = ["core", "database"] }
+systemprompt-models = "0.43.0"
 systemprompt-security = { version = "0.43.0" }
 
 # HTTP contract harness — drives the real admin router in-process.
