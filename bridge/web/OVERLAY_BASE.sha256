@@ -1,0 +1,9 @@
+# What each bridge/web/ overlay file does to core's GUI tree.
+#   <sha256> <path>  shadows core's file, REPLACING it whole — when core
+#                    edits its copy the hash moves and the gate fails,
+#                    because the overlay must then be re-read against it.
+#   ADDED    <path>  core has no such file; the overlay only adds it.
+# Regenerate:
+#   bash scripts/check-bridge-overlay-drift.sh --update
+28f6b3e19617bcaba0578b55583cb3797b92e19cab972098d400bcdf8f857652 css/brand-overrides.css
+ADDED i18n/en-GB/bridge.ftl
