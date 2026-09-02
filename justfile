@@ -288,6 +288,14 @@ e2e:
     # dotenv-load pulls the real ODOO_URL/ODOO_DB from .env; the suite's Odoo
     # is a wiremock whose URL rides the fixture secrets, and env wins — unset.
     unset ODOO_URL ODOO_DB
+    # These guards rebuild a MISSING server binary, never a STALE one. After a
+    # core bump the old binaries still exist, still link against the previous
+    # core, and fail to boot — the harness reports `never opened port NNNN —
+    # check the profile it was spawned with`, which reads as a profile bug and
+    # is not one. CI never sees this because CI builds fresh, which is exactly
+    # why it costs an hour locally. After changing the core pin, rebuild the
+    # MCP servers before trusting a red e2e run:
+    #   cargo build -p systemprompt-mcp-agent -p systemprompt-mcp-email -p systemprompt-mcp-odoo
     if [ ! -x target/release/systemprompt-mcp-odoo ] && [ ! -x target/debug/systemprompt-mcp-odoo ]; then
         echo "building systemprompt-mcp-odoo (the MCP wire test needs it)…"
         cargo build -p systemprompt-mcp-odoo
