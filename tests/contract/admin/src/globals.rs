@@ -52,6 +52,16 @@ fn try_init() -> bool {
 
     systemprompt::config::ProfileBootstrap::init_from_path(&profile)
         .expect("initialise the contract fixture profile");
+
+    // Why: core 0.44 reads the provider catalog and the gateway routes from the
+    // services tree rather than the profile. Loading them from a fixture root
+    // rather than the profile's `paths.services` is deliberate — the repository's
+    // own catalog is what this deployment ships, and pointing the suite at it
+    // would turn the catalog and ACL contracts into assertions about production
+    // config instead of a controlled two-route fixture.
+    let services = Path::new(env!("CARGO_MANIFEST_DIR")).join("fixtures/services/config/config.yaml");
+    systemprompt::loader::ServicesBootstrap::init_from_path(&services)
+        .expect("initialise the contract fixture services tree");
     systemprompt::config::SecretsBootstrap::try_init().expect("load the fixture profile's secrets");
     systemprompt::config::try_init_config().expect("build config from the fixture profile");
 
