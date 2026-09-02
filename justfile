@@ -2011,6 +2011,72 @@ odoo-local-init:
         print('WARNING: no `admin` user in odoo_local; e2e-live will not authenticate.')
     ODOO_SHELL
 
+# Sync the PRODUCTION Odoo (database + filestore) down onto the local sidecar.
+# One command, safe to re-run: it dumps prod read-only over `flyctl ssh`, then
+# REPLACES the local `odoo_local` database and filestore with that copy and
+# neutralises it (crons off, mail servers removed, admin/admin restored) so a
+# dev clone can never mail a real customer. Prod is never written to.
+# Needs `just db-up` (and `just odoo-local-init` once, for the odoo role).
+odoo-sync-local:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    COMPOSE_FILE=".systemprompt/docker/local.yaml"
+    PROJECT="$(just _project_name local)"
+    COMPOSE=(docker compose -p "$PROJECT" -f "$COMPOSE_FILE")
+    PG_PORT=$(sed -n 's/^ *- *"\([0-9]*\):5432"/\1/p' "$COMPOSE_FILE" | head -n1)
+    [ -n "$PG_PORT" ] || { echo "ERROR: could not read the Postgres host port from $COMPOSE_FILE" >&2; exit 1; }
+    STAMP=$(date +%Y%m%d_%H%M%S)
+    mkdir -p backups/odoo
+    DUMP="backups/odoo/prod-sync_${STAMP}.dump"
+    FS="backups/odoo/prod-sync_${STAMP}-filestore.tar.gz"
+
+    # Dump on the Fly machine: the DB password lives in its /tmp/odoo.conf and
+    # is a Fly secret we cannot read from here.
+    echo "==> Dumping production database + filestore on {{ODOO_APP}}..."
+    # base64 so the whole script crosses `ssh -C` as one argument-safe blob.
+    SCRIPT=$(base64 -w0 < deploy/fly/odoo/dump-for-sync.sh 2>/dev/null || base64 < deploy/fly/odoo/dump-for-sync.sh | tr -d '\n')
+    flyctl ssh console -a {{ODOO_APP}} -C "/bin/bash -lc \"echo $SCRIPT | base64 -d | bash\""
+    flyctl ssh sftp get -a {{ODOO_APP}} /tmp/sync.dump "$DUMP"
+    flyctl ssh sftp get -a {{ODOO_APP}} /tmp/sync-filestore.tar.gz "$FS"
+    flyctl ssh console -a {{ODOO_APP}} -C "/bin/bash -lc 'rm -f /tmp/sync.dump /tmp/sync-filestore.tar.gz'"
+    echo "    saved $DUMP and $FS"
+
+    echo "==> Replacing the local odoo_local database..."
+    "${COMPOSE[@]}" stop odoo >/dev/null
+    PGPASSWORD=123 psql -h localhost -p "$PG_PORT" -U systemprompt -d systemprompt -v ON_ERROR_STOP=1 <<'SQL'
+    SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'odoo_local';
+    DROP DATABASE IF EXISTS odoo_local;
+    CREATE DATABASE odoo_local OWNER odoo;
+    SQL
+    # Production runs a newer Postgres than this box may have on PATH, and an
+    # older pg_restore refuses the dump outright ("unsupported version in file
+    # header"), so always reach for the newest client installed.
+    PG_RESTORE=$(ls -1d /usr/lib/postgresql/*/bin/pg_restore 2>/dev/null | sort -V | tail -n1)
+    [ -n "$PG_RESTORE" ] || PG_RESTORE=$(command -v pg_restore)
+    # Restore as `odoo` so every object is owned by the role Odoo connects as.
+    PGPASSWORD=odoo "$PG_RESTORE" -h localhost -p "$PG_PORT" -U odoo -d odoo_local \
+      --no-owner --no-acl --no-privileges "$DUMP"
+
+    echo "==> Replacing the local filestore..."
+    "${COMPOSE[@]}" run --rm -T --entrypoint bash odoo -c \
+      "rm -rf /var/lib/odoo/filestore/odoo_local /var/lib/odoo/filestore/{{ODOO_DB_NAME}} \
+       && tar xzf - -C /var/lib/odoo \
+       && mv /var/lib/odoo/filestore/{{ODOO_DB_NAME}} /var/lib/odoo/filestore/odoo_local \
+       && chown -R odoo:odoo /var/lib/odoo/filestore/odoo_local" < "$FS"
+
+    echo "==> Neutralising the clone (crons off, mail servers removed, admin/admin)..."
+    "${COMPOSE[@]}" run --rm -T odoo odoo shell -d odoo_local \
+      --db_host=postgres --db_user=odoo --db_password=odoo --no-http --log-level=warn \
+      < deploy/fly/odoo/localize-sync.py
+
+    echo "==> Regenerating asset bundles..."
+    "${COMPOSE[@]}" run --rm -T odoo odoo shell -d odoo_local \
+      --db_host=postgres --db_user=odoo --db_password=odoo --no-http --log-level=warn \
+      < deploy/fly/odoo/pregenerate-assets.py
+
+    "${COMPOSE[@]}" start odoo >/dev/null
+    echo "Local Odoo now mirrors production. Login: admin / admin."
+
 # Tail the local Odoo sidecar's logs (it starts/stops with `just db-up`/`db-down`)
 odoo-local-logs:
     docker compose -p "$(just _project_name local)" -f .systemprompt/docker/local.yaml logs -f odoo
