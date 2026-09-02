@@ -16,7 +16,7 @@ use crate::activity::{self, ActivityEntity, NewActivity};
 use crate::error::{AdminError, AdminResult};
 use crate::handlers::shared;
 use crate::repositories;
-use crate::repositories::config::gateway::registered_routes_from_profile;
+use crate::repositories::config::gateway::registered_routes_from_services;
 use crate::types::UserContext;
 use crate::types::access_control::{
     AccessControlQuery, AccessControlRule, BulkAssignRequest, UpdateEntityRulesRequest,
@@ -53,7 +53,7 @@ pub(crate) async fn update_entity_rules_handler(
     Json(body): Json<UpdateEntityRulesRequest>,
 ) -> AdminResult<Response> {
     let kind = editable_entity_kind(&entity_type)?;
-    registered_routes_from_profile()?.require(kind, &entity_id)?;
+    registered_routes_from_services()?.require(kind, &entity_id)?;
 
     let rules =
         repositories::users::access_control::set_entity_rules(&pool, kind, &entity_id, &body.rules)
@@ -80,7 +80,7 @@ pub(crate) async fn bulk_assign_handler(
 ) -> AdminResult<Response> {
     // Why: every entity is checked before any is written, so a bad id in the
     // batch rejects the whole request rather than half-applying it.
-    let registered = registered_routes_from_profile()?;
+    let registered = registered_routes_from_services()?;
     let entities = body
         .entities
         .iter()

@@ -1,5 +1,5 @@
-//! Building the AI gateway client a job needs, from the same profile and
-//! services config the server uses — so a job's inference lands in the same
+//! Building the AI gateway client a job needs, from the same services config
+//! the server uses — so a job's inference lands in the same
 //! audit spine, with the same provider defaults, as an interactive request.
 
 use std::sync::Arc;
@@ -18,7 +18,6 @@ pub(crate) fn build_ai_service(
     app_context: &Arc<AppContext>,
 ) -> Result<Arc<AiService>, KnowledgeJobError> {
     let services_config = ConfigLoader::load().map_err(other)?;
-    let profile = systemprompt::config::ProfileBootstrap::get().map_err(other)?;
 
     let tool_provider = Arc::new(McpToolProvider::new(
         Arc::clone(db_pool),
@@ -31,7 +30,7 @@ pub(crate) fn build_ai_service(
     Ok(Arc::new(
         AiService::new(
             db_pool,
-            &profile.providers,
+            &services_config.providers,
             &services_config.ai,
             AiServiceProviders {
                 tools: tool_provider,

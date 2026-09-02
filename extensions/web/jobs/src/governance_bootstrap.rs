@@ -154,22 +154,22 @@ struct GatewayCatalog {
 }
 
 async fn bootstrap_gateway_entities(db_pool: &DbPool) -> Result<GatewayCatalog, JobError> {
-    let profile = systemprompt::config::ProfileBootstrap::get()?;
     let profile_path = systemprompt::config::ProfileBootstrap::get_path()?;
 
-    let route_ids = dispatchable_route_ids(profile);
+    let services = systemprompt::loader::ServicesBootstrap::get()?;
+    let route_ids = dispatchable_route_ids(services);
     let registered = registered_routes(&route_ids);
     let id_refs: Vec<&str> = route_ids.iter().map(String::as_str).collect();
 
     // Why: reconciling against an empty set would delete every gateway_route
-    // entity and cascade away every route grant. A profile with no gateway is
-    // a legitimate configuration, not a signal to empty the catalog, so leave
-    // it untouched and let step 2 run unenforced.
+    // entity and cascade away every route grant. A services tree with no
+    // gateway is a legitimate configuration, not a signal to empty the
+    // catalog, so leave it untouched and let step 2 run unenforced.
     if id_refs.is_empty() {
         tracing::warn!(
             profile = %profile_path,
-            "profile declares no dispatchable gateway routes — leaving the gateway_route \
-             catalog untouched and not enforcing route ids in roles.yaml"
+            "services tree declares no dispatchable gateway routes — leaving the \
+             gateway_route catalog untouched and not enforcing route ids in roles.yaml"
         );
         return Ok(GatewayCatalog {
             registered,
