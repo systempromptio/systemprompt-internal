@@ -59,15 +59,17 @@ fn try_init() -> bool {
     // own catalog is what this deployment ships, and pointing the suite at it
     // would turn the catalog and ACL contracts into assertions about production
     // config instead of a controlled two-route fixture.
-    let services_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("fixtures/services");
+    let services_root = write_fixture_services();
     // Why: names the fixture tree as the services root, so the admin gateway
-    // editor writes the fixture's gateway.yaml. Without it the editor resolves
-    // the repository's own services tree from the profile's `paths.services`
-    // — which the rest of this suite still reads — and a contract row that
-    // PATCHes the gateway rewrites a tracked config file.
+    // editor writes the copy. Without it the editor resolves the repository's
+    // own services tree from the profile's `paths.services` — which the rest
+    // of this suite still reads — and the contract row that PATCHes the
+    // gateway rewrites a tracked config file.
     unsafe { std::env::set_var("SYSTEMPROMPT_SERVICES_PATH", &services_root) };
-    systemprompt::loader::ServicesBootstrap::init_from_path(&services_root.join("config/config.yaml"))
-        .expect("initialise the contract fixture services tree");
+    systemprompt::loader::ServicesBootstrap::init_from_path(
+        &services_root.join("config/config.yaml"),
+    )
+    .expect("initialise the contract fixture services tree");
     systemprompt::config::SecretsBootstrap::try_init().expect("load the fixture profile's secrets");
     systemprompt::config::try_init_config().expect("build config from the fixture profile");
 
@@ -129,6 +131,31 @@ fn write_fixture_profile() -> Option<PathBuf> {
     std::fs::write(dir.join("secrets.json"), fixture_secrets()).expect("write fixture secrets");
 
     Some(dir.join("profile.yaml"))
+}
+
+// The services tree the suite loads, copied out of `fixtures/services` into
+// `tests/target/`.
+//
+// Why a copy: `PATCH /api/public/admin/gateway` is one of the routes the status
+// contract drives, and the editor rewrites the gateway file through serde_yaml,
+// which drops comments. Writing the checked-in fixture would delete the
+// comments that say why it holds exactly one provider and two routes — the
+// reason the fixture exists — on the first run.
+const FIXTURE_SERVICES_CONFIG: &str = include_str!("../fixtures/services/config/config.yaml");
+const FIXTURE_SERVICES_PROVIDERS: &str = include_str!("../fixtures/services/ai/providers.yaml");
+const FIXTURE_SERVICES_GATEWAY: &str = include_str!("../fixtures/services/ai/gateway.yaml");
+
+fn write_fixture_services() -> PathBuf {
+    let dir = repo_root().join("tests/target/contract-services");
+    std::fs::create_dir_all(dir.join("config")).expect("create fixture services config directory");
+    std::fs::create_dir_all(dir.join("ai")).expect("create fixture services ai directory");
+    std::fs::write(dir.join("config/config.yaml"), FIXTURE_SERVICES_CONFIG)
+        .expect("write fixture services aggregator");
+    std::fs::write(dir.join("ai/providers.yaml"), FIXTURE_SERVICES_PROVIDERS)
+        .expect("write fixture provider catalog");
+    std::fs::write(dir.join("ai/gateway.yaml"), FIXTURE_SERVICES_GATEWAY)
+        .expect("write fixture gateway routes");
+    dir
 }
 
 // The issuer the admin cookie validator will check tokens against.
