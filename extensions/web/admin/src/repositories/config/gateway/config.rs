@@ -21,11 +21,10 @@ pub fn get_gateway_config() -> Result<GatewayConfigView, MarketplaceError> {
     let services = ServicesBootstrap::get()
         .map_err(|e| MarketplaceError::Internal(format!("services tree is not loaded: {e}")))?;
     let gateway = services.gateway_config().ok_or_else(|| {
-        // Why: this used to be `.unwrap_or_default()` against the profile, so a
-        // catalog that had moved read as zero routes with no error — and the
-        // after-the-fact ACL detector, which iterates this list, reported no
-        // violations while checking nothing. A governance surface may not fail
-        // open and quiet.
+        // Why: an absent catalog is an error, never an empty list. The
+        // after-the-fact ACL detector iterates these routes, so returning
+        // nothing would make it report no violations while checking nothing —
+        // a governance surface may not fail open and quiet.
         MarketplaceError::Internal(
             "no gateway configuration in the services tree — expected a `gateway:` block in \
              services/ai/gateway.yaml, included from services/config/config.yaml"
