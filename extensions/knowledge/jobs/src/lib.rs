@@ -42,5 +42,6 @@ pub mod internals {
         CATEGORIES, Categorization, Category, SCHEMA_NAME, parse_output, response_format,
         response_schema, structured_json, structured_output_options, system_prompt, user_prompt,
     };
+    pub use crate::email_ingestion::imap_credential;
     pub use crate::mail::{CapturedEmail, captured_from_rfc822, metadata_json, render_document};
 }

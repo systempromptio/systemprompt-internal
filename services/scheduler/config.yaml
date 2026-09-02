@@ -79,7 +79,11 @@ scheduler:
 
     # Knowledge extension jobs: brain@ mailbox capture into the knowledge
     # bank. Password comes from the brain_imap_password secret (or the
-    # BRAIN_IMAP_PASSWORD env var), never from this file.
+    # BRAIN_IMAP_PASSWORD env var), never from this file. The job only polls
+    # where that credential is present: production holds it, a dev clone must
+    # not, otherwise the two race for the same UNSEEN messages and whichever
+    # polls first (usually the dev clone) swallows production's mail. Without
+    # the credential the run logs a skip and succeeds with zero stats.
     - name: email_ingestion
       extension: knowledge
       owner: admin
