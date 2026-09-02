@@ -12,11 +12,13 @@
 use base64::Engine as _;
 use base64::engine::general_purpose::STANDARD;
 use std::path::Path;
+use std::sync::Arc;
 use systemprompt::database::DbPool;
 use systemprompt::files::{
     FileRepository, FileUploadRequestBuilder, FileUploadService, FilesConfig,
 };
 use systemprompt::models::execution::context::RequestContext;
+use systemprompt::traits::FileStorage;
 use systemprompt_factsheet::RenderedFactsheet;
 
 use crate::error::{ServerError, ServerResult};
@@ -40,12 +42,13 @@ pub struct StoredFactsheet {
 pub async fn store(
     db_pool: &DbPool,
     files_config: &FilesConfig,
+    storage: &Arc<dyn FileStorage>,
     rendered: &RenderedFactsheet,
     ctx: &RequestContext,
 ) -> ServerResult<StoredFactsheet> {
     let repository =
         FileRepository::new(db_pool).map_err(|e| ServerError::Storage(e.to_string()))?;
-    let service = FileUploadService::new(repository, files_config.clone());
+    let service = FileUploadService::new(repository, files_config.clone(), Arc::clone(storage));
 
     if !service.is_enabled() {
         return Err(ServerError::Storage(
