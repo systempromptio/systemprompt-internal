@@ -146,6 +146,18 @@ artifact counts as installed only when it appears in the list with the right all
 because the create call "should have" worked. If any create call errored, fix and retry that one
 before the final listing.
 
+**If the shell tool itself errors, none of the ladder below applies.** A shell that ran prints
+something — `SETUP_SCRIPT_NOT_FOUND` at worst. A tool-level error, where the call comes back as a
+failure instead of output, means this host has no usable shell: every rung of the ladder is another
+shell command, so stop and say the host cannot stage dashboards. Name the tool that failed and quote
+its error.
+
+**Never diagnose that as a role, permission or governance problem.** The governance chain evaluates
+*before* the tool runs and returns an explicit verdict naming the policy — a denial reaches you as a
+refusal or an approval prompt, never as a generic tool failure. This skill is in your manifest only
+because the grant already passed. Telling the user to check whether they are an admin, when their
+shell is what broke, sends them to re-check a permission that was never the problem.
+
 **Fallback ladder** — take each step only after the previous one provably failed:
 
 1. The find-and-run one-liner above.

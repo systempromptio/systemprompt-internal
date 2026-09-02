@@ -43,6 +43,25 @@ SETUP=$(find "$HOME/mnt" /sessions/*/mnt -name setup.sh -path '*systemprompt?set
 The `-- systemprompt-admin` argument is what keeps this run to the control plane: without it the
 script stages every bundle you have mounted and you would reinstall the workspace dashboards too.
 
+**If that command comes back as a tool error rather than output, stop here.** A shell that ran
+prints something — at worst `SETUP_SCRIPT_NOT_FOUND`, which means the mount is there but the script
+is not: take `systemprompt_setup`'s fallback ladder, substituting this bundle for its
+`'!systemprompt-admin'` filter. A failure of the tool call itself is the different case: this host
+has no usable shell, every rung of that ladder is also a shell command, so none of them will work
+either. Report that the host cannot stage the bundle, name the tool that failed, and quote its
+error.
+
+**Do not report it as a role, permission or governance problem** — see `systemprompt_setup`, which
+owns this rule. You are reading this file only because the `[admin]` grant already passed, and a
+governance denial arrives as an explicit verdict naming its policy, never as a generic tool failure.
+This has already misfired once in production: a shell failure was reported to an admin as "you may
+not hold the admin role", and the whole governed chain had in fact passed, recording
+`scope_check: admin scope grants unrestricted tool access`.
+
+**Reached here directly, without `systemprompt_setup`?** Then no host check has run. If the shell is
+unavailable, do not guess whether this host has an Artifacts library — say the skill needs
+`systemprompt_setup` to route on host first, and stop.
+
 It copies each dashboard page into the session `outputs/` directory and prints `OUTPUTS_DIR=`,
 `PLUGINS=`, `COPIED=`, then one ready-made `create_artifact` parameter block per record — `id`,
 `description`, `html_path`, `mcp_tools`, plus a comment with `name`/`starred`/`version` — and finally
