@@ -174,3 +174,49 @@ mod correction {
         assert!(prompt.contains("nothing else"));
     }
 }
+
+mod wrapper {
+    //! A single-key wrapper around a valid document is peeled; anything else
+    //! still fails the schema.
+    use systemprompt_knowledge_jobs::internals::parse_output;
+
+    fn conforming() -> serde_json::Value {
+        serde_json::json!({
+            "category": "sales",
+            "summary": "Acme asks for a quote.",
+            "entities": [{"name": "Acme", "type": "company"}],
+            "action_items": ["Send quote"],
+            "crm_intent": {
+                "disposition": "opportunity",
+                "lead_title": "Acme quote",
+                "contact_name": "Victor",
+                "company_name": "Acme",
+                "note_summary": "Acme wants pricing.",
+                "tasks": [{"title": "Send quote", "due_date": null, "detail": "Pricing", "assignee": null}],
+                "confidence": 0.9,
+                "deal_stage_hint": "new",
+                "expected_close_date": null,
+                "expected_revenue": null
+            }
+        })
+    }
+
+    #[test]
+    fn a_single_key_wrapper_is_unwrapped() {
+        let wrapped = serde_json::json!({"parameter name": conforming()}).to_string();
+        let parsed = parse_output(&wrapped).expect("unwrapped and validated");
+        assert_eq!(parsed.category.as_str(), "sales");
+    }
+
+    #[test]
+    fn a_wrapper_around_garbage_still_fails() {
+        let wrapped = serde_json::json!({"parameter_name": {"category": "sales"}}).to_string();
+        assert!(parse_output(&wrapped).is_err());
+    }
+
+    #[test]
+    fn a_two_key_object_is_not_treated_as_a_wrapper() {
+        let two = serde_json::json!({"a": conforming(), "b": conforming()}).to_string();
+        assert!(parse_output(&two).is_err());
+    }
+}

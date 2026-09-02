@@ -151,14 +151,34 @@ pub fn structured_output_options() -> StructuredOutputOptions {
 // against the very schema the provider was given, so a violation names the
 // path that broke rather than surfacing as a serde error three layers down.
 pub fn parse_output(raw: &str) -> Result<Categorization, String> {
-    let value = StructuredOutputProcessor::process_response(
-        raw,
-        &response_format(),
-        &structured_output_options(),
-    )
-    .map_err(|e| format!("response violates the categorization schema: {e}"))?;
+    let format = response_format();
+    let options = structured_output_options();
+    let value = match StructuredOutputProcessor::process_response(raw, &format, &options) {
+        Ok(value) => value,
+        Err(first) => {
+            let inner = unwrap_single_key_object(raw)
+                .ok_or_else(|| format!("response violates the categorization schema: {first}"))?;
+            tracing::info!("knowledge_categorization: unwrapped a single-key wrapper object");
+            StructuredOutputProcessor::process_response(&inner, &format, &options)
+                .map_err(|e| format!("response violates the categorization schema: {e}"))?
+        },
+    };
     serde_json::from_value(value)
         .map_err(|e| format!("validated response did not deserialize: {e}"))
+}
+
+// Why: without a provider-enforced strict schema the model sometimes returns
+// the document wrapped as {"<some key>": {…}}. Peeling exactly one such layer
+// and re-validating the inner object against the full schema changes no
+// value; anything else still fails. Nothing is coerced or invented.
+fn unwrap_single_key_object(raw: &str) -> Option<String> {
+    let value: serde_json::Value = serde_json::from_str(raw.trim()).ok()?;
+    let object = value.as_object()?;
+    if object.len() != 1 {
+        return None;
+    }
+    let inner = object.values().next()?;
+    inner.is_object().then(|| inner.to_string())
 }
 
 #[must_use]
