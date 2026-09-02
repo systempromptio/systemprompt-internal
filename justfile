@@ -354,6 +354,7 @@ _lint-gates-uncoordinated:
         # admin-css-classes + frontend-standards now run as cargo tests in
         # extensions/web/tests/ (admin_css_classes.rs, frontend_standards.rs).
         check-fork-drift.sh
+        check-bridge-overlay-drift.sh
         check-dead-repository-code.sh
         check-file-headers.sh
         check-file-size.sh
@@ -898,7 +899,7 @@ backup *ARGS:
 # services/ tree are built from what is on disk, so uncommitted state ships to
 # production. The warning lists what is going out so a half-committed deploy
 # is at least a visible act, not a silent one.
-deploy *FLAGS: build-all
+deploy *FLAGS: deploy-check build-all
     @if [ -n "$(git status --porcelain)" ]; then \
         echo "WARNING: working tree is dirty — this deploy ships the uncommitted state below:"; \
         git status --porcelain | head -20; \
@@ -931,9 +932,11 @@ deploy-next *FLAGS:
     echo "deploy-next: worktree at $dir on $(git -C "$dir" rev-parse --short HEAD)"
     cd "$dir" && just deploy {{FLAGS}}
 
-# Pre-deploy preflight only — no build, no push
+# Pre-deploy preflight — no build, no push. `deploy` depends on it, so a
+# production profile the binary would refuse to boot (no server.instance_id,
+# missing identity secrets) is caught here, not after the image is live.
 deploy-check:
-    {{CLI}} cloud doctor --profile {{DEPLOY_PROFILE}}
+    {{CLI}} cloud doctor --profile {{DEPLOY_PROFILE}} --distributed
 
 # Check deployment status
 status:
