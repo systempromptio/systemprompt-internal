@@ -43,13 +43,15 @@ SETUP=$(find "$HOME/mnt" /sessions/*/mnt -name setup.sh -path '*systemprompt?set
 The `-- systemprompt-admin` argument is what keeps this run to the control plane: without it the
 script stages every bundle you have mounted and you would reinstall the workspace dashboards too.
 
-**If that command comes back as a tool error rather than output, stop here.** A shell that ran
-prints something — at worst `SETUP_SCRIPT_NOT_FOUND`, which means the mount is there but the script
-is not: take `systemprompt_setup`'s fallback ladder, substituting this bundle for its
-`'!systemprompt-admin'` filter. A failure of the tool call itself is the different case: this host
-has no usable shell, every rung of that ladder is also a shell command, so none of them will work
-either. Report that the host cannot stage the bundle, name the tool that failed, and quote its
-error.
+**If that command errors or is denied, do not improvise — take `systemprompt_setup`'s fallback
+ladder**, substituting this bundle for its `'!systemprompt-admin'` filter. A shell that ran prints
+something (at worst `SETUP_SCRIPT_NOT_FOUND`, meaning the mount is there but the script is not) and
+you start at rung 2. A shell that errors or is refused rules out rungs 1 and 2, which are shell
+commands, and sends you to rung 3, which needs only the file tools. Say in the final report that the
+shell was unavailable and name the tool that failed.
+
+Whichever rung you land on, `create_artifact`'s `html_path` is the copy in the outputs dir — never
+the page's path inside the plugin bundle. That mount is not readable by the artifact library.
 
 **Do not report it as a role, permission or governance problem** — see `systemprompt_setup`, which
 owns this rule. You are reading this file only because the `[admin]` grant already passed, and a

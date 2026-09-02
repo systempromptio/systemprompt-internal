@@ -95,7 +95,9 @@ bundled set: count it, never assume it. A plugin with no dashboards ships no `ar
 which is normal.
 
 Read **only** the manifests. Do not read the `.html` files into context — they are large, and you
-never need their contents: they get copied, not retyped.
+never need their contents: they get copied, not retyped. The single exception is rung 3 of the
+fallback ladder below, where there is no shell to copy with; everywhere else, reading a page is
+wasted context and a sign you are about to retype what should have been copied.
 
 ## Step C2 — Diff bundled against installed
 
@@ -132,7 +134,11 @@ session `outputs/` directory, prints `OUTPUTS_DIR=`, `PLUGINS=` (the bundles it 
 `TOTAL_RECORDS=`.
 
 Then, for each **missing** record, call the built-in `create_artifact` tool with exactly the printed
-block — sequentially, never in parallel. Include the `mcp_tools` list every time: without it the
+block — sequentially, never in parallel. **`html_path` is always the copy in the outputs dir, never
+the page's path inside the plugin bundle**, however convenient that path looks once you have found
+it: the bundle is a Windows mount that the artifact library cannot read, so pointing at it fails or
+installs an artifact whose source disappears. If you have no outputs copy yet, you skipped the copy
+step — go back and do it. Include the `mcp_tools` list every time: without it the
 dashboard cannot call its MCP server and will never load data. Also pass the commented
 `name`/star values if the tool's schema exposes such fields; if it does not, skip them silently.
 
@@ -146,11 +152,11 @@ artifact counts as installed only when it appears in the list with the right all
 because the create call "should have" worked. If any create call errored, fix and retry that one
 before the final listing.
 
-**If the shell tool itself errors, none of the ladder below applies.** A shell that ran prints
-something — `SETUP_SCRIPT_NOT_FOUND` at worst. A tool-level error, where the call comes back as a
-failure instead of output, means this host has no usable shell: every rung of the ladder is another
-shell command, so stop and say the host cannot stage dashboards. Name the tool that failed and quote
-its error.
+**If the shell tool errors or is denied, go straight to rung 3.** A shell that ran prints something
+— `SETUP_SCRIPT_NOT_FOUND` at worst. A tool-level error or a denied call means this host has no
+usable shell, which rules out rungs 1 and 2 (both are shell commands) but not rung 3, which uses the
+file tools alone. Do not stop, and do not improvise a fourth way: rung 3 is the supported no-shell
+path. Say in the final report that the shell was unavailable and name the tool that failed.
 
 **Never diagnose that as a role, permission or governance problem.** The governance chain evaluates
 *before* the tool runs and returns an explicit verdict naming the policy — a denial reaches you as a
@@ -165,10 +171,17 @@ shell is what broke, sends them to re-check a permission that was never the prob
    `find "$HOME/mnt" /sessions/*/mnt -type d -path '*/artifacts' 2>/dev/null`
    — `cat` each `manifest.json` and bash-`cp` every `*.html` beside it into the outputs dir
    (`$HOME/mnt/outputs`, or discover it: `find "$HOME/mnt" /sessions/*/mnt -maxdepth 2 -type d -name outputs`).
-3. Only if **both** finds return nothing (the mounts genuinely lack the bundles): Read each plugin
-   bundle's `artifacts/<id>.json` (Windows paths, file tools) and Write its `content` string to
-   `outputs/<id>.html` **verbatim and unmodified** — no edits, no reformatting, no "improvements" —
-   then create as above, and say in the final report that the slow path was used and why.
+3. The file-tools path, for either of two reasons: there is no usable shell, or both finds returned
+   nothing. Locate the bundle with Glob, then for each record copy its page into the outputs dir
+   **verbatim and unmodified** — no edits, no reformatting, no "improvements":
+   - if `<id>.html` sits beside the manifest, Read it and Write it to `outputs/<id>.html`;
+   - otherwise Read `artifacts/<id>.json` and Write its `content` string to `outputs/<id>.html`.
+
+   This is the one place you do read a page into context: with no shell there is no `cp`, and a file
+   you cannot read is a file you cannot copy. That cost is exactly why this is the last rung. Read
+   each page once, write it straight out, and never read one you are not about to copy.
+
+   Then create as above, and say in the final report that the slow path was used and why.
 
 For each **stale** record, tell the user it is out of date and offer to replace it. Do not silently
 overwrite an artifact the user may have edited.
