@@ -161,3 +161,16 @@ fn user_prompt_is_truncated_to_the_budget() {
     assert!(prompt.len() < 12_100);
     assert!(prompt.starts_with("Title: t"));
 }
+
+mod correction {
+    //! The corrective round hands the validator's verdict back verbatim.
+    use systemprompt_knowledge_jobs::internals::correction_prompt;
+
+    #[test]
+    fn names_the_violation_and_demands_the_whole_object() {
+        let prompt = correction_prompt("crm_intent.disposition: not one of the enum");
+        assert!(prompt.contains("crm_intent.disposition: not one of the enum"));
+        assert!(prompt.contains("complete JSON object"));
+        assert!(prompt.contains("nothing else"));
+    }
+}

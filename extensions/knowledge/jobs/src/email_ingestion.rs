@@ -57,22 +57,9 @@ impl Job for EmailIngestionJob {
             .write_pool()
             .ok_or(KnowledgeJobError::MissingContext("write PgPool"))?;
 
-        // Why: which instance polls brain@ is decided by which instance holds
-        // the mailbox credential — production does, a dev clone must not, or
-        // the two race for the same UNSEEN messages and the dev clone wins.
-        let Some(password) = imap_credential(
-            std::env::var(PASSWORD_ENV).ok(),
-            systemprompt::config::SecretsBootstrap::get()
-                .ok()
-                .and_then(|secrets| secrets.get(PASSWORD_SECRET).cloned()),
-        ) else {
-            tracing::info!(
-                "email_ingestion: no IMAP credential on this instance ({PASSWORD_ENV} / \
-                 {PASSWORD_SECRET}); production owns brain@, nothing to poll"
-            );
+        let Some(config) = load_config(ctx)? else {
             return Ok(JobResult::success().with_stats(0, 0));
         };
-        let config = load_config(ctx, password)?;
 
         ensure_schema(db, &pool).await?;
 
@@ -160,7 +147,23 @@ pub fn imap_credential(env: Option<String>, secret: Option<String>) -> Option<St
         .find(|value| !value.is_empty())
 }
 
-fn load_config(ctx: &JobContext, password: String) -> Result<ImapConfig, KnowledgeJobError> {
+// Why: which instance polls brain@ is decided by which instance holds the
+// mailbox credential — production does, a dev clone must not, or the two race
+// for the same UNSEEN messages and the dev clone wins. No credential is a
+// clean skip, not an error.
+fn load_config(ctx: &JobContext) -> Result<Option<ImapConfig>, KnowledgeJobError> {
+    let Some(password) = imap_credential(
+        std::env::var(PASSWORD_ENV).ok(),
+        systemprompt::config::SecretsBootstrap::get()
+            .ok()
+            .and_then(|secrets| secrets.get(PASSWORD_SECRET).cloned()),
+    ) else {
+        tracing::info!(
+            "email_ingestion: no IMAP credential on this instance ({PASSWORD_ENV} / \
+             {PASSWORD_SECRET}); production owns brain@, nothing to poll"
+        );
+        return Ok(None);
+    };
     let port = ctx
         .get_parameter("imap_port")
         .map(|p| p.parse::<u16>())
@@ -174,7 +177,7 @@ fn load_config(ctx: &JobContext, password: String) -> Result<ImapConfig, Knowled
         .map_err(|e| KnowledgeJobError::Config(format!("invalid max_batch: {e}")))?
         .unwrap_or(DEFAULT_MAX_BATCH);
 
-    Ok(ImapConfig {
+    Ok(Some(ImapConfig {
         host: ctx
             .get_parameter("imap_host")
             .cloned()
@@ -190,7 +193,7 @@ fn load_config(ctx: &JobContext, password: String) -> Result<ImapConfig, Knowled
             .cloned()
             .unwrap_or_else(|| DEFAULT_MAILBOX.to_owned()),
         max_batch,
-    })
+    }))
 }
 
 async fn ensure_schema(db: &DbPool, pool: &PgPool) -> Result<(), KnowledgeJobError> {

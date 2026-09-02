@@ -15,25 +15,32 @@ use systemprompt::ai::AiService;
 use systemprompt::database::DbPool;
 use systemprompt::identifiers::{Actor, AgentName, ContextId, SessionId, TraceId};
 use systemprompt::models::RequestContext;
-use systemprompt::models::ai::{AiMessage, AiRequest};
+use systemprompt::models::ai::{AiMessage, AiRequest, AiResponse};
 use systemprompt::system::AppContext;
 use systemprompt::traits::{Job, JobContext, JobResult};
 use uuid::Uuid;
 
 use crate::ai::build_ai_service;
 use crate::categorize_output::{
-    parse_output, structured_json, structured_output_options, system_prompt, user_prompt,
+    correction_prompt, parse_output, structured_json, structured_output_options, system_prompt,
+    user_prompt,
 };
 use crate::error::KnowledgeJobError;
 
 const DEFAULT_BATCH_SIZE: i64 = 10;
-const DEFAULT_MAX_OUTPUT_TOKENS: u32 = 1024;
+// Why: a rich thread's summary, entities, tasks and intent do not fit in 1 KiB
+// of tokens; a truncated object fails validation and burns the call.
+const DEFAULT_MAX_OUTPUT_TOKENS: u32 = 4096;
+// Why: after this many rejected responses the document is parked as skipped,
+// visible in the feed with its last error, instead of being retried hourly.
+const MAX_ATTEMPTS: i32 = 3;
 const AGENT: &str = "knowledge-categorizer";
 
 struct RawDocument {
     id: Uuid,
     title: String,
     content: String,
+    attempts: i32,
 }
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -119,11 +126,14 @@ impl Job for KnowledgeCategorizationJob {
                 },
                 Err(e) => {
                     failed += 1;
+                    let attempts = document.attempts + 1;
                     tracing::warn!(
                         document_id = %document.id,
+                        attempts,
                         error = %e,
-                        "knowledge_categorization: left raw for retry"
+                        "knowledge_categorization: response rejected"
                     );
+                    record_failure(&pool, document.id, attempts, &e.to_string()).await?;
                 },
             }
         }
@@ -148,13 +158,16 @@ async fn list_raw_documents(
     let rows = sqlx::query_as!(
         RawDocument,
         r#"
-        SELECT id, title, content
+        SELECT id, title, content,
+               COALESCE((metadata->>'categorization_attempts')::int, 0) AS "attempts!"
         FROM knowledge_documents
         WHERE status = 'raw'
+          AND COALESCE((metadata->>'categorization_attempts')::int, 0) < $2
         ORDER BY created_at
         LIMIT $1
         "#,
         limit,
+        MAX_ATTEMPTS,
     )
     .fetch_all(pool)
     .await?;
@@ -196,13 +209,42 @@ async fn categorize_one(
     .with_structured_output(structured_output_options())
     .build();
 
-    let response = run
-        .ai
-        .generate(&request)
-        .await
-        .map_err(|e| KnowledgeJobError::Other(format!("ai generate: {e}")))?;
+    let response = generate(run, &request).await?;
 
-    let categorization = parse_output(&response.content).map_err(KnowledgeJobError::Other)?;
+    // Why: one corrective round is cheap and fixes most rejections — the
+    // validator's message names the exact path that broke, and the model is
+    // shown its own answer next to it. A second rejection is recorded.
+    let categorization = match parse_output(&response.content) {
+        Ok(categorization) => categorization,
+        Err(first_error) => {
+            let retry = AiRequest::builder(
+                vec![
+                    AiMessage::user(user_prompt(&document.title, &document.content)),
+                    AiMessage::assistant(response.content.clone()),
+                    AiMessage::user(correction_prompt(&first_error)),
+                ],
+                run.provider.clone(),
+                run.model.clone(),
+                run.max_output_tokens,
+                RequestContext::new(
+                    SessionId::generate(),
+                    TraceId::generate(),
+                    ContextId::generate(),
+                    AgentName::new(AGENT),
+                )
+                .with_actor(run.actor.clone()),
+            )
+            .with_system_prompt(system_prompt())
+            .with_structured_output(structured_output_options())
+            .build();
+            let second = generate(run, &retry).await?;
+            parse_output(&second.content).map_err(|second_error| {
+                KnowledgeJobError::Other(format!(
+                    "rejected twice — first: {first_error}; after correction: {second_error}"
+                ))
+            })?
+        },
+    };
 
     let structured = structured_json(&categorization);
     sqlx::query!(
@@ -219,6 +261,47 @@ async fn categorize_one(
     .await?;
 
     Ok(categorization.category.as_str().to_owned())
+}
+
+async fn generate(
+    run: &CategorizeRun<'_>,
+    request: &AiRequest,
+) -> Result<AiResponse, KnowledgeJobError> {
+    run.ai
+        .generate(request)
+        .await
+        .map_err(|e| KnowledgeJobError::Other(format!("ai generate: {e}")))
+}
+
+// Why: the attempt count and last error live on the document, so the feed
+// shows why an email never became a proposal; at the cap it parks as skipped.
+async fn record_failure(
+    pool: &PgPool,
+    id: Uuid,
+    attempts: i32,
+    error: &str,
+) -> Result<(), KnowledgeJobError> {
+    sqlx::query!(
+        r#"
+        UPDATE knowledge_documents
+        SET metadata = COALESCE(metadata, '{}'::jsonb)
+                || jsonb_build_object(
+                    'categorization_attempts', $2::int,
+                    'categorization_error', $3::text,
+                    'categorization_failed_at', now()
+                ),
+            status = CASE WHEN $2 >= $4 THEN 'skipped' ELSE status END,
+            skip_reason = CASE WHEN $2 >= $4 THEN 'categorization_failed' ELSE skip_reason END
+        WHERE id = $1 AND status = 'raw'
+        "#,
+        id,
+        attempts,
+        error,
+        MAX_ATTEMPTS,
+    )
+    .execute(pool)
+    .await?;
+    Ok(())
 }
 
 systemprompt::traits::submit_job!(&KnowledgeCategorizationJob);

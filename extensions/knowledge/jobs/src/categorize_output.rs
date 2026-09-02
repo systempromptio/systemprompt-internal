@@ -112,6 +112,17 @@ pub fn user_prompt(title: &str, content: &str) -> String {
     format!("Title: {title}\n\nDocument:\n{body}")
 }
 
+// Why: the validator's message names the path that broke; handing it back
+// with the original answer is what turns a rejection into a fix.
+#[must_use]
+pub fn correction_prompt(error: &str) -> String {
+    format!(
+        "Your previous answer was rejected: {error}. Return the complete JSON object again, \
+         obeying the schema exactly — every field present, category and disposition from \
+         their fixed sets, nulls where you do not know — and nothing else. Do not truncate."
+    )
+}
+
 #[must_use]
 pub fn response_schema() -> serde_json::Value {
     strict_schema::<Categorization>()

@@ -96,14 +96,18 @@ scheduler:
 
     # Hourly LLM pass over status='raw' knowledge documents → category,
     # structured summary and crm_intent. Never touches Odoo. Cost-capped by
-    # batch_size per run.
+    # batch_size per run. A rejected response gets one corrective round; after
+    # three rejected runs the document parks as skipped/categorization_failed
+    # with its last error in metadata. max_output_tokens must hold a full
+    # object for a long thread — 1024 truncated real mail.
     - name: knowledge_categorization
       extension: knowledge
       owner: admin
       schedule: "0 15 * * * *"
       enabled: true
       parameters:
-        batch_size: "10"
+        batch_size: "25"
+        max_output_tokens: "4096"
 
     # Plans an Odoo projection for each categorized email and opens the
     # approval_requests row an admin answers (in the knowledge-approve-ingestion

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT id, title, content\n        FROM knowledge_documents\n        WHERE status = 'raw'\n        ORDER BY created_at\n        LIMIT $1\n        ",
+  "query": "\n        SELECT id, title, content,\n               COALESCE((metadata->>'categorization_attempts')::int, 0) AS \"attempts!\"\n        FROM knowledge_documents\n        WHERE status = 'raw'\n          AND COALESCE((metadata->>'categorization_attempts')::int, 0) < $2\n        ORDER BY created_at\n        LIMIT $1\n        ",
   "describe": {
     "columns": [
       {
@@ -35,18 +35,26 @@
             "name": "content"
           }
         }
+      },
+      {
+        "ordinal": 3,
+        "name": "attempts!",
+        "type_info": "Int4",
+        "origin": "Expression"
       }
     ],
     "parameters": {
       "Left": [
-        "Int8"
+        "Int8",
+        "Int4"
       ]
     },
     "nullable": [
       false,
       false,
-      false
+      false,
+      null
     ]
   },
-  "hash": "eebc2f0d4eeafbec5443d141aa2fc855dd4f9cafd34fd412f9652cfe32c67681"
+  "hash": "99a83e6eb09a3a9d07c7dfd73c7ced3a484b16ff07ced64eee6f80ff08c2ae34"
 }
