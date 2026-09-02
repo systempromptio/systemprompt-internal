@@ -45,6 +45,14 @@ WIRE = re.compile(r"mcp__([A-Za-z0-9_-]+)__([A-Za-z0-9_]+)(?![A-Za-z0-9_*])")
 HOOK_PAYLOAD = re.compile(r'"tool_name"\s*:\s*"(mcp__[A-Za-z0-9_-]+__[A-Za-z0-9_]+)"')
 CONST = re.compile(r'^pub const (SERVER_NAME|TOOL_[A-Z0-9_]+): &str = "([^"]+)";', re.M)
 
+# Why: these servers are provided by the host application (Claude Desktop and
+# its Cowork mode), not by this repo, so they can never appear in a catalog
+# built from our own `pub const TOOL_*` declarations. Naming one is
+# documentation about the host's own tools, not the misspelling of one of ours
+# that this gate exists to catch. The exemption is the server half only, and
+# the list is explicit: any other undeclared server still fails.
+HOST_PROVIDED = {"workspace"}
+
 
 def load(path):
     try:
@@ -123,6 +131,8 @@ def scan_text(label, text, check_enabled=True):
         if f"mcp__{server}__{tool}" in exempt:
             continue
         found.append((server, tool))
+        if server in HOST_PROVIDED:
+            continue
         if server not in declared:
             errors.append(
                 f"{label}: 'mcp__{server}__{tool}' names unknown mcp_server "
@@ -190,6 +200,7 @@ before = len(errors)
 scan_text("<self-check>", "mcp__knowledge-bank__no_such_tool mcp__no-such-server__x")
 scan_text("<self-check>", '"tool_name":"mcp__knowledge-bank__exempt_payload"')
 scan_text("<self-check>", "mcp__knowledge-bank__list_* is a glob, not a name")
+scan_text("<self-check>", "mcp__workspace__bash is host-provided, not ours")
 if len(errors) - before != 2:
     print(
         "error: check-mcp-tool-names self-check failed — the scan did not flag "
