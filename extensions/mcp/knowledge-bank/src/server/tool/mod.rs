@@ -1,20 +1,25 @@
 //! Per-call logic for the `knowledge-bank` server: authentication, the admin
-//! gate on uploads, and the three tool handlers.
+//! gate, and the tool handlers.
 //!
 //! Read tools (`search_project_context`, `list_documents`) are open to any
-//! role the registry grants the server to; `upload_document` additionally
-//! requires the admin role on the authenticated user — the same double-gate
-//! pattern the admin surface uses. The registry grant alone is not enough,
-//! because a role edit that widened read access would otherwise silently
-//! widen write access with it.
+//! role the registry grants the server to; `upload_document` and the three
+//! `proposal_*` tools additionally require the admin role on the
+//! authenticated user — the same double-gate pattern the admin surface uses.
+//! The registry grant alone is not enough, because a role edit that widened
+//! read access would otherwise silently widen write access with it.
 
 pub mod handlers;
+pub mod proposal_outputs;
+pub mod proposals;
 pub mod render;
 
 pub use render::{NO_DOCUMENTS, NO_MATCHES, listing_summary, search_summary};
 
 use crate::store::KnowledgeStore;
-use crate::tools::{TOOL_LIST, TOOL_SEARCH, TOOL_UPLOAD};
+use crate::tools::{
+    TOOL_LIST, TOOL_PROPOSAL_DECIDE, TOOL_PROPOSAL_GET, TOOL_PROPOSAL_LIST, TOOL_SEARCH,
+    TOOL_UPLOAD,
+};
 use rmcp::ErrorData as McpError;
 use rmcp::model::{CallToolRequestParams, CallToolResult};
 use rmcp::service::{RequestContext, RoleServer};
@@ -27,6 +32,7 @@ use systemprompt::security::authz::SharedAuthzHook;
 use systemprompt_mcp_shared::{record_mcp_access, record_mcp_access_rejected};
 
 use handlers::{ListHandler, SearchHandler, UploadHandler};
+use proposals::{ProposalDecideHandler, ProposalGetHandler, ProposalListHandler};
 
 #[doc(hidden)]
 #[derive(Debug)]
@@ -88,7 +94,7 @@ pub(super) async fn authenticate_tool_request(
 }
 
 #[doc(hidden)]
-pub fn require_admin(request_context: &SysRequestContext) -> Result<(), McpError> {
+pub fn require_admin(request_context: &SysRequestContext, tool_name: &str) -> Result<(), McpError> {
     let is_admin = request_context
         .user
         .as_ref()
@@ -97,9 +103,15 @@ pub fn require_admin(request_context: &SysRequestContext) -> Result<(), McpError
         Ok(())
     } else {
         Err(McpError::invalid_request(
-            "upload_document requires the admin role; your account can search and list but not \
-             upload"
-                .to_owned(),
+            format!(
+                "{tool_name} requires the admin role; your account can search and list but not \
+                 {}",
+                if tool_name == TOOL_UPLOAD {
+                    "upload"
+                } else {
+                    "manage ingestion proposals"
+                }
+            ),
             None,
         ))
     }
@@ -125,8 +137,29 @@ pub async fn dispatch_tool(
             ctx.run(&handler).await
         },
         TOOL_UPLOAD => {
-            require_admin(ctx.request_context)?;
+            require_admin(ctx.request_context, tool_name)?;
             let handler = UploadHandler {
+                store: store.clone(),
+            };
+            ctx.run(&handler).await
+        },
+        TOOL_PROPOSAL_LIST => {
+            require_admin(ctx.request_context, tool_name)?;
+            let handler = ProposalListHandler {
+                store: store.clone(),
+            };
+            ctx.run(&handler).await
+        },
+        TOOL_PROPOSAL_GET => {
+            require_admin(ctx.request_context, tool_name)?;
+            let handler = ProposalGetHandler {
+                store: store.clone(),
+            };
+            ctx.run(&handler).await
+        },
+        TOOL_PROPOSAL_DECIDE => {
+            require_admin(ctx.request_context, tool_name)?;
+            let handler = ProposalDecideHandler {
                 store: store.clone(),
             };
             ctx.run(&handler).await
@@ -134,7 +167,7 @@ pub async fn dispatch_tool(
         _ => Err(McpError::invalid_params(
             format!(
                 "Unknown tool: '{tool_name}'. Available tools: {TOOL_SEARCH}, {TOOL_LIST}, \
-                 {TOOL_UPLOAD}."
+                 {TOOL_UPLOAD}, {TOOL_PROPOSAL_LIST}, {TOOL_PROPOSAL_GET}, {TOOL_PROPOSAL_DECIDE}."
             ),
             None,
         )),

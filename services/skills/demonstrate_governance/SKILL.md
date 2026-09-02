@@ -177,4 +177,4 @@ against the allow's priced row. Guardrails that fire *before* the spend are them
 feature.
 
 Every claim about a decision must be read back from `governance_decisions` — show the row. Then hand
-to `report` for the fleet close.
+to `governance_readback` for the priced close.

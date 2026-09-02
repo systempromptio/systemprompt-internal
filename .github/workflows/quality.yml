@@ -21,6 +21,11 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  # Why: transient TLS resets from static.rust-lang.org and crates.io fail a run
+  # on infrastructure rather than on the code. rustup and cargo both retry when
+  # told to; they do not by default.
+  RUSTUP_MAX_RETRIES: "10"
+  CARGO_NET_RETRY: "10"
   CARGO_TERM_COLOR: always
   SQLX_OFFLINE: "true"
   # aws-lc-sys needs clang (GCC <10 bug #95189); ubuntu-latest ships it.
@@ -94,13 +99,27 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref || github.ref }}
+      # check-bridge-overlay-drift compares our bridge overlay against core's
+      # GUI tree, so this job needs the sibling too — the bridge takes
+      # systemprompt-bridge by relative path and it is not a published crate.
+      - name: Read pinned core ref
+        id: core
+        run: echo "ref=$(tr -d '[:space:]' < bridge/CORE_REF)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: systempromptio/systemprompt-core
+          ref: ${{ steps.core.outputs.ref }}
+          path: .core-sibling
+      - name: Link sibling core beside the workspace
+        run: ln -sfn "$GITHUB_WORKSPACE/.core-sibling" "$GITHUB_WORKSPACE/../systemprompt-core"
       - name: Install ripgrep
         run: sudo apt-get update && sudo apt-get install -y ripgrep
       - uses: taiki-e/install-action@v2
         with:
           tool: just
-      # check-fork-drift skips cleanly without SIBLING_REPO; every other gate
-      # is a read-only source check.
+      # check-fork-drift skips cleanly without SIBLING_REPO; check-bridge-overlay-drift
+      # needs the core sibling checked out above; every other gate is a
+      # read-only source check.
       - run: BUILD_NO_COORD=1 just lint-gates
 
   msrv:

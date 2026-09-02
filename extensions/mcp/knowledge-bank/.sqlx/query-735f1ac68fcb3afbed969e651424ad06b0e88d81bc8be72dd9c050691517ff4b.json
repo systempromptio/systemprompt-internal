@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO knowledge_odoo_projection\n            (document_id, revision, action_index, kind, res_model, rfc5322_id, applied_by, odoo_login)\n        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)\n        ON CONFLICT (document_id, revision, action_index) DO NOTHING\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4",
+        "Int4",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "735f1ac68fcb3afbed969e651424ad06b0e88d81bc8be72dd9c050691517ff4b"
+}

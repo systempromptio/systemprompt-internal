@@ -1,0 +1,27 @@
+id: upcoming-deals
+name: "Upcoming Deals"
+description: "Your open Odoo CRM opportunities grouped by tag and ordered by expected close date — what is due this week, this month, and what has no close date yet. Refresh re-runs crm_lead_search with open_only and sort: deadline against Odoo as you, so Odoo's own record rules decide what appears."
+version: "1.0.0"
+enabled: true
+# Seed into the global Cowork Artifacts library as a starred/global entry.
+starred: true
+# `category`, `tags` and `query` are forward-compatible metadata — the core
+# loader ignores them today; the call also lives in `description` and view.html.
+category: crm
+tags:
+  - odoo
+  - crm
+  - opportunities
+  - deadlines
+  - forecast
+# Native Odoo MCP server (services/mcp/odoo.yaml). Per-user execution: the
+# caller's own Odoo login and API key are resolved in-process from the
+# odoo_identity link made on /admin/profile.
+mcp_tools:
+  - "mcp__odoo__crm_lead_search"
+query: |
+  crm_lead_search
+  arguments: { "limit": 100, "open_only": true, "sort": "deadline" }
+  model: crm.lead
+# The Cowork native artifact document (raw HTML, glassmorphism table).
+file: view.html

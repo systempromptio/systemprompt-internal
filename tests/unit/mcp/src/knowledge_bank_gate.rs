@@ -11,6 +11,7 @@ use systemprompt::identifiers::{AgentName, ContextId, SessionId, TraceId};
 use systemprompt::models::auth::{AuthenticatedUser, Permission};
 use systemprompt::models::execution::context::RequestContext;
 use systemprompt_mcp_knowledge_bank::server::tool::require_admin;
+use systemprompt_mcp_knowledge_bank::tools::{TOOL_PROPOSAL_DECIDE, TOOL_UPLOAD};
 
 fn anonymous() -> RequestContext {
     RequestContext::new(
@@ -32,12 +33,13 @@ fn signed_in_as(permission: Permission) -> RequestContext {
 
 #[test]
 fn an_admin_may_upload() {
-    assert!(require_admin(&signed_in_as(Permission::Admin)).is_ok());
+    assert!(require_admin(&signed_in_as(Permission::Admin), TOOL_UPLOAD).is_ok());
+    assert!(require_admin(&signed_in_as(Permission::Admin), TOOL_PROPOSAL_DECIDE).is_ok());
 }
 
 #[test]
 fn a_signed_in_non_admin_is_refused() {
-    let error = require_admin(&signed_in_as(Permission::User))
+    let error = require_admin(&signed_in_as(Permission::User), TOOL_UPLOAD)
         .expect_err("the user role can read but not write");
     assert!(
         error.message.contains("requires the admin role"),
@@ -55,5 +57,13 @@ fn a_signed_in_non_admin_is_refused() {
 fn an_anonymous_context_is_refused() {
     // Belt and braces: transport auth should never let this context reach the
     // handler, but the gate must not depend on that being true.
-    assert!(require_admin(&anonymous()).is_err());
+    assert!(require_admin(&anonymous(), TOOL_UPLOAD).is_err());
+}
+
+#[test]
+fn the_proposal_tools_are_gated_the_same_way() {
+    let error = require_admin(&signed_in_as(Permission::User), TOOL_PROPOSAL_DECIDE)
+        .expect_err("proposals carry inbound business email");
+    assert!(error.message.contains(TOOL_PROPOSAL_DECIDE));
+    assert!(error.message.contains("ingestion proposals"));
 }

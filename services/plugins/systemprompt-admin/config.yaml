@@ -1,8 +1,8 @@
 plugin:
   id: systemprompt-admin
-  name: "Systemprompt Admin — Control Plane"
-  description: "Admin-only control plane: who is using the platform, what it costs, what failed, and why. Ships the systemprompt CLI server plus governance, analytics, and operations skills, and three live dashboards."
-  version: "3.0.0"
+  name: "Systemprompt Admin — Business Administration & Control Plane"
+  description: "Admin-only: run the business from Odoo — what has been happening, and the leads that need a status — plus the control plane underneath it: operate the stack, prove governance live, and read back what every task cost. Ships the systemprompt CLI and knowledge-bank servers and seven live dashboards — including the brain@ inbox feed and the approval queue that is the only route from an email into Odoo."
+  version: "4.2.0"
   # Admin-scoped: roles.yaml grants this plugin to [admin] with
   # default_included: false. That single rule closes every skill and artifact
   # below to every other role — they carry no rule of their own, and the
@@ -14,25 +14,31 @@ plugin:
   author:
     name: systemprompt.io
     email: ed@systemprompt.io
-  keywords: [admin, governance, analytics, users, audit, operations, control-plane]
+  keywords: [admin, odoo, crm, leads, activity, governance, analytics, audit, operations, control-plane]
   license: proprietary
   category: admin
   skills:
     source: explicit
     include:
-      # Three front doors, not nine. `report` is the fleet/roster/activity
-      # view, `inspect` is the per-request/per-conversation microscope, and
-      # `manage_platform` is the two things that mutate live state (the stack
-      # and a user's roles). They absorbed admin_user_report,
-      # admin_activity_report, analytics_dashboards, inspect_ai_requests,
-      # inspect_conversation, inspect_agents, inspect_mcp_and_skills,
-      # manage_permissions and manage_services — and, since, systemprompt_cli
-      # (a restatement of inspect + report) and the two admin demo steps, whose
-      # sequences are now sections of demonstrate_governance and report.
-      - report
-      - inspect
+      # Business administration on Odoo, two front doors. show_activity is
+      # the read side: a series of Odoo queries into one brief of everything
+      # that has been happening. update_leads is the write side: create a
+      # lead, or walk the admin's own leads asking for a status and applying
+      # it. They replaced `inspect` and `report`, which were CLI manuals over
+      # the passthrough server rather than skills that did anything, and
+      # absorbed `crm`, `business_overview` and the pipeline half of the
+      # retired user plugin.
+      - show_activity
+      - update_leads
+      # The control plane. manage_platform mutates live state (the stack and
+      # a user's roles); demonstrate_governance exercises every policy stage
+      # and reads the decisions back; governance_readback is the per-task
+      # cost and audit readback. The last one moved here from commons: its
+      # commands run through the admin passthrough server, so a user-role
+      # grant was a skill that could not be run by the role that held it.
       - manage_platform
       - demonstrate_governance
+      - governance_readback
       # Control-plane first-run setup. Admin-only by this plugin's grant alone —
       # a user's manifest never carries it, so systemprompt_setup never names it
       # to them.
@@ -40,20 +46,40 @@ plugin:
   agents:
     source: explicit
     include: []
-  # The admin CLI-passthrough server. Gated to the admin role three times
-  # over: this plugin's rule and the server's own entity rule in
-  # services/access-control/roles.yaml keep it out of a non-admin's signed
-  # manifest, and oauth.scopes in services/mcp/systemprompt.yaml rejects the
-  # call at runtime if it gets there anyway.
   mcp_servers:
     source: explicit
     include:
+      # The admin CLI-passthrough server. Gated to the admin role three times
+      # over: this plugin's rule and the server's own entity rule in
+      # services/access-control/roles.yaml keep it out of a non-admin's signed
+      # manifest, and oauth.scopes in services/mcp/systemprompt.yaml rejects
+      # the call at runtime if it gets there anyway.
       - systemprompt
+      # Odoo, for the two business skills and the two admin business
+      # dashboards. Per-user identity: the admin's own Odoo link, never a
+      # service account.
+      - odoo
+      # The brain@ pipeline: proposal_list feeds the two knowledge dashboards
+      # and proposal_decide is their approve button. Admin-scoped by its own
+      # rule in roles.yaml as well as by this plugin.
+      - knowledge-bank
   content_sources: {}
   artifacts:
     source: explicit
     include:
+      # The control-plane dashboards, all over mcp__systemprompt__systemprompt.
       - admin-users-directory
       - admin-activity-requests
       - admin-usage-costs
+      # The admin-only business dashboards over the odoo server: the
+      # briefing and the inbound-lead triage view. The open pipeline and the
+      # team notes moved to systemprompt-workspace, which every role holds;
+      # an artifact may only be shipped by plugins of one scope, so they are
+      # not repeated here even though show_activity opens them.
+      - business-overview
+      - leads-inbound-prospects
+      # brain@ inbox: the live feed of captured email, and the approval queue
+      # through which an email becomes an Odoo record.
+      - knowledge-feed
+      - knowledge-approve-ingestion
   # No hooks: systemprompt-commons owns the session-global governance hooks.

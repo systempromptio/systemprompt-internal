@@ -12,11 +12,13 @@ use systemprompt::traits::Job;
 pub(crate) const SCHEMA_EMAIL_INGEST: &str = include_str!("../schema/01_email_ingest.sql");
 pub(crate) const MIGRATION_CATEGORIZATION: &str =
     include_str!("../schema/migrations/001_knowledge_document_categorization.sql");
+pub(crate) const MIGRATION_PROPOSAL: &str =
+    include_str!("../schema/migrations/002_knowledge_document_proposal.sql");
 
 /// Jobs-and-schema extension: no router, no assets, no config.
 ///
 /// The `knowledge_documents` table itself belongs to the knowledge-bank MCP
-/// crate; this extension adds the ingest ledger and categorization columns
+/// crate; this extension adds the ingest ledger and the pipeline columns
 /// (guarded, so ordering against the knowledge-bank schema does not matter).
 #[derive(Debug, Default, Clone, Copy)]
 pub struct KnowledgeJobsExtension;

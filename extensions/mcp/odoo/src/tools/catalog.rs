@@ -11,17 +11,18 @@ use rmcp::model::Tool;
 use super::inputs::{
     ActivityCompleteInput, ActivityCreateInput, ActivityListInput, AttachmentAddInput,
     AttachmentGetInput, AttachmentListInput, CalendarEventCreateInput, CalendarEventListInput,
-    ChannelListInput, ChannelPostInput, LeadCreateInput, LeadGetInput, LeadReportInput,
-    LeadSearchInput, LeadUpdateInput, NoteAddInput, NoteListInput, NoteSearchInput, OverviewInput,
-    PartnerGetInput, PartnerSearchInput, TaskCreateInput, TaskListInput, TaskUpdateInput,
+    ChannelListInput, ChannelPostInput, LeadCreateInput, LeadDeleteInput, LeadGetInput,
+    LeadReportInput, LeadSearchInput, LeadUpdateInput, NoteAddInput, NoteListInput,
+    NoteSearchInput, OverviewInput, PartnerGetInput, PartnerSearchInput, TaskCreateInput,
+    TaskListInput, TaskUpdateInput,
 };
 use super::{
-    TOOL_ACTIVITY_COMPLETE, TOOL_ACTIVITY_CREATE, TOOL_ACTIVITY_LIST, TOOL_ATTACHMENT_ADD,
+    Effect, TOOL_ACTIVITY_COMPLETE, TOOL_ACTIVITY_CREATE, TOOL_ACTIVITY_LIST, TOOL_ATTACHMENT_ADD,
     TOOL_ATTACHMENT_GET, TOOL_ATTACHMENT_LIST, TOOL_CALENDAR_EVENT_CREATE,
     TOOL_CALENDAR_EVENT_LIST, TOOL_CHANNEL_LIST, TOOL_CHANNEL_POST, TOOL_LEAD_CREATE,
-    TOOL_LEAD_GET, TOOL_LEAD_REPORT, TOOL_LEAD_SEARCH, TOOL_LEAD_UPDATE, TOOL_NOTE_ADD,
-    TOOL_NOTE_LIST, TOOL_NOTE_SEARCH, TOOL_OVERVIEW, TOOL_PARTNER_GET, TOOL_PARTNER_SEARCH,
-    TOOL_TASK_CREATE, TOOL_TASK_LIST, TOOL_TASK_UPDATE, ToolDef, create_tool,
+    TOOL_LEAD_DELETE, TOOL_LEAD_GET, TOOL_LEAD_REPORT, TOOL_LEAD_SEARCH, TOOL_LEAD_UPDATE,
+    TOOL_NOTE_ADD, TOOL_NOTE_LIST, TOOL_NOTE_SEARCH, TOOL_OVERVIEW, TOOL_PARTNER_GET,
+    TOOL_PARTNER_SEARCH, TOOL_TASK_CREATE, TOOL_TASK_LIST, TOOL_TASK_UPDATE, ToolDef, create_tool,
 };
 
 pub fn lead_tools() -> Vec<Tool> {
@@ -33,7 +34,7 @@ pub fn lead_tools() -> Vec<Tool> {
                           salesperson. Runs as your own Odoo account, so it returns exactly the \
                           leads Odoo lets you see.",
             input_schema: schemars::schema_for!(LeadSearchInput).to_value(),
-            read_only: true,
+            effect: Effect::ReadOnly,
         }),
         create_tool(&ToolDef {
             name: TOOL_LEAD_GET,
@@ -41,7 +42,7 @@ pub fn lead_tools() -> Vec<Tool> {
             description: "Read one lead or opportunity in full by its Odoo id, including stage, \
                           salesperson, revenue forecast and description.",
             input_schema: schemars::schema_for!(LeadGetInput).to_value(),
-            read_only: true,
+            effect: Effect::ReadOnly,
         }),
         create_tool(&ToolDef {
             name: TOOL_LEAD_CREATE,
@@ -50,7 +51,7 @@ pub fn lead_tools() -> Vec<Tool> {
                           created by your Odoo user, so it lands in your pipeline and your name \
                           is on it.",
             input_schema: schemars::schema_for!(LeadCreateInput).to_value(),
-            read_only: false,
+            effect: Effect::Write,
         }),
         create_tool(&ToolDef {
             name: TOOL_LEAD_UPDATE,
@@ -59,7 +60,18 @@ pub fn lead_tools() -> Vec<Tool> {
                           pipeline stages with `stage_id`, reassigning with `user_id`, or \
                           re-forecasting `expected_revenue` and `probability`.",
             input_schema: schemars::schema_for!(LeadUpdateInput).to_value(),
-            read_only: false,
+            effect: Effect::Write,
+        }),
+        create_tool(&ToolDef {
+            name: TOOL_LEAD_DELETE,
+            title: "Delete CRM Lead",
+            description: "Permanently delete a lead from Odoo CRM by id. This is `unlink`, not \
+                          archive — the record, its chatter and its activities are gone and \
+                          cannot be recovered. Use crm_lead_update with `{\"active\": false}` \
+                          to archive instead. Runs as your own Odoo account, so Odoo refuses it \
+                          unless you may delete leads.",
+            input_schema: schemars::schema_for!(LeadDeleteInput).to_value(),
+            effect: Effect::Destructive,
         }),
         create_tool(&ToolDef {
             name: TOOL_LEAD_REPORT,
@@ -68,7 +80,7 @@ pub fn lead_tools() -> Vec<Tool> {
                           expected revenue per group, optionally limited to a creation-date \
                           window. Use this instead of searching and counting.",
             input_schema: schemars::schema_for!(LeadReportInput).to_value(),
-            read_only: true,
+            effect: Effect::ReadOnly,
         }),
     ]
 }
@@ -87,7 +99,7 @@ pub fn knowledge_tools() -> Vec<Tool> {
                           it is attached to, so you can follow it with crm_lead_get, \
                           partner_get or note_list.",
             input_schema: schemars::schema_for!(NoteSearchInput).to_value(),
-            read_only: true,
+            effect: Effect::ReadOnly,
         }),
         create_tool(&ToolDef {
             name: TOOL_NOTE_LIST,
@@ -97,7 +109,7 @@ pub fn knowledge_tools() -> Vec<Tool> {
                           crm_lead_search — it gives the whole conversation rather than a \
                           snippet.",
             input_schema: schemars::schema_for!(NoteListInput).to_value(),
-            read_only: true,
+            effect: Effect::ReadOnly,
         }),
         create_tool(&ToolDef {
             name: TOOL_NOTE_ADD,
@@ -108,7 +120,7 @@ pub fn knowledge_tools() -> Vec<Tool> {
                           of the record's fields. The note is attributed to you in Odoo's audit \
                           trail, so write it as yourself.",
             input_schema: schemars::schema_for!(NoteAddInput).to_value(),
-            read_only: false,
+            effect: Effect::Write,
         }),
         create_tool(&ToolDef {
             name: TOOL_ATTACHMENT_LIST,
@@ -118,7 +130,7 @@ pub fn knowledge_tools() -> Vec<Tool> {
                           stored file or a link to one held elsewhere. Attachment ids are \
                           global; res_id is only meaningful alongside model.",
             input_schema: schemars::schema_for!(AttachmentListInput).to_value(),
-            read_only: true,
+            effect: Effect::ReadOnly,
         }),
         create_tool(&ToolDef {
             name: TOOL_ATTACHMENT_GET,
@@ -129,7 +141,7 @@ pub fn knowledge_tools() -> Vec<Tool> {
                           files return metadata and a pointer to the Odoo web UI, because the \
                           content would not usefully fit in context.",
             input_schema: schemars::schema_for!(AttachmentGetInput).to_value(),
-            read_only: true,
+            effect: Effect::ReadOnly,
         }),
         create_tool(&ToolDef {
             name: TOOL_ATTACHMENT_ADD,
@@ -140,7 +152,7 @@ pub fn knowledge_tools() -> Vec<Tool> {
                           recordings in object storage. Provide exactly one of the two. The \
                           attachment is created by your Odoo user, so your name is on it.",
             input_schema: schemars::schema_for!(AttachmentAddInput).to_value(),
-            read_only: false,
+            effect: Effect::Write,
         }),
     ]
 }
@@ -161,7 +173,7 @@ fn scheduling_tools() -> Vec<Tool> {
                           named. Use this for work attached to a lead or partner; use \
                           calendar_event_create for something with a time and attendees.",
             input_schema: schemars::schema_for!(ActivityCreateInput).to_value(),
-            read_only: false,
+            effect: Effect::Write,
         }),
         create_tool(&ToolDef {
             name: TOOL_ACTIVITY_COMPLETE,
@@ -171,7 +183,7 @@ fn scheduling_tools() -> Vec<Tool> {
                           disappearing with the reminder — write it as a note to whoever reads \
                           the record next.",
             input_schema: schemars::schema_for!(ActivityCompleteInput).to_value(),
-            read_only: false,
+            effect: Effect::Write,
         }),
         create_tool(&ToolDef {
             name: TOOL_CALENDAR_EVENT_LIST,
@@ -180,7 +192,7 @@ fn scheduling_tools() -> Vec<Tool> {
                           Use this for what is on the calendar; use activity_list for to-dos \
                           that have a deadline but no meeting time.",
             input_schema: schemars::schema_for!(CalendarEventListInput).to_value(),
-            read_only: true,
+            effect: Effect::ReadOnly,
         }),
         create_tool(&ToolDef {
             name: TOOL_CALENDAR_EVENT_CREATE,
@@ -190,7 +202,7 @@ fn scheduling_tools() -> Vec<Tool> {
                           with partner ids from partner_search, and link the event to a lead by \
                           passing model and res_id together.",
             input_schema: schemars::schema_for!(CalendarEventCreateInput).to_value(),
-            read_only: false,
+            effect: Effect::Write,
         }),
     ]
 }
@@ -203,7 +215,7 @@ fn collaboration_tools() -> Vec<Tool> {
             description: "List project tasks — open ones unless you ask otherwise — optionally \
                           scoped to a project by name or filtered by title.",
             input_schema: schemars::schema_for!(TaskListInput).to_value(),
-            read_only: true,
+            effect: Effect::ReadOnly,
         }),
         create_tool(&ToolDef {
             name: TOOL_TASK_CREATE,
@@ -212,7 +224,7 @@ fn collaboration_tools() -> Vec<Tool> {
                           project must already exist: if the name does not match, the error \
                           lists the projects you can see rather than creating a new one.",
             input_schema: schemars::schema_for!(TaskCreateInput).to_value(),
-            read_only: false,
+            effect: Effect::Write,
         }),
         create_tool(&ToolDef {
             name: TOOL_TASK_UPDATE,
@@ -220,7 +232,7 @@ fn collaboration_tools() -> Vec<Tool> {
             description: "Update fields on a task — `stage_id` to move it along, `user_ids` (a \
                           list) to reassign, `date_deadline`, `priority`.",
             input_schema: schemars::schema_for!(TaskUpdateInput).to_value(),
-            read_only: false,
+            effect: Effect::Write,
         }),
         create_tool(&ToolDef {
             name: TOOL_CHANNEL_LIST,
@@ -228,7 +240,7 @@ fn collaboration_tools() -> Vec<Tool> {
             description: "List the Odoo Discuss channels you can see, with their type and member \
                           count. Run this first to get the channel id channel_post needs.",
             input_schema: schemars::schema_for!(ChannelListInput).to_value(),
-            read_only: true,
+            effect: Effect::ReadOnly,
         }),
         create_tool(&ToolDef {
             name: TOOL_CHANNEL_POST,
@@ -237,7 +249,7 @@ fn collaboration_tools() -> Vec<Tool> {
                           of people and leaves no trace on any record — use note_add instead \
                           when the point is to document something against a lead or partner.",
             input_schema: schemars::schema_for!(ChannelPostInput).to_value(),
-            read_only: false,
+            effect: Effect::Write,
         }),
     ]
 }
@@ -250,7 +262,7 @@ pub fn context_tools() -> Vec<Tool> {
             description: "Search Odoo partners (customers, contacts, vendors) by name, email or \
                           phone.",
             input_schema: schemars::schema_for!(PartnerSearchInput).to_value(),
-            read_only: true,
+            effect: Effect::ReadOnly,
         }),
         create_tool(&ToolDef {
             name: TOOL_PARTNER_GET,
@@ -258,7 +270,7 @@ pub fn context_tools() -> Vec<Tool> {
             description: "Read one partner in full by Odoo id: contact details, address, company \
                           and category.",
             input_schema: schemars::schema_for!(PartnerGetInput).to_value(),
-            read_only: true,
+            effect: Effect::ReadOnly,
         }),
         create_tool(&ToolDef {
             name: TOOL_ACTIVITY_LIST,
@@ -266,7 +278,7 @@ pub fn context_tools() -> Vec<Tool> {
             description: "List the scheduled activities assigned to you in Odoo — calls, \
                           meetings, to-dos — optionally only those past their deadline.",
             input_schema: schemars::schema_for!(ActivityListInput).to_value(),
-            read_only: true,
+            effect: Effect::ReadOnly,
         }),
         create_tool(&ToolDef {
             name: TOOL_OVERVIEW,
@@ -276,7 +288,7 @@ pub fn context_tools() -> Vec<Tool> {
                           most recent chatter notes. Prefer this over issuing the individual \
                           queries yourself.",
             input_schema: schemars::schema_for!(OverviewInput).to_value(),
-            read_only: true,
+            effect: Effect::ReadOnly,
         }),
     ]
 }

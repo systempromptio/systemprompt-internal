@@ -20,7 +20,8 @@ use systemprompt_mcp_shared::{record_mcp_access, record_mcp_access_rejected};
 
 use super::call::OdooCall;
 use super::{
-    activity, attachments, calendar, channels, crm, notes, overview, partner, report, tasks,
+    activity, attachments, calendar, channels, crm, crm_delete, notes, overview, partner, report,
+    tasks,
 };
 use crate::client::OdooClient;
 use crate::error::OdooError;
@@ -29,9 +30,9 @@ use crate::tools::{
     ALL_TOOLS, TOOL_ACTIVITY_COMPLETE, TOOL_ACTIVITY_CREATE, TOOL_ACTIVITY_LIST,
     TOOL_ATTACHMENT_ADD, TOOL_ATTACHMENT_GET, TOOL_ATTACHMENT_LIST, TOOL_CALENDAR_EVENT_CREATE,
     TOOL_CALENDAR_EVENT_LIST, TOOL_CHANNEL_LIST, TOOL_CHANNEL_POST, TOOL_LEAD_CREATE,
-    TOOL_LEAD_GET, TOOL_LEAD_REPORT, TOOL_LEAD_SEARCH, TOOL_LEAD_UPDATE, TOOL_NOTE_ADD,
-    TOOL_NOTE_LIST, TOOL_NOTE_SEARCH, TOOL_OVERVIEW, TOOL_PARTNER_GET, TOOL_PARTNER_SEARCH,
-    TOOL_TASK_CREATE, TOOL_TASK_LIST, TOOL_TASK_UPDATE,
+    TOOL_LEAD_DELETE, TOOL_LEAD_GET, TOOL_LEAD_REPORT, TOOL_LEAD_SEARCH, TOOL_LEAD_UPDATE,
+    TOOL_NOTE_ADD, TOOL_NOTE_LIST, TOOL_NOTE_SEARCH, TOOL_OVERVIEW, TOOL_PARTNER_GET,
+    TOOL_PARTNER_SEARCH, TOOL_TASK_CREATE, TOOL_TASK_LIST, TOOL_TASK_UPDATE,
 };
 
 pub(super) async fn authenticate_tool_request(
@@ -90,7 +91,7 @@ pub async fn dispatch_tool(
     call: OdooCall,
     tool_name: &str,
 ) -> Result<CallToolResult, McpError> {
-    // Why: split by plane rather than one 24-arm match. Every arm names a
+    // Why: split by plane rather than one 25-arm match. Every arm names a
     // distinct handler type, and holding all of them in one stack frame costs
     // half a megabyte — over clippy's frame ceiling, and a real cost on a
     // server that runs one of these per request.
@@ -125,6 +126,7 @@ async fn crm_tools(
         TOOL_LEAD_GET => ctx.run(&crm::LeadGetHandler { call }).await,
         TOOL_LEAD_CREATE => ctx.run(&crm::LeadCreateHandler { call }).await,
         TOOL_LEAD_UPDATE => ctx.run(&crm::LeadUpdateHandler { call }).await,
+        TOOL_LEAD_DELETE => ctx.run(&crm_delete::LeadDeleteHandler { call }).await,
         TOOL_LEAD_REPORT => ctx.run(&report::LeadReportHandler { call }).await,
         TOOL_PARTNER_SEARCH => ctx.run(&partner::PartnerSearchHandler { call }).await,
         TOOL_PARTNER_GET => ctx.run(&partner::PartnerGetHandler { call }).await,

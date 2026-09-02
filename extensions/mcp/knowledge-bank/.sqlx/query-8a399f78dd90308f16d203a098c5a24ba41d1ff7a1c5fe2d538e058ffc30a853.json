@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE knowledge_documents\n            SET status = 'approved', decided_by = $3, decided_at = $4,\n                apply_attempts = apply_attempts + 1, next_attempt_at = NULL\n            WHERE id = $1 AND status = $2\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8a399f78dd90308f16d203a098c5a24ba41d1ff7a1c5fe2d538e058ffc30a853"
+}

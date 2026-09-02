@@ -33,7 +33,7 @@ in your own skill list is the only source, because that list is what the manifes
 
 | You are running in | Signs | Go to |
 |--------------------|-------|-------|
-| Claude Cowork | A session VM under `/sessions/`, a `create_artifact` tool that takes `html_path`, a `list_artifacts` tool, an `outputs/` directory | **Cowork setup**, below |
+| Claude Cowork | A `create_artifact` tool that takes `html_path`, a `list_artifacts` tool, an `outputs/` directory | **Cowork setup**, below |
 | Codex CLI | OpenAI Codex CLI environment, no Cowork artifact tools | **Codex setup**, below |
 | Anything else | Plain Claude Code, another MCP client | Nothing host-specific to install. The Odoo check in Step 1 is the whole of setup. Say so and stop. |
 
@@ -52,48 +52,56 @@ and finish that host's own setup.
 Bring the Artifacts library into line with the dashboards your plugins ship: install any that are
 missing, leave the ones already there alone, and report a clear "installed X of Y" result.
 
-This installs the **workspace dashboards** — the four Odoo pages (business overview, inbound leads,
-open pipeline, recent activity) from the `systemprompt-user` bundle. It does not touch the
-control-plane dashboards (users, activity, usage): those belong to `systemprompt_setup_admin`. If
-Step 1 showed you hold that skill, run this section first, then that one. If you do not hold it, that
-skill does not exist for you and nothing here is missing.
+This installs whatever dashboards the **user-scoped** bundles you were granted ship. On this
+instance that is the `systemprompt-workspace` bundle's four Odoo pages — To-Do Bulletin, Upcoming
+Deals, Pipeline — Open Deals, and Recent Activity — Team Notes — which every role holds, so expect
+"4 of 4". The admin bundle's seven (business overview, inbound leads, the two brain@ knowledge pages
+and the three control-plane ones) belong to `systemprompt_setup_admin`: if Step 1 showed you hold that
+skill, run this section, then that one. If you do not hold it, that skill does not exist for you and
+nothing here is missing.
 
 ## How installation works (read this first)
 
 Cowork's `create_artifact` tool does **not** take inline HTML. It takes an `html_path` pointing at a
-file that must already sit inside the session workspace — under the session's `outputs/` directory
-(or a connected folder). Anything else is rejected with "outside this session's workspace". So every
-install is exactly two moves: **get the dashboard's HTML file into `outputs/`, then call
-`create_artifact` pointing at it.**
+file inside the session workspace or a **connected folder**. On every sync the bridge stages the
+dashboard bundle into the pre-trusted workspace folder that every Cowork session has connected
+(`~/Systemprompt` on this instance):
 
-Never retype or reconstruct the HTML yourself, and never call `create_artifact` with a path into the
-plugin or skills directories — it will be rejected. Never run multiple `create_artifact` calls in
-parallel; install one dashboard at a time, verifying as you go.
+```
+<workspace>/systemprompt/artifacts/manifest.json
+<workspace>/systemprompt/artifacts/<id>.html      one page per record, verbatim
+```
 
-**Path rules — these caused every past failure:**
-
-- **bash runs in a Linux VM.** It can never see `C:\...` paths; those work only in the Read/Write
-  file tools. Never paste a Windows path into a bash command.
-- The VM session directory under `/sessions/` is a **codename** (e.g. `practical-dreamy-dijkstra`),
-  not the Windows session UUID — never construct `/sessions/<uuid>` by hand. Always discover
-  locations with the find one-liner in Step C3.
+So every install is one move: call `create_artifact` pointing at the staged page. **This skill uses
+no shell.** The only tools it calls are `Glob`, `Read`, `Write`, `list_artifacts`, `create_artifact`
+and the MCP probes in Step C5. Do not call `mcp__workspace__bash`: Claude Desktop denies it in
+Cowork sessions on current builds, and nothing here needs it. Never retype or reconstruct a page,
+never point `html_path` at the plugin or skills directories, and never run `create_artifact` calls
+in parallel — install one dashboard at a time, verifying as you go.
 
 **Caching contract:** Cowork only caches a dashboard's MCP tool results when the gateway tool
 advertises `annotations.readOnlyHint: true`. Every read-only tool a dashboard calls must carry that
 annotation in its server's tool catalog — without it, every re-render refetches and rendering becomes
 racy. Every tool the workspace dashboards call carries it.
 
-## Step C1 — Read the manifests the mounted bundles ship
+## Step C1 — Read the bundle the bridge staged
 
-Every mounted plugin bundle lays its dashboards out at its root as `artifacts/manifest.json` —
-`{ "artifacts": [ { "id", "name", "description", "version", "isStarred", "mcpTools": [...] }, ... ] }`
-— with one `artifacts/<id>.html` beside it per record. Run the staging script in Step C3 first; it
-prints every record it found, across every bundle, deduplicated by `id`. That printed set **is** the
-bundled set: count it, never assume it. A plugin with no dashboards ships no `artifacts/` directory,
-which is normal.
+Locate the manifest with `Glob` for `**/systemprompt/artifacts/manifest.json` across the connected
+folders, then `Read` it. It is small: one record per dashboard —
+`{ "id", "name", "description", "version", "isStarred", "mcpTools": [...], "plugins": [...] }` —
+and the pages are not in it. Do not read the `.html` files into context: `create_artifact` copies a
+page from its path, so reading one is wasted context and a sign you are about to retype what should
+have been copied.
 
-Read **only** the manifests. Do not read the `.html` files into context — they are large, and you
-never need their contents: they get copied, not retyped.
+Keep only the records whose `plugins` does **not** name `systemprompt-admin`. That set **is** the
+user bundle: count it, never assume it. On this instance expect `todo-bulletin`, `upcoming-deals`,
+`pipeline-open-deals` and `recent-activity`. The admin records in the same manifest belong to
+`systemprompt_setup_admin`.
+
+If the manifest is absent, the bridge has not synced since it was installed, or the workspace
+folder is not connected to this session. Say exactly that, tell the user to press **Sync** in the
+bridge (and to connect the `Systemprompt` folder if the session shows none), and stop. Do not look
+for a script, do not copy pages by hand, and do not write a zero-install receipt.
 
 ## Step C2 — Diff bundled against installed
 
@@ -115,52 +123,38 @@ report it, never adopt it as one of ours. Build four groups:
 
 ## Step C3 — Install what is missing
 
-Run this skill's staging script **once** with this exact shell command (it finds the script wherever
-the skills mount lands — do not substitute a guessed path, and never a Windows path):
+For each **missing** record, call the built-in `create_artifact` tool — sequentially, never in
+parallel — with:
 
-```
-SETUP=$(find "$HOME/mnt" /sessions/*/mnt -name setup.sh -path '*systemprompt?setup*' 2>/dev/null | head -1) \
-  && sh "$SETUP" -- '!systemprompt-admin' || echo "SETUP_SCRIPT_NOT_FOUND"
-```
-
-The script walks every mounted bundle's `artifacts/` directory, copies every dashboard page into the
-session `outputs/` directory, prints `OUTPUTS_DIR=`, `PLUGINS=` (the bundles it found) and
-`COPIED=`, then one ready-made `create_artifact` parameter block per record — `id`, `description`,
-`html_path`, `mcp_tools`, plus a comment with `name`/`starred`/`version` — and finally
-`TOTAL_RECORDS=`.
-
-Then, for each **missing** record, call the built-in `create_artifact` tool with exactly the printed
-block — sequentially, never in parallel. Include the `mcp_tools` list every time: without it the
-dashboard cannot call its MCP server and will never load data. Also pass the commented
-`name`/star values if the tool's schema exposes such fields; if it does not, skip them silently.
+- `id` and `description` from the record,
+- `html_path` set to the page beside the manifest, exactly as `Glob` spelled the directory:
+  `<workspace>/systemprompt/artifacts/<id>.html`. That folder is connected, so the path is accepted
+  as it is,
+- `mcp_tools` set to the record's `mcpTools`, verbatim — without it the dashboard cannot call its
+  MCP server and will never load data,
+- `name` and `starred` from the record if the tool's schema exposes such fields; if it does not,
+  skip them silently.
 
 **Verify** with one `list_artifacts` after the whole batch: every bundled id must appear, **and for
 each one the installed record must carry the same tool allowlist as its manifest record** — compare
 the listed `mcp_tools` (however the library names the field) against the record's `mcpTools` for
 that id, verbatim. A dashboard installed with another dashboard's allowlist renders but every data
 fetch fails with "not in this artifact's mcp_tools allowlist", so a mismatch is a failed install:
-delete that one artifact, re-run its `create_artifact` from the printed block, and re-verify. An
-artifact counts as installed only when it appears in the list with the right allowlist — never
-because the create call "should have" worked. If any create call errored, fix and retry that one
-before the final listing.
+delete that one artifact, re-run its `create_artifact`, and re-verify. An artifact counts as
+installed only when it appears in the list with the right allowlist — never because the create call
+"should have" worked. If any create call errored, fix and retry that one before the final listing.
 
-**Fallback ladder** — take each step only after the previous one provably failed:
-
-1. The find-and-run one-liner above.
-2. If it printed `SETUP_SCRIPT_NOT_FOUND`: locate the bundles the same way —
-   `find "$HOME/mnt" /sessions/*/mnt -type d -path '*/artifacts' 2>/dev/null`
-   — `cat` each `manifest.json` and bash-`cp` every `*.html` beside it into the outputs dir
-   (`$HOME/mnt/outputs`, or discover it: `find "$HOME/mnt" /sessions/*/mnt -maxdepth 2 -type d -name outputs`).
-3. Only if **both** finds return nothing (the mounts genuinely lack the bundles): Read each plugin
-   bundle's `artifacts/<id>.json` (Windows paths, file tools) and Write its `content` string to
-   `outputs/<id>.html` **verbatim and unmodified** — no edits, no reformatting, no "improvements" —
-   then create as above, and say in the final report that the slow path was used and why.
+**Never diagnose a tool failure as a role, permission or governance problem.** The governance chain
+evaluates *before* the tool runs and returns an explicit verdict naming the policy — a denial
+reaches you as a refusal or an approval prompt, never as a generic tool failure. This skill is in
+your manifest only because the grant already passed.
 
 For each **stale** record, tell the user it is out of date and offer to replace it. Do not silently
 overwrite an artifact the user may have edited.
 
 If one artifact genuinely fails after a retry, record it under `failed` and carry on with the rest —
-but a workspace-path rejection is not a failure to record, it is a signal you skipped the copy step.
+but a workspace-path rejection means `html_path` did not point at the staged page: re-read the path
+from `Glob` and retry.
 
 ## Step C4 — Write a receipt
 
@@ -168,29 +162,24 @@ Each entry in `created` and `alreadyPresent` is an object, not a bare id — cap
 identifying reference `create_artifact`'s response and the `list_artifacts` verification entries
 actually expose for that record (an id, a url, however the library names it — same caution as the
 `mcp_tools` field in Step C3: read what the tool gives back, do not assume a field name). At minimum
-carry `id` and `name`; add `ref` when the tool exposes something beyond the id (a url or a distinct
-artifact identifier). This is what lets Step C6 point the user at each dashboard by name instead of
-just a count.
+carry `id` and `name`; add `ref` when the tool exposes something beyond the id. This is what lets
+Step C6 point the user at each dashboard by name instead of just a count.
 
-Write the receipt through the same script so the timestamp is real, not typed:
+`Write` the receipt to `outputs/setup-receipt.json` in the session's outputs directory, with the
+current UTC time in `checkedAt`:
 
 ```
-SETUP=$(find "$HOME/mnt" /sessions/*/mnt -name setup.sh -path '*systemprompt?setup*' 2>/dev/null | head -1) \
-  && sh "$SETUP" receipt '{ "checkedAt": "__NOW__", "plugins": ["..."], "bundled": N, "installed": N,
+{ "checkedAt": "<ISO-8601 UTC>", "plugins": ["..."], "bundled": N, "installed": N,
   "created": [{ "id": "...", "name": "...", "ref": "..." }],
   "alreadyPresent": [{ "id": "...", "name": "...", "ref": "..." }],
-  "stale": ["..."], "superseded": ["..."], "failed": [] }'
+  "stale": ["..."], "superseded": ["..."], "failed": [] }
 ```
 
-`plugins` is the `PLUGINS=` line; `bundled` is `TOTAL_RECORDS=` — count them, never assume.
-
-The script replaces `__NOW__` with the current UTC time and writes
-`outputs/setup-receipt.json` (never write into the plugin or skills directories — they are
-read-only and replaced wholesale on every sync). If the script is unavailable, write the same JSON
-to `outputs/setup-receipt.json` yourself with the timestamp from `date -u`.
-
-`installed` must be the count confirmed by the final library listing, nothing else. If the write
-fails, do not fail the run: report the same receipt inline in Step C6 so the result is still visible.
+`plugins` is the distinct `plugins` values across the installed records; `bundled` is the record
+count from Step C1 — count them, never assume. Never write into the plugin or skills directories,
+or into the bundle folder: they are replaced wholesale on every sync. `installed` must be the count
+confirmed by the final library listing, nothing else. If the write fails, do not fail the run:
+report the same receipt inline in Step C6 so the result is still visible.
 
 ## Step C5 — Check the connections the dashboards need
 
@@ -200,7 +189,7 @@ user:
 
 | server | probe |
 |--------|-------|
-| `odoo` | `crm_lead_search` with `{ "limit": 1 }` |
+| `odoo` | `crm_lead_search` with `{ "limit": 1 }` — one probe covers all four workspace dashboards; they share the server |
 
 Call each probe by its **full wire name**, `mcp__<server-id>__<tool>`. The server segment is the id
 exactly as `services/mcp/*.yaml` spells it, **hyphens and all**. Nothing normalises a hyphen to an

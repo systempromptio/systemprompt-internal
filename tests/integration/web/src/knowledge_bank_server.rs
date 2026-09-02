@@ -128,7 +128,7 @@ async fn the_instructions_point_callers_at_search_before_advising() {
 }
 
 #[tokio::test]
-async fn the_server_exposes_exactly_three_tools() {
+async fn the_server_exposes_exactly_six_tools() {
     let Some(db) = TempDb::create().await else {
         return;
     };
@@ -138,10 +138,19 @@ async fn the_server_exposes_exactly_three_tools() {
     let mut names: Vec<&str> = listed.iter().map(|t| t.name.as_ref()).collect();
     names.sort_unstable();
 
+    let mut expected = vec![
+        tools::TOOL_LIST,
+        tools::TOOL_SEARCH,
+        tools::TOOL_UPLOAD,
+        tools::TOOL_PROPOSAL_LIST,
+        tools::TOOL_PROPOSAL_GET,
+        tools::TOOL_PROPOSAL_DECIDE,
+    ];
+    expected.sort_unstable();
     assert_eq!(
-        names,
-        vec![tools::TOOL_LIST, tools::TOOL_SEARCH, tools::TOOL_UPLOAD],
-        "the knowledge bank advertises search, list, and upload — and nothing else"
+        names, expected,
+        "the knowledge bank advertises search, list, upload and the three proposal tools — and \
+         nothing else"
     );
 
     db.cleanup().await;

@@ -178,7 +178,7 @@ thead th.desc .arw{opacity:.9;border-top:5px solid currentColor;}
         <span class="mark"><svg viewBox="167 461 666 78" role="img" aria-label="systemprompt.io"><use href="#sp-logo"/></svg></span>
         <h2>Loading live Odoo CRM data</h2>
         <p>This dashboard renders only your real Odoo records — no sample data. It loads automatically by running the query below through the Odoo MCP connection, as you; use <strong>Reload</strong> in the header to fetch it again.</p>
-        <div class="qry">crm_lead_search { "limit": 100 } — open crm.lead opportunities by expected close</div>
+        <div class="qry">crm_lead_search { "limit": 100, "open_only": true } — open crm.lead opportunities, won and lost excluded</div>
         <span class="hint">Loads via mcp__odoo__crm_lead_search</span>
       </div>
 
@@ -193,18 +193,18 @@ thead th.desc .arw{opacity:.9;border-top:5px solid currentColor;}
         <span class="mark"><svg viewBox="167 461 666 78" role="img" aria-label="systemprompt.io"><use href="#sp-logo"/></svg></span>
         <h2>No matching records</h2>
         <p>Odoo is connected, but this query returned nothing right now.</p>
-        <div class="qry">crm_lead_search { "limit": 100 } — open crm.lead opportunities by expected close</div>
+        <div class="qry">crm_lead_search { "limit": 100, "open_only": true } — open crm.lead opportunities, won and lost excluded</div>
       </div>
     </div>
 
-    <p class="foot">Live data via the Odoo MCP connection, executed as you · Reload re-runs <code>mcp__odoo__crm_lead_search</code> with the call in <code>#odoo-query</code></p>
+    <p class="foot">Live data via the Odoo MCP connection, executed as you · Reload re-runs <code>mcp__odoo__crm_lead_search</code> with <code>open_only</code> from the call in <code>#odoo-query</code> · won and lost leads are excluded by Odoo, not by this page</p>
   </div>
 
   <!-- Data contract: on load the page calls window.cowork.callMcpTool with this
        tool + arguments and renders the records; injected window.__ARTIFACT_DATA__ /
        artifactData plus a message event remain supported as a fallback. -->
   <script type="application/json" id="odoo-query">
-  {"tool": "mcp__odoo__crm_lead_search", "arguments": {"limit": 100}}
+  {"tool": "mcp__odoo__crm_lead_search", "arguments": {"limit": 100, "open_only": true}}
   </script>
 
 <script>
@@ -220,6 +220,8 @@ var CONFIG = {
     { label: "Contact", path: "partner_name", cell: "text" },
     { label: "Stage", path: "stage_id", cell: "badge", badge: function(v,r){var p=Number(r.probability);if(p>=75)return "b-ok";if(p>=40)return "b-warn";return "b-neutral";} },
     { label: "Expected revenue", path: "expected_revenue", cell: "money" },
+    { label: "Expected close", path: "date_deadline", cell: "date", overdue: true },
+    { label: "Tags", path: "tags", cell: "tags" },
     { label: "Created", path: "create_date", cell: "date" },
     { label: "Prob", path: "probability", cell: "pct" },
     { label: "Salesperson", path: "user_id", cell: "text" }
@@ -259,6 +261,7 @@ var CONFIG = {
       case "num": { if (v == null || v === "") return '<td class="num"><span class="muted">—</span></td>'; var mn = (stats[col.path] && stats[col.path].max) || 0; return '<td class="num">' + meter(numf(v), mn ? Number(v) / mn : 0) + "</td>"; }
       case "pct": { if (v == null || v === "") return '<td class="num"><span class="muted">—</span></td>'; var p = Number(v), tone = p >= 75 ? "ok" : p >= 40 ? "warn" : "err"; return '<td class="num">' + meter(pctf(v), p / 100, tone) + "</td>"; }
       case "badge": return "<td>" + badge(v, col.badge ? col.badge(v, r) : "b-neutral") + "</td>";
+      case "tags": { var t = Array.isArray(v) ? v : (v ? [v] : []); if (!t.length) return '<td><span class="muted">—</span></td>'; return "<td>" + t.map(function (x) { return badge(x, "b-info"); }).join(" ") + "</td>"; }
       case "date": return '<td class="' + (col.overdue && isOverdue(v) ? "overdue" : "") + '">' + datef(v) + "</td>";
       case "text": if (/user_id/.test(col.path)) return "<td>" + avatar(v) + "</td>"; return "<td>" + esc(v == null || v === "" ? "—" : v) + "</td>";
       default: return "<td>" + esc(v == null || v === "" ? "—" : v) + "</td>";

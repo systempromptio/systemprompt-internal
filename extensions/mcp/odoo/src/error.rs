@@ -21,6 +21,9 @@ pub enum OdooError {
     #[error("Odoo rejected the call: {0}")]
     Odoo(String),
 
+    #[error("Could not resolve an Odoo record: {0}")]
+    Unresolved(String),
+
     #[error("Odoo transport error: {0}")]
     Transport(String),
 
@@ -39,6 +42,7 @@ impl ExtensionError for OdooError {
             Self::AppMissing(_) => "APP_NOT_INSTALLED",
             Self::AccessDenied(_) => "ODOO_ACCESS_DENIED",
             Self::Odoo(_) => "ODOO_REJECTED",
+            Self::Unresolved(_) => "ODOO_UNRESOLVED",
             Self::Transport(_) => "UPSTREAM_UNAVAILABLE",
             Self::Serialization(_) => "SERIALIZATION_ERROR",
             Self::Internal(_) => "INTERNAL_ERROR",
@@ -51,6 +55,7 @@ impl ExtensionError for OdooError {
             Self::NotLinked(_) | Self::AccessDenied(_) => StatusCode::FORBIDDEN,
             Self::AppMissing(_) => StatusCode::NOT_IMPLEMENTED,
             Self::Odoo(_) => StatusCode::BAD_GATEWAY,
+            Self::Unresolved(_) => StatusCode::BAD_REQUEST,
             Self::Serialization(_) | Self::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
@@ -74,6 +79,10 @@ impl From<OdooError> for rmcp::ErrorData {
             | OdooError::NotConfigured(msg)
             | OdooError::AppMissing(msg)
             | OdooError::AccessDenied(msg) => Self::invalid_request(msg, None),
+            // Why: a name that matched nothing is a bad argument, and the
+            // message lists what would have matched — invalid_params keeps
+            // that remedy in front of the model.
+            OdooError::Unresolved(msg) => Self::invalid_params(msg, None),
             other => Self::internal_error(other.to_string(), None),
         }
     }

@@ -17,7 +17,10 @@ use crate::tools::inputs::{
 use crate::tools::{TOOL_LEAD_CREATE, TOOL_LEAD_GET, TOOL_LEAD_SEARCH, TOOL_LEAD_UPDATE};
 
 use super::crm_shape::LEAD_LABELS;
-pub use super::crm_shape::{LeadRow, lead_domain, lead_row, lead_table, odoo};
+pub use super::crm_shape::{
+    LeadDeleted, LeadRow, TagRow, attach_tag_names, lead_domain, lead_order, lead_row, lead_rows,
+    lead_table, odoo, tag_ids_of, tag_names,
+};
 
 #[derive(Debug)]
 pub struct LeadSearchHandler {
@@ -47,19 +50,29 @@ impl McpToolHandler for LeadSearchHandler {
             let options = SearchOptions {
                 fields: lead_fields(),
                 limit: resolve_limit(input.limit),
-                order: Some("create_date desc".to_owned()),
+                order: Some(lead_order(&input)),
             };
             let records = call
                 .client
                 .search_read(&call.creds, "crm.lead", lead_domain(&input), &options)
                 .await?;
+            let mut rows = lead_rows(&records);
 
-            let summary = if records.is_empty() {
+            let tag_ids = tag_ids_of(&rows);
+            if !tag_ids.is_empty() {
+                let tags = call
+                    .client
+                    .read(&call.creds, "crm.tag", &tag_ids, &["id", "name"])
+                    .await?;
+                attach_tag_names(&mut rows, &tag_names(&tags));
+            }
+
+            let summary = if rows.is_empty() {
                 empty_result("leads")
             } else {
-                format!("{} lead(s) matched in Odoo", records.len())
+                format!("{} lead(s) matched in Odoo", rows.len())
             };
-            Ok((CliArtifact::table(lead_table(&records)), summary))
+            Ok((CliArtifact::table(lead_table(&rows)), summary))
         }
     }
 }

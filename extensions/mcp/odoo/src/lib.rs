@@ -33,6 +33,7 @@ pub mod format;
 pub mod identity;
 pub mod resolve;
 pub mod server;
+pub mod shape;
 pub mod text;
 pub mod tools;
 

@@ -19,6 +19,9 @@ includes:
   # reads it directly as WebConfigRaw (branding at top level). Including it
   # via the aggregator would require a `web:` wrapper, which is incompatible.
   - ../ai/config.yaml
+  # Provider catalog + gateway routes: moved out of the profile by core 0.44.
+  - ../ai/providers.yaml
+  - ../ai/gateway.yaml
   - ../scheduler/config.yaml
 
   # No A2A agents. This instance ships skills, MCP servers, and artifacts only —

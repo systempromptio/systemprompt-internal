@@ -8,6 +8,7 @@ use systemprompt::identifiers::McpExecutionId;
 use systemprompt::mcp::McpToolHandler;
 use systemprompt::models::artifacts::{CliArtifact, ImageArtifact, TextArtifact};
 use systemprompt::models::execution::context::RequestContext;
+use systemprompt::traits::FileStorage;
 use systemprompt_factsheet::{FactsheetDoc, FactsheetEngine};
 
 use crate::error::ServerError;
@@ -16,12 +17,22 @@ use crate::tools::inputs::{GetInput, ListInput, RenderInput};
 use crate::tools::{TOOL_GET, TOOL_LIST, TOOL_RENDER};
 
 /// Shared per-call state.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Call {
     pub engine: Arc<FactsheetEngine>,
     pub db_pool: DbPool,
     pub files_config: Arc<FilesConfig>,
+    pub storage: Arc<dyn FileStorage>,
     pub work_dir: Arc<std::path::PathBuf>,
+}
+
+impl std::fmt::Debug for Call {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Call")
+            .field("files_config", &self.files_config)
+            .field("work_dir", &self.work_dir)
+            .finish_non_exhaustive()
+    }
 }
 
 #[derive(Debug)]
@@ -149,7 +160,14 @@ impl McpToolHandler for RenderHandler {
                 .await
                 .map_err(ServerError::Engine)?;
 
-            let stored = store::store(&call.db_pool, &call.files_config, &rendered, &ctx).await?;
+            let stored = store::store(
+                &call.db_pool,
+                &call.files_config,
+                &call.storage,
+                &rendered,
+                &ctx,
+            )
+            .await?;
 
             // Why: Best effort: the render succeeded, so failing to tidy the scratch
             // directory must not fail the call.

@@ -61,6 +61,12 @@ governance:
     # narrowing it to external recipients needs argument conditioning in the
     # require_approval policy, which does not exist yet. `note_add` and
     # `channel_post` are unconditional for the same reason.
+    #
+    # `proposal_decide` (knowledge-bank) is deliberately NOT listed. The brain@
+    # pipeline opens its own approval_requests row per proposal — that row IS
+    # the hop, and the tool is the act of answering it. A pattern here would do
+    # nothing for admins (exempt below) and would nest a second approval inside
+    # the first for anyone else.
     patterns:
     - channel_post
     - note_add

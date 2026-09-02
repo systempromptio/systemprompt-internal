@@ -47,6 +47,9 @@ uuid.workspace = true
 inventory.workspace = true
 
 systemprompt-mcp-shared.workspace = true
+# The Odoo projection reuses the odoo server's JSON-RPC client, per-user
+# credential resolution and name resolvers rather than growing a second one.
+systemprompt-mcp-odoo.workspace = true
 
 [lints]
 workspace = true

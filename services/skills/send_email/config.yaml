@@ -1,0 +1,13 @@
+id: send_email
+name: "Send Email"
+description: "Send an email from the conversation — drafted in the house voice, confirmed by you, then held for a second human before anything reaches the relay. Optionally logged onto the Odoo record it concerns. Nothing sends on your word alone."
+enabled: true
+file: SKILL.md
+tags:
+  - email
+  - outbound
+  - approval
+  - governance
+  - brand
+category: communication
+display_category: "Brand & Workspace"

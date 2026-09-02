@@ -105,8 +105,16 @@ fi
 # Residual sweep: any core pin in any manifest that the rules above do not
 # already move. A pin added to a new crate would otherwise sit stale forever,
 # because no gate distinguishes a forgotten pin from a deliberate one.
-stale=$(grep -rn '^systemprompt[a-z-]* = { version = "' --include=Cargo.toml . \
-    | grep -v '/target/' | grep -v "version = \"$VERSION\"" || true)
+#
+# Why: both cargo spellings must be swept. `tests/Cargo.toml` carried
+# `systemprompt-models = "0.43.0"` — the bare-string form — through a release
+# while this sweep matched only `= { version = "…" }` and reported sync OK. An
+# active [patch.crates-io] masked it; the moment the patch went dormant the
+# test workspace resolved 0.43.0 and 0.44.0 of the same core crates side by
+# side. A sweep that misses a form is worse than none: it buys confidence it
+# has not earned.
+stale=$(grep -rnE '^systemprompt[a-z-]* = (\{ version = )?"' --include=Cargo.toml . \
+    | grep -v '/target/' | grep -vE "= (\{ version = )?\"$VERSION\"" || true)
 if [ -n "$stale" ]; then
     echo "DRIFT: core pins not on $VERSION and not covered by this script:"
     echo "$stale"

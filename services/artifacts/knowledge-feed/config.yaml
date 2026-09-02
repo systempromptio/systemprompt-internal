@@ -1,9 +1,8 @@
 id: knowledge-feed
-name: "Knowledge Feed — brain@ Activity"
-description: "Everything the brain@ pipeline has captured into the knowledge bank as a live feed — each document with its source, pipeline status, category, and summary, newest first. Refresh re-runs list_documents against the knowledge bank."
-version: "1.0.1"
-# Shelved 2026-08-28: dashboard surface trimmed back to the CRM core.
-enabled: false
+name: "Knowledge Feed — brain@ Inbox"
+description: "Every email brain@ has captured into the knowledge bank as a live feed — sender, subject, category, where it is in the pipeline (captured, categorized, proposed, applied, skipped…) and what it became in Odoo, with links to the records. Refresh re-runs proposal_list against the knowledge bank."
+version: "2.0.0"
+enabled: true
 starred: true
 # `category`, `tags` and `query` are forward-compatible metadata — the core
 # loader ignores them today; the call also lives in `description` and view.html.
@@ -16,9 +15,9 @@ tags:
   - feed
 # The knowledge-bank MCP server (services/mcp/knowledge-bank.yaml).
 mcp_tools:
-  - "mcp__knowledge-bank__list_documents"
+  - "mcp__knowledge-bank__proposal_list"
 query: |
-  list_documents
-  arguments: {}
-  table: knowledge_documents (newest first, capped at 200 in the store)
+  proposal_list
+  arguments: { "limit": 200 }
+  table: knowledge_documents (source = 'email', newest first)
 file: view.html

@@ -20,19 +20,24 @@ use crate::error::KnowledgeBankError;
 
 pub(crate) const SCHEMA_KNOWLEDGE_DOCUMENTS: &str =
     include_str!("../schema/01_knowledge_documents.sql");
+pub(crate) const SCHEMA_KNOWLEDGE_ODOO_PROJECTION: &str =
+    include_str!("../schema/02_knowledge_odoo_projection.sql");
 
 #[doc(hidden)]
 #[must_use]
 pub fn schema_definitions() -> Vec<SchemaDefinition> {
-    vec![SchemaDefinition::new(
-        "knowledge_documents",
-        SCHEMA_KNOWLEDGE_DOCUMENTS,
-    )]
+    vec![
+        SchemaDefinition::new("knowledge_documents", SCHEMA_KNOWLEDGE_DOCUMENTS),
+        SchemaDefinition::new(
+            "knowledge_odoo_projection",
+            SCHEMA_KNOWLEDGE_ODOO_PROJECTION,
+        ),
+    ]
 }
 
-/// Schema-only extension: the knowledge bank contributes a table and nothing
-/// else — no router, no jobs, no config. It exists so the DDL travels with the
-/// crate that queries it.
+/// Schema-only extension: the knowledge bank contributes its two tables and
+/// nothing else — no router, no jobs, no config. It exists so the DDL travels
+/// with the crate that queries it.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct KnowledgeBankExtension;
 
@@ -60,12 +65,20 @@ pub async fn ensure_installed(pool: &DbPool) -> Result<(), KnowledgeBankError> {
         )
     })?;
 
-    sqlx::raw_sql(SCHEMA_KNOWLEDGE_DOCUMENTS)
-        .execute(write.as_ref())
-        .await
-        .map_err(|e| {
-            KnowledgeBankError::Internal(format!("knowledge_documents schema install failed: {e}"))
-        })?;
+    for (table, sql) in [
+        ("knowledge_documents", SCHEMA_KNOWLEDGE_DOCUMENTS),
+        (
+            "knowledge_odoo_projection",
+            SCHEMA_KNOWLEDGE_ODOO_PROJECTION,
+        ),
+    ] {
+        sqlx::raw_sql(sql)
+            .execute(write.as_ref())
+            .await
+            .map_err(|e| {
+                KnowledgeBankError::Internal(format!("{table} schema install failed: {e}"))
+            })?;
+    }
 
     Ok(())
 }

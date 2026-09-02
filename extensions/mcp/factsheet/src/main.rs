@@ -83,6 +83,7 @@ async fn main() -> Result<()> {
             service_id: service_id.clone(),
             paths: engine_paths,
             files_config,
+            storage: Arc::clone(ctx.file_storage()),
             work_dir,
         },
     )

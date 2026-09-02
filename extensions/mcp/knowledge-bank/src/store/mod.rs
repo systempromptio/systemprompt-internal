@@ -16,15 +16,22 @@
 //! tested without a database; the queries themselves are exercised by the
 //! integration suite against a throwaway schema.
 
+pub mod proposals;
 pub mod query;
 pub mod rows;
+pub mod settlement;
 
+pub use proposals::FeedFilter;
 pub use query::{
     DEFAULT_SEARCH_LIMIT, MAX_CONTENT_BYTES, MAX_LIST_LIMIT, MAX_SEARCH_LIMIT, SearchMode,
     check_content_size, clamp_search_limit, like_pattern, normalize_optional, require_non_empty,
     search_mode,
 };
-pub use rows::{DocumentSummary, NewDocument, SearchHit, UploadedDocument};
+pub use rows::{
+    DocumentSummary, EmailMetadata, NewDocument, ProposalDocument, SearchHit, SettleableRow,
+    UploadedDocument,
+};
+pub use settlement::MAX_APPLY_ATTEMPTS;
 
 use systemprompt::database::DbPool;
 
@@ -56,6 +63,15 @@ impl KnowledgeStore {
         self.pool.write_pool().ok_or_else(|| {
             KnowledgeBankError::Internal("no Postgres write pool available".to_owned())
         })
+    }
+
+    #[must_use]
+    pub const fn pool(&self) -> &DbPool {
+        &self.pool
+    }
+
+    pub fn write_pool(&self) -> Result<std::sync::Arc<sqlx::PgPool>, KnowledgeBankError> {
+        self.write()
     }
 
     pub async fn search(

@@ -1,8 +1,8 @@
 //! Tool definitions exposed by the `odoo` MCP server.
 //!
-//! Twenty-four tools over ten Odoo models: `crm.lead` (search, get, create,
-//! update, report), `res.partner` (search, get), `mail.message` (`note_add`,
-//! `note_list`, `note_search`), `ir.attachment` (`attachment_add`,
+//! Twenty-five tools over ten Odoo models: `crm.lead` (search, get, create,
+//! update, delete, report), `res.partner` (search, get), `mail.message`
+//! (`note_add`, `note_list`, `note_search`), `ir.attachment` (`attachment_add`,
 //! `attachment_list`, `attachment_get`) and `mail.activity` (`activity_list`),
 //! plus one composite briefing (`business_overview_data`) that exists so a
 //! morning summary is one call rather than five.
@@ -31,6 +31,7 @@ pub const TOOL_LEAD_SEARCH: &str = "crm_lead_search";
 pub const TOOL_LEAD_GET: &str = "crm_lead_get";
 pub const TOOL_LEAD_CREATE: &str = "crm_lead_create";
 pub const TOOL_LEAD_UPDATE: &str = "crm_lead_update";
+pub const TOOL_LEAD_DELETE: &str = "crm_lead_delete";
 pub const TOOL_LEAD_REPORT: &str = "crm_lead_report";
 pub const TOOL_PARTNER_SEARCH: &str = "partner_search";
 pub const TOOL_PARTNER_GET: &str = "partner_get";
@@ -52,11 +53,12 @@ pub const TOOL_TASK_CREATE: &str = "task_create";
 pub const TOOL_TASK_UPDATE: &str = "task_update";
 pub const TOOL_OVERVIEW: &str = "business_overview_data";
 
-pub const ALL_TOOLS: [&str; 24] = [
+pub const ALL_TOOLS: [&str; 25] = [
     TOOL_LEAD_SEARCH,
     TOOL_LEAD_GET,
     TOOL_LEAD_CREATE,
     TOOL_LEAD_UPDATE,
+    TOOL_LEAD_DELETE,
     TOOL_LEAD_REPORT,
     TOOL_PARTNER_SEARCH,
     TOOL_PARTNER_GET,
@@ -79,13 +81,24 @@ pub const ALL_TOOLS: [&str; 24] = [
     TOOL_OVERVIEW,
 ];
 
+/// What a tool does to Odoo, as advertised through `ToolAnnotations`.
+///
+/// Advisory only: the governance chain is the enforced gate; this is the hint
+/// a well-behaved client uses to decide whether to ask the user before calling.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Effect {
+    ReadOnly,
+    Write,
+    Destructive,
+}
+
 pub(crate) struct ToolDef<'a> {
     pub name: &'a str,
     pub title: &'a str,
     pub description: &'a str,
     // JSON: protocol boundary
     pub input_schema: serde_json::Value,
-    pub read_only: bool,
+    pub effect: Effect,
 }
 
 pub(crate) fn create_tool(def: &ToolDef<'_>) -> Tool {
@@ -105,9 +118,13 @@ pub(crate) fn create_tool(def: &ToolDef<'_>) -> Tool {
     tool.description = Some(def.description.to_owned().into());
     tool.input_schema = Arc::new(input_obj);
     tool.output_schema = Some(Arc::new(output_obj));
-    tool.annotations = def
-        .read_only
-        .then(|| ToolAnnotations::new().read_only(true));
+    tool.annotations = match def.effect {
+        Effect::ReadOnly => Some(ToolAnnotations::new().read_only(true)),
+        Effect::Write => None,
+        // Why: a client honouring destructiveHint prompts before calling. The
+        // governance stage is the enforced gate; this is the advisory one.
+        Effect::Destructive => Some(ToolAnnotations::new().destructive(true)),
+    };
     tool.meta = Some(MetaObject(tool_ui_meta(
         SERVER_NAME,
         &default_tool_visibility(),

@@ -71,3 +71,33 @@ fn oversized_body_is_truncated_not_refused() {
     assert!(email.body.len() < 2 * 1024 * 1024);
     assert!(email.body.ends_with("[truncated]"));
 }
+
+mod credential {
+    //! Which instance polls brain@ is decided by the credential it holds.
+    use systemprompt_knowledge_jobs::internals::imap_credential;
+
+    #[test]
+    fn missing_credential_is_absent_not_an_error() {
+        assert_eq!(imap_credential(None, None), None);
+        assert_eq!(
+            imap_credential(Some("  ".into()), Some(String::new())),
+            None
+        );
+    }
+
+    #[test]
+    fn env_wins_over_the_profile_secret() {
+        assert_eq!(
+            imap_credential(Some("from-env".into()), Some("from-secret".into())).as_deref(),
+            Some("from-env")
+        );
+    }
+
+    #[test]
+    fn a_blank_env_falls_through_to_the_secret() {
+        assert_eq!(
+            imap_credential(Some(String::new()), Some("from-secret".into())).as_deref(),
+            Some("from-secret")
+        );
+    }
+}

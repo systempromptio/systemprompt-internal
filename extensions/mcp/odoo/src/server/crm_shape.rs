@@ -1,14 +1,18 @@
-//! Pure query- and row-shaping for the `crm.lead` tools: the search domain,
-//! the list row, and the detail labels. No I/O — everything here is directly
-//! assertable, which is why [`lead_domain`] and [`lead_row`] are exposed to
-//! the external test workspace.
+//! Pure query- and row-shaping for the `crm.lead` tools.
+//!
+//! The search domain and order, the list row, the tag-name join, and the
+//! detail labels. No I/O — everything here is directly assertable, which is why
+//! [`lead_domain`], [`lead_order`], [`attach_tag_names`] and [`lead_row`] are
+//! exposed to the external test workspace.
+
+use std::collections::HashMap;
 
 use systemprompt::models::artifacts::{Column, ColumnType, TableArtifact};
 
 use crate::format::field_or_dash;
-use crate::tools::inputs::LeadSearchInput;
+use crate::tools::inputs::{LeadSearchInput, LeadSort};
 
-pub(super) const LEAD_LABELS: [(&str, &str); 9] = [
+pub(super) const LEAD_LABELS: [(&str, &str); 10] = [
     ("name", "Subject"),
     ("partner_name", "Contact"),
     ("email_from", "Email"),
@@ -18,6 +22,7 @@ pub(super) const LEAD_LABELS: [(&str, &str); 9] = [
     ("expected_revenue", "Expected revenue"),
     ("probability", "Probability"),
     ("create_date", "Created"),
+    ("date_deadline", "Expected close"),
 ];
 
 #[doc(hidden)]
@@ -55,8 +60,33 @@ pub fn lead_domain(input: &LeadSearchInput) -> serde_json::Value {
         domain.push(serde_json::json!(["user_id.name", "ilike", user]));
         domain.push(serde_json::json!(["user_id.login", "ilike", user]));
     }
+    // Why: "open" in Odoo's CRM is two flags, not a stage list — a lost lead
+    // is archived (`active = false`) and a won one keeps `active` but sits in
+    // a stage flagged `is_won`. Filtering by stage name would break the day
+    // someone renames "Won".
+    if input.open_only == Some(true) {
+        domain.push(serde_json::json!(["active", "=", true]));
+        domain.push(serde_json::json!(["stage_id.is_won", "=", false]));
+    }
+    if let Some(tag) = input
+        .tag
+        .as_deref()
+        .map(str::trim)
+        .filter(|t| !t.is_empty())
+    {
+        domain.push(serde_json::json!(["tag_ids.name", "ilike", tag]));
+    }
 
     serde_json::Value::Array(domain)
+}
+
+#[doc(hidden)]
+#[must_use]
+pub fn lead_order(input: &LeadSearchInput) -> String {
+    match input.sort {
+        Some(LeadSort::Deadline) => "date_deadline asc, create_date desc".to_owned(),
+        Some(LeadSort::Created) | None => "create_date desc".to_owned(),
+    }
 }
 
 /// One lead, typed at the Odoo wire boundary.
@@ -64,7 +94,9 @@ pub fn lead_domain(input: &LeadSearchInput) -> serde_json::Value {
 /// Field names are Odoo's own — the contract anyone who knows Odoo already
 /// speaks. Odoo's JSON quirks are absorbed by the deserializers: `false`
 /// means absent, and a many2one arrives as `[id, "Display Name"]` and
-/// collapses to its name.
+/// collapses to its name. `tag_ids` is the one relation Odoo ships as bare
+/// ids; `tags` is empty off the wire and filled by [`attach_tag_names`] from
+/// a single `crm.tag` read, so dashboards never see an id without its name.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct LeadRow {
     pub id: i64,
@@ -84,42 +116,101 @@ pub struct LeadRow {
     pub probability: Option<f64>,
     #[serde(deserialize_with = "odoo::text", default)]
     pub create_date: Option<String>,
+    #[serde(deserialize_with = "odoo::text", default)]
+    pub date_deadline: Option<String>,
+    #[serde(deserialize_with = "odoo::many2many_ids", default)]
+    pub tag_ids: Vec<i64>,
+    #[serde(default)]
+    pub tags: Vec<String>,
+    #[serde(rename = "type", deserialize_with = "odoo::text", default)]
+    pub kind: Option<String>,
 }
 
-/// Serde adapters for Odoo's wire idioms, usable by any record struct.
-pub mod odoo {
-    use serde::{Deserialize, Deserializer};
-
-    pub fn text<'de, D: Deserializer<'de>>(d: D) -> Result<Option<String>, D::Error> {
-        // JSON: protocol boundary — Odoo writes `false` where a field is empty.
-        let v = serde_json::Value::deserialize(d)?;
-        Ok(match v {
-            serde_json::Value::String(s) if !s.trim().is_empty() => Some(s),
-            _ => None,
-        })
-    }
-
-    pub fn many2one<'de, D: Deserializer<'de>>(d: D) -> Result<Option<String>, D::Error> {
-        // JSON: protocol boundary — `[id, "Display Name"]`, or `false`.
-        let v = serde_json::Value::deserialize(d)?;
-        Ok(v.as_array()
-            .and_then(|t| t.get(1))
-            .and_then(serde_json::Value::as_str)
-            .map(str::to_owned))
-    }
-
-    pub fn number<'de, D: Deserializer<'de>>(d: D) -> Result<Option<f64>, D::Error> {
-        let v = serde_json::Value::deserialize(d)?;
-        Ok(v.as_f64())
-    }
+/// One `crm.tag` as `read` returns it — the join table for [`LeadRow::tags`].
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct TagRow {
+    pub id: i64,
+    pub name: String,
 }
+
+/// The outcome of `crm_lead_delete`: the id that was unlinked and the name it
+/// carried, read before deletion so the summary can still say what is gone.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct LeadDeleted {
+    pub id: i64,
+    pub name: Option<String>,
+    pub deleted: bool,
+}
+
+pub use crate::shape as odoo;
 
 // Why: dashboards consume this as structured rows — a table artifact, not
 // prose. The markdown row below stays for the model-facing text rendering;
 // machines must never have to regex it back apart.
 #[doc(hidden)]
 #[must_use]
-pub fn lead_table(records: &[serde_json::Value]) -> TableArtifact {
+pub fn lead_rows(records: &[serde_json::Value]) -> Vec<LeadRow> {
+    // JSON: protocol boundary — records arrive as the RPC client's JSON. A
+    // record that fails to type is logged and dropped rather than shipped
+    // half-parsed.
+    records
+        .iter()
+        .filter_map(
+            |record| match serde_json::from_value::<LeadRow>(record.clone()) {
+                Ok(row) => Some(row),
+                Err(e) => {
+                    tracing::warn!(error = %e, "crm.lead record did not match LeadRow; dropping");
+                    None
+                },
+            },
+        )
+        .collect()
+}
+
+#[doc(hidden)]
+#[must_use]
+pub fn tag_ids_of(rows: &[LeadRow]) -> Vec<i64> {
+    let mut ids: Vec<i64> = rows
+        .iter()
+        .flat_map(|r| r.tag_ids.iter().copied())
+        .collect();
+    ids.sort_unstable();
+    ids.dedup();
+    ids
+}
+
+#[doc(hidden)]
+pub fn attach_tag_names<S: std::hash::BuildHasher>(
+    rows: &mut [LeadRow],
+    names: &HashMap<i64, String, S>,
+) {
+    for row in rows {
+        row.tags = row
+            .tag_ids
+            .iter()
+            .filter_map(|id| names.get(id).cloned())
+            .collect();
+    }
+}
+
+#[doc(hidden)]
+#[must_use]
+pub fn tag_names(tags: &[serde_json::Value]) -> HashMap<i64, String> {
+    // JSON: protocol boundary — `crm.tag` rows as the RPC client returns them.
+    tags.iter()
+        .filter_map(|t| match serde_json::from_value::<TagRow>(t.clone()) {
+            Ok(tag) => Some((tag.id, tag.name)),
+            Err(e) => {
+                tracing::warn!(error = %e, "crm.tag record did not match TagRow; dropping");
+                None
+            },
+        })
+        .collect()
+}
+
+#[doc(hidden)]
+#[must_use]
+pub fn lead_table(rows: &[LeadRow]) -> TableArtifact {
     let columns = vec![
         Column::new("id", ColumnType::Integer),
         Column::new("name", ColumnType::String).with_header("Subject"),
@@ -130,26 +221,23 @@ pub fn lead_table(records: &[serde_json::Value]) -> TableArtifact {
         Column::new("expected_revenue", ColumnType::Currency).with_header("Expected revenue"),
         Column::new("probability", ColumnType::Percentage).with_header("Probability"),
         Column::new("create_date", ColumnType::Date).with_header("Created"),
+        Column::new("date_deadline", ColumnType::Date).with_header("Expected close"),
+        Column::new("tags", ColumnType::String).with_header("Tags"),
     ];
-    // JSON: protocol boundary, both sides — records arrive as the RPC
-    // client's JSON and TableArtifact carries rows as JSON values. The typed
-    // LeadRow between them is the contract; a record that fails to type is
-    // logged and dropped rather than shipped half-parsed.
-    let rows = records
+    // JSON: protocol boundary — TableArtifact carries rows as JSON values.
+    let items = rows
         .iter()
-        .filter_map(
-            |record| match serde_json::from_value::<LeadRow>(record.clone()) {
-                Ok(row) => serde_json::to_value(row).ok(),
-                Err(e) => {
-                    tracing::warn!(error = %e, "crm.lead record did not match LeadRow; dropping");
-                    None
-                },
+        .filter_map(|row| match serde_json::to_value(row) {
+            Ok(item) => Some(item),
+            Err(e) => {
+                tracing::warn!(error = %e, lead_id = row.id, "lead row did not serialise; dropping");
+                None
             },
-        )
+        })
         .collect();
     TableArtifact::new(columns)
         .with_title("CRM Leads")
-        .with_rows(rows)
+        .with_rows(items)
 }
 
 #[doc(hidden)]

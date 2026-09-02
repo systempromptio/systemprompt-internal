@@ -261,7 +261,7 @@ yourself.**
 6. **Flag anything unconfirmed** with `{{...}}` placeholders and a note to the sender. Never state
    dates, prices, roadmap commitments, or security claims you were not given.
 7. **Log the outcome back to Odoo** once the human sends it: the sent message belongs on the record as
-   a `mail.message` (the `crm` skill's *Notes* section), and any follow-up as a `mail.activity` with
+   a `mail.message` (the `update_leads` skill's *Notes* rules), and any follow-up as a `mail.activity` with
    an owner and a due date.
 
 ### Rollout / deployment status update

@@ -173,6 +173,12 @@ impl From<systemprompt::models::errors::ConfigError> for AdminError {
     }
 }
 
+impl From<systemprompt::loader::ConfigLoadError> for AdminError {
+    fn from(value: systemprompt::loader::ConfigLoadError) -> Self {
+        Self::Internal(Box::new(value))
+    }
+}
+
 impl From<systemprompt::config::ProfileBootstrapError> for AdminError {
     fn from(value: systemprompt::config::ProfileBootstrapError) -> Self {
         Self::Internal(Box::new(value))

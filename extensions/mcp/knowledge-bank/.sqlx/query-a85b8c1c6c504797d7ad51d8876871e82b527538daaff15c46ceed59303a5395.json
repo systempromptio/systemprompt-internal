@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE knowledge_documents\n            SET status = 'categorized', proposal_call_id = NULL\n            WHERE id = $1 AND status = 'proposed' AND proposal_call_id = $2\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a85b8c1c6c504797d7ad51d8876871e82b527538daaff15c46ceed59303a5395"
+}

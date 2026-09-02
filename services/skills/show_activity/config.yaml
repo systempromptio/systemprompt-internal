@@ -1,0 +1,16 @@
+id: show_activity
+name: "Show Activity"
+description: "Everything that has been happening in the business, from Odoo, in one brief: pipeline by stage, new leads, the notes people wrote, meetings, open work, and what is overdue — a series of live queries as you, so it shows exactly what Odoo lets you see."
+enabled: true
+file: SKILL.md
+tags:
+  - odoo
+  - activity
+  - briefing
+  - pipeline
+  - notes
+  - calendar
+  - tasks
+  - admin
+category: crm
+display_category: "Business Administration"

@@ -10,7 +10,7 @@ use serde::Deserialize;
 
 use crate::error::OdooError;
 
-/// Where Odoo lives, from the environment.
+/// Where Odoo lives: the environment first, then the profile's secrets.
 #[derive(Debug, Clone)]
 pub struct OdooConnection {
     pub url: String,
@@ -19,19 +19,33 @@ pub struct OdooConnection {
 
 pub const ODOO_URL_ENV: &str = "ODOO_URL";
 pub const ODOO_DB_ENV: &str = "ODOO_DB";
+pub const ODOO_URL_SECRET: &str = "odoo_url";
+pub const ODOO_DB_SECRET: &str = "odoo_db";
+
+// Why: env::var().ok() and SecretsBootstrap::get().ok() are both
+// missing-is-normal carve-outs encoding the priority chain — the spawned MCP
+// process gets the values as env vars, an in-process job reads the profile.
+fn setting(env_key: &str, secret_key: &str) -> String {
+    std::env::var(env_key)
+        .ok()
+        .or_else(|| {
+            systemprompt::config::SecretsBootstrap::get()
+                .ok()
+                .and_then(|s| s.get(secret_key).cloned())
+        })
+        .unwrap_or_default()
+}
 
 impl OdooConnection {
     pub fn from_env() -> Result<Self, OdooError> {
-        // Why: env::var().ok() twice is a missing-is-normal carve-out — the
-        // absent case is reported as NotConfigured, naming both variables.
-        let url = std::env::var(ODOO_URL_ENV).ok().unwrap_or_default();
-        let db = std::env::var(ODOO_DB_ENV).ok().unwrap_or_default();
+        let url = setting(ODOO_URL_ENV, ODOO_URL_SECRET);
+        let db = setting(ODOO_DB_ENV, ODOO_DB_SECRET);
         let url = url.trim().trim_end_matches('/').to_owned();
         let db = db.trim().to_owned();
         if url.is_empty() || db.is_empty() {
             return Err(OdooError::NotConfigured(format!(
-                "{ODOO_URL_ENV} and {ODOO_DB_ENV} must both be set for the odoo MCP server to \
-                 reach Odoo"
+                "{ODOO_URL_ENV} and {ODOO_DB_ENV} (or the {ODOO_URL_SECRET} / {ODOO_DB_SECRET} \
+                 secrets) must both be set to reach Odoo"
             )));
         }
         Ok(Self { url, db })
@@ -40,6 +54,14 @@ impl OdooConnection {
     #[must_use]
     pub fn endpoint(&self) -> String {
         format!("{}/jsonrpc", self.url)
+    }
+
+    // Why: the `/web#` fragment form opens a record on every Odoo version this
+    // server has been pointed at; the newer `/odoo/<model>/<id>` route does
+    // not exist before 17.
+    #[must_use]
+    pub fn record_url(&self, model: &str, id: i64) -> String {
+        format!("{}/web#id={id}&model={model}&view_type=form", self.url)
     }
 }
 

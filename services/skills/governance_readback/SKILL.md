@@ -59,5 +59,6 @@ systemprompt analytics requests stats
   `require_approval`) and, for a hold, who it is waiting on.
 - `decision=allow, policy=governance_disabled` means the chain ran with a stage switched off; it
   still audited. Report it as it reads rather than as "ungoverned".
-- Admins who need the fleet-wide view (all users, all agents, rollups) want `report`; admins
-  debugging one failure want `inspect`. This skill is the per-task readback anyone can run.
+- Every command here runs through the admin `systemprompt` passthrough server, which is why this
+  skill ships in the admin plugin: a readback a role cannot run is not a readback. For what has been
+  happening in the *business* (Odoo, not the control plane), that is `show_activity`.

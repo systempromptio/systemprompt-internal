@@ -6,6 +6,7 @@
 //! silent empty result.
 
 use systemprompt_mcp_odoo::client::rpc::{build_request, parse_response};
+use systemprompt_mcp_odoo::client::unlink_args;
 use systemprompt_mcp_odoo::error::OdooError;
 
 #[test]
@@ -71,4 +72,9 @@ fn parse_response_reports_unparseable_bodies_as_transport_failures() {
         matches!(err, OdooError::Transport(_)),
         "a proxy error page is the transport failing, not Odoo refusing"
     );
+}
+
+#[test]
+fn unlink_args_nests_the_id_list_as_the_single_positional_argument() {
+    assert_eq!(unlink_args(&[7]), serde_json::json!([[7]]));
 }

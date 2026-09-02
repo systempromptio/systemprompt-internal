@@ -15,7 +15,7 @@ pub struct OdooCall {
     pub creds: Credentials,
 }
 
-pub const LEAD_FIELDS: [&str; 10] = [
+pub const LEAD_FIELDS: [&str; 13] = [
     "id",
     "name",
     "partner_name",
@@ -26,6 +26,9 @@ pub const LEAD_FIELDS: [&str; 10] = [
     "expected_revenue",
     "probability",
     "create_date",
+    "date_deadline",
+    "tag_ids",
+    "type",
 ];
 
 pub const PARTNER_FIELDS: [&str; 9] = [

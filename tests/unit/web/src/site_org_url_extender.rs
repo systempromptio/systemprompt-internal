@@ -30,6 +30,7 @@ fn install_config() {
     }
     let _ = Config::install(Config {
         instance_id: "org-url-tests".to_owned(),
+        metrics_port: None,
         max_concurrent_streams: 16,
         sitename: "systemprompt-test".to_owned(),
         database_type: "postgres".to_owned(),

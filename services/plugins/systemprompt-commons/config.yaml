@@ -1,17 +1,17 @@
 plugin:
   id: systemprompt-commons
-  name: "Systemprompt Commons — Setup & Brand"
-  description: "What every role gets: the one workspace setup skill (installs every dashboard the plugins you were granted ship) and the shared brand skills — voice, document formatting, client email, company boilerplate."
-  version: "3.0.0"
+  name: "Systemprompt Commons — Setup, Brand & Email"
+  description: "What every role gets: the one workspace setup skill (installs every dashboard the plugins you were granted ship), the shared brand skill — voice, document formatting, company boilerplate — and outbound email that a second human approves before it leaves."
+  version: "4.0.0"
   # User-scoped and shared by every role: roles.yaml grants this plugin to
   # [user], and admins hold the user role too (services/access-control/
-  # odoo-roles.yaml default_roles). Skills and artifacts listed here carry no
-  # rule of their own — they inherit this plugin's grant.
+  # odoo-roles.yaml default_roles). Skills listed here carry no rule of their
+  # own — they inherit this plugin's grant.
   enabled: true
   author:
     name: systemprompt.io
     email: ed@systemprompt.io
-  keywords: [setup, onboarding, artifacts, identity, brand, voice, formatting, email, glossary]
+  keywords: [setup, onboarding, artifacts, identity, brand, voice, formatting, email, approval]
   license: proprietary
   category: setup
   skills:
@@ -20,24 +20,25 @@ plugin:
       # Setup is one skill. It establishes the grant, branches on host (Cowork
       # dashboards, Codex gateway wiring), and is plugin-agnostic: it installs
       # the artifacts of every plugin bundle the bridge mounted, which is
-      # exactly the set the signed manifest granted this user. It was three
-      # skills — a router plus two host bodies that restated each other's
-      # preconditions word for word.
+      # exactly the set the signed manifest granted this user.
       - systemprompt_setup
       # One brand skill, four passes (voice, structure, boilerplate, email).
-      # It was four separate skills until a person had to know which of them
-      # to reach for before they could write anything.
       - brand
-      # The per-task cost and audit readback. It lives here, once, because
-      # every other skill that needs to state a cost defers to it — that block
-      # was copy-pasted into five demo skills before this existed.
-      - governance_readback
+      # Outbound email over the `email` MCP server. Everyone can draft and
+      # send; nothing leaves without the drafter's in-band confirmation and a
+      # second human's approval at /admin/governance/approvals. It lives here,
+      # not in the demo plugin, because sending mail is a job — the demo
+      # plugin merely stages the hold it produces.
+      - send_email
   agents:
     source: explicit
     include: []
+  # The only server a commons skill calls. Granted to `user` in roles.yaml;
+  # the approval chain, not the caller's role, is what authorises a send.
   mcp_servers:
     source: explicit
-    include: []
+    include:
+      - email
   content_sources: {}
   artifacts:
     source: explicit

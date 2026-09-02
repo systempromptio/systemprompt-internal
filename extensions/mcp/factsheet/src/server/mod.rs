@@ -25,6 +25,7 @@ use systemprompt::mcp::{
     parse_artifact_resource_uri, read_artifact_resource, read_artifact_viewer_resource,
 };
 use systemprompt::security::authz::SharedAuthzHook;
+use systemprompt::traits::FileStorage;
 use systemprompt_factsheet::{EnginePaths, FactsheetEngine};
 use systemprompt_mcp_shared::approval::{GateOutcome, enforce_approval};
 use systemprompt_mcp_shared::record_mcp_access;
@@ -41,7 +42,7 @@ const INSTRUCTIONS: &str = "Factsheets. A factsheet here is data, not a document
                             for a specific customer or lead. The house style is a two-page \
                             document and the renderer enforces it, so keep the copy tight.";
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct FactsheetServer {
     service_id: McpServerId,
     db_pool: DbPool,
@@ -49,18 +50,39 @@ pub struct FactsheetServer {
     authz_hook: SharedAuthzHook,
     engine: Arc<FactsheetEngine>,
     files_config: Arc<FilesConfig>,
+    storage: Arc<dyn FileStorage>,
     work_dir: Arc<PathBuf>,
 }
 
 /// Everything the server needs that is not the database or the authorization
 /// hook: which service it is, where the engine's inputs live, and where its
 /// output goes.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct ServerConfig {
     pub service_id: McpServerId,
     pub paths: EnginePaths,
     pub files_config: FilesConfig,
+    pub storage: Arc<dyn FileStorage>,
     pub work_dir: PathBuf,
+}
+
+impl std::fmt::Debug for FactsheetServer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("FactsheetServer")
+            .field("service_id", &self.service_id)
+            .field("work_dir", &self.work_dir)
+            .finish_non_exhaustive()
+    }
+}
+
+impl std::fmt::Debug for ServerConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ServerConfig")
+            .field("service_id", &self.service_id)
+            .field("paths", &self.paths)
+            .field("work_dir", &self.work_dir)
+            .finish_non_exhaustive()
+    }
 }
 
 impl FactsheetServer {
@@ -73,6 +95,7 @@ impl FactsheetServer {
             service_id,
             paths,
             files_config,
+            storage,
             work_dir,
         } = config;
         let tool_usage_repo = Arc::new(
@@ -99,6 +122,7 @@ impl FactsheetServer {
             authz_hook,
             engine,
             files_config: Arc::new(files_config),
+            storage,
             work_dir: Arc::new(work_dir),
         })
     }
@@ -108,6 +132,7 @@ impl FactsheetServer {
             engine: Arc::clone(&self.engine),
             db_pool: Arc::clone(&self.db_pool),
             files_config: Arc::clone(&self.files_config),
+            storage: Arc::clone(&self.storage),
             work_dir: Arc::clone(&self.work_dir),
         }
     }

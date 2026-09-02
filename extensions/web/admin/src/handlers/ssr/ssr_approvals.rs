@@ -9,6 +9,13 @@
 //! Approving is deliberately not a bare id in a URL: both actions are POSTs
 //! against the same session-authenticated admin router that guards every other
 //! mutation here, so a held call cannot be approved by following a link.
+//!
+//! Two kinds of row share the table and are listed apart. A *live* hold is a
+//! tool call blocking right now, with a fifteen-minute life. An *ingestion
+//! proposal* is the brain@ pipeline asking whether an inbound email may become
+//! an Odoo record; nobody is blocked on it, it lives for a week, and the
+//! `knowledge_odoo_apply` job acts on the answer within a minute. Listing them
+//! together would let a week of proposals push a blocking call off the page.
 
 use std::sync::Arc;
 
@@ -21,6 +28,7 @@ use systemprompt::security::policy::{
     ApprovalRepository, ApprovalRequest, ApprovalStatus, ApprovalVerdict,
 };
 
+use super::ssr_approvals_ingest::{INGESTION_RULE, IngestSummary, humanize, ingest_summary};
 use crate::error::{AdminHtmlError, AdminHtmlResult};
 use crate::templates::AdminTemplateEngine;
 use crate::types::UserContext;
@@ -29,14 +37,19 @@ const PAGE: &str = "approvals";
 const PAGE_URL: &str = "/admin/governance/approvals";
 
 // Why: a backlog deeper than this is an operational problem to fix, not a
-// page to paginate.
-const QUEUE_LIMIT: i64 = 100;
+// page to paginate. Proposals accrue for a week, so they get their own budget.
+const QUEUE_LIMIT: i64 = 300;
 
 #[derive(Debug, Serialize)]
 struct ApprovalsContext {
     page: &'static str,
     title: &'static str,
-    approvals: Vec<PendingRow>,
+    live: Vec<PendingRow>,
+    ingestion: Vec<PendingRow>,
+    live_count: usize,
+    ingestion_count: usize,
+    has_live: bool,
+    has_ingestion: bool,
     is_empty: bool,
 }
 
@@ -52,7 +65,11 @@ struct PendingRow {
     arguments: String,
     trace_id: Option<String>,
     waiting_seconds: i64,
+    waiting_human: String,
     expires_in_seconds: i64,
+    expires_in_human: String,
+    is_ingestion: bool,
+    ingest: Option<IngestSummary>,
     approve_url: String,
     deny_url: String,
 }
@@ -60,6 +77,9 @@ struct PendingRow {
 impl PendingRow {
     fn from_request(request: &ApprovalRequest) -> Self {
         let now = chrono::Utc::now();
+        let waiting_seconds = (now - request.created_at).num_seconds().max(0);
+        let expires_in_seconds = (request.expires_at - now).num_seconds().max(0);
+        let ingest = ingest_summary(request);
         Self {
             call_id: request.call_id.clone(),
             tool_name: request.tool_name.clone(),
@@ -69,8 +89,12 @@ impl PendingRow {
             arguments: serde_json::to_string_pretty(&request.arguments)
                 .unwrap_or_else(|_| request.arguments.to_string()),
             trace_id: request.trace_id.clone(),
-            waiting_seconds: (now - request.created_at).num_seconds().max(0),
-            expires_in_seconds: (request.expires_at - now).num_seconds().max(0),
+            waiting_seconds,
+            waiting_human: humanize(waiting_seconds),
+            expires_in_seconds,
+            expires_in_human: humanize(expires_in_seconds),
+            is_ingestion: request.rule == INGESTION_RULE,
+            ingest,
             approve_url: format!("{PAGE_URL}/{}/approve", request.call_id),
             deny_url: format!("{PAGE_URL}/{}/deny", request.call_id),
         }
@@ -95,12 +119,20 @@ pub(crate) async fn approvals_page(
         .await
         .map_err(AdminHtmlError::internal)?;
 
-    let approvals: Vec<PendingRow> = pending.iter().map(PendingRow::from_request).collect();
+    let (ingestion, live): (Vec<PendingRow>, Vec<PendingRow>) = pending
+        .iter()
+        .map(PendingRow::from_request)
+        .partition(|row| row.is_ingestion);
     let data = ApprovalsContext {
         page: PAGE,
         title: "Pending approvals",
-        is_empty: approvals.is_empty(),
-        approvals,
+        is_empty: live.is_empty() && ingestion.is_empty(),
+        live_count: live.len(),
+        ingestion_count: ingestion.len(),
+        has_live: !live.is_empty(),
+        has_ingestion: !ingestion.is_empty(),
+        live,
+        ingestion,
     };
     let data = serde_json::to_value(&data).map_err(AdminHtmlError::internal)?;
     Ok(axum::response::Html(engine.render("approvals", &data)?).into_response())

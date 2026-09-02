@@ -54,7 +54,11 @@ async fn every_manifest_named_bundle_file_is_fetchable_and_dashboards_ship_with_
     };
 
     let manifest = stack.manifest(&stack.user_token).await;
-    for plugin_id in ["systemprompt-commons", "systemprompt-user"] {
+    for plugin_id in [
+        "systemprompt-commons",
+        "systemprompt-demo",
+        "systemprompt-workspace",
+    ] {
         let paths = bundle_paths(&manifest, plugin_id);
         let declared = plugin_artifact_ids(plugin_id);
         if declared.is_empty() {
@@ -124,9 +128,10 @@ async fn every_manifest_named_bundle_file_is_fetchable_and_dashboards_ship_with_
         skills.contains(&"systemprompt_setup"),
         "setup is the one name every role types: {skills:?}"
     );
-    // Setup was a router plus two host-specific bodies that restated each
-    // other; it is now one host-agnostic skill. The retired ids must not come
-    // back through a stale bundle or a re-added config.
+    // Retired ids must not come back through a stale bundle or a re-added
+    // config: the setup router and its two host bodies, the first demo
+    // plugin's five narrations, and the CLI manuals (inspect, report) plus the
+    // user-plugin skills that show_activity and update_leads absorbed.
     for retired in [
         "systemprompt_setup_cowork",
         "systemprompt_setup_codex",
@@ -137,6 +142,11 @@ async fn every_manifest_named_bundle_file_is_fetchable_and_dashboards_ship_with_
         "demo_followup_orchestrator",
         "demo_governed_operations",
         "demo_command_center",
+        "inspect",
+        "report",
+        "crm",
+        "manage_work",
+        "business_overview",
     ] {
         assert!(
             !skills.contains(&retired),
@@ -144,26 +154,62 @@ async fn every_manifest_named_bundle_file_is_fetchable_and_dashboards_ship_with_
         );
     }
 
+    // The workspace bundle is user-scoped, so its allowlists are pinned off the
+    // user token: a user must be able to pull it, and each dashboard must carry
+    // exactly the tools its page calls.
     let (_, body) = stack
         .send(
             "GET",
-            "/v1/bridge/plugins/systemprompt-user/artifacts/manifest.json",
+            "/v1/bridge/plugins/systemprompt-workspace/artifacts/manifest.json",
             Some(&stack.user_token),
             None,
         )
         .await;
-    let parsed: serde_json::Value = serde_json::from_str(&body).expect("manifest.json parses");
-    let recent = parsed["artifacts"]
-        .as_array()
-        .expect("artifact records")
-        .iter()
-        .find(|a| a["id"] == "recent-activity")
-        .expect("recent-activity bundled");
+    let workspace: serde_json::Value =
+        serde_json::from_str(&body).expect("workspace manifest.json parses");
+    let workspace_tools = |id: &str| -> serde_json::Value {
+        workspace["artifacts"]
+            .as_array()
+            .expect("artifact records")
+            .iter()
+            .find(|a| a["id"] == id)
+            .unwrap_or_else(|| panic!("{id} bundled in systemprompt-workspace"))["mcpTools"]
+            .clone()
+    };
     assert_eq!(
-        recent["mcpTools"],
+        workspace_tools("recent-activity"),
         serde_json::json!(["mcp__odoo__note_search"]),
         "recent-activity's allowlist is note_search and nothing else — the cross-wire regression"
     );
+    assert_eq!(
+        workspace_tools("upcoming-deals"),
+        serde_json::json!(["mcp__odoo__crm_lead_search"]),
+        "upcoming-deals is a read-only view over crm_lead_search"
+    );
+    assert_eq!(
+        workspace_tools("pipeline-open-deals"),
+        serde_json::json!(["mcp__odoo__crm_lead_search"]),
+        "pipeline-open-deals is a read-only view over crm_lead_search"
+    );
+    assert_eq!(
+        workspace_tools("todo-bulletin"),
+        serde_json::json!([
+            "mcp__odoo__activity_list",
+            "mcp__odoo__task_list",
+            "mcp__odoo__activity_complete"
+        ]),
+        "todo-bulletin reads two lists and carries exactly one write: the tick"
+    );
+
+    let (_, body) = stack
+        .send(
+            "GET",
+            "/v1/bridge/plugins/systemprompt-admin/artifacts/manifest.json",
+            Some(&stack.admin_token),
+            None,
+        )
+        .await;
+    let parsed: serde_json::Value = serde_json::from_str(&body).expect("manifest.json parses");
 
     // leads-inbound-prospects gained note_list alongside crm_lead_search so a
     // lead row can expand its own chatter inline — pin both, in order, so a
@@ -197,6 +243,8 @@ async fn the_admin_bundle_is_served_to_admins_and_refused_to_users() {
         "admin-users-directory",
         "admin-activity-requests",
         "admin-usage-costs",
+        "knowledge-feed",
+        "knowledge-approve-ingestion",
     ] {
         assert!(
             paths.contains(&format!("artifacts/{id}.html").as_str()),

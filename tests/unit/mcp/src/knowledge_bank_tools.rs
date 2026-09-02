@@ -1,12 +1,14 @@
-//! `list_tools` is the knowledge bank's wire contract: exactly three tools
+//! `list_tools` is the knowledge bank's wire contract: exactly six tools
 //! with stable names and titles, an input schema that makes `query` mandatory
-//! on search and everything optional on list, a typed `CliArtifact` output
-//! schema on every tool, and UI meta so the client knows which server rendered
-//! the call. The input field names mirror the `knowledge_documents` columns, so
-//! a caller can feed a search result straight back into the next call.
+//! on search and everything optional on list, a typed output schema on every
+//! tool (`CliArtifact` for the bank, JSON payloads for the proposal queue),
+//! and UI meta so the client knows which server rendered the call. The input
+//! field names mirror the `knowledge_documents` columns, so a caller can feed a
+//! search result straight back into the next call.
 
 use systemprompt_mcp_knowledge_bank::tools::{
-    ListInput, SearchInput, TOOL_LIST, TOOL_SEARCH, TOOL_UPLOAD, UploadInput, list_tools,
+    DecisionInput, ListInput, ProposalDecideInput, SearchInput, TOOL_LIST, TOOL_PROPOSAL_DECIDE,
+    TOOL_PROPOSAL_GET, TOOL_PROPOSAL_LIST, TOOL_SEARCH, TOOL_UPLOAD, UploadInput, list_tools,
 };
 
 fn required_fields(schema: &serde_json::Map<String, serde_json::Value>) -> Vec<String> {
@@ -22,10 +24,71 @@ fn required_fields(schema: &serde_json::Map<String, serde_json::Value>) -> Vec<S
 }
 
 #[test]
-fn exposes_exactly_the_three_contract_tools_in_order() {
+fn exposes_exactly_the_six_contract_tools_in_order() {
     let tools = list_tools();
     let names: Vec<&str> = tools.iter().map(|t| t.name.as_ref()).collect();
-    assert_eq!(names, vec![TOOL_SEARCH, TOOL_LIST, TOOL_UPLOAD]);
+    assert_eq!(
+        names,
+        vec![
+            TOOL_SEARCH,
+            TOOL_LIST,
+            TOOL_UPLOAD,
+            TOOL_PROPOSAL_LIST,
+            TOOL_PROPOSAL_GET,
+            TOOL_PROPOSAL_DECIDE
+        ]
+    );
+}
+
+#[test]
+fn only_the_writes_drop_the_read_only_annotation() {
+    for tool in list_tools() {
+        let read_only = tool.annotations.as_ref().and_then(|a| a.read_only_hint) == Some(true);
+        let is_write =
+            tool.name.as_ref() == TOOL_UPLOAD || tool.name.as_ref() == TOOL_PROPOSAL_DECIDE;
+        assert_eq!(read_only, !is_write, "{} read-only annotation", tool.name);
+    }
+}
+
+#[test]
+fn proposal_outputs_advertise_their_own_schema_not_the_cli_artifact() {
+    let tools = list_tools();
+    let list = tools
+        .iter()
+        .find(|t| t.name.as_ref() == TOOL_PROPOSAL_LIST)
+        .expect("proposal_list listed");
+    let output = list.output_schema.as_ref().expect("output schema");
+    assert_eq!(
+        output.get("x-artifact-type").and_then(|v| v.as_str()),
+        Some("knowledge_proposal_list")
+    );
+    assert!(
+        output["properties"].get("rows").is_some(),
+        "rows is a top-level property"
+    );
+    assert!(
+        output["properties"].get("viewer").is_some(),
+        "viewer capability is reported"
+    );
+}
+
+#[test]
+fn decide_input_defaults_exclusions_and_pins_the_decision_enum() {
+    let input: ProposalDecideInput = serde_json::from_value(serde_json::json!({
+        "document_id": "00000000-0000-4000-8000-000000000001",
+        "decision": "approve"
+    }))
+    .expect("minimal decide input");
+    assert_eq!(input.decision, DecisionInput::Approve);
+    assert!(input.exclude_actions.is_empty());
+    assert!(input.note.is_none());
+    assert!(
+        serde_json::from_value::<ProposalDecideInput>(serde_json::json!({
+            "document_id": "x", "decision": "maybe"
+        }))
+        .is_err(),
+        "the decision is a closed enum"
+    );
 }
 
 #[test]
