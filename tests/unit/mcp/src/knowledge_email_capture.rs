@@ -79,7 +79,10 @@ mod credential {
     #[test]
     fn missing_credential_is_absent_not_an_error() {
         assert_eq!(imap_credential(None, None), None);
-        assert_eq!(imap_credential(Some("  ".into()), Some(String::new())), None);
+        assert_eq!(
+            imap_credential(Some("  ".into()), Some(String::new())),
+            None
+        );
     }
 
     #[test]

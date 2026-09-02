@@ -179,7 +179,10 @@ pub fn tag_ids_of(rows: &[LeadRow]) -> Vec<i64> {
 }
 
 #[doc(hidden)]
-pub fn attach_tag_names(rows: &mut [LeadRow], names: &HashMap<i64, String>) {
+pub fn attach_tag_names<S: std::hash::BuildHasher>(
+    rows: &mut [LeadRow],
+    names: &HashMap<i64, String, S>,
+) {
     for row in rows {
         row.tags = row
             .tag_ids

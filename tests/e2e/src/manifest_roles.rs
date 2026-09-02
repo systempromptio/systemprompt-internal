@@ -157,9 +157,10 @@ async fn an_admin_manifest_carries_the_admin_surface_and_a_users_does_not() {
 
     let admin_mcp = ids(&admin, "managed_mcp_servers");
     let user_mcp = ids(&user, "managed_mcp_servers");
-    // knowledge-bank is granted to [admin] only: its proposal tools return
-    // inbound business email verbatim, so it reaches the admin manifest through
-    // the two knowledge dashboards and never a user's.
+    // knowledge-bank is granted to [admin] with default_included: false, so
+    // it reaches no manifest by default in this harness — an admin opts in.
+    // Its proposal tools return inbound business email verbatim, so it must
+    // never reach a user's manifest.
     for server in ["odoo", "email", "factsheet"] {
         assert!(
             user_mcp.contains(server),
@@ -174,14 +175,12 @@ async fn an_admin_manifest_carries_the_admin_surface_and_a_users_does_not() {
         !user_mcp.contains("systemprompt"),
         "the admin-gated systemprompt MCP server must not reach a user: {user_mcp:?}"
     );
-    assert!(
-        admin_mcp.contains("knowledge-bank"),
-        "knowledge-bank is granted to [admin] and backs the knowledge dashboards: {admin_mcp:?}"
-    );
-    assert!(
-        !user_mcp.contains("knowledge-bank"),
-        "the admin-gated knowledge-bank server must not reach a user: {user_mcp:?}"
-    );
+    for scope in [&user_mcp, &admin_mcp] {
+        assert!(
+            !scope.contains("knowledge-bank"),
+            "knowledge-bank is not default-included and must reach no manifest: {scope:?}"
+        );
+    }
 
     stack.db.cleanup().await;
 }

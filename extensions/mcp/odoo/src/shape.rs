@@ -1,7 +1,8 @@
-//! Serde adapters for Odoo's wire idioms, usable by any record struct in any
-//! crate that types Odoo rows: `false` where a field is empty, and a many2one
-//! that arrives as `[id, "Display Name"]`, and a many2many that arrives as a
-//! bare list of ids.
+//! Serde adapters for Odoo's wire idioms.
+//!
+//! Usable by any record struct in any crate that types Odoo rows: `false`
+//! where a field is empty, a many2one that arrives as `[id, "Display Name"]`,
+//! and a many2many that arrives as a bare list of ids.
 
 use serde::{Deserialize, Deserializer};
 
