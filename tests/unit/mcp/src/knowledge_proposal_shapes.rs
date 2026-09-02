@@ -7,7 +7,7 @@ use systemprompt::identifiers::UserId;
 use systemprompt_mcp_knowledge_bank::proposal::approval::proposal_call_id;
 use systemprompt_mcp_knowledge_bank::proposal::body::{BodySource, MAX_BODY_CHARS, chatter_body};
 use systemprompt_mcp_knowledge_bank::proposal::intent::{
-    CrmIntent, Disposition, StructuredSummary, crm_intent_schema,
+    CrmIntent, DealStageHint, Disposition, StructuredSummary, crm_intent_schema,
 };
 use systemprompt_mcp_knowledge_bank::proposal::sender::parse_mailbox;
 use systemprompt_mcp_knowledge_bank::proposal::{
@@ -117,6 +117,50 @@ fn crm_intent_schema_stays_inside_the_strict_subset() {
 }
 
 #[test]
+fn a_nullable_closed_enum_is_a_type_list_plus_enum_on_the_wire() {
+    let schema = crm_intent_schema();
+    let hint = &schema["properties"]["deal_stage_hint"];
+    assert_eq!(hint["type"], serde_json::json!(["string", "null"]));
+    let values: Vec<&str> = hint["enum"]
+        .as_array()
+        .expect("enum")
+        .iter()
+        .filter_map(|v| v.as_str())
+        .collect();
+    assert_eq!(
+        values,
+        ["new", "qualified", "proposition", "won", "lost"],
+        "the enum stays closed; null comes from the type list, not a variant"
+    );
+    assert_eq!(
+        schema["properties"]["expected_revenue"]["type"],
+        serde_json::json!(["number", "null"])
+    );
+    assert_eq!(
+        schema["properties"]["tasks"]["items"]["properties"]["assignee"]["type"],
+        serde_json::json!(["string", "null"])
+    );
+
+    let base = serde_json::json!({
+        "disposition": "opportunity", "lead_title": null, "contact_name": null,
+        "company_name": null, "note_summary": "x", "tasks": [], "confidence": 0.5
+    });
+    let mut off = base.clone();
+    off["deal_stage_hint"] = serde_json::json!("closed-won");
+    assert!(
+        serde_json::from_value::<CrmIntent>(off).is_err(),
+        "an off-enum stage hint is refused, not coerced"
+    );
+    let mut on = base.clone();
+    on["deal_stage_hint"] = serde_json::json!("won");
+    let parsed: CrmIntent = serde_json::from_value(on).expect("parsed");
+    assert_eq!(parsed.deal_stage_hint, Some(DealStageHint::Won));
+    assert_eq!(DealStageHint::Won.odoo_stage_name(), "Won");
+    let legacy: CrmIntent = serde_json::from_value(base).expect("pre-deal-field rows still parse");
+    assert!(legacy.deal_stage_hint.is_none() && legacy.expected_revenue.is_none());
+}
+
+#[test]
 fn an_unknown_disposition_is_refused_and_structured_tolerates_missing_intent() {
     let unknown = serde_json::from_value::<CrmIntent>(serde_json::json!({
         "disposition": "galactic", "lead_title": null, "contact_name": null,
@@ -162,10 +206,22 @@ fn proposal(revision: i32) -> Proposal {
                 email_from: "victor@acme.example".to_owned(),
                 partner_id: None,
                 description: String::new(),
+                stage_hint: Some("New".to_owned()),
+                date_deadline: Some("2026-10-01".to_owned()),
+                expected_revenue: Some(1500.0),
+                tags: vec!["Sales".to_owned()],
             },
             OdooAction::PostChatter {
                 target: ActionTarget::CreatedLead { action_index: 0 },
                 subject: "Pricing".to_owned(),
+            },
+            OdooAction::TagRecord {
+                target: ActionTarget::Existing {
+                    model: "res.partner".to_owned(),
+                    res_id: 7,
+                    label: "contact Acme".to_owned(),
+                },
+                tag: "Sales".to_owned(),
             },
         ],
     }
@@ -178,8 +234,24 @@ fn actions_are_internally_tagged_by_kind_on_the_wire() {
     assert_eq!(json["actions"][1]["kind"], "post_chatter");
     assert_eq!(json["actions"][1]["target"]["kind"], "created_lead");
     assert_eq!(json["actions"][1]["target"]["action_index"], 0);
+    assert_eq!(json["actions"][2]["kind"], "tag_record");
+    assert_eq!(json["actions"][2]["tag"], "Sales");
+    assert_eq!(json["actions"][0]["tags"], serde_json::json!(["Sales"]));
+    assert_eq!(json["actions"][0]["stage_hint"], "New");
     let back: Proposal = serde_json::from_value(json).expect("round trips");
     assert_eq!(back, proposal(1));
+    assert_eq!(back.actions[2].kind(), "tag_record");
+    assert_eq!(back.actions[2].depends_on(), None);
+
+    let stored = serde_json::json!({
+        "kind": "create_lead", "title": "Old", "contact_name": null, "partner_name": null,
+        "email_from": "v@acme.example", "partner_id": null, "description": ""
+    });
+    let old: OdooAction =
+        serde_json::from_value(stored).expect("rows proposed before the deal fields still load");
+    assert!(
+        matches!(old, OdooAction::CreateLead { tags, stage_hint: None, .. } if tags.is_empty())
+    );
 }
 
 #[test]

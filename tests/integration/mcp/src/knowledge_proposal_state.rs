@@ -98,6 +98,10 @@ fn proposal() -> Proposal {
                 email_from: "v@acme.example".to_owned(),
                 partner_id: None,
                 description: String::new(),
+                stage_hint: Some("New".to_owned()),
+                date_deadline: Some("2026-10-01".to_owned()),
+                expected_revenue: Some(1500.0),
+                tags: vec!["Sales".to_owned()],
             },
             OdooAction::PostChatter {
                 target: ActionTarget::CreatedLead { action_index: 0 },

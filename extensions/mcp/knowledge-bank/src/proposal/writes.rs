@@ -13,8 +13,9 @@ use systemprompt_mcp_odoo::client::{ModelCall, SearchOptions};
 use systemprompt_mcp_odoo::error::OdooError;
 use systemprompt_mcp_odoo::resolve;
 
-use super::OdooAction;
 use super::apply::{ApplyContext, ApplySource};
+use super::tags::{ReplaceLinks, lead_tag_ids};
+use super::{Assignee, OdooAction};
 
 #[derive(Serialize)]
 struct CreateLeadValues<'a> {
@@ -27,6 +28,14 @@ struct CreateLeadValues<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     partner_id: Option<i64>,
     description: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    stage_id: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    date_deadline: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    expected_revenue: Option<f64>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    tag_ids: Vec<ReplaceLinks>,
 }
 
 #[derive(Serialize)]
@@ -61,6 +70,11 @@ struct CreateTaskValues<'a> {
     description: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     date_deadline: Option<&'a str>,
+    user_ids: [ReplaceLinks; 1],
+}
+
+fn assigned_user(ctx: &ApplyContext<'_>, assignee: Option<&Assignee>) -> i64 {
+    assignee.map_or_else(|| i64::from(ctx.creds.uid), |a| a.user_id)
 }
 
 #[derive(Deserialize)]
@@ -79,10 +93,19 @@ pub(super) async fn create_lead(
         email_from,
         partner_id,
         description,
+        stage_hint,
+        date_deadline,
+        expected_revenue,
+        tags,
     } = action
     else {
         return Err(OdooError::Internal("not a create_lead action".to_owned()));
     };
+    let stage_id = match stage_hint {
+        Some(name) => resolve::stage_id(ctx.client, ctx.creds, name).await?,
+        None => None,
+    };
+    let tag_ids = lead_tag_ids(ctx, tags).await?;
     let values = serde_json::to_value(CreateLeadValues {
         name: title,
         contact_name: contact_name.as_deref(),
@@ -90,6 +113,14 @@ pub(super) async fn create_lead(
         email_from,
         partner_id: *partner_id,
         description,
+        stage_id,
+        date_deadline: date_deadline.as_deref(),
+        expected_revenue: *expected_revenue,
+        tag_ids: if tag_ids.is_empty() {
+            Vec::new()
+        } else {
+            vec![ReplaceLinks::new(tag_ids)]
+        },
     })?;
     let id = ctx.client.create(ctx.creds, "crm.lead", values).await?;
     Ok((id, None))
@@ -166,6 +197,7 @@ pub(super) async fn create_activity(
         summary,
         note,
         date_deadline,
+        assignee,
         ..
     } = action
     else {
@@ -184,7 +216,7 @@ pub(super) async fn create_activity(
         summary,
         note,
         date_deadline,
-        user_id: i64::from(ctx.creds.uid),
+        user_id: assigned_user(ctx, assignee.as_ref()),
         activity_type_id,
     })?;
     let id = ctx
@@ -205,6 +237,7 @@ pub(super) async fn create_task(
         name,
         description,
         date_deadline,
+        assignee,
         ..
     } = action
     else {
@@ -220,6 +253,10 @@ pub(super) async fn create_task(
             super::body::escape(description)
         ),
         date_deadline: date_deadline.as_deref(),
+        user_ids: [ReplaceLinks::new(vec![assigned_user(
+            ctx,
+            assignee.as_ref(),
+        )])],
     })?;
     let id = ctx.client.create(ctx.creds, "project.task", values).await?;
     Ok((id, None))

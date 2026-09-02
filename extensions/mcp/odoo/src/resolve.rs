@@ -14,8 +14,65 @@
 //! lookups serve a scheduled job as well as a tool call; the MCP layer maps
 //! `Unresolved` to `invalid_params` at its boundary.
 
+use serde::{Deserialize, Serialize};
+
 use crate::client::{Credentials, OdooClient, SearchOptions};
 use crate::error::OdooError;
+
+#[derive(Deserialize)]
+struct IdRow {
+    id: i64,
+}
+
+#[derive(Serialize)]
+struct NamedValues<'a> {
+    name: &'a str,
+}
+
+async fn first_id_by_name(
+    client: &OdooClient,
+    creds: &Credentials,
+    model: &str,
+    name: &str,
+) -> Result<Option<i64>, OdooError> {
+    let options = SearchOptions {
+        fields: vec!["id".to_owned()],
+        limit: 1,
+        order: Some("id asc".to_owned()),
+    };
+    // JSON: protocol boundary — an Odoo search domain.
+    let domain = serde_json::json!([["name", "=ilike", name.trim()]]);
+    let rows = client.search_read(creds, model, domain, &options).await?;
+    Ok(rows
+        .first()
+        .and_then(|r| serde_json::from_value::<IdRow>(r.clone()).ok())
+        .map(|r| r.id))
+}
+
+// Why: a stage the model guessed and Odoo lacks must not sink the lead; the
+// lead lands in the default stage instead.
+pub async fn stage_id(
+    client: &OdooClient,
+    creds: &Credentials,
+    name: &str,
+) -> Result<Option<i64>, OdooError> {
+    first_id_by_name(client, creds, "crm.stage", name).await
+}
+
+// Why: search-then-create keeps one row per tag name even when two proposals
+// carrying the same new tag are approved in sequence.
+pub async fn tag_id(
+    client: &OdooClient,
+    creds: &Credentials,
+    model: &str,
+    name: &str,
+) -> Result<i64, OdooError> {
+    if let Some(id) = first_id_by_name(client, creds, model, name).await? {
+        return Ok(id);
+    }
+    let values = serde_json::to_value(NamedValues { name: name.trim() })?;
+    client.create(creds, model, values).await
+}
 
 // Why: enough candidates to make a useful "did you mean", few enough that the
 // list itself does not become the problem.

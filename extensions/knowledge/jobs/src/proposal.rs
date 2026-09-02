@@ -2,8 +2,9 @@
 //! proposed Odoo projection and opens the approval a human must answer.
 //!
 //! Read-only against Odoo, as the job owner's linked account: it asks whether
-//! the sender is already a partner or an open lead and whether Project is
-//! installed, then runs the pure planner. The result is stored on the
+//! the sender is already a partner or an open lead, whether Project is
+//! installed, which contact is the owner's own, and which colleagues the
+//! named assignees are, then runs the pure planner. The result is stored on the
 //! document and mirrored into `approval_requests`; nothing is written to Odoo
 //! here or anywhere else until that row says `approved`.
 
@@ -16,7 +17,7 @@ use systemprompt::traits::{Job, JobContext, JobResult};
 use systemprompt_mcp_knowledge_bank::proposal::approval::{open_proposal_hold, proposal_call_id};
 use systemprompt_mcp_knowledge_bank::proposal::body::{BodySource, chatter_body};
 use systemprompt_mcp_knowledge_bank::proposal::lookup::{
-    OdooCapabilities, capabilities, lookup_sender,
+    OdooCapabilities, PartnerRef, capabilities, lookup_sender, owner_partner, resolve_assignees,
 };
 use systemprompt_mcp_knowledge_bank::proposal::plan::{PlanInput, PlanOutcome, plan};
 use systemprompt_mcp_knowledge_bank::proposal::scan::{ScanVerdict, scan_body};
@@ -43,6 +44,7 @@ struct Run<'a> {
     creds: &'a Credentials,
     owner: &'a UserId,
     capabilities: OdooCapabilities,
+    owner_partner: Option<PartnerRef>,
     task_project: Option<&'a str>,
 }
 
@@ -101,15 +103,18 @@ impl Job for KnowledgeProposalJob {
         let owner = ctx.actor().user_id.clone();
         let creds = owner_credentials(db, &owner).await?;
         let client = OdooClient::from_env().map_err(KnowledgeJobError::Odoo)?;
-        let capabilities = capabilities(&client, &creds)
-            .await
-            .map_err(KnowledgeJobError::Odoo)?;
+        let (capabilities, owner_partner) = tokio::try_join!(
+            capabilities(&client, &creds),
+            owner_partner(&client, &creds),
+        )
+        .map_err(KnowledgeJobError::Odoo)?;
         let run = Run {
             store: &store,
             client: &client,
             creds: &creds,
             owner: &owner,
             capabilities,
+            owner_partner,
             task_project: task_project.as_deref(),
         };
 
@@ -177,13 +182,21 @@ async fn propose_one(run: &Run<'_>, doc: &ProposalDocument) -> Result<Proposed, 
         return Ok(Proposed::Skipped);
     };
 
-    let lookup = lookup_sender(run.client, run.creds, &sender.email).await?;
+    let mut lookup = lookup_sender(run.client, run.creds, &sender.email).await?;
+    lookup.owner_partner = run.owner_partner.clone();
+    let names: Vec<String> = intent
+        .tasks
+        .iter()
+        .filter_map(|t| t.assignee.clone())
+        .collect();
+    let assignees = resolve_assignees(run.client, run.creds, &names).await;
     let outcome = plan(&PlanInput {
         category: doc.category.as_deref().unwrap_or("other"),
         subject: &doc.title,
         intent,
         sender: &sender,
         lookup: &lookup,
+        assignees: &assignees,
         capabilities: run.capabilities,
         task_project: run.task_project,
         today: Utc::now().date_naive(),

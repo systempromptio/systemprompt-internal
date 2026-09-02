@@ -8,10 +8,12 @@ use systemprompt_knowledge_jobs::internals::{
     CATEGORIES, Category, parse_output, response_format, response_schema, structured_json,
     system_prompt, user_prompt,
 };
+use systemprompt_mcp_knowledge_bank::proposal::intent::DealStageHint;
 
 const GOOD: &str = r#"{"category":"sales","summary":"Victor asks for pricing.","entities":[{"name":"Acme","type":"company"}],"action_items":["Send the tier sheet"],
   "crm_intent":{"disposition":"opportunity","lead_title":"Acme — pricing","contact_name":"Victor","company_name":"Acme",
-  "note_summary":"Pricing enquiry.","tasks":[{"title":"Send tier sheet","due_date":"2026-09-10","detail":"Enterprise tier"}],"confidence":0.9}}"#;
+  "note_summary":"Pricing enquiry.","tasks":[{"title":"Send tier sheet","due_date":"2026-09-10","detail":"Enterprise tier","assignee":"Sam Ops"}],"confidence":0.9,
+  "deal_stage_hint":"qualified","expected_close_date":"2026-10-15","expected_revenue":12500}}"#;
 
 fn walk(
     value: &serde_json::Value,
@@ -94,7 +96,18 @@ fn a_conforming_response_parses_and_round_trips_into_structured() {
     assert_eq!(c.category, Category::Sales);
     assert_eq!(c.entities.len(), 1);
     assert_eq!(c.crm_intent.tasks.len(), 1);
+    assert_eq!(c.crm_intent.tasks[0].assignee.as_deref(), Some("Sam Ops"));
+    assert_eq!(c.crm_intent.deal_stage_hint, Some(DealStageHint::Qualified));
+    assert_eq!(
+        c.crm_intent.expected_close_date.as_deref(),
+        Some("2026-10-15")
+    );
+    assert!(
+        matches!(c.crm_intent.expected_revenue, Some(r) if (r - 12_500.0).abs() < f64::EPSILON)
+    );
     let s = structured_json(&c);
+    assert_eq!(s["crm_intent"]["tasks"][0]["assignee"], "Sam Ops");
+    assert_eq!(s["crm_intent"]["deal_stage_hint"], "qualified");
     assert_eq!(s["summary"], "Victor asks for pricing.");
     assert_eq!(s["entities"][0]["name"], "Acme");
     assert_eq!(s["crm_intent"]["disposition"], "opportunity");
@@ -111,7 +124,7 @@ fn an_off_enum_category_is_refused_not_collapsed() {
 }
 
 #[test]
-fn a_missing_field_or_unknown_disposition_is_refused() {
+fn a_missing_field_or_off_enum_value_is_refused() {
     let missing = GOOD.replace(",\"confidence\":0.9", "");
     assert!(parse_output(&missing).is_err(), "confidence is required");
     let bad = GOOD.replace(
@@ -119,6 +132,15 @@ fn a_missing_field_or_unknown_disposition_is_refused() {
         "\"disposition\":\"maybe\"",
     );
     assert!(parse_output(&bad).is_err(), "disposition is a closed enum");
+    let stage = GOOD.replace(
+        "\"deal_stage_hint\":\"qualified\"",
+        "\"deal_stage_hint\":\"closed-won\"",
+    );
+    let err = parse_output(&stage).expect_err("off-enum stage hint");
+    assert!(
+        err.contains("deal_stage_hint"),
+        "names the failing path: {err}"
+    );
     let extra = GOOD.replacen("{\"category\"", "{\"vibe\":\"good\",\"category\"", 1);
     assert!(
         parse_output(&extra).is_err(),

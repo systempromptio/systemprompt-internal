@@ -20,6 +20,7 @@
 //! - [`ledger`] — the per-action `knowledge_odoo_projection` rows.
 //! - [`apply`] — walking a proposal's actions against the ledger.
 //! - [`writes`] — the typed Odoo writes.
+//! - [`tags`] — the category tag on a lead or a contact.
 //! - [`settle`] — the single executor both the tool and the reconcile job call.
 
 pub mod apply;
@@ -32,6 +33,7 @@ pub mod plan;
 pub mod scan;
 pub mod sender;
 pub mod settle;
+pub mod tags;
 pub mod writes;
 
 use schemars::JsonSchema;
@@ -108,8 +110,18 @@ pub enum ActionTarget {
     },
 }
 
-/// One Odoo write the planner proposes and an admin approves.
+/// The Odoo user a follow-up is handed to, resolved from the name the
+/// categorization named; absent, the approver keeps it.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct Assignee {
+    pub user_id: i64,
+    pub name: String,
+}
+
+/// One Odoo write the planner proposes and an admin approves.
+// Why: `expected_revenue` is an `f64`, so `Eq` is not derivable here or on
+// anything that embeds an action; `PartialEq` is what the tests compare with.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum OdooAction {
     CreateLead {
@@ -119,16 +131,30 @@ pub enum OdooAction {
         email_from: String,
         partner_id: Option<i64>,
         description: String,
+        #[serde(default)]
+        stage_hint: Option<String>,
+        #[serde(default)]
+        date_deadline: Option<String>,
+        #[serde(default)]
+        expected_revenue: Option<f64>,
+        #[serde(default)]
+        tags: Vec<String>,
     },
     PostChatter {
         target: ActionTarget,
         subject: String,
+    },
+    TagRecord {
+        target: ActionTarget,
+        tag: String,
     },
     CreateActivity {
         target: ActionTarget,
         summary: String,
         note: String,
         date_deadline: String,
+        #[serde(default)]
+        assignee: Option<Assignee>,
     },
     CreateTask {
         target: ActionTarget,
@@ -136,6 +162,8 @@ pub enum OdooAction {
         name: String,
         description: String,
         date_deadline: Option<String>,
+        #[serde(default)]
+        assignee: Option<Assignee>,
     },
 }
 
@@ -145,6 +173,7 @@ impl OdooAction {
         match self {
             Self::CreateLead { .. } => "create_lead",
             Self::PostChatter { .. } => "post_chatter",
+            Self::TagRecord { .. } => "tag_record",
             Self::CreateActivity { .. } => "create_activity",
             Self::CreateTask { .. } => "create_task",
         }
@@ -155,6 +184,7 @@ impl OdooAction {
         match self {
             Self::CreateLead { .. } => None,
             Self::PostChatter { target, .. }
+            | Self::TagRecord { target, .. }
             | Self::CreateActivity { target, .. }
             | Self::CreateTask { target, .. } => Some(target),
         }
@@ -175,19 +205,38 @@ impl OdooAction {
             Self::PostChatter { target, .. } => {
                 format!("Log the email on {}", target_label(target))
             },
+            Self::TagRecord { target, tag } => {
+                format!("Tag {} \u{201c}{tag}\u{201d}", target_label(target))
+            },
             Self::CreateActivity {
-                target, summary, ..
+                target,
+                summary,
+                assignee,
+                ..
             } => {
                 format!(
-                    "Schedule \u{201c}{summary}\u{201d} on {}",
-                    target_label(target)
+                    "Schedule \u{201c}{summary}\u{201d} on {}{}",
+                    target_label(target),
+                    assignee_suffix(assignee.as_ref())
                 )
             },
-            Self::CreateTask { project, name, .. } => {
-                format!("Create task \u{201c}{name}\u{201d} in {project}")
+            Self::CreateTask {
+                project,
+                name,
+                assignee,
+                ..
+            } => {
+                format!(
+                    "Create task \u{201c}{name}\u{201d} in {project}{}",
+                    assignee_suffix(assignee.as_ref())
+                )
             },
         }
     }
+}
+
+fn assignee_suffix(assignee: Option<&Assignee>) -> String {
+    assignee.map_or_else(String::new, |a| format!(" for {}", a.name))
 }
 
 fn target_label(target: &ActionTarget) -> String {
@@ -198,7 +247,7 @@ fn target_label(target: &ActionTarget) -> String {
 }
 
 /// The plan for one document, at one revision.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct Proposal {
     pub revision: i32,
     pub sender: Sender,

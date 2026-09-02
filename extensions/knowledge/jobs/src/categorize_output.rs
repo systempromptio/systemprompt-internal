@@ -89,9 +89,16 @@ pub fn system_prompt() -> String {
          spam). lead_title is a short CRM opportunity title or null; \
          contact_name and company_name are the sender's, or null; \
          note_summary is one paragraph a salesperson would want logged on the \
-         record; tasks are concrete follow-ups with an ISO date (YYYY-MM-DD) \
-         or null; confidence is 0-1. Never invent facts that are not in the \
-         document. Respond with JSON only.",
+         record; tasks are concrete follow-ups, each with an ISO due date \
+         (YYYY-MM-DD) or null and an assignee — the colleague's name or email \
+         when the document hands the work to a specific person, else null; an \
+         internal thread that delegates work still lists its tasks with \
+         assignees. deal_stage_hint is where an opportunity sits — new, \
+         qualified, proposition, won, lost — or null when the document does \
+         not say; expected_close_date is the ISO date a decision or signature \
+         is expected, or null; expected_revenue is the deal value as a plain \
+         number in the document's currency, or null. confidence is 0-1. Never \
+         invent facts that are not in the document. Respond with JSON only.",
         CATEGORIES.join(", ")
     )
 }

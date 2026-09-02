@@ -3,27 +3,39 @@
 //!
 //! The table, in priority order:
 //!
-//! | category / disposition            | Odoo already has | proposal                                  |
-//! |-----------------------------------|------------------|-------------------------------------------|
-//! | spam, newsletter, notification    | —                | skip                                      |
-//! | `noise`, `internal`               | —                | skip                                      |
-//! | anything else                     | an open lead     | log on the lead + follow-ups on the lead   |
-//! | `opportunity`                     | a partner        | new lead for that partner + log + follow-ups |
-//! | `existing_relationship`           | a partner        | log on the partner + follow-ups            |
-//! | `opportunity`                     | nothing          | new lead + log + follow-ups                |
-//! | `existing_relationship`           | nothing          | skip (no record to anchor to)              |
+//! | category / disposition            | Odoo already has | proposal                                            |
+//! |-----------------------------------|------------------|-----------------------------------------------------|
+//! | spam, newsletter, notification    | —                | skip                                                |
+//! | `noise`                           | —                | skip                                                |
+//! | `internal`, no tasks              | —                | skip                                                |
+//! | `internal`, tasks                 | owner's partner  | follow-ups on the owner's own contact; no log, no tag |
+//! | anything else                     | an open lead     | log on the lead + tag + follow-ups on the lead       |
+//! | `opportunity`                     | a partner        | new tagged lead for that partner + log + follow-ups  |
+//! | `existing_relationship`           | a partner        | log on the partner + tag + follow-ups                |
+//! | `opportunity`                     | nothing          | new tagged lead + log + follow-ups                   |
+//! | `existing_relationship`           | nothing          | skip (no record to anchor to)                        |
 //!
-//! Follow-ups become `project.task`s only when Project is installed *and* a
-//! project was configured; otherwise they are `mail.activity`s on the record,
-//! which every Odoo has.
+//! The category becomes a tag: inline on a lead this proposal creates, a
+//! `tag_record` action on an anchor that already exists, nothing for `other`
+//! or the noise categories. Deal fields (`stage_hint`, `date_deadline`,
+//! `expected_revenue`) ride only on a created lead. Follow-ups become
+//! `project.task`s only when Project is installed *and* a project was
+//! configured; otherwise they are `mail.activity`s on the record, which every
+//! Odoo has. A follow-up whose assignee the lookup resolved is handed to that
+//! colleague; otherwise the approver keeps it.
+//!
+//! Action order is `[create_lead?], post_chatter, tag_record?, follow-ups…`, so
+//! a follow-up's dependency on the created lead is always index 0.
+
+use std::collections::HashMap;
 
 use chrono::{Duration, NaiveDate};
 use serde::{Deserialize, Serialize};
 
-use super::intent::{CrmIntent, Disposition, IntentTask, NOISE_CATEGORIES};
-use super::lookup::{OdooCapabilities, OdooLookup};
+use super::intent::{CrmIntent, Disposition, IntentTask, NOISE_CATEGORIES, category_tag};
+use super::lookup::{OdooCapabilities, OdooLookup, UserRef, assignee_key};
 use super::sender::Sender;
-use super::{ActionTarget, OdooAction};
+use super::{ActionTarget, Assignee, OdooAction};
 
 const DEFAULT_FOLLOW_UP_DAYS: i64 = 7;
 
@@ -35,6 +47,7 @@ pub struct PlanInput<'a> {
     pub intent: &'a CrmIntent,
     pub sender: &'a Sender,
     pub lookup: &'a OdooLookup,
+    pub assignees: &'a HashMap<String, UserRef>,
     pub capabilities: OdooCapabilities,
     pub task_project: Option<&'a str>,
     pub today: NaiveDate,
@@ -61,7 +74,7 @@ impl SkipReason {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum PlanOutcome {
     Skip(SkipReason),
     Propose(Vec<OdooAction>),
@@ -74,7 +87,7 @@ pub fn plan(input: &PlanInput<'_>) -> PlanOutcome {
     }
     match input.intent.disposition {
         Disposition::Noise => return PlanOutcome::Skip(SkipReason::NoiseDisposition),
-        Disposition::Internal => return PlanOutcome::Skip(SkipReason::InternalDisposition),
+        Disposition::Internal => return plan_internal(input),
         Disposition::Opportunity | Disposition::ExistingRelationship => {},
     }
 
@@ -102,10 +115,42 @@ pub fn plan(input: &PlanInput<'_>) -> PlanOutcome {
         target: anchor.clone(),
         subject: input.subject.to_owned(),
     });
+    if matches!(anchor, ActionTarget::Existing { .. })
+        && let Some(tag) = category_tag(input.category)
+    {
+        actions.push(OdooAction::TagRecord {
+            target: anchor.clone(),
+            tag: tag.to_owned(),
+        });
+    }
     for task in &input.intent.tasks {
         actions.push(follow_up(input, task, &anchor));
     }
     PlanOutcome::Propose(actions)
+}
+
+// Why: an internal thread's body stays out of Odoo — colleagues already have
+// it — but the work it delegates still has to land on someone's list.
+fn plan_internal(input: &PlanInput<'_>) -> PlanOutcome {
+    if input.intent.tasks.is_empty() {
+        return PlanOutcome::Skip(SkipReason::InternalDisposition);
+    }
+    let Some(owner) = &input.lookup.owner_partner else {
+        return PlanOutcome::Skip(SkipReason::InternalDisposition);
+    };
+    let anchor = ActionTarget::Existing {
+        model: "res.partner".to_owned(),
+        res_id: owner.id,
+        label: format!("contact {}", owner.name),
+    };
+    PlanOutcome::Propose(
+        input
+            .intent
+            .tasks
+            .iter()
+            .map(|task| follow_up(input, task, &anchor))
+            .collect(),
+    )
 }
 
 fn create_lead(input: &PlanInput<'_>) -> OdooAction {
@@ -127,15 +172,38 @@ fn create_lead(input: &PlanInput<'_>) -> OdooAction {
         email_from: input.sender.email.clone(),
         partner_id: input.lookup.partner.as_ref().map(|p| p.id),
         description: input.intent.note_summary.clone(),
+        stage_hint: input
+            .intent
+            .deal_stage_hint
+            .map(|h| h.odoo_stage_name().to_owned()),
+        date_deadline: future_date(input.intent.expected_close_date.as_deref(), input.today)
+            .map(|d| d.to_string()),
+        expected_revenue: input
+            .intent
+            .expected_revenue
+            .filter(|r| r.is_finite() && *r > 0.0),
+        tags: category_tag(input.category)
+            .map(str::to_owned)
+            .into_iter()
+            .collect(),
     }
 }
 
+fn future_date(raw: Option<&str>, today: NaiveDate) -> Option<NaiveDate> {
+    raw.and_then(|d| NaiveDate::parse_from_str(d.trim(), "%Y-%m-%d").ok())
+        .filter(|d| *d >= today)
+}
+
 fn follow_up(input: &PlanInput<'_>, task: &IntentTask, anchor: &ActionTarget) -> OdooAction {
-    let deadline = task
-        .due_date
+    let deadline = future_date(task.due_date.as_deref(), input.today);
+    let assignee = task
+        .assignee
         .as_deref()
-        .and_then(|d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
-        .filter(|d| *d >= input.today);
+        .and_then(|name| input.assignees.get(&assignee_key(name)))
+        .map(|user| Assignee {
+            user_id: user.id,
+            name: user.name.clone(),
+        });
     input
         .task_project
         .filter(|_| input.capabilities.project)
@@ -147,6 +215,7 @@ fn follow_up(input: &PlanInput<'_>, task: &IntentTask, anchor: &ActionTarget) ->
                 date_deadline: deadline
                     .unwrap_or(input.today + Duration::days(DEFAULT_FOLLOW_UP_DAYS))
                     .to_string(),
+                assignee: assignee.clone(),
             },
             |project| OdooAction::CreateTask {
                 target: anchor.clone(),
@@ -154,6 +223,7 @@ fn follow_up(input: &PlanInput<'_>, task: &IntentTask, anchor: &ActionTarget) ->
                 name: task.title.clone(),
                 description: task.detail.clone(),
                 date_deadline: deadline.map(|d| d.to_string()),
+                assignee: assignee.clone(),
             },
         )
 }

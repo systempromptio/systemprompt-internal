@@ -13,6 +13,7 @@ use systemprompt_mcp_odoo::error::OdooError;
 use uuid::Uuid;
 
 use super::ledger::{Claim, LedgerKey, NewProjection, claim_action, fail_action, finish_action};
+use super::tags::tag_record;
 use super::writes::{create_activity, create_lead, create_task, post_chatter};
 use super::{ActionTarget, OdooAction};
 
@@ -129,6 +130,7 @@ async fn apply_one(
     let written = match (action, target) {
         (OdooAction::CreateLead { .. }, _) => create_lead(ctx, action).await,
         (OdooAction::PostChatter { .. }, Some((m, id))) => post_chatter(ctx, source, &m, id).await,
+        (OdooAction::TagRecord { .. }, Some((m, id))) => tag_record(ctx, action, &m, id).await,
         (OdooAction::CreateActivity { .. }, Some((m, id))) => {
             create_activity(ctx, action, &m, id).await
         },

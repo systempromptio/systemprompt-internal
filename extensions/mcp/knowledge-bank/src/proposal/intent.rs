@@ -32,6 +32,23 @@ pub const CATEGORIES: &[&str] = &[
 
 pub const NOISE_CATEGORIES: &[&str] = &["spam", "newsletter", "notification"];
 
+// Why: kept beside `CATEGORIES` so a category added there cannot silently
+// land untagged; `other` and the noise categories carry no tag on purpose.
+#[must_use]
+pub fn category_tag(category: &str) -> Option<&'static str> {
+    match category {
+        "sales" => Some("Sales"),
+        "client" => Some("Client"),
+        "product" => Some("Product"),
+        "operations" => Some("Operations"),
+        "finance" => Some("Finance"),
+        "legal" => Some("Legal"),
+        "technical" => Some("Technical"),
+        "recruiting" => Some("Recruiting"),
+        _ => None,
+    }
+}
+
 /// `knowledge_documents.structured`, as written by categorization.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct StructuredSummary {
@@ -61,6 +78,35 @@ pub struct CrmIntent {
     #[serde(default)]
     pub tasks: Vec<IntentTask>,
     pub confidence: f64,
+    #[serde(default)]
+    pub deal_stage_hint: Option<DealStageHint>,
+    #[serde(default)]
+    pub expected_close_date: Option<String>,
+    #[serde(default)]
+    pub expected_revenue: Option<f64>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum DealStageHint {
+    New,
+    Qualified,
+    Proposition,
+    Won,
+    Lost,
+}
+
+impl DealStageHint {
+    #[must_use]
+    pub const fn odoo_stage_name(self) -> &'static str {
+        match self {
+            Self::New => "New",
+            Self::Qualified => "Qualified",
+            Self::Proposition => "Proposition",
+            Self::Won => "Won",
+            Self::Lost => "Lost",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -77,6 +123,8 @@ pub struct IntentTask {
     pub title: String,
     pub due_date: Option<String>,
     pub detail: String,
+    #[serde(default)]
+    pub assignee: Option<String>,
 }
 
 // Why: keywords no provider's strict mode accepts, and that carry no

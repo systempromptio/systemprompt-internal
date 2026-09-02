@@ -272,10 +272,14 @@ body{
     var ap = appliedFor(row, i);
     var cls = ap ? " " + ap.status : "";
     var detail = "";
-    if (act.kind === "create_lead") detail = [act.contact_name, act.partner_name, act.email_from].filter(Boolean).join(" · ");
-    else if (act.kind === "create_activity") detail = "due " + act.date_deadline + (act.note ? " — " + act.note : "");
-    else if (act.kind === "create_task") detail = (act.date_deadline ? "due " + act.date_deadline + " — " : "") + (act.description || "");
+    var who = act.assignee && act.assignee.name ? "for " + act.assignee.name : "";
+    if (act.kind === "create_lead") detail = [act.contact_name, act.partner_name, act.email_from,
+      act.stage_hint ? "stage " + act.stage_hint : "", act.date_deadline ? "close by " + act.date_deadline : "",
+      act.expected_revenue ? "revenue " + act.expected_revenue : "", act.tags && act.tags.length ? "tags " + act.tags.join(", ") : ""].filter(Boolean).join(" · ");
+    else if (act.kind === "create_activity") detail = ["due " + act.date_deadline, who, act.note].filter(Boolean).join(" — ");
+    else if (act.kind === "create_task") detail = [act.date_deadline ? "due " + act.date_deadline : "", who, act.description].filter(Boolean).join(" — ");
     else if (act.kind === "post_chatter") detail = "as an internal note, nobody is emailed";
+    else if (act.kind === "tag_record") detail = (act.target && act.target.model === "res.partner" ? "contact tag" : "lead tag") + ", created if missing";
     var tail = "";
     if (ap && ap.status === "done" && ap.url) tail = ' <a href="' + esc(ap.url) + '" target="_blank" rel="noopener">open in Odoo ↗</a>';
     if (ap && ap.status === "failed" && ap.error) detail = ap.error;
@@ -289,8 +293,9 @@ body{
     var tl = t.kind === "existing" ? t.label : "the new lead";
     if (act.kind === "create_lead") return "Create lead “" + act.title + "”";
     if (act.kind === "post_chatter") return "Log the email on " + tl;
-    if (act.kind === "create_activity") return "Schedule “" + act.summary + "” on " + tl;
-    if (act.kind === "create_task") return "Create task “" + act.name + "” in " + act.project;
+    if (act.kind === "tag_record") return "Tag " + tl + " “" + act.tag + "”";
+    if (act.kind === "create_activity") return "Schedule “" + act.summary + "” on " + tl + (act.assignee ? " for " + act.assignee.name : "");
+    if (act.kind === "create_task") return "Create task “" + act.name + "” in " + act.project + (act.assignee ? " for " + act.assignee.name : "");
     return act.kind;
   };
 
