@@ -42,7 +42,7 @@ proving nothing about the new core. The pins live in **two** manifests, because
 `tests/` is a separate workspace with its own copy:
 
 ```bash
-grep -rn '^systemprompt[a-z-]* = { version = "' --include=Cargo.toml . | grep -v target
+grep -rnE '^systemprompt[a-z-]* = (\{ version = )?"' --include=Cargo.toml . | grep -v target
 sed -i 's/OLD/NEW/g' Cargo.toml tests/Cargo.toml     # or let the script do it
 scripts/sync-release-version.sh NEW --check          # core-pin lines must be silent
 ```
