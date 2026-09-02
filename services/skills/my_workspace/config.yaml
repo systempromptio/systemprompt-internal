@@ -1,0 +1,21 @@
+id: my_workspace
+name: "My Workspace"
+description: "Your day, from Odoo, in one short brief: what you owe (activities overdue first, then open tasks), the deals closing soonest, and what the team wrote this week — then the four workspace dashboards to keep it live. Every query runs as you, so it shows exactly what Odoo lets you see."
+enabled: true
+file: SKILL.md
+# Host targeting: the dashboards this skill opens live in the Cowork Artifacts
+# library; the bundle projector and per-host emitters drop this skill everywhere
+# else.
+hosts:
+  - cowork
+tags:
+  - odoo
+  - workspace
+  - todo
+  - activities
+  - tasks
+  - deals
+  - deadlines
+  - notes
+category: crm
+display_category: "My Workspace"

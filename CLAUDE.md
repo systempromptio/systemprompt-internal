@@ -401,13 +401,17 @@ plugin:
 `[admin]` — and every skill and artifact inside it inherits that rule. The cascade is
 skill/artifact → plugin → marketplace and the nearest level that declares any rule decides, so a
 `[admin]` plugin closes its ruleless skills to users even though the marketplace admits them. Never
-write a per-skill `allow` rule; never mix scopes in one plugin. Three plugins ship here, 13 skills
+write a per-skill `allow` rule; never mix scopes in one plugin. Four plugins ship here, 14 skills
 in total: `systemprompt-commons` (`systemprompt_setup`, `brand`, `send_email` — everyone),
 `systemprompt-demo` (governance, live, `[user]` because the hold and the blocklist exempt admins:
-`demo_approval_hold`, `demo_secret_refusal`, `demo_blocked_tool`, `lead_factsheet`), and
+`demo_approval_hold`, `demo_secret_refusal`, `demo_blocked_tool`, `lead_factsheet`),
+`systemprompt-workspace` (`[user]`: `my_workspace` plus the four dashboards every role sees —
+`todo-bulletin`, `upcoming-deals`, `pipeline-open-deals`, `recent-activity`), and
 `systemprompt-admin` (business administration on Odoo — `show_activity`, `update_leads` — plus the
 control plane: `manage_platform`, `demonstrate_governance`, `governance_readback`,
-`systemprompt_setup_admin`, and all seven dashboards). Every skill is driven by MCP tools the holding
+`systemprompt_setup_admin`, and the seven admin dashboards: `business-overview`,
+`leads-inbound-prospects`, `knowledge-feed`, `knowledge-approve-ingestion`, and the three
+`admin-*` pages). Every skill is driven by MCP tools the holding
 role's manifest actually carries; the admin CLI passthrough appears only in admin skills. The demo
 skills stage the pipeline's verdicts with real tool calls (a first demo plugin that merely re-narrated
 the admin skills was deleted, and its ids are banned in `tests/e2e/src/skills_artifacts.rs`). Setup is

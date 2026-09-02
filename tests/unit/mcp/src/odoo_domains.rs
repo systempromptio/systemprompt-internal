@@ -6,11 +6,11 @@
 //! caller's.
 
 use systemprompt_mcp_odoo::server::activity::activity_domain;
-use systemprompt_mcp_odoo::server::crm::lead_domain;
+use systemprompt_mcp_odoo::server::crm::{lead_domain, lead_order};
 use systemprompt_mcp_odoo::server::partner::partner_domain;
 use systemprompt_mcp_odoo::server::report::report_domain;
 use systemprompt_mcp_odoo::tools::inputs::{
-    ActivityListInput, LeadReportInput, LeadSearchInput, ReportGroupBy, resolve_limit,
+    ActivityListInput, LeadReportInput, LeadSearchInput, LeadSort, ReportGroupBy, resolve_limit,
 };
 
 fn lead_input(query: Option<&str>, stage: Option<&str>, user: Option<&str>) -> LeadSearchInput {
@@ -19,6 +19,9 @@ fn lead_input(query: Option<&str>, stage: Option<&str>, user: Option<&str>) -> L
         stage: stage.map(str::to_owned),
         user: user.map(str::to_owned),
         limit: None,
+        open_only: None,
+        tag: None,
+        sort: None,
     }
 }
 
@@ -82,6 +85,85 @@ fn lead_domain_ignores_blank_filters() {
         serde_json::json!([]),
         "whitespace is an omitted filter, not a search for whitespace"
     );
+}
+
+#[test]
+fn lead_domain_open_only_is_two_flags_not_a_stage_list() {
+    let mut input = lead_input(None, None, None);
+    input.open_only = Some(true);
+
+    assert_eq!(
+        lead_domain(&input),
+        serde_json::json!([["active", "=", true], ["stage_id.is_won", "=", false]]),
+        "lost leads are archived and won leads sit in an is_won stage; neither is open"
+    );
+}
+
+#[test]
+fn lead_domain_open_only_false_adds_nothing() {
+    let mut input = lead_input(None, None, None);
+    input.open_only = Some(false);
+
+    assert_eq!(lead_domain(&input), serde_json::json!([]));
+}
+
+#[test]
+fn lead_domain_matches_a_tag_by_name_and_ignores_a_blank_one() {
+    let mut input = lead_input(None, None, None);
+    input.tag = Some(" Legal ".to_owned());
+    assert_eq!(
+        lead_domain(&input),
+        serde_json::json!([["tag_ids.name", "ilike", "Legal"]])
+    );
+
+    input.tag = Some("   ".to_owned());
+    assert_eq!(lead_domain(&input), serde_json::json!([]));
+}
+
+#[test]
+fn lead_domain_ands_open_only_and_tag_after_the_text_group() {
+    let mut input = lead_input(Some("acme"), None, None);
+    input.open_only = Some(true);
+    input.tag = Some("Sales".to_owned());
+    let domain = lead_domain(&input);
+    let leaves = domain.as_array().expect("a domain is an array");
+
+    assert_eq!(
+        leaves.len(),
+        8,
+        "OR group of 5 leaves plus three implicit-AND leaves"
+    );
+    assert_eq!(
+        leaves.last(),
+        Some(&serde_json::json!(["tag_ids.name", "ilike", "Sales"]))
+    );
+}
+
+#[test]
+fn lead_order_is_newest_first_unless_deadline_is_asked_for() {
+    let mut input = lead_input(None, None, None);
+    assert_eq!(lead_order(&input), "create_date desc");
+
+    input.sort = Some(LeadSort::Created);
+    assert_eq!(lead_order(&input), "create_date desc");
+
+    input.sort = Some(LeadSort::Deadline);
+    assert_eq!(
+        lead_order(&input),
+        "date_deadline asc, create_date desc",
+        "closest close date first; leads with no date sort last, newest of those first"
+    );
+}
+
+#[test]
+fn lead_sort_reads_lowercase_off_the_wire() {
+    let input: LeadSearchInput =
+        serde_json::from_value(serde_json::json!({ "sort": "deadline", "open_only": true }))
+            .expect("all filters optional");
+
+    assert_eq!(input.sort, Some(LeadSort::Deadline));
+    assert_eq!(input.open_only, Some(true));
+    assert!(input.query.is_none());
 }
 
 #[test]

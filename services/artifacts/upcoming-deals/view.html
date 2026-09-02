@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Pipeline — Open Deals</title>
+<title>Upcoming Deals</title>
 <style>
 :root{
   --bg:oklch(0.99 0 0); --bg-2:oklch(0.965 0 0);
@@ -74,6 +74,12 @@ tbody tr:hover td{background:var(--accent-soft);}
 tbody td.strong{color:var(--ink);font-weight:600;}
 tbody td.num{text-align:right;font-variant-numeric:tabular-nums;}
 tbody td.overdue{color:var(--accent);font-weight:600;}
+tbody tr.grp td{padding:10px 18px;background:oklch(0.975 0 0 / 0.9);color:var(--ink);font-weight:700;font-size:12px;
+  letter-spacing:0.03em;text-transform:uppercase;border-bottom:1px solid var(--line);}
+tbody tr.grp:hover td{background:oklch(0.975 0 0 / 0.9);}
+tbody tr.grp td .g-n{color:var(--muted);font-weight:600;margin-left:8px;text-transform:none;letter-spacing:0;}
+tbody tr.grp td .g-v{float:right;color:var(--ink-2);font-weight:600;text-transform:none;letter-spacing:0;font-variant-numeric:tabular-nums;}
+tbody tr.late td.strong::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-right:8px;vertical-align:middle;}
 .muted{color:var(--muted);}
 .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:9999px;font-size:11px;
   font-weight:600;line-height:1.5;white-space:nowrap;border:1px solid transparent;}
@@ -157,8 +163,8 @@ thead th.desc .arw{opacity:.9;border-top:5px solid currentColor;}
         <span class="brand"><svg viewBox="167 461 666 78" role="img" aria-label="systemprompt.io"><use href="#sp-logo"/></svg></span>
         <span class="sep"></span>
         <div>
-          <h1 class="ttl">Pipeline <span class="em">—</span> Open Deals</h1>
-          <p class="sub">Your open opportunities, closest close date first.</p>
+          <h1 class="ttl">Upcoming <span class="em">Deals</span></h1>
+          <p class="sub">Open opportunities grouped by tag, closest expected close first.</p>
         </div>
       </div>
       <span class="status" id="status"><span class="dot"></span>Awaiting data</span>
@@ -178,7 +184,7 @@ thead th.desc .arw{opacity:.9;border-top:5px solid currentColor;}
         <span class="mark"><svg viewBox="167 461 666 78" role="img" aria-label="systemprompt.io"><use href="#sp-logo"/></svg></span>
         <h2>Loading live Odoo CRM data</h2>
         <p>This dashboard renders only your real Odoo records — no sample data. It loads automatically by running the query below through the Odoo MCP connection, as you; use <strong>Reload</strong> in the header to fetch it again.</p>
-        <div class="qry">crm_lead_search { "limit": 100, "open_only": true } — open crm.lead opportunities, won and lost excluded</div>
+        <div class="qry">crm_lead_search { "limit": 100, "open_only": true, "sort": "deadline" } — open crm.lead opportunities by expected close</div>
         <span class="hint">Loads via mcp__odoo__crm_lead_search</span>
       </div>
 
@@ -193,18 +199,18 @@ thead th.desc .arw{opacity:.9;border-top:5px solid currentColor;}
         <span class="mark"><svg viewBox="167 461 666 78" role="img" aria-label="systemprompt.io"><use href="#sp-logo"/></svg></span>
         <h2>No matching records</h2>
         <p>Odoo is connected, but this query returned nothing right now.</p>
-        <div class="qry">crm_lead_search { "limit": 100, "open_only": true } — open crm.lead opportunities, won and lost excluded</div>
+        <div class="qry">crm_lead_search { "limit": 100, "open_only": true, "sort": "deadline" } — open crm.lead opportunities by expected close</div>
       </div>
     </div>
 
-    <p class="foot">Live data via the Odoo MCP connection, executed as you · Reload re-runs <code>mcp__odoo__crm_lead_search</code> with <code>open_only</code> from the call in <code>#odoo-query</code> · won and lost leads are excluded by Odoo, not by this page</p>
+    <p class="foot">Live data via the Odoo MCP connection, executed as you · Reload re-runs <code>mcp__odoo__crm_lead_search</code> with <code>open_only</code> and <code>sort: deadline</code> from the call in <code>#odoo-query</code> · groups are Odoo <code>crm.tag</code> names; a lead with no tag lands under Untagged</p>
   </div>
 
   <!-- Data contract: on load the page calls window.cowork.callMcpTool with this
        tool + arguments and renders the records; injected window.__ARTIFACT_DATA__ /
        artifactData plus a message event remain supported as a fallback. -->
   <script type="application/json" id="odoo-query">
-  {"tool": "mcp__odoo__crm_lead_search", "arguments": {"limit": 100, "open_only": true}}
+  {"tool": "mcp__odoo__crm_lead_search", "arguments": {"limit": 100, "open_only": true, "sort": "deadline"}}
   </script>
 
 <script>
@@ -215,31 +221,42 @@ function NAME(v){ return Array.isArray(v) ? (v.length > 1 ? v[1] : v[0]) : v; }
   <script>
 var CONFIG = {
   unit: "deals",
+  groupBy: "tags",
+  untagged: "Untagged",
   columns: [
     { label: "Opportunity", path: "name", cell: "strong" },
+    { label: "Expected close", path: "date_deadline", cell: "date", overdue: true },
     { label: "Contact", path: "partner_name", cell: "text" },
     { label: "Stage", path: "stage_id", cell: "badge", badge: function(v,r){var p=Number(r.probability);if(p>=75)return "b-ok";if(p>=40)return "b-warn";return "b-neutral";} },
     { label: "Expected revenue", path: "expected_revenue", cell: "money" },
-    { label: "Expected close", path: "date_deadline", cell: "date", overdue: true },
-    { label: "Tags", path: "tags", cell: "tags" },
-    { label: "Created", path: "create_date", cell: "date" },
     { label: "Prob", path: "probability", cell: "pct" },
     { label: "Salesperson", path: "user_id", cell: "text" }
   ],
   kpis: [
     { label: "Open deals", fmt: "int", calc: function(r){return r.length;} },
-    { label: "Pipeline value", fmt: "money", calc: function(r){return r.reduce(function(s,x){return s+(Number(x.expected_revenue)||0);},0);} },
-    { label: "Weighted forecast", fmt: "money", calc: function(r){return r.reduce(function(s,x){return s+(Number(x.expected_revenue)||0)*(Number(x.probability)||0)/100;},0);} },
-    { label: "Avg probability", fmt: "pct", calc: function(r){var v=r.filter(function(x){return x.probability!=null;});return v.length?v.reduce(function(s,x){return s+Number(x.probability);},0)/v.length:0;} }
+    { label: "Due this week", fmt: "int", calc: function(r){return r.filter(function(x){return DUE.within(x.date_deadline, 7);}).length;},
+      sub: function(r){var l=r.filter(function(x){return DUE.overdue(x.date_deadline);}).length;return l?l+" already past close date":"none overdue";} },
+    { label: "Due this month", fmt: "int", calc: function(r){return r.filter(function(x){return DUE.within(x.date_deadline, 30);}).length;},
+      sub: function(r){return money(r.filter(function(x){return DUE.within(x.date_deadline, 30);}).reduce(function(s,x){return s+(Number(x.expected_revenue)||0);},0))+" expected";} },
+    { label: "No close date", fmt: "int", calc: function(r){return r.filter(function(x){return !x.date_deadline;}).length;},
+      sub: function(){return "set date_deadline in Odoo to forecast";} }
   ]
 };
+// Close-date arithmetic, shared by the KPIs and the row classes. "Within N days"
+// includes overdue leads: a deal past its close date is still due this week.
+var DUE = {
+  day: function (v) { if (!v) return null; var d = new Date(v); return isNaN(d.getTime()) ? null : d; },
+  today: function () { var t = new Date(); t.setHours(0, 0, 0, 0); return t; },
+  overdue: function (v) { var d = DUE.day(v); return !!d && d < DUE.today(); },
+  within: function (v, days) { var d = DUE.day(v); if (!d) return false; var e = DUE.today(); e.setDate(e.getDate() + days); return d < e; }
+};
+var money = function (n) { if (n == null || n === "") return "—"; return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 1 }).format(Number(n)); };
   </script>
   <script>
 (function () {
   var $ = function (id) { return document.getElementById(id); };
   var get = function (r, p) { return NAME(p.split(".").reduce(function (o, k) { return o == null ? undefined : o[k]; }, r)); };
   var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]; }); };
-  var money = function (n) { if (n == null || n === "") return "—"; return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 1 }).format(Number(n)); };
   var numf = function (n) { if (n == null || n === "") return "—"; return new Intl.NumberFormat().format(Number(n)); };
   var pctf = function (n) { if (n == null || n === "") return "—"; return Math.round(Number(n)) + "%"; };
   var datef = function (v) { if (!v) return "—"; var d = new Date(v); if (isNaN(d.getTime())) return esc(v); return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }); };
@@ -294,7 +311,7 @@ var CONFIG = {
     }).join("");
   };
 
-  var SORT = { i: -1, dir: "" };
+  var SORT = { i: 1, dir: "asc" };
   var DATA = [];
 
   var computeStats = function (records) {
@@ -340,14 +357,41 @@ var CONFIG = {
     else renderRows(false);
   };
 
+  // A lead with several tags appears under each of them; the KPIs above count
+  // leads, not appearances. Groups order by their earliest close date so the
+  // most pressing tag is at the top; Untagged always sinks to the bottom.
+  var groupRecords = function (recs) {
+    var groups = {}, order = [];
+    recs.forEach(function (r) {
+      var tags = Array.isArray(r[CONFIG.groupBy]) ? r[CONFIG.groupBy] : [];
+      if (!tags.length) tags = [CONFIG.untagged];
+      tags.forEach(function (t) {
+        if (!groups[t]) { groups[t] = { name: t, rows: [], value: 0, first: null }; order.push(t); }
+        var g = groups[t]; g.rows.push(r); g.value += Number(r.expected_revenue) || 0;
+        var d = DUE.day(r.date_deadline); if (d && (!g.first || d < g.first)) g.first = d;
+      });
+    });
+    return order.map(function (t) { return groups[t]; }).sort(function (a, b) {
+      if (a.name === CONFIG.untagged) return 1; if (b.name === CONFIG.untagged) return -1;
+      if (a.first && b.first) return a.first - b.first; if (a.first) return -1; if (b.first) return 1;
+      return a.name.localeCompare(b.name);
+    });
+  };
+
   var renderRows = function (animate) {
     var recs = sortRecords(DATA);
     var stats = computeStats(DATA);
     $("head").innerHTML = buildHead();
     var body = $("rows");
     body.className = animate ? "enter" : "";
-    body.innerHTML = recs.map(function (r, ri) {
-      return '<tr style="--i:' + ri + '">' + CONFIG.columns.map(function (c) { return cell(c, r, stats); }).join("") + "</tr>";
+    var ri = 0, span = CONFIG.columns.length;
+    body.innerHTML = groupRecords(recs).map(function (g) {
+      var head = '<tr class="grp" style="--i:' + (ri++) + '"><td colspan="' + span + '">' + esc(g.name) +
+        '<span class="g-n">' + g.rows.length + " " + esc(CONFIG.unit) + '</span><span class="g-v">' + money(g.value) + "</span></td></tr>";
+      return head + g.rows.map(function (r) {
+        return '<tr class="' + (DUE.overdue(r.date_deadline) ? "late" : "") + '" style="--i:' + (ri++) + '">' +
+          CONFIG.columns.map(function (c) { return cell(c, r, stats); }).join("") + "</tr>";
+      }).join("");
     }).join("");
     bindSort();
   };

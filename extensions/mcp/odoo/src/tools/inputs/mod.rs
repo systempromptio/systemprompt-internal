@@ -33,6 +33,16 @@ pub struct LeadSearchInput {
     pub stage: Option<String>,
     pub user: Option<String>,
     pub limit: Option<u32>,
+    pub open_only: Option<bool>,
+    pub tag: Option<String>,
+    pub sort: Option<LeadSort>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum LeadSort {
+    Created,
+    Deadline,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]

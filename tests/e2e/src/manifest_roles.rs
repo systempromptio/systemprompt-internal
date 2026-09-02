@@ -2,32 +2,38 @@
 //!
 //! The admin/salesperson demo depends on one property: the same gateway, the
 //! same marketplace, but a different manifest per role. roles.yaml declares
-//! one `entity_type: plugin` rule per plugin — commons/demo to `[user]`,
-//! admin to `[admin]` with `default_included: false` — and NO per-skill
-//! rules: every skill and artifact inherits its plugin. These tests pin that
-//! cascade at the wire, against the shipped `services/` tree, through the
-//! real inventory-registered marketplace filter.
+//! one `entity_type: plugin` rule per plugin — commons/demo/workspace to
+//! `[user]`, admin to `[admin]` with `default_included: false` — and NO
+//! per-skill rules: every skill and artifact inherits its plugin. These tests
+//! pin that cascade at the wire, against the shipped `services/` tree, through
+//! the real inventory-registered marketplace filter.
 
 use std::collections::BTreeSet;
 
 use crate::harness::stack::Stack;
 
-const USER_PLUGINS: &[&str] = &["systemprompt-commons", "systemprompt-demo"];
+const USER_PLUGINS: &[&str] = &[
+    "systemprompt-commons",
+    "systemprompt-demo",
+    "systemprompt-workspace",
+];
 const ADMIN_PLUGINS: &[&str] = &["systemprompt-admin"];
-// The user-scoped plugins ship no dashboards: the four business dashboards
-// moved to the admin plugin with show_activity, todo-bulletin is shelved
-// (enabled: false), and the two knowledge dashboards are admin-only because
-// they carry inbound business email — so a user manifest carries no artifact
-// at all.
-const USER_ARTIFACTS: &[&str] = &[];
+// The workspace plugin is the one user-scoped bundle that ships dashboards:
+// every role gets exactly these four. The two knowledge dashboards stay
+// admin-only because they carry inbound business email, and the briefing and
+// inbound-lead views ride with show_activity in the admin plugin.
+const USER_ARTIFACTS: &[&str] = &[
+    "todo-bulletin",
+    "recent-activity",
+    "pipeline-open-deals",
+    "upcoming-deals",
+];
 const ADMIN_ARTIFACTS: &[&str] = &[
     "admin-users-directory",
     "admin-activity-requests",
     "admin-usage-costs",
     "business-overview",
     "leads-inbound-prospects",
-    "pipeline-open-deals",
-    "recent-activity",
     "knowledge-feed",
     "knowledge-approve-ingestion",
 ];
@@ -143,11 +149,17 @@ async fn an_admin_manifest_carries_the_admin_surface_and_a_users_does_not() {
         );
     }
     assert!(admin_artifacts.is_superset(&user_artifacts));
+    let expected_user: BTreeSet<String> = USER_ARTIFACTS.iter().map(|s| (*s).to_owned()).collect();
+    assert_eq!(
+        user_artifacts, expected_user,
+        "a user manifest carries exactly the four workspace dashboards, nothing else"
+    );
 
     let admin_mcp = ids(&admin, "managed_mcp_servers");
     let user_mcp = ids(&user, "managed_mcp_servers");
-    // knowledge-bank carries no grant at all now: the server and its ingestion
-    // jobs still run, but no skill reaches it, so it must reach no manifest.
+    // knowledge-bank is granted to [admin] only: its proposal tools return
+    // inbound business email verbatim, so it reaches the admin manifest through
+    // the two knowledge dashboards and never a user's.
     for server in ["odoo", "email", "factsheet"] {
         assert!(
             user_mcp.contains(server),
@@ -162,12 +174,14 @@ async fn an_admin_manifest_carries_the_admin_surface_and_a_users_does_not() {
         !user_mcp.contains("systemprompt"),
         "the admin-gated systemprompt MCP server must not reach a user: {user_mcp:?}"
     );
-    for scope in [&user_mcp, &admin_mcp] {
-        assert!(
-            !scope.contains("knowledge-bank"),
-            "knowledge-bank carries no role grant and must reach no manifest: {scope:?}"
-        );
-    }
+    assert!(
+        admin_mcp.contains("knowledge-bank"),
+        "knowledge-bank is granted to [admin] and backs the knowledge dashboards: {admin_mcp:?}"
+    );
+    assert!(
+        !user_mcp.contains("knowledge-bank"),
+        "the admin-gated knowledge-bank server must not reach a user: {user_mcp:?}"
+    );
 
     stack.db.cleanup().await;
 }

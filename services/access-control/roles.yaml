@@ -121,6 +121,11 @@ rules:
     default_included: true
     roles: [user]
   - entity_type: plugin
+    entity_id: systemprompt-workspace
+    access: allow
+    default_included: true
+    roles: [user]
+  - entity_type: plugin
     entity_id: systemprompt-admin
     access: allow
     default_included: false

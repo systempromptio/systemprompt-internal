@@ -53,11 +53,12 @@ Bring the Artifacts library into line with the dashboards your plugins ship: ins
 missing, leave the ones already there alone, and report a clear "installed X of Y" result.
 
 This installs whatever dashboards the **user-scoped** bundles you were granted ship. On this
-instance that is currently none — every dashboard, the four Odoo pages (business overview, inbound
-leads, open pipeline, recent activity) and the three control-plane ones (users, activity, usage), ships
-with the admin bundle and belongs to `systemprompt_setup_admin`. So: if Step 1 showed you hold that
-skill, run this section (expect "0 of 0", which is correct), then that one. If you do not hold it, that
-skill does not exist for you and nothing here is missing.
+instance that is the `systemprompt-workspace` bundle's four Odoo pages — To-Do Bulletin, Upcoming
+Deals, Pipeline — Open Deals, and Recent Activity — Team Notes — which every role holds, so expect
+"4 of 4". The admin bundle's seven (business overview, inbound leads, the two brain@ knowledge pages
+and the three control-plane ones) belong to `systemprompt_setup_admin`: if Step 1 showed you hold that
+skill, run this section, then that one. If you do not hold it, that skill does not exist for you and
+nothing here is missing.
 
 ## How installation works (read this first)
 
@@ -201,7 +202,7 @@ user:
 
 | server | probe |
 |--------|-------|
-| `odoo` | `crm_lead_search` with `{ "limit": 1 }` |
+| `odoo` | `crm_lead_search` with `{ "limit": 1 }` — one probe covers all four workspace dashboards; they share the server |
 
 Call each probe by its **full wire name**, `mcp__<server-id>__<tool>`. The server segment is the id
 exactly as `services/mcp/*.yaml` spells it, **hyphens and all**. Nothing normalises a hyphen to an

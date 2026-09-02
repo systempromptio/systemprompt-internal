@@ -168,9 +168,10 @@ existing example at every step — that is the intended workflow.
    `{"tool": "mcp__odoo__won_leads", "arguments": {...}}`; adjust the
    `COLUMNS` array. The view reads `structuredContent.items` — no parsing.
 3. **Wire it into the plugin**: `services/plugins/systemprompt-admin/config.yaml`
-   → add the artifact id under `artifacts.include` (and the skill id under
-   `skills.include` in step 4). Run `just publish`
-   so the setup-skill bundle gains the new dashboard.
+   for an admin-only view, or `services/plugins/systemprompt-workspace/config.yaml`
+   for one every role should see → add the artifact id under
+   `artifacts.include` (and the skill id under `skills.include` in step 4).
+   Run `just publish` so the setup-skill bundle gains the new dashboard.
 4. **Skill**: `services/skills/won_leads_review/{config.yaml,SKILL.md}` —
    `hosts: [cowork]` if it drives the dashboard; the SKILL.md tells the
    agent when to call the tool and open the artifact.
@@ -196,7 +197,9 @@ surfaces, owned by a different piece of code, edited a different way.
 
 `/systemprompt_setup` executing in Cowork: the agent reads the
 bundled manifest, stages the HTML, calls `create_artifact` once per record,
-and verifies the install — the workspace dashboards appear under *Pinned*. The
+and verifies the install — the four workspace dashboards (`todo-bulletin`,
+`upcoming-deals`, `pipeline-open-deals`, `recent-activity`, from the
+`systemprompt-workspace` bundle) appear under *Pinned*. The
 behaviour is **prose, not code**:
 `services/skills/systemprompt_setup/SKILL.md` plus its
 `scripts/setup.sh`. Edit the SKILL.md to change how the agent installs or
@@ -233,10 +236,10 @@ and renders the feed itself. All styling is inline CSS in that one file
 radius) — edit it, bump the version, run the sync script, re-install as
 stale (section 4). A new dashboard is section 6c step 2.
 
-**This one is a historical illustration.** `knowledge-feed` is shelved
-(`enabled: false`) and `knowledge-bank` now carries no role grant, so it ships
-to nobody — the mechanism is identical for the four live Odoo dashboards, e.g.
-`recent-activity` calling `mcp__odoo__note_search`.
+**This one is admin-only.** `knowledge-feed` ships in the admin bundle and
+`knowledge-bank` is granted to `[admin]`, so a user never sees it — the mechanism is identical for the live Odoo dashboards, e.g.
+`recent-activity` calling `mcp__odoo__note_search` or `upcoming-deals` calling
+`mcp__odoo__crm_lead_search` with `open_only` and `sort: "deadline"`.
 
 ### 7d. Testing all three without Cowork: MCP Inspector
 

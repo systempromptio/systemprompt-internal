@@ -17,7 +17,7 @@ dashboard artifacts → the `infra logs` / `analytics` readback.
 
 | # | Agentforce sells | We run | Skill | Underlying machinery |
 |---|---|---|---|---|
-| 1 | SDR Agent — lead qualification | The morning briefing | `show_activity` (admin) | A series of Odoo queries — `business_overview_data`, `crm_lead_report`, `note_search`, `calendar_event_list`, `task_list`, `activity_list` — into one brief; per-user Odoo record rules; the four business dashboards |
+| 1 | SDR Agent — lead qualification | The morning briefing | `show_activity` (admin) | A series of Odoo queries — `business_overview_data`, `crm_lead_report`, `note_search`, `calendar_event_list`, `task_list`, `activity_list` — into one brief; per-user Odoo record rules; the business dashboards (two admin-only, four from the workspace bundle every role holds) |
 | 2 | Service Agent + Data Cloud 360 | Walk my leads | `update_leads` (admin) | Per lead: `crm_lead_get`, `note_list`, `activity_list`, then a status question and the smallest write that answers it: `crm_lead_update`, `note_add`, `activity_create` |
 | 3 | Sales Engagement — follow-ups | Governed writes | `lead_factsheet` + `demo_approval_hold` (user) | `crm_lead_create`, `factsheet_render`, `attachment_add`, then `note_add` and `email_send` — as the signed-in salesperson; the outbound ones **held for human approval** (MCP MRTR, SEP-2322). The email is confirmed in-band by its drafter first, and its provenance logged back to the lead by the same call |
 | 4 | Einstein Trust Layer | Governed Operations | `demo_secret_refusal` + `demo_blocked_tool` (user), then `demonstrate_governance` (admin) | A credential refused for every caller at $0; a real destructive tool (`crm_lead_delete`) refused for a user and executed for an admin; then the stage-by-stage tour, the live RBAC flip, and `governance_decisions` audit rows including the approver stamp |
@@ -61,9 +61,11 @@ Accounts, passwords, and how to run the demo as a real user instead of the seede
 2. **Seed richer data (optional but better on screen):** create a handful of leads/notes via the `update_leads`
    skill or Odoo UI (`http://localhost:8070`, `admin`/`admin`) so triage has something to rank.
 3. **Cowork:** on the demo machine, `systemprompt-internal-bridge login … --gateway http://localhost:8081`,
-   `bridge sync`, run **systemprompt_setup** — one skill for every role and every host. An admin then
-   runs **systemprompt_setup_admin**, a separate admin-only skill, which installs all seven dashboards
-   (the four business ones and the three control-plane ones ship with the admin bundle).
+   `bridge sync`, run **systemprompt_setup** — one skill for every role and every host; it installs the
+   four workspace dashboards every role holds (To-Do Bulletin, Upcoming Deals, Pipeline — Open Deals,
+   Recent Activity — Team Notes). An admin then runs **systemprompt_setup_admin**, a separate admin-only
+   skill, which installs the seven that ride with the admin bundle (business overview, inbound leads,
+   the two brain@ knowledge pages and the three control-plane ones).
 4. **Verify the manifest** (§3 curl in TESTING-INSTRUCTIONS.md): both users carry `send_email`,
    `lead_factsheet` and the three `demo_*` skills; only `e2e-admin` carries `show_activity`,
    `update_leads`, `demonstrate_governance` and `governance_readback`.

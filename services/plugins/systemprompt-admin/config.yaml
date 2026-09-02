@@ -1,8 +1,8 @@
 plugin:
   id: systemprompt-admin
   name: "Systemprompt Admin — Business Administration & Control Plane"
-  description: "Admin-only: run the business from Odoo — what has been happening, and the leads that need a status — plus the control plane underneath it: operate the stack, prove governance live, and read back what every task cost. Ships the systemprompt CLI and knowledge-bank servers and nine live dashboards — including the brain@ inbox feed and the approval queue that is the only route from an email into Odoo."
-  version: "4.1.0"
+  description: "Admin-only: run the business from Odoo — what has been happening, and the leads that need a status — plus the control plane underneath it: operate the stack, prove governance live, and read back what every task cost. Ships the systemprompt CLI and knowledge-bank servers and seven live dashboards — including the brain@ inbox feed and the approval queue that is the only route from an email into Odoo."
+  version: "4.2.0"
   # Admin-scoped: roles.yaml grants this plugin to [admin] with
   # default_included: false. That single rule closes every skill and artifact
   # below to every other role — they carry no rule of their own, and the
@@ -55,8 +55,9 @@ plugin:
       # manifest, and oauth.scopes in services/mcp/systemprompt.yaml rejects
       # the call at runtime if it gets there anyway.
       - systemprompt
-      # Odoo, for the two business skills and the four business dashboards.
-      # Per-user identity: the admin's own Odoo link, never a service account.
+      # Odoo, for the two business skills and the two admin business
+      # dashboards. Per-user identity: the admin's own Odoo link, never a
+      # service account.
       - odoo
       # The brain@ pipeline: proposal_list feeds the two knowledge dashboards
       # and proposal_decide is their approve button. Admin-scoped by its own
@@ -70,13 +71,13 @@ plugin:
       - admin-users-directory
       - admin-activity-requests
       - admin-usage-costs
-      # The business dashboards, all over the odoo server. They ship with the
-      # admin bundle because show_activity opens them; an artifact may only be
-      # shipped by plugins of one scope, and this is that scope.
+      # The admin-only business dashboards over the odoo server: the
+      # briefing and the inbound-lead triage view. The open pipeline and the
+      # team notes moved to systemprompt-workspace, which every role holds;
+      # an artifact may only be shipped by plugins of one scope, so they are
+      # not repeated here even though show_activity opens them.
       - business-overview
       - leads-inbound-prospects
-      - pipeline-open-deals
-      - recent-activity
       # brain@ inbox: the live feed of captured email, and the approval queue
       # through which an email becomes an Odoo record.
       - knowledge-feed

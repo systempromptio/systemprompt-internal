@@ -1,9 +1,10 @@
 # Set Up the Control Plane
 
-Install the admin bundle's seven dashboards — the four business pages (business overview, inbound
-leads, open pipeline, recent activity) and the three control-plane ones (the user directory, request
-activity, and usage and costs) — into the Artifacts library, and confirm the admin CLI server answers. Safe to run on every new
-session: it reconciles rather than seeds, so re-running is the point, not a waste.
+Install the admin bundle's seven dashboards — the two admin business pages (business overview,
+inbound leads), the two brain@ knowledge pages (knowledge feed, approve ingestion) and the three
+control-plane ones (the user directory, request activity, and usage and costs) — into the Artifacts
+library, and confirm the admin CLI server answers. Safe to run on every new session: it reconciles
+rather than seeds, so re-running is the point, not a waste.
 
 **This skill is admin-only, and the grant is what enforces it.** It ships in the
 `systemprompt-admin` plugin, which `services/access-control/roles.yaml` grants to `[admin]` with
@@ -12,8 +13,10 @@ never mounted for them. Nothing in this file re-checks the role; by the time you
 check has already passed.
 
 **Run `systemprompt_setup` first.** That skill establishes the grant, routes on host, and installs
-whatever the user-scoped bundles ship — on this instance, no dashboards, since all seven ride with the
-admin bundle. This one installs them. The two do not overlap: each stages only its own bundles.
+whatever the user-scoped bundles ship — on this instance, the `systemprompt-workspace` bundle's four
+dashboards (to-do bulletin, upcoming deals, open pipeline, recent activity), which admins hold too.
+This one installs the seven that ride only with the admin bundle. The two do not overlap: each stages
+only its own bundles.
 
 **Preconditions are `systemprompt_setup`'s, not restated here.** It owns the Cowork host check, the
 `create_artifact` / `html_path` contract, the path rules, and the standing rule that there is no
@@ -44,6 +47,7 @@ It copies each dashboard page into the session `outputs/` directory and prints `
 `PLUGINS=`, `COPIED=`, then one ready-made `create_artifact` parameter block per record — `id`,
 `description`, `html_path`, `mcp_tools`, plus a comment with `name`/`starred`/`version` — and finally
 `TOTAL_RECORDS=`. That printed set **is** the bundled set: count it, never assume it. Expect
+`business-overview`, `leads-inbound-prospects`, `knowledge-feed`, `knowledge-approve-ingestion`,
 `admin-users-directory`, `admin-activity-requests`, and `admin-usage-costs`.
 
 Do not read the `.html` files into context — they are large, and they get copied, not retyped.
@@ -62,7 +66,8 @@ with the other's tool allowlist. Build four groups:
   `admin-usage`: an install from before these dashboards were renamed. Offer to remove it; the
   bundled dashboards are its replacement and it can no longer load data.
 
-Leave every non-`admin-*` entry alone. It belongs to `systemprompt_setup` and is not yours to
+Leave every entry that is not one of the seven above alone — `todo-bulletin`, `upcoming-deals`,
+`pipeline-open-deals` and `recent-activity` belong to `systemprompt_setup` and are not yours to
 reconcile here.
 
 ## Step 3 — Install what is missing
@@ -86,7 +91,7 @@ an artifact the user may have edited.
 `annotations.readOnlyHint: true`. The admin CLI tool (`mcp__systemprompt__systemprompt`) is
 deliberately *not* annotated, so the three control-plane dashboards are never cached and always
 refetch on render. That is intended — control-plane numbers must not be stale — and it is why they
-feel slower than the four business pages, whose Odoo read tools are annotated and do cache.
+feel slower than the business pages, whose Odoo read tools are annotated and do cache.
 
 ## Step 4 — Check the admin connection
 
