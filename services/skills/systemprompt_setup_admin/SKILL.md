@@ -8,21 +8,19 @@ rather than seeds, so re-running is the point, not a waste.
 
 **This skill is admin-only, and the grant is what enforces it.** It ships in the
 `systemprompt-admin` plugin, which `services/access-control/roles.yaml` grants to `[admin]` with
-`default_included: false`, so it never appears in a non-admin's signed manifest and its bundle is
-never mounted for them. Nothing in this file re-checks the role; by the time you are reading it, the
-check has already passed.
+`default_included: false`, so it never appears in a non-admin's signed manifest. Nothing in this
+file re-checks the role; by the time you are reading it, the check has already passed. **Never
+diagnose a tool failure as a role, permission or governance problem** — a governance denial arrives
+as an explicit verdict naming the policy, never as a generic tool error.
 
-**Run `systemprompt_setup` first.** That skill establishes the grant, routes on host, and installs
-whatever the user-scoped bundles ship — on this instance, the `systemprompt-workspace` bundle's four
-dashboards (to-do bulletin, upcoming deals, open pipeline, recent activity), which admins hold too.
-This one installs the seven that ride only with the admin bundle. The two do not overlap: each stages
-only its own bundles.
+**This skill uses no shell.** Everything it needs is a file the bridge has already placed in your
+connected workspace, and the only tools it calls are `Glob`, `Read`, `Write`, `list_artifacts`,
+`create_artifact` and the admin CLI server. Do not call `mcp__workspace__bash`; Claude Desktop
+denies it in Cowork sessions on current builds, and nothing here needs it.
 
-**Preconditions are `systemprompt_setup`'s, not restated here.** It owns the Cowork host check, the
-`create_artifact` / `html_path` contract, the path rules, and the standing rule that there is no
-`coworkctl` and no zero-install receipt. If you reached this skill through `systemprompt_setup`,
-those checks have already passed; if you were invoked directly on a host with no Artifacts library,
-stop and say the skill does not apply here.
+**Run `systemprompt_setup` first.** It installs the user-scoped `systemprompt-workspace` bundle's
+four dashboards, which admins hold too. This skill installs the seven that ride only with the admin
+bundle. The two do not overlap.
 
 ## Ask me things like
 
@@ -30,55 +28,37 @@ stop and say the skill does not apply here.
 - "Install the control plane."
 - "Are the governance dashboards installed?"
 
-## Step 1 — Stage the admin bundle
+## Step 1 — Find the bundle the bridge staged
 
-Run the shared staging script **once**, restricted to the admin bundle (it finds the script wherever
-the skills mount lands — do not substitute a guessed path, and never a Windows path):
+On every sync the bridge writes the dashboard bundle into the pre-trusted workspace folder that
+every Cowork session has connected (`~/Systemprompt` on this instance):
 
 ```
-SETUP=$(find "$HOME/mnt" /sessions/*/mnt -name setup.sh -path '*systemprompt?setup*' 2>/dev/null | head -1) \
-  && sh "$SETUP" -- systemprompt-admin || echo "SETUP_SCRIPT_NOT_FOUND"
+<workspace>/systemprompt/artifacts/manifest.json
+<workspace>/systemprompt/artifacts/<id>.html      one page per record, verbatim
 ```
 
-The `-- systemprompt-admin` argument is what keeps this run to the control plane: without it the
-script stages every bundle you have mounted and you would reinstall the workspace dashboards too.
+Locate it with `Glob` for `**/systemprompt/artifacts/manifest.json` across the connected folders,
+then `Read` the manifest. It is small: one record per dashboard —
+`{ "id", "name", "description", "version", "isStarred", "mcpTools": [...], "plugins": [...] }`.
+The pages are not in it and you never read them: `create_artifact` copies a page from its path.
 
-**If that command errors or is denied, do not improvise — take `systemprompt_setup`'s fallback
-ladder**, substituting this bundle for its `'!systemprompt-admin'` filter. A shell that ran prints
-something (at worst `SETUP_SCRIPT_NOT_FOUND`, meaning the mount is there but the script is not) and
-you start at rung 2. A shell that errors or is refused rules out rungs 1 and 2, which are shell
-commands, and sends you to rung 3, which needs only the file tools. Say in the final report that the
-shell was unavailable and name the tool that failed.
+Keep only the records whose `plugins` names `systemprompt-admin`. That printed set **is** the admin
+bundle: count it, never assume it. Expect `business-overview`, `leads-inbound-prospects`,
+`knowledge-feed`, `knowledge-approve-ingestion`, `admin-users-directory`,
+`admin-activity-requests` and `admin-usage-costs`.
 
-Whichever rung you land on, `create_artifact`'s `html_path` is the copy in the outputs dir — never
-the page's path inside the plugin bundle. That mount is not readable by the artifact library.
-
-**Do not report it as a role, permission or governance problem** — see `systemprompt_setup`, which
-owns this rule. You are reading this file only because the `[admin]` grant already passed, and a
-governance denial arrives as an explicit verdict naming its policy, never as a generic tool failure.
-This has already misfired once in production: a shell failure was reported to an admin as "you may
-not hold the admin role", and the whole governed chain had in fact passed, recording
-`scope_check: admin scope grants unrestricted tool access`.
-
-**Reached here directly, without `systemprompt_setup`?** Then no host check has run. If the shell is
-unavailable, do not guess whether this host has an Artifacts library — say the skill needs
-`systemprompt_setup` to route on host first, and stop.
-
-It copies each dashboard page into the session `outputs/` directory and prints `OUTPUTS_DIR=`,
-`PLUGINS=`, `COPIED=`, then one ready-made `create_artifact` parameter block per record — `id`,
-`description`, `html_path`, `mcp_tools`, plus a comment with `name`/`starred`/`version` — and finally
-`TOTAL_RECORDS=`. That printed set **is** the bundled set: count it, never assume it. Expect
-`business-overview`, `leads-inbound-prospects`, `knowledge-feed`, `knowledge-approve-ingestion`,
-`admin-users-directory`, `admin-activity-requests`, and `admin-usage-costs`.
-
-Do not read the `.html` files into context — they are large, and they get copied, not retyped.
+If the manifest is absent, the bridge has not synced since it was installed, or the workspace folder
+is not connected to this session. Say exactly that, tell the user to press **Sync** in the bridge
+(and to connect the `Systemprompt` folder if the session shows none), and stop. Do not look for a
+script, do not copy pages by hand, and do not report a zero-install receipt.
 
 ## Step 2 — Diff bundled against installed
 
-List the artifacts already in the library and match **by `id` only** — never by name, title, or
-"close enough" description. `Activity — Recent Requests` and `Recent Activity — Team Notes` are
-different dashboards from different bundles, and a name match is exactly how one ends up installed
-with the other's tool allowlist. Build four groups:
+Call `list_artifacts` and match **by `id` only** — never by name, title, or "close enough"
+description. `Activity — Recent Requests` and `Recent Activity — Team Notes` are different
+dashboards from different bundles, and a name match is exactly how one ends up installed with the
+other's tool allowlist. Build four groups:
 
 - **Missing** — bundled but not in the library.
 - **Present** — bundled and already there.
@@ -88,31 +68,35 @@ with the other's tool allowlist. Build four groups:
   bundled dashboards are its replacement and it can no longer load data.
 
 Leave every entry that is not one of the seven above alone — `todo-bulletin`, `upcoming-deals`,
-`pipeline-open-deals` and `recent-activity` belong to `systemprompt_setup` and are not yours to
-reconcile here.
+`pipeline-open-deals` and `recent-activity` belong to `systemprompt_setup`.
 
 ## Step 3 — Install what is missing
 
-For each **missing** record, call the built-in `create_artifact` tool with exactly the printed block
-— sequentially, never in parallel. Include the `mcp_tools` list every time: without it the dashboard
-cannot call its MCP server and will never load data.
+For each **missing** record, call `create_artifact` — sequentially, never in parallel — with:
+
+- `id` and `description` from the record,
+- `html_path` set to the page beside the manifest, exactly as `Glob` spelled the directory:
+  `<workspace>/systemprompt/artifacts/<id>.html`. That folder is connected, so the path is accepted
+  as it is. Never point at the plugin or skills directories, and never retype a page.
+- `mcp_tools` set to the record's `mcpTools`, verbatim. Without it the dashboard cannot call its
+  MCP server and will never load data.
+- `name` and `starred` from the record if the tool's schema exposes such fields; otherwise skip
+  them silently.
 
 **Verify** with one `list_artifacts` after the batch: every bundled id must appear, **and each
 installed record must carry the same tool allowlist as its manifest record** — compare the listed
-`mcp_tools` against the record's `mcpTools` for that id, verbatim. A mismatch renders but every
-fetch fails with "not in this artifact's mcp_tools allowlist", so it is a failed install: delete
-that one artifact, re-run its `create_artifact` from the printed block, and re-verify. An artifact
-counts as installed only when the listing shows it with the right allowlist — never because the
-create call "should have" worked.
+`mcp_tools` (however the library names the field) against the record's `mcpTools`, verbatim. A
+mismatch renders but every fetch fails with "not in this artifact's mcp_tools allowlist", so it is
+a failed install: delete that one artifact, re-run its `create_artifact`, and re-verify. An artifact
+counts as installed only when the listing shows it with the right allowlist.
 
-For each **stale** record, say it is out of date and offer to replace it. Never silently overwrite
-an artifact the user may have edited.
+For each **stale** record, say it is out of date and offer to replace it. Never silently overwrite an
+artifact the user may have edited.
 
 **Caching contract:** Cowork caches a dashboard's MCP results only when the tool advertises
 `annotations.readOnlyHint: true`. The admin CLI tool (`mcp__systemprompt__systemprompt`) is
-deliberately *not* annotated, so the three control-plane dashboards are never cached and always
-refetch on render. That is intended — control-plane numbers must not be stale — and it is why they
-feel slower than the business pages, whose Odoo read tools are annotated and do cache.
+deliberately *not* annotated, so the three control-plane dashboards always refetch on render. That
+is intended — control-plane numbers must not be stale.
 
 ## Step 4 — Check the admin connection
 
@@ -127,33 +111,30 @@ the `systemprompt-admin` plugin grant, its own `entity_type: mcp_server` rule in
 `oauth.scopes` in `services/mcp/systemprompt.yaml` — so a failure here means one of those three, not
 a broken dashboard. Report which, and do not retry the call in a loop.
 
-The dashboards fetch their own data when opened, so a working probe means they will populate.
-
 ## Step 5 — Write a receipt
 
-Write it through the same script so the timestamp is real, not typed:
+`Write` this JSON to `outputs/setup-receipt.json` in the session's outputs directory, with the
+current UTC time in `checkedAt`:
 
 ```
-SETUP=$(find "$HOME/mnt" /sessions/*/mnt -name setup.sh -path '*systemprompt?setup*' 2>/dev/null | head -1) \
-  && sh "$SETUP" receipt '{ "checkedAt": "__NOW__", "plugins": ["systemprompt-admin"], "bundled": N,
-  "installed": N, "created": ["..."], "alreadyPresent": ["..."], "stale": ["..."],
-  "superseded": ["..."], "failed": [] }'
+{ "checkedAt": "<ISO-8601 UTC>", "plugins": ["systemprompt-admin"], "bundled": N, "installed": N,
+  "created": [{ "id": "...", "name": "...", "ref": "..." }],
+  "alreadyPresent": [{ "id": "...", "name": "...", "ref": "..." }],
+  "stale": ["..."], "superseded": ["..."], "failed": [] }
 ```
 
-`bundled` is `TOTAL_RECORDS=`; `installed` is the count confirmed by the final library listing and
-nothing else. The script replaces `__NOW__` with the current UTC time and writes
-`outputs/setup-receipt.json` — never write into the plugin or skills directories, which are
-read-only and replaced wholesale on every sync. This overwrites the workspace run's receipt, which
-is expected: it is a per-run record, not a log. If the write fails, report the same JSON inline
-rather than failing the run.
+`bundled` is the admin record count from Step 1; `installed` is the count confirmed by the final
+listing and nothing else. `ref` is whatever identifying reference `create_artifact` or
+`list_artifacts` exposed for that record (an id, a url — read what the tool gives back). Never write
+into the plugin or skills directories, or into the bundle folder: they are replaced wholesale on
+every sync. If the write fails, report the same JSON inline rather than failing the run.
 
 ## Step 6 — Report honestly
 
-State plainly **"N of M dashboards installed"** (M is the admin bundle's count — seven today — read from
-its manifest, never assumed), N from the verified listing — never a
-number you did not verify, and report a partial result as partial. Then list what was created, what
-was already there, anything stale, superseded, or failed, and whether the admin CLI answered.
-If everything was already present, say so — that is a successful run, not a no-op.
+State plainly **"N of M dashboards installed"** (M from the manifest, never assumed; N from the
+verified listing). List what was created and what was already there by name with its reference,
+anything stale, superseded, or failed, and whether the admin CLI answered. If everything was already
+present, say so — that is a successful run, not a no-op.
 
 Finish by pointing at the two places these dashboards do not cover: `/admin/governance/approvals`,
 where held tool calls wait for a named human, and `/admin/access/users`, where roles are granted.
