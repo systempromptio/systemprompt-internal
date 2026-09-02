@@ -1,8 +1,9 @@
-//! Pure query- and row-shaping for the `crm.lead` tools: the search domain
-//! and order, the list row, the tag-name join, and the detail labels. No I/O
-//! — everything here is directly assertable, which is why [`lead_domain`],
-//! [`lead_order`], [`attach_tag_names`] and [`lead_row`] are exposed to the
-//! external test workspace.
+//! Pure query- and row-shaping for the `crm.lead` tools.
+//!
+//! The search domain and order, the list row, the tag-name join, and the
+//! detail labels. No I/O — everything here is directly assertable, which is why
+//! [`lead_domain`], [`lead_order`], [`attach_tag_names`] and [`lead_row`] are
+//! exposed to the external test workspace.
 
 use std::collections::HashMap;
 

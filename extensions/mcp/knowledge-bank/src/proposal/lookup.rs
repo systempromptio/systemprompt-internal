@@ -1,6 +1,8 @@
-//! Read-only Odoo questions the planner needs answered: is this sender already
-//! a partner or an open lead, can tasks be created here at all, which partner
-//! is the job owner's own, and which colleagues the named assignees are.
+//! Read-only Odoo questions the planner needs answered.
+//!
+//! Is this sender already a partner or an open lead, can tasks be created here
+//! at all, which partner is the job owner's own, and which colleagues the named
+//! assignees are.
 //!
 //! Runs as whichever user the caller resolved — the proposal job uses its
 //! owner's linked account. Nothing here writes.
