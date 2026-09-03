@@ -1,0 +1,57 @@
+{{#> layout title=title page=page}}
+    {{#*inline "head_extra"}}{{/inline}}
+    {{#*inline "content"}}
+
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <a href="/admin/governance">Governance</a>
+        <span aria-hidden="true">›</span>
+        <span aria-current="page">Decisions</span>
+    </nav>
+
+    {{> components/page-header title="Governance Decisions" subtitle=hero_subtitle}}
+
+    <section class="stats-grid-3col">
+        {{> components/stat-card label="Decisions shown" value=total}}
+        {{> components/stat-card label="Allowed" value=allowed variant="success"}}
+        {{> components/stat-card label="Denied" value=denied variant="danger"}}
+    </section>
+
+    {{#if has_rows}}
+    {{#> components/data-table}}
+        <thead><tr>
+            <th class="col-date">Time</th>
+            <th class="col-status">Decision</th>
+            <th>Tool</th>
+            <th>User</th>
+            <th>Scope</th>
+            <th>Reason</th>
+        </tr></thead>
+        <tbody>
+        {{#each rows}}
+        <tr>
+            <td class="col-date"><code class="code-inline">{{created_at}}</code></td>
+            <td class="col-status">
+                {{#if is_deny}}
+                <span class="badge badge-red">DENY</span>
+                {{else}}
+                <span class="badge badge-green">ALLOW</span>
+                {{/if}}
+            </td>
+            <td>{{#if tool_name}}<code class="code-inline">{{tool_name}}</code>{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
+            <td><code class="code-inline">{{truncate user_id 12}}</code></td>
+            <td>{{#if agent_scope}}{{agent_scope}}{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
+            <td>{{#if reason}}{{reason}}{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
+        </tr>
+        {{/each}}
+        </tbody>
+    {{/components/data-table}}
+    {{#if at_limit}}
+    <p class="text-secondary">Showing the {{limit}} most recent decisions for this policy.</p>
+    {{/if}}
+    {{else}}
+    {{> components/empty-state message="No decisions match this filter yet. Pick a policy from the governance dashboard, or run the demonstrate_governance skill to generate some."}}
+    {{/if}}
+
+    {{/inline}}
+    {{#*inline "scripts"}}{{/inline}}
+{{/layout}}

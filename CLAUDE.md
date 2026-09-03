@@ -382,7 +382,6 @@ plugin:
   skills:
     source: explicit
     include:
-      - systemprompt_setup
       - brand
       - send_email
   agents:
@@ -401,22 +400,24 @@ plugin:
 `[admin]` — and every skill and artifact inside it inherits that rule. The cascade is
 skill/artifact → plugin → marketplace and the nearest level that declares any rule decides, so a
 `[admin]` plugin closes its ruleless skills to users even though the marketplace admits them. Never
-write a per-skill `allow` rule; never mix scopes in one plugin. Four plugins ship here, 14 skills
-in total: `systemprompt-commons` (`systemprompt_setup`, `brand`, `send_email` — everyone),
-`systemprompt-demo` (governance, live, `[user]` because the hold and the blocklist exempt admins:
-`demo_approval_hold`, `demo_secret_refusal`, `demo_blocked_tool`, `lead_factsheet`),
-`systemprompt-workspace` (`[user]`: `my_workspace` plus the four dashboards every role sees —
-`todo-bulletin`, `upcoming-deals`, `pipeline-open-deals`, `recent-activity`), and
-`systemprompt-admin` (business administration on Odoo — `show_activity`, `update_leads` — plus the
-control plane: `manage_platform`, `demonstrate_governance`, `governance_readback`,
-`systemprompt_setup_admin`, and the seven admin dashboards: `business-overview`,
-`leads-inbound-prospects`, `knowledge-feed`, `knowledge-approve-ingestion`, and the three
-`admin-*` pages). Every skill is driven by MCP tools the holding
-role's manifest actually carries; the admin CLI passthrough appears only in admin skills. The demo
-skills stage the pipeline's verdicts with real tool calls (a first demo plugin that merely re-narrated
-the admin skills was deleted, and its ids are banned in `tests/e2e/src/skills_artifacts.rs`). Setup is
-split by role at the plugin boundary: everyone gets `systemprompt_setup` (one host-agnostic skill),
-only admins additionally get `systemprompt_setup_admin`.
+write a per-skill `allow` rule; never mix scopes in one plugin. Three plugins ship here, 6 skills
+in total: `systemprompt-business` (`[user]`, everyone including admins: `activity_report` —
+read-only, a business-wide or personal brief, never writes; `manage_leads` — create a lead or walk
+your own open leads to a status, stage moves, revenue, notes, follow-ups; `pending_task` — a guided,
+one-item-at-a-time sweep of everything outstanding (overdue/due activities, open tasks, stale leads)
+that writes back the moment you answer for each one — backing six dashboards —
+`business-overview`, `leads-inbound-prospects`, `pipeline-open-deals`, `upcoming-deals`,
+`recent-activity`, `todo-bulletin`; also owns the session-global governance hooks),
+`systemprompt-demo` (`[user]`, because the hold and the blocklist exempt admins: one unified skill
+`demonstrate_governance` — pick a governance scenario (a held call, a refused secret, a blocked
+tool), run it with real tool calls, then read back the audited decision trail), and
+`systemprompt-admin` (`[admin]`: `systemprompt_setup_admin` — the control plane's one remaining
+skill — plus five dashboards: `admin-users-directory`, `admin-activity-requests`,
+`admin-usage-costs`, `knowledge-feed`, `knowledge-approve-ingestion`). Every skill is driven by MCP
+tools the holding role's manifest actually carries; the admin CLI passthrough appears only in the
+admin plugin. Installing dashboards is admin-only, and `systemprompt_setup_admin` is the one skill
+that does it — it installs every record in the staged manifest, the six business dashboards
+included. `tests/e2e/src/manifest_roles.rs` pins the shape.
 `scripts/validate-services.sh` fails CI on a plugin without a scope rule, an orphaned enabled skill
 or artifact, an allow-type skill rule, two governance-hook owners, or any enabled plugin/skill/artifact
 that depends on a disabled MCP server; core's `ServicesConfig::validate` refuses the last one at boot.

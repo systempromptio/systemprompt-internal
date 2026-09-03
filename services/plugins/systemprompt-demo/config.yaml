@@ -1,8 +1,8 @@
 plugin:
   id: systemprompt-demo
   name: "Systemprompt Demo — Governance, Live"
-  description: "Trip the governance pipeline on purpose and watch it answer: a call held for a second human, a secret refused before it costs anything, a destructive tool blocked by name — plus the full lead-to-factsheet-to-email arc that ends in a held send. Every beat is a real tool call; every outcome is an audit row."
-  version: "3.0.0"
+  description: "Trip the governance pipeline on purpose and watch it answer: a call held for a second human, a secret refused before it costs anything, a destructive tool blocked by name — then read back the audited decision trail for exactly what happened. Every beat is a real tool call; every outcome is an audit row."
+  version: "4.0.0"
   # User-scoped: roles.yaml grants this plugin to [user]. This is the only
   # scope in which the beats work at all — `require_approval` and
   # `tool_blocklist` both exempt admin callers, so a demo plugin granted to
@@ -12,36 +12,30 @@ plugin:
   author:
     name: systemprompt.io
     email: ed@systemprompt.io
-  keywords: [demo, governance, approval, secret-scan, blocklist, audit, crm, factsheet]
+  keywords: [demo, governance, approval, secret-scan, blocklist, audit, crm]
   license: proprietary
   category: demo
   skills:
     source: explicit
     include:
-      # One skill per verdict the pipeline can return. Each is a sequence of
-      # real tool calls the user's own manifest carries — not a description of
-      # what would happen, and not a curl payload posted to the webhook.
-      - demo_approval_hold
-      - demo_secret_refusal
-      - demo_blocked_tool
-      # The end-to-end arc: capture a lead, render a branded sheet, attach it,
-      # email it — with the send parked for approval. It spans all three
-      # servers below, which is why it lives here rather than in commons.
-      - lead_factsheet
+      # One unified skill: pick a scenario (the held call, the refused
+      # secret, the blocked tool), run it with real tool calls, then read
+      # back the audited decision trail. Replaces the three narrow demo
+      # skills and folds in governance_readback's mechanics for the close.
+      - demonstrate_governance
   agents:
     source: explicit
     include: []
   # Named here so this plugin is self-describing, not a hidden dependency on
-  # the admin plugin (which a plain user never receives).
+  # another plugin. Odoo backs the scenario tool calls (crm_lead_search/
+  # create/delete, note_add, channel_post).
   mcp_servers:
     source: explicit
     include:
       - odoo
-      - email
-      - factsheet
   content_sources: {}
-  # No artifacts: the business dashboards ship with the admin plugin.
+  # No artifacts: the business dashboards ship with systemprompt-business.
   artifacts:
     source: explicit
     include: []
-  # No hooks: systemprompt-commons owns the session-global governance hooks.
+  # No hooks: systemprompt-business owns the session-global governance hooks.

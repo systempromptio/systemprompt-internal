@@ -1,7 +1,7 @@
 marketplace:
   id: enterprise-demo
   name: "Systemprompt Internal — Business on Odoo"
-  description: "The AI and communication layer for running the business, with Odoo as the system of record: one setup for every role, governed outbound email, a live governance demo, every user's own workspace on Odoo, business administration over Odoo, and the admin control plane."
+  description: "The AI layer for running the business, with Odoo as the system of record: pipeline management on Odoo for every role, a live governance demo, and the admin control plane."
   version: "8.0.0"
   visibility: public
   author:
@@ -19,25 +19,23 @@ marketplace:
     roles: [user]
     justification: "Public Odoo CRM productivity workspace for signed-in users"
   # One scope per plugin, declared by its entity_type: plugin rule in
-  # services/access-control/roles.yaml: commons, demo and workspace are [user]
-  # (shared by every role — admins hold the user role too); admin is [admin].
-  # Workspace carries the four dashboards every role sees (to-do, recent
-  # activity, open pipeline, upcoming deals) and the skill that reads them. The demo
-  # plugin stages the governance verdicts with real tool calls; it is not a
-  # parallel narration of the admin skills (that version was deleted once).
+  # services/access-control/roles.yaml: business and demo are [user] (shared
+  # by every role — admins hold the user role too); admin is [admin].
+  # Business carries the six dashboards every role sees (business overview,
+  # inbound leads, open pipeline, upcoming deals, recent activity, to-do
+  # bulletin) and the skill that reads and writes them. The demo plugin
+  # stages the governance verdicts with real tool calls; it is not a parallel
+  # narration of the admin skills (that version was deleted once).
   plugins:
     include:
-      - systemprompt-commons
+      - systemprompt-business
       - systemprompt-demo
-      - systemprompt-workspace
       - systemprompt-admin
   mcp_servers:
     source: explicit
     include:
       - odoo
       - systemprompt
-      - email
-      - factsheet
     exclude: []
   # No agents are published by this marketplace. Plugins ship skills, the
   # Odoo MCP server, and artifacts only.

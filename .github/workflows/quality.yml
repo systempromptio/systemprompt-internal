@@ -187,9 +187,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref || github.ref }}
-      - uses: rustsec/audit-check@v2.0.0
+      # Why: rustsec/audit-check builds cargo-audit from source on every run, so
+      # a broken release anywhere in *its* dependency tree fails this job with
+      # nothing wrong in ours — tinyvec 1.13.0 did exactly that. The prebuilt
+      # binary is the same tool and the same path cargo-deny already takes.
+      - uses: taiki-e/install-action@v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          tool: cargo-audit
+      - run: cargo audit
 
   deny:
     name: cargo-deny (licenses, bans, advisories, sources)

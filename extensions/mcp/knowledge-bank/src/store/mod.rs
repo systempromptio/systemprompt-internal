@@ -12,6 +12,11 @@
 //! - an empty or one-character query lists the newest documents, which is what
 //!   a caller orienting themselves actually wants.
 //!
+//! Every read also carries a [`ReadScope`]: an admin reads the whole table,
+//! anyone else reads the curated `reference` documents and nothing else, so
+//! that captured mail never leaves the admin surface. See `query::ReadScope`
+//! for why the clause is default-deny.
+//!
 //! The mode decision and the limit clamp are pure functions so they can be
 //! tested without a database; the queries themselves are exercised by the
 //! integration suite against a throwaway schema.
@@ -23,9 +28,9 @@ pub mod settlement;
 
 pub use proposals::FeedFilter;
 pub use query::{
-    DEFAULT_SEARCH_LIMIT, MAX_CONTENT_BYTES, MAX_LIST_LIMIT, MAX_SEARCH_LIMIT, SearchMode,
-    check_content_size, clamp_search_limit, like_pattern, normalize_optional, require_non_empty,
-    search_mode,
+    DEFAULT_SEARCH_LIMIT, MAX_CONTENT_BYTES, MAX_LIST_LIMIT, MAX_SEARCH_LIMIT, ReadScope,
+    SearchMode, check_content_size, clamp_search_limit, like_pattern, normalize_optional,
+    require_non_empty, search_mode,
 };
 pub use rows::{
     DocumentSummary, EmailMetadata, NewDocument, ProposalDocument, SearchHit, SettleableRow,
@@ -79,9 +84,10 @@ impl KnowledgeStore {
         query: &str,
         project: Option<&str>,
         limit: i64,
+        scope: ReadScope,
     ) -> Result<Vec<SearchHit>, KnowledgeBankError> {
         if search_mode(query) == SearchMode::Newest {
-            return self.newest(project, limit).await;
+            return self.newest(project, limit, scope).await;
         }
 
         let pool = self.read()?;
@@ -104,6 +110,7 @@ impl KnowledgeStore {
             FROM knowledge_documents
             WHERE content_tsv @@ websearch_to_tsquery('english', $1)
               AND ($2::text IS NULL OR project = $2)
+              AND ($4::bool OR status = 'reference')
             ORDER BY
                 ts_rank_cd(content_tsv, websearch_to_tsquery('english', $1)) DESC,
                 created_at DESC
@@ -111,7 +118,8 @@ impl KnowledgeStore {
             "#,
             query,
             project,
-            limit
+            limit,
+            scope.unrestricted()
         )
         .fetch_all(pool.as_ref())
         .await
@@ -125,7 +133,7 @@ impl KnowledgeStore {
         // tokenizer threw away entirely — a partial word, punctuation, a bare
         // stopword. Substring matching separates the two, at the cost of one
         // extra query on a path that already returned nothing.
-        self.search_like(query, project, limit).await
+        self.search_like(query, project, limit, scope).await
     }
 
     async fn search_like(
@@ -133,6 +141,7 @@ impl KnowledgeStore {
         query: &str,
         project: Option<&str>,
         limit: i64,
+        scope: ReadScope,
     ) -> Result<Vec<SearchHit>, KnowledgeBankError> {
         let pool = self.read()?;
         sqlx::query_as!(
@@ -149,13 +158,15 @@ impl KnowledgeStore {
             FROM knowledge_documents
             WHERE (title ILIKE $1 ESCAPE '\' OR content ILIKE $1 ESCAPE '\')
               AND ($2::text IS NULL OR project = $2)
+              AND ($5::bool OR status = 'reference')
             ORDER BY created_at DESC
             LIMIT $3
             "#,
             like_pattern(query),
             project,
             limit,
-            SNIPPET_CHARS
+            SNIPPET_CHARS,
+            scope.unrestricted()
         )
         .fetch_all(pool.as_ref())
         .await
@@ -166,6 +177,7 @@ impl KnowledgeStore {
         &self,
         project: Option<&str>,
         limit: i64,
+        scope: ReadScope,
     ) -> Result<Vec<SearchHit>, KnowledgeBankError> {
         let pool = self.read()?;
         sqlx::query_as!(
@@ -181,12 +193,14 @@ impl KnowledgeStore {
                 left(content, $3) AS "snippet!"
             FROM knowledge_documents
             WHERE ($1::text IS NULL OR project = $1)
+              AND ($4::bool OR status = 'reference')
             ORDER BY created_at DESC
             LIMIT $2
             "#,
             project,
             limit,
-            SNIPPET_CHARS
+            SNIPPET_CHARS,
+            scope.unrestricted()
         )
         .fetch_all(pool.as_ref())
         .await
@@ -197,6 +211,7 @@ impl KnowledgeStore {
         &self,
         project: Option<&str>,
         source: Option<&str>,
+        scope: ReadScope,
     ) -> Result<Vec<DocumentSummary>, KnowledgeBankError> {
         let pool = self.read()?;
         sqlx::query_as!(
@@ -215,12 +230,14 @@ impl KnowledgeStore {
             FROM knowledge_documents
             WHERE ($1::text IS NULL OR project = $1)
               AND ($2::text IS NULL OR source = $2)
+              AND ($4::bool OR status = 'reference')
             ORDER BY created_at DESC
             LIMIT $3
             "#,
             project,
             source,
-            MAX_LIST_LIMIT
+            MAX_LIST_LIMIT,
+            scope.unrestricted()
         )
         .fetch_all(pool.as_ref())
         .await
@@ -235,8 +252,8 @@ impl KnowledgeStore {
         sqlx::query_as!(
             UploadedDocument,
             r#"
-            INSERT INTO knowledge_documents (title, source, project, content, uploaded_by)
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO knowledge_documents (title, source, project, content, uploaded_by, status)
+            VALUES ($1, $2, $3, $4, $5, 'reference')
             RETURNING id, created_at
             "#,
             document.title,

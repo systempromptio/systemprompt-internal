@@ -45,22 +45,15 @@ governance:
     window_secs: 60
   - id: require_approval
     enabled: true
-    # The outbound-facing writes. Everything else on the odoo server —
-    # including the other writes in the same demo step — still runs unattended,
-    # so the contrast on stage is between an allowed write and a held one.
-    #
-    # `email_send` (the email MCP server) is layered, and the two layers are
-    # deliberately different approvals rather than one repeated twice. The tool
-    # itself elicits in-band first, so the drafter confirms their own text; this
-    # stage then holds the call for a SECOND human, which is what `exempt_scopes`
-    # below actually buys — the drafter cannot be the approver. In-band alone
-    # would be self-approval and would prove nothing.
+    # The outbound-facing writes on the odoo server. Everything else on that
+    # server — including the other writes in the same demo step — still runs
+    # unattended, so the contrast on stage is between an allowed write and a
+    # held one.
     #
     # Matching here is a substring of the TOOL NAME only, so this holds every
-    # send, not just the ones leaving our domain. That is correct but noisy;
-    # narrowing it to external recipients needs argument conditioning in the
-    # require_approval policy, which does not exist yet. `note_add` and
-    # `channel_post` are unconditional for the same reason.
+    # `note_add` and `channel_post` call unconditionally, not just some subset
+    # of them. Narrowing it to specific arguments needs argument conditioning
+    # in the require_approval policy, which does not exist yet.
     #
     # `proposal_decide` (knowledge-bank) is deliberately NOT listed. The brain@
     # pipeline opens its own approval_requests row per proposal — that row IS
@@ -70,7 +63,6 @@ governance:
     patterns:
     - channel_post
     - note_add
-    - email_send
     # An admin approving their own call would be a rubber stamp, not a control;
     # exempting the scope keeps the approver and the requester distinct.
     exempt_scopes:

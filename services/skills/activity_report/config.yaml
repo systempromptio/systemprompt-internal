@@ -1,0 +1,17 @@
+id: activity_report
+name: "Activity Report"
+description: "Read what has been happening on Odoo, live, as you: a business-wide brief (pipeline by stage, new leads, notes, meetings, work in flight) or your own day (what you owe, what's closing soonest, what the team wrote). Read-only — never writes. Backed by all six business dashboards."
+enabled: true
+file: SKILL.md
+tags:
+  - odoo
+  - crm
+  - pipeline
+  - status
+  - notes
+  - activities
+  - briefing
+  - reporting
+  - workspace
+category: crm
+display_category: "Business on Odoo"

@@ -10,7 +10,9 @@
 #
 # The bank starts EMPTY. There are no seeded fixtures: a knowledge bank that
 # answers with invented context is worse than one that answers with nothing.
-# Everything in it arrived through `upload_document`.
+# Everything curated in it arrived through `upload_document`, which lands a
+# document in `status = 'reference'` — outside the brain@ pipeline (the
+# categorization job claims `raw`) and readable company-wide.
 #
 # Schema ownership lives with the crate — `extensions/mcp/knowledge-bank/
 # schema/01_knowledge_documents.sql`, registered via `register_extension!` and
@@ -25,11 +27,16 @@
 # ODOO_URL / ODOO_DB are passed through: the server is spawned with a cleared
 # environment (core's process::spawner allowlist), exactly as odoo.yaml does.
 #
-# RBAC: the server is granted to the admin role only (roles.yaml) because the
-# proposal tools return inbound business email verbatim. upload_document and
-# every proposal_* tool additionally require the admin role inside the server,
-# against the authenticated user — the same double-gate pattern the admin
-# surface uses. Uploads are attributed to the authenticated caller
+# RBAC: the server is granted to the user role (roles.yaml), because what that
+# grant opens is the reads — `search_project_context` and `list_documents` —
+# and a non-admin's reads are filtered in-process to `status = 'reference'`,
+# the curated documents. Captured mail is never `reference`, so it never
+# reaches a user, and the filter is default-deny: a status a future pipeline
+# introduces stays invisible until someone deliberately curates a document
+# into it. `upload_document` and every `proposal_*` tool additionally require
+# the admin role inside the server, against the authenticated user — the same
+# double-gate pattern the admin surface uses, off the same `is_admin` the read
+# scope reads. Uploads are attributed to the authenticated caller
 # (`uploaded_by`), never to a value taken from the payload.
 
 mcp_servers:

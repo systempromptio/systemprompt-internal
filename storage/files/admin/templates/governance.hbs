@@ -1,0 +1,135 @@
+{{#> layout title=title page=page}}
+    {{#*inline "head_extra"}}{{/inline}}
+    {{#*inline "content"}}
+    {{> components/page-header title="Governance" subtitle="The policy chain that runs on every tool call — scope check, secret scan, blocklist, rate limit, approval hold — and what it's actually deciding right now."}}
+
+    <div class="stat-grid">
+        {{> components/stat-card label="Decisions · 24h" value=window_total}}
+        {{> components/stat-card label="Allowed · 24h" value=window_allowed variant="success"}}
+        {{> components/stat-card label="Denied · 24h" value=window_denied variant="danger"}}
+        {{#if window_breaches}}
+        {{> components/stat-card label="Secret breaches · 24h" value=window_breaches variant="danger"}}
+        {{else}}
+        {{> components/stat-card label="Secret breaches · 24h" value=window_breaches}}
+        {{/if}}
+        {{> components/stat-card label="Decisions · all time" value=lifetime_total}}
+    </div>
+
+    <p class="text-secondary">
+        Policies are Rust code, registered at compile time; order, enable state and
+        per-policy parameters live in <code class="code-inline">{{config_path}}</code>.
+        The most common source of governed calls is a skill invocation —
+        see <a href="/admin/entities/skills">skill usage</a> for who is
+        running what.
+    </p>
+
+    <h2>Policy chain (last 24h)</h2>
+    {{#if has_policies}}
+    {{#> components/data-table}}
+        <thead><tr>
+            <th>Policy</th>
+            <th class="col-status">State</th>
+            <th class="numeric">Evaluations</th>
+            <th class="numeric">Allowed</th>
+            <th class="numeric">Denied</th>
+            <th class="numeric">Deny rate</th>
+            <th class="col-date">Last fired</th>
+            <th class="col-status">Actions</th>
+        </tr></thead>
+        <tbody>
+        {{#each policies}}
+        <tr{{#unless enabled}} class="row-muted"{{/unless}}>
+            <td>
+                <strong>{{name}}</strong><br>
+                <code class="code-inline">{{id}}</code>
+                <p class="text-tertiary">{{description}}</p>
+            </td>
+            <td class="col-status">
+                {{#if enabled}}
+                <span class="mcp-badge mcp-badge-success">ENABLED</span>
+                {{else}}
+                <span class="mcp-badge">DISABLED</span>
+                {{/if}}
+            </td>
+            <td class="numeric">{{window_evaluations}}</td>
+            <td class="numeric text-success">{{window_allowed}}</td>
+            <td class="numeric">
+                {{#if has_recent_denies}}
+                <a class="text-danger" href="{{deny_decisions_url}}"><strong>{{window_denied}}</strong></a>
+                {{else}}
+                {{window_denied}}
+                {{/if}}
+            </td>
+            <td class="numeric">{{deny_rate}}</td>
+            <td class="col-date">{{#if last_at}}{{last_at}}{{else}}—{{/if}}</td>
+            <td class="col-status">
+                <a href="{{decisions_url}}" class="btn btn-sm btn-outline">Open</a>
+            </td>
+        </tr>
+        {{/each}}
+        </tbody>
+    {{/components/data-table}}
+    {{else}}
+    {{> components/empty-state message="No policies registered."}}
+    {{/if}}
+
+    <div class="enforcement-section__grid">
+        <div>
+            <h3>Top denying tool calls · 24h</h3>
+            {{#if has_top_policies}}
+            {{#> components/data-table}}
+                <thead><tr>
+                    <th>Policy</th>
+                    <th>Tool</th>
+                    <th class="numeric">Denies</th>
+                    <th class="numeric">Distinct actors</th>
+                </tr></thead>
+                <tbody>
+                {{#each top_policies}}
+                <tr>
+                    <td><a href="{{decisions_url}}"><code class="code-inline">{{policy}}</code></a></td>
+                    <td><code class="code-inline">{{tool_name}}</code></td>
+                    <td class="numeric text-danger"><strong>{{hits}}</strong></td>
+                    <td class="numeric">{{distinct_actors}}</td>
+                </tr>
+                {{/each}}
+                </tbody>
+            {{/components/data-table}}
+            {{else}}
+            {{> components/empty-state message="No denied tool calls in the last 24h. Run the demonstrate_governance skill to generate some."}}
+            {{/if}}
+        </div>
+
+        <div>
+            <h3>Top denied actors · 24h</h3>
+            {{#if has_top_actors}}
+            {{#> components/data-table}}
+                <thead><tr>
+                    <th>User</th>
+                    <th class="numeric">Denies</th>
+                    <th class="numeric">Secret blocks</th>
+                    <th class="numeric">Total decisions</th>
+                </tr></thead>
+                <tbody>
+                {{#each top_actors}}
+                <tr>
+                    <td>
+                        <strong>{{display_name}}</strong>
+                        {{#if email}}<br><span class="text-muted">{{email}}</span>{{/if}}
+                    </td>
+                    <td class="numeric text-danger"><strong>{{deny_count}}</strong></td>
+                    <td class="numeric">{{secret_count}}</td>
+                    <td class="numeric">{{total}}</td>
+                </tr>
+                {{/each}}
+                </tbody>
+            {{/components/data-table}}
+            {{else}}
+            {{> components/empty-state message="No actor denies in the last 24h."}}
+            {{/if}}
+        </div>
+    </div>
+
+    {{/inline}}
+    {{#*inline "scripts"}}{{/inline}}
+{{/layout}}

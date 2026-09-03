@@ -1,0 +1,65 @@
+plugin:
+  id: systemprompt-business
+  name: "Systemprompt Business — Run the Pipeline on Odoo"
+  description: "What every signed-in user gets: read what's happening on Odoo — a business-wide brief or your own day — create and update leads, stages, notes, and follow-ups, and sweep everything outstanding one item at a time, all as you. Six live dashboards back the three skills: the business overview, inbound leads, open pipeline, upcoming deals, recent team notes, and a to-do bulletin."
+  version: "2.0.0"
+  # User-scoped and shared by every role: roles.yaml grants this plugin to
+  # [user] with default_included: true, and admins hold the user role too
+  # (services/access-control/odoo-roles.yaml default_roles). The three skills
+  # and six dashboards below carry no rule of their own — they inherit this
+  # plugin's grant (tests/e2e/src/manifest_roles.rs pins this).
+  enabled: true
+  author:
+    name: systemprompt.io
+    email: ed@systemprompt.io
+  keywords: [odoo, crm, leads, pipeline, deals, deadlines, notes, approval, workspace, reporting, follow-up]
+  license: proprietary
+  category: crm
+  skills:
+    source: explicit
+    include:
+      # Read-only: business-wide brief, personal "my day" brief. Never writes.
+      - activity_report
+      # Act: create a lead, walk & update leads (a single named change or a
+      # short walk of your own open leads).
+      - manage_leads
+      # A guided, one-item-at-a-time sweep of everything outstanding —
+      # overdue/due activities, open tasks, stale leads — that writes back
+      # the moment you answer for each one.
+      - pending_task
+  agents:
+    source: explicit
+    include: []
+  # The server the skill calls, granted to `user` in roles.yaml. Every call
+  # runs as the caller with their own Odoo login and API key; Odoo's own
+  # record rules decide what they can see.
+  mcp_servers:
+    source: explicit
+    include:
+      - odoo
+  content_sources: {}
+  artifacts:
+    source: explicit
+    include:
+      # business_overview_data etc.: the business-wide brief's standing view.
+      - business-overview
+      # crm_lead_search + note_list: the inbound-lead triage view.
+      - leads-inbound-prospects
+      # crm_lead_search open_only: the live open pipeline table.
+      - pipeline-open-deals
+      # crm_lead_search open_only, sort deadline: grouped by tag, due first.
+      - upcoming-deals
+      # note_search: the chatter the brain@ pipeline and the team post.
+      - recent-activity
+      # activity_list + task_list, with activity_complete as the tick.
+      - todo-bulletin
+  # Claude Code runs plugin hooks session-globally, so the governance hooks are
+  # declared once, here, and cover every tool call in the session. No other
+  # plugin may set this — each extra owner is another govern call per tool,
+  # and core refuses two enabled owners at load. This plugin owns it because
+  # it replaces systemprompt-commons, the previous owner.
+  hooks:
+    governance: true
+    # No `comms: true`: the bridge's announcement-drain hooks (UserPromptSubmit
+    # and Stop running `comms-drain`) stay uninstalled. This instance publishes
+    # no announcements, so there is nothing for them to drain.

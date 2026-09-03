@@ -33,9 +33,12 @@ GET    /admin/entities/requests                              anonymous=307 non-a
 GET    /admin/entities/requests/{request_id}                 anonymous=307 non-admin=303 admin=404
 GET    /admin/entities/sessions                              anonymous=307 non-admin=303 admin=200
 GET    /admin/entities/sessions/{session_id}                 anonymous=307 non-admin=303 admin=404
+GET    /admin/entities/skills                                anonymous=307 non-admin=303 admin=200
 GET    /admin/entities/traces                                anonymous=307 non-admin=303 admin=200
 GET    /admin/entities/traces/{trace_id}                     anonymous=307 non-admin=303 admin=404
+GET    /admin/governance                                     anonymous=307 non-admin=303 admin=200
 GET    /admin/governance/approvals                           anonymous=307 non-admin=303 admin=200
+GET    /admin/governance/decisions                           anonymous=307 non-admin=303 admin=200
 GET    /admin/login                                          anonymous=200 non-admin=200 admin=200
 GET    /admin/login/operator                                 anonymous=200 non-admin=200 admin=200
 GET    /admin/profile                                        anonymous=307 non-admin=200 admin=200

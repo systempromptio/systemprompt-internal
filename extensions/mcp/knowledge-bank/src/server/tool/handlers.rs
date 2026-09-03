@@ -17,6 +17,7 @@ use crate::store::{
 };
 use crate::tools::{ListInput, SearchInput, TOOL_LIST, TOOL_SEARCH, TOOL_UPLOAD, UploadInput};
 
+use super::read_scope;
 use super::render::{listing_summary, project_label, search_summary};
 
 fn text_artifact(title: &str, body: &str) -> CliArtifact {
@@ -42,14 +43,14 @@ impl McpToolHandler for SearchHandler {
     async fn handle(
         &self,
         input: Self::Input,
-        _ctx: &SysRequestContext,
+        ctx: &SysRequestContext,
         _exec_id: &McpExecutionId,
     ) -> Result<(Self::Output, String), McpError> {
         let limit = clamp_search_limit(input.limit);
         let project = normalize_optional(input.project);
         let hits = self
             .store
-            .search(&input.query, project.as_deref(), limit)
+            .search(&input.query, project.as_deref(), limit, read_scope(ctx))
             .await
             .map_err(|e| McpError::internal_error(e.to_string(), None))?;
 
@@ -82,14 +83,14 @@ impl McpToolHandler for ListHandler {
     async fn handle(
         &self,
         input: Self::Input,
-        _ctx: &SysRequestContext,
+        ctx: &SysRequestContext,
         _exec_id: &McpExecutionId,
     ) -> Result<(Self::Output, String), McpError> {
         let project = normalize_optional(input.project);
         let source = normalize_optional(input.source);
         let documents = self
             .store
-            .list_documents(project.as_deref(), source.as_deref())
+            .list_documents(project.as_deref(), source.as_deref(), read_scope(ctx))
             .await
             .map_err(|e| McpError::internal_error(e.to_string(), None))?;
 

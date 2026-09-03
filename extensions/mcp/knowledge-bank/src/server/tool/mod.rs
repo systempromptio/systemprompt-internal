@@ -15,7 +15,7 @@ pub mod render;
 
 pub use render::{NO_DOCUMENTS, NO_MATCHES, listing_summary, search_summary};
 
-use crate::store::KnowledgeStore;
+use crate::store::{KnowledgeStore, ReadScope};
 use crate::tools::{
     TOOL_LIST, TOOL_PROPOSAL_DECIDE, TOOL_PROPOSAL_GET, TOOL_PROPOSAL_LIST, TOOL_SEARCH,
     TOOL_UPLOAD,
@@ -93,13 +93,27 @@ pub(super) async fn authenticate_tool_request(
     }
 }
 
+// Why: the one place "is this caller an admin" is answered — the writing tools
+// gate on it and `read_scope` sizes a read with it, so the two can never
+// disagree.
 #[doc(hidden)]
-pub fn require_admin(request_context: &SysRequestContext, tool_name: &str) -> Result<(), McpError> {
-    let is_admin = request_context
+#[must_use]
+pub fn is_admin(request_context: &SysRequestContext) -> bool {
+    request_context
         .user
         .as_ref()
-        .is_some_and(AuthenticatedUser::is_admin);
-    if is_admin {
+        .is_some_and(AuthenticatedUser::is_admin)
+}
+
+#[doc(hidden)]
+#[must_use]
+pub fn read_scope(request_context: &SysRequestContext) -> ReadScope {
+    ReadScope::from_admin(is_admin(request_context))
+}
+
+#[doc(hidden)]
+pub fn require_admin(request_context: &SysRequestContext, tool_name: &str) -> Result<(), McpError> {
+    if is_admin(request_context) {
         Ok(())
     } else {
         Err(McpError::invalid_request(

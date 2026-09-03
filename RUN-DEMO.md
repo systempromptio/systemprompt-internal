@@ -75,7 +75,7 @@ TOKEN=$(systemprompt admin session login --email <your-actor> --token-only --pro
 curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8081/v1/bridge/manifest \
   | python3 -c "import json,sys;p=json.loads(json.load(sys.stdin)['payload']);print(sorted(s['id'] for s in p['skills']))"
 # salesperson: brand, demo_approval_hold, demo_blocked_tool, demo_secret_refusal,
-#              lead_factsheet, send_email, systemprompt_setup
+#              lead_factsheet, send_email          (no setup skill — installing is admin-only)
 # admin: those plus demonstrate_governance, governance_readback, manage_platform,
 #              show_activity, systemprompt_setup_admin, update_leads
 ```

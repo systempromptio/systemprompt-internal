@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE knowledge_documents\n        SET metadata = COALESCE(metadata, '{}'::jsonb)\n                || jsonb_build_object(\n                    'categorization_attempts', $2::int,\n                    'categorization_error', $3::text,\n                    'categorization_failed_at', now()\n                ),\n            status = CASE WHEN $2 >= $4 THEN 'skipped' ELSE status END,\n            skip_reason = CASE WHEN $2 >= $4 THEN 'categorization_failed' ELSE skip_reason END\n        WHERE id = $1 AND status = 'raw'\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4",
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fee74a6ee89ecdc274b55e649ede6ec9de82625510af8ef6b9daa3ce7b296a53"
+}

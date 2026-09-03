@@ -196,11 +196,8 @@ extensions/web/admin/src/repositories/users/queries/mod.rs	# internal re-exports
 # point these entries stop differing and the gate deletes them for us.
 # ---------------------------------------------------------------------
 extensions/web/admin/src/repositories/config/gateway/catalog.rs	# reads the gateway + providers from ServicesBootstrap; the template still reads profile.gateway / profile.providers
-extensions/web/admin/src/repositories/config/gateway/matching.rs	# slugify_pattern and synthesize_route_id moved models::profile -> models::services in core 0.44
-extensions/web/admin/src/repositories/config/gateway/mod.rs	# re-exports registered_routes_from_services; the template still exports registered_routes_from_profile
-extensions/web/admin/src/handlers/access_control.rs	# calls registered_routes_from_services, renamed with the source of the routes
-extensions/web/admin/src/handlers/entity_access/mod.rs	# calls registered_routes_from_services, renamed with the source of the routes
 extensions/web/admin/src/handlers/entity_access/support.rs	# collects gateway_route ids from ServicesBootstrap rather than ProfileBootstrap
 extensions/web/jobs/src/governance_bootstrap.rs	# reconciles routes read from the services tree, and stamps provenance as services:<path>
 extensions/web/jobs/src/error.rs	# JobError converts ConfigLoadError, which only the services bootstrap raises
 extensions/web/shared/src/error.rs	# MarketplaceError gains a Services variant for ConfigLoadError from the services bootstrap
+extensions/web/admin/src/handlers/ssr/ssr_governance_decisions.rs	# internal scopes the ledger to one policy stage as the dashboard's drill-through; the fork ships the fuller filterable ledger

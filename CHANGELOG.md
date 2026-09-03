@@ -5,6 +5,46 @@ All notable changes to this repository are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The governance and skill-usage templates meet the front-end standards: the two
+  inline `style` attributes are gone, `.enforcement-section__grid` has a real
+  rule (and stacks under 900px), the ad-hoc `.num` class reuses the existing
+  `.numeric` table convention, and `.row-muted`/`.text-success` join the
+  utilities beside `.text-danger`.
+- `cargo-audit` runs from the prebuilt binary (`taiki-e/install-action`, the same
+  path `cargo-deny` already takes) instead of `rustsec/audit-check`, which builds
+  the tool from source on every run — a broken `tinyvec 1.13.0` release failed
+  the job with nothing wrong in this tree.
+- `systemprompt-web-admin` builds on its own again. Its SSR handlers reference
+  items gated behind `governance-ssr`, but only the workspace root enabled that
+  feature, so `cargo <cmd> -p systemprompt-web-admin` — which CI runs as its own
+  step — could not compile the crate at all while the whole-workspace build was
+  green. The feature is on by default in the crate now; it stays a feature so the
+  files can remain identical to the template fork, which compiles the queries out.
+- The admin HTTP contract baseline records `/admin/entities/skills`,
+  `/admin/governance` and `/admin/governance/decisions`, which were added with
+  the governance dashboards but never recorded. All three answer the same way as
+  every other admin route — anonymous 307 to login, non-admin 303, admin 200.
+- Knowledge-bank is admin-only again. `roles.yaml` had been changed to grant the
+  MCP server to `[user]` with `default_included: true`, and the manifest test
+  changed to match, but no user-scoped plugin ships the server — a manifest
+  carries a server only if a plugin the holder has ships it — so the grant
+  described access no user could exercise and the suite went red. The grant is
+  back to `[admin]` / `default_included: false`, reaching no signed manifest by
+  default, and the test asserts that of both manifests again. The in-process
+  read filter and the `require_admin` checks on the write and proposal tools are
+  untouched; they sit behind the grant rather than in place of it.
+- `bridge/CORE_REF` pins core `d975063842910a5bbc460d72c0cb9ef94b0c5d4d` (core
+  `next`, workspace version 0.45.0) rather than the `v0.45.0` tag, so the
+  0.45.0 bridge carries the macOS fixes that landed after that tag was cut: the
+  entropy backstop no longer denying `$TMPDIR`-shaped paths (which failed every
+  Claude Code request from an affected Mac), managed MCP servers that can
+  authenticate on macOS, connectors that actually sync there, and org-plugins
+  provisioning that no longer fails closed on a missing directory. The pinned
+  commit's own version is 0.45.0, so the release workflow's core-of-the-pinned-
+  version assertion holds.
+
 ### Added
 
 - `.github/workflows/release.yml` publishes on every merge to `main`: the

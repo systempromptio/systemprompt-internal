@@ -19,6 +19,7 @@ use super::yaml_io::{ensure_gateway_mut, read_gateway_file, write_gateway_file};
 
 pub fn get_gateway_config() -> Result<GatewayConfigView, MarketplaceError> {
     let services = ServicesBootstrap::get()
+        // Why: lint-ok: error-adapt — ConfigLoadError is core's variant-less loader error.
         .map_err(|e| MarketplaceError::Internal(format!("services tree is not loaded: {e}")))?;
     let gateway = services.gateway_config().ok_or_else(|| {
         // Why: an absent catalog is an error, never an empty list. The

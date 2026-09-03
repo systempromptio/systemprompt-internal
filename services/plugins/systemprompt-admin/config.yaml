@@ -1,8 +1,8 @@
 plugin:
   id: systemprompt-admin
-  name: "Systemprompt Admin — Business Administration & Control Plane"
-  description: "Admin-only: run the business from Odoo — what has been happening, and the leads that need a status — plus the control plane underneath it: operate the stack, prove governance live, and read back what every task cost. Ships the systemprompt CLI and knowledge-bank servers and seven live dashboards — including the brain@ inbox feed and the approval queue that is the only route from an email into Odoo."
-  version: "4.2.0"
+  name: "Systemprompt Admin — Control Plane"
+  description: "Admin-only: first-run setup, the only skill that installs dashboards. Ships the systemprompt CLI and knowledge-bank servers and five live dashboards, including the brain@ inbox feed and the approval queue that is the only route from an email into Odoo."
+  version: "6.0.0"
   # Admin-scoped: roles.yaml grants this plugin to [admin] with
   # default_included: false. That single rule closes every skill and artifact
   # below to every other role — they carry no rule of their own, and the
@@ -14,35 +14,22 @@ plugin:
   author:
     name: systemprompt.io
     email: ed@systemprompt.io
-  keywords: [admin, odoo, crm, leads, activity, governance, analytics, audit, operations, control-plane]
+  keywords: [admin, governance, analytics, audit, operations, control-plane, knowledge]
   license: proprietary
   category: admin
   skills:
     source: explicit
     include:
-      # Business administration on Odoo, two front doors. show_activity is
-      # the read side: a series of Odoo queries into one brief of everything
-      # that has been happening. update_leads is the write side: create a
-      # lead, or walk the admin's own leads asking for a status and applying
-      # it. They replaced `inspect` and `report`, which were CLI manuals over
-      # the passthrough server rather than skills that did anything, and
-      # absorbed `crm`, `business_overview` and the pipeline half of the
-      # retired user plugin.
-      - show_activity
-      - update_leads
-      # The control plane. manage_platform mutates live state (the stack and
-      # a user's roles); demonstrate_governance exercises every policy stage
-      # and reads the decisions back; governance_readback is the per-task
-      # cost and audit readback. The last one moved here from commons: its
-      # commands run through the admin passthrough server, so a user-role
-      # grant was a skill that could not be run by the role that held it.
-      - manage_platform
-      - demonstrate_governance
-      - governance_readback
-      # Control-plane first-run setup. Admin-only by this plugin's grant alone —
-      # a user's manifest never carries it, so systemprompt_setup never names it
-      # to them.
+      # First-run setup, and the only dashboard installer on the instance.
+      # Admin-only by this plugin's grant alone. It installs every record in
+      # the staged manifest — the five admin pages below and the six
+      # systemprompt-business pages — because installing artifacts is an
+      # admin job; no other plugin ships a setup skill.
       - systemprompt_setup_admin
+      # The business skill (manage_leads) that moved to systemprompt-business,
+      # and the governance demo, moved to systemprompt-demo, are not repeated
+      # here — every role including admins holds them through the user-scoped
+      # plugins.
   agents:
     source: explicit
     include: []
@@ -55,13 +42,11 @@ plugin:
       # manifest, and oauth.scopes in services/mcp/systemprompt.yaml rejects
       # the call at runtime if it gets there anyway.
       - systemprompt
-      # Odoo, for the two business skills and the two admin business
-      # dashboards. Per-user identity: the admin's own Odoo link, never a
-      # service account.
-      - odoo
       # The brain@ pipeline: proposal_list feeds the two knowledge dashboards
       # and proposal_decide is their approve button. Admin-scoped by its own
-      # rule in roles.yaml as well as by this plugin.
+      # rule in roles.yaml as well as by this plugin. No `odoo` here:
+      # systemprompt_setup_admin doesn't call it, and the two Odoo-backed
+      # admin dashboards moved to systemprompt-business.
       - knowledge-bank
   content_sources: {}
   artifacts:
@@ -71,15 +56,8 @@ plugin:
       - admin-users-directory
       - admin-activity-requests
       - admin-usage-costs
-      # The admin-only business dashboards over the odoo server: the
-      # briefing and the inbound-lead triage view. The open pipeline and the
-      # team notes moved to systemprompt-workspace, which every role holds;
-      # an artifact may only be shipped by plugins of one scope, so they are
-      # not repeated here even though show_activity opens them.
-      - business-overview
-      - leads-inbound-prospects
       # brain@ inbox: the live feed of captured email, and the approval queue
       # through which an email becomes an Odoo record.
       - knowledge-feed
       - knowledge-approve-ingestion
-  # No hooks: systemprompt-commons owns the session-global governance hooks.
+  # No hooks: systemprompt-business owns the session-global governance hooks.

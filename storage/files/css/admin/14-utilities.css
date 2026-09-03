@@ -47,5 +47,7 @@
 .text-secondary { color: var(--sp-text-secondary); }
 .text-tertiary { color: var(--sp-text-tertiary); }
 .text-danger { color: var(--sp-danger); }
+.text-success { color: var(--sp-success); }
+.row-muted { opacity: 0.55; }
 .w-full { width: 100%; }
 }

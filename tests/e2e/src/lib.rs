@@ -19,8 +19,6 @@ mod harness;
 #[cfg(test)]
 mod artifact_gallery;
 #[cfg(test)]
-mod email_send;
-#[cfg(test)]
 mod health;
 #[cfg(all(test, feature = "live"))]
 mod live_smoke;

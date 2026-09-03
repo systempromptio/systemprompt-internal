@@ -1,0 +1,57 @@
+{{#> layout title=title page=page}}
+    {{#*inline "head_extra"}}{{/inline}}
+    {{#*inline "content"}}
+    {{> components/page-header title=title subtitle="Which skills get used, by whom, and roughly what they cost."}}
+
+    <p class="text-secondary">
+        Skill invocations run through the same policy chain as every other
+        tool call — see the <a href="/admin/governance">governance
+        dashboard</a> for what got allowed, denied, or held.
+    </p>
+
+    <section class="contexts-kpis" aria-label="Skill usage KPIs">
+      {{#each page_stats}}
+      {{> components/stat-card label=label value=(formatNumber value)}}
+      {{/each}}
+    </section>
+
+    <section aria-label="Skill usage">
+        {{#if skills}}
+        {{#> components/data-table}}
+            <thead><tr>
+                <th>Skill</th>
+                <th class="numeric col-numeric">Invocations</th>
+                <th class="numeric col-numeric">Users</th>
+                <th class="numeric col-numeric">Sessions (est.)</th>
+                <th class="numeric col-numeric">Tokens (est.)</th>
+                <th class="numeric col-numeric">Cost (est.)</th>
+                <th class="col-date">Last used</th>
+            </tr></thead>
+            <tbody>
+            {{#each skills}}
+            <tr>
+                <td><span class="badge badge-blue">{{skill_id}}</span></td>
+                <td class="numeric">{{formatNumber invocation_count}}</td>
+                <td class="numeric">{{formatNumber distinct_users}}</td>
+                <td class="numeric">{{formatNumber estimated_session_count}}</td>
+                <td class="numeric">{{formatNumber estimated_tokens}}</td>
+                <td class="numeric">${{estimated_cost_usd}}</td>
+                <td class="col-date">
+                    {{#if last_used_at}}<span title="{{formatDate last_used_at}}">{{relativeTime last_used_at}}</span>
+                    {{else}}<span class="text-tertiary">Never</span>{{/if}}
+                </td>
+            </tr>
+            {{/each}}
+            </tbody>
+        {{/components/data-table}}
+        <p class="text-tertiary text-xs mt-3">
+            Sessions, tokens, and cost are session-attributed estimates: any AI
+            request in the same session as a skill invocation is counted
+            toward it, not just requests the skill itself made.
+        </p>
+        {{else}}
+        {{> components/empty-state message="No skill invocations recorded yet."}}
+        {{/if}}
+    </section>
+    {{/inline}}
+{{/layout}}

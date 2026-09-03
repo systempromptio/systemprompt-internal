@@ -2,38 +2,33 @@
 //!
 //! The admin/salesperson demo depends on one property: the same gateway, the
 //! same marketplace, but a different manifest per role. roles.yaml declares
-//! one `entity_type: plugin` rule per plugin — commons/demo/workspace to
-//! `[user]`, admin to `[admin]` with `default_included: false` — and NO
-//! per-skill rules: every skill and artifact inherits its plugin. These tests
-//! pin that cascade at the wire, against the shipped `services/` tree, through
-//! the real inventory-registered marketplace filter.
+//! one `entity_type: plugin` rule per plugin — business/demo to `[user]`,
+//! admin to `[admin]` with `default_included: false` — and NO per-skill
+//! rules: every skill and artifact inherits its plugin. These tests pin that
+//! cascade at the wire, against the shipped `services/` tree, through the
+//! real inventory-registered marketplace filter.
 
 use std::collections::BTreeSet;
 
 use crate::harness::stack::Stack;
 
-const USER_PLUGINS: &[&str] = &[
-    "systemprompt-commons",
-    "systemprompt-demo",
-    "systemprompt-workspace",
-];
+const USER_PLUGINS: &[&str] = &["systemprompt-business", "systemprompt-demo"];
 const ADMIN_PLUGINS: &[&str] = &["systemprompt-admin"];
-// The workspace plugin is the one user-scoped bundle that ships dashboards:
-// every role gets exactly these four. The two knowledge dashboards stay
-// admin-only because they carry inbound business email, and the briefing and
-// inbound-lead views ride with show_activity in the admin plugin.
+// The business plugin is the one user-scoped bundle that ships dashboards:
+// every role gets exactly these six. The two knowledge dashboards stay
+// admin-only because they carry inbound business email.
 const USER_ARTIFACTS: &[&str] = &[
     "todo-bulletin",
     "recent-activity",
     "pipeline-open-deals",
     "upcoming-deals",
+    "business-overview",
+    "leads-inbound-prospects",
 ];
 const ADMIN_ARTIFACTS: &[&str] = &[
     "admin-users-directory",
     "admin-activity-requests",
     "admin-usage-costs",
-    "business-overview",
-    "leads-inbound-prospects",
     "knowledge-feed",
     "knowledge-approve-ingestion",
 ];
@@ -157,16 +152,10 @@ async fn an_admin_manifest_carries_the_admin_surface_and_a_users_does_not() {
 
     let admin_mcp = ids(&admin, "managed_mcp_servers");
     let user_mcp = ids(&user, "managed_mcp_servers");
-    // knowledge-bank is granted to [admin] with default_included: false, so
-    // it reaches no manifest by default in this harness — an admin opts in.
-    // Its proposal tools return inbound business email verbatim, so it must
-    // never reach a user's manifest.
-    for server in ["odoo", "email", "factsheet"] {
-        assert!(
-            user_mcp.contains(server),
-            "{server} is granted to [user]: {user_mcp:?}"
-        );
-    }
+    assert!(
+        user_mcp.contains("odoo"),
+        "odoo is granted to [user]: {user_mcp:?}"
+    );
     assert!(
         admin_mcp.contains("systemprompt"),
         "the admin CLI server is enabled and granted to [admin]: {admin_mcp:?}"
@@ -175,6 +164,10 @@ async fn an_admin_manifest_carries_the_admin_surface_and_a_users_does_not() {
         !user_mcp.contains("systemprompt"),
         "the admin-gated systemprompt MCP server must not reach a user: {user_mcp:?}"
     );
+    // knowledge-bank is `default_included: false`, so it reaches no signed
+    // manifest at all — an admin opts in deliberately rather than carrying it
+    // by default. The in-process read filter and the `require_admin` checks on
+    // the write and proposal tools sit behind that, not in place of it.
     for scope in [&user_mcp, &admin_mcp] {
         assert!(
             !scope.contains("knowledge-bank"),
@@ -207,7 +200,7 @@ async fn a_ruleless_skill_in_an_admin_plugin_never_reaches_a_user() {
 }
 
 #[tokio::test]
-async fn setup_is_split_by_role_and_both_roles_keep_the_shared_front_door() {
+async fn setup_is_admin_only_and_no_role_holds_a_shared_setup_skill() {
     let Some(stack) = Stack::create().await else {
         return;
     };
@@ -215,16 +208,18 @@ async fn setup_is_split_by_role_and_both_roles_keep_the_shared_front_door() {
     let user_skills = ids(&stack.manifest(&stack.user_token).await, "skills");
     let admin_skills = ids(&stack.manifest(&stack.admin_token).await, "skills");
 
-    // The router ships in systemprompt-commons, which every role holds.
+    // Commons ships no setup skill: installing dashboards is an admin job, so
+    // a user role holds no setup skill at all. The retired shared front door
+    // must not come back through a stale bundle or a re-added config.
     for (role, skills) in [("user", &user_skills), ("admin", &admin_skills)] {
         assert!(
-            skills.contains("systemprompt_setup"),
-            "{role} lost the shared setup front door: {skills:?}"
+            !skills.contains("systemprompt_setup"),
+            "the retired shared setup skill came back for {role}: {skills:?}"
         );
     }
 
-    // The control-plane installer ships only in the admin plugin, so the split
-    // is enforced by the grant — not by a branch inside a shared skill.
+    // The one installer ships only in the admin plugin, so the split is
+    // enforced by the grant — not by a branch inside a shared skill.
     assert!(
         admin_skills.contains("systemprompt_setup_admin"),
         "admin lost the control-plane setup: {admin_skills:?}"
