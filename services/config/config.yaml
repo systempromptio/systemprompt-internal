@@ -11,8 +11,6 @@ includes:
   - ../mcp/systemprompt.yaml
   - ../mcp/knowledge-bank.yaml
   - ../mcp/odoo.yaml
-  - ../mcp/email.yaml
-  - ../mcp/factsheet.yaml
 
   # AI, scheduler, content
   # Note: ../web/config.yaml is NOT included here — the web domain validator

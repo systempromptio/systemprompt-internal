@@ -637,3 +637,131 @@ async fn a_blank_project_is_stored_as_unscoped_rather_than_as_an_empty_tag() {
 
     db.cleanup().await;
 }
+
+// Why: the bank holds two kinds of row in one table — documents an admin
+// curated (`status = 'reference'`, what `insert` writes) and inbound business
+// email the brain@ pipeline captured. The role grant on this server is
+// user-wide, so the status filter is the only thing standing between a user
+// and someone's mail. These three tests are that filter.
+async fn seed_captured_mail(db: &TempDb) {
+    sqlx::query(
+        "INSERT INTO knowledge_documents (title, source, project, content, uploaded_by, status) \
+         VALUES ($1, 'email', $2, $3, 'brain@systemprompt.io', 'proposed')",
+    )
+    .bind("Northwind rollout - call recap")
+    .bind(PROJECT)
+    .bind("Checkout is slipping a week. Their CFO wants the revised quote by Friday.")
+    .execute(db.pool.as_ref())
+    .await
+    .expect("seed a captured email");
+}
+
+#[tokio::test]
+async fn a_user_search_returns_curated_documents_and_never_captured_mail() {
+    let Some(db) = TempDb::create().await else {
+        return;
+    };
+    seed(&db).await;
+    seed_captured_mail(&db).await;
+
+    let result = dispatch(
+        &db,
+        &request_context(),
+        TOOL_SEARCH,
+        serde_json::json!({ "query": "checkout" }),
+    )
+    .await
+    .expect("a non-admin may search the bank");
+    let body = body_of(&result);
+
+    assert!(
+        body.contains("Checkout workshop"),
+        "a curated document is what the read grant is for: {body}"
+    );
+    assert!(
+        !body.contains("Northwind"),
+        "captured mail matches this query but must never reach a non-admin: {body}"
+    );
+
+    db.cleanup().await;
+}
+
+#[tokio::test]
+async fn an_admin_search_returns_the_whole_bank() {
+    let Some(db) = TempDb::create().await else {
+        return;
+    };
+    seed(&db).await;
+    seed_captured_mail(&db).await;
+
+    let result = dispatch(
+        &db,
+        &admin_context(),
+        TOOL_SEARCH,
+        serde_json::json!({ "query": "checkout" }),
+    )
+    .await
+    .expect("an admin may search the bank");
+    let body = body_of(&result);
+
+    assert!(
+        body.contains("Northwind"),
+        "an admin reads the pipeline rows too — that is what the two knowledge dashboards are \
+         built on: {body}"
+    );
+    assert!(
+        body.contains("Checkout workshop"),
+        "and the curated documents alongside them: {body}"
+    );
+
+    db.cleanup().await;
+}
+
+#[tokio::test]
+async fn a_user_listing_hides_captured_mail_and_upload_marks_a_document_reference() {
+    let Some(db) = TempDb::create().await else {
+        return;
+    };
+    seed_captured_mail(&db).await;
+
+    let uploaded = dispatch(
+        &db,
+        &admin_context(),
+        TOOL_UPLOAD,
+        serde_json::json!({
+            "title": "Five layers",
+            "source": "whitepaper",
+            "project": "positioning",
+            "content": "The workforce layer has no neutral incumbent.",
+        }),
+    )
+    .await
+    .expect("an admin may upload");
+    assert!(!summary_of(&uploaded).is_empty());
+
+    let status: String =
+        sqlx::query_scalar("SELECT status FROM knowledge_documents WHERE source = 'whitepaper'")
+            .fetch_one(db.pool.as_ref())
+            .await
+            .expect("read the uploaded document's status");
+    assert_eq!(
+        status, "reference",
+        "upload_document lands outside the brain@ pipeline: the categorization job claims 'raw', \
+         and 'reference' is what a non-admin may read"
+    );
+
+    let listed = dispatch(&db, &request_context(), TOOL_LIST, serde_json::json!({}))
+        .await
+        .expect("a non-admin may list the bank");
+    let body = body_of(&listed);
+    assert!(
+        body.contains("Five layers"),
+        "the curated document is listed: {body}"
+    );
+    assert!(
+        !body.contains("Northwind"),
+        "the captured email is not: {body}"
+    );
+
+    db.cleanup().await;
+}

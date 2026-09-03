@@ -386,21 +386,17 @@ async fn live_stack_walks_the_two_role_journey() {
     let admin_skills = manifest_skills(&http, &base, &admin_bearer).await;
     let sales_skills = manifest_skills(&http, &base, &sales_bearer).await;
     assert!(
-        admin_skills.contains("show_activity"),
+        admin_skills.contains("systemprompt_setup_admin"),
         "the Odoo administrator's manifest carries the admin skills — if this set has no admin \
          entries, the RUNNING server predates the plugin-cascade core change (skills inherit \
          their plugin's rule): rebuild and restart it, then re-run. admin skills: \
          {admin_skills:?}"
     );
     assert!(
-        !sales_skills.contains("show_activity"),
-        "show_activity carries no rule of its own; the systemprompt-admin plugin rule must \
-         close it to the salesperson: {sales_skills:?}"
-    );
-    assert!(
         !sales_skills.contains("systemprompt_setup_admin"),
-        "installing dashboards is admin-only: the salesperson holds no setup skill at all, and \
-         commons ships none: {sales_skills:?}"
+        "installing dashboards is admin-only: systemprompt_setup_admin carries no rule of its \
+         own; the systemprompt-admin plugin rule must close it to the salesperson, and the \
+         salesperson holds no setup skill at all: {sales_skills:?}"
     );
 
     step("the admin CLI server is enabled and admin-only");
@@ -425,8 +421,7 @@ async fn live_stack_walks_the_two_role_journey() {
     // `input_required` round, which is correct behaviour and not something this
     // smoke test can resolve (nobody is watching the approvals queue). The
     // stage carries `exempt_scopes: [admin]`, so the admin's call runs
-    // unattended and gives the real chatter round-trip this step is for. The
-    // hold itself is pinned in Tier A by the `email_send` approval tests.
+    // unattended and gives the real chatter round-trip this step is for.
     step("chatter round-trip through the MCP proxy as the admin");
     let mcp_resource = format!("{base}/api/v1/mcp/odoo/mcp");
     let admin_mcp_bearer = sign_in(&http, &base, ADMIN_LOGIN, Some(&mcp_resource)).await;

@@ -240,6 +240,7 @@ keywords = ["ai", "governance", "mcp", "agents", "claude"]
 categories = ["command-line-utilities", "web-programming"]
 
 [features]
+default = ["governance-ssr"]
 governance-ssr = ["systemprompt-web-extension/governance-ssr"]
 
 [lib]

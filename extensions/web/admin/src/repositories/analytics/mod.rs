@@ -10,6 +10,7 @@ pub mod live_sessions;
 pub mod request_stats;
 pub mod requests;
 pub mod session_detail;
+pub mod skills;
 pub mod tools;
 
 pub use agents::{AgentRow, list_agents};

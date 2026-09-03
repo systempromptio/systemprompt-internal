@@ -1,0 +1,15 @@
+id: pending_task
+name: "Pending Task"
+description: "Sweep everything outstanding on Odoo — overdue and due activities, open tasks, and leads that have gone stale — and ask you for a status on each, one at a time, then write the answer straight back: complete the activity, log the note, move the stage. Run on demand; nothing is swept without you answering for it."
+enabled: true
+file: SKILL.md
+tags:
+  - odoo
+  - crm
+  - leads
+  - activities
+  - tasks
+  - follow-up
+  - status
+category: crm
+display_category: "Business on Odoo"

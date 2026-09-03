@@ -1,0 +1,15 @@
+id: manage_leads
+name: "Manage Leads"
+description: "Act on the pipeline in Odoo, live, as you: create a new lead from a conversation, or walk your open leads to a status — stage moves, revenue, notes, follow-ups — with every write applied as your linked Odoo user. For reading what has been happening instead of acting on it, use activity_report; for a guided sweep of everything outstanding, use pending_task."
+enabled: true
+file: SKILL.md
+tags:
+  - odoo
+  - crm
+  - leads
+  - pipeline
+  - status
+  - notes
+  - activities
+category: crm
+display_category: "Business on Odoo"

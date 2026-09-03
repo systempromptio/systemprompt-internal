@@ -15,7 +15,7 @@ pub mod render;
 
 pub use render::{NO_DOCUMENTS, NO_MATCHES, listing_summary, search_summary};
 
-use crate::store::KnowledgeStore;
+use crate::store::{KnowledgeStore, ReadScope};
 use crate::tools::{
     TOOL_LIST, TOOL_PROPOSAL_DECIDE, TOOL_PROPOSAL_GET, TOOL_PROPOSAL_LIST, TOOL_SEARCH,
     TOOL_UPLOAD,
@@ -93,13 +93,30 @@ pub(super) async fn authenticate_tool_request(
     }
 }
 
+/// Whether the authenticated caller holds the admin role.
+///
+/// The one place that question is answered: `require_admin` gates the writing
+/// tools with it and [`read_scope`] decides how much of the bank a read
+/// returns, so the two can never disagree about who an admin is.
 #[doc(hidden)]
-pub fn require_admin(request_context: &SysRequestContext, tool_name: &str) -> Result<(), McpError> {
-    let is_admin = request_context
+#[must_use]
+pub fn is_admin(request_context: &SysRequestContext) -> bool {
+    request_context
         .user
         .as_ref()
-        .is_some_and(AuthenticatedUser::is_admin);
-    if is_admin {
+        .is_some_and(AuthenticatedUser::is_admin)
+}
+
+/// How much of the bank this caller's reads may return.
+#[doc(hidden)]
+#[must_use]
+pub fn read_scope(request_context: &SysRequestContext) -> ReadScope {
+    ReadScope::from_admin(is_admin(request_context))
+}
+
+#[doc(hidden)]
+pub fn require_admin(request_context: &SysRequestContext, tool_name: &str) -> Result<(), McpError> {
+    if is_admin(request_context) {
         Ok(())
     } else {
         Err(McpError::invalid_request(

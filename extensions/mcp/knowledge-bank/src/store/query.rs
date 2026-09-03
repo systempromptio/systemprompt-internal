@@ -19,6 +19,44 @@ pub const MAX_SEARCH_LIMIT: u32 = 50;
 pub const MAX_LIST_LIMIT: i64 = 200;
 
 
+/// Who is reading the bank, and therefore how much of it they see.
+///
+/// The bank holds two kinds of row. The brain@ pipeline captures inbound
+/// business email verbatim; an admin curates documents through
+/// `upload_document`, and those land in `DocumentStatus::Reference`. Only the
+/// curated ones are company-wide reading, so every read query carries the same
+/// clause — `($n::bool OR status = 'reference')` — true for an admin and, for
+/// everyone else, the curated set and nothing else.
+///
+/// It is default-deny on purpose: a status a future pipeline introduces is
+/// invisible to a non-admin without anyone remembering to exclude it. The
+/// `sqlx` macros need their SQL as a literal, so the clause is spelled out in
+/// each query; the decision behind it is only made here.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReadScope {
+    /// The whole table — captured mail included.
+    Everything,
+    /// Curated `reference` documents only.
+    ReferenceOnly,
+}
+
+impl ReadScope {
+    #[must_use]
+    pub const fn from_admin(is_admin: bool) -> Self {
+        if is_admin {
+            Self::Everything
+        } else {
+            Self::ReferenceOnly
+        }
+    }
+
+    /// The value the read queries bind: `true` lifts the status filter.
+    #[must_use]
+    pub const fn unrestricted(self) -> bool {
+        matches!(self, Self::Everything)
+    }
+}
+
 /// Which query shape a caller's search string earns.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SearchMode {

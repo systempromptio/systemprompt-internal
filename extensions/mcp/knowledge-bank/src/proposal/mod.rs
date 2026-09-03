@@ -47,9 +47,16 @@ pub const TOOL_APPLY_PROPOSAL: &str = "odoo_apply_proposal";
 pub const PROPOSAL_EXPIRY_SECONDS: u64 = 7 * 24 * 60 * 60;
 
 /// Where a document is in the capture → categorize → propose → apply pipeline.
+///
+/// `Reference` is the one variant outside that walk: a document an admin
+/// curated through `upload_document` never entered the pipeline and never
+/// leaves this state. Nothing advances it, the categorization job (which
+/// claims `raw`) never sees it, and it is the only status a non-admin may
+/// read — see `store::query::ReadScope`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum DocumentStatus {
+    Reference,
     Raw,
     Categorized,
     Skipped,
@@ -62,7 +69,8 @@ pub enum DocumentStatus {
 }
 
 impl DocumentStatus {
-    pub const ALL: [Self; 9] = [
+    pub const ALL: [Self; 10] = [
+        Self::Reference,
         Self::Raw,
         Self::Categorized,
         Self::Skipped,
@@ -77,6 +85,7 @@ impl DocumentStatus {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::Reference => "reference",
             Self::Raw => "raw",
             Self::Categorized => "categorized",
             Self::Skipped => "skipped",

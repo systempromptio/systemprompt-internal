@@ -1,13 +1,16 @@
 id: demonstrate_governance
 name: Demonstrate Governance
-description: "Exercise the four-stage governance pipeline - scope check, secret scan, blocklist, rate limit - and read back the audited decisions"
+description: "Trip the governance pipeline on purpose and prove it: a call held for a second human, a credential refused before it costs anything, or a destructive tool blocked by who is asking — pick a scenario, run it with real tool calls, then read back the audited decision trail (latency, decision, cost) for exactly what just happened."
 enabled: true
 file: SKILL.md
 tags:
-  - cli
+  - demo
   - governance
+  - approval
+  - secret-scan
+  - blocklist
+  - mrtr
   - audit
-  - security
   - admin
 category: governance
 display_category: "Governance & Analytics"

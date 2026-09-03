@@ -4,33 +4,27 @@
     "name": "systemprompt.io"
   },
   "metadata": {
-    "description": "The AI and communication layer for running the business, with Odoo as the system of record: one setup for every role, governed outbound email, a live governance demo, every user's own workspace on Odoo, business administration over Odoo, and the admin control plane.",
+    "description": "The AI layer for running the business, with Odoo as the system of record: pipeline management on Odoo for every role, a live governance demo, and the admin control plane.",
     "version": "8.0.0"
   },
   "plugins": [
     {
-      "name": "systemprompt-commons",
-      "source": "./storage/files/plugins/systemprompt-commons",
-      "description": "What every role gets: the one workspace setup skill (installs every dashboard the plugins you were granted ship), the shared brand skill — voice, document formatting, company boilerplate — and outbound email that a second human approves before it leaves.",
-      "version": "4.0.0"
+      "name": "systemprompt-business",
+      "source": "./storage/files/plugins/systemprompt-business",
+      "description": "What every signed-in user gets: manage the pipeline on Odoo — a business-wide brief or your own day, then create and update leads, stages, notes, and follow-ups, all as you. Six live dashboards back the skill: the business overview, inbound leads, open pipeline, upcoming deals, recent team notes, and a to-do bulletin.",
+      "version": "1.0.0"
     },
     {
       "name": "systemprompt-demo",
       "source": "./storage/files/plugins/systemprompt-demo",
-      "description": "Trip the governance pipeline on purpose and watch it answer: a call held for a second human, a secret refused before it costs anything, a destructive tool blocked by name — plus the full lead-to-factsheet-to-email arc that ends in a held send. Every beat is a real tool call; every outcome is an audit row.",
-      "version": "3.0.0"
-    },
-    {
-      "name": "systemprompt-workspace",
-      "source": "./storage/files/plugins/systemprompt-workspace",
-      "description": "What every signed-in user gets from Odoo: their own to-do list (activities and tasks, tick to complete), the open pipeline, upcoming deals grouped by tag and ordered by close date, and the team's recent notes — four live dashboards and one skill that reads them into a short brief. Every call runs as you; Odoo's record rules decide what appears.",
-      "version": "1.0.0"
+      "description": "Trip the governance pipeline on purpose and watch it answer: a call held for a second human, a secret refused before it costs anything, a destructive tool blocked by name — then read back the audited decision trail for exactly what happened. Every beat is a real tool call; every outcome is an audit row.",
+      "version": "4.0.0"
     },
     {
       "name": "systemprompt-admin",
       "source": "./storage/files/plugins/systemprompt-admin",
-      "description": "Admin-only: run the business from Odoo — what has been happening, and the leads that need a status — plus the control plane underneath it: operate the stack, prove governance live, and read back what every task cost. Ships the systemprompt CLI and knowledge-bank servers and seven live dashboards — including the brain@ inbox feed and the approval queue that is the only route from an email into Odoo.",
-      "version": "4.2.0"
+      "description": "Admin-only: the control plane underneath the business — operate the stack, prove governance live, and read back what every task cost — plus first-run setup, the only skill that installs dashboards. Ships the systemprompt CLI and knowledge-bank servers and five live dashboards, including the brain@ inbox feed and the approval queue that is the only route from an email into Odoo.",
+      "version": "5.0.0"
     }
   ]
 }

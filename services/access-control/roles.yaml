@@ -55,37 +55,22 @@ rules:
     default_included: true
     roles: [user]
 
-  # Knowledge-bank MCP server: the brain@ inbox pipeline and its approval
-  # queue. Admin-only, because `proposal_list` / `proposal_get` return inbound
-  # business email verbatim and `proposal_decide` writes to Odoo. The server
-  # also re-checks the admin role on every proposal tool in-process, so this
-  # grant and that gate must agree. The two knowledge dashboards inherit this
-  # through the systemprompt-admin plugin.
+  # Knowledge-bank MCP server: the company's curated reference documents, plus
+  # the brain@ inbox pipeline and its approval queue behind them. Granted to
+  # every user because the read tools are the only ones this grant opens:
+  # `search_project_context` and `list_documents` return documents with
+  # `status = 'reference'` — the ones an admin curated through
+  # `upload_document` — and nothing else. Captured mail is never `reference`,
+  # so it never reaches a user, and the filter is default-deny: a status a
+  # future pipeline adds is invisible until someone deliberately curates it.
+  #
+  # `upload_document` and all three `proposal_*` tools re-check the admin role
+  # in-process (server/tool/mod.rs `require_admin`, off the same `is_admin`
+  # the read scope uses), so a user holding this grant can read the canon but
+  # cannot write it or touch an ingestion proposal. The two knowledge
+  # dashboards remain admin-only through the systemprompt-admin plugin.
   - entity_type: mcp_server
     entity_id: knowledge-bank
-    access: allow
-    default_included: false
-    roles: [admin]
-
-  # Factsheet MCP server. Rendering a sheet reads no business data and reaches
-  # no third party — it turns a content model into a PDF — so authentication is
-  # the only gate that applies. Sending the result to a customer is a separate
-  # act on a separate server, and that is where approval belongs.
-  - entity_type: mcp_server
-    entity_id: factsheet
-    access: allow
-    default_included: true
-    roles: [user]
-
-  # Outbound email MCP server. Granted to every user, because the control on
-  # sending is the approval chain, not the caller's role: `email_send` elicits
-  # an in-band confirmation from the drafter and then holds the call for a
-  # second human via the `require_approval` governance stage. Restricting the
-  # grant to admin would be worse, not safer — `exempt_scopes: [admin]` on that
-  # stage means an admin caller is never held, so an admin-only grant would make
-  # every send self-approved.
-  - entity_type: mcp_server
-    entity_id: email
     access: allow
     default_included: true
     roles: [user]
@@ -111,17 +96,12 @@ rules:
   # both, plus: every plugin has exactly one rule here, admin ⇒
   # default_included: false, and no enabled skill or artifact is orphaned.
   - entity_type: plugin
-    entity_id: systemprompt-commons
+    entity_id: systemprompt-business
     access: allow
     default_included: true
     roles: [user]
   - entity_type: plugin
     entity_id: systemprompt-demo
-    access: allow
-    default_included: true
-    roles: [user]
-  - entity_type: plugin
-    entity_id: systemprompt-workspace
     access: allow
     default_included: true
     roles: [user]

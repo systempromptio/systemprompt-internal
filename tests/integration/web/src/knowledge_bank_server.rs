@@ -12,7 +12,7 @@ use sqlx::PgPool;
 use systemprompt::database::Database;
 use systemprompt::identifiers::McpServerId;
 use systemprompt::security::authz::{DenyAllHook, SharedAuthzHook};
-use systemprompt_mcp_knowledge_bank::store::KnowledgeStore;
+use systemprompt_mcp_knowledge_bank::store::{KnowledgeStore, ReadScope};
 use systemprompt_mcp_knowledge_bank::{KnowledgeBankServer, tools};
 
 use crate::tempdb::TempDb;
@@ -199,7 +199,7 @@ async fn the_store_the_server_opens_starts_empty() {
     assert_eq!(store.count().await.expect("count the new bank"), 0);
     assert!(
         store
-            .list_documents(None, None)
+            .list_documents(None, None, ReadScope::Everything)
             .await
             .expect("list the new bank")
             .is_empty()

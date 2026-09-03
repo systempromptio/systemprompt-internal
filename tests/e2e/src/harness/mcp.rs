@@ -201,8 +201,9 @@ async fn raw_call_as(
     // tool held by the `require_approval` stage (note_add, channel_post,
     // email_send) comes back as "-32600: InputRequiredResult requires
     // negotiated protocol version 2026-07-28 or newer" rather than as the hold
-    // it actually is. The default is older, so say it explicitly; the sibling
-    // client in `McpSession::connect` has always done this.
+    // it actually is (note_add, channel_post). The default is older, so say it
+    // explicitly; the sibling client in `McpSession::connect` has always done
+    // this.
     let client_info = ClientInfo::new(capabilities, Implementation::new("e2e-tests", "0.0.0"))
         .with_protocol_version(rmcp::model::ProtocolVersion::V_2026_07_28);
     let client = tokio::time::timeout(Duration::from_secs(30), client_info.serve(transport))
@@ -302,40 +303,6 @@ pub async fn call_tool_resource(
         })
 }
 
-// Why a second spawn fn rather than a parameter on the first: the two servers
-// take different env. Odoo needs ODOO_URL/ODOO_DB; email takes its SMTP
-// settings from the fixture profile's secrets, so the only thing it needs told
-// is which service it is.
-pub async fn spawn_email_mcp() -> Option<McpServerProc> {
-    let bin = email_binary()?;
-    let port = free_port();
-    let child = std::process::Command::new(&bin)
-        .env(
-            "SYSTEMPROMPT_PROFILE",
-            super::stack::profile_path().join("profile.yaml"),
-        )
-        .env("MCP_PORT", port.to_string())
-        .env("MCP_SERVICE_ID", "email")
-        .stdout(log_sink())
-        .stderr(log_sink())
-        .spawn()
-        .expect("spawn systemprompt-mcp-email");
-    let proc = McpServerProc { child, port };
-
-    for _ in 0..100 {
-        if std::net::TcpStream::connect(("127.0.0.1", port)).is_ok() {
-            return Some(proc);
-        }
-        tokio::time::sleep(Duration::from_millis(200)).await;
-    }
-    panic!(
-        "systemprompt-mcp-email never opened port {port} — check the profile it was spawned with"
-    )
-}
-
-fn email_binary() -> Option<PathBuf> {
-    newest_binary("systemprompt-mcp-email")
-}
 
 // The admin CLI-passthrough server: the profile tells it where the
 // `systemprompt` binary lives, so it needs no service-specific env beyond its
