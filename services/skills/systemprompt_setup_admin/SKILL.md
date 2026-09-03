@@ -30,16 +30,35 @@ bundle. The two do not overlap.
 
 ## Step 1 — Find the bundle the bridge staged
 
-On every sync the bridge writes the dashboard bundle into the pre-trusted workspace folder that
-every Cowork session has connected (`~/Systemprompt` on this instance):
+On every sync the bridge stages the dashboard bundle into the pre-trusted workspace folder that
+every Cowork session has connected. It goes to **one deterministic absolute path**: the bridge
+joins the home directory with `Systemprompt`, then `systemprompt/artifacts`.
 
 ```
-<workspace>/systemprompt/artifacts/manifest.json
-<workspace>/systemprompt/artifacts/<id>.html      one page per record, verbatim
+Windows   %USERPROFILE%\Systemprompt\systemprompt\artifacts\
+macOS     ~/Systemprompt/systemprompt/artifacts/
 ```
 
-Locate it with `Glob` for `**/systemprompt/artifacts/manifest.json` across the connected folders,
-then `Read` the manifest. It is small: one record per dashboard —
+`manifest.json` sits in that directory, with one `<id>.html` page beside it per record, verbatim.
+
+### Finding it — try these in order, and stop at the first hit
+
+1. **Read the absolute path.** `Read` `manifest.json` at the platform path above. This is the cheap,
+   definitive test and it is right almost every time. A successful read ends discovery — do not glob
+   at all.
+2. **Glob rooted at the workspace folder.** Only if the read failed: `Glob` for `manifest.json` with
+   that artifacts directory as the search root; if that misses, `Glob` for
+   `Systemprompt/**/artifacts/manifest.json` from the home directory.
+3. **Glob unrooted.** Last, `Glob` for `**/systemprompt/artifacts/manifest.json`, as the catch-all
+   for a workspace mounted somewhere unexpected.
+
+A recursive `**/` glob is rooted at this session's own working directory, and a connected folder is a
+separate root it is not guaranteed to reach — which is why the glob is the fallback and the absolute
+path is the primary. **A miss on any single rung is not evidence that the bridge has not synced.**
+Only report a sync problem after every rung above has missed and the directory probe below tells you
+which state you are in. Never send the user to press **Sync** on the strength of one failed glob.
+
+Once you have it, `Read` the manifest. It is small: one record per dashboard —
 `{ "id", "name", "description", "version", "isStarred", "mcpTools": [...], "plugins": [...] }`.
 The pages are not in it and you never read them: `create_artifact` copies a page from its path.
 
@@ -48,10 +67,23 @@ bundle: count it, never assume it. Expect `business-overview`, `leads-inbound-pr
 `knowledge-feed`, `knowledge-approve-ingestion`, `admin-users-directory`,
 `admin-activity-requests` and `admin-usage-costs`.
 
-If the manifest is absent, the bridge has not synced since it was installed, or the workspace folder
-is not connected to this session. Say exactly that, tell the user to press **Sync** in the bridge
-(and to connect the `Systemprompt` folder if the session shows none), and stop. Do not look for a
-script, do not copy pages by hand, and do not report a zero-install receipt.
+### If every rung missed
+
+Probe the directories before naming a cause, and report the one that matches:
+
+- **The artifacts directory exists but holds no `manifest.json`** — a partial or interrupted sync.
+  Say that, and ask the user to press **Sync** in the bridge.
+- **`Systemprompt/` exists but has no `systemprompt/` inside it** — the folder is connected and the
+  bridge has never completed a sync. Say that, and ask them to press **Sync**.
+- **No `Systemprompt/` folder at all** — on Windows the bridge creates it at install, so this means
+  the bridge is not installed or its policy write did not apply; on macOS the folder only appears at
+  the first sync, so it means no sync has ever run. Name the cause for the host you are on.
+- **You could not probe the paths at all** (no readable home directory, or the file tools refused) —
+  say discovery could not run, and say plainly that this is *not* evidence about sync state.
+
+If the session shows no connected folder at all, tell the user to connect the `Systemprompt` folder.
+Then stop. Do not look for a script, do not copy pages by hand, and do not report a zero-install
+receipt.
 
 ## Step 2 — Diff bundled against installed
 
@@ -75,9 +107,9 @@ Leave every entry that is not one of the seven above alone — `todo-bulletin`, 
 For each **missing** record, call `create_artifact` — sequentially, never in parallel — with:
 
 - `id` and `description` from the record,
-- `html_path` set to the page beside the manifest, exactly as `Glob` spelled the directory:
-  `<workspace>/systemprompt/artifacts/<id>.html`. That folder is connected, so the path is accepted
-  as it is. Never point at the plugin or skills directories, and never retype a page.
+- `html_path` set to the page beside the manifest, spelling the directory exactly as the rung that
+  found the manifest spelled it: `<artifacts dir>/<id>.html`. That folder is connected, so the path
+  is accepted as it is. Never point at the plugin or skills directories, and never retype a page.
 - `mcp_tools` set to the record's `mcpTools`, verbatim. Without it the dashboard cannot call its
   MCP server and will never load data.
 - `name` and `starred` from the record if the tool's schema exposes such fields; otherwise skip

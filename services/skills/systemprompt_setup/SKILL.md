@@ -63,21 +63,26 @@ nothing here is missing.
 ## How installation works (read this first)
 
 Cowork's `create_artifact` tool does **not** take inline HTML. It takes an `html_path` pointing at a
-file inside the session workspace or a **connected folder**. On every sync the bridge stages the
-dashboard bundle into the pre-trusted workspace folder that every Cowork session has connected
-(`~/Systemprompt` on this instance):
+file inside the session workspace or a **connected folder**.
+
+On every sync the bridge stages the dashboard bundle into the pre-trusted workspace folder that
+every Cowork session has connected. It goes to **one deterministic absolute path**: the bridge
+joins the home directory with `Systemprompt`, then `systemprompt/artifacts`.
 
 ```
-<workspace>/systemprompt/artifacts/manifest.json
-<workspace>/systemprompt/artifacts/<id>.html      one page per record, verbatim
+Windows   %USERPROFILE%\Systemprompt\systemprompt\artifacts\
+macOS     ~/Systemprompt/systemprompt/artifacts/
 ```
 
-So every install is one move: call `create_artifact` pointing at the staged page. **This skill uses
-no shell.** The only tools it calls are `Glob`, `Read`, `Write`, `list_artifacts`, `create_artifact`
-and the MCP probes in Step C5. Do not call `mcp__workspace__bash`: Claude Desktop denies it in
-Cowork sessions on current builds, and nothing here needs it. Never retype or reconstruct a page,
-never point `html_path` at the plugin or skills directories, and never run `create_artifact` calls
-in parallel — install one dashboard at a time, verifying as you go.
+`manifest.json` sits in that directory, with one `<id>.html` page beside it per record, verbatim.
+
+So every install is one move: call `create_artifact` pointing at the staged page. Step C1 below is
+how you locate that directory — read it before you go looking. **This skill uses no shell.** The only
+tools it calls are `Glob`, `Read`, `Write`, `list_artifacts`, `create_artifact` and the MCP probes in
+Step C5. Do not call `mcp__workspace__bash`: Claude Desktop denies it in Cowork sessions on current
+builds, and nothing here needs it. Never retype or reconstruct a page, never point `html_path` at the
+plugin or skills directories, and never run `create_artifact` calls in parallel — install one
+dashboard at a time, verifying as you go.
 
 **Caching contract:** Cowork only caches a dashboard's MCP tool results when the gateway tool
 advertises `annotations.readOnlyHint: true`. Every read-only tool a dashboard calls must carry that
@@ -86,8 +91,24 @@ racy. Every tool the workspace dashboards call carries it.
 
 ## Step C1 — Read the bundle the bridge staged
 
-Locate the manifest with `Glob` for `**/systemprompt/artifacts/manifest.json` across the connected
-folders, then `Read` it. It is small: one record per dashboard —
+### Finding it — try these in order, and stop at the first hit
+
+1. **Read the absolute path.** `Read` `manifest.json` at the platform path above. This is the cheap,
+   definitive test and it is right almost every time. A successful read ends discovery — do not glob
+   at all.
+2. **Glob rooted at the workspace folder.** Only if the read failed: `Glob` for `manifest.json` with
+   that artifacts directory as the search root; if that misses, `Glob` for
+   `Systemprompt/**/artifacts/manifest.json` from the home directory.
+3. **Glob unrooted.** Last, `Glob` for `**/systemprompt/artifacts/manifest.json`, as the catch-all
+   for a workspace mounted somewhere unexpected.
+
+A recursive `**/` glob is rooted at this session's own working directory, and a connected folder is a
+separate root it is not guaranteed to reach — which is why the glob is the fallback and the absolute
+path is the primary. **A miss on any single rung is not evidence that the bridge has not synced.**
+Only report a sync problem after every rung above has missed and the directory probe below tells you
+which state you are in. Never send the user to press **Sync** on the strength of one failed glob.
+
+Once you have it, `Read` the manifest. It is small: one record per dashboard —
 `{ "id", "name", "description", "version", "isStarred", "mcpTools": [...], "plugins": [...] }` —
 and the pages are not in it. Do not read the `.html` files into context: `create_artifact` copies a
 page from its path, so reading one is wasted context and a sign you are about to retype what should
@@ -98,10 +119,23 @@ user bundle: count it, never assume it. On this instance expect `todo-bulletin`,
 `pipeline-open-deals` and `recent-activity`. The admin records in the same manifest belong to
 `systemprompt_setup_admin`.
 
-If the manifest is absent, the bridge has not synced since it was installed, or the workspace
-folder is not connected to this session. Say exactly that, tell the user to press **Sync** in the
-bridge (and to connect the `Systemprompt` folder if the session shows none), and stop. Do not look
-for a script, do not copy pages by hand, and do not write a zero-install receipt.
+### If every rung missed
+
+Probe the directories before naming a cause, and report the one that matches:
+
+- **The artifacts directory exists but holds no `manifest.json`** — a partial or interrupted sync.
+  Say that, and ask the user to press **Sync** in the bridge.
+- **`Systemprompt/` exists but has no `systemprompt/` inside it** — the folder is connected and the
+  bridge has never completed a sync. Say that, and ask them to press **Sync**.
+- **No `Systemprompt/` folder at all** — on Windows the bridge creates it at install, so this means
+  the bridge is not installed or its policy write did not apply; on macOS the folder only appears at
+  the first sync, so it means no sync has ever run. Name the cause for the host you are on.
+- **You could not probe the paths at all** (no readable home directory, or the file tools refused) —
+  say discovery could not run, and say plainly that this is *not* evidence about sync state.
+
+If the session shows no connected folder at all, tell the user to connect the `Systemprompt` folder.
+Then stop. Do not look for a script, do not copy pages by hand, and do not report a zero-install
+receipt.
 
 ## Step C2 — Diff bundled against installed
 
@@ -127,9 +161,9 @@ For each **missing** record, call the built-in `create_artifact` tool — sequen
 parallel — with:
 
 - `id` and `description` from the record,
-- `html_path` set to the page beside the manifest, exactly as `Glob` spelled the directory:
-  `<workspace>/systemprompt/artifacts/<id>.html`. That folder is connected, so the path is accepted
-  as it is,
+- `html_path` set to the page beside the manifest, spelling the directory exactly as the rung that
+  found the manifest spelled it: `<artifacts dir>/<id>.html`. That folder is connected, so the path
+  is accepted as it is,
 - `mcp_tools` set to the record's `mcpTools`, verbatim — without it the dashboard cannot call its
   MCP server and will never load data,
 - `name` and `starred` from the record if the tool's schema exposes such fields; if it does not,
@@ -154,7 +188,7 @@ overwrite an artifact the user may have edited.
 
 If one artifact genuinely fails after a retry, record it under `failed` and carry on with the rest —
 but a workspace-path rejection means `html_path` did not point at the staged page: re-read the path
-from `Glob` and retry.
+from whichever rung in Step C1 found the manifest, and retry.
 
 ## Step C4 — Write a receipt
 
