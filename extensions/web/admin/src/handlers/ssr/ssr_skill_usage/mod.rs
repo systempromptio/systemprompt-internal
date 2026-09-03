@@ -79,6 +79,10 @@ pub(crate) async fn skill_usage_page(
     }
     let payload = build_page_json(&pool).await;
     Ok(super::render_typed_page(
-        &engine, "skill-usage", &payload, &user_ctx, &mkt_ctx,
+        &engine,
+        "skill-usage",
+        &payload,
+        &user_ctx,
+        &mkt_ctx,
     ))
 }

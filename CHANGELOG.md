@@ -7,6 +7,15 @@ All notable changes to this repository are documented here. The format follows
 
 ### Changed
 
+- Knowledge-bank is admin-only again. `roles.yaml` had been changed to grant the
+  MCP server to `[user]` with `default_included: true`, and the manifest test
+  changed to match, but no user-scoped plugin ships the server — a manifest
+  carries a server only if a plugin the holder has ships it — so the grant
+  described access no user could exercise and the suite went red. The grant is
+  back to `[admin]` / `default_included: false`, reaching no signed manifest by
+  default, and the test asserts that of both manifests again. The in-process
+  read filter and the `require_admin` checks on the write and proposal tools are
+  untouched; they sit behind the grant rather than in place of it.
 - `bridge/CORE_REF` pins core `d975063842910a5bbc460d72c0cb9ef94b0c5d4d` (core
   `next`, workspace version 0.45.0) rather than the `v0.45.0` tag, so the
   0.45.0 bridge carries the macOS fixes that landed after that tag was cut: the

@@ -1,6 +1,7 @@
 //! Typed template context for `skill-usage.hbs`.
 
 use serde::Serialize;
+use systemprompt::identifiers::SkillId;
 
 #[derive(Debug, Serialize)]
 pub(super) struct SkillsPageContext {
@@ -10,9 +11,20 @@ pub(super) struct SkillsPageContext {
     pub(super) page_stats: Vec<PageStat>,
 }
 
+// Why: the same {value, label} shape as the contexts page's `PageStat`, kept
+// separate because that one is shared verbatim with the template fork and this
+// page is internal-only — merging them would drift a shared file to save four
+// lines.
+#[derive(Debug, Serialize)]
+// lint-ok: duplicate-type — see above; the shared-fork copy must not move.
+pub(super) struct PageStat {
+    pub(super) value: i64,
+    pub(super) label: &'static str,
+}
+
 #[derive(Debug, Serialize)]
 pub(super) struct SkillRowView {
-    pub(super) skill_id: String,
+    pub(super) skill_id: SkillId,
     pub(super) invocation_count: i64,
     pub(super) distinct_users: i64,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -23,10 +35,4 @@ pub(super) struct SkillRowView {
     pub(super) estimated_request_count: i64,
     pub(super) estimated_tokens: i64,
     pub(super) estimated_cost_usd: f64,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct PageStat {
-    pub(super) value: i64,
-    pub(super) label: &'static str,
 }

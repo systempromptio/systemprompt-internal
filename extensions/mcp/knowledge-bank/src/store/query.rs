@@ -34,9 +34,7 @@ pub const MAX_LIST_LIMIT: i64 = 200;
 /// each query; the decision behind it is only made here.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ReadScope {
-    /// The whole table — captured mail included.
     Everything,
-    /// Curated `reference` documents only.
     ReferenceOnly,
 }
 
@@ -50,7 +48,6 @@ impl ReadScope {
         }
     }
 
-    /// The value the read queries bind: `true` lifts the status filter.
     #[must_use]
     pub const fn unrestricted(self) -> bool {
         matches!(self, Self::Everything)

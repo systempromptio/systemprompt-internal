@@ -152,17 +152,10 @@ async fn an_admin_manifest_carries_the_admin_surface_and_a_users_does_not() {
 
     let admin_mcp = ids(&admin, "managed_mcp_servers");
     let user_mcp = ids(&user, "managed_mcp_servers");
-    // knowledge-bank is granted to [user]: the read tools are the company
-    // canon, and a user's reads are filtered to curated `reference` documents
-    // in-process, so captured mail stays admin-only without the manifest
-    // having to withhold the server. `upload_document` and the `proposal_*`
-    // tools re-check the admin role themselves.
-    for server in ["odoo", "knowledge-bank"] {
-        assert!(
-            user_mcp.contains(server),
-            "{server} is granted to [user]: {user_mcp:?}"
-        );
-    }
+    assert!(
+        user_mcp.contains("odoo"),
+        "odoo is granted to [user]: {user_mcp:?}"
+    );
     assert!(
         admin_mcp.contains("systemprompt"),
         "the admin CLI server is enabled and granted to [admin]: {admin_mcp:?}"
@@ -171,10 +164,16 @@ async fn an_admin_manifest_carries_the_admin_surface_and_a_users_does_not() {
         !user_mcp.contains("systemprompt"),
         "the admin-gated systemprompt MCP server must not reach a user: {user_mcp:?}"
     );
-    assert!(
-        admin_mcp.contains("knowledge-bank"),
-        "an admin holds the user role too, so knowledge-bank reaches both manifests: {admin_mcp:?}"
-    );
+    // knowledge-bank is `default_included: false`, so it reaches no signed
+    // manifest at all — an admin opts in deliberately rather than carrying it
+    // by default. The in-process read filter and the `require_admin` checks on
+    // the write and proposal tools sit behind that, not in place of it.
+    for scope in [&user_mcp, &admin_mcp] {
+        assert!(
+            !scope.contains("knowledge-bank"),
+            "knowledge-bank is not default-included and must reach no manifest: {scope:?}"
+        );
+    }
 
     stack.db.cleanup().await;
 }

@@ -93,11 +93,9 @@ pub(super) async fn authenticate_tool_request(
     }
 }
 
-/// Whether the authenticated caller holds the admin role.
-///
-/// The one place that question is answered: `require_admin` gates the writing
-/// tools with it and [`read_scope`] decides how much of the bank a read
-/// returns, so the two can never disagree about who an admin is.
+// Why: the one place "is this caller an admin" is answered — the writing tools
+// gate on it and `read_scope` sizes a read with it, so the two can never
+// disagree.
 #[doc(hidden)]
 #[must_use]
 pub fn is_admin(request_context: &SysRequestContext) -> bool {
@@ -107,7 +105,6 @@ pub fn is_admin(request_context: &SysRequestContext) -> bool {
         .is_some_and(AuthenticatedUser::is_admin)
 }
 
-/// How much of the bank this caller's reads may return.
 #[doc(hidden)]
 #[must_use]
 pub fn read_scope(request_context: &SysRequestContext) -> ReadScope {

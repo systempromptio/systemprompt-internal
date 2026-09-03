@@ -7,6 +7,7 @@ use axum::extract::{Extension, Query, State};
 use axum::response::Response;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
+use systemprompt::identifiers::UserId;
 
 use crate::error::{AdminError, AdminHtmlResult};
 use crate::repositories::governance::list_decisions_for_policy;
@@ -27,7 +28,7 @@ struct DecisionRowView {
     decision: String,
     is_deny: bool,
     tool_name: String,
-    user_id: String,
+    user_id: UserId,
     agent_scope: String,
     reason: String,
 }
@@ -86,7 +87,7 @@ pub(crate) async fn governance_decisions_page(
             is_deny: d.decision == "deny",
             decision: d.decision,
             tool_name: d.tool_name,
-            user_id: d.user_id.to_string(),
+            user_id: d.user_id,
             agent_scope: d.agent_scope.unwrap_or_default(),
             reason: d.reason,
         })

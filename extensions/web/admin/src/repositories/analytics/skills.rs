@@ -12,10 +12,11 @@
 
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
+use systemprompt::identifiers::SkillId;
 
 #[derive(Debug, Clone)]
 pub struct SkillUsageRow {
-    pub skill_id: String,
+    pub skill_id: SkillId,
     pub invocation_count: i64,
     pub distinct_users: i64,
     pub first_used_at: Option<DateTime<Utc>>,
@@ -27,7 +28,7 @@ pub async fn list_skill_usage_stats(pool: &PgPool) -> Result<Vec<SkillUsageRow>,
         SkillUsageRow,
         r#"
         SELECT
-            entity_name                          AS "skill_id!",
+            entity_name                          AS "skill_id!: SkillId",
             COALESCE(SUM(usage_count), 0)::bigint AS "invocation_count!",
             COUNT(DISTINCT user_id)::bigint       AS "distinct_users!",
             MIN(first_seen_at)                    AS "first_used_at?",
@@ -53,7 +54,7 @@ pub struct SkillCostEstimate {
 
 pub async fn get_skill_cost_estimate(
     pool: &PgPool,
-    skill_id: &str,
+    skill_id: &SkillId,
 ) -> Result<SkillCostEstimate, sqlx::Error> {
     let row = sqlx::query!(
         r#"
@@ -69,7 +70,7 @@ pub async fn get_skill_cost_estimate(
             WHERE entity_type = 'skill' AND entity_name = $1
         )
         "#,
-        skill_id
+        skill_id.as_str()
     )
     .fetch_one(pool)
     .await?;

@@ -56,24 +56,17 @@ rules:
     roles: [user]
 
   # Knowledge-bank MCP server: the company's curated reference documents, plus
-  # the brain@ inbox pipeline and its approval queue behind them. Granted to
-  # every user because the read tools are the only ones this grant opens:
-  # `search_project_context` and `list_documents` return documents with
-  # `status = 'reference'` — the ones an admin curated through
-  # `upload_document` — and nothing else. Captured mail is never `reference`,
-  # so it never reaches a user, and the filter is default-deny: a status a
-  # future pipeline adds is invisible until someone deliberately curates it.
-  #
-  # `upload_document` and all three `proposal_*` tools re-check the admin role
-  # in-process (server/tool/mod.rs `require_admin`, off the same `is_admin`
-  # the read scope uses), so a user holding this grant can read the canon but
-  # cannot write it or touch an ingestion proposal. The two knowledge
-  # dashboards remain admin-only through the systemprompt-admin plugin.
+  # the brain@ inbox pipeline and its approval queue behind them. Admin-only
+  # and not default-included, so it reaches no signed manifest by default —
+  # an admin opts in deliberately. The in-process read filter (`ReadScope`,
+  # default-deny on any status but `reference`) and the `require_admin` check
+  # on `upload_document` and the `proposal_*` tools sit behind that grant, not
+  # in place of it.
   - entity_type: mcp_server
     entity_id: knowledge-bank
     access: allow
-    default_included: true
-    roles: [user]
+    default_included: false
+    roles: [admin]
 
   # --- Plugin scope declarations: one `entity_type: plugin` rule per plugin, always.
   #

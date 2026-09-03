@@ -198,10 +198,7 @@ fn entity_routes() -> Router<Arc<PgPool>> {
             get(handlers::ssr::context_detail_page),
         )
         .route("/entities/skills", get(handlers::ssr::skill_usage_page))
-        .route(
-            "/governance",
-            get(handlers::ssr::governance_dashboard_page),
-        )
+        .route("/governance", get(handlers::ssr::governance_dashboard_page))
         .route(
             "/governance/decisions",
             get(handlers::ssr::governance_decisions_page),

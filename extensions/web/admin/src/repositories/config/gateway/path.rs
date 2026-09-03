@@ -25,6 +25,7 @@ pub fn gateway_config_path() -> Result<PathBuf, MarketplaceError> {
         return Ok(PathBuf::from(root).join("ai").join("gateway.yaml"));
     }
     let profile = ProfileBootstrap::get()
+        // Why: lint-ok: error-adapt — ProfileError is core's variant-less config error.
         .map_err(|e| MarketplaceError::Internal(format!("profile is not initialised: {e}")))?;
     Ok(PathBuf::from(&profile.paths.services)
         .join("ai")

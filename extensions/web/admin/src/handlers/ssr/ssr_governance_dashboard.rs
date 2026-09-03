@@ -88,9 +88,7 @@ fn format_local(t: chrono::DateTime<chrono::Utc>) -> String {
         .to_string()
 }
 
-fn build_policy_rows(
-    window_by_id: &mut HashMap<String, PerPolicyCounts>,
-) -> Vec<PolicyRow> {
+fn build_policy_rows(window_by_id: &mut HashMap<String, PerPolicyCounts>) -> Vec<PolicyRow> {
     governance_engine::engine()
         .policies()
         .map(|(cfg, p)| {
@@ -115,9 +113,7 @@ fn build_policy_rows(
                 has_recent_denies: window_denied > 0,
                 last_at,
                 decisions_url: format!("/admin/governance/decisions?policy={id}"),
-                deny_decisions_url: format!(
-                    "/admin/governance/decisions?policy={id}&outcome=deny"
-                ),
+                deny_decisions_url: format!("/admin/governance/decisions?policy={id}&outcome=deny"),
                 id,
             }
         })
@@ -220,6 +216,10 @@ pub(crate) async fn governance_dashboard_page(
     }
     let payload = build_page_json(&pool).await;
     Ok(super::render_typed_page(
-        &engine, "governance", &payload, &user_ctx, &mkt_ctx,
+        &engine,
+        "governance",
+        &payload,
+        &user_ctx,
+        &mkt_ctx,
     ))
 }
