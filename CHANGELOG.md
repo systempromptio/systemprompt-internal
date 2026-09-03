@@ -7,6 +7,12 @@ All notable changes to this repository are documented here. The format follows
 
 ### Changed
 
+- `systemprompt-web-admin` builds on its own again. Its SSR handlers reference
+  items gated behind `governance-ssr`, but only the workspace root enabled that
+  feature, so `cargo <cmd> -p systemprompt-web-admin` — which CI runs as its own
+  step — could not compile the crate at all while the whole-workspace build was
+  green. The feature is on by default in the crate now; it stays a feature so the
+  files can remain identical to the template fork, which compiles the queries out.
 - The admin HTTP contract baseline records `/admin/entities/skills`,
   `/admin/governance` and `/admin/governance/decisions`, which were added with
   the governance dashboards but never recorded. All three answer the same way as

@@ -61,9 +61,13 @@ inventory = { workspace = true }
 async-trait = { workspace = true }
 
 [features]
-# The ssr_governance surface lives upstream in systemprompt-template; this fork
-# does not ship it. The feature keeps the shared repository files identical
-# across both trees while compiling their dead-in-this-fork queries out.
+# The governance dashboards and their repository queries. This fork ships them,
+# so the feature is on by default: the SSR handlers reference the gated items
+# unconditionally, and without this `cargo <cmd> -p systemprompt-web-admin`
+# fails to build even though the workspace (which turns it on from the root)
+# does not. It stays a feature so the files can remain identical to the
+# template fork, which compiles the queries out.
+default = ["governance-ssr"]
 governance-ssr = []
 
 [dev-dependencies]
