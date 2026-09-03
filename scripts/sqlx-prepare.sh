@@ -131,7 +131,22 @@ for entry in "${SQLX_CRATES[@]}"; do
     case "$dir" in extensions/*) ;; *) continue ;; esac
     echo "Preparing $dir..."
     cargo clean -p "$name" 2>/dev/null || true
-    (cd "$dir" && cargo sqlx prepare)
+    # web/admin's governance dashboard queries are gated behind governance-ssr,
+    # which the root workspace enables by default (Cargo.toml) but which this
+    # crate's own Cargo.toml does not — so a bare standalone prepare here would
+    # never see them and `cargo build` on the standalone crate would break.
+    # Standalone per-crate prepares don't get workspace-wide feature
+    # unification, so a crate whose code only compiles under features the
+    # workspace root pulls in for itself (governance-ssr for web/admin,
+    # systemprompt's `loader` feature — bundled in `full` — for
+    # web/shared's config-load error variant, inherited by web/content)
+    # needs those features passed explicitly here.
+    extra_features=()
+    case "$dir" in
+        extensions/web/admin) extra_features=(-- --features governance-ssr) ;;
+        extensions/web/content | extensions/web/site) extra_features=(-- --features systemprompt/loader) ;;
+    esac
+    (cd "$dir" && cargo sqlx prepare "${extra_features[@]}")
     for f in "$dir"/.sqlx/*.json; do
         cp "$f" .sqlx/
     done

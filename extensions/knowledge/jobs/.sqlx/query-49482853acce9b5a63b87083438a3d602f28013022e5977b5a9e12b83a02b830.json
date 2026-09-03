@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO knowledge_documents (title, source, project, content, uploaded_by)\n            VALUES ($1, $2, $3, $4, $5)\n            RETURNING id, created_at\n            ",
+  "query": "\n            INSERT INTO knowledge_documents (title, source, project, content, uploaded_by, status)\n            VALUES ($1, $2, $3, $4, $5, 'reference')\n            RETURNING id, created_at\n            ",
   "describe": {
     "columns": [
       {
@@ -40,5 +40,5 @@
       false
     ]
   },
-  "hash": "2f237307ea65a09f23a0b14aee540416c7844a7d7e1cb63cc4d0adc2b135a90d"
+  "hash": "49482853acce9b5a63b87083438a3d602f28013022e5977b5a9e12b83a02b830"
 }

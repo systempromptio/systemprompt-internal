@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                id,\n                title,\n                source,\n                project,\n                created_at,\n                uploaded_by,\n                ts_headline(\n                    'english',\n                    content,\n                    websearch_to_tsquery('english', $1),\n                    'MaxFragments=2,MaxWords=28,MinWords=8,ShortWord=3,FragmentDelimiter= … '\n                ) AS \"snippet!\"\n            FROM knowledge_documents\n            WHERE content_tsv @@ websearch_to_tsquery('english', $1)\n              AND ($2::text IS NULL OR project = $2)\n            ORDER BY\n                ts_rank_cd(content_tsv, websearch_to_tsquery('english', $1)) DESC,\n                created_at DESC\n            LIMIT $3\n            ",
+  "query": "\n            SELECT\n                id,\n                title,\n                source,\n                project,\n                created_at,\n                uploaded_by,\n                left(content, $3) AS \"snippet!\"\n            FROM knowledge_documents\n            WHERE ($1::text IS NULL OR project = $1)\n              AND ($4::bool OR status = 'reference')\n            ORDER BY created_at DESC\n            LIMIT $2\n            ",
   "describe": {
     "columns": [
       {
@@ -79,8 +79,9 @@
     "parameters": {
       "Left": [
         "Text",
-        "Text",
-        "Int8"
+        "Int8",
+        "Int4",
+        "Bool"
       ]
     },
     "nullable": [
@@ -93,5 +94,5 @@
       null
     ]
   },
-  "hash": "38e3444e9dfbc02612280789d9b1e197a40c7ff7135e4f1ce0d460e15c3f5654"
+  "hash": "95945286f5771cd3c3b6a0632a56a961cfec551a2eeb73826f524e74a13fbd2b"
 }

@@ -1,0 +1,54 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            entity_name                          AS \"skill_id!\",\n            COALESCE(SUM(usage_count), 0)::bigint AS \"invocation_count!\",\n            COUNT(DISTINCT user_id)::bigint       AS \"distinct_users!\",\n            MIN(first_seen_at)                    AS \"first_used_at?\",\n            MAX(last_seen_at)                     AS \"last_used_at?\"\n        FROM session_entity_links\n        WHERE entity_type = 'skill'\n        GROUP BY entity_name\n        ORDER BY SUM(usage_count) DESC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "skill_id!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "session_entity_links",
+            "name": "entity_name"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "invocation_count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "distinct_users!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "first_used_at?",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "last_used_at?",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "ba5144c132e51510229237000cc7855cb54718c51c856b507e6773a456bcc39d"
+}

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                id,\n                title,\n                source,\n                project,\n                created_at,\n                char_length(content) AS \"size!\",\n                status,\n                category,\n                structured->>'summary' AS summary\n            FROM knowledge_documents\n            WHERE ($1::text IS NULL OR project = $1)\n              AND ($2::text IS NULL OR source = $2)\n            ORDER BY created_at DESC\n            LIMIT $3\n            ",
+  "query": "\n            SELECT\n                id,\n                title,\n                source,\n                project,\n                created_at,\n                uploaded_by,\n                left(content, $4) AS \"snippet!\"\n            FROM knowledge_documents\n            WHERE (title ILIKE $1 ESCAPE '\\' OR content ILIKE $1 ESCAPE '\\')\n              AND ($2::text IS NULL OR project = $2)\n              AND ($5::bool OR status = 'reference')\n            ORDER BY created_at DESC\n            LIMIT $3\n            ",
   "describe": {
     "columns": [
       {
@@ -60,35 +60,18 @@
       },
       {
         "ordinal": 5,
-        "name": "size!",
-        "type_info": "Int4",
-        "origin": "Expression"
+        "name": "uploaded_by",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "knowledge_documents",
+            "name": "uploaded_by"
+          }
+        }
       },
       {
         "ordinal": 6,
-        "name": "status",
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "knowledge_documents",
-            "name": "status"
-          }
-        }
-      },
-      {
-        "ordinal": 7,
-        "name": "category",
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "knowledge_documents",
-            "name": "category"
-          }
-        }
-      },
-      {
-        "ordinal": 8,
-        "name": "summary",
+        "name": "snippet!",
         "type_info": "Text",
         "origin": "Expression"
       }
@@ -97,7 +80,9 @@
       "Left": [
         "Text",
         "Text",
-        "Int8"
+        "Int8",
+        "Int4",
+        "Bool"
       ]
     },
     "nullable": [
@@ -106,11 +91,9 @@
       false,
       true,
       false,
-      null,
       false,
-      true,
       null
     ]
   },
-  "hash": "fb494dd4f2d573ec1755b770d852601ecaf82f188fd49b9bd06b14af349dc4e3"
+  "hash": "f2311df6ac81de398bf5ae4500f2d81278b4520a519d0ab9cee34513b01f3640"
 }
