@@ -7,6 +7,15 @@ All notable changes to this repository are documented here. The format follows
 
 ### Changed
 
+- The governance and skill-usage templates meet the front-end standards: the two
+  inline `style` attributes are gone, `.enforcement-section__grid` has a real
+  rule (and stacks under 900px), the ad-hoc `.num` class reuses the existing
+  `.numeric` table convention, and `.row-muted`/`.text-success` join the
+  utilities beside `.text-danger`.
+- `cargo-audit` runs from the prebuilt binary (`taiki-e/install-action`, the same
+  path `cargo-deny` already takes) instead of `rustsec/audit-check`, which builds
+  the tool from source on every run — a broken `tinyvec 1.13.0` release failed
+  the job with nothing wrong in this tree.
 - `systemprompt-web-admin` builds on its own again. Its SSR handlers reference
   items gated behind `governance-ssr`, but only the workspace root enabled that
   feature, so `cargo <cmd> -p systemprompt-web-admin` — which CI runs as its own

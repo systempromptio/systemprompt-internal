@@ -29,10 +29,10 @@
         <thead><tr>
             <th>Policy</th>
             <th class="col-status">State</th>
-            <th class="num">Evaluations</th>
-            <th class="num">Allowed</th>
-            <th class="num">Denied</th>
-            <th class="num">Deny rate</th>
+            <th class="numeric">Evaluations</th>
+            <th class="numeric">Allowed</th>
+            <th class="numeric">Denied</th>
+            <th class="numeric">Deny rate</th>
             <th class="col-date">Last fired</th>
             <th class="col-status">Actions</th>
         </tr></thead>
@@ -51,16 +51,16 @@
                 <span class="mcp-badge">DISABLED</span>
                 {{/if}}
             </td>
-            <td class="num">{{window_evaluations}}</td>
-            <td class="num text-success">{{window_allowed}}</td>
-            <td class="num">
+            <td class="numeric">{{window_evaluations}}</td>
+            <td class="numeric text-success">{{window_allowed}}</td>
+            <td class="numeric">
                 {{#if has_recent_denies}}
                 <a class="text-danger" href="{{deny_decisions_url}}"><strong>{{window_denied}}</strong></a>
                 {{else}}
                 {{window_denied}}
                 {{/if}}
             </td>
-            <td class="num">{{deny_rate}}</td>
+            <td class="numeric">{{deny_rate}}</td>
             <td class="col-date">{{#if last_at}}{{last_at}}{{else}}—{{/if}}</td>
             <td class="col-status">
                 <a href="{{decisions_url}}" class="btn btn-sm btn-outline">Open</a>
@@ -73,7 +73,7 @@
     {{> components/empty-state message="No policies registered."}}
     {{/if}}
 
-    <div class="enforcement-section__grid" style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:2rem;">
+    <div class="enforcement-section__grid">
         <div>
             <h3>Top denying tool calls · 24h</h3>
             {{#if has_top_policies}}
@@ -81,16 +81,16 @@
                 <thead><tr>
                     <th>Policy</th>
                     <th>Tool</th>
-                    <th class="num">Denies</th>
-                    <th class="num">Distinct actors</th>
+                    <th class="numeric">Denies</th>
+                    <th class="numeric">Distinct actors</th>
                 </tr></thead>
                 <tbody>
                 {{#each top_policies}}
                 <tr>
                     <td><a href="{{decisions_url}}"><code class="code-inline">{{policy}}</code></a></td>
                     <td><code class="code-inline">{{tool_name}}</code></td>
-                    <td class="num text-danger"><strong>{{hits}}</strong></td>
-                    <td class="num">{{distinct_actors}}</td>
+                    <td class="numeric text-danger"><strong>{{hits}}</strong></td>
+                    <td class="numeric">{{distinct_actors}}</td>
                 </tr>
                 {{/each}}
                 </tbody>
@@ -106,9 +106,9 @@
             {{#> components/data-table}}
                 <thead><tr>
                     <th>User</th>
-                    <th class="num">Denies</th>
-                    <th class="num">Secret blocks</th>
-                    <th class="num">Total decisions</th>
+                    <th class="numeric">Denies</th>
+                    <th class="numeric">Secret blocks</th>
+                    <th class="numeric">Total decisions</th>
                 </tr></thead>
                 <tbody>
                 {{#each top_actors}}
@@ -117,9 +117,9 @@
                         <strong>{{display_name}}</strong>
                         {{#if email}}<br><span class="text-muted">{{email}}</span>{{/if}}
                     </td>
-                    <td class="num text-danger"><strong>{{deny_count}}</strong></td>
-                    <td class="num">{{secret_count}}</td>
-                    <td class="num">{{total}}</td>
+                    <td class="numeric text-danger"><strong>{{deny_count}}</strong></td>
+                    <td class="numeric">{{secret_count}}</td>
+                    <td class="numeric">{{total}}</td>
                 </tr>
                 {{/each}}
                 </tbody>
