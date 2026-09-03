@@ -907,7 +907,7 @@ backup *ARGS:
 # services/ tree are built from what is on disk, so uncommitted state ships to
 # production. The warning lists what is going out so a half-committed deploy
 # is at least a visible act, not a silent one.
-deploy *FLAGS: deploy-check build-all
+deploy *FLAGS: build-all deploy-check
     @if [ -n "$(git status --porcelain)" ]; then \
         echo "WARNING: working tree is dirty — this deploy ships the uncommitted state below:"; \
         git status --porcelain | head -20; \
@@ -943,8 +943,21 @@ deploy-next *FLAGS:
 # Pre-deploy preflight — no build, no push. `deploy` depends on it, so a
 # production profile the binary would refuse to boot (no server.instance_id,
 # missing identity secrets) is caught here, not after the image is live.
+# The pre-deploy gate. It runs the RELEASE binary on purpose: that is the one
+# `deploy` is about to ship, so doctoring anything else proves nothing. It also
+# has to be this way — `CLI` picks its path from path_exists at justfile load
+# time, so in a tree with no binary yet it is already frozen to an error string
+# by the time `build-all` has produced one. That is why `deploy` builds first
+# and checks second; the reverse order could never pass on a fresh worktree
+# (which is exactly what `deploy-next` creates the first time it runs).
 deploy-check:
-    {{CLI}} cloud doctor --profile {{DEPLOY_PROFILE}} --distributed
+    @if [ ! -x "{{CLI_RELEASE}}" ]; then \
+        echo "ERROR: no release binary at $(pwd)/{{CLI_RELEASE}}"; \
+        echo "       run 'just build --release' IN THIS TREE first — note the path above;"; \
+        echo "       a binary in another clone or worktree does not count."; \
+        exit 1; \
+    fi
+    {{CLI_RELEASE}} cloud doctor --profile {{DEPLOY_PROFILE}} --distributed
 
 # Check deployment status
 status:
