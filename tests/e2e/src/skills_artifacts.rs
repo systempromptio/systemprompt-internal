@@ -115,8 +115,8 @@ async fn every_manifest_named_bundle_file_is_fetchable_and_dashboards_ship_with_
 
     let commons = bundle_paths(&manifest, "systemprompt-commons");
     assert!(
-        commons.iter().any(|p| p.contains("systemprompt-setup")),
-        "the one setup skill ships in commons: {commons:?}"
+        !commons.iter().any(|p| p.contains("systemprompt-setup")),
+        "commons ships no setup skill — installing dashboards is admin-only: {commons:?}"
     );
     let skills: Vec<&str> = manifest["skills"]
         .as_array()
@@ -124,15 +124,20 @@ async fn every_manifest_named_bundle_file_is_fetchable_and_dashboards_ship_with_
         .iter()
         .filter_map(|s| s["id"].as_str())
         .collect();
+    // This is the user manifest: it carries no setup skill of any kind.
+    // Installing dashboards is admin-only, and the one installer
+    // (systemprompt_setup_admin) is closed to this role by the admin plugin's
+    // grant — manifest_roles.rs pins both halves of that.
     assert!(
-        skills.contains(&"systemprompt_setup"),
-        "setup is the one name every role types: {skills:?}"
+        !skills.iter().any(|id| id.starts_with("systemprompt_setup")),
+        "a user manifest carries no setup skill — installing is admin-only: {skills:?}"
     );
     // Retired ids must not come back through a stale bundle or a re-added
-    // config: the setup router and its two host bodies, the first demo
+    // config: the shared setup skill and its two host bodies, the first demo
     // plugin's five narrations, and the CLI manuals (inspect, report) plus the
     // user-plugin skills that show_activity and update_leads absorbed.
     for retired in [
+        "systemprompt_setup",
         "systemprompt_setup_cowork",
         "systemprompt_setup_codex",
         "systemprompt_cli",

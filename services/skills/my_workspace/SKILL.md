@@ -52,7 +52,7 @@ An empty section gets one line saying so — "nothing overdue" is good news wort
 ## Dashboards
 
 The same four queries have standing views, installed into the Artifacts library by
-`systemprompt_setup` from the `systemprompt-workspace` bundle:
+`systemprompt_setup_admin` from the `systemprompt-workspace` bundle:
 
 | Dashboard | Backed by | Use it for |
 |-----------|-----------|------------|
@@ -62,8 +62,9 @@ The same four queries have standing views, installed into the Artifacts library 
 | **Recent Activity — Team Notes** | `note_search` | The chatter feed, searchable |
 
 They refetch over the same wire, as the same identity, landing the same audit rows. After the brief,
-offer to open the one that matches what the user asked about. If a dashboard is not installed, run
-`systemprompt_setup` — never recreate a dashboard by hand.
+offer to open the one that matches what the user asked about. If a dashboard is not installed, say
+so and point at an admin: `systemprompt_setup_admin` is the only thing that installs dashboards, and
+it is admin-only. Never recreate a dashboard by hand.
 
 ## Rules
 

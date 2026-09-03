@@ -39,9 +39,11 @@ plugin:
       - manage_platform
       - demonstrate_governance
       - governance_readback
-      # Control-plane first-run setup. Admin-only by this plugin's grant alone —
-      # a user's manifest never carries it, so systemprompt_setup never names it
-      # to them.
+      # First-run setup, and the only dashboard installer on the instance.
+      # Admin-only by this plugin's grant alone. It installs every record in
+      # the staged manifest — the seven admin pages below and the four
+      # systemprompt-workspace pages — because installing artifacts is an
+      # admin job; commons ships no setup skill for other roles to run.
       - systemprompt_setup_admin
   agents:
     source: explicit

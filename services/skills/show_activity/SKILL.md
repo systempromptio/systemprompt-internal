@@ -55,11 +55,11 @@ An empty section gets one line saying so — an empty "needs attention" is good 
 
 ## Dashboards
 
-The same data has standing views. **Business Overview** and **Leads — Inbound Prospects** are
-installed into the Artifacts library by `systemprompt_setup_admin`; **Pipeline — Open Deals** and
-**Recent Activity — Team Notes** ship with the `systemprompt-workspace` bundle every role holds and
-are installed by `systemprompt_setup` (alongside **To-Do Bulletin** and **Upcoming Deals**, which
-`my_workspace` reads). They refetch over the same wire, as the same identity, landing the same audit
+The same data has standing views, all installed into the Artifacts library by
+`systemprompt_setup_admin` — the one installer on the instance. **Business Overview** and
+**Leads — Inbound Prospects** ride with the admin bundle; **Pipeline — Open Deals** and
+**Recent Activity — Team Notes** ship with the `systemprompt-workspace` bundle every role holds
+(alongside **To-Do Bulletin** and **Upcoming Deals**, which `my_workspace` reads). They refetch over the same wire, as the same identity, landing the same audit
 rows. After the brief, offer to open the one that matches what the user asked about.
 
 ## Rules

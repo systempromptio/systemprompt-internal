@@ -398,8 +398,9 @@ async fn live_stack_walks_the_two_role_journey() {
          close it to the salesperson: {sales_skills:?}"
     );
     assert!(
-        sales_skills.contains("systemprompt_setup"),
-        "the one setup skill ships in commons for every role: {sales_skills:?}"
+        !sales_skills.contains("systemprompt_setup_admin"),
+        "installing dashboards is admin-only: the salesperson holds no setup skill at all, and \
+         commons ships none: {sales_skills:?}"
     );
 
     step("the admin CLI server is enabled and admin-only");

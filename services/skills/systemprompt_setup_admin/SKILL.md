@@ -1,10 +1,16 @@
 # Set Up the Control Plane
 
-Install the admin bundle's seven dashboards — the two admin business pages (business overview,
-inbound leads), the two brain@ knowledge pages (knowledge feed, approve ingestion) and the three
-control-plane ones (the user directory, request activity, and usage and costs) — into the Artifacts
-library, and confirm the admin CLI server answers. Safe to run on every new session: it reconciles
+Install every dashboard the bridge staged — all eleven — into the Artifacts library, and confirm
+the admin CLI server answers. That is the seven admin pages (business overview, inbound leads, the
+two brain@ knowledge pages, and the three control-plane ones: user directory, request activity,
+usage and costs) plus the four workspace pages every role's data feeds (to-do bulletin, upcoming
+deals, pipeline — open deals, recent activity). Safe to run on every new session: it reconciles
 rather than seeds, so re-running is the point, not a waste.
+
+**Installing dashboards is an admin job, and this is the only skill that does it.** There is no
+user-facing setup skill; a non-admin has nothing to run and nothing to install. If a non-admin asks
+why their library is empty, the answer is that an admin installs dashboards, not that something is
+broken.
 
 **This skill is admin-only, and the grant is what enforces it.** It ships in the
 `systemprompt-admin` plugin, which `services/access-control/roles.yaml` grants to `[admin]` with
@@ -17,10 +23,6 @@ as an explicit verdict naming the policy, never as a generic tool error.
 connected workspace, and the only tools it calls are `Glob`, `Read`, `Write`, `list_artifacts`,
 `create_artifact` and the admin CLI server. Do not call `mcp__workspace__bash`; Claude Desktop
 denies it in Cowork sessions on current builds, and nothing here needs it.
-
-**Run `systemprompt_setup` first.** It installs the user-scoped `systemprompt-workspace` bundle's
-four dashboards, which admins hold too. This skill installs the seven that ride only with the admin
-bundle. The two do not overlap.
 
 ## Ask me things like
 
@@ -62,10 +64,14 @@ Once you have it, `Read` the manifest. It is small: one record per dashboard —
 `{ "id", "name", "description", "version", "isStarred", "mcpTools": [...], "plugins": [...] }`.
 The pages are not in it and you never read them: `create_artifact` copies a page from its path.
 
-Keep only the records whose `plugins` names `systemprompt-admin`. That printed set **is** the admin
-bundle: count it, never assume it. Expect `business-overview`, `leads-inbound-prospects`,
-`knowledge-feed`, `knowledge-approve-ingestion`, `admin-users-directory`,
-`admin-activity-requests` and `admin-usage-costs`.
+**Take every record in the manifest.** Do not filter on `plugins` — the manifest holds exactly the
+bundles your signed manifest granted, so every record in it is one you are meant to install. That
+printed set **is** the bundle: count it, never assume it. On this instance expect eleven — the seven
+admin pages (`business-overview`, `leads-inbound-prospects`, `knowledge-feed`,
+`knowledge-approve-ingestion`, `admin-users-directory`, `admin-activity-requests`,
+`admin-usage-costs`) and the four workspace pages (`todo-bulletin`, `upcoming-deals`,
+`pipeline-open-deals`, `recent-activity`). If the count differs, install what is there and say so —
+the manifest is the authority, not this list.
 
 ### If every rung missed
 
@@ -89,8 +95,8 @@ receipt.
 
 Call `list_artifacts` and match **by `id` only** — never by name, title, or "close enough"
 description. `Activity — Recent Requests` and `Recent Activity — Team Notes` are different
-dashboards from different bundles, and a name match is exactly how one ends up installed with the
-other's tool allowlist. Build four groups:
+dashboards that you now install in the same run, and a name match is exactly how one ends up
+installed with the other's tool allowlist. Build four groups:
 
 - **Missing** — bundled but not in the library.
 - **Present** — bundled and already there.
@@ -99,8 +105,8 @@ other's tool allowlist. Build four groups:
   `admin-usage`: an install from before these dashboards were renamed. Offer to remove it; the
   bundled dashboards are its replacement and it can no longer load data.
 
-Leave every entry that is not one of the seven above alone — `todo-bulletin`, `upcoming-deals`,
-`pipeline-open-deals` and `recent-activity` belong to `systemprompt_setup`.
+Leave every library entry that is not in the manifest alone. It may be the user's own artifact, and
+nothing here owns it.
 
 ## Step 3 — Install what is missing
 
@@ -128,7 +134,8 @@ artifact the user may have edited.
 **Caching contract:** Cowork caches a dashboard's MCP results only when the tool advertises
 `annotations.readOnlyHint: true`. The admin CLI tool (`mcp__systemprompt__systemprompt`) is
 deliberately *not* annotated, so the three control-plane dashboards always refetch on render. That
-is intended — control-plane numbers must not be stale.
+is intended — control-plane numbers must not be stale. The Odoo-backed dashboards do carry the
+annotation and are cached normally.
 
 ## Step 4 — Check the admin connection
 
@@ -149,13 +156,14 @@ a broken dashboard. Report which, and do not retry the call in a loop.
 current UTC time in `checkedAt`:
 
 ```
-{ "checkedAt": "<ISO-8601 UTC>", "plugins": ["systemprompt-admin"], "bundled": N, "installed": N,
+{ "checkedAt": "<ISO-8601 UTC>", "plugins": ["<every plugin named across the manifest records>"],
+  "bundled": N, "installed": N,
   "created": [{ "id": "...", "name": "...", "ref": "..." }],
   "alreadyPresent": [{ "id": "...", "name": "...", "ref": "..." }],
   "stale": ["..."], "superseded": ["..."], "failed": [] }
 ```
 
-`bundled` is the admin record count from Step 1; `installed` is the count confirmed by the final
+`bundled` is the full record count from Step 1; `installed` is the count confirmed by the final
 listing and nothing else. `ref` is whatever identifying reference `create_artifact` or
 `list_artifacts` exposed for that record (an id, a url — read what the tool gives back). Never write
 into the plugin or skills directories, or into the bundle folder: they are replaced wholesale on

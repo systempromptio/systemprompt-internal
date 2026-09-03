@@ -1,7 +1,7 @@
 plugin:
   id: systemprompt-commons
-  name: "Systemprompt Commons — Setup, Brand & Email"
-  description: "What every role gets: the one workspace setup skill (installs every dashboard the plugins you were granted ship), the shared brand skill — voice, document formatting, company boilerplate — and outbound email that a second human approves before it leaves."
+  name: "Systemprompt Commons — Brand & Email"
+  description: "What every role gets: the shared brand skill — voice, document formatting, company boilerplate — and outbound email that a second human approves before it leaves. Dashboard installation is not here: it is an admin job, done by systemprompt_setup_admin in the admin plugin."
   version: "4.0.0"
   # User-scoped and shared by every role: roles.yaml grants this plugin to
   # [user], and admins hold the user role too (services/access-control/
@@ -11,17 +11,16 @@ plugin:
   author:
     name: systemprompt.io
     email: ed@systemprompt.io
-  keywords: [setup, onboarding, artifacts, identity, brand, voice, formatting, email, approval]
+  keywords: [brand, voice, formatting, email, approval]
   license: proprietary
-  category: setup
+  category: brand
   skills:
     source: explicit
     include:
-      # Setup is one skill. It establishes the grant, branches on host (Cowork
-      # dashboards, Codex gateway wiring), and is plugin-agnostic: it installs
-      # the artifacts of every plugin bundle the bridge mounted, which is
-      # exactly the set the signed manifest granted this user.
-      - systemprompt_setup
+      # No setup skill here. Installing dashboards is admin-only, so the one
+      # installer lives in systemprompt-admin as systemprompt_setup_admin and
+      # is closed to every other role by that plugin's grant. A user role has
+      # no setup skill at all — deliberately, not by omission.
       # One brand skill, four passes (voice, structure, boilerplate, email).
       - brand
       # Outbound email over the `email` MCP server. Everyone can draft and

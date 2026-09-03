@@ -207,7 +207,7 @@ async fn a_ruleless_skill_in_an_admin_plugin_never_reaches_a_user() {
 }
 
 #[tokio::test]
-async fn setup_is_split_by_role_and_both_roles_keep_the_shared_front_door() {
+async fn setup_is_admin_only_and_no_role_holds_a_shared_setup_skill() {
     let Some(stack) = Stack::create().await else {
         return;
     };
@@ -215,16 +215,18 @@ async fn setup_is_split_by_role_and_both_roles_keep_the_shared_front_door() {
     let user_skills = ids(&stack.manifest(&stack.user_token).await, "skills");
     let admin_skills = ids(&stack.manifest(&stack.admin_token).await, "skills");
 
-    // The router ships in systemprompt-commons, which every role holds.
+    // Commons ships no setup skill: installing dashboards is an admin job, so
+    // a user role holds no setup skill at all. The retired shared front door
+    // must not come back through a stale bundle or a re-added config.
     for (role, skills) in [("user", &user_skills), ("admin", &admin_skills)] {
         assert!(
-            skills.contains("systemprompt_setup"),
-            "{role} lost the shared setup front door: {skills:?}"
+            !skills.contains("systemprompt_setup"),
+            "the retired shared setup skill came back for {role}: {skills:?}"
         );
     }
 
-    // The control-plane installer ships only in the admin plugin, so the split
-    // is enforced by the grant — not by a branch inside a shared skill.
+    // The one installer ships only in the admin plugin, so the split is
+    // enforced by the grant — not by a branch inside a shared skill.
     assert!(
         admin_skills.contains("systemprompt_setup_admin"),
         "admin lost the control-plane setup: {admin_skills:?}"

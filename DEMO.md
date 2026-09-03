@@ -61,11 +61,12 @@ Accounts, passwords, and how to run the demo as a real user instead of the seede
 2. **Seed richer data (optional but better on screen):** create a handful of leads/notes via the `update_leads`
    skill or Odoo UI (`http://localhost:8070`, `admin`/`admin`) so triage has something to rank.
 3. **Cowork:** on the demo machine, `systemprompt-internal-bridge login … --gateway http://localhost:8081`,
-   `bridge sync`, run **systemprompt_setup** — one skill for every role and every host; it installs the
-   four workspace dashboards every role holds (To-Do Bulletin, Upcoming Deals, Pipeline — Open Deals,
-   Recent Activity — Team Notes). An admin then runs **systemprompt_setup_admin**, a separate admin-only
-   skill, which installs the seven that ride with the admin bundle (business overview, inbound leads,
-   the two brain@ knowledge pages and the three control-plane ones).
+   `bridge sync`, then **as the admin** run **systemprompt_setup_admin** — the one skill that installs
+   dashboards, and admin-only. It installs all eleven: the four workspace dashboards every role's data
+   feeds (To-Do Bulletin, Upcoming Deals, Pipeline — Open Deals, Recent Activity — Team Notes) and the
+   seven that ride with the admin bundle (business overview, inbound leads, the two brain@ knowledge
+   pages and the three control-plane ones). The salesperson holds no setup skill: installing artifacts
+   is an admin job.
 4. **Verify the manifest** (§3 curl in TESTING-INSTRUCTIONS.md): both users carry `send_email`,
    `lead_factsheet` and the three `demo_*` skills; only `e2e-admin` carries `show_activity`,
    `update_leads`, `demonstrate_governance` and `governance_readback`.
