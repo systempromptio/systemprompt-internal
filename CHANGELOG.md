@@ -5,6 +5,18 @@ All notable changes to this repository are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- `bridge/CORE_REF` pins core `d975063842910a5bbc460d72c0cb9ef94b0c5d4d` (core
+  `next`, workspace version 0.45.0) rather than the `v0.45.0` tag, so the
+  0.45.0 bridge carries the macOS fixes that landed after that tag was cut: the
+  entropy backstop no longer denying `$TMPDIR`-shaped paths (which failed every
+  Claude Code request from an affected Mac), managed MCP servers that can
+  authenticate on macOS, connectors that actually sync there, and org-plugins
+  provisioning that no longer fails closed on a missing directory. The pinned
+  commit's own version is 0.45.0, so the release workflow's core-of-the-pinned-
+  version assertion holds.
+
 ### Added
 
 - `.github/workflows/release.yml` publishes on every merge to `main`: the
