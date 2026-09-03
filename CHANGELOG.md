@@ -7,6 +7,10 @@ All notable changes to this repository are documented here. The format follows
 
 ### Changed
 
+- The admin HTTP contract baseline records `/admin/entities/skills`,
+  `/admin/governance` and `/admin/governance/decisions`, which were added with
+  the governance dashboards but never recorded. All three answer the same way as
+  every other admin route — anonymous 307 to login, non-admin 303, admin 200.
 - Knowledge-bank is admin-only again. `roles.yaml` had been changed to grant the
   MCP server to `[user]` with `default_included: true`, and the manifest test
   changed to match, but no user-scoped plugin ships the server — a manifest
