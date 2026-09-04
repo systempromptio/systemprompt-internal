@@ -21,6 +21,8 @@ mod artifact_gallery;
 #[cfg(test)]
 mod health;
 #[cfg(all(test, feature = "live"))]
+mod live_demo_seed;
+#[cfg(all(test, feature = "live"))]
 mod live_smoke;
 #[cfg(test)]
 mod manifest_roles;

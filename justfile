@@ -335,6 +335,29 @@ e2e-fast:
 e2e-live:
     cargo nextest run --manifest-path tests/Cargo.toml -p e2e-tests --features live -E 'test(live_smoke)' --no-capture
 
+# Seeds the /admin/demo dashboards with real telemetry for both roles: PKCE
+# sign-in, an honestly minted hook token (bridge oauth-client →
+# client_credentials, audience=hook), then hook sessions through
+# /api/public/hooks/{track,govern} and small gateway calls so tokens land in
+# the attribution window. Reuses the running server; never restarts anything.
+# Prereqs: `just start`, `just db-up local`, `just odoo-local-init`.
+e2e-live-demo-seed:
+    @demo/skills/07-skill-usage-seed.sh
+
+# Logged-in screenshots of the four Demo pages as an admin and as a non-admin,
+# into playwright/demo-shots/{admin,user}/ (gitignored). Run
+# `just e2e-live-demo-seed` first — the assertions read the rows it produces.
+demo-shots PORT="8081":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ ! -d playwright/node_modules ]; then
+        echo "==> installing Playwright dependencies"
+        just e2e-install
+    fi
+    cd playwright && GATEWAY_URL="${GATEWAY_URL:-http://localhost:{{PORT}}}" \
+        npx playwright test tests/demo-dashboard.spec.ts
+    echo "open playwright/demo-shots/"
+
 # Source gates ported from systemprompt-core (scripts/*.sh)
 lint-gates:
     @scripts/build-coordinator.sh run lint-gates "" -- {{just_executable()}} _lint-gates-uncoordinated
