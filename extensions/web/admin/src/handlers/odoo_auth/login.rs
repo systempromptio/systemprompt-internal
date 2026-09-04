@@ -246,7 +246,7 @@ async fn auto_link_identity(link: AutoLink<'_>) {
         );
         return;
     }
-    if let Err(e) = odoo_identity::insert_if_absent(pool, user_id, login, uid, credential).await {
+    if let Err(e) = odoo_identity::upsert_verified(pool, user_id, login, uid, credential).await {
         tracing::error!(
             error = %e,
             user_id = %user_id,

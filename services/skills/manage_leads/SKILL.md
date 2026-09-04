@@ -34,13 +34,20 @@ Put a new lead into the pipeline from a conversation.
 1. **Search before creating.** `crm_lead_search` on the company and the email; `partner_search` on the
    company. If it exists, work with that lead instead — put the new context on it with `note_add`. A
    duplicate is worse than no lead.
-2. **Create with what you have; never invent.** Only the fields the user actually gave:
-   `crm_lead_create` with `name` (required), `partner_name`, `email_from`, `phone`, `description`,
-   `expected_revenue`. Leave `expected_revenue` unset rather than guessing. Put the substance of the
-   conversation — what they want, what they objected to, what happens next — in `description`.
-3. **Log the context** with `note_add` (`model: crm.lead`), and if a next step was agreed, offer
-   `activity_create` with a concrete date. Never schedule one silently.
-4. **Confirm with specifics**: the lead id, name, stage and owner as Odoo returned them.
+2. **Link it to a customer.** If `partner_search` found the company, pass its id as `partner_id` on
+   the lead. If it did not and the company is real (a named business, not a stray enquiry), offer
+   `partner_create` first and link the new id. A lead carrying only free-text `partner_name` is
+   invisible to the contact database — nothing joins it to the orders, invoices and history filed
+   against that same company later.
+3. **Create with what you have; never invent.** Only the fields the user actually gave:
+   `crm_lead_create` with `name` (required), `partner_id` (from step 2), `partner_name`,
+   `email_from`, `phone`, `description`, `expected_revenue`. Leave `expected_revenue` unset rather
+   than guessing. Put the substance of the conversation — what they want, what they objected to,
+   what happens next — in `description`.
+4. **Log the context** with `note_add` (`model: crm.lead`), and if a next step was agreed, offer
+   `activity_create` with a concrete date and the right `activity_type` ("Call", "Meeting" — see
+   `activity_type_list`). Never schedule one silently.
+5. **Confirm with specifics**: the lead id, name, stage and owner as Odoo returned them.
 
 ---
 
@@ -55,8 +62,12 @@ Proposal").
 |------|---------|
 | `crm_lead_search` | Find leads by text, `stage`, or `user` (salesperson) — your own with `user` set to you |
 | `crm_lead_get` | One lead in full: stage, owner, revenue, probability, description |
-| `crm_lead_update` | Change fields on a lead: `stage_id` for stage moves, `expected_revenue`, `probability`, `user_id` |
+| `crm_lead_update` | Change fields on a lead: `stage` **by name** for stage moves, plus `expected_revenue`, `probability`, `user_id` through `fields` |
+| `crm_stage_list` | The pipeline's stages and their names — read it before a stage move |
+| `user_list` | The salespeople a lead can be handed to, by name |
 | `partner_search` / `partner_get` | Resolve the company or contact — is this already a customer? |
+| `partner_create` | Create the customer when the search finds nothing, then link the lead to it |
+| `crm_lead_mark_won` / `crm_lead_mark_lost` | Close a deal. For the full close, hand to `close_deal` |
 | `note_list` / `note_add` | Read a lead's chatter before acting; write the reasoning back onto it |
 | `activity_list` / `activity_create` / `activity_complete` | The follow-ups already promised; schedule one; close one with feedback |
 | `crm_lead_report` | Pipeline by stage or salesperson when the walk raises a question |
@@ -73,8 +84,13 @@ Proposal").
      note or activity, and how long ago), **what is scheduled** (next activity, or "nothing").
    - Ask one question: *"What's the status — what changed, and what's next?"* Then wait.
 3. **Apply the answer.** Map it to the smallest set of writes:
-   - A stage change → resolve the current stage from `crm_lead_get`, confirm the target stage by name
-     if it is at all ambiguous, then `crm_lead_update` with `stage_id`.
+   - A stage change → `crm_stage_list` for the real stage names, confirm the target if it is at all
+     ambiguous, then `crm_lead_update` with `stage` as the **name**. Never pass a `stage_id` you
+     guessed: the ids differ per deployment and a wrong one moves the deal to the wrong column
+     silently.
+   - A close ("we won it", "they went elsewhere") → `crm_lead_mark_won` or `crm_lead_mark_lost`
+     with the reason, never a hand-written `probability`. For a win that needs a quotation raising,
+     hand to `close_deal`.
    - A number change → `crm_lead_update` with `expected_revenue` and/or `probability`.
    - A handover → `crm_lead_update` with `user_id`; name the new owner back.
    - Context → `note_add`, in the user's voice, short and factual: what happened, what was decided.

@@ -20,8 +20,8 @@ use systemprompt_mcp_shared::{record_mcp_access, record_mcp_access_rejected};
 
 use super::call::OdooCall;
 use super::{
-    activity, attachments, calendar, channels, crm, crm_delete, notes, overview, partner, report,
-    tasks,
+    activity, attachments, calendar, channels, crm, crm_delete, discovery, notes, overview, partner,
+    partner_write, report, sales, tasks,
 };
 use crate::client::OdooClient;
 use crate::error::OdooError;
@@ -33,6 +33,12 @@ use crate::tools::{
     TOOL_LEAD_DELETE, TOOL_LEAD_GET, TOOL_LEAD_REPORT, TOOL_LEAD_SEARCH, TOOL_LEAD_UPDATE,
     TOOL_NOTE_ADD, TOOL_NOTE_LIST, TOOL_NOTE_SEARCH, TOOL_OVERVIEW, TOOL_PARTNER_GET,
     TOOL_PARTNER_SEARCH, TOOL_TASK_CREATE, TOOL_TASK_LIST, TOOL_TASK_UPDATE,
+};
+use crate::tools::{
+    TOOL_ACTIVITY_TYPE_LIST, TOOL_INVOICE_GET, TOOL_INVOICE_LIST, TOOL_LEAD_CONVERT,
+    TOOL_LEAD_MARK_LOST, TOOL_LEAD_MARK_WON, TOOL_PARTNER_CREATE, TOOL_PARTNER_UPDATE,
+    TOOL_SALE_ORDER_CREATE, TOOL_SALE_ORDER_GET, TOOL_SALE_ORDER_LIST, TOOL_STAGE_LIST,
+    TOOL_USER_LIST,
 };
 
 pub(super) async fn authenticate_tool_request(
@@ -98,6 +104,12 @@ pub async fn dispatch_tool(
     if let Some(result) = crm_tools(ctx, call.clone(), tool_name).await {
         return result;
     }
+    if let Some(result) = closing_tools(ctx, call.clone(), tool_name).await {
+        return result;
+    }
+    if let Some(result) = sales_tools(ctx, call.clone(), tool_name).await {
+        return result;
+    }
     if let Some(result) = knowledge_tools(ctx, call.clone(), tool_name).await {
         return result;
     }
@@ -131,6 +143,49 @@ async fn crm_tools(
         TOOL_PARTNER_SEARCH => ctx.run(&partner::PartnerSearchHandler { call }).await,
         TOOL_PARTNER_GET => ctx.run(&partner::PartnerGetHandler { call }).await,
         TOOL_OVERVIEW => ctx.run(&overview::OverviewHandler { call }).await,
+        _ => return None,
+    })
+}
+
+/// Closing a deal, writing the customer, and the id lookups.
+///
+/// A plane of its own for the same reason the others are: each handler is a
+/// distinct type and they cannot all share one stack frame.
+async fn closing_tools(
+    ctx: &Dispatch<'_>,
+    call: OdooCall,
+    tool_name: &str,
+) -> Option<Result<CallToolResult, McpError>> {
+    Some(match tool_name {
+        TOOL_LEAD_MARK_WON => ctx.run(&crm::LeadMarkWonHandler { call }).await,
+        TOOL_LEAD_MARK_LOST => ctx.run(&crm::LeadMarkLostHandler { call }).await,
+        TOOL_LEAD_CONVERT => ctx.run(&crm::LeadConvertHandler { call }).await,
+        TOOL_PARTNER_CREATE => {
+            ctx.run(&partner_write::PartnerCreateHandler { call }).await
+        },
+        TOOL_PARTNER_UPDATE => {
+            ctx.run(&partner_write::PartnerUpdateHandler { call }).await
+        },
+        TOOL_STAGE_LIST => ctx.run(&discovery::StageListHandler { call }).await,
+        TOOL_USER_LIST => ctx.run(&discovery::UserListHandler { call }).await,
+        TOOL_ACTIVITY_TYPE_LIST => {
+            ctx.run(&discovery::ActivityTypeListHandler { call }).await
+        },
+        _ => return None,
+    })
+}
+
+async fn sales_tools(
+    ctx: &Dispatch<'_>,
+    call: OdooCall,
+    tool_name: &str,
+) -> Option<Result<CallToolResult, McpError>> {
+    Some(match tool_name {
+        TOOL_SALE_ORDER_LIST => ctx.run(&sales::SaleOrderListHandler { call }).await,
+        TOOL_SALE_ORDER_GET => ctx.run(&sales::SaleOrderGetHandler { call }).await,
+        TOOL_SALE_ORDER_CREATE => ctx.run(&sales::SaleOrderCreateHandler { call }).await,
+        TOOL_INVOICE_LIST => ctx.run(&sales::InvoiceListHandler { call }).await,
+        TOOL_INVOICE_GET => ctx.run(&sales::InvoiceGetHandler { call }).await,
         _ => return None,
     })
 }

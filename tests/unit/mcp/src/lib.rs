@@ -16,6 +16,9 @@
 //!   query-centred snippets, the note-search domain's OR-over-AND shape, the
 //!   attachment size gates on both the upload and the inline-return side, and
 //!   the exactly-one-of rule separating a stored file from a link
+//! - the odoo quote-to-cash plane: the `move_type` filter that keeps vendor
+//!   bills out of the receivables answer, the order and invoice domains, and
+//!   the typed rows that absorb Odoo's `false`-for-empty and many2one idioms
 //! - the odoo work plane: calendar datetime normalisation and derived end
 //!   times, the task domain's default exclusion of closed stages, channel
 //!   filters, and the missing-app mapping that turns "Object X doesn't exist"
@@ -63,6 +66,8 @@ mod odoo_lead_table;
 mod odoo_notes;
 #[cfg(test)]
 mod odoo_rpc;
+#[cfg(test)]
+mod odoo_sales;
 #[cfg(test)]
 mod odoo_text;
 #[cfg(test)]

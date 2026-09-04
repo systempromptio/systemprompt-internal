@@ -85,8 +85,32 @@ pub async fn resolve_credentials(
     let row = row.ok_or_else(|| OdooError::NotLinked(NOT_LINKED_MESSAGE.to_owned()))?;
 
     Ok(Credentials {
+        user_id: user_id.clone(),
         login: row.odoo_login,
         uid: row.odoo_uid,
         api_key: open_api_key(&master_key()?, &row.odoo_api_key_encrypted)?,
     })
+}
+
+/// Write back a `odoo_uid` that Odoo has just confirmed for this credential.
+///
+/// Why this never fails the caller: the tool call it accompanies has already
+/// succeeded on the refreshed uid. A failure to persist costs one extra
+/// `authenticate` round trip on the next call and nothing else, so it is
+/// logged rather than turned into a user-visible error on a request that
+/// worked.
+pub async fn persist_uid(pool: &DbPool, user_id: &UserId, odoo_uid: i32) {
+    let Some(pg_pool) = pool.pool() else {
+        return;
+    };
+    let result = sqlx::query!(
+        "UPDATE odoo_identity SET odoo_uid = $2, updated_at = CURRENT_TIMESTAMP WHERE user_id = $1",
+        user_id.as_str(),
+        odoo_uid
+    )
+    .execute(pg_pool.as_ref())
+    .await;
+    if let Err(e) = result {
+        tracing::warn!(error = %e, %user_id, odoo_uid, "Could not persist the refreshed Odoo uid");
+    }
 }

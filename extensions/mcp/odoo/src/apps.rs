@@ -25,12 +25,13 @@ use crate::error::OdooError;
 // Why: model prefix to the app name an Odoo administrator would search for in
 // Apps. Prefixes rather than exact models, because one missing app takes out
 // every model it owns and the message is the same for all of them.
-const APPS: [(&str, &str); 6] = [
+const APPS: [(&str, &str); 7] = [
     ("calendar.", "Calendar"),
     ("project.", "Project"),
     ("discuss.", "Discuss"),
     ("mail.channel", "Discuss"),
     ("crm.", "CRM"),
+    ("sale.", "Sales"),
     ("account.", "Invoicing"),
 ];
 
@@ -52,8 +53,16 @@ fn is_missing_model_fault(model: &str, message: &str) -> bool {
 
 // Why: `AccessDenied` is raised by res.users._check_credentials — the key did
 // not authenticate. It says nothing about groups.
+//
+// Why anchored on the exception path rather than the bare words: Odoo puts a
+// formatted traceback in `data.message`, and a permission refusal raised while
+// handling an authentication error quotes `Access Denied` in an inner frame.
+// Matching the loose phrase classified those as authentication failures and
+// sent the user to relink a credential that was working.
 fn is_auth_failure_fault(message: &str) -> bool {
-    message.contains("AccessDenied") || message.contains("Access Denied")
+    message.contains("odoo.exceptions.AccessDenied")
+        || message.contains("AccessDenied:")
+        || message.trim() == "Access Denied"
 }
 
 // Why: the genuine rights refusal, which names the document rather than the
@@ -73,6 +82,14 @@ pub fn map_access_denied(login: &str, model: &str, err: OdooError) -> OdooError 
     let OdooError::Odoo(message) = &err else {
         return err;
     };
+    if is_permission_fault(message) {
+        let app = app_for_model(model).unwrap_or("the relevant");
+        return OdooError::AccessDenied(format!(
+            "Odoo authenticated '{login}' but refused it access to '{model}'. Ask an Odoo \
+             administrator to grant that account access to the {app} app (Settings → Users, then \
+             the app's access rights)."
+        ));
+    }
     if is_auth_failure_fault(message) {
         return OdooError::AccessDenied(format!(
             "Odoo did not accept the stored credential for '{login}', so the call to '{model}' \
@@ -82,14 +99,6 @@ pub fn map_access_denied(login: &str, model: &str, err: OdooError) -> OdooError 
              Odoo password change or a re-provisioned account both do this). Open \
              /admin/profile and relink. An API key from Odoo's Preferences → Account Security \
              is the durable choice, because it survives a password change."
-        ));
-    }
-    if is_permission_fault(message) {
-        let app = app_for_model(model).unwrap_or("the relevant");
-        return OdooError::AccessDenied(format!(
-            "Odoo authenticated '{login}' but refused it access to '{model}'. Ask an Odoo \
-             administrator to grant that account access to the {app} app (Settings → Users, then \
-             the app's access rights)."
         ));
     }
     err

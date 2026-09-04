@@ -4,15 +4,15 @@
     "name": "systemprompt.io"
   },
   "metadata": {
-    "description": "The AI layer for running the business, with Odoo as the system of record: pipeline management on Odoo for every role, a live governance demo, and the admin control plane.",
-    "version": "8.0.0"
+    "description": "The AI layer for running the business, with Odoo as the system of record: the pipeline end to end for every role — capture a lead against a real customer, close it won or lost, raise the quotation and see what is still owed — plus a live governance demo and the admin control plane.",
+    "version": "9.0.0"
   },
   "plugins": [
     {
       "name": "systemprompt-business",
       "source": "./storage/files/plugins/systemprompt-business",
-      "description": "What every signed-in user gets: manage the pipeline on Odoo — a business-wide brief or your own day, then create and update leads, stages, notes, and follow-ups, all as you. Six live dashboards back the skill: the business overview, inbound leads, open pipeline, upcoming deals, recent team notes, and a to-do bulletin.",
-      "version": "1.0.0"
+      "description": "What every signed-in user gets: read what's happening on Odoo — a business-wide brief or your own day — create and update leads against real customers, walk them to a decision, close them won or lost and raise the quotation that follows, and sweep everything outstanding one item at a time, all as you. Seven live dashboards back the four skills: the business overview, inbound leads, open pipeline, upcoming deals, recent team notes, a to-do bulletin, and outstanding invoices.",
+      "version": "3.0.0"
     },
     {
       "name": "systemprompt-demo",

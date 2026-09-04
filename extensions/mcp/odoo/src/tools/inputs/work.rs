@@ -24,6 +24,10 @@ pub struct ActivityCreateInput {
     pub date_deadline: String,
     pub user: Option<String>,
     pub note: Option<String>,
+    /// The kind of activity by NAME — "Call", "Meeting", "Email". Omit for
+    /// this Odoo's default to-do type. Call `activity_type_list` to see what
+    /// the deployment defines.
+    pub activity_type: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]

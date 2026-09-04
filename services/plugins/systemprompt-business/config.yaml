@@ -1,18 +1,18 @@
 plugin:
   id: systemprompt-business
   name: "Systemprompt Business — Run the Pipeline on Odoo"
-  description: "What every signed-in user gets: read what's happening on Odoo — a business-wide brief or your own day — create and update leads, stages, notes, and follow-ups, and sweep everything outstanding one item at a time, all as you. Six live dashboards back the three skills: the business overview, inbound leads, open pipeline, upcoming deals, recent team notes, and a to-do bulletin."
-  version: "2.0.0"
+  description: "What every signed-in user gets: read what's happening on Odoo — a business-wide brief or your own day — create and update leads against real customers, walk them to a decision, close them won or lost and raise the quotation that follows, and sweep everything outstanding one item at a time, all as you. Seven live dashboards back the four skills: the business overview, inbound leads, open pipeline, upcoming deals, recent team notes, a to-do bulletin, and outstanding invoices."
+  version: "3.0.0"
   # User-scoped and shared by every role: roles.yaml grants this plugin to
   # [user] with default_included: true, and admins hold the user role too
-  # (services/access-control/odoo-roles.yaml default_roles). The three skills
-  # and six dashboards below carry no rule of their own — they inherit this
+  # (services/access-control/odoo-roles.yaml default_roles). The four skills
+  # and seven dashboards below carry no rule of their own — they inherit this
   # plugin's grant (tests/e2e/src/manifest_roles.rs pins this).
   enabled: true
   author:
     name: systemprompt.io
     email: ed@systemprompt.io
-  keywords: [odoo, crm, leads, pipeline, deals, deadlines, notes, approval, workspace, reporting, follow-up]
+  keywords: [odoo, crm, leads, pipeline, deals, deadlines, notes, approval, workspace, reporting, follow-up, quotations, invoices, closing]
   license: proprietary
   category: crm
   skills:
@@ -27,6 +27,9 @@ plugin:
       # overdue/due activities, open tasks, stale leads — that writes back
       # the moment you answer for each one.
       - pending_task
+      # The other end of the pipeline: close a deal won or lost through Odoo's
+      # own actions, and raise the draft quotation a win produces.
+      - close_deal
   agents:
     source: explicit
     include: []
@@ -53,6 +56,8 @@ plugin:
       - recent-activity
       # activity_list + task_list, with activity_complete as the tick.
       - todo-bulletin
+      # invoice_list unpaid_only: what has been billed and not yet paid.
+      - quotes-and-invoices
   # Claude Code runs plugin hooks session-globally, so the governance hooks are
   # declared once, here, and cover every tool call in the session. No other
   # plugin may set this — each extra owner is another govern call per tool,

@@ -9,6 +9,8 @@
 pub mod rpc;
 
 use serde::Serialize;
+use systemprompt::database::DbPool;
+use systemprompt::identifiers::UserId;
 
 use crate::apps::{map_access_denied, map_missing_app};
 use crate::error::OdooError;
@@ -16,8 +18,13 @@ pub use rpc::{ODOO_DB_ENV, ODOO_URL_ENV, OdooConnection};
 
 /// The acting user's Odoo credential, resolved per request from
 /// `odoo_identity`.
+///
+/// `user_id` is carried alongside so a uid discovered to be stale can be
+/// written back to the row it came from, addressed by primary key rather than
+/// by login.
 #[derive(Debug, Clone)]
 pub struct Credentials {
+    pub user_id: UserId,
     pub login: String,
     pub uid: i32,
     pub api_key: String,
@@ -27,6 +34,12 @@ pub struct Credentials {
 pub struct OdooClient {
     http: reqwest::Client,
     conn: OdooConnection,
+    // Why: not a credential — the pool is only ever used to write a refreshed
+    // `odoo_uid` back to the row it was read from. Optional because the
+    // knowledge-bank job path builds a client from the environment alone and
+    // has no pool to give; it still self-heals for the duration of the call,
+    // it just cannot persist the correction.
+    identity_store: Option<DbPool>,
 }
 
 /// Optional keyword arguments for a `search_read`.
@@ -72,7 +85,15 @@ impl OdooClient {
         Ok(Self {
             http,
             conn: OdooConnection::from_env()?,
+            identity_store: None,
         })
+    }
+
+    /// Let this client persist a `odoo_uid` correction it discovers.
+    #[must_use]
+    pub fn with_identity_store(mut self, pool: DbPool) -> Self {
+        self.identity_store = Some(pool);
+        self
     }
 
     #[must_use]
@@ -91,28 +112,77 @@ impl OdooClient {
         Ok(result.as_i64().and_then(|uid| i32::try_from(uid).ok()))
     }
 
+    fn execute_kw_args(&self, uid: i32, creds: &Credentials, call: &ModelCall<'_>) -> [serde_json::Value; 7] {
+        [
+            serde_json::json!(self.conn.db),
+            serde_json::json!(uid),
+            serde_json::json!(creds.api_key),
+            serde_json::json!(call.model),
+            serde_json::json!(call.method),
+            call.args.clone(),
+            call.kwargs.clone(),
+        ]
+    }
+
     pub async fn execute_kw(
         &self,
         creds: &Credentials,
         call: ModelCall<'_>,
     ) -> Result<serde_json::Value, OdooError> {
-        let rpc_args = [
-            serde_json::json!(self.conn.db),
-            serde_json::json!(creds.uid),
-            serde_json::json!(creds.api_key),
-            serde_json::json!(call.model),
-            serde_json::json!(call.method),
-            call.args,
-            call.kwargs,
-        ];
+        let first = rpc::call(
+            &self.http,
+            &self.conn,
+            "object",
+            "execute_kw",
+            &self.execute_kw_args(creds.uid, creds, &call),
+        )
+        .await;
+
         // Why: every model call funnels through here, so this is the one place
         // a fault can be recognised while the model name and the acting login
         // are still in hand. Callers get an error naming the app or the
         // credential, not the table.
-        rpc::call(&self.http, &self.conn, "object", "execute_kw", &rpc_args)
-            .await
-            .map_err(|e| map_missing_app(call.model, e))
-            .map_err(|e| map_access_denied(&creds.login, call.model, e))
+        let err = match first {
+            Ok(value) => return Ok(value),
+            Err(e) => map_missing_app(call.model, e),
+        };
+        let err = map_access_denied(&creds.login, call.model, err);
+
+        // Why: `odoo_uid` is cached in `odoo_identity` and never refreshed, so
+        // a uid that stops matching the login — a re-provisioned account, a
+        // database restored from elsewhere — makes Odoo raise AccessDenied on
+        // a credential that is perfectly good. Left alone that reads as "your
+        // key is dead, go relink", which is both wrong and unfixable by the
+        // remedy it names. So ask Odoo who this credential is before believing
+        // the diagnosis.
+        if !matches!(err, OdooError::AccessDenied(_)) {
+            return Err(err);
+        }
+        let Ok(Some(fresh_uid)) = self.authenticate(&creds.login, &creds.api_key).await else {
+            return Err(err);
+        };
+        if fresh_uid == creds.uid {
+            return Err(err);
+        }
+        tracing::warn!(
+            login = %creds.login,
+            stale_uid = creds.uid,
+            fresh_uid,
+            "Stored Odoo uid was stale; refreshed it from the credential and retrying"
+        );
+        if let Some(pool) = &self.identity_store {
+            crate::identity::persist_uid(pool, &creds.user_id, fresh_uid).await;
+        }
+        rpc::call(
+            &self.http,
+            &self.conn,
+            "object",
+            "execute_kw",
+            &self.execute_kw_args(fresh_uid, creds, &call),
+        )
+        .await
+        .map_err(|e| map_missing_app(call.model, e))
+        .map_err(|e| map_access_denied(&creds.login, call.model, e))
     }
 
     pub async fn search_read(

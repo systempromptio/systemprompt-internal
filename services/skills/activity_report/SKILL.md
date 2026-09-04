@@ -46,7 +46,9 @@ Pull everything once, then present; slice only if the user asked for a slice.
 | 5 | `calendar_event_list` with `date_from`/`date_to` | Meetings held and booked, with the records they concern |
 | 6 | `task_list` | Open work, overdue deadlines first |
 | 7 | `activity_list` with `overdue_only: true`, then without | Promises slipping, then promises due |
-| 8 | `channel_list` | Which team channels are active — only if the user asks about Discuss |
+| 8 | `sale_order_list` | Quotations out and orders won in the window — the pipeline's other end |
+| 9 | `invoice_list` with `unpaid_only: true` | What has been billed and not yet paid |
+| 10 | `channel_list` | Which team channels are active — only if the user asks about Discuss |
 
 **The window.** Default to the last 7 days. Always state the window you used in the first line —
 "12 new leads this week" and "12 new leads this quarter" are different findings. If the user names a
@@ -92,6 +94,8 @@ missing-identity error means it is not — say so, point at `/admin/profile`, an
 | 2 | `task_list` | `{ "open_only": true, "limit": 100 }` | Open project tasks with deadlines, overdue first |
 | 3 | `crm_lead_search` | `{ "open_only": true, "sort": "deadline", "limit": 100 }` | Open opportunities, closest expected close first, each with its tags and expected revenue |
 | 4 | `note_search` | `{ "query": "%", "date_from": <7 days ago>, "date_to": <today>, "limit": 50 }` | What the team wrote this week — including the chatter the brain@ pipeline posted on approval |
+| 5 | `sale_order_list` | `{ "state": "draft", "limit": 50 }` | Quotations still sitting with a customer — the follow-ups nobody has chased |
+| 6 | `invoice_list` | `{ "unpaid_only": true, "limit": 50 }` | Money billed and still outstanding |
 
 **The window.** Default the notes to the last 7 days and say so in the first line. If the user names a
 window, use it on `note_search` and when you decide what "closing soon" means.

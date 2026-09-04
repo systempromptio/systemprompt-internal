@@ -179,7 +179,11 @@ impl McpToolHandler for ActivityCreateHandler {
                 None => i64::from(call.creds.uid),
             };
             let (type_id, res_model_id) = tokio::try_join!(
-                resolve::activity_type_id(&call.client, &call.creds),
+                resolve::activity_type_id_named(
+                    &call.client,
+                    &call.creds,
+                    input.activity_type.as_deref()
+                ),
                 resolve::model_id(&call.client, &call.creds, &input.model),
             )?;
 

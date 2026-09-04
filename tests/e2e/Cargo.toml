@@ -15,10 +15,6 @@ systemprompt-security = { workspace = true }
 # filter the manifest tests exist to exercise.
 systemprompt-web-admin = { workspace = true }
 systemprompt-web-extension = { workspace = true }
-# The email MCP server's binary is spawned as a subprocess, but the suite links
-# the library too: the draft module owns the elicitation key and confirm-field
-# names, and hardcoding those strings in the test would let a rename break the
-# approval gate while the test kept passing.
 # The brand `ArtifactTheme` is registered here, and `inventory` registrations
 # only reach a binary that references the crate. Declared directly so the
 # artifact gallery's theme assertions cannot be broken by an unrelated

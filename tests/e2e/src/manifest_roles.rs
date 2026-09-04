@@ -15,7 +15,7 @@ use crate::harness::stack::Stack;
 const USER_PLUGINS: &[&str] = &["systemprompt-business", "systemprompt-demo"];
 const ADMIN_PLUGINS: &[&str] = &["systemprompt-admin"];
 // The business plugin is the one user-scoped bundle that ships dashboards:
-// every role gets exactly these six. The two knowledge dashboards stay
+// every role gets exactly these seven. The two knowledge dashboards stay
 // admin-only because they carry inbound business email.
 const USER_ARTIFACTS: &[&str] = &[
     "todo-bulletin",
@@ -24,6 +24,7 @@ const USER_ARTIFACTS: &[&str] = &[
     "upcoming-deals",
     "business-overview",
     "leads-inbound-prospects",
+    "quotes-and-invoices",
 ];
 const ADMIN_ARTIFACTS: &[&str] = &[
     "admin-users-directory",

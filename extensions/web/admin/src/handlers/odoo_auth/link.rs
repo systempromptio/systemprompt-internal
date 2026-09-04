@@ -56,7 +56,7 @@ pub(crate) async fn odoo_link(
         })?
         .ok_or(OdooAuthError::InvalidCredential)?;
 
-    odoo_identity::insert(&deps.write_pool, &user_ctx.user_id, &login, uid, &api_key)
+    odoo_identity::upsert_verified(&deps.write_pool, &user_ctx.user_id, &login, uid, &api_key)
         .await
         .map_err(OdooAuthError::Storage)?;
 

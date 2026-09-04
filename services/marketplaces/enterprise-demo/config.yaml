@@ -1,8 +1,8 @@
 marketplace:
   id: enterprise-demo
   name: "Systemprompt Internal — Business on Odoo"
-  description: "The AI layer for running the business, with Odoo as the system of record: pipeline management on Odoo for every role, a live governance demo, and the admin control plane."
-  version: "8.0.0"
+  description: "The AI layer for running the business, with Odoo as the system of record: the pipeline end to end for every role — capture a lead against a real customer, close it won or lost, raise the quotation and see what is still owed — plus a live governance demo and the admin control plane."
+  version: "9.0.0"
   visibility: public
   author:
     name: systemprompt.io
@@ -12,6 +12,8 @@ marketplace:
     - crm
     - leads
     - sales
+    - quotations
+    - invoices
     - productivity
   license: proprietary
   access:
@@ -21,9 +23,9 @@ marketplace:
   # One scope per plugin, declared by its entity_type: plugin rule in
   # services/access-control/roles.yaml: business and demo are [user] (shared
   # by every role — admins hold the user role too); admin is [admin].
-  # Business carries the six dashboards every role sees (business overview,
+  # Business carries the seven dashboards every role sees (business overview,
   # inbound leads, open pipeline, upcoming deals, recent activity, to-do
-  # bulletin) and the skill that reads and writes them. The demo plugin
+  # bulletin, quotes and invoices) and the skills that read and write them. The demo plugin
   # stages the governance verdicts with real tool calls; it is not a parallel
   # narration of the admin skills (that version was deleted once).
   plugins:
