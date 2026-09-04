@@ -1,6 +1,6 @@
 id: systemprompt_setup_admin
 name: "Systemprompt Setup — Control Plane"
-description: "Admin-only first-run setup, and the only skill that installs dashboards: puts every dashboard the bridge staged — the seven admin pages (business overview, inbound leads, the brain@ knowledge feed and approval queue, and the user directory, request activity and usage-and-costs control-plane pages) plus the four workspace pages (to-do bulletin, upcoming deals, open pipeline, team notes) — into your Artifacts library, and verifies the admin CLI server answers"
+description: "Admin-only first-run setup, and the only skill that installs dashboards: puts every dashboard the bridge staged — the two workspace pages (My Day, Sales Pipeline) and the two control-plane pages (recent request activity, spend by model) — into your Artifacts library, retires the dashboards these four replaced, and verifies the admin CLI server answers"
 enabled: true
 file: SKILL.md
 # Host targeting: the Artifacts library is a Cowork feature; the bundle

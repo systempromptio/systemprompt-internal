@@ -1,0 +1,754 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sales Pipeline</title>
+<style>
+:root{
+  --bg:oklch(0.99 0 0); --bg-2:oklch(0.965 0 0);
+  --glass:oklch(1 0 0 / 0.65); --glass-2:oklch(1 0 0 / 0.80);
+  --line:oklch(0 0 0 / 0.12); --line-soft:oklch(0 0 0 / 0.07);
+  --ink:oklch(0.25 0 0); --ink-2:oklch(0.42 0 0); --muted:oklch(0.55 0 0);
+  --accent:oklch(0.58 0.16 55); --accent-soft:oklch(0.80 0.11 61 / 0.22); --accent-line:oklch(0.58 0.16 55 / 0.30);
+  --ok:oklch(0.52 0.14 155); --ok-soft:oklch(0.78 0.12 155 / 0.22); --ok-line:oklch(0.52 0.14 155 / 0.32);
+  --warn:oklch(0.55 0.13 75); --warn-soft:oklch(0.85 0.12 85 / 0.26);
+  --lost:oklch(0.52 0.17 25); --lost-soft:oklch(0.80 0.12 25 / 0.20); --lost-line:oklch(0.52 0.17 25 / 0.30);
+  --radius:18px 6px 18px 18px; --radius-sm:12px 4px 12px 12px;
+  --shadow:0 12px 32px oklch(0 0 0 / 0.10);
+  --font:"Inter",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --mono:"Roboto Mono","SF Mono",ui-monospace,"Fira Code",monospace;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;}
+body{
+  font-family:var(--font); color:var(--ink); background:var(--bg); padding:28px;
+  line-height:1.45; -webkit-font-smoothing:antialiased;
+  background-image:
+    radial-gradient(70rem 55rem at 108% -12%, oklch(0.80 0.11 61 / 0.10), transparent 60%),
+    radial-gradient(55rem 55rem at -12% 118%, oklch(0.70 0.04 250 / 0.09), transparent 58%),
+    linear-gradient(180deg, var(--bg), var(--bg-2));
+  background-attachment:fixed;
+}
+.hd{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:18px;flex-wrap:wrap;}
+.hd-l{display:flex;align-items:center;gap:16px;min-width:0;}
+.brand{display:flex;align-items:center;color:var(--ink);height:22px;}
+.brand svg{height:20px;width:auto;display:block;}
+.sep{width:1px;height:30px;background:var(--line);flex:none;}
+.ttl{margin:0;font-size:19px;font-weight:700;letter-spacing:-0.02em;line-height:1.2;}
+.ttl .em{color:var(--accent);}
+.sub{margin:3px 0 0;color:var(--muted);font-size:12.5px;}
+.hd-r{display:flex;align-items:center;gap:10px;}
+.status{display:inline-flex;align-items:center;gap:8px;padding:7px 13px;border-radius:9999px;
+  background:var(--glass);border:1px solid var(--line);font-size:12px;font-weight:600;color:var(--ink-2);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);white-space:nowrap;}
+.status .dot{width:7px;height:7px;border-radius:50%;background:var(--muted);}
+.status.live .dot{background:var(--ok);box-shadow:0 0 0 4px var(--ok-soft);}
+.status.live{color:var(--ink);}
+.status .cnt{color:var(--accent);font-variant-numeric:tabular-nums;}
+.reload{font:inherit;font-size:12.5px;font-weight:600;color:var(--ink);cursor:pointer;
+  background:var(--accent-soft);border:1px solid var(--accent-line);border-radius:var(--radius-sm);padding:7px 16px;}
+.reload:hover{background:var(--accent);color:oklch(0.99 0 0);}
+.card{border-radius:var(--radius-sm);background:var(--glass-2);border:1px solid var(--line);
+  box-shadow:var(--shadow);backdrop-filter:blur(20px) saturate(125%);-webkit-backdrop-filter:blur(20px) saturate(125%);
+  padding:16px 20px;}
+.card h2{margin:0 0 10px;font-size:14px;font-weight:700;letter-spacing:-0.01em;display:flex;justify-content:space-between;align-items:baseline;gap:12px;}
+.card h2 .n{color:var(--muted);font-size:11.5px;font-weight:600;font-variant-numeric:tabular-nums;}
+ul{list-style:none;margin:0;padding:0;}
+.empty{color:var(--muted);font-style:italic;padding:8px 0;font-size:12.5px;}
+.state{display:none;flex-direction:column;align-items:center;text-align:center;padding:64px 28px;
+  border-radius:var(--radius);background:var(--glass);border:1px solid var(--line);
+  backdrop-filter:blur(20px) saturate(125%);-webkit-backdrop-filter:blur(20px) saturate(125%);}
+.state .mark{color:var(--ink);opacity:0.9;margin-bottom:22px;}
+.state .mark svg{height:26px;width:auto;}
+.state h2{margin:0 0 8px;font-size:18px;font-weight:700;letter-spacing:-0.01em;color:var(--ink);}
+.state p{margin:0;max-width:460px;color:var(--muted);font-size:13.5px;line-height:1.6;}
+.state.err h2{color:var(--accent);}
+.state.err .mark{color:var(--accent);}
+.state a{color:var(--accent);}
+.foot{margin-top:14px;color:var(--muted);font-size:11px;text-align:center;letter-spacing:0.01em;line-height:1.7;}
+.foot code{font-family:var(--mono);color:var(--ink-2);}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(8px);opacity:0;
+  pointer-events:none;transition:opacity .18s,transform .18s;z-index:50;
+  background:var(--ink);color:oklch(0.99 0 0);font-size:12.5px;font-weight:600;
+  padding:9px 16px;border-radius:9999px;box-shadow:var(--shadow);max-width:80vw;}
+.toast.on{opacity:1;transform:translateX(-50%);}
+.toast.bad{background:var(--lost);}
+.busy{opacity:0.5;pointer-events:none;}
+.wrap{max-width:1180px;margin:0 auto;}
+.grid{display:flex;flex-direction:column;gap:14px;}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px;}
+.tile{border-radius:var(--radius-sm);border:1px solid var(--line);background:var(--glass);padding:11px 13px;}
+.tile .k{color:var(--muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;}
+.tile .v{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-0.02em;margin-top:3px;}
+.tile .s{color:var(--muted);font-size:11px;font-variant-numeric:tabular-nums;}
+.bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+.views{display:inline-flex;gap:4px;padding:4px;border-radius:9999px;background:var(--glass);border:1px solid var(--line);}
+.views button{font:inherit;font-size:12px;font-weight:600;color:var(--ink-2);cursor:pointer;
+  background:none;border:0;border-radius:9999px;padding:5px 14px;white-space:nowrap;}
+.views button:hover{color:var(--ink);}
+.views button[aria-pressed=true]{background:var(--accent);color:oklch(0.99 0 0);}
+.search{font:inherit;font-size:12px;color:var(--ink);background:var(--glass);border:1px solid var(--line);
+  border-radius:9999px;padding:6px 14px;width:230px;max-width:50vw;}
+.search:focus{outline:none;border-color:var(--accent-line);}
+.grp{margin:0 0 8px;font-size:12px;font-weight:700;color:var(--ink-2);letter-spacing:0.01em;
+  display:flex;justify-content:space-between;align-items:baseline;gap:10px;}
+.grp .gn{color:var(--muted);font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;}
+.group{margin-top:16px;}
+.group:first-child{margin-top:0;}
+.row{border-top:1px solid var(--line-soft);padding:11px 0;}
+.group .row:first-of-type{border-top:0;}
+.row.won{opacity:0.62;}
+.top{display:flex;align-items:flex-start;gap:12px;}
+.t{flex:1;min-width:0;}
+.t .name{font-weight:600;font-size:13px;color:var(--ink);word-break:break-word;cursor:pointer;}
+.t .name:hover{color:var(--accent);}
+.t .meta{color:var(--muted);font-size:11.5px;margin-top:2px;word-break:break-word;}
+.tag{display:inline-block;font-size:10.5px;font-weight:600;color:var(--ink-2);background:var(--glass);
+  border:1px solid var(--line);border-radius:9999px;padding:1px 8px;margin:3px 4px 0 0;}
+.num{font-variant-numeric:tabular-nums;font-size:12.5px;font-weight:700;white-space:nowrap;flex:none;
+  text-align:right;min-width:76px;}
+.num .p{display:block;color:var(--muted);font-size:11px;font-weight:600;}
+.due{font-variant-numeric:tabular-nums;font-size:11.5px;white-space:nowrap;color:var(--muted);flex:none;
+  padding:3px 10px;border-radius:9999px;border:1px solid var(--line);background:var(--glass);}
+.due.over{color:var(--warn);border-color:var(--warn-soft);background:var(--warn-soft);font-weight:700;}
+.due.today{color:var(--accent);border-color:var(--accent-line);background:var(--accent-soft);font-weight:700;}
+.act{display:flex;align-items:center;gap:6px;flex:none;flex-wrap:wrap;justify-content:flex-end;}
+select.stage{font:inherit;font-size:11.5px;font-weight:600;color:var(--ink);cursor:pointer;max-width:160px;
+  background:var(--glass);border:1px solid var(--line);border-radius:9999px;padding:4px 9px;}
+select.stage:hover{border-color:var(--accent-line);}
+select.stage:disabled{cursor:default;opacity:0.6;}
+.btn{font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap;
+  border-radius:9999px;padding:4px 12px;border:1px solid var(--line);background:var(--glass);color:var(--ink-2);}
+.btn:hover{color:var(--ink);}
+.btn.win:hover{background:var(--ok-soft);border-color:var(--ok-line);color:var(--ok);}
+.btn.lose:hover{background:var(--lost-soft);border-color:var(--lost-line);color:var(--lost);}
+.pill{font-size:10.5px;font-weight:700;border-radius:9999px;padding:2px 9px;white-space:nowrap;flex:none;
+  background:var(--ok-soft);border:1px solid var(--ok-line);color:var(--ok);}
+.drawer{display:none;margin:10px 0 2px 0;padding:12px 14px;border-radius:var(--radius-sm);
+  background:var(--glass);border:1px solid var(--line-soft);}
+.drawer.open{display:block;}
+.drawer h3{margin:0 0 8px;font-size:11.5px;font-weight:700;color:var(--ink-2);text-transform:uppercase;letter-spacing:0.05em;}
+.drawer .note{padding:7px 0;border-top:1px solid var(--line-soft);font-size:12px;color:var(--ink-2);line-height:1.5;}
+.drawer .note:first-of-type{border-top:0;}
+.drawer .note b{color:var(--ink);font-size:11.5px;}
+.drawer .acts{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+@keyframes rise{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+@media (prefers-reduced-motion: no-preference){
+  .grid > *{animation:rise .42s cubic-bezier(.22,1,.36,1) both;animation-delay:calc(var(--i,0)*40ms);}
+}
+</style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="sp-logo" viewBox="167 461 666 78"><g>
+<path fill="#fb9b34" d="M 234.109375 461.253906 L 218.292969 516.605469 L 211.96875 538.746094 L 223.039063 538.746094 L 238.859375 483.394531 L 245.179688 461.253906"/>
+<path fill="#fb9b34" d="M 192.523438 474.636719 L 207.539063 474.636719 L 182.179688 500 L 207.539063 525.359375 L 192.523438 525.359375 L 167.15625 500.007813"/>
+<path fill="currentColor" d="M 285.796875 527.675781 L 252.582031 527.675781 L 252.582031 516.605469 L 274.722656 516.605469 L 274.722656 505.535156 L 252.582031 505.535156 L 252.582031 472.324219 L 285.796875 472.324219 L 285.796875 483.394531 L 263.652344 483.394531 L 263.652344 494.464844 L 285.796875 494.464844"/>
+<path fill="currentColor" d="M 372.359375 472.320313 L 372.359375 483.390625 L 350.21875 483.390625 L 350.21875 494.46875 L 372.359375 494.46875 L 372.359375 527.679688 L 339.148438 527.679688 L 339.148438 516.609375 L 361.289063 516.609375 L 361.289063 505.539063 L 339.148438 505.539063 L 339.148438 472.320313"/>
+<path fill="currentColor" d="M 413.640625 472.320313 L 413.640625 483.390625 L 402.570313 483.390625 L 402.570313 527.679688 L 391.5 527.679688 L 391.5 483.390625 L 380.210938 483.390625 L 380.210938 472.320313"/>
+<path fill="currentColor" d="M 454.925781 527.675781 L 421.714844 527.675781 L 421.714844 472.324219 L 454.925781 472.324219 L 454.925781 483.394531 L 432.785156 483.394531 L 432.785156 494.464844 L 443.855469 494.464844 L 443.855469 505.535156 L 432.785156 505.535156 L 432.785156 516.605469 L 454.925781 516.605469"/>
+<path fill="currentColor" d="M 477.066406 527.675781 L 465.996094 527.675781 L 465.996094 472.324219 L 477.066406 472.324219 L 477.066406 483.394531 L 488.136719 483.394531 L 488.136719 472.324219 L 499.207031 472.324219 L 499.207031 527.675781 L 488.136719 527.675781 L 488.136719 494.464844 L 477.066406 494.464844"/>
+<path fill="currentColor" d="M 521.347656 494.464844 L 532.417969 494.464844 L 532.417969 483.394531 L 521.347656 483.394531 Z M 521.347656 527.675781 L 510.277344 527.675781 L 510.277344 472.324219 L 543.488281 472.324219 L 543.488281 505.535156 L 521.347656 505.535156"/>
+<path fill="currentColor" d="M 609.914063 516.605469 L 620.984375 516.605469 L 620.984375 483.394531 L 609.914063 483.394531 Z M 632.054688 527.675781 L 598.84375 527.675781 L 598.84375 472.324219 L 632.054688 472.324219 Z M 632.054688 527.675781"/>
+<path fill="currentColor" d="M 654.195313 527.675781 L 643.125 527.675781 L 643.125 472.324219 L 654.195313 472.324219 L 654.195313 483.394531 L 665.265625 483.394531 L 665.265625 472.324219 L 676.335938 472.324219 L 676.335938 527.675781 L 665.265625 527.675781 L 665.265625 494.464844 L 654.195313 494.464844"/>
+<path fill="currentColor" d="M 698.480469 494.464844 L 709.550781 494.464844 L 709.550781 483.394531 L 698.480469 483.394531 Z M 698.480469 527.675781 L 687.40625 527.675781 L 687.40625 472.324219 L 720.621094 472.324219 L 720.621094 505.535156 L 698.480469 505.535156"/>
+<path fill="currentColor" d="M 753.832031 527.675781 L 742.761719 527.675781 L 742.761719 483.394531 L 731.691406 483.394531 L 731.691406 472.324219 L 764.902344 472.324219 L 764.902344 483.394531 L 753.832031 483.394531"/>
+<path fill="currentColor" d="M 328.078125 472.324219 L 317.007813 472.324219 L 317.007813 494.464844 L 305.9375 494.464844 L 305.9375 472.324219 L 294.867188 472.324219 L 294.867188 494.464844 L 305.9375 505.535156 L 305.9375 527.675781 L 317.007813 527.675781 L 317.007813 505.535156 L 328.078125 494.464844"/>
+<path fill="currentColor" d="M 587.777344 472.324219 L 554.554688 472.324219 L 554.554688 527.675781 L 565.625 527.675781 L 565.625 516.605469 L 576.695313 527.675781 L 587.777344 527.675781 L 587.777344 516.605469 L 576.695313 505.535156 L 565.625 505.535156 L 565.625 483.394531 L 576.695313 483.394531 L 576.695313 505.535156 L 587.777344 505.535156"/>
+<path fill="#ff9a2f" d="M 766.898438 527.675781 L 776.320313 527.675781 L 776.320313 518.253906 L 766.898438 518.253906 Z M 766.898438 527.675781"/>
+<path fill="#ff9a2f" d="M 785.742188 480.570313 L 795.160156 480.570313 L 795.160156 471.152344 L 785.742188 471.152344 Z M 785.742188 527.675781 L 795.160156 527.675781 L 795.160156 489.992188 L 785.742188 489.992188 Z M 785.742188 527.675781"/>
+<path fill="#ff9a2f" d="M 823.425781 518.253906 L 814.003906 518.253906 L 814.003906 499.414063 L 823.425781 499.414063 Z M 804.582031 527.675781 L 832.84375 527.675781 L 832.84375 489.996094 L 804.582031 489.996094 Z M 804.582031 527.675781"/>
+<path fill="currentColor" d="M 372.359375 483.390625 L 372.359375 472.320313 L 339.148438 472.320313 L 339.148438 505.539063 L 361.289063 505.539063 L 361.289063 516.609375 L 339.148438 516.609375 L 339.148438 527.679688 L 372.359375 527.679688 L 372.359375 494.46875 L 350.21875 494.46875 L 350.21875 483.390625"/>
+</g></symbol></svg>
+  <div class="wrap">
+    <div class="hd">
+      <div class="hd-l">
+        <span class="brand"><svg viewBox="167 461 666 78" role="img" aria-label="systemprompt.io"><use href="#sp-logo"/></svg></span>
+        <span class="sep"></span>
+        <div>
+          <h1 class="ttl">Sales <span class="em">Pipeline</span></h1>
+          <p class="sub">Every lead and open deal, live from Odoo as you — and workable from here. Move a stage, close it won or lost, add a note, schedule a follow-up.</p>
+        </div>
+      </div>
+      <div class="hd-r">
+        <span class="status" id="status"><span class="dot"></span>Awaiting data</span>
+        <button class="reload" id="reload">Reload</button>
+      </div>
+    </div>
+
+    <div class="grid" id="grid">
+      <div class="tiles" id="tiles" style="--i:0"></div>
+      <section class="card" style="--i:1">
+        <div class="bar">
+          <span class="views" id="views" role="group" aria-label="View">
+            <button type="button" data-view="leads" aria-pressed="false">All leads</button>
+            <button type="button" data-view="open" aria-pressed="true">Open deals</button>
+            <button type="button" data-view="deadline" aria-pressed="false">By deadline</button>
+          </span>
+          <input class="search" id="q" type="search" placeholder="Filter by name, contact, stage…" aria-label="Filter leads" />
+          <span class="n" id="count" style="color:var(--muted);font-size:11.5px;font-weight:600;margin-left:auto"></span>
+        </div>
+        <div id="rows"><p class="empty">Loading…</p></div>
+      </section>
+    </div>
+
+    <div class="state err" id="error">
+      <span class="mark"><svg viewBox="167 461 666 78" role="img" aria-label="systemprompt.io"><use href="#sp-logo"/></svg></span>
+      <h2>Odoo is not connected</h2>
+      <p id="error-msg">The Odoo query could not be completed.</p>
+      <p style="margin-top:10px">Link your Odoo login and API key on <a href="/admin/profile">your profile</a>, then press Reload.</p>
+    </div>
+
+    <p class="foot">Reads <code>crm_lead_search</code> (twice — all leads, then open only, so a won deal can be told from an open one) · <code>crm_stage_list</code> · <code>note_list</code> on expand, executed as you.<br />
+    Writes: the stage menu runs <code>crm_lead_update</code> · Won and Lost run <code>crm_lead_mark_won</code> / <code>crm_lead_mark_lost</code> · Note runs <code>note_add</code> · Follow-up runs <code>activity_create</code>.</p>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- Data contract. Three reads on load, one more per expanded lead, five
+       writes on click. Every tool named here must also appear in this
+       artifact's `mcp_tools:` in config.yaml — nothing derives one list from
+       the other, and a drift shows only at runtime as "not in this artifact's
+       mcp_tools allowlist".
+
+       Why crm_lead_search runs twice rather than once with a client-side
+       filter: "open" in Odoo's CRM is `active = true AND stage_id.is_won =
+       false`, and neither flag is on the row. The only honest way to tell a
+       won deal from an open one here is the difference between the two
+       answers. The deadline view is a client-side sort of the open set, so it
+       costs no third call.
+
+       crm_lead_search answers with structured rows (a table artifact);
+       crm_stage_list and note_list answer with markdown rows:
+         stage: "- **[id] name** — counts as won"
+         note:  "- **date** — author (type)" + indented body -->
+  <script type="application/json" id="odoo-query">
+  {"reads": {
+    "all": {"tool": "mcp__odoo__crm_lead_search", "arguments": {"limit": 100}},
+    "open": {"tool": "mcp__odoo__crm_lead_search", "arguments": {"limit": 100, "open_only": true}},
+    "stages": {"tool": "mcp__odoo__crm_stage_list", "arguments": {}}
+  },
+   "notes": "mcp__odoo__note_list",
+   "writes": {
+    "stage": "mcp__odoo__crm_lead_update",
+    "won": "mcp__odoo__crm_lead_mark_won",
+    "lost": "mcp__odoo__crm_lead_mark_lost",
+    "note": "mcp__odoo__note_add",
+    "followUp": "mcp__odoo__activity_create"
+  }}
+  </script>
+
+<script>
+(function () {
+  /* ---- shared runtime -------------------------------------------------
+     The Cowork host injects window.cowork.callMcpTool(name, args). There is
+     no REST surface: every read and every write on this page goes through
+     that one call, executed as the signed-in user against their own Odoo
+     login, so Odoo's record rules are the authorisation boundary. */
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+    return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]; }); };
+  var dash = function (v) { return v && v !== "—" ? v : ""; };
+  var today = new Date().toISOString().slice(0, 10);
+
+  var TIMEOUT_MS = 20000;
+  var bridgeReady = function () { return window.cowork && typeof window.cowork.callMcpTool === "function"; };
+
+  var timedCall = function (tool, args) {
+    return new Promise(function (resolve, reject) {
+      var done = false;
+      var guard = setTimeout(function () {
+        if (done) return; done = true;
+        reject(new Error("The call timed out — the workspace may have reloaded mid-request."));
+      }, TIMEOUT_MS);
+      window.cowork.callMcpTool(tool, args).then(
+        function (r) { if (done) return; done = true; clearTimeout(guard); resolve(r); },
+        function (e) { if (done) return; done = true; clearTimeout(guard); reject(e); });
+    });
+  };
+
+  /* The gateway wraps tool output as {artifact_type:"text", content:"<markdown>"};
+     a table tool answers with rows instead. Unwrap both shapes. */
+  var text = function (r) {
+    var payload = r && r.structuredContent;
+    if (payload && typeof payload.content === "string") return payload.content;
+    try { return r.content[0].text || ""; } catch (e) { return ""; }
+  };
+  var rowsOf = function (r) {
+    var v = r && r.structuredContent;
+    if (v && typeof v.content === "string") return null;
+    if (Array.isArray(v)) return v;
+    if (v && typeof v === "object") {
+      if (Array.isArray(v.records)) return v.records;
+      if (Array.isArray(v.rows)) return v.rows;
+      if (Array.isArray(v.data)) return v.data;
+      for (var k in v) if (Array.isArray(v[k])) return v[k];
+    }
+    return null;
+  };
+  var errText = function (r, fallback) {
+    var t = "";
+    try { t = (r.content && r.content[0] && r.content[0].text) || ""; } catch (e) {}
+    return t || fallback;
+  };
+
+  /* Every write reports through here rather than silently succeeding. A
+     failed call must never leave the row looking as though it landed. */
+  var TOAST = null;
+  var toast = function (msg, bad) {
+    var el = $("toast");
+    el.textContent = msg;
+    el.className = "toast on" + (bad ? " bad" : "");
+    clearTimeout(TOAST);
+    TOAST = setTimeout(function () { el.className = "toast"; }, bad ? 6000 : 3000);
+  };
+
+  /* The write contract, used by every action on this page: disable the
+     control, call, then either commit the optimistic UI or roll it back and
+     say why. `revert` is called on any failure, including a rejected promise. */
+  var write = function (el, tool, args, okMsg, commit, revert) {
+    if (el) el.classList.add("busy");
+    return timedCall(tool, args).then(function (r) {
+      if (el) el.classList.remove("busy");
+      if (r && r.isError) { revert(); toast(errText(r, "Odoo refused the change."), true); return false; }
+      commit(r); toast(okMsg); return true;
+    }).catch(function (e) {
+      if (el) el.classList.remove("busy");
+      revert(); toast(String((e && e.message) || e), true); return false;
+    });
+  };
+
+  var contract = JSON.parse($("odoo-query").textContent);
+  var MODEL = "crm.lead";
+  var LEADS = [];    // every lead, whether open or won
+  var STAGES = [];   // [{id, name, won}] — fills the stage menus
+  var VIEW = "open";
+  var OPEN_CAPPED = false;  // the open read hit its limit, so "won" is unknowable
+
+  var STAGE_ROW = /^- \*\*\[(\d+)\] (.+?)\*\*(.*)$/;
+  var NOTE_ROW = /^- \*\*(.+?)\*\* — (.*?) \((.*?)\)$/;
+
+  var parseStages = function (md) {
+    var out = [];
+    String(md || "").split("\n").forEach(function (l) {
+      var m = l.match(STAGE_ROW);
+      if (m) out.push({ id: +m[1], name: dash(m[2]), won: /counts as won/.test(m[3]) });
+    });
+    return out;
+  };
+  var parseNotes = function (md) {
+    var out = [], cur = null;
+    String(md || "").split("\n").forEach(function (l) {
+      var m = l.match(NOTE_ROW);
+      if (m) { cur = { date: dash(m[1]), author: dash(m[2]), kind: dash(m[3]), body: "" }; out.push(cur); return; }
+      if (cur && /^\s+\S/.test(l)) cur.body += (cur.body ? " " : "") + l.trim();
+    });
+    return out;
+  };
+
+  /* ---- shaping --------------------------------------------------------- */
+  var money = function (n) {
+    var v = Number(n);
+    if (!isFinite(v) || !v) return "—";
+    return v >= 1000 ? Math.round(v / 1000) + "k" : String(Math.round(v));
+  };
+  var dayOf = function (d) { return d ? String(d).slice(0, 10) : ""; };
+  var plus = function (days) {
+    var t = new Date(today + "T00:00:00Z");
+    t.setUTCDate(t.getUTCDate() + days);
+    return t.toISOString().slice(0, 10);
+  };
+  var WEEK = plus(7), MONTH = plus(31);
+  var dueClass = function (d) { if (!d) return ""; if (d < today) return "over"; if (d === today) return "today"; return ""; };
+  var dueLabel = function (d) { if (!d) return "no close date"; if (d < today) return d + " · overdue"; if (d === today) return "today"; return d; };
+
+  var bucket = function (d) {
+    if (!d) return "No close date";
+    if (d < today) return "Overdue";
+    if (d <= WEEK) return "This week";
+    if (d <= MONTH) return "This month";
+    return "Later";
+  };
+  var BUCKETS = ["Overdue", "This week", "This month", "Later", "No close date"];
+
+  var visible = function () {
+    var q = ($("q").value || "").toLowerCase().trim();
+    var rows = LEADS.filter(function (l) { return VIEW === "leads" || l.open; });
+    if (q) rows = rows.filter(function (l) {
+      return [l.name, l.partner_name, l.stage_id, l.user_id, l.email_from, (l.tags || []).join(" ")]
+        .join(" ").toLowerCase().indexOf(q) !== -1;
+    });
+    return rows;
+  };
+
+  /* Grouped by stage in the two table views, by close-date bucket in the
+     deadline view — which is what the old "Upcoming Deals" page was. */
+  var groupsOf = function (rows) {
+    var keys = [], map = {};
+    var keyOf = VIEW === "deadline"
+      ? function (l) { return bucket(dayOf(l.date_deadline)); }
+      : function (l) { return l.stage_id || "No stage"; };
+    rows.forEach(function (l) {
+      var k = keyOf(l);
+      if (!map[k]) { map[k] = []; keys.push(k); }
+      map[k].push(l);
+    });
+    if (VIEW === "deadline") {
+      keys = BUCKETS.filter(function (b) { return map[b]; });
+      keys.forEach(function (k) {
+        map[k].sort(function (a, b) { return (dayOf(a.date_deadline) || "9999") < (dayOf(b.date_deadline) || "9999") ? -1 : 1; });
+      });
+    } else {
+      var order = STAGES.map(function (s) { return s.name; });
+      keys.sort(function (a, b) {
+        var ia = order.indexOf(a), ib = order.indexOf(b);
+        return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+      });
+      keys.forEach(function (k) {
+        map[k].sort(function (a, b) { return (Number(b.expected_revenue) || 0) - (Number(a.expected_revenue) || 0); });
+      });
+    }
+    return keys.map(function (k) { return { key: k, rows: map[k] }; });
+  };
+
+  /* ---- chrome ---------------------------------------------------------- */
+  var setStatus = function (mode) {
+    var el = $("status");
+    var open = LEADS.filter(function (l) { return l.open; }).length;
+    if (mode === "live") { el.className = "status live"; el.innerHTML = '<span class="dot"></span>Live · <span class="cnt">' + open + "</span>&nbsp;open"; }
+    else if (mode === "error") { el.className = "status"; el.innerHTML = '<span class="dot" style="background:var(--accent)"></span>Not connected'; }
+    else { el.className = "status"; el.innerHTML = '<span class="dot"></span>Awaiting data'; }
+  };
+  var showErr = function (msg) {
+    $("grid").style.display = "none"; $("error").style.display = "flex";
+    $("error-msg").textContent = msg; setStatus("error");
+  };
+
+  var renderTiles = function () {
+    var open = LEADS.filter(function (l) { return l.open; });
+    var sum = function (rows) { return rows.reduce(function (a, l) { return a + (Number(l.expected_revenue) || 0); }, 0); };
+    var weighted = open.reduce(function (a, l) {
+      return a + (Number(l.expected_revenue) || 0) * ((Number(l.probability) || 0) / 100);
+    }, 0);
+    var soon = open.filter(function (l) { var d = dayOf(l.date_deadline); return d && d <= WEEK; });
+    var late = open.filter(function (l) { var d = dayOf(l.date_deadline); return d && d < today; });
+    var tiles = [
+      { k: "Open deals", v: open.length, s: money(sum(open)) + " expected" },
+      { k: "Weighted", v: money(weighted), s: "by probability" },
+      { k: "Closing in 7 days", v: soon.length, s: money(sum(soon)) + " expected" },
+      { k: "Overdue close", v: late.length, s: late.length ? "past the close date" : "none past due" },
+      { k: "All leads", v: LEADS.length, s: OPEN_CAPPED ? "won state unknown" : (LEADS.length - open.length) + " closed won" }
+    ];
+    $("tiles").innerHTML = tiles.map(function (t) {
+      return '<div class="tile"><div class="k">' + esc(t.k) + '</div><div class="v">' + esc(String(t.v)) +
+        '</div><div class="s">' + esc(t.s) + "</div></div>";
+    }).join("");
+  };
+
+  var stageMenu = function (current) {
+    var sel = document.createElement("select");
+    sel.className = "stage";
+    sel.title = "Move this lead to another stage";
+    var names = STAGES.map(function (s) { return s.name; });
+    if (current && names.indexOf(current) === -1) names.unshift(current);
+    names.forEach(function (n) {
+      var o = document.createElement("option");
+      o.value = n; o.textContent = n; if (n === current) o.selected = true;
+      sel.appendChild(o);
+    });
+    if (!STAGES.length) sel.disabled = true;
+    return sel;
+  };
+
+  /* ---- one lead row, with its four actions ----------------------------- */
+  var leadRow = function (l) {
+    var row = document.createElement("div");
+    row.className = "row" + (l.open ? "" : " won");
+
+    var top = document.createElement("div");
+    top.className = "top";
+
+    var t = document.createElement("div");
+    t.className = "t";
+    var meta = [l.partner_name, l.user_id, l.email_from].filter(Boolean).join(" · ");
+    t.innerHTML = '<div class="name" role="button" tabindex="0" title="Show the chatter and act on it">' +
+      esc(l.name || "Lead " + l.id) + "</div>" +
+      '<div class="meta">' + esc(meta || "no contact on the record") + "</div>" +
+      (l.tags && l.tags.length ? l.tags.map(function (g) { return '<span class="tag">' + esc(g) + "</span>"; }).join("") : "");
+    top.appendChild(t);
+
+    var num = document.createElement("div");
+    num.className = "num";
+    num.innerHTML = esc(money(l.expected_revenue)) +
+      '<span class="p">' + (l.probability == null ? "—" : Math.round(Number(l.probability)) + "%") + "</span>";
+    top.appendChild(num);
+
+    var due = document.createElement("span");
+    due.className = "due " + dueClass(dayOf(l.date_deadline));
+    due.textContent = dueLabel(dayOf(l.date_deadline));
+    top.appendChild(due);
+
+    var act = document.createElement("span");
+    act.className = "act";
+    if (!l.open) {
+      var pill = document.createElement("span");
+      pill.className = "pill";
+      pill.textContent = "Won";
+      act.appendChild(pill);
+    } else {
+      /* Move a stage → crm_lead_update. The tool resolves the stage by NAME
+         against the pipeline, so the menu is built from crm_stage_list rather
+         than from guessed ids. `fields` is required by the schema and is sent
+         empty: the stage move is the whole change. */
+      var sel = stageMenu(l.stage_id);
+      var prev = sel.value;
+      sel.addEventListener("change", function () {
+        var next = sel.value;
+        write(row, contract.writes.stage, { id: l.id, stage: next, fields: {} },
+          (l.name || "Lead " + l.id) + " moved to " + next + ".",
+          function () { prev = next; l.stage_id = next; if (VIEW !== "deadline") renderRows(); },
+          function () { sel.value = prev; });
+      });
+      act.appendChild(sel);
+
+      var won = document.createElement("button");
+      won.className = "btn win"; won.type = "button"; won.textContent = "Won";
+      won.addEventListener("click", function () {
+        if (!window.confirm("Mark \"" + (l.name || "Lead " + l.id) + "\" as won in Odoo?")) return;
+        write(row, contract.writes.won, { id: l.id },
+          (l.name || "Lead " + l.id) + " closed won.",
+          function () { l.open = false; renderTiles(); renderRows(); setStatus("live"); },
+          function () {});
+      });
+      act.appendChild(won);
+
+      var lost = document.createElement("button");
+      lost.className = "btn lose"; lost.type = "button"; lost.textContent = "Lost";
+      lost.addEventListener("click", function () {
+        var reason = window.prompt("Why was \"" + (l.name || "Lead " + l.id) + "\" lost? (recorded on the lead)", "");
+        if (reason === null) return;
+        write(row, contract.writes.lost, { id: l.id, reason: reason || undefined },
+          (l.name || "Lead " + l.id) + " closed lost.",
+          function () {
+            /* A lost lead is archived in Odoo, so it leaves every view here. */
+            LEADS = LEADS.filter(function (x) { return x.id !== l.id; });
+            renderTiles(); renderRows(); setStatus("live");
+          },
+          function () {});
+      });
+      act.appendChild(lost);
+    }
+    top.appendChild(act);
+    row.appendChild(top);
+
+    /* The drawer: the record's chatter, and the two things you do about it. */
+    var drawer = document.createElement("div");
+    drawer.className = "drawer";
+    row.appendChild(drawer);
+
+    var loaded = false;
+    var toggle = function () {
+      var open = drawer.classList.toggle("open");
+      if (!open || loaded) return;
+      loaded = true;
+      drawer.innerHTML = "<h3>Chatter</h3><p class=\"empty\">Loading…</p>";
+      timedCall(contract.notes, { model: MODEL, res_id: l.id, limit: 20 }).then(function (r) {
+        if (r && r.isError) { drawer.innerHTML = "<h3>Chatter</h3><p class=\"empty\">" + esc(errText(r, "Could not read the chatter.")) + "</p>"; loaded = false; return; }
+        drawNotes(parseNotes(text(r)));
+      }).catch(function (e) {
+        drawer.innerHTML = "<h3>Chatter</h3><p class=\"empty\">" + esc(String((e && e.message) || e)) + "</p>";
+        loaded = false;
+      });
+    };
+
+    var drawNotes = function (notes) {
+      drawer.innerHTML = "<h3>Chatter</h3>" + (notes.length
+        ? notes.map(function (n) {
+            return '<div class="note"><b>' + esc(n.author || "—") + "</b> · " + esc(n.date) +
+              (n.kind ? " · " + esc(n.kind) : "") + "<br />" + esc(n.body || "(empty note)") + "</div>";
+          }).join("")
+        : '<p class="empty">Nothing on this record yet.</p>');
+
+      var acts = document.createElement("div");
+      acts.className = "acts";
+
+      /* Add a note → note_add on this lead. */
+      var addNote = document.createElement("button");
+      addNote.className = "btn"; addNote.type = "button"; addNote.textContent = "Add note";
+      addNote.addEventListener("click", function () {
+        var body = window.prompt("Note to log on \"" + (l.name || "Lead " + l.id) + "\":", "");
+        if (body === null || !body.trim()) return;
+        write(drawer, contract.writes.note, { model: MODEL, res_id: l.id, body: body.trim() },
+          "Note added.",
+          function () { loaded = false; drawer.classList.remove("open"); toggle(); },
+          function () {});
+      });
+      acts.appendChild(addNote);
+
+      /* Schedule a follow-up → activity_create. The deadline is a date, which
+         is what the tool's schema asks for; the type is left to this Odoo's
+         default rather than guessed. */
+      var follow = document.createElement("button");
+      follow.className = "btn"; follow.type = "button"; follow.textContent = "Schedule follow-up";
+      follow.addEventListener("click", function () {
+        var summary = window.prompt("What is the follow-up?", "Follow up on " + (l.name || "this lead"));
+        if (summary === null || !summary.trim()) return;
+        var when = window.prompt("Due date (YYYY-MM-DD):", plus(3));
+        if (when === null) return;
+        when = when.trim();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(when)) { toast("That is not a YYYY-MM-DD date.", true); return; }
+        write(drawer, contract.writes.followUp,
+          { model: MODEL, res_id: l.id, summary: summary.trim(), date_deadline: when },
+          "Follow-up scheduled for " + when + ".",
+          function () { loaded = false; drawer.classList.remove("open"); toggle(); },
+          function () {});
+      });
+      acts.appendChild(follow);
+
+      drawer.appendChild(acts);
+    };
+
+    var name = t.querySelector(".name");
+    name.addEventListener("click", toggle);
+    name.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); toggle(); }
+    });
+    return row;
+  };
+
+  var renderRows = function () {
+    var host = $("rows");
+    var rows = visible();
+    $("count").textContent = rows.length + (rows.length === 1 ? " lead" : " leads");
+    host.innerHTML = "";
+    if (!rows.length) {
+      host.innerHTML = '<p class="empty">' + ($("q").value.trim()
+        ? "No lead matches that filter."
+        : (VIEW === "leads" ? "Odoo returned no leads." : "No open deals — the pipeline is clear.")) + "</p>";
+      return;
+    }
+    groupsOf(rows).forEach(function (g) {
+      var sec = document.createElement("div");
+      sec.className = "group";
+      var total = g.rows.reduce(function (a, l) { return a + (Number(l.expected_revenue) || 0); }, 0);
+      var h = document.createElement("p");
+      h.className = "grp";
+      h.innerHTML = esc(g.key) + '<span class="gn">' + g.rows.length + " · " + esc(money(total)) + " expected</span>";
+      sec.appendChild(h);
+      g.rows.forEach(function (l) { sec.appendChild(leadRow(l)); });
+      host.appendChild(sec);
+    });
+  };
+
+  /* ---- load ------------------------------------------------------------ */
+  var FETCH = { tries: 0, max: 3, inflight: false };
+
+  var LEAD_MD = /^- \*\*\[(\d+)\] (.+?)\*\* — (.*?) · (.*?) · (.*?) · revenue (.*)$/;
+
+  /* crm_lead_search answers as a table artifact, so structured rows are the
+     normal path. The two fallbacks below are the shapes the gateway has been
+     seen to produce instead — a JSON document in the text channel, and the
+     markdown row rendering — and cost nothing until the first one misses.
+     The markdown row is the lossy one: it carries no deadline, probability or
+     tags, so those columns read empty rather than wrong. */
+  var readLeads = function (spec) {
+    return timedCall(spec.tool, spec.arguments).then(function (r) {
+      if (r && r.isError) throw new Error(errText(r, "The Odoo query could not be completed."));
+      var rows = rowsOf(r);
+      if (rows) return rows;
+
+      var body = text(r);
+      var parsed = null;
+      try { parsed = JSON.parse(body); }
+      catch (e) {
+        var cut = body.indexOf("\n\n");
+        try { parsed = JSON.parse(cut === -1 ? body : body.slice(cut + 2)); } catch (e2) { parsed = null; }
+      }
+      if (parsed) {
+        rows = rowsOf({ structuredContent: parsed });
+        if (rows) return rows;
+      }
+
+      var md = [];
+      body.split("\n").forEach(function (line) {
+        var m = line.match(LEAD_MD);
+        if (!m) return;
+        var rev = parseFloat(String(m[6]).replace(/[^0-9.\-]/g, ""));
+        md.push({ id: +m[1], name: dash(m[2]), stage_id: dash(m[3]), user_id: dash(m[4]),
+          partner_name: dash(m[5]), expected_revenue: isNaN(rev) ? null : rev, tags: [] });
+      });
+      if (md.length) return md;
+
+      /* An empty pipeline is not a parse failure — say so, rather than
+         reporting a broken query. */
+      if (/matched\. This is Odoo's answer/.test(body) || !body.trim()) return [];
+      throw new Error("Could not read the crm_lead_search response.");
+    });
+  };
+
+  var failedAttempt = function (msg) {
+    FETCH.inflight = false;
+    if (FETCH.tries < FETCH.max) { setTimeout(function () { load(); }, 1200 * FETCH.tries); return; }
+    showErr(msg + " (after " + FETCH.max + " attempts — press Reload to try again)");
+  };
+
+  var load = function (waited) {
+    if (FETCH.inflight) return;
+    if (!bridgeReady()) {
+      if ((waited || 0) >= 10000) return showErr("This page needs the live MCP connection; open it inside the workspace.");
+      return void setTimeout(function () { load((waited || 0) + 250); }, 250);
+    }
+    $("error").style.display = "none"; $("grid").style.display = "flex"; setStatus("await");
+    FETCH.inflight = true; FETCH.tries++;
+
+    /* The stage list only fills the menus; losing it disables them rather
+       than blanking the page, so its failure is swallowed on purpose. */
+    var stages = timedCall(contract.reads.stages.tool, contract.reads.stages.arguments)
+      .then(function (r) { STAGES = (r && r.isError) ? [] : parseStages(text(r)); })
+      .catch(function () { STAGES = []; });
+
+    Promise.all([readLeads(contract.reads.all), readLeads(contract.reads.open), stages])
+      .then(function (out) {
+        var all = out[0], open = out[1];
+        var openIds = {};
+        open.forEach(function (l) { openIds[l.id] = true; });
+        OPEN_CAPPED = open.length >= (contract.reads.open.arguments.limit || 100);
+
+        /* The open read is the authority on what is open; the all read adds
+           the won deals it excludes. Merging by id keeps a lead that fell
+           outside one page of the other query. */
+        var seen = {};
+        LEADS = [];
+        open.concat(all).forEach(function (l) {
+          if (seen[l.id]) return;
+          seen[l.id] = true;
+          /* A lead absent from the open answer is won — unless that answer
+             was capped, in which case its absence proves nothing and it is
+             left as open rather than mislabelled. */
+          l.open = !!openIds[l.id] || OPEN_CAPPED;
+          LEADS.push(l);
+        });
+
+        FETCH.inflight = false; FETCH.tries = 0;
+        renderTiles(); renderRows(); setStatus("live");
+      })
+      .catch(function (e) { failedAttempt(String((e && e.message) || e)); });
+  };
+
+  /* ---- wiring ---------------------------------------------------------- */
+  Array.prototype.forEach.call($("views").querySelectorAll("button"), function (b) {
+    b.addEventListener("click", function () {
+      VIEW = b.getAttribute("data-view");
+      Array.prototype.forEach.call($("views").querySelectorAll("button"), function (o) {
+        o.setAttribute("aria-pressed", String(o === b));
+      });
+      renderRows();
+    });
+  });
+  $("q").addEventListener("input", renderRows);
+  $("reload").addEventListener("click", function () { FETCH.tries = 0; load(); });
+  window.addEventListener("message", function () { load(); });
+  load();
+})();
+</script>
+</body>
+</html>

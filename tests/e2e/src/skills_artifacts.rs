@@ -193,36 +193,50 @@ async fn every_manifest_named_bundle_file_is_fetchable_and_dashboards_ship_with_
             .unwrap_or_else(|| panic!("{id} bundled in systemprompt-business"))["mcpTools"]
             .clone()
     };
+    // Both dashboards write as well as read, so the allowlist is now load
+    // bearing twice over: short it and the page still renders and still loads
+    // data, but every button fails at the click. The order is the order the
+    // config declares — reads, then writes.
     assert_eq!(
-        business_tools("recent-activity"),
-        serde_json::json!(["mcp__odoo__note_search"]),
-        "recent-activity's allowlist is note_search and nothing else — the cross-wire regression"
-    );
-    assert_eq!(
-        business_tools("upcoming-deals"),
-        serde_json::json!(["mcp__odoo__crm_lead_search"]),
-        "upcoming-deals is a read-only view over crm_lead_search"
-    );
-    assert_eq!(
-        business_tools("pipeline-open-deals"),
-        serde_json::json!(["mcp__odoo__crm_lead_search"]),
-        "pipeline-open-deals is a read-only view over crm_lead_search"
-    );
-    assert_eq!(
-        business_tools("todo-bulletin"),
+        business_tools("my-day"),
         serde_json::json!([
+            "mcp__odoo__business_overview_data",
             "mcp__odoo__activity_list",
             "mcp__odoo__task_list",
-            "mcp__odoo__activity_complete"
+            "mcp__odoo__note_search",
+            "mcp__odoo__crm_stage_list",
+            "mcp__odoo__activity_complete",
+            "mcp__odoo__task_update",
+            "mcp__odoo__crm_lead_update",
+            "mcp__odoo__note_add"
         ]),
-        "todo-bulletin reads two lists and carries exactly one write: the tick"
+        "my-day reads the briefing, activities, tasks, notes and stages, and writes back through \
+         the tick, the star, the stage menu and the note button"
     );
-    let leads = business_tools("leads-inbound-prospects");
     assert_eq!(
-        leads,
-        serde_json::json!(["mcp__odoo__crm_lead_search", "mcp__odoo__note_list"]),
-        "leads-inbound-prospects must allow crm_lead_search and note_list, nothing else"
+        business_tools("sales-pipeline"),
+        serde_json::json!([
+            "mcp__odoo__crm_lead_search",
+            "mcp__odoo__crm_stage_list",
+            "mcp__odoo__note_list",
+            "mcp__odoo__crm_lead_update",
+            "mcp__odoo__crm_lead_mark_won",
+            "mcp__odoo__crm_lead_mark_lost",
+            "mcp__odoo__note_add",
+            "mcp__odoo__activity_create"
+        ]),
+        "sales-pipeline reads leads, stages and chatter, and writes back through the stage menu, \
+         Won/Lost, the note button and the follow-up button"
     );
+    // crm_lead_delete is the server's one Destructive tool. A dashboard click
+    // must not be able to unlink a record, so no bundled artifact may carry it.
+    for id in ["my-day", "sales-pipeline"] {
+        let tools = business_tools(id).to_string();
+        assert!(
+            !tools.contains("crm_lead_delete"),
+            "{id} must never allow the destructive crm_lead_delete: {tools}"
+        );
+    }
 
     stack.db.cleanup().await;
 }
@@ -235,13 +249,7 @@ async fn the_admin_bundle_is_served_to_admins_and_refused_to_users() {
 
     let admin = stack.manifest(&stack.admin_token).await;
     let paths = bundle_paths(&admin, "systemprompt-admin");
-    for id in [
-        "admin-users-directory",
-        "admin-activity-requests",
-        "admin-usage-costs",
-        "knowledge-feed",
-        "knowledge-approve-ingestion",
-    ] {
+    for id in ["admin-activity-requests", "admin-usage-costs"] {
         assert!(
             paths.contains(&format!("artifacts/{id}.html").as_str()),
             "{id} ships in the admin bundle: {paths:?}"

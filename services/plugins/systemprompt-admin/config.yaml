@@ -1,8 +1,8 @@
 plugin:
   id: systemprompt-admin
   name: "Systemprompt Admin — Control Plane"
-  description: "Admin-only: first-run setup, the only skill that installs dashboards. Ships the systemprompt CLI and knowledge-bank servers and five live dashboards, including the brain@ inbox feed and the approval queue that is the only route from an email into Odoo."
-  version: "6.0.0"
+  description: "Admin-only: first-run setup, the only skill that installs dashboards. Ships the systemprompt CLI and knowledge-bank servers and the two control-plane dashboards — recent request activity, and spend by model."
+  version: "7.0.0"
   # Admin-scoped: roles.yaml grants this plugin to [admin] with
   # default_included: false. That single rule closes every skill and artifact
   # below to every other role — they carry no rule of their own, and the
@@ -22,7 +22,7 @@ plugin:
     include:
       # First-run setup, and the only dashboard installer on the instance.
       # Admin-only by this plugin's grant alone. It installs every record in
-      # the staged manifest — the five admin pages below and the six
+      # the staged manifest — the two control-plane pages below and the two
       # systemprompt-business pages — because installing artifacts is an
       # admin job; no other plugin ships a setup skill.
       - systemprompt_setup_admin
@@ -42,22 +42,29 @@ plugin:
       # manifest, and oauth.scopes in services/mcp/systemprompt.yaml rejects
       # the call at runtime if it gets there anyway.
       - systemprompt
-      # The brain@ pipeline: proposal_list feeds the two knowledge dashboards
-      # and proposal_decide is their approve button. Admin-scoped by its own
-      # rule in roles.yaml as well as by this plugin. No `odoo` here:
-      # systemprompt_setup_admin doesn't call it, and the two Odoo-backed
-      # admin dashboards moved to systemprompt-business.
+      # The brain@ pipeline: proposal_list and proposal_decide, the only route
+      # from a captured email into Odoo. Admin-scoped by its own rule in
+      # roles.yaml as well as by this plugin. It keeps its place here now that
+      # its two dashboards are gone: the pipeline still runs, and an admin
+      # still decides its proposals — in chat, or at
+      # /admin/governance/approvals. No `odoo` here:
+      # systemprompt_setup_admin doesn't call it, and the Odoo-backed
+      # dashboards belong to systemprompt-business.
       - knowledge-bank
   content_sources: {}
   artifacts:
     source: explicit
     include:
-      # The control-plane dashboards, all over mcp__systemprompt__systemprompt.
-      - admin-users-directory
+      # The control-plane dashboards, both over mcp__systemprompt__systemprompt.
+      # Neither is annotated readOnlyHint, so Cowork never caches them and the
+      # numbers are always refetched — intended: control-plane figures must not
+      # be stale.
       - admin-activity-requests
       - admin-usage-costs
-      # brain@ inbox: the live feed of captured email, and the approval queue
-      # through which an email becomes an Odoo record.
-      - knowledge-feed
-      - knowledge-approve-ingestion
+      # admin-users-directory was retired: /admin/access/users is the surface
+      # that grants roles, and a read-only mirror of it earned no place.
+      # knowledge-feed and knowledge-approve-ingestion went with it; the brain@
+      # pipeline is unchanged and its proposals are decided in chat or at
+      # /admin/governance/approvals.
+
   # No hooks: systemprompt-business owns the session-global governance hooks.

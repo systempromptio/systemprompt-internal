@@ -1,0 +1,41 @@
+id: my-day
+name: "My Day"
+description: "Your whole day on Odoo in one page, and every part of it clickable: pipeline by stage, everything waiting on you, this week's new leads, today's calendar and the team's chatter. Tick an activity to complete it, star a task, move a lead to another stage, add a note to any record — each click writes to Odoo as you. Replaces the separate to-do bulletin, recent-activity feed and business-overview briefing."
+version: "1.0.0"
+enabled: true
+starred: true
+# `category`, `tags` and `query` are forward-compatible metadata — the core
+# loader ignores them today; the call also lives in `description` and view.html.
+category: crm
+tags:
+  - odoo
+  - briefing
+  - activities
+  - tasks
+  - leads
+  - notes
+  - actions
+# Native Odoo MCP server (services/mcp/odoo.yaml). Per-user execution: the
+# caller's own Odoo login and API key are resolved in-process from the
+# odoo_identity link made on /admin/profile, so Odoo's own record rules decide
+# what is read and what may be written.
+#
+# This list is the allowlist the host enforces, and it must match the tools
+# view.html actually calls exactly — nothing derives one from the other, and a
+# drift surfaces only at runtime as "not in this artifact's mcp_tools
+# allowlist". The five reads come first, then the four writes.
+mcp_tools:
+  - "mcp__odoo__business_overview_data"
+  - "mcp__odoo__activity_list"
+  - "mcp__odoo__task_list"
+  - "mcp__odoo__note_search"
+  - "mcp__odoo__crm_stage_list"
+  - "mcp__odoo__activity_complete"
+  - "mcp__odoo__task_update"
+  - "mcp__odoo__crm_lead_update"
+  - "mcp__odoo__note_add"
+query: |
+  business_overview_data + activity_list + task_list + note_search + crm_stage_list
+  writes: activity_complete, task_update, crm_lead_update, note_add
+  model: composite (crm.lead, crm.stage, mail.activity, mail.message, calendar.event, project.task)
+file: view.html

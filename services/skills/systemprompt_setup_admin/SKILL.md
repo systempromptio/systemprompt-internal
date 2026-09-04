@@ -1,11 +1,16 @@
 # Set Up the Control Plane
 
-Install every dashboard the bridge staged — all eleven — into the Artifacts library, and confirm
-the admin CLI server answers. That is the seven admin pages (business overview, inbound leads, the
-two brain@ knowledge pages, and the three control-plane ones: user directory, request activity,
-usage and costs) plus the four workspace pages every role's data feeds (to-do bulletin, upcoming
-deals, pipeline — open deals, recent activity). Safe to run on every new session: it reconciles
-rather than seeds, so re-running is the point, not a waste.
+Install every dashboard the bridge staged — all four — into the Artifacts library, retire the
+dashboards they replaced, and confirm the admin CLI server answers. That is the two workspace pages
+every role's data feeds (**My Day**, **Sales Pipeline**) plus the two control-plane pages (request
+activity, spend by model). Safe to run on every new session: it reconciles rather than seeds, so
+re-running is the point, not a waste.
+
+**These four dashboards write, not just read.** Ticking an activity, moving a lead to another
+stage, closing a deal won or lost, logging a note, scheduling a follow-up — each is a real Odoo
+write, executed as the signed-in user against their own login, so Odoo's own record rules are the
+authorisation boundary. That is why the tool allowlist matters more than it used to; Step 3 says
+what a mismatch costs now.
 
 **Installing dashboards is an admin job, and this is the only skill that does it.** There is no
 user-facing setup skill; a non-admin has nothing to run and nothing to install. If a non-admin asks
@@ -66,12 +71,10 @@ The pages are not in it and you never read them: `create_artifact` copies a page
 
 **Take every record in the manifest.** Do not filter on `plugins` — the manifest holds exactly the
 bundles your signed manifest granted, so every record in it is one you are meant to install. That
-printed set **is** the bundle: count it, never assume it. On this instance expect eleven — the seven
-admin pages (`business-overview`, `leads-inbound-prospects`, `knowledge-feed`,
-`knowledge-approve-ingestion`, `admin-users-directory`, `admin-activity-requests`,
-`admin-usage-costs`) and the four workspace pages (`todo-bulletin`, `upcoming-deals`,
-`pipeline-open-deals`, `recent-activity`). If the count differs, install what is there and say so —
-the manifest is the authority, not this list.
+printed set **is** the bundle: count it, never assume it. On this instance expect four — the two
+workspace pages (`my-day`, `sales-pipeline`) and the two control-plane pages
+(`admin-activity-requests`, `admin-usage-costs`). If the count differs, install what is there and
+say so — the manifest is the authority, not this list.
 
 ### If every rung missed
 
@@ -94,16 +97,28 @@ receipt.
 ## Step 2 — Diff bundled against installed
 
 Call `list_artifacts` and match **by `id` only** — never by name, title, or "close enough"
-description. `Activity — Recent Requests` and `Recent Activity — Team Notes` are different
-dashboards that you now install in the same run, and a name match is exactly how one ends up
-installed with the other's tool allowlist. Build four groups:
+description. A name match is exactly how a dashboard ends up installed with another's tool
+allowlist, and the names here are close enough to invite it: `Activity — Recent Requests` is the
+control-plane request log, while `My Day` carries the team's activity feed. Build four groups:
 
 - **Missing** — bundled but not in the library.
 - **Present** — bundled and already there.
 - **Stale** — present, but the bundled `version` differs from what was installed.
-- **Superseded** — a library entry with one of the retired ids `admin-users`, `admin-activity`,
-  `admin-usage`: an install from before these dashboards were renamed. Offer to remove it; the
-  bundled dashboards are its replacement and it can no longer load data.
+- **Superseded** — a library entry carrying one of the retired ids below. Offer to remove it: it
+  can no longer load data, and one of the four bundled dashboards is its replacement.
+
+  | retired id | replaced by |
+  |---|---|
+  | `todo-bulletin`, `recent-activity`, `business-overview` | `my-day` |
+  | `pipeline-open-deals`, `upcoming-deals`, `leads-inbound-prospects` | `sales-pipeline` |
+  | `admin-users`, `admin-activity`, `admin-usage` | the renamed `admin-*` pages |
+  | `quotes-and-invoices`, `admin-users-directory`, `knowledge-feed`, `knowledge-approve-ingestion` | nothing — retired outright |
+
+  The last row has no replacement, so say so plainly rather than pointing at a substitute. Removing
+  `knowledge-feed` and `knowledge-approve-ingestion` changed nothing about the brain@ pipeline
+  itself: it still runs, and its proposals are still decided in chat or at
+  `/admin/governance/approvals`. `admin-users-directory` was a read-only mirror of
+  `/admin/access/users`, which is where roles are actually granted.
 
 Leave every library entry that is not in the manifest alone. It may be the user's own artifact, and
 nothing here owns it.
@@ -133,9 +148,10 @@ artifact the user may have edited.
 
 **Caching contract:** Cowork caches a dashboard's MCP results only when the tool advertises
 `annotations.readOnlyHint: true`. The admin CLI tool (`mcp__systemprompt__systemprompt`) is
-deliberately *not* annotated, so the three control-plane dashboards always refetch on render. That
-is intended — control-plane numbers must not be stale. The Odoo-backed dashboards do carry the
-annotation and are cached normally.
+deliberately *not* annotated, so the two control-plane dashboards always refetch on render. That
+is intended — control-plane numbers must not be stale. The Odoo read tools do carry the annotation
+and are cached normally; the Odoo *write* tools do not, which is correct — a write must never be
+served from a cache.
 
 ## Step 4 — Check the admin connection
 
@@ -176,5 +192,7 @@ verified listing). List what was created and what was already there by name with
 anything stale, superseded, or failed, and whether the admin CLI answered. If everything was already
 present, say so — that is a successful run, not a no-op.
 
-Finish by pointing at the two places these dashboards do not cover: `/admin/governance/approvals`,
-where held tool calls wait for a named human, and `/admin/access/users`, where roles are granted.
+Finish by pointing at the two places these dashboards do not cover — both of which used to have a
+dashboard of their own and deliberately no longer do: `/admin/governance/approvals`, where held tool
+calls and brain@ ingestion proposals wait for a named human, and `/admin/access/users`, where roles
+are granted and the user directory lives.

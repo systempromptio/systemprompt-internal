@@ -405,19 +405,23 @@ in total: `systemprompt-business` (`[user]`, everyone including admins: `activit
 read-only, a business-wide or personal brief, never writes; `manage_leads` — create a lead or walk
 your own open leads to a status, stage moves, revenue, notes, follow-ups; `pending_task` — a guided,
 one-item-at-a-time sweep of everything outstanding (overdue/due activities, open tasks, stale leads)
-that writes back the moment you answer for each one — backing six dashboards —
-`business-overview`, `leads-inbound-prospects`, `pipeline-open-deals`, `upcoming-deals`,
-`recent-activity`, `todo-bulletin`; also owns the session-global governance hooks),
+that writes back the moment you answer for each one — backing two dashboards — `my-day` (the
+briefing, what is waiting on you and the team's chatter) and `sales-pipeline` (every lead and open
+deal, in three views). Both **write as well as read**: the stage menu, Won/Lost, the activity tick,
+the note and follow-up buttons are all real Odoo writes through the artifact's own `mcp_tools`
+allowlist, executed as the signed-in user, so Odoo's record rules are the boundary. Neither may
+carry `crm_lead_delete`. This plugin also owns the session-global governance hooks),
 `systemprompt-demo` (`[user]`, because the hold and the blocklist exempt admins: one unified skill
 `demonstrate_governance` — pick a governance scenario (a held call, a refused secret, a blocked
 tool), run it with real tool calls, then read back the audited decision trail), and
 `systemprompt-admin` (`[admin]`: `systemprompt_setup_admin` — the control plane's one remaining
-skill — plus five dashboards: `admin-users-directory`, `admin-activity-requests`,
-`admin-usage-costs`, `knowledge-feed`, `knowledge-approve-ingestion`). Every skill is driven by MCP
+skill — plus two dashboards: `admin-activity-requests` and `admin-usage-costs`; the user directory
+and the two brain@ knowledge dashboards were retired in favour of `/admin/access/users` and
+`/admin/governance/approvals`). Every skill is driven by MCP
 tools the holding role's manifest actually carries; the admin CLI passthrough appears only in the
 admin plugin. Installing dashboards is admin-only, and `systemprompt_setup_admin` is the one skill
-that does it — it installs every record in the staged manifest, the six business dashboards
-included. `tests/e2e/src/manifest_roles.rs` pins the shape.
+that does it — it installs every record in the staged manifest, the two business dashboards
+included, and offers to remove the retired ids those four replaced. `tests/e2e/src/manifest_roles.rs` pins the shape.
 `scripts/validate-services.sh` fails CI on a plugin without a scope rule, an orphaned enabled skill
 or artifact, an allow-type skill rule, two governance-hook owners, or any enabled plugin/skill/artifact
 that depends on a disabled MCP server; core's `ServicesConfig::validate` refuses the last one at boot.

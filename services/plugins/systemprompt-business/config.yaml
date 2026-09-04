@@ -1,8 +1,8 @@
 plugin:
   id: systemprompt-business
   name: "Systemprompt Business — Run the Pipeline on Odoo"
-  description: "What every signed-in user gets: read what's happening on Odoo — a business-wide brief or your own day — create and update leads against real customers, walk them to a decision, close them won or lost and raise the quotation that follows, and sweep everything outstanding one item at a time, all as you. Seven live dashboards back the four skills: the business overview, inbound leads, open pipeline, upcoming deals, recent team notes, a to-do bulletin, and outstanding invoices."
-  version: "3.0.0"
+  description: "What every signed-in user gets: read what's happening on Odoo — a business-wide brief or your own day — create and update leads against real customers, walk them to a decision, close them won or lost and raise the quotation that follows, and sweep everything outstanding one item at a time, all as you. Two live dashboards back the four skills, and both act as well as read: My Day (the briefing, what is waiting on you, and the team's chatter — tick an activity, star a task, move a lead, log a note) and Sales Pipeline (every lead and open deal — move a stage, close won or lost, log a note, schedule a follow-up)."
+  version: "4.0.0"
   # User-scoped and shared by every role: roles.yaml grants this plugin to
   # [user] with default_included: true, and admins hold the user role too
   # (services/access-control/odoo-roles.yaml default_roles). The four skills
@@ -44,20 +44,21 @@ plugin:
   artifacts:
     source: explicit
     include:
-      # business_overview_data etc.: the business-wide brief's standing view.
-      - business-overview
-      # crm_lead_search + note_list: the inbound-lead triage view.
-      - leads-inbound-prospects
-      # crm_lead_search open_only: the live open pipeline table.
-      - pipeline-open-deals
-      # crm_lead_search open_only, sort deadline: grouped by tag, due first.
-      - upcoming-deals
-      # note_search: the chatter the brain@ pipeline and the team post.
-      - recent-activity
-      # activity_list + task_list, with activity_complete as the tick.
-      - todo-bulletin
-      # invoice_list unpaid_only: what has been billed and not yet paid.
-      - quotes-and-invoices
+      # The day: business_overview_data for the briefing, activity_list +
+      # task_list for what is waiting, note_search for the feed, and
+      # crm_stage_list to fill the stage menus. Writes back through
+      # activity_complete, task_update, crm_lead_update and note_add.
+      # Replaces todo-bulletin, recent-activity and business-overview.
+      - my-day
+      # The pipeline: crm_lead_search twice (all, then open_only — "open" is
+      # two Odoo flags the row does not carry, so the difference between the
+      # two answers is the only honest way to tell a won deal from an open
+      # one), plus crm_stage_list and note_list on expand. Writes back through
+      # crm_lead_update, crm_lead_mark_won/lost, note_add and activity_create.
+      # Replaces pipeline-open-deals, upcoming-deals and
+      # leads-inbound-prospects. quotes-and-invoices was retired with them.
+      - sales-pipeline
+
   # Claude Code runs plugin hooks session-globally, so the governance hooks are
   # declared once, here, and cover every tool call in the session. No other
   # plugin may set this — each extra owner is another govern call per tool,
