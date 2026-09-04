@@ -19,10 +19,10 @@ use serde::Serialize;
 pub const ATTRIBUTION_PAD_MINUTES: i32 = 5;
 
 pub const SKILL_WINDOW_PREDICATE: &str =
-    "r.created_at >= inv.invoked_at AND r.created_at < inv.window_end";
+    "r.created_at >= bd.invoked_at AND r.created_at < bd.window_end";
 
 pub const MCP_WINDOW_PREDICATE: &str =
-    "r.created_at >= inv.invoked_at AND r.created_at < inv.window_end";
+    "r.created_at >= bd.invoked_at AND r.created_at < bd.window_end";
 
 #[derive(Debug, Clone, Copy, Default, Serialize)]
 pub struct AttributedUsage {

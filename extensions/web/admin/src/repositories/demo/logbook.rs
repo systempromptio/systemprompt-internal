@@ -1,4 +1,9 @@
 //! Merged chronological demo logbook: skills, MCP calls, decisions, approvals.
+//!
+//! `include_allows = false` drops the `allow` decisions produced by the
+//! per-request authorization stages. Those fire on every call and would bury
+//! the entries a demo is watching for — the refusals, the holds, and the tool
+//! calls themselves.
 
 use chrono::{DateTime, Utc};
 use serde::Serialize;
@@ -16,6 +21,17 @@ pub enum LogbookKind {
     Approval,
 }
 
+impl LogbookKind {
+    fn from_tag(tag: &str) -> Self {
+        match tag {
+            "skill" => Self::Skill,
+            "mcp_tool" => Self::McpTool,
+            "approval" => Self::Approval,
+            _ => Self::Decision,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct LogbookRow {
     pub kind: LogbookKind,
@@ -30,9 +46,114 @@ pub struct LogbookRow {
 }
 
 pub async fn list_demo_logbook(
-    _pool: &PgPool,
-    _filter: &DemoFilter,
-    _include_allows: bool,
+    pool: &PgPool,
+    filter: &DemoFilter,
+    include_allows: bool,
 ) -> Result<Vec<LogbookRow>, sqlx::Error> {
-    Ok(Vec::new())
+    let rows = sqlx::query!(
+        r#"
+        WITH merged AS (
+            SELECT
+                'skill'::text                        AS kind,
+                e.created_at                         AS at,
+                e.user_id                            AS user_id,
+                e.session_id                         AS session_id,
+                e.metadata->'tool_input'->>'skill'   AS label,
+                e.plugin_id                          AS detail,
+                e.event_type                         AS status,
+                NULL::text                           AS policy
+            FROM plugin_usage_events e
+            WHERE e.created_at >= $1
+              AND ($2::text IS NULL OR e.user_id = $2)
+              AND e.tool_name = 'Skill'
+              AND e.metadata->'tool_input'->>'skill' IS NOT NULL
+
+            UNION ALL
+
+            SELECT
+                'mcp_tool'::text,
+                e.created_at,
+                e.user_id,
+                e.session_id,
+                e.tool_name,
+                split_part(e.tool_name, '__', 2),
+                CASE WHEN e.event_type = 'PostToolUseFailure' THEN 'failure' ELSE 'ok' END,
+                NULL::text
+            FROM plugin_usage_events e
+            WHERE e.created_at >= $1
+              AND ($2::text IS NULL OR e.user_id = $2)
+              AND e.tool_name LIKE 'mcp\_\_%'
+              AND e.event_type IN ('PostToolUse', 'PostToolUseFailure')
+
+            UNION ALL
+
+            SELECT
+                'decision'::text,
+                g.created_at,
+                g.user_id,
+                g.session_id,
+                g.tool_name,
+                g.reason,
+                g.decision,
+                g.policy
+            FROM governance_decisions g
+            WHERE g.created_at >= $1
+              AND ($2::text IS NULL OR g.user_id = $2)
+              AND (
+                    g.decision IN ('deny', 'pending')
+                 OR ($3 AND g.policy NOT IN ('authz', 'authz_rule_based', 'default_allow'))
+              )
+
+            UNION ALL
+
+            SELECT
+                'approval'::text,
+                a.created_at,
+                a.requested_by,
+                COALESCE(a.session_id, ''),
+                a.tool_name,
+                a.server_name,
+                a.status,
+                'require_approval'::text
+            FROM approval_requests a
+            WHERE a.created_at >= $1
+              AND ($2::text IS NULL OR a.requested_by = $2)
+        )
+        SELECT
+            m.kind        AS "kind!",
+            m.at          AS "at!",
+            m.user_id     AS "user_id!: UserId",
+            u.email       AS "user_email?",
+            m.session_id  AS "session_id!: SessionId",
+            m.label       AS "label!",
+            m.detail      AS "detail?",
+            m.status      AS "status?",
+            m.policy      AS "policy?"
+        FROM merged m
+        LEFT JOIN users u ON u.id = m.user_id
+        ORDER BY m.at DESC
+        LIMIT $4
+        "#,
+        filter.since,
+        filter.user_filter(),
+        include_allows,
+        filter.limit,
+    )
+    .fetch_all(pool)
+    .await?;
+
+    Ok(rows
+        .into_iter()
+        .map(|r| LogbookRow {
+            kind: LogbookKind::from_tag(&r.kind),
+            at: r.at,
+            user_id: r.user_id,
+            user_email: r.user_email,
+            session_id: r.session_id,
+            label: r.label,
+            detail: r.detail,
+            status: r.status,
+            policy: r.policy,
+        })
+        .collect())
 }
