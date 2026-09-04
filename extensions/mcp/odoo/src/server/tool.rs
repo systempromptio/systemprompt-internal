@@ -20,25 +20,22 @@ use systemprompt_mcp_shared::{record_mcp_access, record_mcp_access_rejected};
 
 use super::call::OdooCall;
 use super::{
-    activity, attachments, calendar, channels, crm, crm_delete, discovery, notes, overview, partner,
-    partner_write, report, sales, tasks,
+    activity, attachments, calendar, channels, crm, crm_delete, discovery, notes, overview,
+    partner, partner_write, report, sales, tasks,
 };
 use crate::client::OdooClient;
 use crate::error::OdooError;
 use crate::identity::resolve_credentials;
 use crate::tools::{
     ALL_TOOLS, TOOL_ACTIVITY_COMPLETE, TOOL_ACTIVITY_CREATE, TOOL_ACTIVITY_LIST,
-    TOOL_ATTACHMENT_ADD, TOOL_ATTACHMENT_GET, TOOL_ATTACHMENT_LIST, TOOL_CALENDAR_EVENT_CREATE,
-    TOOL_CALENDAR_EVENT_LIST, TOOL_CHANNEL_LIST, TOOL_CHANNEL_POST, TOOL_LEAD_CREATE,
-    TOOL_LEAD_DELETE, TOOL_LEAD_GET, TOOL_LEAD_REPORT, TOOL_LEAD_SEARCH, TOOL_LEAD_UPDATE,
-    TOOL_NOTE_ADD, TOOL_NOTE_LIST, TOOL_NOTE_SEARCH, TOOL_OVERVIEW, TOOL_PARTNER_GET,
-    TOOL_PARTNER_SEARCH, TOOL_TASK_CREATE, TOOL_TASK_LIST, TOOL_TASK_UPDATE,
-};
-use crate::tools::{
-    TOOL_ACTIVITY_TYPE_LIST, TOOL_INVOICE_GET, TOOL_INVOICE_LIST, TOOL_LEAD_CONVERT,
-    TOOL_LEAD_MARK_LOST, TOOL_LEAD_MARK_WON, TOOL_PARTNER_CREATE, TOOL_PARTNER_UPDATE,
+    TOOL_ACTIVITY_TYPE_LIST, TOOL_ATTACHMENT_ADD, TOOL_ATTACHMENT_GET, TOOL_ATTACHMENT_LIST,
+    TOOL_CALENDAR_EVENT_CREATE, TOOL_CALENDAR_EVENT_LIST, TOOL_CHANNEL_LIST, TOOL_CHANNEL_POST,
+    TOOL_INVOICE_GET, TOOL_INVOICE_LIST, TOOL_LEAD_CONVERT, TOOL_LEAD_CREATE, TOOL_LEAD_DELETE,
+    TOOL_LEAD_GET, TOOL_LEAD_MARK_LOST, TOOL_LEAD_MARK_WON, TOOL_LEAD_REPORT, TOOL_LEAD_SEARCH,
+    TOOL_LEAD_UPDATE, TOOL_NOTE_ADD, TOOL_NOTE_LIST, TOOL_NOTE_SEARCH, TOOL_OVERVIEW,
+    TOOL_PARTNER_CREATE, TOOL_PARTNER_GET, TOOL_PARTNER_SEARCH, TOOL_PARTNER_UPDATE,
     TOOL_SALE_ORDER_CREATE, TOOL_SALE_ORDER_GET, TOOL_SALE_ORDER_LIST, TOOL_STAGE_LIST,
-    TOOL_USER_LIST,
+    TOOL_TASK_CREATE, TOOL_TASK_LIST, TOOL_TASK_UPDATE, TOOL_USER_LIST,
 };
 
 pub(super) async fn authenticate_tool_request(
@@ -160,17 +157,11 @@ async fn closing_tools(
         TOOL_LEAD_MARK_WON => ctx.run(&crm::LeadMarkWonHandler { call }).await,
         TOOL_LEAD_MARK_LOST => ctx.run(&crm::LeadMarkLostHandler { call }).await,
         TOOL_LEAD_CONVERT => ctx.run(&crm::LeadConvertHandler { call }).await,
-        TOOL_PARTNER_CREATE => {
-            ctx.run(&partner_write::PartnerCreateHandler { call }).await
-        },
-        TOOL_PARTNER_UPDATE => {
-            ctx.run(&partner_write::PartnerUpdateHandler { call }).await
-        },
+        TOOL_PARTNER_CREATE => ctx.run(&partner_write::PartnerCreateHandler { call }).await,
+        TOOL_PARTNER_UPDATE => ctx.run(&partner_write::PartnerUpdateHandler { call }).await,
         TOOL_STAGE_LIST => ctx.run(&discovery::StageListHandler { call }).await,
         TOOL_USER_LIST => ctx.run(&discovery::UserListHandler { call }).await,
-        TOOL_ACTIVITY_TYPE_LIST => {
-            ctx.run(&discovery::ActivityTypeListHandler { call }).await
-        },
+        TOOL_ACTIVITY_TYPE_LIST => ctx.run(&discovery::ActivityTypeListHandler { call }).await,
         _ => return None,
     })
 }

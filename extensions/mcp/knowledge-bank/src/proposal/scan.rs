@@ -50,6 +50,8 @@ pub fn scan_body(user_id: &UserId, body: &str) -> ScanVerdict {
     };
     match policy.evaluate(&ctx) {
         Decision::Deny { reason } => ScanVerdict::Withheld(reason.to_string()),
-        Decision::Allow { .. } | Decision::Pending { .. } => ScanVerdict::Clean,
+        Decision::Allow { .. } | Decision::Warn { .. } | Decision::Pending { .. } => {
+            ScanVerdict::Clean
+        },
     }
 }

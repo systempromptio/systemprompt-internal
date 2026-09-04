@@ -46,6 +46,10 @@ pub struct LogbookRow {
     pub policy: Option<String>,
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "body is one irreducible compile-time-checked query! SQL literal: a four-branch UNION"
+)]
 pub async fn list_demo_logbook(
     pool: &PgPool,
     filter: &DemoFilter,

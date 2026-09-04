@@ -23,5 +23,5 @@ pub async fn list_user_mcp_tool_matrix(
             cost_microdollars: inv.cost_microdollars,
         })
         .collect::<Vec<_>>();
-    Ok(fold_matrix(entries))
+    Ok(fold_matrix(&entries))
 }

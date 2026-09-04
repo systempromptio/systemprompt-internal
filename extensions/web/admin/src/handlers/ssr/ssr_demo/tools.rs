@@ -9,8 +9,8 @@ use sqlx::PgPool;
 
 use super::context::DemoToolsContext;
 use super::view::{
-    McpToolStatView, ServerCardView, ToolVerdictTotals, format_demo_cost, matrix_view,
-    mcp_tool_stat_view,
+    AttributedTotals, McpToolStatView, ServerCardView, ToolVerdictTotals, format_demo_cost,
+    matrix_view, mcp_tool_stat_view,
 };
 use super::{ATTRIBUTION_NOTE, CHART_DAYS, tool_kpi_strip};
 use crate::error::{AdminError, AdminHtmlResult};
@@ -93,6 +93,12 @@ async fn build_page_json(pool: &PgPool) -> DemoToolsContext {
             acc.approved += s.approved;
             acc
         });
+    let usage = stats
+        .iter()
+        .fold(AttributedTotals::default(), |mut acc, s| {
+            acc.add(s.total_tokens, s.cost_microdollars);
+            acc
+        });
     let tools: Vec<_> = stats.iter().map(mcp_tool_stat_view).collect();
     let servers = server_cards(&tools, &costs);
 
@@ -101,7 +107,7 @@ async fn build_page_json(pool: &PgPool) -> DemoToolsContext {
         title: "MCP Tool Usage",
         subtitle: "Every MCP tool call the demo made, what the policy chain said \
                    about it, and what it cost.",
-        kpis: tool_kpi_strip(&kpis, &verdicts),
+        kpis: tool_kpi_strip(&kpis, &verdicts, &usage),
         chart: daily_count_chart(
             &series,
             "MCP tool calls, last 14 days",

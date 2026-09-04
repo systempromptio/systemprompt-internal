@@ -9,9 +9,9 @@ pub async fn list_users(pool: &PgPool) -> Result<Vec<UserSummary>, sqlx::Error> 
     list_users_filtered(pool, false).await
 }
 
-// Why: anonymous visitors are stored as ordinary user rows, so a roster that did
-// not exclude them would present traffic as people. The flag exists so the page
-// can still show them on request.
+// Why: anonymous visitors are stored as ordinary user rows, so a roster that
+// did not exclude them would present traffic as people. The flag exists so the
+// page can still show them on request.
 pub async fn list_users_filtered(
     pool: &PgPool,
     include_anonymous: bool,

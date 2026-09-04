@@ -85,7 +85,7 @@ impl OdooServer {
             McpArtifactRepository::new(&db_pool).map_err(|e| OdooError::Internal(e.to_string()))?,
         );
         let executor = McpToolExecutor::new(tool_usage_repo, artifact_repo, SERVER_NAME);
-        let client = Arc::new(OdooClient::from_env()?.with_identity_store(db_pool.clone()));
+        let client = Arc::new(OdooClient::from_env()?.with_identity_store(Arc::clone(&db_pool)));
 
         tracing::info!(
             odoo_url = %client.connection().url,

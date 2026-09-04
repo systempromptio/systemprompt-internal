@@ -55,12 +55,12 @@ pub async fn list_user_skill_matrix(
             cost_microdollars: inv.cost_microdollars,
         })
         .collect::<Vec<_>>();
-    Ok(fold_matrix(entries))
+    Ok(fold_matrix(&entries))
 }
 
-pub fn fold_matrix(entries: Vec<MatrixEntry>) -> UsageMatrix {
+pub fn fold_matrix(entries: &[MatrixEntry]) -> UsageMatrix {
     let mut column_totals: HashMap<String, i64> = HashMap::new();
-    for e in &entries {
+    for e in entries {
         *column_totals.entry(e.column.clone()).or_insert(0) += 1;
     }
     let mut columns: Vec<String> = column_totals.keys().cloned().collect();
@@ -77,7 +77,7 @@ pub fn fold_matrix(entries: Vec<MatrixEntry>) -> UsageMatrix {
 
     let mut by_user: HashMap<UserId, UsageMatrixRow> = HashMap::new();
     let mut order: Vec<UserId> = Vec::new();
-    for e in &entries {
+    for e in entries {
         let row = by_user.entry(e.user_id.clone()).or_insert_with(|| {
             order.push(e.user_id.clone());
             UsageMatrixRow {

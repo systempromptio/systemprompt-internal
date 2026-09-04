@@ -76,6 +76,19 @@ pub(super) struct McpToolStatView {
     pub last_used_at: Option<String>,
 }
 
+#[derive(Debug, Default, Clone, Copy)]
+pub(super) struct AttributedTotals {
+    pub total_tokens: i64,
+    pub cost_microdollars: i64,
+}
+
+impl AttributedTotals {
+    pub(super) fn add(&mut self, tokens: i64, cost_microdollars: i64) {
+        self.total_tokens += tokens;
+        self.cost_microdollars += cost_microdollars;
+    }
+}
+
 #[derive(Debug, Default)]
 pub(super) struct ToolVerdictTotals {
     pub allowed: i64,
@@ -144,7 +157,7 @@ fn describe_user(email: Option<&String>, fallback: &str) -> String {
     email.map_or_else(|| fallback.to_owned(), Clone::clone)
 }
 
-fn kind_labels(kind: LogbookKind) -> (&'static str, &'static str) {
+const fn kind_labels(kind: LogbookKind) -> (&'static str, &'static str) {
     match kind {
         LogbookKind::Skill => ("skill", "Skill"),
         LogbookKind::McpTool => ("mcp-tool", "MCP tool"),
@@ -184,12 +197,10 @@ pub(super) fn logbook_row_view(row: &LogbookRow) -> LogbookRowView {
 // Why: skills are recorded as `plugin:skill`; splitting here keeps the table
 // sortable by plugin without a second query.
 pub(super) fn skill_total_view(row: &SkillTotalRow) -> SkillTotalView {
-    let (plugin, skill) = row
-        .skill
-        .split_once(':')
-        .map_or((String::new(), row.skill.clone()), |(p, s)| {
-            (p.to_owned(), s.to_owned())
-        });
+    let (plugin, skill) = row.skill.split_once(':').map_or_else(
+        || (String::new(), row.skill.clone()),
+        |(p, s)| (p.to_owned(), s.to_owned()),
+    );
     SkillTotalView {
         plugin,
         skill,

@@ -124,7 +124,8 @@ pub fn invoice_domain(input: &InvoiceListInput) -> serde_json::Value {
     // Why: `account.move` holds vendor bills, credit notes and journal entries
     // in the same table. Without this the tool would answer "what do customers
     // owe us" with the company's own purchase ledger.
-    let mut domain: Vec<serde_json::Value> = vec![serde_json::json!(["move_type", "=", "out_invoice"])];
+    let mut domain: Vec<serde_json::Value> =
+        vec![serde_json::json!(["move_type", "=", "out_invoice"])];
     if let Some(partner_id) = input.partner_id {
         domain.push(serde_json::json!(["partner_id", "=", partner_id]));
     }

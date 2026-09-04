@@ -24,6 +24,10 @@ pub struct McpToolInvocationRow {
     pub cost_microdollars: i64,
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "body is one irreducible compile-time-checked query_as! SQL literal"
+)]
 pub async fn list_mcp_tool_invocations(
     pool: &PgPool,
     filter: &DemoFilter,

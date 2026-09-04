@@ -7,7 +7,7 @@ use axum::response::Response;
 use sqlx::PgPool;
 
 use super::context::DemoSkillsContext;
-use super::view::{matrix_view, skill_total_view, user_total_views};
+use super::view::{AttributedTotals, matrix_view, skill_total_view, user_total_views};
 use super::{ATTRIBUTION_NOTE, CHART_DAYS, skill_kpi_strip};
 use crate::error::{AdminError, AdminHtmlResult};
 use crate::handlers::ssr::types::daily_count_chart;
@@ -44,6 +44,12 @@ async fn build_page_json(pool: &PgPool) -> DemoSkillsContext {
         UsageMatrix::default()
     });
 
+    let usage = totals
+        .iter()
+        .fold(AttributedTotals::default(), |mut acc, t| {
+            acc.add(t.total_tokens, t.cost_microdollars);
+            acc
+        });
     let skills: Vec<_> = totals.iter().map(skill_total_view).collect();
     let user_totals = user_total_views(&matrix);
 
@@ -52,7 +58,7 @@ async fn build_page_json(pool: &PgPool) -> DemoSkillsContext {
         title: "Skill Adoption",
         subtitle: "Skill invocations recorded by the Claude Code hooks, with the \
                    AI usage attributed to each one.",
-        kpis: skill_kpi_strip(&kpis, skills.len() as i64, matrix.rows.len() as i64),
+        kpis: skill_kpi_strip(&kpis, skills.len() as i64, matrix.rows.len() as i64, &usage),
         chart: daily_count_chart(
             &series,
             "Skill invocations, last 14 days",

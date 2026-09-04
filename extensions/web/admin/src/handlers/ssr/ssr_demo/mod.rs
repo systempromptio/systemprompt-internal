@@ -19,7 +19,7 @@ mod view;
 
 use crate::handlers::ssr::format::format_token_total;
 use crate::repositories::demo::kpis::DemoKpis;
-use view::{KpiView, ScenarioCard, ToolVerdictTotals, format_demo_cost};
+use view::{AttributedTotals, KpiView, ScenarioCard, ToolVerdictTotals, format_demo_cost};
 
 pub(crate) use logbook::demo_logbook_page;
 pub(crate) use me::demo_me_page;
@@ -33,7 +33,7 @@ const ATTRIBUTION_NOTE: &str = "Tokens and cost are attributed, not \
      same user and falls between that invocation and the next one of its kind in \
      the session, or the session's last event plus five minutes.";
 
-fn kpi(label: &'static str, value: String) -> KpiView {
+const fn kpi(label: &'static str, value: String) -> KpiView {
     KpiView {
         label,
         value,
@@ -42,7 +42,7 @@ fn kpi(label: &'static str, value: String) -> KpiView {
     }
 }
 
-fn kpi_tagged(label: &'static str, value: String, testid: &'static str) -> KpiView {
+const fn kpi_tagged(label: &'static str, value: String, testid: &'static str) -> KpiView {
     KpiView {
         label,
         value,
@@ -51,7 +51,7 @@ fn kpi_tagged(label: &'static str, value: String, testid: &'static str) -> KpiVi
     }
 }
 
-fn kpi_variant(label: &'static str, value: String, variant: &'static str) -> KpiView {
+const fn kpi_variant(label: &'static str, value: String, variant: &'static str) -> KpiView {
     KpiView {
         label,
         value,
@@ -79,17 +79,21 @@ fn mcp_calls_kpi(kpis: &DemoKpis) -> KpiView {
     )
 }
 
-fn attributed_kpis(kpis: &DemoKpis) -> [KpiView; 2] {
+// Why: the two figures are folded from the rows the page's own table lists, so
+// a strip can never disagree with the table under it. Only the logbook and the
+// personal page, which list every kind of row, pass the combined figure.
+fn attributed_kpis(usage: &AttributedTotals) -> [KpiView; 2] {
     [
-        kpi(
-            "Attributed tokens",
-            format_token_total(kpis.attributed_tokens),
-        ),
-        kpi(
-            "Attributed cost",
-            format_demo_cost(kpis.attributed_cost_microdollars),
-        ),
+        kpi("Attributed tokens", format_token_total(usage.total_tokens)),
+        kpi("Attributed cost", format_demo_cost(usage.cost_microdollars)),
     ]
+}
+
+fn combined_usage(kpis: &DemoKpis) -> AttributedTotals {
+    AttributedTotals {
+        total_tokens: kpis.attributed_tokens,
+        cost_microdollars: kpis.attributed_cost_microdollars,
+    }
 }
 
 fn logbook_kpi_strip(kpis: &DemoKpis) -> Vec<KpiView> {
@@ -103,21 +107,30 @@ fn logbook_kpi_strip(kpis: &DemoKpis) -> Vec<KpiView> {
         kpi_variant("Allowed", kpis.allowed.to_string(), "success"),
         kpi_variant("Approved", kpis.approved.to_string(), "success"),
     ];
-    strip.extend(attributed_kpis(kpis));
+    strip.extend(attributed_kpis(&combined_usage(kpis)));
     strip
 }
 
-fn skill_kpi_strip(kpis: &DemoKpis, distinct_skills: i64, distinct_users: i64) -> Vec<KpiView> {
+fn skill_kpi_strip(
+    kpis: &DemoKpis,
+    distinct_skills: i64,
+    distinct_users: i64,
+    usage: &AttributedTotals,
+) -> Vec<KpiView> {
     let mut strip = vec![
         skill_invocations_kpi(kpis),
         kpi("Distinct skills", distinct_skills.to_string()),
         kpi("Distinct users", distinct_users.to_string()),
     ];
-    strip.extend(attributed_kpis(kpis));
+    strip.extend(attributed_kpis(usage));
     strip
 }
 
-fn tool_kpi_strip(kpis: &DemoKpis, verdicts: &ToolVerdictTotals) -> Vec<KpiView> {
+fn tool_kpi_strip(
+    kpis: &DemoKpis,
+    verdicts: &ToolVerdictTotals,
+    usage: &AttributedTotals,
+) -> Vec<KpiView> {
     let mut strip = vec![
         mcp_calls_kpi(kpis),
         kpi_variant("Failures", kpis.mcp_failures.to_string(), "danger"),
@@ -126,7 +139,7 @@ fn tool_kpi_strip(kpis: &DemoKpis, verdicts: &ToolVerdictTotals) -> Vec<KpiView>
         kpi_variant("Held", verdicts.held.to_string(), "warning"),
         kpi_variant("Approved", verdicts.approved.to_string(), "success"),
     ];
-    strip.extend(attributed_kpis(kpis));
+    strip.extend(attributed_kpis(usage));
     strip
 }
 

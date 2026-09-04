@@ -199,7 +199,7 @@
     display: flex;
     align-items: flex-end;
     gap: 2px;
-    padding-inline-end: var(--sp-space-3);
+    padding-inline: var(--sp-space-3);
     border-bottom: 1px solid var(--sp-border-default);
     background-image: linear-gradient(
         to bottom,

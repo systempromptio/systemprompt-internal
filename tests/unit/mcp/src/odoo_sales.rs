@@ -185,8 +185,8 @@ fn tables_carry_every_row_as_structured_data() {
     let orders = order_rows(&[serde_json::json!({ "id": 1, "name": "S00001" })]);
     let invoices = invoice_rows(&[serde_json::json!({ "id": 2, "name": "INV/1" })]);
 
-    assert_eq!(order_table(&orders).rows.len(), 1);
-    assert_eq!(invoice_table(&invoices).rows.len(), 1);
+    assert_eq!(order_table(&orders).items.len(), 1);
+    assert_eq!(invoice_table(&invoices).items.len(), 1);
 }
 
 #[test]
@@ -194,7 +194,7 @@ fn the_invoice_table_exposes_the_outstanding_balance_column() {
     let table = invoice_table(&[]);
 
     assert!(
-        table.columns.iter().any(|c| c.key == "amount_residual"),
+        table.columns.iter().any(|c| c.name == "amount_residual"),
         "the outstanding balance is the reason this dashboard exists"
     );
 }

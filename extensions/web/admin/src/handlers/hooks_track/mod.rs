@@ -29,6 +29,10 @@ use std::sync::Arc;
 use systemprompt::ai::AiService;
 use systemprompt::identifiers::{PluginId, SessionId, UserId};
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "axum requires one parameter per extractor; the sixth is the ?plugin_id= binding"
+)]
 pub(crate) async fn handle_hook_track(
     Extension(event_hub): Extension<EventHub>,
     Extension(ai_service): Extension<Option<Arc<AiService>>>,

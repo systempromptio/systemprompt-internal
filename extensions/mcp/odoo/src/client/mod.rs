@@ -112,7 +112,12 @@ impl OdooClient {
         Ok(result.as_i64().and_then(|uid| i32::try_from(uid).ok()))
     }
 
-    fn execute_kw_args(&self, uid: i32, creds: &Credentials, call: &ModelCall<'_>) -> [serde_json::Value; 7] {
+    fn execute_kw_args(
+        &self,
+        uid: i32,
+        creds: &Credentials,
+        call: &ModelCall<'_>,
+    ) -> [serde_json::Value; 7] {
         [
             serde_json::json!(self.conn.db),
             serde_json::json!(uid),

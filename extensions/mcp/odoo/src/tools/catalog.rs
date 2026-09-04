@@ -9,31 +9,26 @@
 use rmcp::model::Tool;
 
 use super::inputs::{
-    ActivityCompleteInput, ActivityCreateInput, ActivityListInput, AttachmentAddInput,
-    AttachmentGetInput, AttachmentListInput, CalendarEventCreateInput, CalendarEventListInput,
-    ChannelListInput, ChannelPostInput, LeadCreateInput, LeadDeleteInput, LeadGetInput,
-    LeadReportInput, LeadSearchInput, LeadUpdateInput, NoteAddInput, NoteListInput,
-    NoteSearchInput, OverviewInput, PartnerGetInput, PartnerSearchInput, TaskCreateInput,
-    TaskListInput, TaskUpdateInput,
-};
-use super::inputs::{
-    ActivityTypeListInput, InvoiceGetInput, InvoiceListInput, LeadConvertInput, LeadMarkLostInput,
-    LeadMarkWonInput, PartnerCreateInput, PartnerUpdateInput, SaleOrderCreateInput,
-    SaleOrderGetInput, SaleOrderListInput, StageListInput, UserListInput,
+    ActivityCompleteInput, ActivityCreateInput, ActivityListInput, ActivityTypeListInput,
+    AttachmentAddInput, AttachmentGetInput, AttachmentListInput, CalendarEventCreateInput,
+    CalendarEventListInput, ChannelListInput, ChannelPostInput, InvoiceGetInput, InvoiceListInput,
+    LeadConvertInput, LeadCreateInput, LeadDeleteInput, LeadGetInput, LeadMarkLostInput,
+    LeadMarkWonInput, LeadReportInput, LeadSearchInput, LeadUpdateInput, NoteAddInput,
+    NoteListInput, NoteSearchInput, OverviewInput, PartnerCreateInput, PartnerGetInput,
+    PartnerSearchInput, PartnerUpdateInput, SaleOrderCreateInput, SaleOrderGetInput,
+    SaleOrderListInput, StageListInput, TaskCreateInput, TaskListInput, TaskUpdateInput,
+    UserListInput,
 };
 use super::{
-    Effect, TOOL_ACTIVITY_COMPLETE, TOOL_ACTIVITY_CREATE, TOOL_ACTIVITY_LIST, TOOL_ATTACHMENT_ADD,
-    TOOL_ATTACHMENT_GET, TOOL_ATTACHMENT_LIST, TOOL_CALENDAR_EVENT_CREATE,
-    TOOL_CALENDAR_EVENT_LIST, TOOL_CHANNEL_LIST, TOOL_CHANNEL_POST, TOOL_LEAD_CREATE,
-    TOOL_LEAD_DELETE, TOOL_LEAD_GET, TOOL_LEAD_REPORT, TOOL_LEAD_SEARCH, TOOL_LEAD_UPDATE,
-    TOOL_NOTE_ADD, TOOL_NOTE_LIST, TOOL_NOTE_SEARCH, TOOL_OVERVIEW, TOOL_PARTNER_GET,
-    TOOL_PARTNER_SEARCH, TOOL_TASK_CREATE, TOOL_TASK_LIST, TOOL_TASK_UPDATE, ToolDef, create_tool,
-};
-use super::{
-    TOOL_ACTIVITY_TYPE_LIST, TOOL_INVOICE_GET, TOOL_INVOICE_LIST, TOOL_LEAD_CONVERT,
-    TOOL_LEAD_MARK_LOST, TOOL_LEAD_MARK_WON, TOOL_PARTNER_CREATE, TOOL_PARTNER_UPDATE,
+    Effect, TOOL_ACTIVITY_COMPLETE, TOOL_ACTIVITY_CREATE, TOOL_ACTIVITY_LIST,
+    TOOL_ACTIVITY_TYPE_LIST, TOOL_ATTACHMENT_ADD, TOOL_ATTACHMENT_GET, TOOL_ATTACHMENT_LIST,
+    TOOL_CALENDAR_EVENT_CREATE, TOOL_CALENDAR_EVENT_LIST, TOOL_CHANNEL_LIST, TOOL_CHANNEL_POST,
+    TOOL_INVOICE_GET, TOOL_INVOICE_LIST, TOOL_LEAD_CONVERT, TOOL_LEAD_CREATE, TOOL_LEAD_DELETE,
+    TOOL_LEAD_GET, TOOL_LEAD_MARK_LOST, TOOL_LEAD_MARK_WON, TOOL_LEAD_REPORT, TOOL_LEAD_SEARCH,
+    TOOL_LEAD_UPDATE, TOOL_NOTE_ADD, TOOL_NOTE_LIST, TOOL_NOTE_SEARCH, TOOL_OVERVIEW,
+    TOOL_PARTNER_CREATE, TOOL_PARTNER_GET, TOOL_PARTNER_SEARCH, TOOL_PARTNER_UPDATE,
     TOOL_SALE_ORDER_CREATE, TOOL_SALE_ORDER_GET, TOOL_SALE_ORDER_LIST, TOOL_STAGE_LIST,
-    TOOL_USER_LIST,
+    TOOL_TASK_CREATE, TOOL_TASK_LIST, TOOL_TASK_UPDATE, TOOL_USER_LIST, ToolDef, create_tool,
 };
 
 pub fn lead_tools() -> Vec<Tool> {

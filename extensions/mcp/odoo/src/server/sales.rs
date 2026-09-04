@@ -297,10 +297,7 @@ impl McpToolHandler for InvoiceListHandler {
                 empty_result("customer invoices")
             } else {
                 let outstanding: f64 = rows.iter().filter_map(|r| r.amount_residual).sum();
-                format!(
-                    "{} invoice(s), {outstanding:.2} outstanding",
-                    rows.len()
-                )
+                format!("{} invoice(s), {outstanding:.2} outstanding", rows.len())
             };
             Ok((CliArtifact::table(invoice_table(&rows)), summary))
         }
