@@ -3,8 +3,8 @@
 //! As with the knowledge bank, construction is what needs a database: the
 //! server builds a `ToolUsageRepository` and an `McpArtifactRepository` off the
 //! pool before it can serve anything. The advertised identity and capability
-//! set are asserted on the constructed server, and the single CLI tool it
-//! exposes is pinned against `tools::list_tools`.
+//! set are asserted on the constructed server, and the tools it exposes are
+//! pinned against `tools::list_tools`.
 
 use std::sync::Arc;
 
@@ -123,7 +123,7 @@ async fn a_different_service_id_only_changes_the_server_name() {
 }
 
 #[tokio::test]
-async fn the_server_exposes_exactly_one_cli_tool() {
+async fn the_server_exposes_the_cli_tool_and_the_three_approval_tools() {
     let Some(db) = TempDb::create().await else {
         return;
     };
@@ -131,9 +131,20 @@ async fn the_server_exposes_exactly_one_cli_tool() {
 
     let listed = tools::list_tools();
 
-    assert_eq!(listed.len(), 1, "the CLI tool is the whole tool surface");
-    assert_eq!(listed[0].name.as_ref(), tools::SERVER_NAME);
-    assert_eq!(listed[0].title.as_deref(), Some("SystemPrompt CLI"));
+    let surface: Vec<(&str, Option<&str>)> = listed
+        .iter()
+        .map(|t| (t.name.as_ref(), t.title.as_deref()))
+        .collect();
+    assert_eq!(
+        surface,
+        vec![
+            (tools::TOOL_SYSTEMPROMPT, Some("SystemPrompt CLI")),
+            (tools::TOOL_APPROVAL_LIST, Some("Held Calls")),
+            (tools::TOOL_APPROVAL_DECIDE, Some("Decide Held Call")),
+            (tools::TOOL_APPROVAL_HISTORY, Some("Decided Approvals")),
+        ],
+        "the CLI tool and the three approval tools are the whole tool surface"
+    );
 
     db.cleanup().await;
 }

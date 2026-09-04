@@ -474,6 +474,50 @@ async fn hook_track_deduplicates_and_rolls_up_the_session() {
     db.cleanup().await;
 }
 
+// A `Skill` tool call reaches the platform as two requests: `/hooks/govern`
+// decides the `PreToolUse`, then `/hooks/track` records the `PostToolUse`.
+// `skill_invocation_events` counts the tool arm only when both are present —
+// a tracked `Skill` row with no decision beside it was posted by a seeder, not
+// by a client — so a test that wants the invocation must send both.
+//
+// The decision is answered before its audit row is committed, so the poll is
+// what makes the row visible to the view; a row that never lands still fails.
+async fn govern_skill_call(app: &App, db: &TempDb, token: &str, session: &str, tool_use_id: &str) {
+    let body = format!(
+        r#"{{{},"tool_name":"Skill","tool_input":{{"skill":"contract:demo-skill"}},"tool_use_id":"{tool_use_id}"}}"#,
+        common(session, "PreToolUse")
+    );
+    let (status, _) = app
+        .call_with_bearer(
+            Call {
+                method: "post",
+                path: "/hooks/govern",
+                principal: Principal::Anonymous,
+                content_type: Some("application/json"),
+                body: Some(&body),
+            },
+            token,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "the Skill PreToolUse was rejected");
+
+    for _ in 0..50 {
+        let landed: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM governance_decisions \
+             WHERE session_id = $1 AND tool_name = 'Skill'",
+        )
+        .bind(session)
+        .fetch_one(&*db.pool)
+        .await
+        .expect("count the Skill decision");
+        if landed > 0 {
+            return;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    }
+    panic!("the Skill PreToolUse decision never reached governance_decisions");
+}
+
 // The `plugin_id` claim: stored on the row, and cross-checked against the
 // query binding.
 //
@@ -496,6 +540,7 @@ async fn hook_track_stores_the_plugin_id_and_refuses_a_mismatched_one() {
     let token = seed::mint(&TokenSpec::hook(&user_id));
     let session = seed::unique("plugin-session");
 
+    govern_skill_call(&app, &db, &token, &session, "tu-plugin-1").await;
     let body = format!(
         r#"{{{},"tool_name":"Skill","tool_input":{{"skill":"contract:demo-skill"}},"tool_response":{{}},"tool_use_id":"tu-plugin-1"}}"#,
         common(&session, "PostToolUse")
