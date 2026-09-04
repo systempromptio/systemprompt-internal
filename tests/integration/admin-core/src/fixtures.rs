@@ -407,6 +407,8 @@ pub struct EventSpec<'a> {
     pub session_id: &'a str,
     pub event_type: &'a str,
     pub tool_name: Option<&'a str>,
+    pub plugin_id: Option<&'a str>,
+    pub metadata: serde_json::Value,
     pub created_at: DateTime<Utc>,
 }
 
@@ -418,26 +420,96 @@ impl<'a> EventSpec<'a> {
             session_id,
             event_type: "claude_code_PostToolUse",
             tool_name: Some("Bash"),
+            plugin_id: None,
+            metadata: serde_json::Value::Null,
             created_at: Utc::now(),
         }
+    }
+
+    // A `Skill` PostToolUse shaped exactly as the hook writes it: the skill
+    // name lives at metadata.tool_input.skill, which is what the demo queries
+    // read. `tool_use` is deliberately not reused — its `event_type` carries
+    // the legacy `claude_code_` prefix the demo queries do not match.
+    pub fn skill(id: &str, user_id: &'a UserId, session_id: &'a str, skill: &str) -> Self {
+        Self {
+            event_type: "PostToolUse",
+            tool_name: Some("Skill"),
+            metadata: serde_json::json!({
+                "tool_use_id": format!("toolu_{id}"),
+                "tool_input": { "skill": skill },
+            }),
+            ..Self::tool_use(id, user_id, session_id)
+        }
+    }
+
+    pub fn mcp_tool(id: &str, user_id: &'a UserId, session_id: &'a str, tool: &'a str) -> Self {
+        Self {
+            event_type: "PostToolUse",
+            tool_name: Some(tool),
+            metadata: serde_json::json!({ "tool_use_id": format!("toolu_{id}") }),
+            ..Self::tool_use(id, user_id, session_id)
+        }
+    }
+
+    #[must_use]
+    pub fn at(mut self, created_at: DateTime<Utc>) -> Self {
+        self.created_at = created_at;
+        self
+    }
+
+    #[must_use]
+    pub fn failed(mut self) -> Self {
+        self.event_type = "PostToolUseFailure";
+        self
     }
 }
 
 pub async fn insert_event(pool: &PgPool, spec: &EventSpec<'_>) {
     sqlx::query(
         "INSERT INTO plugin_usage_events
-             (id, user_id, session_id, event_type, tool_name, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6)",
+             (id, user_id, session_id, event_type, tool_name, plugin_id, metadata, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
     )
     .bind(&spec.id)
     .bind(spec.user_id.as_str())
     .bind(spec.session_id)
     .bind(spec.event_type)
     .bind(spec.tool_name)
+    .bind(spec.plugin_id)
+    .bind(&spec.metadata)
     .bind(spec.created_at)
     .execute(pool)
     .await
     .expect("insert plugin usage event");
+}
+
+pub struct ApprovalSpec<'a> {
+    pub call_id: String,
+    pub requested_by: &'a UserId,
+    pub session_id: Option<&'a str>,
+    pub server_name: &'a str,
+    pub tool_name: &'a str,
+    pub status: &'a str,
+}
+
+pub async fn insert_approval(pool: &PgPool, spec: &ApprovalSpec<'_>) {
+    sqlx::query(
+        "INSERT INTO approval_requests
+             (call_id, tool_name, server_name, arguments, args_digest, requested_by,
+              session_id, rule, status, expires_at)
+         VALUES ($1, $2, $3, '{}'::jsonb, $4, $5, $6, 'fixture-rule', $7,
+                 now() + interval '1 hour')",
+    )
+    .bind(&spec.call_id)
+    .bind(spec.tool_name)
+    .bind(spec.server_name)
+    .bind(&spec.call_id)
+    .bind(spec.requested_by.as_str())
+    .bind(spec.session_id)
+    .bind(spec.status)
+    .execute(pool)
+    .await
+    .expect("insert approval request");
 }
 
 pub async fn insert_activity(

@@ -49,6 +49,8 @@ mod content_validation;
 #[cfg(test)]
 mod content_validation_results;
 #[cfg(test)]
+mod demo_attribution_sql;
+#[cfg(test)]
 mod format_display;
 #[cfg(test)]
 mod hook_event_dispatch;
