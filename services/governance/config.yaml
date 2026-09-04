@@ -17,6 +17,25 @@ governance:
   policies:
   - id: secret_scan
     enabled: true
+    entropy:
+      enabled: true      # false keeps the vendor patterns, drops the backstop
+      min_len: 32
+      threshold: 0.80    # Shannon entropy / the token length's ceiling
+      # Regexes; a matching token is never reported.
+      #
+      # `/` is a legal token character but not a token delimiter, so a whole
+      # absolute path is scored as a single token. A macOS $TMPDIR —
+      # /var/folders/<2>/<30 random>/T/ — is 49 chars, mixed case (the
+      # trailing /T/), carries digits, and scores 0.833 against the 0.80
+      # ceiling. Claude Code and OpenCode both put one in the system prompt,
+      # so every request from an affected Mac was denied while tool-less
+      # calls passed. core `next` carries the real fix (is_filesystem_path,
+      # which re-scores each segment so key material cannot hide inside a
+      # path); it is in no released core, and this repo pins 0.45.0. Drop
+      # these entries when the pin reaches a release that has it.
+      allowlist:
+      - '^/(private/)?var/folders/'
+      - '^/private/tmp/'
     # The 32 vendor patterns (AWS, GitHub, Stripe, sk-ant-, PEM, DB URLs) are
     # fixed. The high-entropy backstop that catches prefixless keys is tunable
     # here, so one false positive no longer forces the whole stage off:
