@@ -1,0 +1,45 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            CASE WHEN g.tool_name LIKE 'mcp\\_\\_%' THEN substr(g.tool_name, length('mcp__' || split_part(g.tool_name, '__', 2) || '__') + 1) ELSE g.tool_name END AS \"tool!\",\n            COUNT(*) FILTER (WHERE g.decision = 'allow')::bigint   AS \"allowed!\",\n            COUNT(*) FILTER (WHERE g.decision = 'deny')::bigint    AS \"denied!\",\n            COUNT(*) FILTER (WHERE g.decision = 'pending')::bigint AS \"held!\"\n        FROM governance_decisions g\n        WHERE g.created_at >= $1\n          AND ($2::text IS NULL OR g.user_id = $2)\n          AND g.policy <> 'authz' AND NOT (g.policy = 'authz_rule_based' AND g.plugin_id IS NULL)\n        GROUP BY 1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "tool!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "allowed!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "denied!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "held!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "d55a8130d9f7fbc780916c4f5f4819cf63d06088bc77b8eddfcde10a9518cbb4"
+}

@@ -1,0 +1,87 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH merged AS (\n            SELECT\n                'skill'::text                        AS kind,\n                e.created_at                         AS at,\n                e.user_id                            AS user_id,\n                e.session_id                         AS session_id,\n                e.metadata->'tool_input'->>'skill'   AS label,\n                e.plugin_id                          AS detail,\n                e.event_type                         AS status,\n                NULL::text                           AS policy\n            FROM plugin_usage_events e\n            WHERE e.created_at >= $1\n              AND ($2::text IS NULL OR e.user_id = $2)\n              AND e.tool_name = 'Skill'\n              AND e.metadata->'tool_input'->>'skill' IS NOT NULL\n\n            UNION ALL\n\n            SELECT\n                'mcp_tool'::text,\n                e.created_at,\n                e.user_id,\n                e.session_id,\n                e.tool_name,\n                split_part(e.tool_name, '__', 2),\n                CASE WHEN e.event_type = 'PostToolUseFailure' THEN 'failure' ELSE 'ok' END,\n                NULL::text\n            FROM plugin_usage_events e\n            WHERE e.created_at >= $1\n              AND ($2::text IS NULL OR e.user_id = $2)\n              AND e.tool_name LIKE 'mcp\\_\\_%'\n              AND e.event_type IN ('PostToolUse', 'PostToolUseFailure')\n\n            UNION ALL\n\n            SELECT\n                'decision'::text,\n                g.created_at,\n                g.user_id,\n                g.session_id,\n                g.tool_name,\n                g.reason,\n                g.decision,\n                g.policy\n            FROM governance_decisions g\n            WHERE g.created_at >= $1\n              AND ($2::text IS NULL OR g.user_id = $2)\n              AND g.policy <> 'authz' AND NOT (g.policy = 'authz_rule_based' AND g.plugin_id IS NULL)\n              AND (g.decision IN ('deny', 'pending') OR $3)\n\n            UNION ALL\n\n            SELECT\n                'approval'::text,\n                a.created_at,\n                a.requested_by,\n                COALESCE(a.session_id, ''),\n                a.tool_name,\n                a.server_name,\n                a.status,\n                'require_approval'::text\n            FROM approval_requests a\n            WHERE a.created_at >= $1\n              AND ($2::text IS NULL OR a.requested_by = $2)\n        )\n        SELECT\n            m.kind        AS \"kind!\",\n            m.at          AS \"at!\",\n            m.user_id     AS \"user_id!: UserId\",\n            u.email       AS \"user_email?\",\n            m.session_id  AS \"session_id!: SessionId\",\n            m.label       AS \"label!\",\n            m.detail      AS \"detail?\",\n            m.status      AS \"status?\",\n            m.policy      AS \"policy?\"\n        FROM merged m\n        LEFT JOIN users u ON u.id = m.user_id\n        ORDER BY m.at DESC\n        LIMIT $4\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "kind!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "at!",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "user_id!: UserId",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "user_email?",
+        "type_info": "Varchar",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "email"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "session_id!: SessionId",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "label!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "detail?",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "status?",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "policy?",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Text",
+        "Bool",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      false,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "756457ead32cb6b5486506666a08a9ba08544289c980591a84c71af978d0f7c4"
+}
