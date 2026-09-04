@@ -29,13 +29,20 @@ async function login(page: Page, login: string) {
 
 // Both viewports of one page, into demo-shots/<role>/<name>-{dark,narrow}.png.
 // The admin theme is dark-only, so a light capture would be byte-identical.
-async function shoot(page: Page, role: string, name: string) {
+//
+// The page is loaded again after the viewport changes rather than resized in
+// place: the sidebar decides between the docked and the drawer layout on load,
+// so a resized desktop page shoots the narrow viewport with the drawer open
+// over the content.
+async function shoot(page: Page, role: string, name: string, route: string) {
   const dir = path.join(SHOTS, role);
   fs.mkdirSync(dir, { recursive: true });
-  await page.setViewportSize(DESKTOP);
-  await page.screenshot({ path: path.join(dir, `${name}-dark.png`), fullPage: true });
-  await page.setViewportSize(NARROW);
-  await page.screenshot({ path: path.join(dir, `${name}-narrow.png`), fullPage: true });
+  for (const [size, suffix] of [[DESKTOP, 'dark'], [NARROW, 'narrow']] as const) {
+    await page.setViewportSize(size);
+    await page.goto(route);
+    await page.waitForLoadState('networkidle');
+    await page.screenshot({ path: path.join(dir, `${name}-${suffix}.png`), fullPage: true });
+  }
   await page.setViewportSize(DESKTOP);
 }
 
@@ -63,7 +70,7 @@ test.describe('demo dashboards', () => {
       const response = await page.goto(route);
       expect(response?.status(), `${route} is 200 for the admin`).toBe(200);
       expect(new URL(page.url()).pathname, `${route} does not redirect the admin`).toBe(route);
-      await shoot(page, 'admin', name);
+      await shoot(page, 'admin', name, route);
     }
 
     await page.goto('/admin/demo/me');
@@ -102,7 +109,7 @@ test.describe('demo dashboards', () => {
     await expect(sidebar, 'the non-admin keeps the personal Demo entry').toContainText('My usage');
     await expect(sidebar, 'no admin Demo links in the sidebar').not.toContainText('Logbook');
 
-    await shoot(page, 'user', 'me');
+    await shoot(page, 'user', 'me', '/admin/demo/me');
 
     for (const route of ['/admin/demo', '/admin/demo/tools']) {
       await page.goto(route);
