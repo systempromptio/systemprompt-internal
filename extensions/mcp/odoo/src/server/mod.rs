@@ -3,9 +3,9 @@
 //!
 //! Per-call logic — platform authentication, per-user Odoo credential
 //! resolution, and routing — lives in the [`tool`] submodule; the handlers
-//! themselves in [`crm`], [`crm_delete`], [`report`], [`partner`], [`notes`],
-//! [`attachments`], [`activity`], [`calendar`], [`tasks`], [`channels`] and
-//! [`overview`].
+//! themselves in [`crm`], [`crm_delete`], [`report`], [`partner`],
+//! [`partner_write`], [`discovery`], [`sales`], [`notes`], [`attachments`],
+//! [`activity`], [`calendar`], [`tasks`], [`channels`] and [`overview`].
 
 pub mod activity;
 pub mod attachments;
@@ -16,13 +16,21 @@ pub mod channels;
 pub mod crm;
 pub mod crm_delete;
 mod crm_shape;
+pub mod discovery;
+mod discovery_shape;
 pub mod notes;
+mod notes_shape;
 pub mod overview;
+mod overview_shape;
 pub mod partner;
+pub mod partner_write;
 pub mod report;
+pub mod sales;
+mod sales_shape;
 pub mod tasks;
 #[doc(hidden)]
 pub mod tool;
+mod work_shape;
 
 use rmcp::model::{
     CallToolRequestParams, CallToolResponse, CallToolResult, ContentBlock, Implementation,
@@ -81,7 +89,7 @@ impl OdooServer {
             McpArtifactRepository::new(&db_pool).map_err(|e| OdooError::Internal(e.to_string()))?,
         );
         let executor = McpToolExecutor::new(tool_usage_repo, artifact_repo, SERVER_NAME);
-        let client = Arc::new(OdooClient::from_env()?);
+        let client = Arc::new(OdooClient::from_env()?.with_identity_store(Arc::clone(&db_pool)));
 
         tracing::info!(
             odoo_url = %client.connection().url,

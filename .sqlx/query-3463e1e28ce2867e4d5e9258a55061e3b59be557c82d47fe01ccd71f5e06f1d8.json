@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH ev AS (\n            SELECT user_id, session_id, created_at, event_type, tool_name, metadata\n            FROM plugin_usage_events\n            WHERE created_at >= $1\n              AND ($2::text IS NULL OR user_id = $2)\n        ),\n        session_bounds AS (\n            SELECT session_id, MAX(created_at) AS last_at FROM ev GROUP BY session_id\n        ),\n        inv AS (\n            SELECT\n                e.user_id,\n                e.session_id,\n                e.created_at AS invoked_at,\n                LEAD(e.created_at) OVER (\n                    PARTITION BY e.session_id ORDER BY e.created_at\n                ) AS next_at\n            FROM ev e\n            WHERE (\n                    e.event_type IN ('PostToolUse', 'PostToolUseFailure')\n                AND e.tool_name LIKE 'mcp\\_\\_%'\n              )\n               OR EXISTS (\n                    SELECT 1 FROM skill_invocation_events v\n                    WHERE v.session_id = e.session_id\n                      AND v.invoked_at = e.created_at\n              )\n        ),\n        windows AS (\n            SELECT i.user_id, i.invoked_at,\n                   LEAST(\n                       COALESCE(i.next_at, 'infinity'::timestamptz),\n                       b.last_at + make_interval(mins => $3::int)\n                   ) AS window_end\n            FROM inv i\n            JOIN session_bounds b ON b.session_id = i.session_id\n        )\n        SELECT\n            COALESCE(SUM(COALESCE(r.input_tokens, 0) + COALESCE(r.output_tokens, 0)), 0)::bigint\n                AS \"tokens!\",\n            COALESCE(SUM(r.cost_microdollars), 0)::bigint AS \"cost!\"\n        FROM ai_requests r\n        WHERE ($2::text IS NULL OR r.user_id = $2)\n          AND r.created_at >= $1\n          AND EXISTS (\n              SELECT 1 FROM windows w\n              WHERE w.user_id = r.user_id\n                AND r.created_at >= w.invoked_at\n                AND r.created_at <  w.window_end\n          )\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "tokens!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "cost!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "3463e1e28ce2867e4d5e9258a55061e3b59be557c82d47fe01ccd71f5e06f1d8"
+}

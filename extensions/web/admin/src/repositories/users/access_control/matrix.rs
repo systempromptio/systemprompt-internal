@@ -221,6 +221,7 @@ fn resolve_effective(cell: &MatrixCell<'_>) -> (String, MatrixSource) {
 
     match decision {
         Decision::Allow { matched_by } => ("allow".to_owned(), allow_source(&uid, &matched_by)),
+        Decision::Warn { reason } => ("warn".to_owned(), deny_source(&uid, &reason)),
         Decision::Deny { reason } => ("deny".to_owned(), deny_source(&uid, &reason)),
         // Why: see effective.rs — the matrix reports the verdict, it does
         // not resolve it.

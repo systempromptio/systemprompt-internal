@@ -1,5 +1,0 @@
-  <div class="ledger">
-{{#if comment}}    <span class="d">// {{comment}}</span><br/>
-{{/if}}{{#each rows}}    {{#each fields}}<span class="c">{{key}}</span> <span class="{{tone}}">{{value}}</span>{{#if note}} ({{note}}){{/if}}{{#unless @last}} · {{/unless}}{{/each}}{{#unless @last}}<br/>
-{{/unless}}
-{{/each}}  </div>

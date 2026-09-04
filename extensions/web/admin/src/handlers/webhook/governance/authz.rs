@@ -123,6 +123,9 @@ async fn audit_decision(
     let (decision_tag, reason_str, justification_opt): (DecisionTag, String, Option<String>) =
         match decision {
             Decision::Allow { .. } => (DecisionTag::Allow, String::new(), None),
+            // Why: warn mode lets the request through but the audit row must
+            // still say which rule would have refused it.
+            Decision::Warn { reason } => (DecisionTag::Warn, reason.to_string(), None),
             Decision::Deny { reason } => (DecisionTag::Deny, reason.to_string(), None),
             // Why: this audits the entity-resolver plane, which has no way to
             // hold a request. Recording the hold verbatim keeps the audit
@@ -225,7 +228,9 @@ pub(crate) async fn govern_authz(
     audit_decision(&pool, &req, &rules, entity.as_ref(), &decision).await;
 
     let resp = match decision {
-        Decision::Allow { .. } => AuthzDecision::Allow,
+        // Why: warn mode's whole point is that the call proceeds; the reason is
+        // already on the audit row written above.
+        Decision::Allow { .. } | Decision::Warn { .. } => AuthzDecision::Allow,
         Decision::Deny { reason } => AuthzDecision::Deny {
             reason,
             policy: POLICY_NAME.to_owned(),

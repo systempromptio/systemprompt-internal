@@ -5,7 +5,9 @@
 //! registry, access auditing, and turning CLI output into a [`CliArtifact`].
 
 use crate::cli;
-use crate::tools::CliInput;
+use crate::tools::{
+    CliInput, TOOL_APPROVAL_DECIDE, TOOL_APPROVAL_HISTORY, TOOL_APPROVAL_LIST, TOOL_SYSTEMPROMPT,
+};
 use rmcp::ErrorData as McpError;
 use rmcp::model::{CallToolRequestParams, CallToolResult};
 use rmcp::service::{RequestContext, RoleServer};
@@ -17,6 +19,8 @@ use systemprompt::models::artifacts::{CliArtifact, TextArtifact};
 use systemprompt::models::execution::context::RequestContext as SysRequestContext;
 use systemprompt::security::authz::SharedAuthzHook;
 use systemprompt_mcp_shared::{record_mcp_access, record_mcp_access_rejected};
+
+use super::approval::{ApprovalDecideHandler, ApprovalHistoryHandler, ApprovalListHandler};
 
 pub(super) struct SystempromptToolHandler<'a> {
     pub(super) auth_token: String,
@@ -122,6 +126,47 @@ pub struct Dispatch<'a> {
     pub request_context: &'a SysRequestContext,
     pub client: &'a ClientProfile,
     pub cli: &'a cli::CliLocation,
+    pub db_pool: &'a DbPool,
+}
+
+async fn dispatch_approval(
+    ctx: &Dispatch<'_>,
+    tool_name: &str,
+) -> Option<Result<CallToolResult, McpError>> {
+    let db_pool = std::sync::Arc::clone(ctx.db_pool);
+    match tool_name {
+        TOOL_APPROVAL_LIST => Some(
+            ctx.executor
+                .execute(
+                    &ApprovalListHandler { db_pool },
+                    ctx.request,
+                    ctx.request_context,
+                    ctx.client,
+                )
+                .await,
+        ),
+        TOOL_APPROVAL_DECIDE => Some(
+            ctx.executor
+                .execute(
+                    &ApprovalDecideHandler { db_pool },
+                    ctx.request,
+                    ctx.request_context,
+                    ctx.client,
+                )
+                .await,
+        ),
+        TOOL_APPROVAL_HISTORY => Some(
+            ctx.executor
+                .execute(
+                    &ApprovalHistoryHandler { db_pool },
+                    ctx.request,
+                    ctx.request_context,
+                    ctx.client,
+                )
+                .await,
+        ),
+        _ => None,
+    }
 }
 
 // Why: Exposed (behind `#[doc(hidden)]`) so the external test workspace can
@@ -133,8 +178,15 @@ pub async fn dispatch_tool(
     tool_name: &str,
     auth_token: &str,
 ) -> Result<CallToolResult, McpError> {
+    // Why: the approval tools are typed rather than CLI passthrough. The
+    // approvals dashboard reads their rows as data, and shelling out to the
+    // CLI would put a rendered table between the queue and its reader.
+    if let Some(result) = dispatch_approval(ctx, tool_name).await {
+        return result;
+    }
+
     match tool_name {
-        "systemprompt" => {
+        TOOL_SYSTEMPROMPT => {
             let handler = SystempromptToolHandler {
                 auth_token: auth_token.to_owned(),
                 cli: ctx.cli,

@@ -86,15 +86,15 @@ fn the_table_carries_odoo_field_names_the_dashboards_key_on() {
             "stage_id",
             "user_id",
             "partner_name",
-            "email_from",
-            "expected_revenue",
-            "probability",
-            "create_date",
-            "date_deadline",
-            "tags"
+            "expected_revenue"
         ],
         "renaming a column silently breaks every dashboard keyed on these"
     );
+    // Why: these six are the *columns* — what renders in the chat-width table.
+    // The row `items` below still carry the whole LeadRow, which is what the
+    // dashboards actually read, so a field missing from this list is not a
+    // field missing from the data. Do not re-widen the columns to make a
+    // dashboard work; read the field off the row instead.
     assert_eq!(value["items"][0]["stage_id"], "New");
     assert_eq!(value["items"][0]["expected_revenue"], 40000.0);
     assert_eq!(value["items"][0]["date_deadline"], "2026-09-30");

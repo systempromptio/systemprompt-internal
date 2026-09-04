@@ -42,6 +42,9 @@ fn build_response(decision: &Decision, hook_event_name: &'static str) -> Respons
     let permission_decision = GovernanceDecision::from_decision(decision);
     let permission_decision_reason = match decision {
         Decision::Allow { .. } => None,
+        // Why: the call is allowed, but the person at the terminal should see
+        // what warn mode would have refused.
+        Decision::Warn { reason } => Some(format!("[GOVERNANCE][warn] {reason}")),
         Decision::Deny { reason } => Some(format!("[GOVERNANCE] {reason}")),
         Decision::Pending { reason } => Some(format!("[GOVERNANCE] {reason}")),
     };

@@ -1,7 +1,6 @@
 [workspace]
 members = [
     "extensions/brand",
-    "extensions/factsheet",
     "extensions/web",
     "extensions/web/shared",
     "extensions/web/admin",
@@ -9,13 +8,10 @@ members = [
     "extensions/web/site",
     "extensions/web/jobs",
     "extensions/knowledge/jobs",
-    "extensions/email",
     "extensions/mcp/systemprompt",
     "extensions/mcp/knowledge-bank",
     "extensions/mcp/shared",
     "extensions/mcp/odoo",
-    "extensions/mcp/factsheet",
-    "extensions/mcp/email",
 ]
 # The test workspace under tests/ is a separate workspace so it never compiles
 # when these extension crates are consumed as dependencies. Run it explicitly:
@@ -36,7 +32,7 @@ opt-level = "z"
 [workspace.package]
 edition = "2024"
 rust-version = "1.96"
-version = "0.45.0"
+version = "0.46.0"
 authors = ["systemprompt.io <ed@systemprompt.io>"]
 license = "MIT"
 repository = "https://github.com/systempromptio/systemprompt-internal"
@@ -47,15 +43,14 @@ documentation = "https://systemprompt.io/documentation"
 # ============================================
 # CORE FACADE (single dependency for all systemprompt-core)
 # ============================================
-systemprompt = { version = "0.45.0", default-features = false, features = ["core", "database", "config"] }
-systemprompt-security = { version = "0.45.0" }
-systemprompt-extension = { version = "0.45.0" }
+systemprompt = { version = "0.46.0", default-features = false, features = ["core", "database", "config"] }
+systemprompt-security = { version = "0.46.0" }
+systemprompt-extension = { version = "0.46.0" }
 
 # ============================================
 # LOCAL EXTENSIONS
 # ============================================
 systemprompt-internal-brand = { path = "extensions/brand" }
-systemprompt-factsheet = { path = "extensions/factsheet" }
 systemprompt-web-extension = { path = "extensions/web" }
 systemprompt-web-shared = { path = "extensions/web/shared" }
 systemprompt-web-admin = { path = "extensions/web/admin" }
@@ -63,7 +58,6 @@ systemprompt-web-content = { path = "extensions/web/content" }
 systemprompt-web-site = { path = "extensions/web/site" }
 systemprompt-web-jobs = { path = "extensions/web/jobs" }
 systemprompt-mcp-shared = { path = "extensions/mcp/shared" }
-systemprompt-email = { path = "extensions/email" }
 systemprompt-mcp-odoo = { path = "extensions/mcp/odoo" }
 systemprompt-mcp-knowledge-bank = { path = "extensions/mcp/knowledge-bank" }
 systemprompt-knowledge-jobs = { path = "extensions/knowledge/jobs" }
@@ -104,10 +98,6 @@ urlencoding = "2.1"
 # Security
 rand = "0.9"
 sha2 = "0.10"
-# Outbound SMTP for extensions/email. rustls (not native-tls) to match the rest of
-# the workspace's TLS stack; no default features, so no blocking transport and no
-# hostname lookup for Message-ID generation (we mint our own).
-lettre = { version = "0.11", default-features = false, features = ["tokio1-rustls-tls", "smtp-transport", "builder"] }
 hex = "0.4"
 base64 = "0.22"
 
@@ -264,7 +254,7 @@ anyhow = { workspace = true }
 
 [lints]
 workspace = true
-# Core 0.44.0 is published; the patch below is dormant. Uncomment (together with the mirror in
+# Core 0.46.0 is published; the patch below is dormant. Uncomment (together with the mirror in
 # tests/Cargo.toml — [patch] only applies per-workspace) to work against
 # ../systemprompt-core, and add an "ACTIVE: core X.Y.Z is unreleased" marker,
 # which the pre-commit hook requires before an active patch may be committed.

@@ -44,9 +44,13 @@ the order you'll go in.
 3. **Write back immediately**, before moving to the next item — do not batch writes to the end:
    - "Done" / "handled" → `activity_complete` with the feedback given for an activity; for a task,
      `note_add` on the linked record making the completion explicit (no dedicated task-complete tool).
-   - "Push it" / a new date → `activity_create` with the new date, and mark the old one done or leave it, per what the user actually said.
+   - "Push it" / a new date → `activity_create` with the new date and the `activity_type` that
+     matches what was promised ("Call", "Meeting" — `activity_type_list` names them), and mark the
+     old one done or leave it, per what the user actually said.
    - A stage/number/owner change on a lead → `crm_lead_update`, same field mapping as `manage_leads`
-     mode 2.
+     mode 2 — a stage move goes by `stage` NAME, read from `crm_stage_list`.
+   - "It's done" / "we lost it" on a lead → `crm_lead_mark_won` or `crm_lead_mark_lost` with the
+     reason. A closed deal leaves the sweep; a hand-written probability does not.
    - Context with no state change → `note_add`, in the user's voice, short and factual.
    - "Skip" / "later" → move on and record it as skipped in the closing ledger; do not write anything.
 4. **Confirm the write** in one line before the next item: what changed, on which id.

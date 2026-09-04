@@ -185,10 +185,10 @@ jobs:
       # existing directory; nothing in this job builds the root workspace, so
       # create it.
       - run: mkdir -p target/debug
-      # The e2e suite spawns the real odoo, email and agent MCP binaries; without
+      # The e2e suite spawns the real odoo and agent MCP binaries; without
       # it the test would self-skip, and in CI it asserts instead of skipping.
       - name: Build the MCP binaries the e2e suite spawns
-        run: cargo build -p systemprompt-mcp-odoo -p systemprompt-mcp-email -p systemprompt-mcp-agent --locked
+        run: cargo build -p systemprompt-mcp-odoo -p systemprompt-mcp-agent --locked
       - name: Run the tests workspace (unit, integration, contract, e2e)
         env:
           SYSTEMPROMPT_TEST_DATABASE_URL: postgres://test:test@localhost:5432/postgres

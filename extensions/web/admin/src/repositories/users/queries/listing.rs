@@ -6,6 +6,16 @@ use systemprompt::identifiers::{Email, UserId};
 use crate::types::UserSummary;
 
 pub async fn list_users(pool: &PgPool) -> Result<Vec<UserSummary>, sqlx::Error> {
+    list_users_filtered(pool, false).await
+}
+
+// Why: anonymous visitors are stored as ordinary user rows, so a roster that
+// did not exclude them would present traffic as people. The flag exists so the
+// page can still show them on request.
+pub async fn list_users_filtered(
+    pool: &PgPool,
+    include_anonymous: bool,
+) -> Result<Vec<UserSummary>, sqlx::Error> {
     sqlx::query_as!(
         UserSummary,
         r#"SELECT
@@ -52,15 +62,26 @@ pub async fn list_users(pool: &PgPool) -> Result<Vec<UserSummary>, sqlx::Error> 
                 SELECT user_id, MAX(created_at) AS last_request, COUNT(*)::BIGINT AS request_count
                 FROM ai_requests GROUP BY user_id
             ) air ON air.user_id = u.id
-            WHERE NOT ('anonymous' = ANY(u.roles))
-              AND u.email NOT LIKE '%@anonymous.local'
+            WHERE ($1::bool OR (NOT ('anonymous' = ANY(u.roles))
+                              AND u.email NOT LIKE '%@anonymous.local'))
             GROUP BY u.id, u.created_at, u.name, u.display_name, u.full_name, u.email,
                      u.roles, u.status, bytes.total_bytes,
                      ua.logins, ua.last_ua, mcp.last_mcp, air.last_request,
                      air.request_count
             ORDER BY 6 DESC"#,
+        include_anonymous,
     )
     .fetch_all(pool)
+    .await
+}
+
+pub async fn count_anonymous_users(pool: &PgPool) -> Result<i64, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"SELECT COUNT(*)::BIGINT AS "count!" FROM users u
+           WHERE 'anonymous' = ANY(u.roles)
+              OR u.email LIKE '%@anonymous.local'"#,
+    )
+    .fetch_one(pool)
     .await
 }
 

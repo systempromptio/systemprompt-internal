@@ -17,6 +17,7 @@ fn usage_params<'a>(
     UsageEventParams {
         user_id: user,
         session_id: session,
+        plugin_id: Some("systemprompt-business"),
         event_type: "PostToolUse",
         tool_name: Some("Bash"),
         metadata,

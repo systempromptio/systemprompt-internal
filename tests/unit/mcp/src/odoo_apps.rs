@@ -171,3 +171,45 @@ fn a_denied_call_reaches_the_caller_as_something_they_can_act_on() {
         mcp_error.message
     );
 }
+
+// Why: Odoo puts a formatted traceback in the fault's `data.message`, so a
+// permission refusal raised while an authentication error was being handled
+// carries both phrases. Classifying on whichever check ran first sent the user
+// to relink a credential that had authenticated perfectly well — the remedy
+// for the fault Odoo did not raise.
+#[test]
+fn a_permission_refusal_quoting_access_denied_is_still_a_permission_refusal() {
+    let fault = OdooError::Odoo(
+        "Traceback (most recent call last):\n  raise AccessDenied()\n\nDuring handling of the \
+         above exception, another exception occurred:\n\nodoo.exceptions.AccessError: You are \
+         not allowed to access this document"
+            .to_owned(),
+    );
+
+    let OdooError::AccessDenied(message) =
+        map_access_denied("sales@example.com", "crm.lead", fault)
+    else {
+        panic!("expected AccessDenied");
+    };
+    assert!(
+        message.contains("but refused it access"),
+        "a fault naming both must resolve to the rights remedy, not the relink one: {message}"
+    );
+}
+
+// Why: the counterpart — a bare authentication failure must not be softened
+// into a rights problem now that the permission check runs first.
+#[test]
+fn a_bare_authentication_failure_still_asks_for_a_relink() {
+    let fault = OdooError::Odoo("odoo.exceptions.AccessDenied: Access Denied".to_owned());
+
+    let OdooError::AccessDenied(message) =
+        map_access_denied("sales@example.com", "crm.lead", fault)
+    else {
+        panic!("expected AccessDenied");
+    };
+    assert!(
+        message.contains("/admin/profile"),
+        "an authentication failure must name the relink remedy: {message}"
+    );
+}

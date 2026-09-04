@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH span AS (\n            SELECT (date_trunc('day', now()) - make_interval(days => $2::int - 1)) AS lo\n        ),\n        calendar AS (\n            SELECT generate_series((SELECT lo FROM span), date_trunc('day', now()),\n                                   interval '1 day')::date AS day\n        ),\n        counted AS (\n            SELECT\n                v.invoked_at::date AS day,\n                COUNT(*)::bigint AS count,\n                -- Why: only a dispatched Skill tool call can fail as a tool. A\n                -- slash command is a prompt, so it has no failure state and\n                -- never lands in this bucket.\n                COUNT(*) FILTER (\n                    WHERE e.event_type = 'PostToolUseFailure'\n                )::bigint AS failures\n            FROM skill_invocation_events v\n            LEFT JOIN plugin_usage_events e\n                   ON e.session_id = v.session_id\n                  AND e.created_at = v.invoked_at\n                  AND e.tool_name = 'Skill'\n            WHERE v.invoked_at >= (SELECT lo FROM span)\n              AND ($1::text IS NULL OR v.user_id = $1)\n            GROUP BY 1\n        )\n        SELECT\n            c.day                          AS \"day!\",\n            COALESCE(t.count, 0)::bigint    AS \"count!\",\n            COALESCE(t.failures, 0)::bigint AS \"failures!\"\n        FROM calendar c\n        LEFT JOIN counted t ON t.day = c.day\n        ORDER BY c.day\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "day!",
+        "type_info": "Date",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "failures!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "034952b1701696c10e1ca84eed4311be744edc2ce43c9c4f2fc346009eb09211"
+}

@@ -3,7 +3,51 @@
 All notable changes to this repository are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [0.46.0] - 2026-09-04
+
+### Added
+
+- An approvals dashboard in the admin console, and the tools behind it: the
+  decided half of the approvals queue is readable, rendered inside the admin
+  shell rather than as a bare page.
+- Demo dashboards for skills, MCP tools and the session logbook, seeded from
+  the real hook and gateway wire, and since consolidated into four artifacts
+  that act rather than only report. All four routes are recorded in the admin
+  HTTP contract baseline.
+- Skill and MCP tool usage is attributed to the invocation that caused it. The
+  hook records its `plugin_id` and a mismatched one is refused, so a plugin
+  cannot claim another's usage; the attribution window is covered by tests.
+- Odoo gains sales, quote and partner-write tooling, and answers with typed
+  rows instead of prose so callers parse a shape rather than a sentence.
+- The sales pipeline groups by owner and applies stage moves before saving
+  them, so a reordering is never half-written.
+
+### Changed
+
+- Adopted systemprompt core 0.46.0 from crates.io; the `[patch.crates-io]`
+  blocks in `Cargo.toml` and `tests/Cargo.toml` are dormant again and
+  `bridge/CORE_REF` pins the `v0.46.0` tag.
+- The email and factsheet extensions are removed, and the build follows them
+  out.
+- The four Odoo files over the 300-line ceiling are split along their own
+  seams; behaviour is unchanged.
+- Artifacts Cowork renders in chat are compressed, so a dense dashboard no
+  longer arrives as an unreadable wall.
+
+### Fixed
+
+- The governance entropy backstop no longer denies every request from a Mac.
+- Anonymous visitors are kept out of the admin user directory.
+- Real tool verdicts are separated from server authorization by shape, and the
+  verdict predicate is pinned into all three decision queries — an allowed
+  verdict is audited like any other.
+- Skill invocations are counted from the signal clients actually send, rather
+  than one they never emit.
+- The unit and integration test workspaces compile again, and a Skill fixture
+  builds an invocation the product recognises rather than a shape it ignores.
+- The clippy, rustdoc and lint-gate debt standing on `next` is cleared.
+
+## [0.45.0] - 2026-09-04
 
 ### Changed
 

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE odoo_identity SET odoo_uid = $2, updated_at = CURRENT_TIMESTAMP WHERE user_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "087f30ae122d9983b07da0c3db4a3915b90472c757420671ed5ed8cd56dd97ef"
+}

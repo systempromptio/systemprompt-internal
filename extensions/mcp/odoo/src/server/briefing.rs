@@ -39,7 +39,7 @@ const TASK_FIELDS: [&str; 6] = [
 // which lead a note was about without a second query.
 const NOTE_FIELDS: [&str; 7] = [
     "id",
-    "subject",
+    "body",
     "record_name",
     "model",
     "res_id",

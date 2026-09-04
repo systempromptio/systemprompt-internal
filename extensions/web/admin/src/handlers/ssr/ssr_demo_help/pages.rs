@@ -22,6 +22,10 @@ pub(super) fn demo_help_governance_pages(page: &str) -> Option<(&'static str, &'
             "<strong>Governance Hooks</strong> configures the lifecycle hooks that fire during Claude Code sessions &mdash; PreToolUse, PostToolUse, SessionStart, PermissionRequest, and more. Hooks let you inject compliance logic, audit writes, automated approvals, or content filtering at each stage without changing application code. Hooks work best with <strong>Claude Code</strong>, the recommended integration.",
             "hooks",
         )),
+        "approvals" => Some((
+            "<strong>Pending approvals</strong> is where a person answers the calls governance has held. Two kinds of row share the queue and are listed apart: a <em>live hold</em> is an MCP tool call blocking right now because the <code>require_approval</code> policy matched it &mdash; it has fifteen minutes to live and a client is waiting on your click. An <em>ingestion proposal</em> is the brain@ pipeline asking whether an inbound email may become an Odoo record; nobody is blocked, it lives a week, and the <code>knowledge_odoo_apply</code> job writes the answer to Odoo as your linked account within a minute. Approving is a POST against this session-authenticated router, never a link, so a held call cannot be approved by following a URL &mdash; and whoever clicks is stamped into the audit row as the approver.",
+            "tool-governance",
+        )),
         "governance-rate-limits" => Some((
             "<strong>Governance Rate Limits</strong> defines and monitors usage quotas per user, role, department, tool, and time window. Rate limits protect budgets, enforce fair-use across teams, and prevent runaway automation. This page shows current consumption against configured ceilings and lets you adjust limits as usage patterns evolve.",
             "tool-governance",
@@ -195,6 +199,28 @@ pub(super) fn demo_help_misc_pages(page: &str) -> Option<(&'static str, &'static
         "demo-register" => Some((
             "<strong>Demo Registration</strong> is the lightweight sign-up flow for the demo environment. It provisions a temporary workspace with pre-seeded plugins, agents, and sample telemetry so you can evaluate the full governance pipeline end-to-end without any setup overhead.",
             "getting-started",
+        )),
+        _ => None,
+    }
+}
+
+pub(super) fn demo_help_demo_pages(page: &str) -> Option<(&'static str, &'static str)> {
+    match page {
+        "demo-logbook" => Some((
+            "The <strong>Demo Logbook</strong> is the single chronological record of what the demo did: every skill invocation, every MCP tool call, every policy decision, and every approval, merged into one stream. The three scenario cards are the demo script &mdash; a held call, a refused secret, a blocked tool &mdash; and each links straight to the decisions the matching policy stage produced. Token and cost figures are attributed by a same-user time window, not measured, because AI requests carry no tool-call identifier.",
+            "tool-governance",
+        )),
+        "demo-skills" => Some((
+            "<strong>Skill Adoption</strong> answers who actually uses which skills. Invocations come from the Claude Code <code>PostToolUse</code> hook, so a row exists only because someone really ran the skill. The user &times; skill matrix shows the spread across the team, and the attributed columns show what each skill's model calls cost.",
+            "skills",
+        )),
+        "demo-tools" => Some((
+            "<strong>MCP Tool Usage</strong> is the per-tool view of the MCP layer: call volume, failure rate, and the governance verdicts each tool attracted &mdash; allowed, denied, held for approval, then approved or rejected. Use it to see which tools the policy chain is actually gating and which pass through untouched.",
+            "mcp-servers",
+        )),
+        "demo-me" => Some((
+            "<strong>My Demo Usage</strong> is your own slice of the demo telemetry &mdash; the skills you ran, the MCP tools they called, and what the policy chain decided about them. It is scoped to your signed-in identity and takes no user parameter, so it shows your activity and no one else's.",
+            "profile",
         )),
         _ => None,
     }

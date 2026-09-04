@@ -198,8 +198,8 @@ async fn raw_call_as(
     );
     // Why: every MCP server here advertises 2026-07-28, and rmcp refuses to
     // hand an `InputRequiredResult` to a peer that negotiated below it — so a
-    // tool held by the `require_approval` stage (note_add, channel_post,
-    // email_send) comes back as "-32600: InputRequiredResult requires
+    // tool held by the `require_approval` stage (note_add, channel_post)
+    // comes back as "-32600: InputRequiredResult requires
     // negotiated protocol version 2026-07-28 or newer" rather than as the hold
     // it actually is (note_add, channel_post). The default is older, so say it
     // explicitly; the sibling client in `McpSession::connect` has always done

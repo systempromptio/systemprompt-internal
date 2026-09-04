@@ -7,6 +7,11 @@
         <div class="search-group">
             <input type="text" class="search-input" placeholder="Search users..." id="user-search" aria-label="Search users...">
         </div>
+        <a class="btn btn-secondary{{#if include_anonymous}} is-active{{/if}}"
+           href="/admin/access/users{{#unless include_anonymous}}?include_anonymous=true{{/unless}}"
+           title="Anonymous visitors are stored as user rows; they are hidden unless shown.">
+            {{#if include_anonymous}}Hide{{else}}Show{{/if}} anonymous ({{anonymous_users}})
+        </a>
         <button type="button" class="btn btn-primary" id="btn-add-user" data-action="create-user">+ Add User</button>
     </div>
     {{> components/create-user-panel}}

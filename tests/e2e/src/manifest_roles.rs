@@ -15,22 +15,19 @@ use crate::harness::stack::Stack;
 const USER_PLUGINS: &[&str] = &["systemprompt-business", "systemprompt-demo"];
 const ADMIN_PLUGINS: &[&str] = &["systemprompt-admin"];
 // The business plugin is the one user-scoped bundle that ships dashboards:
-// every role gets exactly these six. The two knowledge dashboards stay
-// admin-only because they carry inbound business email.
-const USER_ARTIFACTS: &[&str] = &[
-    "todo-bulletin",
-    "recent-activity",
-    "pipeline-open-deals",
-    "upcoming-deals",
-    "business-overview",
-    "leads-inbound-prospects",
-];
+// every role gets exactly these two. Both write as well as read, and both are
+// consolidations — my-day replaced todo-bulletin, recent-activity and
+// business-overview; sales-pipeline replaced pipeline-open-deals,
+// upcoming-deals and leads-inbound-prospects.
+const USER_ARTIFACTS: &[&str] = &["my-day", "sales-pipeline"];
+// The control plane keeps two pages, both over the admin CLI passthrough. The
+// user directory and the two brain@ knowledge dashboards were retired: roles
+// are granted at /admin/access/users and proposals are decided at
+// /admin/governance/approvals, neither of which is a dashboard.
 const ADMIN_ARTIFACTS: &[&str] = &[
-    "admin-users-directory",
     "admin-activity-requests",
     "admin-usage-costs",
-    "knowledge-feed",
-    "knowledge-approve-ingestion",
+    "governance-approvals",
 ];
 
 fn ids(manifest: &serde_json::Value, key: &str) -> BTreeSet<String> {

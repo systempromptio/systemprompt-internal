@@ -295,14 +295,10 @@ e2e:
     # is not one. CI never sees this because CI builds fresh, which is exactly
     # why it costs an hour locally. After changing the core pin, rebuild the
     # MCP servers before trusting a red e2e run:
-    #   cargo build -p systemprompt-mcp-agent -p systemprompt-mcp-email -p systemprompt-mcp-odoo
+    #   cargo build -p systemprompt-mcp-agent -p systemprompt-mcp-odoo
     if [ ! -x target/release/systemprompt-mcp-odoo ] && [ ! -x target/debug/systemprompt-mcp-odoo ]; then
         echo "building systemprompt-mcp-odoo (the MCP wire test needs it)…"
         cargo build -p systemprompt-mcp-odoo
-    fi
-    if [ ! -x target/release/systemprompt-mcp-email ] && [ ! -x target/debug/systemprompt-mcp-email ]; then
-        echo "building systemprompt-mcp-email (the email_send wire tests need it)…"
-        cargo build -p systemprompt-mcp-email
     fi
     if [ -z "${SYSTEMPROMPT_TEST_DATABASE_URL:-}" ] && [ -f .systemprompt/profiles/local/secrets.json ]; then
         SYSTEMPROMPT_TEST_DATABASE_URL=$(python3 -c "
@@ -325,7 +321,7 @@ e2e-fast:
     print(up.urlunsplit((u.scheme, u.netloc, '/postgres', '', '')))")
         export SYSTEMPROMPT_TEST_DATABASE_URL
     fi
-    cargo nextest run --manifest-path tests/Cargo.toml -p e2e-tests -E 'not test(a_signed_in_user) and not test(email_send)'
+    cargo nextest run --manifest-path tests/Cargo.toml -p e2e-tests -E 'not test(a_signed_in_user)'
 
 # End-to-end smoke (Tier B): drives the RUNNING local stack over real HTTP —
 # seeds e2e-admin@/e2e-sales@ in Odoo, signs in as both, diffs their
@@ -334,6 +330,29 @@ e2e-fast:
 # Prereqs: `just start` and `just db-up local` + `just odoo-local-init`.
 e2e-live:
     cargo nextest run --manifest-path tests/Cargo.toml -p e2e-tests --features live -E 'test(live_smoke)' --no-capture
+
+# Seeds the /admin/demo dashboards with real telemetry for both roles: PKCE
+# sign-in, an honestly minted hook token (bridge oauth-client →
+# client_credentials, audience=hook), then hook sessions through
+# /api/public/hooks/{track,govern} and small gateway calls so tokens land in
+# the attribution window. Reuses the running server; never restarts anything.
+# Prereqs: `just start`, `just db-up local`, `just odoo-local-init`.
+e2e-live-demo-seed:
+    @demo/skills/07-skill-usage-seed.sh
+
+# Logged-in screenshots of the four Demo pages as an admin and as a non-admin,
+# into playwright/demo-shots/{admin,user}/ (gitignored). Run
+# `just e2e-live-demo-seed` first — the assertions read the rows it produces.
+demo-shots PORT="8081":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ ! -d playwright/node_modules ]; then
+        echo "==> installing Playwright dependencies"
+        just e2e-install
+    fi
+    cd playwright && GATEWAY_URL="${GATEWAY_URL:-http://localhost:{{PORT}}}" \
+        npx playwright test tests/demo-dashboard.spec.ts
+    echo "open playwright/demo-shots/"
 
 # Source gates ported from systemprompt-core (scripts/*.sh)
 lint-gates:
@@ -2040,6 +2059,10 @@ odoo-local-init:
 # REPLACES the local `odoo_local` database and filestore with that copy and
 # neutralises it (crons off, mail servers removed, admin/admin restored) so a
 # dev clone can never mail a real customer. Prod is never written to.
+# By design this UNLINKS local Odoo identities whose stored credential the
+# restored database no longer accepts — the keys they referenced are gone with
+# the old database, and a row left behind claims to work and fails at the first
+# tool call instead of offering the relink control.
 # Needs `just db-up` (and `just odoo-local-init` once, for the odoo role).
 odoo-sync-local:
     #!/usr/bin/env bash
@@ -2099,6 +2122,15 @@ odoo-sync-local:
       < deploy/fly/odoo/pregenerate-assets.py
 
     "${COMPOSE[@]}" start odoo >/dev/null
+
+    # The restore replaced res_users and res_users_apikeys, but `odoo_identity`
+    # lives in the systemprompt database and was not touched — so every stored
+    # credential now points at a row that no longer exists. Clear the dead ones
+    # rather than leave accounts that look linked and fail at the first tool
+    # call. See scripts/reconcile-odoo-identities.py.
+    echo "==> Reconciling stored Odoo credentials against the restored database..."
+    python3 scripts/reconcile-odoo-identities.py
+
     echo "Local Odoo now mirrors production. Login: admin / admin."
 
 # Tail the local Odoo sidecar's logs (it starts/stops with `just db-up`/`db-down`)

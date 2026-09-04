@@ -10,7 +10,6 @@
 [workspace]
 members = [
     "unit/mcp",
-    "unit/email",
     "unit/web",
     "integration/admin-config",
     "integration/mcp",
@@ -43,8 +42,6 @@ systemprompt-mcp-shared = { path = "../extensions/mcp/shared" }
 systemprompt-mcp-agent = { path = "../extensions/mcp/systemprompt" }
 systemprompt-mcp-knowledge-bank = { path = "../extensions/mcp/knowledge-bank" }
 systemprompt-mcp-odoo = { path = "../extensions/mcp/odoo" }
-systemprompt-mcp-email = { path = "../extensions/mcp/email" }
-systemprompt-email = { path = "../extensions/email" }
 systemprompt-knowledge-jobs = { path = "../extensions/knowledge/jobs" }
 systemprompt-web-shared = { path = "../extensions/web/shared" }
 systemprompt-web-admin = { path = "../extensions/web/admin", features = ["governance-ssr"] }
@@ -57,9 +54,9 @@ systemprompt-web-site = { path = "../extensions/web/site" }
 # The contract crate additionally enables `full`, which links the core
 # extension crates whose `register_extension!` registrations carry the
 # migrations the admin schema needs.
-systemprompt = { version = "0.45.0", default-features = false, features = ["core", "database"] }
-systemprompt-models = "0.45.0"
-systemprompt-security = { version = "0.45.0" }
+systemprompt = { version = "0.46.0", default-features = false, features = ["core", "database"] }
+systemprompt-models = "0.46.0"
+systemprompt-security = { version = "0.46.0" }
 
 # HTTP contract harness — drives the real admin router in-process.
 axum = "0.8"
@@ -90,7 +87,7 @@ wiremock = "0.6"
 futures = "0.3"
 sse-stream = "0.2.4"
 sha2 = "0.10"
-# Core 0.44.0 is published; the patch below is dormant. Uncomment (together with the mirror in
+# Core 0.46.0 is published; the patch below is dormant. Uncomment (together with the mirror in
 # tests/Cargo.toml — [patch] only applies per-workspace) to work against
 # ../systemprompt-core, and add an "ACTIVE: core X.Y.Z is unreleased" marker,
 # which the pre-commit hook requires before an active patch may be committed.

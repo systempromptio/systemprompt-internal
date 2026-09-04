@@ -1,0 +1,17 @@
+id: close_deal
+name: "Close Deal"
+description: "Take an open lead to a decision in Odoo, live, as you: confirm the customer record, close it won or lost with a reason that survives, and on a win raise the draft quotation that follows — then read back the order and what is still outstanding. For filling the pipeline use manage_leads; for reading it, activity_report."
+enabled: true
+file: SKILL.md
+tags:
+  - odoo
+  - crm
+  - leads
+  - closing
+  - won
+  - lost
+  - quotation
+  - sales
+  - invoices
+category: crm
+display_category: "Business on Odoo"

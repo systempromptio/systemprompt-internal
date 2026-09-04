@@ -12,14 +12,7 @@
     </p>
     {{/if}}
 
-    <nav class="sp-tabs" role="tablist" aria-label="Request views">
-        {{#each tabs}}
-        <a class="sp-tab{{#if this.is_active}} sp-tab--active{{/if}}" role="tab"
-           aria-selected="{{#if this.is_active}}true{{else}}false{{/if}}"
-           href="{{this.href}}">{{this.label}}{{#if this.count}}
-            <span class="sp-tab-count">{{this.count}}</span>{{/if}}</a>
-        {{/each}}
-    </nav>
+    {{> components/tabs tabs=tabs label="Request views"}}
 
     {{#if chips}}
     <ul class="filter-ribbon__chips" aria-label="Active filters">

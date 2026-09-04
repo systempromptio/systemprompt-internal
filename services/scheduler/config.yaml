@@ -110,8 +110,9 @@ scheduler:
         max_output_tokens: "4096"
 
     # Plans an Odoo projection for each categorized email and opens the
-    # approval_requests row an admin answers (in the knowledge-approve-ingestion
-    # dashboard or on /admin/governance/approvals). Reads Odoo as the OWNER's
+    # approval_requests row an admin answers on /admin/governance/approvals —
+    # the dashboard that mirrored it was retired, and that page is now the one
+    # place these are decided. Reads Odoo as the OWNER's
     # linked account to find existing partners/leads — link it on
     # /admin/profile or every run fails with a config error. Writes nothing.
     # `task_project` names the Odoo project follow-ups become tasks in; leave it

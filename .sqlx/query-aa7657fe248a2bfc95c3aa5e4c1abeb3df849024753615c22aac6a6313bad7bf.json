@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            (\n                SELECT COUNT(*)::bigint\n                FROM skill_invocation_events v\n                WHERE v.invoked_at >= $1\n                  AND ($2::text IS NULL OR v.user_id = $2)\n            ) AS \"skills!\",\n            COUNT(*) FILTER (WHERE tool_name LIKE 'mcp\\_\\_%')::bigint AS \"mcp_calls!\",\n            COUNT(*) FILTER (\n                WHERE tool_name LIKE 'mcp\\_\\_%' AND event_type = 'PostToolUseFailure'\n            )::bigint AS \"mcp_failures!\"\n        FROM plugin_usage_events\n        WHERE created_at >= $1\n          AND ($2::text IS NULL OR user_id = $2)\n          AND event_type IN ('PostToolUse', 'PostToolUseFailure')\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "skills!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "mcp_calls!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "mcp_failures!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "aa7657fe248a2bfc95c3aa5e4c1abeb3df849024753615c22aac6a6313bad7bf"
+}

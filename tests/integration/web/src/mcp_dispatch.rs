@@ -25,11 +25,15 @@ use systemprompt_mcp_knowledge_bank::tools::{TOOL_LIST, TOOL_SEARCH, TOOL_UPLOAD
 
 use crate::tempdb::TempDb;
 
-fn executor(pool: &Arc<PgPool>, server_name: &str) -> McpToolExecutor {
-    let db_pool = Arc::new(Database::from_pools(
+fn db_pool(pool: &Arc<PgPool>) -> Arc<Database> {
+    Arc::new(Database::from_pools(
         Arc::clone(pool),
         Some(Arc::clone(pool)),
-    ));
+    ))
+}
+
+fn executor(pool: &Arc<PgPool>, server_name: &str) -> McpToolExecutor {
+    let db_pool = db_pool(pool);
     let usage = Arc::new(ToolUsageRepository::new(&db_pool).expect("tool usage repository"));
     let artifacts = Arc::new(McpArtifactRepository::new(&db_pool).expect("artifact repository"));
     McpToolExecutor::new(usage, artifacts, server_name)
@@ -371,6 +375,7 @@ async fn an_unknown_systemprompt_tool_points_the_caller_at_the_cli_skill() {
         return;
     };
     let executor = executor(&db.pool, "systemprompt");
+    let db_pool = db_pool(&db.pool);
 
     let request = call("not_a_tool", serde_json::json!({}));
     let profile = client();
@@ -386,6 +391,7 @@ async fn an_unknown_systemprompt_tool_points_the_caller_at_the_cli_skill() {
                 bin: std::path::PathBuf::from("/nonexistent"),
                 workdir: std::path::PathBuf::from("/nonexistent"),
             },
+            db_pool: &db_pool,
         },
         "not_a_tool",
         "unused-token",

@@ -1,11 +1,17 @@
 //! Tool definitions exposed by the `odoo` MCP server.
 //!
-//! Twenty-five tools over ten Odoo models: `crm.lead` (search, get, create,
-//! update, delete, report), `res.partner` (search, get), `mail.message`
-//! (`note_add`, `note_list`, `note_search`), `ir.attachment` (`attachment_add`,
-//! `attachment_list`, `attachment_get`) and `mail.activity` (`activity_list`),
-//! plus one composite briefing (`business_overview_data`) that exists so a
-//! morning summary is one call rather than five.
+//! Thirty-eight tools over the models a business actually runs on: `crm.lead`
+//! (search, get, create, update, delete, report, and the closing actions —
+//! won, lost, convert), `res.partner` (search, get, create, update),
+//! `mail.message` (`note_add`, `note_list`, `note_search`), `ir.attachment`,
+//! `mail.activity`, `sale.order` and `account.move`, plus one composite
+//! briefing (`business_overview_data`) that exists so a morning summary is one
+//! call rather than five.
+//!
+//! The discovery tools — `crm_stage_list`, `user_list`, `activity_type_list` —
+//! exist because the alternative is a model guessing integer ids. A stage move
+//! used to require knowing `stage_id` numerically; nothing listed the stages,
+//! so the guess was the only option and a wrong one moved the wrong deal.
 //!
 //! Odoo Community ships no Knowledge app, so the knowledge bank is the chatter
 //! and attachments already anchored to business records. `note_search` is the
@@ -52,8 +58,21 @@ pub const TOOL_TASK_LIST: &str = "task_list";
 pub const TOOL_TASK_CREATE: &str = "task_create";
 pub const TOOL_TASK_UPDATE: &str = "task_update";
 pub const TOOL_OVERVIEW: &str = "business_overview_data";
+pub const TOOL_PARTNER_CREATE: &str = "partner_create";
+pub const TOOL_PARTNER_UPDATE: &str = "partner_update";
+pub const TOOL_LEAD_MARK_WON: &str = "crm_lead_mark_won";
+pub const TOOL_LEAD_MARK_LOST: &str = "crm_lead_mark_lost";
+pub const TOOL_LEAD_CONVERT: &str = "crm_lead_convert_to_opportunity";
+pub const TOOL_STAGE_LIST: &str = "crm_stage_list";
+pub const TOOL_USER_LIST: &str = "user_list";
+pub const TOOL_ACTIVITY_TYPE_LIST: &str = "activity_type_list";
+pub const TOOL_SALE_ORDER_LIST: &str = "sale_order_list";
+pub const TOOL_SALE_ORDER_GET: &str = "sale_order_get";
+pub const TOOL_SALE_ORDER_CREATE: &str = "sale_order_create";
+pub const TOOL_INVOICE_LIST: &str = "invoice_list";
+pub const TOOL_INVOICE_GET: &str = "invoice_get";
 
-pub const ALL_TOOLS: [&str; 25] = [
+pub const ALL_TOOLS: [&str; 38] = [
     TOOL_LEAD_SEARCH,
     TOOL_LEAD_GET,
     TOOL_LEAD_CREATE,
@@ -79,6 +98,19 @@ pub const ALL_TOOLS: [&str; 25] = [
     TOOL_TASK_CREATE,
     TOOL_TASK_UPDATE,
     TOOL_OVERVIEW,
+    TOOL_PARTNER_CREATE,
+    TOOL_PARTNER_UPDATE,
+    TOOL_LEAD_MARK_WON,
+    TOOL_LEAD_MARK_LOST,
+    TOOL_LEAD_CONVERT,
+    TOOL_STAGE_LIST,
+    TOOL_USER_LIST,
+    TOOL_ACTIVITY_TYPE_LIST,
+    TOOL_SALE_ORDER_LIST,
+    TOOL_SALE_ORDER_GET,
+    TOOL_SALE_ORDER_CREATE,
+    TOOL_INVOICE_LIST,
+    TOOL_INVOICE_GET,
 ];
 
 /// What a tool does to Odoo, as advertised through `ToolAnnotations`.
@@ -135,6 +167,10 @@ pub(crate) fn create_tool(def: &ToolDef<'_>) -> Tool {
 #[must_use]
 pub fn list_tools() -> Vec<Tool> {
     let mut tools = catalog::lead_tools();
+    tools.extend(catalog::closing_tools());
+    tools.extend(catalog::discovery_tools());
+    tools.extend(catalog::partner_write_tools());
+    tools.extend(catalog::sales_tools());
     tools.extend(catalog::knowledge_tools());
     tools.extend(catalog::work_tools());
     tools.extend(catalog::context_tools());

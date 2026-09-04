@@ -6,11 +6,19 @@
 //! change. That requires holding a per-user credential, which is what this
 //! table (`odoo_identity`, schema/15) is for.
 //!
-//! The API key never leaves this module in plaintext: [`insert`] seals it with
-//! ChaCha20-Poly1305 under the deployment master key, and nothing in the admin
-//! plane ever opens it again — the odoo MCP server is the only reader, in its
-//! own process. A deployment with no master key configured cannot link an Odoo
-//! account at all, which is better than banking the key in the clear.
+//! The API key never leaves this module in plaintext: [`upsert_verified`] seals
+//! it with ChaCha20-Poly1305 under the deployment master key. The odoo MCP
+//! server is the only routine reader, in its own process. A deployment with no
+//! master key configured cannot link an Odoo account at all, which is better
+//! than banking the key in the clear.
+//!
+//! [`find_api_key`] is the one narrow exception in the admin plane, and it
+//! exists because a stored credential can die without anyone touching it —
+//! an Odoo password change, a re-provisioned account, a database restored from
+//! elsewhere. Until the profile page could check, the first notice anybody got
+//! was a dashboard failing hours or days later. The plaintext is used for a
+//! single `authenticate` call and is never returned to a client, logged, or
+//! held beyond that call.
 
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
@@ -72,7 +80,15 @@ fn seal(api_key: &str) -> Result<String, OdooIdentityError> {
     seal_with(&load_master_key()?, api_key)
 }
 
-pub async fn insert(
+// Why: this overwrites any existing row rather than yielding to it. Both call
+// sites reach here only after Odoo itself has accepted the credential — the
+// profile link validates with `common.authenticate`, and sign-in additionally
+// proves it can make RPC calls — so the incoming credential is known-good and
+// the stored one is not. Yielding to the stored row is how a credential that
+// Odoo had already revoked survived a fresh sign-in that could have repaired
+// it, leaving every tool call failing with "relink your account" while the
+// user did exactly that, repeatedly, to no effect.
+pub async fn upsert_verified(
     pool: &PgPool,
     user_id: &UserId,
     odoo_login: &str,
@@ -98,28 +114,6 @@ pub async fn insert(
     Ok(())
 }
 
-pub async fn insert_if_absent(
-    pool: &PgPool,
-    user_id: &UserId,
-    odoo_login: &str,
-    odoo_uid: i32,
-    api_key: &str,
-) -> Result<(), OdooIdentityError> {
-    let sealed = seal(api_key)?;
-    sqlx::query!(
-        "INSERT INTO odoo_identity (user_id, odoo_login, odoo_uid, odoo_api_key_encrypted) \
-         VALUES ($1, $2, $3, $4) \
-         ON CONFLICT (user_id) DO NOTHING",
-        user_id.as_str(),
-        odoo_login,
-        odoo_uid,
-        sealed
-    )
-    .execute(pool)
-    .await?;
-    Ok(())
-}
-
 pub async fn find(pool: &PgPool, user_id: &UserId) -> Result<Option<OdooIdentity>, sqlx::Error> {
     let row = sqlx::query!(
         "SELECT odoo_login, odoo_uid, updated_at FROM odoo_identity WHERE user_id = $1",
@@ -132,6 +126,24 @@ pub async fn find(pool: &PgPool, user_id: &UserId) -> Result<Option<OdooIdentity
         odoo_uid: r.odoo_uid,
         updated_at: r.updated_at,
     }))
+}
+
+// Why: The stored credential in plaintext, for a liveness probe only.
+//
+// See the module doc: this is the sole admin-plane reader, and callers must
+// not return it to a client, log it, or keep it.
+pub async fn find_api_key(
+    pool: &PgPool,
+    user_id: &UserId,
+) -> Result<Option<String>, OdooIdentityError> {
+    let row = sqlx::query!(
+        "SELECT odoo_api_key_encrypted FROM odoo_identity WHERE user_id = $1",
+        user_id.as_str()
+    )
+    .fetch_optional(pool)
+    .await?;
+    row.map(|r| open_with(&load_master_key()?, &r.odoo_api_key_encrypted))
+        .transpose()
 }
 
 pub async fn list_odoo_logins(pool: &PgPool) -> Result<Vec<String>, sqlx::Error> {

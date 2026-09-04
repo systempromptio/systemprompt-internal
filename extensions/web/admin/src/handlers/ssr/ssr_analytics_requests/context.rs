@@ -6,7 +6,7 @@ use serde::Serialize;
 use systemprompt::identifiers::{AiRequestId, SessionId, TraceId, UserId};
 
 use crate::handlers::ssr::list_view::Pagination;
-use crate::handlers::ssr::types::{ChartView, HistogramView};
+use crate::handlers::ssr::types::{ChartView, HistogramView, TabLinkView};
 
 // Why: each tab is its own GET so it can be bookmarked, and so only the
 // queries that tab renders ever run.
@@ -66,18 +66,6 @@ pub(super) struct AnalyticsRequestsPageContext {
     pub has_active_filters: bool,
     pub clear_url: String,
     pub base_url: &'static str,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct TabLinkView {
-    pub slug: &'static str,
-    pub label: &'static str,
-    pub href: String,
-    pub is_active: bool,
-    // Why: Shown as a count pill next to the label. Only the Log tab carries one:
-    // on the other tabs the number the reader wants is already in the table.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub count: Option<i64>,
 }
 
 // Why: one shape for all three breakdown tabs, so Models, Providers, and

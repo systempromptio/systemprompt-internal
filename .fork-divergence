@@ -201,3 +201,15 @@ extensions/web/jobs/src/governance_bootstrap.rs	# reconciles routes read from th
 extensions/web/jobs/src/error.rs	# JobError converts ConfigLoadError, which only the services bootstrap raises
 extensions/web/shared/src/error.rs	# MarketplaceError gains a Services variant for ConfigLoadError from the services bootstrap
 extensions/web/admin/src/handlers/ssr/ssr_governance_decisions.rs	# internal scopes the ledger to one policy stage as the dashboard's drill-through; the fork ships the fuller filterable ledger
+
+# ---------------------------------------------------------------------
+# PRODUCT (2026-09-04)
+# ---------------------------------------------------------------------
+extensions/web/admin/src/handlers/ssr/ssr_demo_help/pages.rs	# internal ships help copy for the four /admin/demo/* pages; the template mounts no demo surface
+extensions/web/admin/src/handlers/webhook/governance/types.rs	# internal maps core `next`'s Decision::Warn onto the Allow wire value; the template's 0.44 core has no Warn variant to match on
+extensions/web/admin/src/handlers/ssr/types/charts.rs	# internal adds the daily-count chart builder over the demo series repository, which the template does not have
+extensions/mcp/systemprompt/src/tools.rs	# internal adds the three approval tool inputs (approval_list/decide/history) behind the governance-approvals dashboard; the template ships no approvals surface
+extensions/mcp/systemprompt/src/server/tool.rs	# dispatches the three approval tools and carries the db_pool they need; the template's admin server is CLI passthrough only
+extensions/web/admin/src/handlers/ssr/ssr_analytics_requests/context.rs	# internal lifts TabLinkView into the shared ssr::types module so the demo and approvals pages reuse it; the template still declares it here
+extensions/web/admin/src/handlers/ssr/ssr_analytics_requests/urls.rs	# the same TabLinkView move, on the import side
+extensions/web/admin/src/repositories/users/queries/listing.rs	# internal's roster excludes anonymous visitor rows behind an include_anonymous flag, and counts them; the template has no anonymous-traffic page to reveal them on

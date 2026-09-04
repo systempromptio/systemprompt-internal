@@ -18,6 +18,7 @@ use systemprompt::models::artifacts::CliArtifact;
 use systemprompt::models::execution::context::RequestContext;
 
 use super::call::OdooCall;
+pub use super::work_shape::{ActivityRow, activity_rows, activity_table};
 use crate::client::{ModelCall, SearchOptions};
 use crate::format::{empty_result, field_or_dash, text_artifact};
 use crate::resolve;
@@ -118,17 +119,13 @@ impl McpToolHandler for ActivityListHandler {
                 )
                 .await?;
 
-            let summary = format!("{} activity(ies) assigned to you", records.len());
-            let body = if records.is_empty() {
+            let rows = activity_rows(&records);
+            let summary = if rows.is_empty() {
                 empty_result("activities")
             } else {
-                records
-                    .iter()
-                    .map(activity_row)
-                    .collect::<Vec<_>>()
-                    .join("\n")
+                format!("{} activity(ies) assigned to you", rows.len())
             };
-            Ok((text_artifact("Odoo Activities", &body), summary))
+            Ok((CliArtifact::table(activity_table(&rows)), summary))
         }
     }
 }
@@ -179,7 +176,11 @@ impl McpToolHandler for ActivityCreateHandler {
                 None => i64::from(call.creds.uid),
             };
             let (type_id, res_model_id) = tokio::try_join!(
-                resolve::activity_type_id(&call.client, &call.creds),
+                resolve::activity_type_id_named(
+                    &call.client,
+                    &call.creds,
+                    input.activity_type.as_deref()
+                ),
                 resolve::model_id(&call.client, &call.creds, &input.model),
             )?;
 

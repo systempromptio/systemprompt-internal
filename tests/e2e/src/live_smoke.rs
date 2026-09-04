@@ -29,9 +29,9 @@ use sha2::Digest;
 // Safe only because `require_local_stack` below refuses to let this file point
 // at anything but a local host. It writes: it resets both passwords to
 // `PASSWORD` and creates leads.
-const ADMIN_LOGIN: &str = "ed@systemprompt.io";
-const SALES_LOGIN: &str = "ed+notadmin@systemprompt.io";
-const PASSWORD: &str = "e2e-live-password-2026";
+pub(crate) const ADMIN_LOGIN: &str = "ed@systemprompt.io";
+pub(crate) const SALES_LOGIN: &str = "ed+notadmin@systemprompt.io";
+pub(crate) const PASSWORD: &str = "e2e-live-password-2026";
 
 // Refuse to run against anything that is not a local stack.
 //
@@ -41,7 +41,7 @@ const PASSWORD: &str = "e2e-live-password-2026";
 // `E2E_ODOO_URL` pointing at the Fly app would run all of it against
 // production, as the people it names. So both endpoints are checked against
 // the loopback host and the test aborts before its first write otherwise.
-fn require_local_stack(base: &str, odoo: &str) {
+pub(crate) fn require_local_stack(base: &str, odoo: &str) {
     for (label, url) in [("E2E_BASE_URL", base), ("E2E_ODOO_URL", odoo)] {
         let host = url
             .split("://")
@@ -65,11 +65,11 @@ fn require_local_stack(base: &str, odoo: &str) {
     }
 }
 
-fn env_or(key: &str, default: &str) -> String {
+pub(crate) fn env_or(key: &str, default: &str) -> String {
     std::env::var(key).unwrap_or_else(|_| default.to_owned())
 }
 
-fn step(name: &str) {
+pub(crate) fn step(name: &str) {
     eprintln!("▶ {name}");
 }
 
@@ -219,7 +219,7 @@ fn pkce_pair() -> (String, String) {
 
 // `resource` (RFC 8707) binds the minted token to one protected resource —
 // the MCP proxy only accepts tokens minted for its own URL.
-async fn sign_in(
+pub(crate) async fn sign_in(
     http: &reqwest::Client,
     base: &str,
     login: &str,
@@ -323,27 +323,19 @@ async fn manifest_ids(
         .unwrap_or_default()
 }
 
-#[tokio::test]
-async fn live_stack_walks_the_two_role_journey() {
-    let base = env_or("E2E_BASE_URL", "http://localhost:8081");
-    let odoo_url = env_or("E2E_ODOO_URL", "http://localhost:8070");
-    require_local_stack(&base, &odoo_url);
-    let http = reqwest::Client::new();
+pub(crate) struct SeededOdoo {
+    pub sales_uid: i64,
+    pub lead_id: i64,
+}
 
-    step("server health");
-    let health = http.get(format!("{base}/health")).send().await;
-    assert!(
-        health.is_ok_and(|r| r.status().is_success()),
-        "no server at {base} — start one with `just start` (or set E2E_BASE_URL)"
-    );
-
+pub(crate) async fn seed_odoo_users(http: &reqwest::Client, odoo_url: &str) -> SeededOdoo {
     step("odoo health + admin session");
     let db = env_or("E2E_ODOO_DB", "odoo_local");
     let admin_login = env_or("E2E_ODOO_ADMIN", "admin");
     let admin_pw = env_or("E2E_ODOO_ADMIN_PW", "admin");
     let mut odoo = Odoo {
         http: http.clone(),
-        url: odoo_url.clone(),
+        url: odoo_url.to_owned(),
         db: db.clone(),
         admin_uid: 0,
         admin_pw: admin_pw.clone(),
@@ -377,6 +369,24 @@ async fn live_stack_walks_the_two_role_journey() {
         .ensure_user(SALES_LOGIN, &[group_user, group_salesman])
         .await;
     let lead_id = odoo.ensure_lead("E2E Demo Lead", sales_uid).await;
+    SeededOdoo { sales_uid, lead_id }
+}
+
+#[tokio::test]
+async fn live_stack_walks_the_two_role_journey() {
+    let base = env_or("E2E_BASE_URL", "http://localhost:8081");
+    let odoo_url = env_or("E2E_ODOO_URL", "http://localhost:8070");
+    require_local_stack(&base, &odoo_url);
+    let http = reqwest::Client::new();
+
+    step("server health");
+    let health = http.get(format!("{base}/health")).send().await;
+    assert!(
+        health.is_ok_and(|r| r.status().is_success()),
+        "no server at {base} — start one with `just start` (or set E2E_BASE_URL)"
+    );
+
+    let SeededOdoo { lead_id, .. } = seed_odoo_users(&http, &odoo_url).await;
 
     step("sign in as both roles (JIT + PKCE exchange)");
     let admin_bearer = sign_in(&http, &base, ADMIN_LOGIN, None).await;

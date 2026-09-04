@@ -1,0 +1,46 @@
+id: sales-pipeline
+name: "Sales Pipeline"
+description: "Every lead and open deal in one workable page: all leads, open deals, grouped by close date, or grouped by owner — with the money, the probability and the chatter beside each one. Stage moves are staged and saved together from one bar, so a row never leaves the view before you have confirmed it; close won or lost, log a note or schedule a follow-up from the row. Every write runs against Odoo as you. Replaces the separate inbound-leads, open-pipeline and upcoming-deals tables."
+version: "2.1.0"
+enabled: true
+starred: true
+# `category`, `tags` and `query` are forward-compatible metadata — the core
+# loader ignores them today; the call also lives in `description` and view.html.
+category: crm
+tags:
+  - odoo
+  - crm
+  - leads
+  - pipeline
+  - deals
+  - deadlines
+  - actions
+# Native Odoo MCP server (services/mcp/odoo.yaml). Per-user execution: the
+# caller's own Odoo login and API key are resolved in-process from the
+# odoo_identity link made on /admin/profile, so Odoo's own record rules decide
+# what is read and what may be written.
+#
+# This list is the allowlist the host enforces, and it must match the tools
+# view.html actually calls exactly — nothing derives one from the other, and a
+# drift surfaces only at runtime as "not in this artifact's mcp_tools
+# allowlist". Three reads, note_list on expand, then five writes.
+#
+# crm_lead_delete is deliberately absent: it is the one Destructive tool on the
+# server, and a dashboard click must not be able to unlink a record. Archiving
+# is what Lost does, through crm_lead_mark_lost.
+mcp_tools:
+  - "mcp__odoo__crm_lead_search"
+  - "mcp__odoo__crm_stage_list"
+  - "mcp__odoo__note_list"
+  - "mcp__odoo__crm_lead_update"
+  - "mcp__odoo__crm_lead_mark_won"
+  - "mcp__odoo__crm_lead_mark_lost"
+  - "mcp__odoo__note_add"
+  - "mcp__odoo__activity_create"
+query: |
+  crm_lead_search { "limit": 100 } and { "limit": 100, "open_only": true }
+  arguments: crm_stage_list {}, note_list { "model": "crm.lead", "res_id": <id>, "limit": 20 }
+  views: all leads, open deals, by close date, by owner (crm_lead_search's user_id)
+  writes: crm_lead_update, crm_lead_mark_won, crm_lead_mark_lost, note_add, activity_create
+  model: crm.lead (+ crm.stage, mail.message, mail.activity)
+file: view.html

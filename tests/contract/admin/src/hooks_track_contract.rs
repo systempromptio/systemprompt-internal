@@ -25,7 +25,10 @@
 //! wrong in exactly one of those three ways.
 
 use axum::http::StatusCode;
+use systemprompt::identifiers::UserId;
 use systemprompt::models::auth::{JwtAudience, Permission};
+use systemprompt_web_admin::repositories::demo::filter::DemoFilter;
+use systemprompt_web_admin::repositories::demo::skill_invocations::list_skill_invocations;
 
 use crate::app::{App, Call};
 use crate::principal::Principal;
@@ -467,6 +470,130 @@ async fn hook_track_deduplicates_and_rolls_up_the_session() {
             .expect("read the session summary")
             .flatten();
     assert!(ended.is_some(), "SessionEnd must close the session summary");
+
+    db.cleanup().await;
+}
+
+// A `Skill` tool call reaches the platform as two requests: `/hooks/govern`
+// decides the `PreToolUse`, then `/hooks/track` records the `PostToolUse`.
+// `skill_invocation_events` counts the tool arm only when both are present —
+// a tracked `Skill` row with no decision beside it was posted by a seeder, not
+// by a client — so a test that wants the invocation must send both.
+//
+// The decision is answered before its audit row is committed, so the poll is
+// what makes the row visible to the view; a row that never lands still fails.
+async fn govern_skill_call(app: &App, db: &TempDb, token: &str, session: &str, tool_use_id: &str) {
+    let body = format!(
+        r#"{{{},"tool_name":"Skill","tool_input":{{"skill":"contract:demo-skill"}},"tool_use_id":"{tool_use_id}"}}"#,
+        common(session, "PreToolUse")
+    );
+    let (status, _) = app
+        .call_with_bearer(
+            Call {
+                method: "post",
+                path: "/hooks/govern",
+                principal: Principal::Anonymous,
+                content_type: Some("application/json"),
+                body: Some(&body),
+            },
+            token,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "the Skill PreToolUse was rejected");
+
+    for _ in 0..50 {
+        let landed: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM governance_decisions \
+             WHERE session_id = $1 AND tool_name = 'Skill'",
+        )
+        .bind(session)
+        .fetch_one(&*db.pool)
+        .await
+        .expect("count the Skill decision");
+        if landed > 0 {
+            return;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    }
+    panic!("the Skill PreToolUse decision never reached governance_decisions");
+}
+
+// The `plugin_id` claim: stored on the row, and cross-checked against the
+// query binding.
+//
+// The claim was previously read and dropped, which left `plugin_usage_events`
+// with a NULL `plugin_id` on every row and no way to tell one plugin's
+// telemetry from another's.
+#[tokio::test(flavor = "multi_thread")]
+async fn hook_track_stores_the_plugin_id_and_refuses_a_mismatched_one() {
+    if !globals::init() {
+        return;
+    }
+    let Some(db) = TempDb::create().await else {
+        return;
+    };
+
+    let credentials = principal::provision(&db.pool).await;
+    let app = App::new(&db.pool, credentials);
+    let user_id = seed::unique("plugin-user");
+    seed::insert_user(&db.pool, &user_id, &format!("{user_id}@contract.test")).await;
+    let token = seed::mint(&TokenSpec::hook(&user_id));
+    let session = seed::unique("plugin-session");
+
+    govern_skill_call(&app, &db, &token, &session, "tu-plugin-1").await;
+    let body = format!(
+        r#"{{{},"tool_name":"Skill","tool_input":{{"skill":"contract:demo-skill"}},"tool_response":{{}},"tool_use_id":"tu-plugin-1"}}"#,
+        common(&session, "PostToolUse")
+    );
+    let (call, tok) = hook_call(&token, &body);
+    let (status, _) = app.call_with_bearer(call, tok).await;
+    assert_eq!(status, StatusCode::OK);
+
+    let stored: Option<String> =
+        sqlx::query_scalar("SELECT plugin_id FROM plugin_usage_events WHERE session_id = $1")
+            .bind(&session)
+            .fetch_one(&*db.pool)
+            .await
+            .expect("read the stored plugin_id");
+    assert_eq!(
+        stored.as_deref(),
+        Some("contract-plugin"),
+        "the JWT plugin_id claim must be written to the row"
+    );
+
+    let filter = DemoFilter::for_user(UserId::new(user_id.clone()));
+    let invocations = list_skill_invocations(&db.pool, &filter)
+        .await
+        .expect("list skill invocations");
+    let row = invocations
+        .iter()
+        .find(|r| r.skill == "contract:demo-skill")
+        .expect("the ingested skill invocation");
+    assert_eq!(row.plugin_id.as_deref(), Some("contract-plugin"));
+
+    // A query binding that disagrees with the claim is a misrouted hook, not a
+    // relabelling opportunity.
+    let mismatched = format!(
+        r#"{{{},"tool_name":"Skill","tool_input":{{"skill":"contract:demo-skill"}},"tool_response":{{}},"tool_use_id":"tu-plugin-2"}}"#,
+        common(&seed::unique("plugin-session"), "PostToolUse")
+    );
+    let (status, _) = app
+        .call_with_bearer(
+            Call {
+                method: "post",
+                path: "/hooks/track?plugin_id=other-plugin",
+                principal: Principal::Anonymous,
+                content_type: Some("application/json"),
+                body: Some(&mismatched),
+            },
+            &token,
+        )
+        .await;
+    assert_eq!(
+        status,
+        StatusCode::UNAUTHORIZED,
+        "a ?plugin_id that does not match the claim must be refused"
+    );
 
     db.cleanup().await;
 }

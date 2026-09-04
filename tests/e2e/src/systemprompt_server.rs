@@ -1,12 +1,12 @@
-//! The admin CLI-passthrough server (`systemprompt-mcp-agent`), re-enabled:
-//! it offers exactly one tool, and a user-role bearer is refused before any
-//! command runs.
+//! The admin server (`systemprompt-mcp-agent`), re-enabled: it offers the CLI
+//! passthrough plus the three approval tools behind the governance-approvals
+//! dashboard, and a user-role bearer is refused before any command runs.
 
 use crate::harness::mcp;
 use crate::harness::stack::Stack;
 
 #[tokio::test]
-async fn the_admin_cli_server_offers_one_tool_and_refuses_a_user() {
+async fn the_admin_server_offers_the_cli_and_approval_tools_and_refuses_a_user() {
     let Some(stack) = Stack::create().await else {
         return;
     };
@@ -33,8 +33,14 @@ async fn the_admin_cli_server_offers_one_tool_and_refuses_a_user() {
     let names: Vec<&str> = tools.iter().map(|t| t.name.as_ref()).collect();
     assert_eq!(
         names,
-        ["systemprompt"],
-        "one CLI tool, nothing else: {names:?}"
+        [
+            "systemprompt",
+            "approval_list",
+            "approval_decide",
+            "approval_history"
+        ],
+        "the CLI passthrough plus the three approval tools the \
+         governance-approvals dashboard allowlists by name: {names:?}"
     );
 
     let denied = mcp::call_tool(

@@ -29,9 +29,9 @@ use systemprompt::security::policy::{
 };
 
 use super::ssr_approvals_ingest::{INGESTION_RULE, IngestSummary, humanize, ingest_summary};
-use crate::error::{AdminHtmlError, AdminHtmlResult};
+use crate::error::{AdminError, AdminHtmlError, AdminHtmlResult};
 use crate::templates::AdminTemplateEngine;
-use crate::types::UserContext;
+use crate::types::{MarketplaceContext, UserContext};
 
 const PAGE: &str = "approvals";
 const PAGE_URL: &str = "/admin/governance/approvals";
@@ -102,9 +102,14 @@ impl PendingRow {
 }
 
 pub(crate) async fn approvals_page(
+    Extension(user_ctx): Extension<UserContext>,
+    Extension(mkt_ctx): Extension<MarketplaceContext>,
     Extension(engine): Extension<AdminTemplateEngine>,
     State(pool): State<Arc<PgPool>>,
 ) -> AdminHtmlResult<Response> {
+    if !user_ctx.is_admin {
+        return Err(AdminError::Forbidden("Admin access required.".to_owned()).into());
+    }
     let repo = ApprovalRepository::new((*pool).clone());
 
     // Why: sweep before listing. An expired row that still says 'pending'
@@ -134,8 +139,13 @@ pub(crate) async fn approvals_page(
         live,
         ingestion,
     };
-    let data = serde_json::to_value(&data).map_err(AdminHtmlError::internal)?;
-    Ok(axum::response::Html(engine.render("approvals", &data)?).into_response())
+    Ok(super::render_typed_page(
+        &engine,
+        "approvals",
+        &data,
+        &user_ctx,
+        &mkt_ctx,
+    ))
 }
 
 pub(crate) async fn approval_approve(
