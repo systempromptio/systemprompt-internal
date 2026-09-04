@@ -31,7 +31,10 @@ const CHART_DAYS: i32 = 14;
 const ATTRIBUTION_NOTE: &str = "Tokens and cost are attributed, not \
      measured: an AI request counts toward an invocation when it belongs to the \
      same user and falls between that invocation and the next one of its kind in \
-     the session, or the session's last event plus five minutes.";
+     the session, or the session's last event plus five minutes. An invocation \
+     is either a slash command the user typed or a Skill tool call the model \
+     dispatched; a Skill tool call with no matching governance decision beside \
+     it did not come from a client and is not counted.";
 
 const fn kpi(label: &'static str, value: String) -> KpiView {
     KpiView {

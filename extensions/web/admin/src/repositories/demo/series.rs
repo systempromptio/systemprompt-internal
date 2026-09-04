@@ -28,15 +28,21 @@ pub async fn list_skill_daily_series(
         ),
         counted AS (
             SELECT
-                created_at::date AS day,
+                v.invoked_at::date AS day,
                 COUNT(*)::bigint AS count,
-                COUNT(*) FILTER (WHERE event_type = 'PostToolUseFailure')::bigint AS failures
-            FROM plugin_usage_events
-            WHERE created_at >= (SELECT lo FROM span)
-              AND ($1::text IS NULL OR user_id = $1)
-              AND tool_name = 'Skill'
-              AND event_type IN ('PostToolUse', 'PostToolUseFailure')
-              AND metadata->'tool_input'->>'skill' IS NOT NULL
+                -- Why: only a dispatched Skill tool call can fail as a tool. A
+                -- slash command is a prompt, so it has no failure state and
+                -- never lands in this bucket.
+                COUNT(*) FILTER (
+                    WHERE e.event_type = 'PostToolUseFailure'
+                )::bigint AS failures
+            FROM skill_invocation_events v
+            LEFT JOIN plugin_usage_events e
+                   ON e.session_id = v.session_id
+                  AND e.created_at = v.invoked_at
+                  AND e.tool_name = 'Skill'
+            WHERE v.invoked_at >= (SELECT lo FROM span)
+              AND ($1::text IS NULL OR v.user_id = $1)
             GROUP BY 1
         )
         SELECT

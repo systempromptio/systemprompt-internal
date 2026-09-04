@@ -19,6 +19,7 @@
             <thead><tr>
                 <th>Plugin</th>
                 <th>Skill</th>
+                <th>Source</th>
                 <th class="numeric col-numeric">Invocations</th>
                 <th class="numeric col-numeric">Users</th>
                 <th class="numeric col-numeric">Requests</th>
@@ -30,7 +31,11 @@
             {{#each skills}}
             <tr>
                 <td>{{#if plugin}}<span class="badge badge-secondary">{{plugin}}</span>{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
-                <td><code class="code-inline">{{skill}}</code></td>
+                <td>
+                    <code class="code-inline">{{skill}}</code>
+                    {{#if is_retired}}<span class="badge badge-muted" title="No skill of this name is configured any more; the invocation was real when it was recorded.">retired</span>{{/if}}
+                </td>
+                <td class="text-tertiary text-xs">{{source_label}}</td>
                 <td class="numeric">{{formatNumber invocation_count}}</td>
                 <td class="numeric">{{formatNumber distinct_users}}</td>
                 <td class="numeric">{{formatNumber request_count}}</td>

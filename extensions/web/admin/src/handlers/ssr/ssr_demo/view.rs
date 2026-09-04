@@ -1,5 +1,7 @@
 //! Row view-models shared by the four demo pages.
 
+use std::collections::BTreeSet;
+
 use serde::Serialize;
 
 use crate::handlers::ssr::format::format_token_total;
@@ -7,6 +9,7 @@ use crate::repositories::demo::logbook::{LogbookKind, LogbookRow};
 use crate::repositories::demo::mcp_tools::McpToolStatRow;
 use crate::repositories::demo::skill_invocations::SkillTotalRow;
 use crate::repositories::demo::{UsageMatrix, UsageMatrixRow};
+use crate::types::SkillCatalogEntry;
 use systemprompt::identifiers::SessionId;
 
 #[derive(Debug, Serialize)]
@@ -48,6 +51,14 @@ pub(super) struct SkillTotalView {
     pub plugin: String,
     pub skill: String,
     pub invocation_count: i64,
+    // Why: which signal produced these invocations. "slash command" is the
+    // user typing /plugin:skill; "tool call" is the model dispatching the
+    // Skill tool. A skill that has done both reads "both".
+    pub source_label: &'static str,
+    // Why: true when the recorded name no longer matches any skill in
+    // services/skills. The row was real when it was written, so it is marked
+    // rather than hidden.
+    pub is_retired: bool,
     pub distinct_users: i64,
     pub request_count: i64,
     pub tokens_display: String,
@@ -212,9 +223,53 @@ fn split_qualified(id: &str) -> (String, String) {
     )
 }
 
-pub(super) fn skill_total_view(row: &SkillTotalRow) -> SkillTotalView {
+// Why: a skill id is stored hyphenated because `plugin_resolvers.rs` builds
+// the slash command as `/{plugin}:{skill_id.replace('_', "-")}`, while
+// services/skills ids keep their underscores. Compare on the hyphenated form
+// so the two namespaces meet.
+#[derive(Debug, Default)]
+pub(super) struct SkillCatalogIndex {
+    plugins: BTreeSet<String>,
+    skills: BTreeSet<String>,
+}
+
+impl SkillCatalogIndex {
+    pub(super) fn new(plugins: &[String], skills: &[SkillCatalogEntry]) -> Self {
+        Self {
+            plugins: plugins.iter().cloned().collect(),
+            skills: skills
+                .iter()
+                .map(|s| s.id.as_str().replace('_', "-"))
+                .collect(),
+        }
+    }
+
+    // Why: only a plugin this instance actually ships can be judged. Rows from
+    // a marketplace plugin the operator installed elsewhere -- systemprompt-crm,
+    // systemprompt-commons -- have no local definition to be absent from, so
+    // calling them retired would mislabel most of the table.
+    fn is_retired(&self, plugin: &str, skill: &str) -> bool {
+        self.plugins.contains(plugin) && !self.skills.contains(skill)
+    }
+}
+
+const fn source_label(slash: i64, tool: i64) -> &'static str {
+    match (slash > 0, tool > 0) {
+        (true, true) => "both",
+        (false, true) => "tool call",
+        _ => "slash command",
+    }
+}
+
+pub(super) fn skill_total_view(
+    row: &SkillTotalRow,
+    catalog: &SkillCatalogIndex,
+) -> SkillTotalView {
     let (plugin, skill) = split_qualified(&row.skill);
+    let is_retired = catalog.is_retired(&plugin, &skill);
     SkillTotalView {
+        source_label: source_label(row.slash_count, row.tool_count),
+        is_retired,
         plugin,
         skill,
         invocation_count: row.invocation_count,

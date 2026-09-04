@@ -11,7 +11,9 @@ use axum::response::Response;
 use sqlx::PgPool;
 
 use super::context::DemoMeContext;
-use super::view::{logbook_row_view, mcp_tool_stat_view, skill_total_view};
+use super::view::{
+    SkillCatalogIndex, logbook_row_view, mcp_tool_stat_view, skill_total_view,
+};
 use super::{ATTRIBUTION_NOTE, CHART_DAYS, logbook_kpi_strip};
 use crate::error::AdminHtmlResult;
 use crate::handlers::ssr::types::daily_count_chart;
@@ -38,13 +40,29 @@ async fn build_page_json(pool: &PgPool, user_ctx: &UserContext) -> DemoMeContext
         tracing::warn!(error = %e, "demo kpi query failed");
         DemoKpis::default()
     });
+    // Why: read the on-disk catalog so a recorded name that no longer names a
+    // skill can be marked retired instead of passing as live. A failure here
+    // costs only the badge, so it degrades to "nothing is judged".
+    let catalog = crate::handlers::shared::get_services_path().ok().map_or_else(
+        SkillCatalogIndex::default,
+        |path| {
+            let plugins = crate::repositories::marketplace::plugins::list_plugin_catalog(&path)
+                .unwrap_or_default()
+                .into_iter()
+                .map(|p| p.id)
+                .collect::<Vec<_>>();
+            let skills = crate::repositories::marketplace::plugins::list_skill_catalog(&path)
+                .unwrap_or_default();
+            SkillCatalogIndex::new(&plugins, &skills)
+        },
+    );
     let skills: Vec<_> = totals
         .unwrap_or_else(|e| {
             tracing::warn!(error = %e, "skill totals query failed");
             Vec::new()
         })
         .iter()
-        .map(skill_total_view)
+        .map(|t| skill_total_view(t, &catalog))
         .collect();
     let tools: Vec<_> = stats
         .unwrap_or_else(|e| {

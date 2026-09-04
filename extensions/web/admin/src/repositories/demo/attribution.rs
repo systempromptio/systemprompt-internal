@@ -13,11 +13,11 @@
 //! completes after the session's final hook event, so an unpadded window drops
 //! the tail of every session. Windows never overlap, so a request is counted
 //! at most once per kind, and figures are labelled *attributed* on every page.
+//!
+//! The predicate itself is spelled out in each query rather than shared as a
+//! constant, because `sqlx::query_as!` needs a literal and cannot interpolate
+//! one. What *is* shared lives in the `skill_invocation_events` view (see
+//! `schema/05_plugin_usage.sql`), which is where the definition of an
+//! invocation belongs: the database can hold it once for every reader.
 
 pub const ATTRIBUTION_PAD_MINUTES: i32 = 5;
-
-pub const SKILL_WINDOW_PREDICATE: &str =
-    "r.created_at >= bd.invoked_at AND r.created_at < bd.window_end";
-
-pub const MCP_WINDOW_PREDICATE: &str =
-    "r.created_at >= bd.invoked_at AND r.created_at < bd.window_end";

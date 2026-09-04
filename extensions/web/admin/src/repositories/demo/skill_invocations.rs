@@ -22,6 +22,10 @@ pub struct SkillInvocationRow {
     pub skill: String,
     pub plugin_id: Option<String>,
     pub tool_use_id: Option<String>,
+    // Why: "slash" when the user typed /plugin:skill, "tool" when the model
+    // dispatched the Skill tool. Shown on the page so the two signals stay
+    // legible rather than silently merged into one number.
+    pub source: String,
     pub invoked_at: DateTime<Utc>,
     pub request_count: i64,
     pub total_tokens: i64,
@@ -32,6 +36,11 @@ pub struct SkillInvocationRow {
 pub struct SkillTotalRow {
     pub skill: String,
     pub invocation_count: i64,
+    // Why: split by signal, because the two are not equally trustworthy. A
+    // slash count is the user's own invocation; a tool count is the model
+    // dispatching the Skill tool. A skill can accumulate both.
+    pub slash_count: i64,
+    pub tool_count: i64,
     pub distinct_users: i64,
     pub request_count: i64,
     pub total_tokens: i64,
@@ -47,29 +56,28 @@ pub async fn list_skill_invocations(
     sqlx::query_as!(
         SkillInvocationRow,
         r#"
-        WITH ev AS (
-            SELECT user_id, session_id, created_at, tool_name, metadata, plugin_id
+        WITH session_bounds AS (
+            SELECT session_id, MAX(created_at) AS last_at
             FROM plugin_usage_events
             WHERE created_at >= $1
               AND ($2::text IS NULL OR user_id = $2)
-        ),
-        session_bounds AS (
-            SELECT session_id, MAX(created_at) AS last_at FROM ev GROUP BY session_id
+            GROUP BY session_id
         ),
         inv AS (
             SELECT
-                e.user_id,
-                e.session_id,
-                e.plugin_id,
-                e.metadata->'tool_input'->>'skill' AS skill,
-                e.metadata->>'tool_use_id'         AS tool_use_id,
-                e.created_at                       AS invoked_at,
-                LEAD(e.created_at) OVER (
-                    PARTITION BY e.session_id ORDER BY e.created_at
+                v.user_id,
+                v.session_id,
+                v.plugin_id,
+                v.skill,
+                v.tool_use_id,
+                v.source,
+                v.invoked_at,
+                LEAD(v.invoked_at) OVER (
+                    PARTITION BY v.session_id ORDER BY v.invoked_at
                 ) AS next_at
-            FROM ev e
-            WHERE e.tool_name = 'Skill'
-              AND e.metadata->'tool_input'->>'skill' IS NOT NULL
+            FROM skill_invocation_events v
+            WHERE v.invoked_at >= $1
+              AND ($2::text IS NULL OR v.user_id = $2)
         ),
         bounded AS (
             SELECT i.*,
@@ -87,6 +95,7 @@ pub async fn list_skill_invocations(
             bd.skill        AS "skill!",
             bd.plugin_id    AS "plugin_id?",
             bd.tool_use_id  AS "tool_use_id?",
+            bd.source       AS "source!",
             bd.invoked_at   AS "invoked_at!",
             a.request_count      AS "request_count!",
             a.total_tokens       AS "total_tokens!",
@@ -134,6 +143,11 @@ pub fn fold_skill_totals(invocations: &[SkillInvocationRow]) -> Vec<SkillTotalRo
         total.request_count += inv.request_count;
         total.total_tokens += inv.total_tokens;
         total.cost_microdollars += inv.cost_microdollars;
+        if inv.source == "slash" {
+            total.slash_count += 1;
+        } else {
+            total.tool_count += 1;
+        }
         total.first_used_at = Some(min_opt(total.first_used_at, inv.invoked_at));
         total.last_used_at = Some(max_opt(total.last_used_at, inv.invoked_at));
         if !users.contains(&&inv.user_id) {
@@ -159,6 +173,8 @@ fn empty_total(skill: &str) -> SkillTotalRow {
     SkillTotalRow {
         skill: skill.to_owned(),
         invocation_count: 0,
+        slash_count: 0,
+        tool_count: 0,
         distinct_users: 0,
         request_count: 0,
         total_tokens: 0,

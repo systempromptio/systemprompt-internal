@@ -55,9 +55,12 @@ async fn get_event_counts(
     let row = sqlx::query!(
         r#"
         SELECT
-            COUNT(*) FILTER (
-                WHERE tool_name = 'Skill' AND metadata->'tool_input'->>'skill' IS NOT NULL
-            )::bigint AS "skills!",
+            (
+                SELECT COUNT(*)::bigint
+                FROM skill_invocation_events v
+                WHERE v.invoked_at >= $1
+                  AND ($2::text IS NULL OR v.user_id = $2)
+            ) AS "skills!",
             COUNT(*) FILTER (WHERE tool_name LIKE 'mcp\_\_%')::bigint AS "mcp_calls!",
             COUNT(*) FILTER (
                 WHERE tool_name LIKE 'mcp\_\_%' AND event_type = 'PostToolUseFailure'
@@ -138,10 +141,14 @@ async fn get_attributed_usage(
                     PARTITION BY e.session_id ORDER BY e.created_at
                 ) AS next_at
             FROM ev e
-            WHERE e.event_type IN ('PostToolUse', 'PostToolUseFailure')
-              AND (
-                    (e.tool_name = 'Skill' AND e.metadata->'tool_input'->>'skill' IS NOT NULL)
-                 OR e.tool_name LIKE 'mcp\_\_%'
+            WHERE (
+                    e.event_type IN ('PostToolUse', 'PostToolUseFailure')
+                AND e.tool_name LIKE 'mcp\_\_%'
+              )
+               OR EXISTS (
+                    SELECT 1 FROM skill_invocation_events v
+                    WHERE v.session_id = e.session_id
+                      AND v.invoked_at = e.created_at
               )
         ),
         windows AS (

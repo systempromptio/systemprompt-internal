@@ -1,0 +1,136 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH session_bounds AS (\n            SELECT session_id, MAX(created_at) AS last_at\n            FROM plugin_usage_events\n            WHERE created_at >= $1\n              AND ($2::text IS NULL OR user_id = $2)\n            GROUP BY session_id\n        ),\n        inv AS (\n            SELECT\n                v.user_id,\n                v.session_id,\n                v.plugin_id,\n                v.skill,\n                v.tool_use_id,\n                v.source,\n                v.invoked_at,\n                LEAD(v.invoked_at) OVER (\n                    PARTITION BY v.session_id ORDER BY v.invoked_at\n                ) AS next_at\n            FROM skill_invocation_events v\n            WHERE v.invoked_at >= $1\n              AND ($2::text IS NULL OR v.user_id = $2)\n        ),\n        bounded AS (\n            SELECT i.*,\n                   LEAST(\n                       COALESCE(i.next_at, 'infinity'::timestamptz),\n                       b.last_at + make_interval(mins => $3::int)\n                   ) AS window_end\n            FROM inv i\n            JOIN session_bounds b ON b.session_id = i.session_id\n        )\n        SELECT\n            bd.user_id      AS \"user_id!: UserId\",\n            u.email         AS \"user_email?\",\n            bd.session_id   AS \"session_id!: SessionId\",\n            bd.skill        AS \"skill!\",\n            bd.plugin_id    AS \"plugin_id?\",\n            bd.tool_use_id  AS \"tool_use_id?\",\n            bd.source       AS \"source!\",\n            bd.invoked_at   AS \"invoked_at!\",\n            a.request_count      AS \"request_count!\",\n            a.total_tokens       AS \"total_tokens!\",\n            a.cost_microdollars  AS \"cost_microdollars!\"\n        FROM bounded bd\n        LEFT JOIN users u ON u.id = bd.user_id\n        LEFT JOIN LATERAL (\n            SELECT\n                COUNT(*)::bigint AS request_count,\n                COALESCE(SUM(COALESCE(r.input_tokens, 0) + COALESCE(r.output_tokens, 0)), 0)::bigint\n                    AS total_tokens,\n                COALESCE(SUM(r.cost_microdollars), 0)::bigint AS cost_microdollars\n            FROM ai_requests r\n            WHERE r.user_id = bd.user_id\n              AND r.created_at >= bd.invoked_at AND r.created_at < bd.window_end\n        ) a ON TRUE\n        ORDER BY bd.invoked_at DESC\n        LIMIT $4\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id!: UserId",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "skill_invocation_events",
+            "name": "user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "user_email?",
+        "type_info": "Varchar",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "email"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "session_id!: SessionId",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "skill_invocation_events",
+            "name": "session_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "skill!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "skill_invocation_events",
+            "name": "skill"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "plugin_id?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "skill_invocation_events",
+            "name": "plugin_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "tool_use_id?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "skill_invocation_events",
+            "name": "tool_use_id"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "source!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "skill_invocation_events",
+            "name": "source"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "invoked_at!",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "skill_invocation_events",
+            "name": "invoked_at"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "request_count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
+        "name": "total_tokens!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 10,
+        "name": "cost_microdollars!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Text",
+        "Int4",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "4354cb4c7a364233f54aeb4a39d05620de341fef520f7eb007e6c35b344fda19"
+}

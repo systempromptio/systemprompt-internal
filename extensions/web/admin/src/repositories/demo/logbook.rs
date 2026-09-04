@@ -59,19 +59,17 @@ pub async fn list_demo_logbook(
         r#"
         WITH merged AS (
             SELECT
-                'skill'::text                        AS kind,
-                e.created_at                         AS at,
-                e.user_id                            AS user_id,
-                e.session_id                         AS session_id,
-                e.metadata->'tool_input'->>'skill'   AS label,
-                e.plugin_id                          AS detail,
-                e.event_type                         AS status,
-                NULL::text                           AS policy
-            FROM plugin_usage_events e
-            WHERE e.created_at >= $1
-              AND ($2::text IS NULL OR e.user_id = $2)
-              AND e.tool_name = 'Skill'
-              AND e.metadata->'tool_input'->>'skill' IS NOT NULL
+                'skill'::text     AS kind,
+                v.invoked_at      AS at,
+                v.user_id         AS user_id,
+                v.session_id      AS session_id,
+                v.skill           AS label,
+                v.plugin_id       AS detail,
+                v.source          AS status,
+                NULL::text        AS policy
+            FROM skill_invocation_events v
+            WHERE v.invoked_at >= $1
+              AND ($2::text IS NULL OR v.user_id = $2)
 
             UNION ALL
 
