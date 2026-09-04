@@ -129,6 +129,7 @@ fn is_non_admin_allowed_path(path: &str) -> bool {
         || path.starts_with("/admin/settings")
         || path.starts_with("/admin/auth/")
         || path.starts_with("/admin/api/")
+        || path == "/admin/demo/me"
         || path == "/admin/logout"
         || path == "/admin/login"
         || path == "/admin/setup"

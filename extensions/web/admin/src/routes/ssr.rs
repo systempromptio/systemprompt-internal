@@ -21,6 +21,7 @@ pub fn admin_ssr_router(
         .merge(access_routes())
         .merge(catalog_routes())
         .merge(entity_routes())
+        .merge(demo_routes())
         .merge(account_routes())
         .merge(api_routes())
         .layer(Extension(engine.clone()))
@@ -203,6 +204,17 @@ fn entity_routes() -> Router<Arc<PgPool>> {
             "/governance/decisions",
             get(handlers::ssr::governance_decisions_page),
         )
+}
+
+// Why: `/demo/me` is scoped to the caller by the handler, not by a query
+// parameter, so it is the one page in this group `non_admin_gate_middleware`
+// lets a non-admin through to.
+fn demo_routes() -> Router<Arc<PgPool>> {
+    Router::new()
+        .route("/demo", get(handlers::ssr::demo_logbook_page))
+        .route("/demo/skills", get(handlers::ssr::demo_skills_page))
+        .route("/demo/tools", get(handlers::ssr::demo_tools_page))
+        .route("/demo/me", get(handlers::ssr::demo_me_page))
 }
 
 fn account_routes() -> Router<Arc<PgPool>> {

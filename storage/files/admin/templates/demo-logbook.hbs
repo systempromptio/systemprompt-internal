@@ -1,0 +1,59 @@
+{{#> layout title=title page=page}}
+    {{#*inline "content"}}
+    {{> components/page-header title=title subtitle=subtitle}}
+
+    <section class="contexts-kpis" aria-label="Demo KPIs">
+        {{#each kpis}}
+        {{> components/stat-card label=label value=value variant=variant testid=testid}}
+        {{/each}}
+    </section>
+
+    <section class="demo-scenarios" aria-label="Governance scenarios">
+        {{#each scenarios}}
+        <a class="demo-scenario demo-scenario--{{tone}}" href="{{href}}">
+            <span class="demo-scenario__letter" aria-hidden="true">{{letter}}</span>
+            <span class="demo-scenario__body">
+                <span class="demo-scenario__title">{{title}}</span>
+                <span class="demo-scenario__description">{{description}}</span>
+            </span>
+            <span class="demo-scenario__count">{{formatNumber count}}</span>
+        </a>
+        {{/each}}
+    </section>
+
+    <section aria-label="Logbook">
+        {{#if has_rows}}
+        {{#> components/data-table}}
+            <thead><tr>
+                <th class="col-date">Time</th>
+                <th class="col-status">Kind</th>
+                <th>User</th>
+                <th>What</th>
+                <th>Detail</th>
+                <th class="col-status">Outcome</th>
+                <th>Policy</th>
+            </tr></thead>
+            <tbody>
+            {{#each rows}}
+            <tr>
+                <td class="col-date"><span title="{{formatDate at}}">{{relativeTime at}}</span></td>
+                <td class="col-status"><span class="badge badge-secondary">{{kind_label}}</span></td>
+                <td>{{user_email}}</td>
+                <td><code class="code-inline">{{label}}</code></td>
+                <td>{{#if detail}}{{detail}}{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
+                <td class="col-status">
+                    {{#if status}}{{> components/badge color=status_color text=status}}
+                    {{else}}<span class="text-tertiary">—</span>{{/if}}
+                </td>
+                <td>{{#if policy}}<code class="code-inline">{{policy}}</code>{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
+            </tr>
+            {{/each}}
+            </tbody>
+        {{/components/data-table}}
+        {{else}}
+        {{> components/empty-state message="Nothing recorded yet. Run a skill or an MCP tool through Claude Code and this logbook fills in live."}}
+        {{/if}}
+        <p class="text-tertiary text-xs mt-3">{{attribution_note}}</p>
+    </section>
+    {{/inline}}
+{{/layout}}

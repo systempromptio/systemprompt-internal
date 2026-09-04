@@ -1,0 +1,111 @@
+{{#> layout title=title page=page}}
+    {{#*inline "content"}}
+    {{> components/page-header title=title subtitle=subtitle}}
+
+    <section class="contexts-kpis" aria-label="Demo KPIs">
+        {{#each kpis}}
+        {{> components/stat-card label=label value=value variant=variant testid=testid}}
+        {{/each}}
+    </section>
+
+    {{> components/timeseries-chart chart}}
+
+    <section aria-label="MCP servers">
+        {{#if has_servers}}
+        <div class="demo-scenarios">
+            {{#each servers}}
+            <div class="demo-scenario demo-scenario--accent">
+                <span class="demo-scenario__body">
+                    <span class="demo-scenario__title">{{server}}</span>
+                    <span class="demo-scenario__description">
+                        {{formatNumber tool_count}} tools · {{formatNumber failure_count}} failed ·
+                        {{formatNumber denied}} denied · {{formatNumber held}} held · {{cost_display}}
+                    </span>
+                </span>
+                <span class="demo-scenario__count">{{formatNumber call_count}}</span>
+            </div>
+            {{/each}}
+        </div>
+        {{/if}}
+    </section>
+
+    <section aria-label="MCP tools">
+        {{#if has_tools}}
+        {{#> components/data-table}}
+            <thead><tr>
+                <th>Server</th>
+                <th>Tool</th>
+                <th class="numeric col-numeric">Calls</th>
+                <th class="numeric col-numeric">Failed</th>
+                <th class="numeric col-numeric">Failure rate</th>
+                <th class="numeric col-numeric">Users</th>
+                <th class="numeric col-numeric">Allowed</th>
+                <th class="numeric col-numeric">Denied</th>
+                <th class="numeric col-numeric">Held</th>
+                <th class="numeric col-numeric">Approved</th>
+                <th class="numeric col-numeric">Rejected</th>
+                <th class="numeric col-numeric">Pending</th>
+                <th class="numeric col-numeric">Tokens</th>
+                <th class="numeric col-numeric">Cost</th>
+                <th class="col-date">Last used</th>
+            </tr></thead>
+            <tbody>
+            {{#each tools}}
+            <tr>
+                <td><span class="badge badge-secondary">{{server}}</span></td>
+                <td><code class="code-inline">{{tool}}</code></td>
+                <td class="numeric">{{formatNumber call_count}}</td>
+                <td class="numeric">{{formatNumber failure_count}}</td>
+                <td class="numeric">{{failure_rate_display}}</td>
+                <td class="numeric">{{formatNumber distinct_users}}</td>
+                <td class="numeric">{{formatNumber allowed}}</td>
+                <td class="numeric">{{formatNumber denied}}</td>
+                <td class="numeric">{{formatNumber held}}</td>
+                <td class="numeric">{{formatNumber approved}}</td>
+                <td class="numeric">{{formatNumber rejected}}</td>
+                <td class="numeric">{{formatNumber approval_pending}}</td>
+                <td class="numeric">{{tokens_display}}</td>
+                <td class="numeric">{{cost_display}}</td>
+                <td class="col-date">
+                    {{#if last_used_at}}<span title="{{formatDate last_used_at}}">{{relativeTime last_used_at}}</span>
+                    {{else}}<span class="text-tertiary">Never</span>{{/if}}
+                </td>
+            </tr>
+            {{/each}}
+            </tbody>
+        {{/components/data-table}}
+        {{else}}
+        {{> components/empty-state message="No MCP tool calls recorded yet."}}
+        {{/if}}
+    </section>
+
+    <section aria-label="Users by tool">
+        <h2 class="section-title">Who called what</h2>
+        {{#if matrix.has_data}}
+        <div class="demo-matrix">
+            <table class="demo-matrix__table">
+                <thead><tr>
+                    <th scope="col">User</th>
+                    {{#each matrix.columns}}<th scope="col">{{this}}</th>{{/each}}
+                    <th scope="col" class="numeric">Total</th>
+                </tr></thead>
+                <tbody>
+                {{#each matrix.rows}}
+                <tr>
+                    <th scope="row">{{user_email}}</th>
+                    {{#each cells}}
+                    <td class="demo-matrix__cell{{#if is_zero}} demo-matrix__cell--empty{{/if}}" style="--v:{{pct}}%">{{count}}</td>
+                    {{/each}}
+                    <td class="numeric">{{formatNumber total}}</td>
+                </tr>
+                {{/each}}
+                </tbody>
+            </table>
+        </div>
+        {{else}}
+        {{> components/empty-state message="No per-user MCP tool activity in this window."}}
+        {{/if}}
+        <p class="text-tertiary text-xs mt-3">{{attribution_note}}</p>
+    </section>
+    {{/inline}}
+{{/layout}}

@@ -199,3 +199,25 @@ pub(super) fn demo_help_misc_pages(page: &str) -> Option<(&'static str, &'static
         _ => None,
     }
 }
+
+pub(super) fn demo_help_demo_pages(page: &str) -> Option<(&'static str, &'static str)> {
+    match page {
+        "demo-logbook" => Some((
+            "The <strong>Demo Logbook</strong> is the single chronological record of what the demo did: every skill invocation, every MCP tool call, every policy decision, and every approval, merged into one stream. The three scenario cards are the demo script &mdash; a held call, a refused secret, a blocked tool &mdash; and each links straight to the decisions the matching policy stage produced. Token and cost figures are attributed by a same-user time window, not measured, because AI requests carry no tool-call identifier.",
+            "tool-governance",
+        )),
+        "demo-skills" => Some((
+            "<strong>Skill Adoption</strong> answers who actually uses which skills. Invocations come from the Claude Code <code>PostToolUse</code> hook, so a row exists only because someone really ran the skill. The user &times; skill matrix shows the spread across the team, and the attributed columns show what each skill's model calls cost.",
+            "skills",
+        )),
+        "demo-tools" => Some((
+            "<strong>MCP Tool Usage</strong> is the per-tool view of the MCP layer: call volume, failure rate, and the governance verdicts each tool attracted &mdash; allowed, denied, held for approval, then approved or rejected. Use it to see which tools the policy chain is actually gating and which pass through untouched.",
+            "mcp-servers",
+        )),
+        "demo-me" => Some((
+            "<strong>My Demo Usage</strong> is your own slice of the demo telemetry &mdash; the skills you ran, the MCP tools they called, and what the policy chain decided about them. It is scoped to your signed-in identity and takes no user parameter, so it shows your activity and no one else's.",
+            "profile",
+        )),
+        _ => None,
+    }
+}
