@@ -7,6 +7,7 @@ use crate::repositories::demo::logbook::{LogbookKind, LogbookRow};
 use crate::repositories::demo::mcp_tools::McpToolStatRow;
 use crate::repositories::demo::skill_invocations::SkillTotalRow;
 use crate::repositories::demo::{UsageMatrix, UsageMatrixRow};
+use systemprompt::identifiers::SessionId;
 
 #[derive(Debug, Serialize)]
 // Why: `testid` and `variant` are always serialized, empty when unset — the
@@ -35,7 +36,7 @@ pub(super) struct LogbookRowView {
     pub kind_label: &'static str,
     pub at: String,
     pub user_email: String,
-    pub session_id: String,
+    pub session_id: SessionId,
     pub label: String,
     pub detail: String,
     pub status: String,
@@ -148,7 +149,7 @@ pub(super) fn logbook_row_view(row: &LogbookRow) -> LogbookRowView {
         kind_label,
         at: row.at.to_rfc3339(),
         user_email: describe_user(row.user_email.as_ref(), row.user_id.as_str()),
-        session_id: row.session_id.as_str().to_owned(),
+        session_id: row.session_id.clone(),
         label: row.label.clone(),
         detail: row.detail.clone().unwrap_or_default(),
         status_color: status_color(&status),

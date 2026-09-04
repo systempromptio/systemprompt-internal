@@ -79,6 +79,7 @@ fn kpi_strip(kpis: &DemoKpis) -> Vec<KpiView> {
         kpi_variant("Held for approval", kpis.held.to_string(), "warning"),
         kpi_variant("Secrets refused", kpis.refused.to_string(), "danger"),
         kpi_variant("Tools blocked", kpis.blocked.to_string(), "danger"),
+        kpi_variant("Allowed", kpis.allowed.to_string(), "success"),
         kpi_variant("Approved", kpis.approved.to_string(), "success"),
         kpi(
             "Attributed tokens",
