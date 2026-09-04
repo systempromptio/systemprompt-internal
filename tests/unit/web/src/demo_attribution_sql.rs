@@ -1,8 +1,10 @@
-//! Pins the attribution window into the two queries that implement it.
+//! Pins the two SQL rules that nothing else type-checks.
 //!
-//! The rule is documented once in `repositories::demo::attribution`, but it is
-//! executed twice, in SQL, where nothing type-checks it. These assertions fail
-//! the moment one query's window drifts from the documented predicate.
+//! The attribution window is documented once in
+//! `repositories::demo::attribution` and executed twice, and the real-verdict
+//! predicate is documented once in `repositories::demo::policy` and executed
+//! three times. These assertions fail the moment a query drifts from the
+//! documented form.
 
 use systemprompt_web_admin::repositories::demo::attribution::{
     ATTRIBUTION_PAD_MINUTES, MCP_WINDOW_PREDICATE, SKILL_WINDOW_PREDICATE,
@@ -15,6 +17,12 @@ const SKILL_SQL: &str =
     include_str!("../../../../extensions/web/admin/src/repositories/demo/skill_invocations.rs");
 const MCP_SQL: &str =
     include_str!("../../../../extensions/web/admin/src/repositories/demo/mcp_tools/invocations.rs");
+const STATS_SQL: &str =
+    include_str!("../../../../extensions/web/admin/src/repositories/demo/mcp_tools/stats.rs");
+const LOGBOOK_SQL: &str =
+    include_str!("../../../../extensions/web/admin/src/repositories/demo/logbook.rs");
+const KPIS_SQL: &str =
+    include_str!("../../../../extensions/web/admin/src/repositories/demo/kpis.rs");
 
 #[test]
 fn the_skill_query_uses_the_documented_window() {

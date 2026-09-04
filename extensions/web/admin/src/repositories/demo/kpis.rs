@@ -97,8 +97,7 @@ async fn get_decision_counts(
             (SELECT COUNT(*) FROM governance_decisions g
               WHERE g.created_at >= $1 AND ($2::text IS NULL OR g.user_id = $2)
                 AND g.decision = 'allow'
-                AND g.policy <> 'authz'
-                AND NOT (g.policy = 'authz_rule_based' AND g.plugin_id IS NULL))::bigint
+                AND g.policy <> 'authz' AND NOT (g.policy = 'authz_rule_based' AND g.plugin_id IS NULL))::bigint
                 AS "allowed!"
         "#,
         filter.since,
