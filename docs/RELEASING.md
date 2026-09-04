@@ -96,6 +96,30 @@ Only once core is published on crates.io do you comment the two
 `[patch.crates-io]` blocks (root and `tests/`, in lockstep) and continue with
 Step A.
 
+### `bridge/CORE_REF` gates the whole remote proof
+
+Every job in `ci.yml` and `quality.yml` materialises the sibling core checkout
+at the ref in `bridge/CORE_REF` — core is not on crates.io, so this is how the
+runner gets it. It is therefore not only the bridge's pin: **it decides which
+core the release PR compiles against.**
+
+- On `next` it is a 40-char SHA on core's `next`. Advance it whenever core
+  `next` moves, or the PR gates against an older core.
+- On `main` it is `v<version>`. `sync-release-version.sh --check` accepts both
+  forms, so nothing catches the switch being missed — the promotion commit has
+  to carry it.
+
+`bridge/Cargo.toml` is a third manifest but not a third patch block: it takes
+core by a bare path dep (`systemprompt-bridge = { path = "../../systemprompt-core/bin/bridge" }`,
+no version), so it is sibling-coupled on every branch and never resolves from
+the registry. There is nothing to comment out there, and a `grep` for
+`patch.crates-io` in it matches only the comment saying so.
+
+There are three lockfiles — `Cargo.lock`, `tests/Cargo.lock`,
+`bridge/Cargo.lock` — and `cargo update -w` re-resolves the root workspace
+only. Re-resolve each explicitly after toggling the patch; a manifest
+`--check` reads manifests and cannot see a lockfile still pointing at a path.
+
 ## Step A — bump and validate locally
 
 ```bash
@@ -110,17 +134,31 @@ files: CasaOS compose, DigitalOcean compose + Packer default), runs
 `cargo update -w`, migrations against the local DB, `just build`, and
 `just clippy`.
 
-Then exercise anything the core changelog touches, review the diff, and run
-the full gate:
+Then exercise anything the core changelog touches and review the diff.
+
+**Every check runs in exactly one place.** The exhaustive matrix — fmt, the
+offline sqlx cache, the 24 source gates, clippy at `-D warnings` on all three
+manifests, rustdoc, MSRV, the unit / integration / contract / e2e suites and
+supply chain — runs once, on the promotion PR, pinned to the frozen commit.
+Do not run `just verify` or dispatch `just gate` as part of a release, and do
+not re-verify after the PR is green.
+
+Local is a confidence pass covering only what a runner cannot tell you sooner:
 
 ```bash
-just verify
+SIBLING_REPO=../systemprompt-template bash scripts/check-fork-drift.sh
+bash scripts/check-release-version.sh
 ```
 
-`verify` is the whole check in one command — `cargo fmt --check`, the offline
-sqlx cache, the 19 source gates, clippy at `-D warnings`, and the unit,
-integration, and admin-contract test suites. It is what a CI pipeline would
-have run. Commit to main and push only once it is green.
+`check-fork-drift` skips itself in CI (no sibling checkout), so it is local-only
+by construction. `check-release-version` guards the silently-dropped patch above,
+which no build log can surface.
+
+**`ci.yml` and `quality.yml` trigger only on `pull_request` to `main`/`next`,
+`workflow_dispatch` and `workflow_call` — there is no `push` trigger.** A push
+to `next` runs nothing, so `next` accumulates gate debt in silence and the
+promotion PR is this repo's only remote proof. Anything the PR would catch has
+to be fixed on `next` before it opens; commit there, never to `main`.
 
 ## Step B — tag
 
