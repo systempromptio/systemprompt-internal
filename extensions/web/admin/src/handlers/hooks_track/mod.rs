@@ -21,7 +21,7 @@ use crate::repositories::marketplace::webhook;
 use crate::types::webhook::{HookEvent, HookEventPayload};
 use auth::extract_and_validate_jwt;
 use axum::Json;
-use axum::extract::{Extension, State};
+use axum::extract::{Extension, Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use sqlx::PgPool;
@@ -29,16 +29,23 @@ use std::sync::Arc;
 use systemprompt::ai::AiService;
 use systemprompt::identifiers::{SessionId, UserId};
 
+#[derive(Debug, Clone, Default, serde::Deserialize)]
+pub(crate) struct TrackQuery {
+    pub plugin_id: Option<String>,
+}
+
 pub(crate) async fn handle_hook_track(
     Extension(event_hub): Extension<EventHub>,
     Extension(ai_service): Extension<Option<Arc<AiService>>>,
     State(pool): State<Arc<PgPool>>,
+    Query(query): Query<TrackQuery>,
     headers: HeaderMap,
     // JSON: protocol boundary — the third-party hook envelope, parsed into typed
     // events by `HookEventPayload::from_value` after the raw copy is retained
     Json(raw): Json<serde_json::Value>,
 ) -> AdminResult<Response> {
-    let (user_id, plugin_id, jwt_token) = extract_and_validate_jwt(&headers)?;
+    let (user_id, plugin_id, jwt_token) =
+        extract_and_validate_jwt(&headers, query.plugin_id.as_deref())?;
     tracing::trace!(payload = %helpers::sanitize_metadata(&raw), "Hook track received payload");
     let (payload, warnings) = HookEventPayload::from_value(raw);
     if matches!(&payload.event, HookEvent::PreToolUse(_)) {
@@ -46,7 +53,7 @@ pub(crate) async fn handle_hook_track(
     }
     log_payload_warnings(&payload, &warnings);
 
-    let was_inserted = insert_hook_event(&pool, &user_id, &payload).await;
+    let was_inserted = insert_hook_event(&pool, &user_id, &plugin_id, &payload).await;
     if !was_inserted {
         tracing::trace!(
             plugin_id = %plugin_id,
@@ -105,7 +112,12 @@ async fn dispatch_inserted_event(ctx: &DispatchContext<'_>) {
     .await;
 }
 
-async fn insert_hook_event(pool: &PgPool, user_id: &UserId, payload: &HookEventPayload) -> bool {
+async fn insert_hook_event(
+    pool: &PgPool,
+    user_id: &UserId,
+    plugin_id: &str,
+    payload: &HookEventPayload,
+) -> bool {
     let session_id = SessionId::new(payload.session_id());
     let description = description::generate_description(payload);
     let prompt_preview = helpers::generate_prompt_preview(payload);
@@ -116,6 +128,7 @@ async fn insert_hook_event(pool: &PgPool, user_id: &UserId, payload: &HookEventP
     let usage_params = webhook::UsageEventParams {
         user_id,
         session_id: &session_id,
+        plugin_id: Some(plugin_id),
         event_type: payload.event_name(),
         tool_name: payload.tool_name(),
         metadata: &sanitized_metadata,
