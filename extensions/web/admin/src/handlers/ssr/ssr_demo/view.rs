@@ -9,13 +9,14 @@ use crate::repositories::demo::skill_invocations::SkillTotalRow;
 use crate::repositories::demo::{UsageMatrix, UsageMatrixRow};
 
 #[derive(Debug, Serialize)]
+// Why: `testid` and `variant` are always serialized, empty when unset — the
+// stat-card partial receives them as hash parameters, and a skipped field is a
+// missing-path lookup under the engine's strict mode.
 pub(super) struct KpiView {
     pub label: &'static str,
     pub value: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub testid: Option<&'static str>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub variant: Option<&'static str>,
+    pub testid: &'static str,
+    pub variant: &'static str,
 }
 
 #[derive(Debug, Serialize)]

@@ -37,8 +37,8 @@ fn kpi(label: &'static str, value: String) -> KpiView {
     KpiView {
         label,
         value,
-        testid: None,
-        variant: None,
+        testid: "",
+        variant: "",
     }
 }
 
@@ -46,8 +46,8 @@ fn kpi_tagged(label: &'static str, value: String, testid: &'static str) -> KpiVi
     KpiView {
         label,
         value,
-        testid: Some(testid),
-        variant: None,
+        testid,
+        variant: "",
     }
 }
 
@@ -55,8 +55,8 @@ fn kpi_variant(label: &'static str, value: String, variant: &'static str) -> Kpi
     KpiView {
         label,
         value,
-        testid: None,
-        variant: Some(variant),
+        testid: "",
+        variant,
     }
 }
 
