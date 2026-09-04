@@ -1,7 +1,0 @@
-      <tr>{{#each headers}}<th>{{this}}</th>{{/each}}</tr>
-{{#each rows}}{{#if band}}      <tr class="band"><td colspan="{{../span}}">{{{inline label}}}</td></tr>
-{{else}}      <tr{{#if total}} class="total"{{/if}}>
-        <td>{{{inline label}}}</td>
-{{#each cells}}        <td{{#if num}} class="num{{#if win}} win{{/if}}{{#if lose}} lose{{/if}}"{{else}}{{#if win}} class="win"{{/if}}{{/if}}>{{{lines text}}}</td>
-{{/each}}      </tr>
-{{/if}}{{/each}}
