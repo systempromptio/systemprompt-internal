@@ -15,6 +15,7 @@ pub mod jobs;
 pub mod marketplace;
 pub mod mcp;
 pub mod organizations;
+pub mod real_users;
 pub mod reports;
 pub mod secrets;
 pub mod traces;

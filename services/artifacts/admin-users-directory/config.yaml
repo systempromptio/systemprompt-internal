@@ -1,7 +1,7 @@
 id: admin-users-directory
 name: "Users — Directory"
-description: "Everyone with an account on this workspace as a live, refreshable table — name, email, roles, status, and signup date. Refresh runs the admin systemprompt CLI server; admin role required."
-version: "1.2.1"
+description: "Everyone with an account on this workspace as a live, refreshable table — name, email, roles, status, and signup date. Anonymous visitors are excluded; pass --include-anonymous to see them. Refresh runs the admin systemprompt CLI server; admin role required."
+version: "1.3.0"
 enabled: true
 starred: true
 category: admin

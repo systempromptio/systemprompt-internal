@@ -11,6 +11,7 @@ use crate::templates::AdminTemplateEngine;
 use crate::types::{IdQuery, MarketplaceContext, UserContext};
 use axum::extract::{Extension, Query, State};
 use axum::response::Response;
+use serde::Deserialize;
 use sqlx::PgPool;
 
 use super::types::{PageStatView, UserDetailPageData, UserRuntimeView, UsersPageData};
@@ -18,17 +19,26 @@ use super::types::{PageStatView, UserDetailPageData, UserRuntimeView, UsersPageD
 mod data;
 mod view;
 
+// Why: anonymous visitors are user rows; the roster excludes them unless the
+// operator asks, so the page can still be used to inspect raw traffic.
+#[derive(Debug, Default, Deserialize)]
+pub(crate) struct UsersQuery {
+    #[serde(default)]
+    pub include_anonymous: bool,
+}
+
 pub(crate) async fn users_page(
     Extension(user_ctx): Extension<UserContext>,
     Extension(mkt_ctx): Extension<MarketplaceContext>,
     Extension(engine): Extension<AdminTemplateEngine>,
     State(pool): State<Arc<PgPool>>,
+    Query(query): Query<UsersQuery>,
 ) -> AdminHtmlResult<Response> {
     if !user_ctx.is_admin {
         return Err(AdminError::Forbidden("Admin access required.".to_owned()).into());
     }
 
-    let users = repositories::users::queries::list_users(&pool)
+    let users = repositories::users::queries::list_users_filtered(&pool, query.include_anonymous)
         .await
         .unwrap_or_else(|e| {
             tracing::warn!(error = %e, "Failed to list users");
@@ -38,6 +48,13 @@ pub(crate) async fn users_page(
     let total_users = users.len();
     let active_users = users.iter().filter(|u| u.is_active).count();
     let total_events: i64 = users.iter().map(|u| u.total_events).sum();
+
+    let anonymous_users = repositories::users::queries::count_anonymous_users(&pool)
+        .await
+        .unwrap_or_else(|e| {
+            tracing::warn!(error = %e, "Failed to count anonymous users");
+            0
+        });
 
     let groups = data::load_user_groups(&pool, &users).await;
 
@@ -54,6 +71,10 @@ pub(crate) async fn users_page(
             value: total_events,
             label: "Events",
         },
+        PageStatView {
+            value: anonymous_users,
+            label: "Anonymous",
+        },
     ];
 
     let data = UsersPageData {
@@ -63,6 +84,8 @@ pub(crate) async fn users_page(
         total_users,
         active_users,
         total_events,
+        anonymous_users,
+        include_anonymous: query.include_anonymous,
         page_stats,
     };
 

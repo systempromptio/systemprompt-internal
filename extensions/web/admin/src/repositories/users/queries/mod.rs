@@ -12,7 +12,7 @@ pub use detail::{
 };
 pub use events::list_user_usage;
 pub use identity::{UserIdentity, find_user_identity};
-pub use listing::{list_distinct_roles, list_users};
+pub use listing::{count_anonymous_users, list_distinct_roles, list_users, list_users_filtered};
 pub use role::find_user_roles_department;
 pub use runtime::{
     UserRuntimeAggregate, UserRuntimeDetail, get_user_runtime_detail, list_user_runtime_aggregates,

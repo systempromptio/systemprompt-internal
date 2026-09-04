@@ -218,10 +218,10 @@ var CONFIG = {
     { label: "Signed up", path: "created_at", cell: "date" }
   ],
   kpis: [
-    { label: "Accounts", fmt: "int", calc: function(r){return r.filter(function(x){return !hasRole(x,"anonymous");}).length;}, sub: function(r){return r.length + " rows incl. anonymous visitors";} },
+    { label: "Accounts", fmt: "int", calc: function(r){return r.length;}, sub: function(){return "anonymous visitors excluded";} },
     { label: "Admins", fmt: "int", calc: function(r){return r.filter(function(x){return hasRole(x,"admin");}).length;} },
     { label: "New in 24h", fmt: "int", calc: function(r){var c=Date.now()-864e5;return r.filter(function(x){var d=new Date(x.created_at);return !isNaN(d.getTime())&&d.getTime()>=c;}).length;} },
-    { label: "Anonymous", fmt: "int", calc: function(r){return r.filter(function(x){return hasRole(x,"anonymous");}).length;}, sub: function(){return "per-browser visitors, not accounts";} }
+    { label: "Active", fmt: "int", calc: function(r){return r.filter(function(x){return String(x.status||"").toLowerCase()==="active";}).length;}, sub: function(){return "anonymous traffic: see /admin/access/users";} }
   ]
 };
 function hasRole(u, role) {

@@ -69,6 +69,8 @@ pub(crate) struct UsersPageData {
     pub total_users: usize,
     pub active_users: usize,
     pub total_events: i64,
+    pub anonymous_users: i64,
+    pub include_anonymous: bool,
     #[serde(default)]
     pub page_stats: Vec<PageStatView>,
 }
