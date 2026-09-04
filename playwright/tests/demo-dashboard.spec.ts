@@ -73,7 +73,10 @@ test.describe('demo dashboards', () => {
     expect(await kpi(page, 'demo-kpi-mcp-calls'), 'the admin made MCP calls').toBeGreaterThan(0);
 
     await page.goto('/admin/demo');
-    await expect(page.locator('body')).toContainText('tool_blocklist');
+    await expect(page.locator('body'), 'the logbook names the policy that blocked the delete')
+      .toContainText('tool_blocklist');
+    await expect(page.locator('#admin-sidebar'), 'the admin gets the full Demo group')
+      .toContainText('Logbook');
   });
 
   test('non-admin sees only their own usage', async ({ page }) => {
@@ -95,7 +98,9 @@ test.describe('demo dashboards', () => {
     const body = page.locator('body');
     await expect(body, 'the blocked delete shows as denied').toContainText(/deny/i);
     await expect(body, 'the held write shows as pending').toContainText(/pending/i);
-    await expect(page.locator('nav'), 'no admin Demo links in the sidebar').not.toContainText('Logbook');
+    const sidebar = page.locator('#admin-sidebar');
+    await expect(sidebar, 'the non-admin keeps the personal Demo entry').toContainText('My usage');
+    await expect(sidebar, 'no admin Demo links in the sidebar').not.toContainText('Logbook');
 
     await shoot(page, 'user', 'me');
 
