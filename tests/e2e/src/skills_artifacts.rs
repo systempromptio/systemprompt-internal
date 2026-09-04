@@ -200,18 +200,21 @@ async fn every_manifest_named_bundle_file_is_fetchable_and_dashboards_ship_with_
     assert_eq!(
         business_tools("my-day"),
         serde_json::json!([
-            "mcp__odoo__business_overview_data",
+            "mcp__odoo__crm_lead_search",
             "mcp__odoo__activity_list",
             "mcp__odoo__task_list",
             "mcp__odoo__note_search",
+            "mcp__odoo__calendar_event_list",
             "mcp__odoo__crm_stage_list",
             "mcp__odoo__activity_complete",
             "mcp__odoo__task_update",
             "mcp__odoo__crm_lead_update",
             "mcp__odoo__note_add"
         ]),
-        "my-day reads the briefing, activities, tasks, notes and stages, and writes back through \
-         the tick, the star, the stage menu and the note button"
+        "my-day reads leads, activities, tasks, notes, the calendar and stages, and writes back \
+         through the tick, the star, the stage menu and the note button. business_overview_data \
+         is gone: the briefing is derived from the typed lead rows the page already holds, so it \
+         cannot disagree with the tables beneath it"
     );
     assert_eq!(
         business_tools("sales-pipeline"),
@@ -249,13 +252,17 @@ async fn the_admin_bundle_is_served_to_admins_and_refused_to_users() {
 
     let admin = stack.manifest(&stack.admin_token).await;
     let paths = bundle_paths(&admin, "systemprompt-admin");
-    for id in ["admin-activity-requests", "admin-usage-costs"] {
+    for id in [
+        "admin-activity-requests",
+        "admin-usage-costs",
+        "governance-approvals",
+    ] {
         assert!(
             paths.contains(&format!("artifacts/{id}.html").as_str()),
             "{id} ships in the admin bundle: {paths:?}"
         );
     }
-    let (status, _) = stack
+    let (status, body) = stack
         .send(
             "GET",
             "/v1/bridge/plugins/systemprompt-admin/artifacts/manifest.json",
@@ -264,6 +271,29 @@ async fn the_admin_bundle_is_served_to_admins_and_refused_to_users() {
         )
         .await;
     assert_eq!(status, StatusCode::OK);
+
+    // The approvals page is load bearing twice over: short its allowlist and
+    // the queue still renders and still loads, but Approve and Deny fail at
+    // the click. The order is the order the config declares — the two reads,
+    // then the one write. The CLI passthrough is deliberately not among them:
+    // every figure on that page is a typed row.
+    let admin_bundle: serde_json::Value =
+        serde_json::from_str(&body).expect("admin manifest.json parses");
+    let approvals = admin_bundle["artifacts"]
+        .as_array()
+        .expect("artifact records")
+        .iter()
+        .find(|a| a["id"] == "governance-approvals")
+        .expect("governance-approvals bundled in systemprompt-admin");
+    assert_eq!(
+        approvals["mcpTools"],
+        serde_json::json!([
+            "mcp__systemprompt__approval_list",
+            "mcp__systemprompt__approval_history",
+            "mcp__systemprompt__approval_decide"
+        ]),
+        "the approvals dashboard reads the queue and the history, and writes one decision"
+    );
 
     let (status, body) = stack
         .send(

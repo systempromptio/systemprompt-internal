@@ -97,6 +97,19 @@ ul{list-style:none;margin:0;padding:0;}
 .group{margin-top:16px;}
 .group:first-child{margin-top:0;}
 .row{border-top:1px solid var(--line-soft);padding:11px 0;}
+.row.dirty{background:var(--accent-soft);box-shadow:inset 2px 0 0 var(--accent);
+  padding-left:9px;margin-left:-9px;border-radius:0 var(--radius-sm) var(--radius-sm) 0;}
+.row.dirty .stage{border-color:var(--accent-line);color:var(--ink);font-weight:700;}
+.savebar{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:12px;
+  padding:9px 12px;border-radius:var(--radius-sm);background:var(--accent-soft);
+  border:1px solid var(--accent-line);}
+.savebar.busy{opacity:0.6;pointer-events:none;}
+.savebar .sb-n{font-size:11.5px;font-weight:700;color:var(--ink);margin-right:auto;}
+.savebar .sb-go{font:inherit;font-size:12px;font-weight:700;cursor:pointer;color:oklch(0.99 0 0);
+  background:var(--accent);border:1px solid var(--accent);border-radius:9999px;padding:6px 14px;}
+.savebar .sb-no{font:inherit;font-size:12px;font-weight:600;cursor:pointer;color:var(--muted);
+  background:none;border:0;padding:6px 4px;}
+.savebar .sb-no:hover{color:var(--ink);}
 .group .row:first-of-type{border-top:0;}
 .row.won{opacity:0.62;}
 .top{display:flex;align-items:flex-start;gap:12px;}
@@ -133,6 +146,32 @@ select.stage:disabled{cursor:default;opacity:0.6;}
 .drawer .note:first-of-type{border-top:0;}
 .drawer .note b{color:var(--ink);font-size:11.5px;}
 .drawer .acts{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+/* The inline action panel. Native modals (window.prompt / window.confirm) are
+   not available inside the sandboxed iframe an artifact renders in — they
+   return null without ever showing, which silently swallows the action — so
+   anything needing input or confirmation opens one of these in the page. It
+   also puts the pending write in front of the reader before it happens. */
+.panel{margin:8px 0 2px;padding:11px 13px;border-radius:var(--radius-sm);
+  background:var(--glass);border:1px solid var(--accent-line);}
+.panel .lab{display:block;font-size:11px;font-weight:700;color:var(--ink-2);
+  text-transform:uppercase;letter-spacing:0.05em;margin-bottom:7px;}
+.panel input[type=text],.panel input[type=date],.panel textarea{
+  font:inherit;font-size:12.5px;color:var(--ink);background:oklch(1 0 0 / 0.9);
+  border:1px solid var(--line);border-radius:var(--radius-sm);padding:7px 11px;
+  width:100%;display:block;margin-bottom:8px;resize:vertical;}
+.panel input:focus,.panel textarea:focus{outline:none;border-color:var(--accent-line);}
+.panel .btns{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.panel .go{font:inherit;font-size:12px;font-weight:700;cursor:pointer;color:oklch(0.99 0 0);
+  background:var(--accent);border:1px solid var(--accent);border-radius:9999px;padding:6px 15px;}
+.panel .go.danger{background:var(--lost);border-color:var(--lost);}
+.panel .no{font:inherit;font-size:12px;font-weight:600;cursor:pointer;color:var(--muted);
+  background:none;border:0;padding:6px 4px;}
+.panel .no:hover{color:var(--ink);}
+.panel .hint{color:var(--muted);font-size:11px;margin:0 0 8px;line-height:1.5;}
+/* What the card can do, stated once at the top of the card rather than left
+   for the reader to discover by clicking things. */
+.can{margin:-4px 0 10px;color:var(--muted);font-size:11.5px;line-height:1.5;}
+.can b{color:var(--ink-2);font-weight:600;}
 @keyframes rise{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
 @media (prefers-reduced-motion: no-preference){
   .grid > *{animation:rise .42s cubic-bezier(.22,1,.36,1) both;animation-delay:calc(var(--i,0)*40ms);}
@@ -167,7 +206,7 @@ select.stage:disabled{cursor:default;opacity:0.6;}
         <span class="sep"></span>
         <div>
           <h1 class="ttl">Sales <span class="em">Pipeline</span></h1>
-          <p class="sub">Every lead and open deal, live from Odoo as you — and workable from here. Move a stage, close it won or lost, add a note, schedule a follow-up.</p>
+          <p class="sub">Every lead and open deal, live from Odoo as you — and workable from here. Stage a move and save when you are ready, close it won or lost, add a note, schedule a follow-up.</p>
         </div>
       </div>
       <div class="hd-r">
@@ -179,11 +218,22 @@ select.stage:disabled{cursor:default;opacity:0.6;}
     <div class="grid" id="grid">
       <div class="tiles" id="tiles" style="--i:0"></div>
       <section class="card" style="--i:1">
+        <!-- Staged stage moves live here until they are saved. A move used to
+             write on `change`, which meant the row left the open views the
+             instant the menu closed — the change was gone before it could be
+             read back. Now the menu only stages, and this bar is the one
+             place that commits. -->
+        <div class="savebar" id="savebar" hidden>
+          <span class="sb-n" id="sb-n"></span>
+          <button type="button" class="sb-go" id="sb-save">Review &amp; save</button>
+          <button type="button" class="sb-no" id="sb-discard">Discard</button>
+        </div>
         <div class="bar">
           <span class="views" id="views" role="group" aria-label="View">
             <button type="button" data-view="leads" aria-pressed="false">All leads</button>
             <button type="button" data-view="open" aria-pressed="true">Open deals</button>
             <button type="button" data-view="deadline" aria-pressed="false">By deadline</button>
+            <button type="button" data-view="owner" aria-pressed="false">By owner</button>
           </span>
           <input class="search" id="q" type="search" placeholder="Filter by name, contact, stage…" aria-label="Filter leads" />
           <span class="n" id="count" style="color:var(--muted);font-size:11.5px;font-weight:600;margin-left:auto"></span>
@@ -200,7 +250,7 @@ select.stage:disabled{cursor:default;opacity:0.6;}
     </div>
 
     <p class="foot">Reads <code>crm_lead_search</code> (twice — all leads, then open only, so a won deal can be told from an open one) · <code>crm_stage_list</code> · <code>note_list</code> on expand, executed as you.<br />
-    Writes: the stage menu runs <code>crm_lead_update</code> · Won and Lost run <code>crm_lead_mark_won</code> / <code>crm_lead_mark_lost</code> · Note runs <code>note_add</code> · Follow-up runs <code>activity_create</code>.</p>
+    Writes: the stage menu stages a move and <b>Review &amp; save</b> writes them, one <code>crm_lead_update</code> per lead · Won and Lost run <code>crm_lead_mark_won</code> / <code>crm_lead_mark_lost</code> · Note runs <code>note_add</code> · Follow-up runs <code>activity_create</code>.</p>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -273,15 +323,21 @@ select.stage:disabled{cursor:default;opacity:0.6;}
     if (payload && typeof payload.content === "string") return payload.content;
     try { return r.content[0].text || ""; } catch (e) { return ""; }
   };
+  /* A table artifact carries its rows in `items` and its column definitions in
+     `columns` — and `columns` is declared first. Scanning for "the first array
+     in the object" therefore finds the column list, whose entries have a `name`
+     but no `id`, and renders six column definitions as one deduped nonsense
+     row. So the keys are named explicitly, in order, and there is no
+     scan-for-any-array fallback: a shape we do not recognise must fail loudly
+     rather than quietly hand back the wrong array. */
+  var ROW_KEYS = ["items", "records", "rows", "data"];
   var rowsOf = function (r) {
     var v = r && r.structuredContent;
     if (v && typeof v.content === "string") return null;
     if (Array.isArray(v)) return v;
-    if (v && typeof v === "object") {
-      if (Array.isArray(v.records)) return v.records;
-      if (Array.isArray(v.rows)) return v.rows;
-      if (Array.isArray(v.data)) return v.data;
-      for (var k in v) if (Array.isArray(v[k])) return v[k];
+    if (!v || typeof v !== "object") return null;
+    for (var i = 0; i < ROW_KEYS.length; i++) {
+      if (Array.isArray(v[ROW_KEYS[i]])) return v[ROW_KEYS[i]];
     }
     return null;
   };
@@ -317,38 +373,82 @@ select.stage:disabled{cursor:default;opacity:0.6;}
     });
   };
 
+  /* Opens an inline panel under `host` and resolves through onSubmit. Fields
+     are [{name, label, value, type, rows}]; `type` is "text" (default),
+     "date" or "area". Enter submits a single-line field, Escape cancels.
+     Only one panel is open at a time, so a second click closes the first. */
+  var OPEN_PANEL = null;
+  var closePanel = function () {
+    if (!OPEN_PANEL) return;
+    if (OPEN_PANEL.el.parentNode) OPEN_PANEL.el.parentNode.removeChild(OPEN_PANEL.el);
+    if (OPEN_PANEL.onClose) OPEN_PANEL.onClose();
+    OPEN_PANEL = null;
+  };
+  var panel = function (host, opts) {
+    closePanel();
+    var el = document.createElement("div");
+    el.className = "panel";
+    var html = '<span class="lab">' + esc(opts.title) + "</span>";
+    if (opts.hint) html += '<p class="hint">' + esc(opts.hint) + "</p>";
+    (opts.fields || []).forEach(function (f) {
+      html += f.type === "area"
+        ? '<textarea rows="' + (f.rows || 3) + '" data-f="' + esc(f.name) + '" placeholder="' + esc(f.label || "") + '"></textarea>'
+        : '<input type="' + (f.type === "date" ? "date" : "text") + '" data-f="' + esc(f.name) +
+          '" placeholder="' + esc(f.label || "") + '" />';
+    });
+    html += '<div class="btns"><button type="button" class="go' + (opts.danger ? " danger" : "") + '">' +
+      esc(opts.submit || "Save") + '</button><button type="button" class="no">Cancel</button></div>';
+    el.innerHTML = html;
+
+    (opts.fields || []).forEach(function (f) {
+      if (f.value != null) el.querySelector('[data-f="' + f.name + '"]').value = f.value;
+    });
+
+    var values = function () {
+      var out = {};
+      (opts.fields || []).forEach(function (f) { out[f.name] = el.querySelector('[data-f="' + f.name + '"]').value.trim(); });
+      return out;
+    };
+    var submit = function () {
+      var v = values();
+      closePanel();
+      opts.onSubmit(v);
+    };
+    el.querySelector(".go").addEventListener("click", submit);
+    el.querySelector(".no").addEventListener("click", function () { closePanel(); });
+    el.addEventListener("keydown", function (ev) {
+      if (ev.key === "Escape") { ev.preventDefault(); closePanel(); return; }
+      if (ev.key === "Enter" && ev.target.tagName !== "TEXTAREA") { ev.preventDefault(); submit(); }
+    });
+
+    host.appendChild(el);
+    OPEN_PANEL = { el: el, onClose: opts.onClose };
+    var first = el.querySelector("input, textarea");
+    if (first) first.focus();
+    return el;
+  };
+
   var contract = JSON.parse($("odoo-query").textContent);
   var MODEL = "crm.lead";
   var LEADS = [];    // every lead, whether open or won
   var STAGES = [];   // [{id, name, won}] — fills the stage menus
   var VIEW = "open";
+  /* Staged stage moves: lead id → the stage name chosen but not yet written.
+     Held outside LEADS so a reload cannot half-apply one, and so the row keeps
+     showing Odoo's current stage beside the pending one. */
+  var PENDING = {};
   var OPEN_CAPPED = false;  // the open read hit its limit, so "won" is unknowable
 
-  var STAGE_ROW = /^- \*\*\[(\d+)\] (.+?)\*\*(.*)$/;
-  var NOTE_ROW = /^- \*\*(.+?)\*\* — (.*?) \((.*?)\)$/;
-
-  var parseStages = function (md) {
-    var out = [];
-    String(md || "").split("\n").forEach(function (l) {
-      var m = l.match(STAGE_ROW);
-      if (m) out.push({ id: +m[1], name: dash(m[2]), won: /counts as won/.test(m[3]) });
-    });
-    return out;
-  };
-  var parseNotes = function (md) {
-    var out = [], cur = null;
-    String(md || "").split("\n").forEach(function (l) {
-      var m = l.match(NOTE_ROW);
-      if (m) { cur = { date: dash(m[1]), author: dash(m[2]), kind: dash(m[3]), body: "" }; out.push(cur); return; }
-      if (cur && /^\s+\S/.test(l)) cur.body += (cur.body ? " " : "") + l.trim();
-    });
-    return out;
-  };
+  /* Odoo writes `false` where a field is empty and ships a many2one as
+     [id, "Name"]; both are absorbed by the row structs' serde adapters, so an
+     absent value arrives here as null. These only decide how a null renders. */
+  var str = function (v) { return v == null ? "" : String(v); };
+  var num = function (v) { var n = Number(v); return isFinite(n) ? n : null; };
 
   /* ---- shaping --------------------------------------------------------- */
   var money = function (n) {
-    var v = Number(n);
-    if (!isFinite(v) || !v) return "—";
+    var v = num(n);
+    if (v == null || !v) return "—";
     return v >= 1000 ? Math.round(v / 1000) + "k" : String(Math.round(v));
   };
   var dayOf = function (d) { return d ? String(d).slice(0, 10) : ""; };
@@ -369,6 +469,7 @@ select.stage:disabled{cursor:default;opacity:0.6;}
     return "Later";
   };
   var BUCKETS = ["Overdue", "This week", "This month", "Later", "No close date"];
+  var UNASSIGNED = "Unassigned";
 
   var visible = function () {
     var q = ($("q").value || "").toLowerCase().trim();
@@ -386,7 +487,9 @@ select.stage:disabled{cursor:default;opacity:0.6;}
     var keys = [], map = {};
     var keyOf = VIEW === "deadline"
       ? function (l) { return bucket(dayOf(l.date_deadline)); }
-      : function (l) { return l.stage_id || "No stage"; };
+      : VIEW === "owner"
+        ? function (l) { return str(l.user_id) || UNASSIGNED; }
+        : function (l) { return l.stage_id || "No stage"; };
     rows.forEach(function (l) {
       var k = keyOf(l);
       if (!map[k]) { map[k] = []; keys.push(k); }
@@ -397,8 +500,20 @@ select.stage:disabled{cursor:default;opacity:0.6;}
       keys.forEach(function (k) {
         map[k].sort(function (a, b) { return (dayOf(a.date_deadline) || "9999") < (dayOf(b.date_deadline) || "9999") ? -1 : 1; });
       });
+    } else if (VIEW === "owner") {
+      // Why: owners sort by name so the sections keep the same order between
+      // reloads, but an unowned lead is the one thing a pipeline review has to
+      // act on, so its section is pinned last rather than sorted into the Us.
+      keys.sort(function (a, b) {
+        if (a === UNASSIGNED) return 1;
+        if (b === UNASSIGNED) return -1;
+        return a.localeCompare(b);
+      });
+      keys.forEach(function (k) {
+        map[k].sort(function (a, b) { return (Number(b.expected_revenue) || 0) - (Number(a.expected_revenue) || 0); });
+      });
     } else {
-      var order = STAGES.map(function (s) { return s.name; });
+      var order = STAGES.map(function (s) { return str(s.name); });
       keys.sort(function (a, b) {
         var ia = order.indexOf(a), ib = order.indexOf(b);
         return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
@@ -448,21 +563,22 @@ select.stage:disabled{cursor:default;opacity:0.6;}
     var sel = document.createElement("select");
     sel.className = "stage";
     sel.title = "Move this lead to another stage";
-    var names = STAGES.map(function (s) { return s.name; });
+    var names = STAGES.map(function (s) { return str(s.name); }).filter(Boolean);
     if (current && names.indexOf(current) === -1) names.unshift(current);
     names.forEach(function (n) {
       var o = document.createElement("option");
       o.value = n; o.textContent = n; if (n === current) o.selected = true;
       sel.appendChild(o);
     });
-    if (!STAGES.length) sel.disabled = true;
+    if (!names.length) sel.disabled = true;
     return sel;
   };
 
   /* ---- one lead row, with its four actions ----------------------------- */
   var leadRow = function (l) {
     var row = document.createElement("div");
-    row.className = "row" + (l.open ? "" : " won");
+    row.className = "row" + (l.open ? "" : " won") +
+      (Object.prototype.hasOwnProperty.call(PENDING, l.id) ? " dirty" : "");
 
     var top = document.createElement("div");
     top.className = "top";
@@ -495,45 +611,57 @@ select.stage:disabled{cursor:default;opacity:0.6;}
       pill.textContent = "Won";
       act.appendChild(pill);
     } else {
-      /* Move a stage → crm_lead_update. The tool resolves the stage by NAME
-         against the pipeline, so the menu is built from crm_stage_list rather
-         than from guessed ids. `fields` is required by the schema and is sent
-         empty: the stage move is the whole change. */
-      var sel = stageMenu(l.stage_id);
-      var prev = sel.value;
+      /* Move a stage: staged here, written by the save bar. The menu shows the
+         pending stage if there is one, so switching view or filtering does not
+         lose an unsaved edit. Nothing is sent on `change` — writing there moved
+         the lead out of the current view before the reader could confirm it,
+         which read as the row vanishing. */
+      var sel = stageMenu(PENDING[l.id] || l.stage_id);
       sel.addEventListener("change", function () {
         var next = sel.value;
-        write(row, contract.writes.stage, { id: l.id, stage: next, fields: {} },
-          (l.name || "Lead " + l.id) + " moved to " + next + ".",
-          function () { prev = next; l.stage_id = next; if (VIEW !== "deadline") renderRows(); },
-          function () { sel.value = prev; });
+        if (next === (l.stage_id || "")) delete PENDING[l.id];
+        else PENDING[l.id] = next;
+        row.classList.toggle("dirty", Object.prototype.hasOwnProperty.call(PENDING, l.id));
+        renderBar();
       });
       act.appendChild(sel);
 
       var won = document.createElement("button");
       won.className = "btn win"; won.type = "button"; won.textContent = "Won";
       won.addEventListener("click", function () {
-        if (!window.confirm("Mark \"" + (l.name || "Lead " + l.id) + "\" as won in Odoo?")) return;
-        write(row, contract.writes.won, { id: l.id },
-          (l.name || "Lead " + l.id) + " closed won.",
-          function () { l.open = false; renderTiles(); renderRows(); setStatus("live"); },
-          function () {});
+        panel(row, {
+          title: "Close this deal won",
+          hint: "Odoo moves " + (str(l.name) || "Lead " + l.id) + " into its won stage. It leaves the open views here.",
+          submit: "Mark won",
+          onSubmit: function () {
+            write(row, contract.writes.won, { id: l.id },
+              (str(l.name) || "Lead " + l.id) + " closed won.",
+              function () { l.open = false; renderTiles(); renderRows(); setStatus("live"); },
+              function () {});
+          }
+        });
       });
       act.appendChild(won);
 
       var lost = document.createElement("button");
       lost.className = "btn lose"; lost.type = "button"; lost.textContent = "Lost";
       lost.addEventListener("click", function () {
-        var reason = window.prompt("Why was \"" + (l.name || "Lead " + l.id) + "\" lost? (recorded on the lead)", "");
-        if (reason === null) return;
-        write(row, contract.writes.lost, { id: l.id, reason: reason || undefined },
-          (l.name || "Lead " + l.id) + " closed lost.",
-          function () {
-            /* A lost lead is archived in Odoo, so it leaves every view here. */
-            LEADS = LEADS.filter(function (x) { return x.id !== l.id; });
-            renderTiles(); renderRows(); setStatus("live");
-          },
-          function () {});
+        panel(row, {
+          title: "Close this deal lost",
+          hint: "Recorded on the lead, so the pipeline report can say more than \u201cclosed\u201d. Odoo archives the lead, so it leaves every view here.",
+          fields: [{ name: "reason", label: "Why was it lost? (optional)" }],
+          submit: "Mark lost",
+          danger: true,
+          onSubmit: function (v) {
+            write(row, contract.writes.lost, { id: l.id, reason: v.reason || undefined },
+              (str(l.name) || "Lead " + l.id) + " closed lost.",
+              function () {
+                LEADS = LEADS.filter(function (x) { return x.id !== l.id; });
+                renderTiles(); renderRows(); setStatus("live");
+              },
+              function () {});
+          }
+        });
       });
       act.appendChild(lost);
     }
@@ -553,7 +681,7 @@ select.stage:disabled{cursor:default;opacity:0.6;}
       drawer.innerHTML = "<h3>Chatter</h3><p class=\"empty\">Loading…</p>";
       timedCall(contract.notes, { model: MODEL, res_id: l.id, limit: 20 }).then(function (r) {
         if (r && r.isError) { drawer.innerHTML = "<h3>Chatter</h3><p class=\"empty\">" + esc(errText(r, "Could not read the chatter.")) + "</p>"; loaded = false; return; }
-        drawNotes(parseNotes(text(r)));
+        drawNotes(rowsOf(r) || []);
       }).catch(function (e) {
         drawer.innerHTML = "<h3>Chatter</h3><p class=\"empty\">" + esc(String((e && e.message) || e)) + "</p>";
         loaded = false;
@@ -563,8 +691,9 @@ select.stage:disabled{cursor:default;opacity:0.6;}
     var drawNotes = function (notes) {
       drawer.innerHTML = "<h3>Chatter</h3>" + (notes.length
         ? notes.map(function (n) {
-            return '<div class="note"><b>' + esc(n.author || "—") + "</b> · " + esc(n.date) +
-              (n.kind ? " · " + esc(n.kind) : "") + "<br />" + esc(n.body || "(empty note)") + "</div>";
+            return '<div class="note"><b>' + esc(str(n.author_id) || "—") + "</b> · " + esc(str(n.date)) +
+              (n.message_type ? " · " + esc(str(n.message_type)) : "") + "<br />" +
+              esc(str(n.body) || "(empty note)") + "</div>";
           }).join("")
         : '<p class="empty">Nothing on this record yet.</p>');
 
@@ -575,12 +704,18 @@ select.stage:disabled{cursor:default;opacity:0.6;}
       var addNote = document.createElement("button");
       addNote.className = "btn"; addNote.type = "button"; addNote.textContent = "Add note";
       addNote.addEventListener("click", function () {
-        var body = window.prompt("Note to log on \"" + (l.name || "Lead " + l.id) + "\":", "");
-        if (body === null || !body.trim()) return;
-        write(drawer, contract.writes.note, { model: MODEL, res_id: l.id, body: body.trim() },
-          "Note added.",
-          function () { loaded = false; drawer.classList.remove("open"); toggle(); },
-          function () {});
+        panel(drawer, {
+          title: "Add a note to " + (str(l.name) || "Lead " + l.id),
+          fields: [{ name: "body", label: "Your note — it lands in this lead's chatter", type: "area", rows: 3 }],
+          submit: "Add note",
+          onSubmit: function (v) {
+            if (!v.body) return;
+            write(drawer, contract.writes.note, { model: MODEL, res_id: l.id, body: v.body },
+              "Note added.",
+              function () { loaded = false; drawer.classList.remove("open"); toggle(); },
+              function () {});
+          }
+        });
       });
       acts.appendChild(addNote);
 
@@ -590,17 +725,24 @@ select.stage:disabled{cursor:default;opacity:0.6;}
       var follow = document.createElement("button");
       follow.className = "btn"; follow.type = "button"; follow.textContent = "Schedule follow-up";
       follow.addEventListener("click", function () {
-        var summary = window.prompt("What is the follow-up?", "Follow up on " + (l.name || "this lead"));
-        if (summary === null || !summary.trim()) return;
-        var when = window.prompt("Due date (YYYY-MM-DD):", plus(3));
-        if (when === null) return;
-        when = when.trim();
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(when)) { toast("That is not a YYYY-MM-DD date.", true); return; }
-        write(drawer, contract.writes.followUp,
-          { model: MODEL, res_id: l.id, summary: summary.trim(), date_deadline: when },
-          "Follow-up scheduled for " + when + ".",
-          function () { loaded = false; drawer.classList.remove("open"); toggle(); },
-          function () {});
+        panel(drawer, {
+          title: "Schedule a follow-up",
+          hint: "Creates an Odoo activity on this lead, assigned to you, of this deployment\u2019s default type.",
+          fields: [
+            { name: "summary", label: "What is the follow-up?", value: "Follow up on " + (str(l.name) || "this lead") },
+            { name: "date_deadline", label: "Due date", type: "date", value: plus(3) }
+          ],
+          submit: "Schedule",
+          onSubmit: function (v) {
+            if (!v.summary) { toast("A follow-up needs a summary.", true); return; }
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(v.date_deadline)) { toast("Pick a due date.", true); return; }
+            write(drawer, contract.writes.followUp,
+              { model: MODEL, res_id: l.id, summary: v.summary, date_deadline: v.date_deadline },
+              "Follow-up scheduled for " + v.date_deadline + ".",
+              function () { loaded = false; drawer.classList.remove("open"); toggle(); },
+              function () {});
+          }
+        });
       });
       acts.appendChild(follow);
 
@@ -615,11 +757,85 @@ select.stage:disabled{cursor:default;opacity:0.6;}
     return row;
   };
 
+  var byId = function (id) {
+    for (var i = 0; i < LEADS.length; i++) if (String(LEADS[i].id) === String(id)) return LEADS[i];
+    return null;
+  };
+  var pendingIds = function () { return Object.keys(PENDING); };
+
+  var renderBar = function () {
+    var ids = pendingIds();
+    var bar = $("savebar");
+    bar.hidden = ids.length === 0;
+    if (!ids.length) return;
+    $("sb-n").textContent = ids.length === 1
+      ? "1 stage change not saved yet"
+      : ids.length + " stage changes not saved yet";
+  };
+
+  var pendingLines = function () {
+    return pendingIds().map(function (id) {
+      var l = byId(id);
+      return (str(l && l.name) || "Lead " + id) + ": " +
+        (str(l && l.stage_id) || "No stage") + " \u2192 " + PENDING[id];
+    });
+  };
+
+  var discard = function () {
+    PENDING = {};
+    renderRows(); renderBar();
+  };
+
+  /* Why: written one at a time rather than in parallel because each is a
+     separate audited tool call and a refusal must leave that lead — and only
+     that lead — still pending. A failure keeps its row dirty, so the bar goes
+     on showing exactly what did not land. */
+  var saveAll = function () {
+    var ids = pendingIds();
+    if (!ids.length) return;
+    var bar = $("savebar");
+    bar.classList.add("busy");
+    var saved = 0, failures = [];
+    var step = function (i) {
+      if (i >= ids.length) {
+        bar.classList.remove("busy");
+        renderTiles(); renderRows(); renderBar(); setStatus("live");
+        if (failures.length) {
+          toast(saved + " saved, " + failures.length + " refused \u2014 " + failures[0], true);
+        } else {
+          toast(saved === 1 ? "Stage change saved." : saved + " stage changes saved.");
+        }
+        return;
+      }
+      var id = ids[i], next = PENDING[id], lead = byId(id);
+      timedCall(contract.writes.stage, { id: Number(id), stage: next, fields: {} })
+        .then(function (r) {
+          if (r && r.isError) { failures.push(errText(r, "Odoo refused the change.")); }
+          else { saved++; if (lead) lead.stage_id = next; delete PENDING[id]; }
+          step(i + 1);
+        })
+        .catch(function (e) { failures.push(String((e && e.message) || e)); step(i + 1); });
+    };
+    step(0);
+  };
+
+  var confirmSave = function () {
+    var lines = pendingLines();
+    if (!lines.length) return;
+    panel($("savebar"), {
+      title: lines.length === 1 ? "Save this stage change" : "Save these " + lines.length + " stage changes",
+      hint: lines.join(" \u00b7 ") + ". Each is written to Odoo as you, one call per lead.",
+      submit: lines.length === 1 ? "Save it" : "Save all " + lines.length,
+      onSubmit: saveAll
+    });
+  };
+
   var renderRows = function () {
     var host = $("rows");
     var rows = visible();
     $("count").textContent = rows.length + (rows.length === 1 ? " lead" : " leads");
     host.innerHTML = "";
+    renderBar();
     if (!rows.length) {
       host.innerHTML = '<p class="empty">' + ($("q").value.trim()
         ? "No lead matches that filter."
@@ -642,46 +858,20 @@ select.stage:disabled{cursor:default;opacity:0.6;}
   /* ---- load ------------------------------------------------------------ */
   var FETCH = { tries: 0, max: 3, inflight: false };
 
-  var LEAD_MD = /^- \*\*\[(\d+)\] (.+?)\*\* — (.*?) · (.*?) · (.*?) · revenue (.*)$/;
-
-  /* crm_lead_search answers as a table artifact, so structured rows are the
-     normal path. The two fallbacks below are the shapes the gateway has been
-     seen to produce instead — a JSON document in the text channel, and the
-     markdown row rendering — and cost nothing until the first one misses.
-     The markdown row is the lossy one: it carries no deadline, probability or
-     tags, so those columns read empty rather than wrong. */
+  /* crm_lead_search answers with a table artifact: typed LeadRow objects under
+     `items`, carrying Odoo's own field names. There is deliberately no
+     markdown fallback here. The tool also renders rows as prose for the model
+     to read, but that rendering is a display string — parsing it back into
+     data is how a renderer change turns into a silently wrong pipeline, and it
+     drops every field the prose does not show (the close date, the
+     probability, the tags). If the typed shape is not there, that is a real
+     fault and it is reported as one. */
   var readLeads = function (spec) {
     return timedCall(spec.tool, spec.arguments).then(function (r) {
       if (r && r.isError) throw new Error(errText(r, "The Odoo query could not be completed."));
       var rows = rowsOf(r);
-      if (rows) return rows;
-
-      var body = text(r);
-      var parsed = null;
-      try { parsed = JSON.parse(body); }
-      catch (e) {
-        var cut = body.indexOf("\n\n");
-        try { parsed = JSON.parse(cut === -1 ? body : body.slice(cut + 2)); } catch (e2) { parsed = null; }
-      }
-      if (parsed) {
-        rows = rowsOf({ structuredContent: parsed });
-        if (rows) return rows;
-      }
-
-      var md = [];
-      body.split("\n").forEach(function (line) {
-        var m = line.match(LEAD_MD);
-        if (!m) return;
-        var rev = parseFloat(String(m[6]).replace(/[^0-9.\-]/g, ""));
-        md.push({ id: +m[1], name: dash(m[2]), stage_id: dash(m[3]), user_id: dash(m[4]),
-          partner_name: dash(m[5]), expected_revenue: isNaN(rev) ? null : rev, tags: [] });
-      });
-      if (md.length) return md;
-
-      /* An empty pipeline is not a parse failure — say so, rather than
-         reporting a broken query. */
-      if (/matched\. This is Odoo's answer/.test(body) || !body.trim()) return [];
-      throw new Error("Could not read the crm_lead_search response.");
+      if (!rows) throw new Error("crm_lead_search did not answer with typed rows.");
+      return rows;
     });
   };
 
@@ -703,7 +893,7 @@ select.stage:disabled{cursor:default;opacity:0.6;}
     /* The stage list only fills the menus; losing it disables them rather
        than blanking the page, so its failure is swallowed on purpose. */
     var stages = timedCall(contract.reads.stages.tool, contract.reads.stages.arguments)
-      .then(function (r) { STAGES = (r && r.isError) ? [] : parseStages(text(r)); })
+      .then(function (r) { STAGES = (r && r.isError) ? [] : (rowsOf(r) || []); })
       .catch(function () { STAGES = []; });
 
     Promise.all([readLeads(contract.reads.all), readLeads(contract.reads.open), stages])
@@ -729,6 +919,10 @@ select.stage:disabled{cursor:default;opacity:0.6;}
         });
 
         FETCH.inflight = false; FETCH.tries = 0;
+        // These rows are Odoo's answer, so nothing may still be staged against
+        // the rows they replaced — the reload paths above clear PENDING before
+        // they get here, and this keeps that true if another one is ever added.
+        PENDING = {};
         renderTiles(); renderRows(); setStatus("live");
       })
       .catch(function (e) { failedAttempt(String((e && e.message) || e)); });
@@ -745,8 +939,37 @@ select.stage:disabled{cursor:default;opacity:0.6;}
     });
   });
   $("q").addEventListener("input", renderRows);
-  $("reload").addEventListener("click", function () { FETCH.tries = 0; load(); });
-  window.addEventListener("message", function () { load(); });
+  $("sb-save").addEventListener("click", confirmSave);
+  $("sb-discard").addEventListener("click", function () {
+    var n = pendingIds().length;
+    panel($("savebar"), {
+      title: n === 1 ? "Discard this stage change" : "Discard these " + n + " stage changes",
+      hint: "Nothing has been written to Odoo yet, so this only clears what is staged here.",
+      submit: "Discard",
+      danger: true,
+      onSubmit: discard
+    });
+  });
+
+  /* Why: a reload re-reads every lead from Odoo, which would overwrite a
+     staged move with the stage Odoo still holds — the edit would vanish with
+     no way to tell it apart from one that saved. So the automatic refresh is
+     skipped while anything is pending, and the manual one asks first. */
+  $("reload").addEventListener("click", function () {
+    if (!pendingIds().length) { FETCH.tries = 0; load(); return; }
+    panel($("savebar"), {
+      title: "Reload and lose the staged changes?",
+      hint: pendingIds().length + " stage change(s) have not been written. Reloading re-reads " +
+        "every lead from Odoo and discards them.",
+      submit: "Discard and reload",
+      danger: true,
+      onSubmit: function () { PENDING = {}; FETCH.tries = 0; load(); }
+    });
+  });
+  window.addEventListener("message", function () {
+    if (pendingIds().length) return;
+    load();
+  });
   load();
 })();
 </script>
