@@ -32,8 +32,6 @@
     font-weight: var(--sp-font-normal);
 }
 
-/* Why: the cell tint carries the same information as the number printed in it,
-   so a reader who cannot separate the shades still reads the value. */
 .demo-matrix__cell {
     background: color-mix(in oklch, var(--sp-accent) var(--v), transparent);
     color: var(--sp-text-primary);
