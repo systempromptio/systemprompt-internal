@@ -1,0 +1,101 @@
+{{#> layout title=title page=page}}
+    {{#*inline "content"}}
+    {{> components/page-header title=title subtitle=subtitle}}
+
+    <section class="contexts-kpis" aria-label="Demo KPIs">
+        {{#each kpis}}
+        {{> components/stat-card label=label value=value variant=variant testid=testid}}
+        {{/each}}
+    </section>
+
+    {{> components/timeseries-chart chart}}
+
+    <section aria-label="Skills">
+        {{#if has_skills}}
+        {{#> components/data-table}}
+            <thead><tr>
+                <th>Plugin</th>
+                <th>Skill</th>
+                <th class="numeric col-numeric">Invocations</th>
+                <th class="numeric col-numeric">Users</th>
+                <th class="numeric col-numeric">Requests</th>
+                <th class="numeric col-numeric">Tokens</th>
+                <th class="numeric col-numeric">Cost</th>
+                <th class="col-date">Last used</th>
+            </tr></thead>
+            <tbody>
+            {{#each skills}}
+            <tr>
+                <td>{{#if plugin}}<span class="badge badge-secondary">{{plugin}}</span>{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
+                <td><code class="code-inline">{{skill}}</code></td>
+                <td class="numeric">{{formatNumber invocation_count}}</td>
+                <td class="numeric">{{formatNumber distinct_users}}</td>
+                <td class="numeric">{{formatNumber request_count}}</td>
+                <td class="numeric">{{tokens_display}}</td>
+                <td class="numeric">{{cost_display}}</td>
+                <td class="col-date">
+                    {{#if last_used_at}}<span title="{{formatDate last_used_at}}">{{relativeTime last_used_at}}</span>
+                    {{else}}<span class="text-tertiary">Never</span>{{/if}}
+                </td>
+            </tr>
+            {{/each}}
+            </tbody>
+        {{/components/data-table}}
+        {{else}}
+        {{> components/empty-state message="No skill invocations recorded yet."}}
+        {{/if}}
+    </section>
+
+    <section aria-label="Users by skill">
+        <h2 class="section-title">Who ran what</h2>
+        {{#if matrix.has_data}}
+        <div class="demo-matrix">
+            <table class="demo-matrix__table">
+                <thead><tr>
+                    <th scope="col">User</th>
+                    {{#each matrix.columns}}<th scope="col">{{this}}</th>{{/each}}
+                    <th scope="col" class="numeric">Total</th>
+                </tr></thead>
+                <tbody>
+                {{#each matrix.rows}}
+                <tr>
+                    <th scope="row">{{user_email}}</th>
+                    {{#each cells}}
+                    <td class="demo-matrix__cell{{#if is_zero}} demo-matrix__cell--empty{{/if}}" style="--v:{{pct}}%">{{count}}</td>
+                    {{/each}}
+                    <td class="numeric">{{formatNumber total}}</td>
+                </tr>
+                {{/each}}
+                </tbody>
+            </table>
+        </div>
+        {{else}}
+        {{> components/empty-state message="No per-user skill activity in this window."}}
+        {{/if}}
+    </section>
+
+    <section aria-label="Per-user totals">
+        {{#if has_user_totals}}
+        {{#> components/data-table}}
+            <thead><tr>
+                <th>User</th>
+                <th class="numeric col-numeric">Invocations</th>
+                <th class="numeric col-numeric">Tokens</th>
+                <th class="numeric col-numeric">Cost</th>
+            </tr></thead>
+            <tbody>
+            {{#each user_totals}}
+            <tr>
+                <td>{{user_email}}</td>
+                <td class="numeric">{{formatNumber total}}</td>
+                <td class="numeric">{{tokens_display}}</td>
+                <td class="numeric">{{cost_display}}</td>
+            </tr>
+            {{/each}}
+            </tbody>
+        {{/components/data-table}}
+        {{/if}}
+        <p class="text-tertiary text-xs mt-3">{{attribution_note}}</p>
+    </section>
+    {{/inline}}
+{{/layout}}

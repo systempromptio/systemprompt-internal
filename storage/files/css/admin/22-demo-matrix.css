@@ -1,0 +1,55 @@
+@layer components {
+
+.demo-matrix {
+    overflow-x: auto;
+    max-inline-size: 100%;
+    border: 1px solid var(--sp-border-default);
+    border-radius: var(--sp-radius-card);
+    background: var(--sp-bg-surface);
+}
+
+.demo-matrix__table {
+    border-collapse: collapse;
+    inline-size: 100%;
+    font-size: var(--sp-text-sm);
+}
+
+.demo-matrix__table th,
+.demo-matrix__table td {
+    padding: var(--sp-space-2) var(--sp-space-3);
+    border-block-end: 1px solid var(--sp-border-subtle);
+    text-align: start;
+    white-space: nowrap;
+}
+
+.demo-matrix__table thead th {
+    color: var(--sp-text-tertiary);
+    font-size: var(--sp-text-xs);
+    font-weight: var(--sp-font-medium);
+}
+
+.demo-matrix__table tbody th {
+    color: var(--sp-text-secondary);
+    font-weight: var(--sp-font-normal);
+}
+
+.demo-matrix__cell {
+    background: color-mix(in oklch, var(--sp-accent) var(--v), transparent);
+    color: var(--sp-text-primary);
+    font-family: var(--sp-font-mono);
+    font-variant-numeric: tabular-nums;
+    text-align: end;
+}
+
+.demo-matrix__cell--empty {
+    background: transparent;
+    color: var(--sp-text-disabled);
+}
+
+.demo-matrix__table td.numeric {
+    font-family: var(--sp-font-mono);
+    font-variant-numeric: tabular-nums;
+    text-align: end;
+}
+
+}

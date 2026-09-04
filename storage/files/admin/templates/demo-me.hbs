@@ -1,0 +1,122 @@
+{{#> layout title=title page=page}}
+    {{#*inline "content"}}
+    {{> components/page-header title=title subtitle=subtitle}}
+
+    <p class="text-secondary">
+        Signed in as <strong data-testid="demo-me-email">{{user_email}}</strong>.
+        This page is scoped to you and takes no user filter.
+    </p>
+
+    <section class="contexts-kpis" aria-label="My demo KPIs">
+        {{#each kpis}}
+        {{> components/stat-card label=label value=value variant=variant testid=testid}}
+        {{/each}}
+    </section>
+
+    {{> components/timeseries-chart chart}}
+    {{> components/timeseries-chart tool_chart}}
+
+    <section aria-label="My skills">
+        <h2 class="section-title">Skills you ran</h2>
+        {{#if has_skills}}
+        {{#> components/data-table}}
+            <thead><tr>
+                <th>Plugin</th>
+                <th>Skill</th>
+                <th class="numeric col-numeric">Invocations</th>
+                <th class="numeric col-numeric">Requests</th>
+                <th class="numeric col-numeric">Tokens</th>
+                <th class="numeric col-numeric">Cost</th>
+                <th class="col-date">Last used</th>
+            </tr></thead>
+            <tbody>
+            {{#each skills}}
+            <tr>
+                <td>{{#if plugin}}<span class="badge badge-secondary">{{plugin}}</span>{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
+                <td><code class="code-inline">{{skill}}</code></td>
+                <td class="numeric">{{formatNumber invocation_count}}</td>
+                <td class="numeric">{{formatNumber request_count}}</td>
+                <td class="numeric">{{tokens_display}}</td>
+                <td class="numeric">{{cost_display}}</td>
+                <td class="col-date">
+                    {{#if last_used_at}}<span title="{{formatDate last_used_at}}">{{relativeTime last_used_at}}</span>
+                    {{else}}<span class="text-tertiary">Never</span>{{/if}}
+                </td>
+            </tr>
+            {{/each}}
+            </tbody>
+        {{/components/data-table}}
+        {{else}}
+        {{> components/empty-state message="You have not run a skill yet. Start a Claude Code session against this instance and it appears here."}}
+        {{/if}}
+    </section>
+
+    <section aria-label="My MCP tools">
+        <h2 class="section-title">MCP tools you called</h2>
+        {{#if has_tools}}
+        {{#> components/data-table}}
+            <thead><tr>
+                <th>Server</th>
+                <th>Tool</th>
+                <th class="numeric col-numeric">Calls</th>
+                <th class="numeric col-numeric">Failed</th>
+                <th class="numeric col-numeric">Denied</th>
+                <th class="numeric col-numeric">Held</th>
+                <th class="numeric col-numeric">Tokens</th>
+                <th class="numeric col-numeric">Cost</th>
+            </tr></thead>
+            <tbody>
+            {{#each tools}}
+            <tr>
+                <td><span class="badge badge-secondary">{{server}}</span></td>
+                <td><code class="code-inline">{{tool}}</code></td>
+                <td class="numeric">{{formatNumber call_count}}</td>
+                <td class="numeric">{{formatNumber failure_count}}</td>
+                <td class="numeric">{{formatNumber denied}}</td>
+                <td class="numeric">{{formatNumber held}}</td>
+                <td class="numeric">{{tokens_display}}</td>
+                <td class="numeric">{{cost_display}}</td>
+            </tr>
+            {{/each}}
+            </tbody>
+        {{/components/data-table}}
+        {{else}}
+        {{> components/empty-state message="You have not called an MCP tool yet."}}
+        {{/if}}
+    </section>
+
+    <section aria-label="My logbook">
+        <h2 class="section-title">Your logbook</h2>
+        {{#if has_rows}}
+        {{#> components/data-table}}
+            <thead><tr>
+                <th class="col-date">Time</th>
+                <th class="col-status">Kind</th>
+                <th>What</th>
+                <th>Detail</th>
+                <th class="col-status">Outcome</th>
+                <th>Policy</th>
+            </tr></thead>
+            <tbody>
+            {{#each rows}}
+            <tr>
+                <td class="col-date"><span title="{{formatDate at}}">{{relativeTime at}}</span></td>
+                <td class="col-status"><span class="badge badge-secondary">{{kind_label}}</span></td>
+                <td><code class="code-inline">{{label}}</code></td>
+                <td>{{#if detail}}{{detail}}{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
+                <td class="col-status">
+                    {{#if status}}{{> components/badge color=status_color text=status}}
+                    {{else}}<span class="text-tertiary">—</span>{{/if}}
+                </td>
+                <td>{{#if policy}}<code class="code-inline">{{policy}}</code>{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
+            </tr>
+            {{/each}}
+            </tbody>
+        {{/components/data-table}}
+        {{else}}
+        {{> components/empty-state message="Nothing recorded for you yet."}}
+        {{/if}}
+        <p class="text-tertiary text-xs mt-3">{{attribution_note}}</p>
+    </section>
+    {{/inline}}
+{{/layout}}

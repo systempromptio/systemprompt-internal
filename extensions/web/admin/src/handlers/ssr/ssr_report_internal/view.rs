@@ -109,7 +109,7 @@ pub(super) fn trend_chart(points: &[PlatformMonthPoint]) -> ChartView {
     let total: i64 = points.iter().map(|p| p.cost_microdollars).sum();
     let (first, last) = (points.first(), points.last());
     ChartView {
-        title: "Provider cost by month",
+        heading: "Provider cost by month",
         subtitle: format!("{} across the window", format_cost(total)),
         tone: "success",
         series: points

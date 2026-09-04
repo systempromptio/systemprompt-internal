@@ -56,6 +56,14 @@ mod dashboard_traffic_queries;
 #[cfg(test)]
 mod dashboard_usage_daily;
 #[cfg(test)]
+mod demo_logbook;
+#[cfg(test)]
+mod demo_mcp_tool_invocations;
+#[cfg(test)]
+mod demo_mcp_tool_stats;
+#[cfg(test)]
+mod demo_skill_invocations;
+#[cfg(test)]
 mod departments_repository;
 #[cfg(test)]
 mod departments_rollups;

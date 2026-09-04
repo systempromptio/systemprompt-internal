@@ -7,13 +7,13 @@
 <a class="stat-card stat-card--link{{#if variant}} {{variant}}{{/if}}{{#if active}} is-active{{/if}}"
    href="{{href}}"{{#if hint}} title="{{hint}}"{{/if}}>
     <div class="label">{{label}}</div>
-    <div class="value">{{value}}</div>
+    <div class="value"{{#if testid}} data-testid="{{testid}}"{{/if}}>{{value}}</div>
     {{#if subtitle}}<div class="kpi-subtitle">{{subtitle}}</div>{{/if}}
 </a>
 {{else}}
 <div class="stat-card{{#if variant}} {{variant}}{{/if}}"{{#if hint}} title="{{hint}}"{{/if}}>
     <div class="label">{{label}}</div>
-    <div class="value">{{value}}</div>
+    <div class="value"{{#if testid}} data-testid="{{testid}}"{{/if}}>{{value}}</div>
     {{#if subtitle}}<div class="kpi-subtitle">{{subtitle}}</div>{{/if}}
 </div>
 {{/if}}
