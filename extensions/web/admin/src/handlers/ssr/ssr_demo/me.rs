@@ -12,7 +12,7 @@ use sqlx::PgPool;
 
 use super::context::DemoMeContext;
 use super::view::{logbook_row_view, mcp_tool_stat_view, skill_total_view};
-use super::{ATTRIBUTION_NOTE, CHART_DAYS, kpi_strip};
+use super::{ATTRIBUTION_NOTE, CHART_DAYS, logbook_kpi_strip};
 use crate::error::AdminHtmlResult;
 use crate::handlers::ssr::types::daily_count_chart;
 use crate::repositories::demo::DemoFilter;
@@ -77,16 +77,16 @@ async fn build_page_json(pool: &PgPool, user_ctx: &UserContext) -> DemoMeContext
         subtitle: "The skills you ran, the MCP tools they called, and what the \
                    policy chain decided — yours only.",
         user_email: user_ctx.email.as_str().to_owned(),
-        kpis: kpi_strip(&kpis),
+        kpis: logbook_kpi_strip(&kpis),
         chart: daily_count_chart(
             &skill_series,
-            "Your skill invocations per day",
+            "Skill invocations, last 14 days",
             "accent",
             "You have not run a skill in this window.",
         ),
         tool_chart: daily_count_chart(
             &tool_series,
-            "Your MCP tool calls per day",
+            "MCP tool calls, last 14 days",
             "success",
             "You have not called an MCP tool in this window.",
         ),

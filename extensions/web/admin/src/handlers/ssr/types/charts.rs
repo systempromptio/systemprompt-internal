@@ -21,7 +21,7 @@ use crate::util::time_range::TimeRange;
 // never derives a scale and the axis cannot disagree with the bars.
 #[derive(Debug, Serialize)]
 pub(crate) struct ChartView {
-    pub title: &'static str,
+    pub heading: &'static str,
     pub subtitle: String,
     pub tone: &'static str,
     pub series: Vec<ChartBarView>,
@@ -87,7 +87,7 @@ pub(crate) fn traffic_chart(buckets: &[TimeBucket], range: &TimeRange) -> ChartV
     let total: i64 = buckets.iter().map(|b| b.requests).sum();
     let errors: i64 = buckets.iter().map(|b| b.errors).sum();
     ChartView {
-        title: "Requests over time",
+        heading: "Requests over time",
         subtitle: format!("{total} calls · {errors} failed · peak {max} per bucket"),
         tone: "accent",
         series: buckets
@@ -120,7 +120,7 @@ pub(crate) fn cost_chart(buckets: &[TimeBucket], range: &TimeRange) -> ChartView
         .unwrap_or(0);
     let total: i64 = buckets.iter().map(|b| b.cost_microdollars).sum();
     ChartView {
-        title: "Cost over time",
+        heading: "Cost over time",
         subtitle: format!(
             "{} across the window · peak {} per bucket",
             format_cost(total),
@@ -174,7 +174,7 @@ fn format_bucket_time(ts: &chrono::DateTime<chrono::Utc>) -> String {
 // no days to label and falls through to the empty message.
 pub(crate) fn daily_count_chart(
     buckets: &[DailyBucket],
-    title: &'static str,
+    heading: &'static str,
     tone: &'static str,
     empty_message: &'static str,
 ) -> ChartView {
@@ -182,7 +182,7 @@ pub(crate) fn daily_count_chart(
     let total: i64 = buckets.iter().map(|b| b.count).sum();
     let failures: i64 = buckets.iter().map(|b| b.failures).sum();
     ChartView {
-        title,
+        heading,
         subtitle: format!("{total} in the window · {failures} failed · peak {max} per day"),
         tone,
         series: buckets
@@ -194,7 +194,7 @@ pub(crate) fn daily_count_chart(
             .collect(),
         has_data: max > 0,
         y_max_display: max.to_string(),
-        y_mid_display: (max / 2).to_string(),
+        y_mid_display: ((max + 1) / 2).to_string(),
         x_start_display: format_day(buckets.first()),
         x_mid_display: format_day(buckets.get(buckets.len() / 2)),
         x_end_display: format_day(buckets.last()),

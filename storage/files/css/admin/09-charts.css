@@ -150,6 +150,10 @@
     min-width: 0;
 }
 
+.timeseries + .timeseries {
+    margin-block-start: var(--sp-space-8);
+}
+
 .timeseries__head {
     display: flex;
     flex-direction: column;
@@ -195,6 +199,7 @@
     display: flex;
     align-items: flex-end;
     gap: 2px;
+    padding-inline-end: var(--sp-space-3);
     border-bottom: 1px solid var(--sp-border-default);
     background-image: linear-gradient(
         to bottom,

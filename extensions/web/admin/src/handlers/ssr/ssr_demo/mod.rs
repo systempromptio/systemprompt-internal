@@ -17,9 +17,9 @@ mod skills;
 mod tools;
 mod view;
 
-use crate::handlers::ssr::format::{format_cost, format_token_total};
+use crate::handlers::ssr::format::format_token_total;
 use crate::repositories::demo::kpis::DemoKpis;
-use view::{KpiView, ScenarioCard};
+use view::{KpiView, ScenarioCard, ToolVerdictTotals, format_demo_cost};
 
 pub(crate) use logbook::demo_logbook_page;
 pub(crate) use me::demo_me_page;
@@ -60,36 +60,74 @@ fn kpi_variant(label: &'static str, value: String, variant: &'static str) -> Kpi
     }
 }
 
-// Why: one strip on all four pages, so the two screenshot test ids exist
-// wherever a reader lands and the same number never appears twice under two
-// different labels.
-fn kpi_strip(kpis: &DemoKpis) -> Vec<KpiView> {
-    vec![
-        kpi_tagged(
-            "Skill invocations",
-            kpis.skill_invocations.to_string(),
-            "demo-kpi-skill-invocations",
-        ),
-        kpi_tagged(
-            "MCP tool calls",
-            kpis.mcp_calls.to_string(),
-            "demo-kpi-mcp-calls",
-        ),
-        kpi_variant("MCP failures", kpis.mcp_failures.to_string(), "danger"),
-        kpi_variant("Held for approval", kpis.held.to_string(), "warning"),
-        kpi_variant("Secrets refused", kpis.refused.to_string(), "danger"),
-        kpi_variant("Tools blocked", kpis.blocked.to_string(), "danger"),
-        kpi_variant("Allowed", kpis.allowed.to_string(), "success"),
-        kpi_variant("Approved", kpis.approved.to_string(), "success"),
+// Why: the two screenshot test ids ride on these three builders, so a page that
+// prints skill invocations or MCP calls always tags them, and a page that
+// prints neither does not invent a card to carry a tag.
+fn skill_invocations_kpi(kpis: &DemoKpis) -> KpiView {
+    kpi_tagged(
+        "Skill invocations",
+        kpis.skill_invocations.to_string(),
+        "demo-kpi-skill-invocations",
+    )
+}
+
+fn mcp_calls_kpi(kpis: &DemoKpis) -> KpiView {
+    kpi_tagged(
+        "MCP tool calls",
+        kpis.mcp_calls.to_string(),
+        "demo-kpi-mcp-calls",
+    )
+}
+
+fn attributed_kpis(kpis: &DemoKpis) -> [KpiView; 2] {
+    [
         kpi(
             "Attributed tokens",
             format_token_total(kpis.attributed_tokens),
         ),
         kpi(
             "Attributed cost",
-            format_cost(kpis.attributed_cost_microdollars),
+            format_demo_cost(kpis.attributed_cost_microdollars),
         ),
     ]
+}
+
+fn logbook_kpi_strip(kpis: &DemoKpis) -> Vec<KpiView> {
+    let mut strip = vec![
+        skill_invocations_kpi(kpis),
+        mcp_calls_kpi(kpis),
+        kpi_variant("MCP failures", kpis.mcp_failures.to_string(), "danger"),
+        kpi_variant("Held for approval", kpis.held.to_string(), "warning"),
+        kpi_variant("Secrets refused", kpis.refused.to_string(), "danger"),
+        kpi_variant("Tools blocked", kpis.blocked.to_string(), "danger"),
+        kpi_variant("Allowed", kpis.allowed.to_string(), "success"),
+        kpi_variant("Approved", kpis.approved.to_string(), "success"),
+    ];
+    strip.extend(attributed_kpis(kpis));
+    strip
+}
+
+fn skill_kpi_strip(kpis: &DemoKpis, distinct_skills: i64, distinct_users: i64) -> Vec<KpiView> {
+    let mut strip = vec![
+        skill_invocations_kpi(kpis),
+        kpi("Distinct skills", distinct_skills.to_string()),
+        kpi("Distinct users", distinct_users.to_string()),
+    ];
+    strip.extend(attributed_kpis(kpis));
+    strip
+}
+
+fn tool_kpi_strip(kpis: &DemoKpis, verdicts: &ToolVerdictTotals) -> Vec<KpiView> {
+    let mut strip = vec![
+        mcp_calls_kpi(kpis),
+        kpi_variant("Failures", kpis.mcp_failures.to_string(), "danger"),
+        kpi_variant("Allowed", verdicts.allowed.to_string(), "success"),
+        kpi_variant("Denied", verdicts.denied.to_string(), "danger"),
+        kpi_variant("Held", verdicts.held.to_string(), "warning"),
+        kpi_variant("Approved", verdicts.approved.to_string(), "success"),
+    ];
+    strip.extend(attributed_kpis(kpis));
+    strip
 }
 
 // Why: the three scenarios are the demo script (DEMO.md) — each card links at
@@ -98,8 +136,7 @@ fn kpi_strip(kpis: &DemoKpis) -> Vec<KpiView> {
 fn scenario_cards(kpis: &DemoKpis) -> Vec<ScenarioCard> {
     vec![
         ScenarioCard {
-            letter: "A",
-            title: "A held call",
+            heading: "A · The held call",
             description: "A tool call parked on a named human. Nothing ran until \
                           someone answered it at the approvals queue.",
             count: kpis.held,
@@ -107,8 +144,7 @@ fn scenario_cards(kpis: &DemoKpis) -> Vec<ScenarioCard> {
             tone: "warning",
         },
         ScenarioCard {
-            letter: "B",
-            title: "A refused secret",
+            heading: "B · The refused secret",
             description: "The secret scanner matched credential-shaped input and \
                           refused the call before it reached the tool.",
             count: kpis.refused,
@@ -116,8 +152,7 @@ fn scenario_cards(kpis: &DemoKpis) -> Vec<ScenarioCard> {
             tone: "danger",
         },
         ScenarioCard {
-            letter: "C",
-            title: "A blocked tool",
+            heading: "C · The blocked tool",
             description: "The blocklist refused a tool this caller is not entitled \
                           to invoke, whatever the arguments were.",
             count: kpis.blocked,

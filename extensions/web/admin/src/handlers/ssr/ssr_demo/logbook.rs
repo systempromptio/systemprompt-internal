@@ -8,7 +8,7 @@ use sqlx::PgPool;
 
 use super::context::DemoLogbookContext;
 use super::view::logbook_row_view;
-use super::{ATTRIBUTION_NOTE, kpi_strip, scenario_cards};
+use super::{ATTRIBUTION_NOTE, logbook_kpi_strip, scenario_cards};
 use crate::error::{AdminError, AdminHtmlResult};
 use crate::repositories::demo::DemoFilter;
 use crate::repositories::demo::kpis::{DemoKpis, get_demo_kpis};
@@ -37,7 +37,7 @@ async fn build_page_json(pool: &PgPool) -> DemoLogbookContext {
         title: "Demo Logbook",
         subtitle: "Every skill invocation, MCP tool call, policy decision and \
                    approval the demo produced, in the order it happened.",
-        kpis: kpi_strip(&kpis),
+        kpis: logbook_kpi_strip(&kpis),
         scenarios: scenario_cards(&kpis),
         has_rows: !rows.is_empty(),
         rows,

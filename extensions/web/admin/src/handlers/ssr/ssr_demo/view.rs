@@ -2,7 +2,7 @@
 
 use serde::Serialize;
 
-use crate::handlers::ssr::format::{format_cost, format_token_total};
+use crate::handlers::ssr::format::format_token_total;
 use crate::repositories::demo::logbook::{LogbookKind, LogbookRow};
 use crate::repositories::demo::mcp_tools::McpToolStatRow;
 use crate::repositories::demo::skill_invocations::SkillTotalRow;
@@ -22,8 +22,7 @@ pub(super) struct KpiView {
 
 #[derive(Debug, Serialize)]
 pub(super) struct ScenarioCard {
-    pub letter: &'static str,
-    pub title: &'static str,
+    pub heading: &'static str,
     pub description: &'static str,
     pub count: i64,
     pub href: &'static str,
@@ -77,6 +76,14 @@ pub(super) struct McpToolStatView {
     pub last_used_at: Option<String>,
 }
 
+#[derive(Debug, Default)]
+pub(super) struct ToolVerdictTotals {
+    pub allowed: i64,
+    pub denied: i64,
+    pub held: i64,
+    pub approved: i64,
+}
+
 #[derive(Debug, Serialize)]
 pub(super) struct ServerCardView {
     pub server: String,
@@ -115,6 +122,22 @@ pub(super) struct MatrixView {
     pub columns: Vec<String>,
     pub rows: Vec<MatrixRowView>,
     pub has_data: bool,
+}
+
+const MICRODOLLARS_PER_CENT: i64 = 10_000;
+
+// Why: attributed cost is often a fraction of a cent, and printing six decimals
+// reads as noise rather than as a small number. One rule, used by every demo
+// page: cents and above get two decimals, anything non-zero below a cent is
+// reported as under a cent rather than rounded away to zero.
+pub(super) fn format_demo_cost(microdollars: i64) -> String {
+    if microdollars <= 0 {
+        return "$0.00".to_owned();
+    }
+    if microdollars < MICRODOLLARS_PER_CENT {
+        return "<$0.01".to_owned();
+    }
+    format!("${:.2}", microdollars as f64 / 1_000_000.0)
 }
 
 fn describe_user(email: Option<&String>, fallback: &str) -> String {
@@ -174,7 +197,7 @@ pub(super) fn skill_total_view(row: &SkillTotalRow) -> SkillTotalView {
         distinct_users: row.distinct_users,
         request_count: row.request_count,
         tokens_display: format_token_total(row.total_tokens),
-        cost_display: format_cost(row.cost_microdollars),
+        cost_display: format_demo_cost(row.cost_microdollars),
         last_used_at: row.last_used_at.map(|d| d.to_rfc3339()),
     }
 }
@@ -194,7 +217,7 @@ pub(super) fn mcp_tool_stat_view(row: &McpToolStatRow) -> McpToolStatView {
         rejected: row.rejected,
         approval_pending: row.approval_pending,
         tokens_display: format_token_total(row.total_tokens),
-        cost_display: format_cost(row.cost_microdollars),
+        cost_display: format_demo_cost(row.cost_microdollars),
         last_used_at: row.last_used_at.map(|d| d.to_rfc3339()),
     }
 }
@@ -241,7 +264,7 @@ pub(super) fn user_total_views(matrix: &UsageMatrix) -> Vec<UserTotalView> {
             user_email: describe_user(r.user_email.as_ref(), r.user_id.as_str()),
             total: r.total,
             tokens_display: format_token_total(r.total_tokens),
-            cost_display: format_cost(r.cost_microdollars),
+            cost_display: format_demo_cost(r.cost_microdollars),
         })
         .collect()
 }

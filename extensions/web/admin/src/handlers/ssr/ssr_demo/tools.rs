@@ -8,10 +8,12 @@ use axum::response::Response;
 use sqlx::PgPool;
 
 use super::context::DemoToolsContext;
-use super::view::{McpToolStatView, ServerCardView, matrix_view, mcp_tool_stat_view};
-use super::{ATTRIBUTION_NOTE, CHART_DAYS, kpi_strip};
+use super::view::{
+    McpToolStatView, ServerCardView, ToolVerdictTotals, format_demo_cost, matrix_view,
+    mcp_tool_stat_view,
+};
+use super::{ATTRIBUTION_NOTE, CHART_DAYS, tool_kpi_strip};
 use crate::error::{AdminError, AdminHtmlResult};
-use crate::handlers::ssr::format::format_cost;
 use crate::handlers::ssr::types::daily_count_chart;
 use crate::repositories::demo::kpis::{DemoKpis, get_demo_kpis};
 use crate::repositories::demo::mcp_tools::{list_mcp_tool_stats, list_user_mcp_tool_matrix};
@@ -43,6 +45,7 @@ fn server_cards(tools: &[McpToolStatView], costs: &[i64]) -> Vec<ServerCardView>
     }
     by_server
         .into_iter()
+        .filter(|(_, t)| t.call_count > 0)
         .map(|(server, t)| ServerCardView {
             server: server.to_owned(),
             tool_count: t.tool_count,
@@ -50,7 +53,7 @@ fn server_cards(tools: &[McpToolStatView], costs: &[i64]) -> Vec<ServerCardView>
             failure_count: t.failure_count,
             denied: t.denied,
             held: t.held,
-            cost_display: format_cost(t.cost_microdollars),
+            cost_display: format_demo_cost(t.cost_microdollars),
         })
         .collect()
 }
@@ -81,6 +84,15 @@ async fn build_page_json(pool: &PgPool) -> DemoToolsContext {
     });
 
     let costs: Vec<i64> = stats.iter().map(|s| s.cost_microdollars).collect();
+    let verdicts = stats
+        .iter()
+        .fold(ToolVerdictTotals::default(), |mut acc, s| {
+            acc.allowed += s.allowed;
+            acc.denied += s.denied;
+            acc.held += s.held;
+            acc.approved += s.approved;
+            acc
+        });
     let tools: Vec<_> = stats.iter().map(mcp_tool_stat_view).collect();
     let servers = server_cards(&tools, &costs);
 
@@ -89,10 +101,10 @@ async fn build_page_json(pool: &PgPool) -> DemoToolsContext {
         title: "MCP Tool Usage",
         subtitle: "Every MCP tool call the demo made, what the policy chain said \
                    about it, and what it cost.",
-        kpis: kpi_strip(&kpis),
+        kpis: tool_kpi_strip(&kpis, &verdicts),
         chart: daily_count_chart(
             &series,
-            "MCP tool calls per day",
+            "MCP tool calls, last 14 days",
             "accent",
             "No MCP tool calls in this window.",
         ),

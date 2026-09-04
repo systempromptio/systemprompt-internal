@@ -8,7 +8,7 @@ use sqlx::PgPool;
 
 use super::context::DemoSkillsContext;
 use super::view::{matrix_view, skill_total_view, user_total_views};
-use super::{ATTRIBUTION_NOTE, CHART_DAYS, kpi_strip};
+use super::{ATTRIBUTION_NOTE, CHART_DAYS, skill_kpi_strip};
 use crate::error::{AdminError, AdminHtmlResult};
 use crate::handlers::ssr::types::daily_count_chart;
 use crate::repositories::demo::kpis::{DemoKpis, get_demo_kpis};
@@ -52,10 +52,10 @@ async fn build_page_json(pool: &PgPool) -> DemoSkillsContext {
         title: "Skill Adoption",
         subtitle: "Skill invocations recorded by the Claude Code hooks, with the \
                    AI usage attributed to each one.",
-        kpis: kpi_strip(&kpis),
+        kpis: skill_kpi_strip(&kpis, skills.len() as i64, matrix.rows.len() as i64),
         chart: daily_count_chart(
             &series,
-            "Skill invocations per day",
+            "Skill invocations, last 14 days",
             "accent",
             "No skill invocations in this window.",
         ),
