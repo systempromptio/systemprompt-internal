@@ -15,6 +15,21 @@ use crate::harness::stack::Stack;
 
 const LOGIN: &str = "e2e-notes@systemprompt.local";
 
+// Why: the note body is the one field these two tools exist to return, and it
+// is reached the way a dashboard reaches it — `items`, then `body`. A row that
+// does not deserialise is simply not a match, so a shape change fails the
+// assertion rather than passing on a lucky substring elsewhere in the JSON.
+fn note_bodies(structured: Option<&serde_json::Value>) -> impl Iterator<Item = &str> {
+    structured
+        .and_then(|v| v.get("items"))
+        .and_then(serde_json::Value::as_array)
+        .map(Vec::as_slice)
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|row| row.get("body").and_then(serde_json::Value::as_str))
+}
+
+
 #[tokio::test]
 async fn a_signed_in_user_posts_and_finds_notes_over_the_mcp_wire() {
     let Some(stack) = Stack::create().await else {
@@ -44,8 +59,13 @@ async fn a_signed_in_user_posts_and_finds_notes_over_the_mcp_wire() {
         "note_add confirms the post: {added}"
     );
 
-    let listed = mcp::call_tool(
-        server.port,
+    // note_list and note_search answer with typed tables: the body lives in a
+    // row under `items`, and the text block carries only the count. Asserting
+    // on the text would be reading the summary and calling it the data — the
+    // exact coupling these tools were converted to remove.
+    let url = format!("http://127.0.0.1:{}/mcp", server.port);
+    let (listed, listed_rows) = mcp::call_tool_full(
+        &url,
         &bearer,
         "note_list",
         serde_json::json!({ "model": "crm.lead", "res_id": 1 }),
@@ -53,12 +73,12 @@ async fn a_signed_in_user_posts_and_finds_notes_over_the_mcp_wire() {
     .await
     .expect("note_list succeeds");
     assert!(
-        listed.contains("E2E wildcard note"),
-        "the thread shows the note: {listed}"
+        note_bodies(listed_rows.as_ref()).any(|b| b.contains("E2E wildcard note")),
+        "the thread shows the note in its rows: {listed} / {listed_rows:?}"
     );
 
-    let searched = mcp::call_tool(
-        server.port,
+    let (searched, searched_rows) = mcp::call_tool_full(
+        &url,
         &bearer,
         "note_search",
         serde_json::json!({ "query": "%", "limit": 50 }),
@@ -66,8 +86,9 @@ async fn a_signed_in_user_posts_and_finds_notes_over_the_mcp_wire() {
     .await
     .expect("note_search succeeds");
     assert!(
-        searched.contains("E2E wildcard note"),
-        "a wildcard search is match-all, not a literal percent hunt: {searched}"
+        note_bodies(searched_rows.as_ref()).any(|b| b.contains("E2E wildcard note")),
+        "a wildcard search is match-all, not a literal percent hunt: {searched} / \
+         {searched_rows:?}"
     );
 
     // The lead dashboards' contract: crm_lead_search answers with a typed

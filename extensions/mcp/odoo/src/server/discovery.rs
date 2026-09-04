@@ -17,6 +17,7 @@ use systemprompt::models::artifacts::CliArtifact;
 use systemprompt::models::execution::context::RequestContext;
 
 use super::call::OdooCall;
+pub use super::discovery_shape::{StageRow, stage_rows, stage_table};
 use crate::client::SearchOptions;
 use crate::format::{empty_result, field_or_dash, text_artifact};
 use crate::tools::inputs::{ActivityTypeListInput, StageListInput, UserListInput, resolve_limit};
@@ -63,26 +64,13 @@ impl McpToolHandler for StageListHandler {
                 .search_read(&call.creds, "crm.stage", serde_json::json!([]), &options)
                 .await?;
 
-            if records.is_empty() {
-                let msg = empty_result("pipeline stages");
-                return Ok((text_artifact("Pipeline Stages", &msg), msg));
-            }
-
-            let mut body = String::from("Pipeline stages, in order:\n\n");
-            for record in &records {
-                let won = record
-                    .get("is_won")
-                    .and_then(serde_json::Value::as_bool)
-                    .unwrap_or(false);
-                body.push_str(&format!(
-                    "- **[{}] {}**{}\n",
-                    field_or_dash(record, "id"),
-                    field_or_dash(record, "name"),
-                    if won { " — counts as won" } else { "" }
-                ));
-            }
-            let summary = format!("{} pipeline stage(s)", records.len());
-            Ok((text_artifact("Pipeline Stages", &body), summary))
+            let rows = stage_rows(&records);
+            let summary = if rows.is_empty() {
+                empty_result("pipeline stages")
+            } else {
+                format!("{} pipeline stage(s)", rows.len())
+            };
+            Ok((CliArtifact::table(stage_table(&rows)), summary))
         }
     }
 }

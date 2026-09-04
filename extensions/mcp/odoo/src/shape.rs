@@ -32,6 +32,15 @@ pub fn many2one_id<'de, D: Deserializer<'de>>(d: D) -> Result<Option<i64>, D::Er
         .and_then(serde_json::Value::as_i64))
 }
 
+pub fn integer<'de, D: Deserializer<'de>>(d: D) -> Result<Option<i64>, D::Error> {
+    // JSON: protocol boundary — a plain integer column, which Odoo still writes
+    // as `false` when it is unset. `res_id` on a message posted to no record is
+    // the case that matters: without this the whole row fails to type and is
+    // dropped, losing a note that was only missing its anchor.
+    let v = serde_json::Value::deserialize(d)?;
+    Ok(v.as_i64())
+}
+
 pub fn many2many_ids<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<i64>, D::Error> {
     // JSON: protocol boundary — `[id, id, ...]`, or `false` when empty.
     let v = serde_json::Value::deserialize(d)?;

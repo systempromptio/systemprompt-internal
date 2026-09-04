@@ -13,6 +13,7 @@ use systemprompt::models::artifacts::CliArtifact;
 use systemprompt::models::execution::context::RequestContext;
 
 use super::call::OdooCall;
+pub use super::work_shape::{TaskRow, task_rows, task_table};
 use crate::client::SearchOptions;
 use crate::format::{empty_result, field_or_dash, text_artifact};
 use crate::resolve;
@@ -121,13 +122,13 @@ impl McpToolHandler for TaskListHandler {
                 )
                 .await?;
 
-            let summary = format!("{} task(s) matched", records.len());
-            let body = if records.is_empty() {
+            let rows = task_rows(&records);
+            let summary = if rows.is_empty() {
                 empty_result("tasks")
             } else {
-                records.iter().map(task_row).collect::<Vec<_>>().join("\n")
+                format!("{} task(s) matched", rows.len())
             };
-            Ok((text_artifact("Odoo Tasks", &body), summary))
+            Ok((CliArtifact::table(task_table(&rows)), summary))
         }
     }
 }

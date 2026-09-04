@@ -18,6 +18,7 @@ use systemprompt::models::artifacts::CliArtifact;
 use systemprompt::models::execution::context::RequestContext;
 
 use super::call::OdooCall;
+pub use super::notes_shape::{NoteRow, note_rows, note_search_table, note_thread_table};
 use crate::client::SearchOptions;
 use crate::format::{empty_result, field, field_or_dash, text_artifact};
 use crate::text::{html_to_text, snippet_around};
@@ -232,16 +233,13 @@ impl McpToolHandler for NoteListHandler {
                 input.model,
                 input.res_id
             );
-            let body = if records.is_empty() {
+            let rows = note_rows(&records);
+            let summary = if rows.is_empty() {
                 empty_result("chatter messages")
             } else {
-                records
-                    .iter()
-                    .map(thread_row)
-                    .collect::<Vec<_>>()
-                    .join("\n")
+                summary
             };
-            Ok((text_artifact("Odoo Record Chatter", &body), summary))
+            Ok((CliArtifact::table(note_thread_table(&rows)), summary))
         }
     }
 }
@@ -293,16 +291,13 @@ impl McpToolHandler for NoteSearchHandler {
             } else {
                 format!("{} note(s) mention \"{query}\"", records.len())
             };
-            let body = if records.is_empty() {
+            let rows = note_rows(&records);
+            let summary = if rows.is_empty() {
                 empty_result("notes")
             } else {
-                records
-                    .iter()
-                    .map(|r| search_row(r, &query))
-                    .collect::<Vec<_>>()
-                    .join("\n")
+                summary
             };
-            Ok((text_artifact("Odoo Note Search", &body), summary))
+            Ok((CliArtifact::table(note_search_table(&rows)), summary))
         }
     }
 }

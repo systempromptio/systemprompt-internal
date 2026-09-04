@@ -16,6 +16,7 @@ use systemprompt::models::artifacts::CliArtifact;
 use systemprompt::models::execution::context::RequestContext;
 
 use super::call::OdooCall;
+pub use super::work_shape::{EventRow, event_rows, event_table};
 use crate::client::SearchOptions;
 use crate::format::{empty_result, field_or_dash, text_artifact};
 use crate::text::html_to_text;
@@ -224,13 +225,13 @@ impl McpToolHandler for CalendarEventListHandler {
                 .search_read(&call.creds, EVENT_MODEL, event_domain(&input), &options)
                 .await?;
 
-            let summary = format!("{} calendar event(s)", records.len());
-            let body = if records.is_empty() {
+            let rows = event_rows(&records);
+            let summary = if rows.is_empty() {
                 empty_result("calendar events")
             } else {
-                records.iter().map(event_row).collect::<Vec<_>>().join("\n")
+                format!("{} calendar event(s)", rows.len())
             };
-            Ok((text_artifact("Odoo Calendar", &body), summary))
+            Ok((CliArtifact::table(event_table(&rows)), summary))
         }
     }
 }

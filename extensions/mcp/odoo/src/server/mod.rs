@@ -17,8 +17,11 @@ pub mod crm;
 pub mod crm_delete;
 mod crm_shape;
 pub mod discovery;
+mod discovery_shape;
 pub mod notes;
+mod notes_shape;
 pub mod overview;
+mod overview_shape;
 pub mod partner;
 pub mod partner_write;
 pub mod report;
@@ -27,6 +30,7 @@ mod sales_shape;
 pub mod tasks;
 #[doc(hidden)]
 pub mod tool;
+mod work_shape;
 
 use rmcp::model::{
     CallToolRequestParams, CallToolResponse, CallToolResult, ContentBlock, Implementation,

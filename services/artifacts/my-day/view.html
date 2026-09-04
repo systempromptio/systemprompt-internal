@@ -49,6 +49,9 @@ body{
 .reload{font:inherit;font-size:12.5px;font-weight:600;color:var(--ink);cursor:pointer;
   background:var(--accent-soft);border:1px solid var(--accent-line);border-radius:var(--radius-sm);padding:7px 16px;}
 .reload:hover{background:var(--accent);color:oklch(0.99 0 0);}
+.dash{font-size:12.5px;font-weight:600;color:var(--ink-2);text-decoration:none;white-space:nowrap;
+  background:var(--glass);border:1px solid var(--line);border-radius:var(--radius-sm);padding:7px 14px;}
+.dash:hover{border-color:var(--accent-line);color:var(--ink);}
 .card{border-radius:var(--radius-sm);background:var(--glass-2);border:1px solid var(--line);
   box-shadow:var(--shadow);backdrop-filter:blur(20px) saturate(125%);-webkit-backdrop-filter:blur(20px) saturate(125%);
   padding:16px 20px;}
@@ -110,6 +113,32 @@ select.stage:hover{border-color:var(--accent-line);}
   border-radius:9999px;padding:5px 13px;width:190px;max-width:45vw;}
 .search:focus{outline:none;border-color:var(--accent-line);}
 .rows{max-height:420px;overflow-y:auto;}
+/* The inline action panel. Native modals (window.prompt / window.confirm) are
+   not available inside the sandboxed iframe an artifact renders in — they
+   return null without ever showing, which silently swallows the action — so
+   anything needing input or confirmation opens one of these in the page. It
+   also puts the pending write in front of the reader before it happens. */
+.panel{margin:8px 0 2px;padding:11px 13px;border-radius:var(--radius-sm);
+  background:var(--glass);border:1px solid var(--accent-line);}
+.panel .lab{display:block;font-size:11px;font-weight:700;color:var(--ink-2);
+  text-transform:uppercase;letter-spacing:0.05em;margin-bottom:7px;}
+.panel input[type=text],.panel input[type=date],.panel textarea{
+  font:inherit;font-size:12.5px;color:var(--ink);background:oklch(1 0 0 / 0.9);
+  border:1px solid var(--line);border-radius:var(--radius-sm);padding:7px 11px;
+  width:100%;display:block;margin-bottom:8px;resize:vertical;}
+.panel input:focus,.panel textarea:focus{outline:none;border-color:var(--accent-line);}
+.panel .btns{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.panel .go{font:inherit;font-size:12px;font-weight:700;cursor:pointer;color:oklch(0.99 0 0);
+  background:var(--accent);border:1px solid var(--accent);border-radius:9999px;padding:6px 15px;}
+.panel .go.danger{background:var(--lost);border-color:var(--lost);}
+.panel .no{font:inherit;font-size:12px;font-weight:600;cursor:pointer;color:var(--muted);
+  background:none;border:0;padding:6px 4px;}
+.panel .no:hover{color:var(--ink);}
+.panel .hint{color:var(--muted);font-size:11px;margin:0 0 8px;line-height:1.5;}
+/* What the card can do, stated once at the top of the card rather than left
+   for the reader to discover by clicking things. */
+.can{margin:-4px 0 10px;color:var(--muted);font-size:11.5px;line-height:1.5;}
+.can b{color:var(--ink-2);font-weight:600;}
 @keyframes rise{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
 @media (prefers-reduced-motion: no-preference){
   .grid > *{animation:rise .42s cubic-bezier(.22,1,.36,1) both;animation-delay:calc(var(--i,0)*40ms);}
@@ -143,12 +172,13 @@ select.stage:hover{border-color:var(--accent-line);}
         <span class="brand"><svg viewBox="167 461 666 78" role="img" aria-label="systemprompt.io"><use href="#sp-logo"/></svg></span>
         <span class="sep"></span>
         <div>
-          <h1 class="ttl">My <span class="em">Day</span></h1>
-          <p class="sub">Your whole day on Odoo, live and as you — the pipeline, what is waiting on you, this week's new leads, and the team's chatter. Everything here is clickable.</p>
+          <h1 class="ttl" id="who">Welcome back</h1>
+          <p class="sub">Your day on Odoo, live and as you — the pipeline, what is waiting on you, this week's new leads, and the team's chatter. Tick, star, move a stage or add a note; each one writes straight to Odoo.</p>
         </div>
       </div>
       <div class="hd-r">
         <span class="status" id="status"><span class="dot"></span>Awaiting data</span>
+        <a class="dash" href="https://internal.systemprompt.io" target="_blank" rel="noopener">Dashboard</a>
         <button class="reload" id="reload">Reload</button>
       </div>
     </div>
@@ -195,30 +225,37 @@ select.stage:hover{border-color:var(--accent-line);}
       <p style="margin-top:10px">Link your Odoo login and API key on <a href="/admin/profile">your profile</a>, then press Reload.</p>
     </div>
 
-    <p class="foot">Reads <code>business_overview_data</code> · <code>activity_list</code> · <code>task_list</code> · <code>note_search</code> · <code>crm_stage_list</code>, executed as you.<br />
-    Writes: ticking an activity runs <code>activity_complete</code> · the star runs <code>task_update</code> · the stage menu runs <code>crm_lead_update</code> · Note runs <code>note_add</code>.</p>
+    <p class="foot">Typed rows from <code>crm_lead_search</code> · <code>activity_list</code> · <code>task_list</code> · <code>note_search</code> · <code>calendar_event_list</code> · <code>crm_stage_list</code>, executed as you.<br />
+    Writes: the tick runs <code>activity_complete</code> · the star runs <code>task_update</code> · the stage menu runs <code>crm_lead_update</code> · Add note runs <code>note_add</code>.</p>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <!-- Data contract. Five reads on load, four writes on click. Every tool
+  <!-- Data contract. Six typed reads on load, four writes on click. Every tool
        named here must also appear in this artifact's `mcp_tools:` in
-       config.yaml — nothing derives one list from the other, and a drift
-       shows only at runtime as "not in this artifact's mcp_tools allowlist".
+       config.yaml — nothing derives one list from the other, and a drift shows
+       only at runtime as "not in this artifact's mcp_tools allowlist".
 
-       Row formats are the Odoo extension's own renderers, shared between the
-       standalone tools and the briefing composite, so one parser serves both:
-         activity: "- **[id] summary** — type on record (model), due date"
-         task:     "- **[id] name** — project · stage · due date · N assignee(s)"
-         lead:     "- **[id] name** — stage · user · partner · revenue X"
-         stage:    "- **[id] name** — counts as won"
-         note:     "- **model res_id** — record · date by author" + indented snippet
-         group:    "- **stage** — N lead(s), expected revenue X" -->
+       Every read answers with a table artifact: typed rows under `items`, with
+       Odoo's own field names. This page never parses a display string. The
+       tools also render markdown for the model to read; that rendering is not
+       a data source, and regexing it back apart is how a renderer change
+       becomes a silently wrong dashboard.
+
+       Row shapes (extensions/mcp/odoo/src/server/*_shape.rs):
+         LeadRow     id, name, stage_id, user_id, partner_name, email_from,
+                     expected_revenue, probability, create_date, date_deadline, tags[]
+         ActivityRow id, summary, activity_type_id, res_model, res_name, date_deadline
+         TaskRow     id, name, project_id, stage_id, date_deadline, priority, user_ids[]
+         NoteRow     id, model, res_id, record_name, author_id, date, message_type, body
+         StageRow    id, name, sequence, is_won, fold
+         EventRow    id, name, start, stop, location, description, partner_ids[] -->
   <script type="application/json" id="odoo-query">
   {"reads": [
-    {"tool": "mcp__odoo__business_overview_data", "arguments": {}, "target": "overview"},
+    {"tool": "mcp__odoo__crm_lead_search", "arguments": {"limit": 100}, "target": "leads"},
     {"tool": "mcp__odoo__activity_list", "arguments": {"limit": 100}, "target": "acts"},
     {"tool": "mcp__odoo__task_list", "arguments": {"open_only": true, "limit": 100}, "target": "tasks"},
     {"tool": "mcp__odoo__note_search", "arguments": {"query": "%", "limit": 50}, "target": "notes"},
+    {"tool": "mcp__odoo__calendar_event_list", "arguments": {"limit": 20}, "target": "events"},
     {"tool": "mcp__odoo__crm_stage_list", "arguments": {}, "target": "stages"}
   ],
    "writes": {
@@ -265,18 +302,25 @@ select.stage:hover{border-color:var(--accent-line);}
     if (payload && typeof payload.content === "string") return payload.content;
     try { return r.content[0].text || ""; } catch (e) { return ""; }
   };
+  /* A table artifact carries its rows in `items` and its column definitions in
+     `columns` — and `columns` is declared first. Scanning for "the first array
+     in the object" therefore finds the column list, whose entries have a `name`
+     but no `id`, and renders column definitions as nonsense rows. So the keys
+     are named explicitly, in order, and there is no scan-for-any-array
+     fallback: a shape we do not recognise must fail loudly rather than quietly
+     hand back the wrong array. */
+  var ROW_KEYS = ["items", "records", "rows", "data"];
   var rowsOf = function (r) {
     var v = r && r.structuredContent;
     if (v && typeof v.content === "string") return null;
     if (Array.isArray(v)) return v;
-    if (v && typeof v === "object") {
-      if (Array.isArray(v.records)) return v.records;
-      if (Array.isArray(v.rows)) return v.rows;
-      if (Array.isArray(v.data)) return v.data;
-      for (var k in v) if (Array.isArray(v[k])) return v[k];
+    if (!v || typeof v !== "object") return null;
+    for (var i = 0; i < ROW_KEYS.length; i++) {
+      if (Array.isArray(v[ROW_KEYS[i]])) return v[ROW_KEYS[i]];
     }
     return null;
   };
+
   var errText = function (r, fallback) {
     var t = "";
     try { t = (r.content && r.content[0] && r.content[0].text) || ""; } catch (e) {}
@@ -309,99 +353,90 @@ select.stage:hover{border-color:var(--accent-line);}
     });
   };
 
-  /* ---- parsers --------------------------------------------------------- */
+  /* Opens an inline panel under `host` and resolves through onSubmit. Fields
+     are [{name, label, value, type, rows}]; `type` is "text" (default),
+     "date" or "area". Enter submits a single-line field, Escape cancels.
+     Only one panel is open at a time, so a second click closes the first. */
+  var OPEN_PANEL = null;
+  var closePanel = function () {
+    if (!OPEN_PANEL) return;
+    if (OPEN_PANEL.el.parentNode) OPEN_PANEL.el.parentNode.removeChild(OPEN_PANEL.el);
+    if (OPEN_PANEL.onClose) OPEN_PANEL.onClose();
+    OPEN_PANEL = null;
+  };
+  var panel = function (host, opts) {
+    closePanel();
+    var el = document.createElement("div");
+    el.className = "panel";
+    var html = '<span class="lab">' + esc(opts.title) + "</span>";
+    if (opts.hint) html += '<p class="hint">' + esc(opts.hint) + "</p>";
+    (opts.fields || []).forEach(function (f) {
+      html += f.type === "area"
+        ? '<textarea rows="' + (f.rows || 3) + '" data-f="' + esc(f.name) + '" placeholder="' + esc(f.label || "") + '"></textarea>'
+        : '<input type="' + (f.type === "date" ? "date" : "text") + '" data-f="' + esc(f.name) +
+          '" placeholder="' + esc(f.label || "") + '" />';
+    });
+    html += '<div class="btns"><button type="button" class="go' + (opts.danger ? " danger" : "") + '">' +
+      esc(opts.submit || "Save") + '</button><button type="button" class="no">Cancel</button></div>';
+    el.innerHTML = html;
+
+    (opts.fields || []).forEach(function (f) {
+      if (f.value != null) el.querySelector('[data-f="' + f.name + '"]').value = f.value;
+    });
+
+    var values = function () {
+      var out = {};
+      (opts.fields || []).forEach(function (f) { out[f.name] = el.querySelector('[data-f="' + f.name + '"]').value.trim(); });
+      return out;
+    };
+    var submit = function () {
+      var v = values();
+      closePanel();
+      opts.onSubmit(v);
+    };
+    el.querySelector(".go").addEventListener("click", submit);
+    el.querySelector(".no").addEventListener("click", function () { closePanel(); });
+    el.addEventListener("keydown", function (ev) {
+      if (ev.key === "Escape") { ev.preventDefault(); closePanel(); return; }
+      if (ev.key === "Enter" && ev.target.tagName !== "TEXTAREA") { ev.preventDefault(); submit(); }
+    });
+
+    host.appendChild(el);
+    OPEN_PANEL = { el: el, onClose: opts.onClose };
+    var first = el.querySelector("input, textarea");
+    if (first) first.focus();
+    return el;
+  };
+
   var contract = JSON.parse($("odoo-query").textContent);
-  var STAGES = [];            // [{id, name, won}] — fills the lead menus
-  var NOTES = [];             // the unfiltered feed, so the filter is client-side
-  var counts = { acts: 0, tasks: 0, leads: 0 };
+  var DATA = { leads: [], acts: [], tasks: [], notes: [], events: [], stages: [] };
 
-  var ACT = /^- \*\*\[(\d+)\] (.*?)\*\* — (.*?) on (.*?) \((.*?)\), due (.*)$/;
-  var TASK = /^- \*\*\[(\d+)\] (.*?)\*\* — (.*?) · (.*?) · due (.*?) · (\d+) assignee\(s\)$/;
-  var LEAD = /^- \*\*\[(\d+)\] (.+?)\*\* — (.*?) · (.*?) · (.*?) · revenue (.*)$/;
-  var STAGE = /^- \*\*\[(\d+)\] (.+?)\*\*(.*)$/;
-  var NOTE = /^- \*\*(\S+) (\d+)\*\* — (.*?) · (.*?) by (.*)$/;
-  var GROUP = /^- \*\*(.+?)\*\* — (\d+) lead\(s\), expected revenue ([\d.\-]+)$/;
-  var EVENT = /^- \*\*\[(\d+)\] (.*?)\*\* — (.*?) → (.*?) · (.*?) · (\d+) attendee\(s\)$/;
-
-  var lines = function (md) { return String(md || "").split("\n"); };
-  var collect = function (md, re, build) {
-    var out = [];
-    lines(md).forEach(function (l) { var m = l.match(re); if (m) out.push(build(m)); });
-    return out;
+  /* ---- typed field access ---------------------------------------------
+     Odoo writes `false` where a field is empty and ships a many2one as
+     [id, "Name"]; both are already absorbed by the row structs' serde
+     adapters, so a missing value arrives here as null. These helpers only
+     decide how a null is *displayed*. */
+  var str = function (v) { return v == null ? "" : String(v); };
+  var num = function (v) { var n = Number(v); return isFinite(n) ? n : null; };
+  var day = function (v) { return v ? String(v).slice(0, 10) : ""; };
+  var money = function (v) {
+    var n = num(v);
+    if (n == null || !n) return "—";
+    return n >= 1000 ? Math.round(n / 1000) + "k" : String(Math.round(n));
   };
-
-  var parseActs = function (md) {
-    return collect(md, ACT, function (m) {
-      return { id: +m[1], summary: dash(m[2]), type: dash(m[3]), record: dash(m[4]), model: dash(m[5]), due: dash(m[6]) };
-    });
+  var plus = function (days) {
+    var t = new Date(today + "T00:00:00Z");
+    t.setUTCDate(t.getUTCDate() + days);
+    return t.toISOString().slice(0, 10);
   };
-  var parseTasks = function (md) {
-    return collect(md, TASK, function (m) {
-      return { id: +m[1], name: dash(m[2]), project: dash(m[3]), stage: dash(m[4]), due: dash(m[5]), assignees: +m[6] };
-    });
-  };
-  var parseLeads = function (md) {
-    return collect(md, LEAD, function (m) {
-      return { id: +m[1], name: dash(m[2]), stage: dash(m[3]), user: dash(m[4]), partner: dash(m[5]), revenue: dash(m[6]) };
-    });
-  };
-  var parseStages = function (md) {
-    return collect(md, STAGE, function (m) {
-      return { id: +m[1], name: dash(m[2]), won: /counts as won/.test(m[3]) };
-    });
-  };
-  var parseGroups = function (md) {
-    return collect(md, GROUP, function (m) { return { stage: dash(m[1]), count: +m[2], revenue: parseFloat(m[3]) || 0 }; });
-  };
-  var parseEvents = function (md) {
-    return collect(md, EVENT, function (m) {
-      return { id: +m[1], name: dash(m[2]), start: dash(m[3]), stop: dash(m[4]), where: dash(m[5]), attendees: +m[6] };
-    });
-  };
-  /* A note is two lines: the header row and an indented snippet beneath it. */
-  var parseNotes = function (md) {
-    var out = [], cur = null;
-    lines(md).forEach(function (l) {
-      var m = l.match(NOTE);
-      if (m) {
-        cur = { model: m[1], res_id: +m[2], record: dash(m[3]), date: dash(m[4]), author: dash(m[5]), body: "" };
-        out.push(cur);
-        return;
-      }
-      if (cur && /^\s+\S/.test(l)) cur.body += (cur.body ? " " : "") + l.trim();
-    });
-    return out;
-  };
-
-  /* The briefing is one markdown document, "## Section" per section. Slice it
-     so each section can be handed to the parser that matches its rows. */
-  var sections = function (md) {
-    var map = {}, cur = null;
-    lines(md).forEach(function (l) {
-      var h = l.match(/^## (.+)$/);
-      if (h) { cur = h[1]; map[cur] = []; return; }
-      if (cur) map[cur].push(l);
-    });
-    return map;
-  };
-  var sectionMatching = function (map, re) {
-    for (var k in map) if (re.test(k)) return map[k].join("\n");
-    return "";
-  };
-
-  /* ---- shared bits of chrome ------------------------------------------- */
-  var money = function (n) {
-    var v = Number(n);
-    if (!isFinite(v)) return "—";
-    return v >= 1000 ? Math.round(v / 1000) + "k" : String(Math.round(v));
-  };
+  var WEEK_AGO = plus(-7);
   var dueClass = function (d) { if (!d) return ""; if (d < today) return "over"; if (d === today) return "today"; return ""; };
   var dueLabel = function (d) { if (!d) return "no deadline"; if (d < today) return d + " · overdue"; if (d === today) return "today"; return d; };
-  var byDue = function (a, b) { return String(a.due || "9999") < String(b.due || "9999") ? -1 : 1; };
+  var byDue = function (a, b) { return (day(a.date_deadline) || "9999") < (day(b.date_deadline) || "9999") ? -1 : 1; };
 
   var setStatus = function (mode) {
     var el = $("status");
-    var open = counts.acts + counts.tasks;
+    var open = DATA.acts.length + DATA.tasks.length;
     if (mode === "live") { el.className = "status live"; el.innerHTML = '<span class="dot"></span>Live · <span class="cnt">' + open + "</span>&nbsp;waiting on you"; }
     else if (mode === "error") { el.className = "status"; el.innerHTML = '<span class="dot" style="background:var(--accent)"></span>Not connected'; }
     else { el.className = "status"; el.innerHTML = '<span class="dot"></span>Awaiting data'; }
@@ -412,115 +447,155 @@ select.stage:hover{border-color:var(--accent-line);}
   };
   var emptyLi = function (ul, msg) { ul.innerHTML = '<li class="empty">' + esc(msg) + "</li>"; };
 
-  /* ---- renderers, each carrying its own action ------------------------- */
-
-  var renderTiles = function (groups) {
-    var host = $("tiles");
-    $("pipe-n").textContent = groups.length ? groups.length + " stages" : "";
-    if (!groups.length) { host.innerHTML = '<p class="empty">No leads in the pipeline.</p>'; return; }
-    host.innerHTML = groups.map(function (g) {
-      return '<div class="tile"><div class="k">' + esc(g.stage) + '</div><div class="v">' + g.count +
-        '</div><div class="s">' + esc(money(g.revenue)) + " expected</div></div>";
-    }).join("");
+  /* Who is signed in. Every row Odoo returns for `activity_list` is already
+     scoped to the caller, and the salesperson on those records is that same
+     person — so the name is read off the data rather than guessed, and the
+     greeting simply stays generic when there is nothing to read it from. */
+  var greet = function () {
+    var name = "";
+    for (var i = 0; i < DATA.acts.length && !name; i++) name = str(DATA.acts[i].user_id);
+    if (!name) for (var j = 0; j < DATA.leads.length && !name; j++) name = str(DATA.leads[j].user_id);
+    $("who").textContent = name ? "Welcome back, " + name : "Welcome back";
   };
 
-  /* Tick an activity → activity_complete. The row goes struck-through only
-     once Odoo has confirmed; a refusal puts the checkbox back. */
-  var renderActs = function (rows) {
+  /* ---- pipeline, derived from the typed lead rows ----------------------
+     Grouping the leads this page already holds is one fewer round trip than
+     asking Odoo to group them, and it cannot disagree with the table below. */
+  var renderTiles = function () {
+    var order = DATA.stages.map(function (s) { return str(s.name); });
+    var keys = [], map = {};
+    DATA.leads.forEach(function (l) {
+      var k = str(l.stage_id) || "No stage";
+      if (!map[k]) { map[k] = { n: 0, rev: 0 }; keys.push(k); }
+      map[k].n++;
+      map[k].rev += num(l.expected_revenue) || 0;
+    });
+    keys.sort(function (a, b) {
+      var ia = order.indexOf(a), ib = order.indexOf(b);
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+    });
+    $("pipe-n").textContent = keys.length ? keys.length + " stages" : "";
+    $("tiles").innerHTML = keys.length
+      ? keys.map(function (k) {
+          return '<div class="tile"><div class="k">' + esc(k) + '</div><div class="v">' + map[k].n +
+            '</div><div class="s">' + esc(money(map[k].rev)) + " expected</div></div>";
+        }).join("")
+      : '<p class="empty">No leads in the pipeline.</p>';
+  };
+
+  /* ---- activities: tick to complete ------------------------------------
+     The panel replaces window.prompt, which returns null without ever showing
+     inside the sandboxed iframe an artifact runs in — the tick appeared to do
+     nothing at all. */
+  var renderActs = function () {
     var ul = $("acts"); ul.innerHTML = "";
-    counts.acts = rows.length;
+    var rows = DATA.acts.slice().sort(byDue);
     $("act-n").textContent = rows.length + " open";
     if (!rows.length) return emptyLi(ul, "Nothing waiting — clear board.");
-    rows.sort(byDue);
     rows.forEach(function (a) {
       var li = document.createElement("li");
-      li.innerHTML = '<input type="checkbox" title="Mark done" /><div class="t"><div class="name">' +
-        esc(a.summary || a.type || "Activity") + '</div><div class="meta">' +
-        esc([a.type, a.record ? a.record + (a.model ? " (" + a.model + ")" : "") : a.model].filter(Boolean).join(" · ")) +
-        '</div></div><span class="due ' + dueClass(a.due) + '">' + esc(dueLabel(a.due)) + "</span>";
-      li.querySelector("input").addEventListener("change", function (ev) {
-        var box = ev.target;
+      var on = str(a.res_name);
+      li.innerHTML = '<input type="checkbox" title="Mark this activity done" /><div class="t"><div class="name">' +
+        esc(str(a.summary) || str(a.activity_type_id) || "Activity") + '</div><div class="meta">' +
+        esc([str(a.activity_type_id), on ? on + (a.res_model ? " (" + a.res_model + ")" : "") : str(a.res_model)]
+          .filter(Boolean).join(" · ")) +
+        '</div></div><span class="due ' + dueClass(day(a.date_deadline)) + '">' + esc(dueLabel(day(a.date_deadline))) + "</span>";
+      var box = li.querySelector("input");
+      box.addEventListener("change", function () {
         if (!box.checked) return;
-        var fb = window.prompt("Completion feedback (lands in the record's chatter):", "");
-        if (fb === null) { box.checked = false; return; }
-        box.disabled = true;
-        write(li, contract.writes.complete, { activity_id: a.id, feedback: fb || undefined },
-          "Activity completed.",
-          function () { li.classList.add("done"); counts.acts--; $("act-n").textContent = counts.acts + " open"; setStatus("live"); },
-          function () { box.checked = false; box.disabled = false; });
+        panel(li, {
+          title: "Complete this activity",
+          hint: "Odoo closes the activity and writes your feedback to the record's chatter, so the work outlives the reminder.",
+          fields: [{ name: "feedback", label: "What happened? (optional)", type: "area", rows: 2 }],
+          submit: "Mark done",
+          onClose: function () { if (!li.classList.contains("done")) box.checked = false; },
+          onSubmit: function (v) {
+            box.disabled = true;
+            write(li, contract.writes.complete, { activity_id: a.id, feedback: v.feedback || undefined },
+              "Activity completed.",
+              function () {
+                li.classList.add("done");
+                DATA.acts = DATA.acts.filter(function (x) { return x.id !== a.id; });
+                $("act-n").textContent = DATA.acts.length + " open";
+                setStatus("live");
+              },
+              function () { box.checked = false; box.disabled = false; });
+          }
+        });
       });
       ul.appendChild(li);
     });
   };
 
-  /* Star a task → task_update {fields:{priority}}. `fields` is required by
-     the tool's schema, so it is always sent, never omitted. Odoo's
-     project.task priority is the string "0" or "1". */
-  var renderTasks = function (rows) {
+  /* ---- tasks: star to flag urgent --------------------------------------
+     `fields` is required by task_update's schema, so it is always sent.
+     Odoo's project.task priority is the string "0" or "1". */
+  var renderTasks = function () {
     var ul = $("tasks"); ul.innerHTML = "";
-    counts.tasks = rows.length;
+    var rows = DATA.tasks.slice().sort(byDue);
     $("task-n").textContent = rows.length + " open";
     if (!rows.length) return emptyLi(ul, "No open tasks.");
-    rows.sort(byDue);
     rows.forEach(function (t) {
       var li = document.createElement("li");
-      li.innerHTML = '<div class="t"><div class="name">' + esc(t.name || "Task") + '</div><div class="meta">' +
-        esc([t.project, t.stage, (t.assignees ? t.assignees + " assigned" : "unassigned")].filter(Boolean).join(" · ")) +
+      var assigned = (t.user_ids || []).length;
+      li.innerHTML = '<div class="t"><div class="name">' + esc(str(t.name) || "Task") + '</div><div class="meta">' +
+        esc([str(t.project_id), str(t.stage_id), assigned ? assigned + " assigned" : "unassigned"].filter(Boolean).join(" · ")) +
         '</div></div><span class="act"><button class="star" type="button" title="Flag as urgent">★</button></span>' +
-        '<span class="due ' + dueClass(t.due) + '">' + esc(dueLabel(t.due)) + "</span>";
+        '<span class="due ' + dueClass(day(t.date_deadline)) + '">' + esc(dueLabel(day(t.date_deadline))) + "</span>";
       var star = li.querySelector(".star");
+      var urgent = str(t.priority) === "1";
+      star.classList.toggle("on", urgent);
       star.addEventListener("click", function () {
-        var on = star.classList.contains("on");
-        star.classList.toggle("on", !on);
-        write(li, contract.writes.task, { id: t.id, fields: { priority: on ? "0" : "1" } },
-          on ? "Flag cleared." : "Task flagged as urgent.",
-          function () {},
-          function () { star.classList.toggle("on", on); });
+        var next = !urgent;
+        star.classList.toggle("on", next);
+        write(li, contract.writes.task, { id: t.id, fields: { priority: next ? "1" : "0" } },
+          next ? "Task flagged as urgent." : "Flag cleared.",
+          function () { urgent = next; t.priority = next ? "1" : "0"; },
+          function () { star.classList.toggle("on", urgent); });
       });
       ul.appendChild(li);
     });
   };
 
-  /* Move a lead → crm_lead_update {id, stage}. The tool takes the stage by
-     NAME and resolves it against the pipeline, so the menu is built from
-     crm_stage_list rather than from guessed ids. `fields` is required by the
-     schema and is sent empty: the stage move is the whole change. */
+  /* ---- new leads this week: move a stage ------------------------------- */
   var stageMenu = function (current) {
     var sel = document.createElement("select");
     sel.className = "stage";
     sel.title = "Move this lead to another stage";
-    var names = STAGES.map(function (s) { return s.name; });
+    var names = DATA.stages.map(function (s) { return str(s.name); }).filter(Boolean);
     if (current && names.indexOf(current) === -1) names.unshift(current);
     names.forEach(function (n) {
       var o = document.createElement("option");
       o.value = n; o.textContent = n; if (n === current) o.selected = true;
       sel.appendChild(o);
     });
-    if (!STAGES.length) sel.disabled = true;
+    if (!names.length) sel.disabled = true;
     return sel;
   };
 
-  var renderLeads = function (rows) {
+  var renderLeads = function () {
     var ul = $("leads"); ul.innerHTML = "";
-    counts.leads = rows.length;
+    var rows = DATA.leads.filter(function (l) { return day(l.create_date) >= WEEK_AGO; });
     $("lead-n").textContent = rows.length + " this week";
     if (!rows.length) return emptyLi(ul, "No new leads this week.");
+    rows.sort(function (a, b) { return day(a.create_date) < day(b.create_date) ? 1 : -1; });
     rows.forEach(function (l) {
       var li = document.createElement("li");
       var t = document.createElement("div");
       t.className = "t";
-      t.innerHTML = '<div class="name">' + esc(l.name || "Lead") + '</div><div class="meta">' +
-        esc([l.partner, l.user, l.revenue && l.revenue !== "—" ? "revenue " + l.revenue : ""].filter(Boolean).join(" · ")) + "</div>";
+      t.innerHTML = '<div class="name">' + esc(str(l.name) || "Lead " + l.id) + '</div><div class="meta">' +
+        esc([str(l.partner_name), str(l.email_from), num(l.expected_revenue) ? "revenue " + money(l.expected_revenue) : ""]
+          .filter(Boolean).join(" · ")) + "</div>";
       li.appendChild(t);
       var act = document.createElement("span");
       act.className = "act";
-      var sel = stageMenu(l.stage);
+      var sel = stageMenu(str(l.stage_id));
       var prev = sel.value;
       sel.addEventListener("change", function () {
         var next = sel.value;
         write(li, contract.writes.lead, { id: l.id, stage: next, fields: {} },
           "Lead moved to " + next + ".",
-          function () { prev = next; },
+          function () { prev = next; l.stage_id = next; renderTiles(); },
           function () { sel.value = prev; });
       });
       act.appendChild(sel);
@@ -529,69 +604,80 @@ select.stage:hover{border-color:var(--accent-line);}
     });
   };
 
-  var renderCal = function (rows) {
+  var renderEvents = function () {
     var ul = $("cal"); ul.innerHTML = "";
+    var rows = DATA.events.filter(function (e) { return day(e.start) === today; });
     $("cal-n").textContent = rows.length ? rows.length + " today" : "";
     if (!rows.length) return emptyLi(ul, "Nothing in the calendar today.");
+    rows.sort(function (a, b) { return str(a.start) < str(b.start) ? -1 : 1; });
     rows.forEach(function (e) {
       var li = document.createElement("li");
-      li.innerHTML = '<div class="t"><div class="name">' + esc(e.name || "Event") + '</div><div class="meta">' +
-        esc([e.where, e.attendees ? e.attendees + " attendee(s)" : ""].filter(Boolean).join(" · ")) +
-        '</div></div><span class="due">' + esc(String(e.start).slice(11, 16) || e.start) + "</span>";
+      var att = (e.partner_ids || []).length;
+      li.innerHTML = '<div class="t"><div class="name">' + esc(str(e.name) || "Event") + '</div><div class="meta">' +
+        esc([str(e.location), att ? att + " attendee(s)" : ""].filter(Boolean).join(" · ")) +
+        '</div></div><span class="due">' + esc(str(e.start).slice(11, 16) || str(e.start)) + "</span>";
       ul.appendChild(li);
     });
   };
 
-  /* Reply on a note → note_add on the same record. The feed row carries the
-     model and res_id, which is exactly what note_add needs, so the reply
-     lands on the record the note came from and nowhere else. */
+  /* ---- team notes: reply onto the same record --------------------------
+     The row carries `model` and `res_id` — the anchor note_add needs — so a
+     reply lands on the record the note came from and nowhere else. */
   var renderNotes = function () {
     var ul = $("notes"); ul.innerHTML = "";
     var q = ($("note-q").value || "").toLowerCase().trim();
-    var rows = !q ? NOTES : NOTES.filter(function (n) {
-      return (n.record + " " + n.author + " " + n.body + " " + n.model).toLowerCase().indexOf(q) !== -1;
+    var rows = DATA.notes;
+    if (q) rows = rows.filter(function (n) {
+      return [str(n.record_name), str(n.author_id), str(n.body), str(n.model)]
+        .join(" ").toLowerCase().indexOf(q) !== -1;
     });
-    $("note-n").textContent = rows.length + (q ? " of " + NOTES.length : "") + " notes";
+    $("note-n").textContent = rows.length + (q ? " of " + DATA.notes.length : "") + " notes";
     if (!rows.length) return emptyLi(ul, q ? "No note matches that filter." : "No recent chatter.");
     rows.forEach(function (n) {
       var li = document.createElement("li");
-      li.innerHTML = '<div class="t"><div class="name">' + esc(n.record || (n.model + " " + n.res_id)) +
-        '</div><div class="meta">' + esc([n.author, n.date, n.model].filter(Boolean).join(" · ")) +
-        '</div><div class="body">' + esc(n.body) + '</div></div>' +
-        '<span class="act"><button class="mini" type="button">Note</button></span>';
-      li.querySelector(".mini").addEventListener("click", function () {
-        var body = window.prompt("Add a note to " + (n.record || n.model + " " + n.res_id) + ":", "");
-        if (body === null || !body.trim()) return;
-        write(li, contract.writes.note, { model: n.model, res_id: n.res_id, body: body.trim() },
-          "Note added to " + (n.record || n.model) + ".",
-          function () {
-            NOTES.unshift({ model: n.model, res_id: n.res_id, record: n.record, date: today, author: "you", body: body.trim() });
-            renderNotes();
-          },
-          function () {});
-      });
+      var anchor = str(n.record_name) || (str(n.model) + " " + str(n.res_id));
+      li.innerHTML = '<div class="t"><div class="name">' + esc(anchor) + '</div><div class="meta">' +
+        esc([str(n.author_id), str(n.date), str(n.model)].filter(Boolean).join(" · ")) +
+        '</div><div class="body">' + esc(str(n.body)) + '</div></div>' +
+        '<span class="act"><button class="mini" type="button">Add note</button></span>';
+      var btn = li.querySelector(".mini");
+      if (n.res_id == null || !n.model) {
+        btn.disabled = true;
+        btn.title = "This message is not attached to a record, so there is nothing to reply onto.";
+      } else {
+        btn.addEventListener("click", function () {
+          panel(li, {
+            title: "Add a note to " + anchor,
+            fields: [{ name: "body", label: "Your note — it lands in this record's chatter", type: "area", rows: 3 }],
+            submit: "Add note",
+            onSubmit: function (v) {
+              if (!v.body) return;
+              write(li, contract.writes.note, { model: n.model, res_id: n.res_id, body: v.body },
+                "Note added to " + anchor + ".",
+                function () {
+                  DATA.notes.unshift({ id: 0, model: n.model, res_id: n.res_id, record_name: n.record_name,
+                    date: today, author_id: "you", body: v.body });
+                  renderNotes();
+                },
+                function () {});
+            }
+          });
+        });
+      }
       ul.appendChild(li);
     });
   };
 
-  /* ---- load ------------------------------------------------------------
-     The five reads go out together. A failure in any one of them fails the
-     page: a briefing missing a section it should have is worse than an
-     honest error. */
+  /* ---- load ------------------------------------------------------------ */
   var FETCH = { tries: 0, max: 3, inflight: false };
 
-  var apply = function (target, md) {
-    if (target === "overview") {
-      var map = sections(md);
-      renderTiles(parseGroups(sectionMatching(map, /^Pipeline by stage/)));
-      renderLeads(parseLeads(sectionMatching(map, /^Leads created/)));
-      renderCal(parseEvents(sectionMatching(map, /calendar/i)));
-      return;
-    }
-    if (target === "acts") return renderActs(parseActs(md));
-    if (target === "tasks") return renderTasks(parseTasks(md));
-    if (target === "notes") { NOTES = parseNotes(md); return renderNotes(); }
-    if (target === "stages") { STAGES = parseStages(md); return; }
+  var read = function (spec) {
+    return timedCall(spec.tool, spec.arguments).then(function (r) {
+      if (r && r.isError) throw new Error(errText(r, "The Odoo query could not be completed."));
+      var rows = rowsOf(r);
+      if (!rows) throw new Error(spec.tool.replace("mcp__odoo__", "") + " did not answer with typed rows.");
+      DATA[spec.target] = rows;
+    });
   };
 
   var failedAttempt = function (msg) {
@@ -606,32 +692,14 @@ select.stage:hover{border-color:var(--accent-line);}
       if ((waited || 0) >= 10000) return showErr("This page needs the live MCP connection; open it inside the workspace.");
       return void setTimeout(function () { load((waited || 0) + 250); }, 250);
     }
+    closePanel();
     $("error").style.display = "none"; $("grid").style.display = "flex"; setStatus("await");
     FETCH.inflight = true; FETCH.tries++;
-
-    /* crm_stage_list first: the lead menus are built from it, and a lead
-       rendered before the stages arrive would offer an empty menu. */
-    var stageRead = contract.reads.filter(function (r) { return r.target === "stages"; })[0];
-    var rest = contract.reads.filter(function (r) { return r.target !== "stages"; });
-
-    var one = function (read) {
-      return timedCall(read.tool, read.arguments).then(function (r) {
-        if (r && r.isError) throw new Error(errText(r, "The Odoo query could not be completed."));
-        apply(read.target, text(r));
-      });
-    };
-
-    one(stageRead).catch(function () {
-      /* A missing stage list disables the lead menus but must not blank the
-         page — every other section still stands on its own. */
-      STAGES = [];
-    }).then(function () {
-      return Promise.all(rest.map(one));
-    }).then(function () {
-      FETCH.inflight = false; FETCH.tries = 0; setStatus("live");
-    }).catch(function (e) {
-      failedAttempt(String((e && e.message) || e));
-    });
+    Promise.all(contract.reads.map(read)).then(function () {
+      FETCH.inflight = false; FETCH.tries = 0;
+      greet(); renderTiles(); renderActs(); renderTasks(); renderLeads(); renderEvents(); renderNotes();
+      setStatus("live");
+    }).catch(function (e) { failedAttempt(String((e && e.message) || e)); });
   };
 
   $("reload").addEventListener("click", function () { FETCH.tries = 0; load(); });
