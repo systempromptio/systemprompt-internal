@@ -19,7 +19,7 @@ dashboard artifacts → the `infra logs` / `analytics` readback.
 |---|---|---|---|---|
 | 1 | SDR Agent — lead qualification | The morning briefing | `show_activity` (admin) | A series of Odoo queries — `business_overview_data`, `crm_lead_report`, `note_search`, `calendar_event_list`, `task_list`, `activity_list` — into one brief; per-user Odoo record rules; the business dashboards (two admin-only, four from the workspace bundle every role holds) |
 | 2 | Service Agent + Data Cloud 360 | Walk my leads | `update_leads` (admin) | Per lead: `crm_lead_get`, `note_list`, `activity_list`, then a status question and the smallest write that answers it: `crm_lead_update`, `note_add`, `activity_create` |
-| 3 | Sales Engagement — follow-ups | Governed writes | `lead_factsheet` + `demo_approval_hold` (user) | `crm_lead_create`, `factsheet_render`, `attachment_add`, then `note_add` and `email_send` — as the signed-in salesperson; the outbound ones **held for human approval** (MCP MRTR, SEP-2322). The email is confirmed in-band by its drafter first, and its provenance logged back to the lead by the same call |
+| 3 | Sales Engagement — follow-ups | Governed writes | `demonstrate_governance` (user) | `crm_lead_create`, `attachment_add`, then `note_add` and `channel_post` — as the signed-in salesperson; the outbound ones **held for human approval** (MCP MRTR, SEP-2322), with the hold's provenance logged back to the lead |
 | 4 | Einstein Trust Layer | Governed Operations | `demo_secret_refusal` + `demo_blocked_tool` (user), then `demonstrate_governance` (admin) | A credential refused for every caller at $0; a real destructive tool (`crm_lead_delete`) refused for a user and executed for an admin; then the stage-by-stage tour, the live RBAC flip, and `governance_decisions` audit rows including the approver stamp |
 | 5 | Agentforce Analytics + Flex credits | Command Center | `governance_readback` (admin) | `infra logs request/trace`, `analytics costs/requests/tools`, `ai_requests` per-request pricing, the three control-plane dashboards |
 
@@ -29,9 +29,9 @@ for a human*.** Each beat ends with a cost readback via `governance_readback`, s
 total is already earned.
 
 **The demo plugin stages verdicts, not narration.** `systemprompt-demo` ships three skills, one per
-verdict the pipeline can return — `demo_approval_hold` (held), `demo_secret_refusal` (refused for
-everyone), `demo_blocked_tool` (refused by identity) — plus `lead_factsheet`, the business arc that
-ends in a held send. Every step in them is a real tool call the user's own manifest carries. A first
+verdict the pipeline can return — held, refused for everyone, and refused by identity — now unified
+into the single `demonstrate_governance` skill. Every step in it is a real tool call the user's own
+manifest carries. A first
 demo plugin whose five skills merely re-narrated the admin ones was deleted; its ids are banned in
 `tests/e2e/src/skills_artifacts.rs`.
 
@@ -67,8 +67,8 @@ Accounts, passwords, and how to run the demo as a real user instead of the seede
    seven that ride with the admin bundle (business overview, inbound leads, the two brain@ knowledge
    pages and the three control-plane ones). The salesperson holds no setup skill: installing artifacts
    is an admin job.
-4. **Verify the manifest** (§3 curl in TESTING-INSTRUCTIONS.md): both users carry `send_email`,
-   `lead_factsheet` and the three `demo_*` skills; only `e2e-admin` carries `show_activity`,
+4. **Verify the manifest** (§3 curl in TESTING-INSTRUCTIONS.md): both users carry
+   `demonstrate_governance`; only `e2e-admin` carries `show_activity`,
    `update_leads`, `demonstrate_governance` and `governance_readback`.
 
 ## Governance
@@ -98,10 +98,10 @@ Run in order; each skill's SKILL.md is the script and ends by handing off to the
    the end names every id touched, old → new.
 
 **Act I — as `e2e-sales` (a plain user):**
-3. `/lead_factsheet` then `/demo_approval_hold` — the writes, as the salesperson. Capture a lead,
+3. `/demonstrate_governance` — the writes, as the salesperson. Capture a lead,
    render it a branded sheet, attach it, and email it; then the hold beat proper. The Odoo writes
-   land unattended; the outbound-facing ones (`note_add`, `email_send`) **block** — governance holds
-   them and no Odoo round trip and no SMTP connection happens at all. `email_send` is confirmed
+   land unattended; the outbound-facing ones (`note_add`, `channel_post`) **block** — governance
+   holds them and no Odoo round trip happens at all. The held call is confirmed
    in-band by its drafter *before* it parks, so the audience sees both layers: the writer checking
    their own text, then a different person releasing it. Leave both waiting and switch to Act II.
    **Run Act I as `e2e-sales`, never as an admin:** `exempt_scopes: [admin]` exempts an admin

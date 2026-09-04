@@ -375,21 +375,21 @@ Each plugin is a directory holding one `config.yaml` — `services/plugins/<id>/
 
 ```yaml
 plugin:
-  id: systemprompt-commons
-  name: "Systemprompt Commons — Setup & Brand"
-  version: "4.0.0"
+  id: systemprompt-business
+  name: "Systemprompt Business — Run the Pipeline on Odoo"
+  version: "2.0.0"
   enabled: true
   skills:
     source: explicit
     include:
-      - brand
-      - send_email
+      - manage_leads
+      - close_deal
   agents:
     source: explicit
     include: []
   mcp_servers:
     source: explicit
-    include: [email]
+    include: [odoo]
   artifacts:
     source: explicit
     include: []
