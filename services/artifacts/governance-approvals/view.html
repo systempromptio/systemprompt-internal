@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Governance — Approvals</title>
+<style>
+:root{
+  --bg:oklch(0.99 0 0); --bg-2:oklch(0.965 0 0);
+  --glass:oklch(1 0 0 / 0.65); --glass-2:oklch(1 0 0 / 0.80);
+  --line:oklch(0 0 0 / 0.12); --line-soft:oklch(0 0 0 / 0.07);
+  --ink:oklch(0.25 0 0); --ink-2:oklch(0.42 0 0); --muted:oklch(0.55 0 0);
+  --accent:oklch(0.58 0.16 55); --accent-soft:oklch(0.80 0.11 61 / 0.22); --accent-line:oklch(0.58 0.16 55 / 0.30);
+  --ok:oklch(0.52 0.14 155); --ok-soft:oklch(0.78 0.12 155 / 0.22); --ok-line:oklch(0.52 0.14 155 / 0.32);
+  --warn:oklch(0.55 0.13 75); --warn-soft:oklch(0.85 0.12 85 / 0.26);
+  --lost:oklch(0.52 0.17 25); --lost-soft:oklch(0.80 0.12 25 / 0.20); --lost-line:oklch(0.52 0.17 25 / 0.30);
+  --radius:18px 6px 18px 18px; --radius-sm:12px 4px 12px 12px;
+  --shadow:0 12px 32px oklch(0 0 0 / 0.10);
+  --font:"Inter",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --mono:"Roboto Mono","SF Mono",ui-monospace,"Fira Code",monospace;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;}
+body{
+  font-family:var(--font); color:var(--ink); background:var(--bg); padding:28px;
+  line-height:1.45; -webkit-font-smoothing:antialiased;
+  background-image:
+    radial-gradient(70rem 55rem at 108% -12%, oklch(0.80 0.11 61 / 0.10), transparent 60%),
+    radial-gradient(55rem 55rem at -12% 118%, oklch(0.70 0.04 250 / 0.09), transparent 58%),
+    linear-gradient(180deg, var(--bg), var(--bg-2));
+  background-attachment:fixed;
+}
+.hd{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:18px;flex-wrap:wrap;}
+.hd-l{display:flex;align-items:center;gap:16px;min-width:0;}
+.brand{display:flex;align-items:center;color:var(--ink);height:22px;}
+.brand svg{height:20px;width:auto;display:block;}
+.sep{width:1px;height:30px;background:var(--line);flex:none;}
+.ttl{margin:0;font-size:19px;font-weight:700;letter-spacing:-0.02em;line-height:1.2;}
+.sub{margin:3px 0 0;color:var(--muted);font-size:12.5px;}
+.hd-r{display:flex;align-items:center;gap:10px;}
+.status{display:inline-flex;align-items:center;gap:8px;padding:7px 13px;border-radius:9999px;
+  background:var(--glass);border:1px solid var(--line);font-size:12px;font-weight:600;color:var(--ink-2);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);white-space:nowrap;}
+.status .dot{width:7px;height:7px;border-radius:50%;background:var(--muted);}
+.status.live .dot{background:var(--ok);box-shadow:0 0 0 4px var(--ok-soft);}
+.status.held .dot{background:var(--accent);box-shadow:0 0 0 4px var(--accent-soft);}
+.status.live{color:var(--ink);}
+.status .cnt{color:var(--accent);font-variant-numeric:tabular-nums;}
+.reload{font:inherit;font-size:12.5px;font-weight:600;color:var(--ink);cursor:pointer;
+  background:var(--accent-soft);border:1px solid var(--accent-line);border-radius:var(--radius-sm);padding:7px 16px;}
+.reload:hover{background:var(--accent);color:oklch(0.99 0 0);}
+.dash{font-size:12.5px;font-weight:600;color:var(--ink-2);text-decoration:none;white-space:nowrap;
+  background:var(--glass);border:1px solid var(--line);border-radius:var(--radius-sm);padding:7px 14px;}
+.dash:hover{border-color:var(--accent-line);color:var(--ink);}
+.card{border-radius:var(--radius-sm);background:var(--glass-2);border:1px solid var(--line);
+  box-shadow:var(--shadow);backdrop-filter:blur(20px) saturate(125%);-webkit-backdrop-filter:blur(20px) saturate(125%);
+  padding:16px 20px;}
+.card h2{margin:0 0 10px;font-size:14px;font-weight:700;letter-spacing:-0.01em;display:flex;justify-content:space-between;align-items:baseline;gap:12px;}
+.card h2 .n{color:var(--muted);font-size:11.5px;font-weight:600;font-variant-numeric:tabular-nums;}
+ul{list-style:none;margin:0;padding:0;}
+.empty{color:var(--muted);font-style:italic;padding:8px 0;font-size:12.5px;}
+.state{display:none;flex-direction:column;align-items:center;text-align:center;padding:64px 28px;
+  border-radius:var(--radius);background:var(--glass);border:1px solid var(--line);
+  backdrop-filter:blur(20px) saturate(125%);-webkit-backdrop-filter:blur(20px) saturate(125%);}
+.state .mark{color:var(--accent);opacity:0.9;margin-bottom:22px;}
+.state .mark svg{height:26px;width:auto;}
+.state h2{margin:0 0 8px;font-size:18px;font-weight:700;letter-spacing:-0.01em;color:var(--accent);}
+.state p{margin:0;max-width:460px;color:var(--muted);font-size:13.5px;line-height:1.6;}
+.foot{margin-top:14px;color:var(--muted);font-size:11px;text-align:center;letter-spacing:0.01em;line-height:1.7;}
+.foot code{font-family:var(--mono);color:var(--ink-2);}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(8px);opacity:0;
+  pointer-events:none;transition:opacity .18s,transform .18s;z-index:50;
+  background:var(--ink);color:oklch(0.99 0 0);font-size:12.5px;font-weight:600;
+  padding:9px 16px;border-radius:9999px;box-shadow:var(--shadow);max-width:80vw;}
+.toast.on{opacity:1;transform:translateX(-50%);}
+.toast.bad{background:var(--lost);}
+.busy{opacity:0.5;pointer-events:none;}
+.wrap{max-width:980px;margin:0 auto;}
+.grid{display:flex;flex-direction:column;gap:14px;}
+li{display:block;padding:12px 0;border-top:1px solid var(--line-soft);}
+li:first-child{border-top:0;}
+.row{display:flex;gap:12px;align-items:flex-start;}
+.t{flex:1;min-width:0;}
+.t .name{font-weight:600;font-size:13px;color:var(--ink);word-break:break-word;font-family:var(--mono);}
+.t .meta{color:var(--muted);font-size:11.5px;margin-top:3px;word-break:break-word;}
+.act{display:flex;align-items:center;gap:6px;flex:none;flex-wrap:wrap;justify-content:flex-end;}
+.due{font-variant-numeric:tabular-nums;font-size:11.5px;white-space:nowrap;color:var(--muted);
+  padding:3px 10px;border-radius:9999px;border:1px solid var(--line);background:var(--glass);flex:none;}
+.due.soon{color:var(--warn);border-color:var(--warn-soft);background:var(--warn-soft);font-weight:700;}
+.due.gone{color:var(--lost);border-color:var(--lost-line);background:var(--lost-soft);font-weight:700;}
+.pill{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;
+  padding:3px 10px;border-radius:9999px;border:1px solid var(--line);background:var(--glass);flex:none;}
+.pill.approved{color:var(--ok);border-color:var(--ok-line);background:var(--ok-soft);}
+.pill.denied{color:var(--lost);border-color:var(--lost-line);background:var(--lost-soft);}
+.pill.expired{color:var(--muted);}
+.mini{font:inherit;font-size:11.5px;font-weight:700;color:var(--ink-2);cursor:pointer;
+  background:var(--glass);border:1px solid var(--line);border-radius:9999px;padding:4px 13px;white-space:nowrap;}
+.mini:hover{background:var(--accent-soft);border-color:var(--accent-line);color:var(--ink);}
+.mini.yes:hover{background:var(--ok-soft);border-color:var(--ok-line);color:var(--ok);}
+.mini.no:hover{background:var(--lost-soft);border-color:var(--lost-line);color:var(--lost);}
+.search{font:inherit;font-size:12px;color:var(--ink);background:var(--glass);border:1px solid var(--line);
+  border-radius:9999px;padding:5px 13px;width:190px;max-width:45vw;}
+.search:focus{outline:none;border-color:var(--accent-line);}
+.rows{max-height:460px;overflow-y:auto;}
+/* The arguments, verbatim. This is the whole point of the page: an approver
+   authorises the payload that will actually run, so it is printed as it will
+   be sent — never summarised, never truncated to a shape that reads well. */
+.args{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);margin:9px 0 0;
+  padding:10px 12px;border-radius:var(--radius-sm);background:oklch(1 0 0 / 0.85);
+  border:1px solid var(--line);white-space:pre-wrap;word-break:break-word;
+  max-height:220px;overflow:auto;}
+.digest{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:5px;word-break:break-all;}
+/* The inline action panel. Native modals (window.prompt / window.confirm) are
+   not available inside the sandboxed iframe an artifact renders in — they
+   return null without ever showing, which silently swallows the action — so
+   anything needing input or confirmation opens one of these in the page. It
+   also puts the pending decision in front of the reader before it happens. */
+.panel{margin:9px 0 2px;padding:11px 13px;border-radius:var(--radius-sm);
+  background:var(--glass);border:1px solid var(--accent-line);}
+.panel .lab{display:block;font-size:11px;font-weight:700;color:var(--ink-2);
+  text-transform:uppercase;letter-spacing:0.05em;margin-bottom:7px;}
+.panel input[type=text],.panel textarea{
+  font:inherit;font-size:12.5px;color:var(--ink);background:oklch(1 0 0 / 0.9);
+  border:1px solid var(--line);border-radius:var(--radius-sm);padding:7px 11px;
+  width:100%;display:block;margin-bottom:8px;resize:vertical;}
+.panel input:focus,.panel textarea:focus{outline:none;border-color:var(--accent-line);}
+.panel .btns{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.panel .go{font:inherit;font-size:12px;font-weight:700;cursor:pointer;color:oklch(0.99 0 0);
+  background:var(--accent);border:1px solid var(--accent);border-radius:9999px;padding:6px 15px;}
+.panel .go.danger{background:var(--lost);border-color:var(--lost);}
+.panel .no{font:inherit;font-size:12px;font-weight:600;cursor:pointer;color:var(--muted);
+  background:none;border:0;padding:6px 4px;}
+.panel .no:hover{color:var(--ink);}
+.panel .hint{color:var(--muted);font-size:11px;margin:0 0 8px;line-height:1.5;}
+/* What the card can do, stated once at the top of the card rather than left
+   for the reader to discover by clicking things. */
+.can{margin:-4px 0 10px;color:var(--muted);font-size:11.5px;line-height:1.5;}
+.can b{color:var(--ink-2);font-weight:600;}
+@keyframes rise{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+@media (prefers-reduced-motion: no-preference){
+  .grid > *{animation:rise .42s cubic-bezier(.22,1,.36,1) both;animation-delay:calc(var(--i,0)*40ms);}
+}
+</style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="sp-logo" viewBox="167 461 666 78"><g>
+<path fill="#fb9b34" d="M 234.109375 461.253906 L 218.292969 516.605469 L 211.96875 538.746094 L 223.039063 538.746094 L 238.859375 483.394531 L 245.179688 461.253906"/>
+<path fill="#fb9b34" d="M 192.523438 474.636719 L 207.539063 474.636719 L 182.179688 500 L 207.539063 525.359375 L 192.523438 525.359375 L 167.15625 500.007813"/>
+<path fill="currentColor" d="M 285.796875 527.675781 L 252.582031 527.675781 L 252.582031 516.605469 L 274.722656 516.605469 L 274.722656 505.535156 L 252.582031 505.535156 L 252.582031 472.324219 L 285.796875 472.324219 L 285.796875 483.394531 L 263.652344 483.394531 L 263.652344 494.464844 L 285.796875 494.464844"/>
+<path fill="currentColor" d="M 372.359375 472.320313 L 372.359375 483.390625 L 350.21875 483.390625 L 350.21875 494.46875 L 372.359375 494.46875 L 372.359375 527.679688 L 339.148438 527.679688 L 339.148438 516.609375 L 361.289063 516.609375 L 361.289063 505.539063 L 339.148438 505.539063 L 339.148438 472.320313"/>
+<path fill="currentColor" d="M 413.640625 472.320313 L 413.640625 483.390625 L 402.570313 483.390625 L 402.570313 527.679688 L 391.5 527.679688 L 391.5 483.390625 L 380.210938 483.390625 L 380.210938 472.320313"/>
+<path fill="currentColor" d="M 454.925781 527.675781 L 421.714844 527.675781 L 421.714844 472.324219 L 454.925781 472.324219 L 454.925781 483.394531 L 432.785156 483.394531 L 432.785156 494.464844 L 443.855469 494.464844 L 443.855469 505.535156 L 432.785156 505.535156 L 432.785156 516.605469 L 454.925781 516.605469"/>
+<path fill="currentColor" d="M 477.066406 527.675781 L 465.996094 527.675781 L 465.996094 472.324219 L 477.066406 472.324219 L 477.066406 483.394531 L 488.136719 483.394531 L 488.136719 472.324219 L 499.207031 472.324219 L 499.207031 527.675781 L 488.136719 527.675781 L 488.136719 494.464844 L 477.066406 494.464844"/>
+<path fill="currentColor" d="M 521.347656 494.464844 L 532.417969 494.464844 L 532.417969 483.394531 L 521.347656 483.394531 Z M 521.347656 527.675781 L 510.277344 527.675781 L 510.277344 472.324219 L 543.488281 472.324219 L 543.488281 505.535156 L 521.347656 505.535156"/>
+<path fill="currentColor" d="M 609.914063 516.605469 L 620.984375 516.605469 L 620.984375 483.394531 L 609.914063 483.394531 Z M 632.054688 527.675781 L 598.84375 527.675781 L 598.84375 472.324219 L 632.054688 472.324219 Z M 632.054688 527.675781"/>
+<path fill="currentColor" d="M 654.195313 527.675781 L 643.125 527.675781 L 643.125 472.324219 L 654.195313 472.324219 L 654.195313 483.394531 L 665.265625 483.394531 L 665.265625 472.324219 L 676.335938 472.324219 L 676.335938 527.675781 L 665.265625 527.675781 L 665.265625 494.464844 L 654.195313 494.464844"/>
+<path fill="currentColor" d="M 698.480469 494.464844 L 709.550781 494.464844 L 709.550781 483.394531 L 698.480469 483.394531 Z M 698.480469 527.675781 L 687.40625 527.675781 L 687.40625 472.324219 L 720.621094 472.324219 L 720.621094 505.535156 L 698.480469 505.535156"/>
+<path fill="currentColor" d="M 753.832031 527.675781 L 742.761719 527.675781 L 742.761719 483.394531 L 731.691406 483.394531 L 731.691406 472.324219 L 764.902344 472.324219 L 764.902344 483.394531 L 753.832031 483.394531"/>
+<path fill="currentColor" d="M 328.078125 472.324219 L 317.007813 472.324219 L 317.007813 494.464844 L 305.9375 494.464844 L 305.9375 472.324219 L 294.867188 472.324219 L 294.867188 494.464844 L 305.9375 505.535156 L 305.9375 527.675781 L 317.007813 527.675781 L 317.007813 505.535156 L 328.078125 494.464844"/>
+<path fill="currentColor" d="M 587.777344 472.324219 L 554.554688 472.324219 L 554.554688 527.675781 L 565.625 527.675781 L 565.625 516.605469 L 576.695313 527.675781 L 587.777344 527.675781 L 587.777344 516.605469 L 576.695313 505.535156 L 565.625 505.535156 L 565.625 483.394531 L 576.695313 483.394531 L 576.695313 505.535156 L 587.777344 505.535156"/>
+<path fill="#ff9a2f" d="M 766.898438 527.675781 L 776.320313 527.675781 L 776.320313 518.253906 L 766.898438 518.253906 Z M 766.898438 527.675781"/>
+<path fill="#ff9a2f" d="M 785.742188 480.570313 L 795.160156 480.570313 L 795.160156 471.152344 L 785.742188 471.152344 Z M 785.742188 527.675781 L 795.160156 527.675781 L 795.160156 489.992188 L 785.742188 489.992188 Z M 785.742188 527.675781"/>
+<path fill="#ff9a2f" d="M 823.425781 518.253906 L 814.003906 518.253906 L 814.003906 499.414063 L 823.425781 499.414063 Z M 804.582031 527.675781 L 832.84375 527.675781 L 832.84375 489.996094 L 804.582031 489.996094 Z M 804.582031 527.675781"/>
+<path fill="currentColor" d="M 372.359375 483.390625 L 372.359375 472.320313 L 339.148438 472.320313 L 339.148438 505.539063 L 361.289063 505.539063 L 361.289063 516.609375 L 339.148438 516.609375 L 339.148438 527.679688 L 372.359375 527.679688 L 372.359375 494.46875 L 350.21875 494.46875 L 350.21875 483.390625"/>
+</g></symbol></svg>
+  <div class="wrap">
+    <div class="hd">
+      <div class="hd-l">
+        <span class="brand"><svg viewBox="167 461 666 78" role="img" aria-label="systemprompt.io"><use href="#sp-logo"/></svg></span>
+        <span class="sep"></span>
+        <div>
+          <h1 class="ttl">Governance — Approvals</h1>
+          <p class="sub">Every tool call the <code>require_approval</code> stage is holding, with its arguments exactly as they will run. Approve or deny in the page; the decision is stamped with your name and audited.</p>
+        </div>
+      </div>
+      <div class="hd-r">
+        <span class="status" id="status"><span class="dot"></span>Awaiting data</span>
+        <a class="dash" href="https://internal.systemprompt.io/admin/governance/approvals" target="_blank" rel="noopener">Console</a>
+        <button class="reload" id="reload">Reload</button>
+      </div>
+    </div>
+
+    <div class="grid" id="grid">
+      <section class="card" style="--i:0">
+        <h2>Held for your decision <span class="n" id="hold-n"></span></h2>
+        <p class="can">Each call is shown with the <b>verbatim arguments</b> it will run with, its rule, and who asked. <b>Approve</b> releases the call to run; <b>Deny</b> refuses it. Both take an optional note, and both are recorded against your name.</p>
+        <ul id="held"><li class="empty">Loading…</li></ul>
+      </section>
+
+      <section class="card" style="--i:1">
+        <h2>Decided
+          <input class="search" id="hist-q" type="search" placeholder="Filter by tool, person, note…" aria-label="Filter decided approvals" />
+          <span class="n" id="hist-n"></span>
+        </h2>
+        <p class="can">Who released what, and when. <b>Expired</b> rows carry no approver — nobody decided them and the hold ran out.</p>
+        <ul id="hist" class="rows"><li class="empty">Loading…</li></ul>
+      </section>
+    </div>
+
+    <div class="state" id="error">
+      <span class="mark"><svg viewBox="167 461 666 78" role="img" aria-label="systemprompt.io"><use href="#sp-logo"/></svg></span>
+      <h2>The approvals queue could not be read</h2>
+      <p id="error-msg">The governance query did not complete.</p>
+      <p style="margin-top:10px">This page needs the admin <code>systemprompt</code> MCP server. Press Reload to try again.</p>
+    </div>
+
+    <p class="foot">Typed rows from <code>approval_list</code> and <code>approval_history</code>, over core's <code>approval_requests</code> table.<br />
+    Writes: Approve and Deny both run <code>approval_decide</code>, stamping you as the approver.</p>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- Data contract. Two typed reads on load, one write per decision. Every
+       tool named here must also appear in this artifact's `mcp_tools:` in
+       config.yaml — nothing derives one list from the other, and a drift shows
+       only at runtime as "not in this artifact's mcp_tools allowlist".
+
+       Both reads answer with a table artifact: typed rows under `items`. This
+       page never parses a display string.
+
+       Row shapes (extensions/mcp/systemprompt/src/server/approval_shape.rs):
+         PendingRow  call_id, tool_name, server_name, requested_by, rule,
+                     arguments, args_digest, session_id, trace_id,
+                     created_at, expires_at
+         DecidedRow  call_id, tool_name, server_name, requested_by, rule,
+                     arguments, args_digest, status, approver_id,
+                     approver_username, decided_at, decision_note, created_at -->
+  <script type="application/json" id="approval-query">
+  {"reads": [
+    {"tool": "mcp__systemprompt__approval_list", "arguments": {"limit": 50}, "target": "held"},
+    {"tool": "mcp__systemprompt__approval_history", "arguments": {"limit": 50}, "target": "hist"}
+  ],
+   "writes": {"decide": "mcp__systemprompt__approval_decide"}}
+  </script>
+
+<script>
+(function () {
+  /* ---- shared runtime -------------------------------------------------
+     The Cowork host injects window.cowork.callMcpTool(name, args). There is
+     no REST surface: every read and every decision on this page goes through
+     that one call, executed as the signed-in admin — the same identity that
+     is stamped onto the audited approval row. */
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+    return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]; }); };
+
+  var TIMEOUT_MS = 20000;
+  var bridgeReady = function () { return window.cowork && typeof window.cowork.callMcpTool === "function"; };
+
+  var timedCall = function (tool, args) {
+    return new Promise(function (resolve, reject) {
+      var done = false;
+      var guard = setTimeout(function () {
+        if (done) return; done = true;
+        reject(new Error("The call timed out — the workspace may have reloaded mid-request."));
+      }, TIMEOUT_MS);
+      window.cowork.callMcpTool(tool, args).then(
+        function (r) { if (done) return; done = true; clearTimeout(guard); resolve(r); },
+        function (e) { if (done) return; done = true; clearTimeout(guard); reject(e); });
+    });
+  };
+
+  /* A table artifact carries its rows in `items` and its column definitions in
+     `columns` — and `columns` is declared first. Scanning for "the first array
+     in the object" therefore finds the column list and renders column
+     definitions as nonsense rows. So the keys are named explicitly, in order,
+     and there is no scan-for-any-array fallback: a shape we do not recognise
+     must fail loudly rather than quietly hand back the wrong array. */
+  var ROW_KEYS = ["items", "records", "rows", "data"];
+  var rowsOf = function (r) {
+    var v = r && r.structuredContent;
+    if (v && typeof v.content === "string") return null;
+    if (Array.isArray(v)) return v;
+    if (!v || typeof v !== "object") return null;
+    for (var i = 0; i < ROW_KEYS.length; i++) {
+      if (Array.isArray(v[ROW_KEYS[i]])) return v[ROW_KEYS[i]];
+    }
+    return null;
+  };
+
+  var errText = function (r, fallback) {
+    var t = "";
+    try { t = (r.content && r.content[0] && r.content[0].text) || ""; } catch (e) {}
+    return t || fallback;
+  };
+
+  /* Every decision reports through here rather than silently succeeding. A
+     failed call must never leave the queue looking as though it landed. */
+  var TOAST = null;
+  var toast = function (msg, bad) {
+    var el = $("toast");
+    el.textContent = msg;
+    el.className = "toast on" + (bad ? " bad" : "");
+    clearTimeout(TOAST);
+    TOAST = setTimeout(function () { el.className = "toast"; }, bad ? 6000 : 3000);
+  };
+
+  /* The write contract: disable the control, call, then either commit the
+     optimistic UI or roll it back and say why. `revert` runs on any failure,
+     including a rejected promise. */
+  var write = function (el, tool, args, okMsg, commit, revert) {
+    if (el) el.classList.add("busy");
+    return timedCall(tool, args).then(function (r) {
+      if (el) el.classList.remove("busy");
+      if (r && r.isError) { revert(); toast(errText(r, "The decision was refused."), true); return false; }
+      commit(r); toast(okMsg); return true;
+    }).catch(function (e) {
+      if (el) el.classList.remove("busy");
+      revert(); toast(String((e && e.message) || e), true); return false;
+    });
+  };
+
+  /* Opens an inline panel under `host`. Native window.prompt / window.confirm
+     return null without ever rendering inside the sandboxed iframe, so a
+     confirmation built on them silently swallows the decision. */
+  var OPEN_PANEL = null;
+  var closePanel = function () {
+    if (!OPEN_PANEL) return;
+    if (OPEN_PANEL.el.parentNode) OPEN_PANEL.el.parentNode.removeChild(OPEN_PANEL.el);
+    if (OPEN_PANEL.onClose) OPEN_PANEL.onClose();
+    OPEN_PANEL = null;
+  };
+  var panel = function (host, opts) {
+    closePanel();
+    var el = document.createElement("div");
+    el.className = "panel";
+    var html = '<span class="lab">' + esc(opts.title) + "</span>";
+    if (opts.hint) html += '<p class="hint">' + esc(opts.hint) + "</p>";
+    (opts.fields || []).forEach(function (f) {
+      html += f.type === "area"
+        ? '<textarea rows="' + (f.rows || 3) + '" data-f="' + esc(f.name) + '" placeholder="' + esc(f.label || "") + '"></textarea>'
+        : '<input type="text" data-f="' + esc(f.name) + '" placeholder="' + esc(f.label || "") + '" />';
+    });
+    html += '<div class="btns"><button type="button" class="go' + (opts.danger ? " danger" : "") + '">' +
+      esc(opts.submit || "Save") + '</button><button type="button" class="no">Cancel</button></div>';
+    el.innerHTML = html;
+
+    var values = function () {
+      var out = {};
+      (opts.fields || []).forEach(function (f) { out[f.name] = el.querySelector('[data-f="' + f.name + '"]').value.trim(); });
+      return out;
+    };
+    var submit = function () {
+      var v = values();
+      closePanel();
+      opts.onSubmit(v);
+    };
+    el.querySelector(".go").addEventListener("click", submit);
+    el.querySelector(".no").addEventListener("click", function () { closePanel(); });
+    el.addEventListener("keydown", function (ev) {
+      if (ev.key === "Escape") { ev.preventDefault(); closePanel(); return; }
+      if (ev.key === "Enter" && ev.target.tagName !== "TEXTAREA") { ev.preventDefault(); submit(); }
+    });
+
+    host.appendChild(el);
+    OPEN_PANEL = { el: el, onClose: opts.onClose };
+    var first = el.querySelector("input, textarea");
+    if (first) first.focus();
+    return el;
+  };
+
+  var contract = JSON.parse($("approval-query").textContent);
+  var DATA = { held: [], hist: [] };
+
+  /* ---- typed field access ---------------------------------------------
+     Every value here comes from a typed row, so a missing field arrives as
+     null. These helpers only decide how a null is displayed. */
+  var str = function (v) { return v == null ? "" : String(v); };
+  var stamp = function (v) { return v ? String(v).replace("T", " ").slice(0, 16) : ""; };
+  /* The arguments, printed as they will run. A payload that will not stringify
+     is shown as the raw value rather than hidden — an approver who cannot see
+     the payload must be able to see that they cannot see it. */
+  var argsText = function (v) {
+    if (v == null) return "(no arguments)";
+    try { return JSON.stringify(v, null, 2); } catch (e) { return String(v); }
+  };
+  var expiry = function (iso) {
+    if (!iso) return { label: "no expiry", cls: "" };
+    var left = new Date(iso).getTime() - Date.now();
+    if (!isFinite(left)) return { label: stamp(iso), cls: "" };
+    if (left <= 0) return { label: "hold expired", cls: "gone" };
+    var mins = Math.round(left / 60000);
+    return { label: (mins < 60 ? mins + "m" : Math.round(mins / 60) + "h") + " left", cls: mins < 10 ? "soon" : "" };
+  };
+
+  var setStatus = function (mode) {
+    var el = $("status");
+    var n = DATA.held.length;
+    if (mode === "live" && n) { el.className = "status held"; el.innerHTML = '<span class="dot"></span><span class="cnt">' + n + "</span>&nbsp;awaiting your decision"; }
+    else if (mode === "live") { el.className = "status live"; el.innerHTML = '<span class="dot"></span>Live · nothing held'; }
+    else if (mode === "error") { el.className = "status"; el.innerHTML = '<span class="dot" style="background:var(--accent)"></span>Not connected'; }
+    else { el.className = "status"; el.innerHTML = '<span class="dot"></span>Awaiting data'; }
+  };
+  var showErr = function (msg) {
+    $("grid").style.display = "none"; $("error").style.display = "flex";
+    $("error-msg").textContent = msg; setStatus("error");
+  };
+  var emptyLi = function (ul, msg) { ul.innerHTML = '<li class="empty">' + esc(msg) + "</li>"; };
+
+  /* ---- the queue: approve or deny -------------------------------------- */
+  var decide = function (li, row, approve) {
+    panel(li, {
+      title: (approve ? "Approve " : "Deny ") + row.tool_name,
+      hint: approve
+        ? "The call runs with exactly the arguments above, and your name is recorded against it."
+        : "The call is refused and never runs. Your name and note are recorded against the refusal.",
+      fields: [{ name: "note", label: "Why (optional) — stored on the audited row", type: "area", rows: 2 }],
+      submit: approve ? "Approve and run" : "Deny",
+      danger: !approve,
+      onSubmit: function (v) {
+        write(li, contract.writes.decide,
+          { call_id: row.call_id, approve: approve, note: v.note || undefined },
+          (approve ? "Approved " : "Denied ") + row.tool_name + ".",
+          function () {
+            DATA.held = DATA.held.filter(function (x) { return x.call_id !== row.call_id; });
+            DATA.hist.unshift({
+              call_id: row.call_id, tool_name: row.tool_name, server_name: row.server_name,
+              requested_by: row.requested_by, rule: row.rule, arguments: row.arguments,
+              args_digest: row.args_digest, status: approve ? "approved" : "denied",
+              approver_username: "you", decided_at: new Date().toISOString(),
+              decision_note: v.note || null, created_at: row.created_at
+            });
+            renderHeld(); renderHist(); setStatus("live");
+          },
+          function () {});
+      }
+    });
+  };
+
+  var renderHeld = function () {
+    var ul = $("held"); ul.innerHTML = "";
+    var rows = DATA.held;
+    $("hold-n").textContent = rows.length + " held";
+    if (!rows.length) return emptyLi(ul, "Nothing is held — every governed call ran or was refused outright.");
+    rows.forEach(function (row) {
+      var li = document.createElement("li");
+      var exp = expiry(row.expires_at);
+      li.innerHTML = '<div class="row"><div class="t"><div class="name">' +
+        esc(str(row.tool_name)) + '</div><div class="meta">' +
+        esc([str(row.server_name), "asked by " + (str(row.requested_by) || "unknown"),
+             "rule " + (str(row.rule) || "—"), "held " + stamp(row.created_at)].join(" · ")) +
+        '</div></div><span class="act">' +
+        '<button class="mini yes" type="button" data-a="yes">Approve</button>' +
+        '<button class="mini no" type="button" data-a="no">Deny</button>' +
+        '</span><span class="due ' + exp.cls + '">' + esc(exp.label) + '</span></div>' +
+        '<pre class="args">' + esc(argsText(row.arguments)) + '</pre>' +
+        '<div class="digest">call ' + esc(str(row.call_id)) + ' · args sha256 ' + esc(str(row.args_digest)) + '</div>';
+      li.querySelector('[data-a="yes"]').addEventListener("click", function () { decide(li, row, true); });
+      li.querySelector('[data-a="no"]').addEventListener("click", function () { decide(li, row, false); });
+      ul.appendChild(li);
+    });
+  };
+
+  /* ---- the record: who decided what ------------------------------------ */
+  var renderHist = function () {
+    var ul = $("hist"); ul.innerHTML = "";
+    var q = ($("hist-q").value || "").toLowerCase().trim();
+    var rows = DATA.hist;
+    if (q) rows = rows.filter(function (h) {
+      return [str(h.tool_name), str(h.approver_username), str(h.requested_by), str(h.decision_note), str(h.status)]
+        .join(" ").toLowerCase().indexOf(q) !== -1;
+    });
+    $("hist-n").textContent = rows.length + (q ? " of " + DATA.hist.length : "") + " decided";
+    if (!rows.length) return emptyLi(ul, q ? "No decision matches that filter." : "Nothing has been decided yet.");
+    rows.forEach(function (h) {
+      var li = document.createElement("li");
+      var who = str(h.approver_username) || str(h.approver_id);
+      var status = str(h.status) || "unknown";
+      li.innerHTML = '<div class="row"><div class="t"><div class="name">' + esc(str(h.tool_name)) +
+        '</div><div class="meta">' +
+        esc([who ? "by " + who : "no approver — the hold expired",
+             stamp(h.decided_at), "asked by " + (str(h.requested_by) || "unknown"),
+             str(h.decision_note) ? "note: " + str(h.decision_note) : ""].filter(Boolean).join(" · ")) +
+        '</div></div><span class="pill ' + esc(status) + '">' + esc(status) + "</span></div>";
+      ul.appendChild(li);
+    });
+  };
+
+  /* ---- load ------------------------------------------------------------ */
+  var FETCH = { tries: 0, max: 3, inflight: false };
+
+  var read = function (spec) {
+    return timedCall(spec.tool, spec.arguments).then(function (r) {
+      if (r && r.isError) throw new Error(errText(r, "The governance query did not complete."));
+      var rows = rowsOf(r);
+      if (!rows) throw new Error(spec.tool.replace("mcp__systemprompt__", "") + " did not answer with typed rows.");
+      DATA[spec.target] = rows;
+    });
+  };
+
+  var failedAttempt = function (msg) {
+    FETCH.inflight = false;
+    if (FETCH.tries < FETCH.max) { setTimeout(function () { load(); }, 1200 * FETCH.tries); return; }
+    showErr(msg + " (after " + FETCH.max + " attempts — press Reload to try again)");
+  };
+
+  var load = function (waited) {
+    if (FETCH.inflight) return;
+    if (!bridgeReady()) {
+      if ((waited || 0) >= 10000) return showErr("This page needs the live MCP connection; open it inside the workspace.");
+      return void setTimeout(function () { load((waited || 0) + 250); }, 250);
+    }
+    closePanel();
+    $("error").style.display = "none"; $("grid").style.display = "flex"; setStatus("await");
+    FETCH.inflight = true; FETCH.tries++;
+    Promise.all(contract.reads.map(read)).then(function () {
+      FETCH.inflight = false; FETCH.tries = 0;
+      renderHeld(); renderHist(); setStatus("live");
+    }).catch(function (e) { failedAttempt(String((e && e.message) || e)); });
+  };
+
+  $("reload").addEventListener("click", function () { FETCH.tries = 0; load(); });
+  $("hist-q").addEventListener("input", renderHist);
+  window.addEventListener("message", function () { load(); });
+  load();
+})();
+</script>
+</body>
+</html>

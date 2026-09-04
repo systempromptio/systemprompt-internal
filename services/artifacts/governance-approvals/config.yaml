@@ -1,0 +1,39 @@
+id: governance-approvals
+name: "Governance — Approvals"
+description: "The held-call queue, and the record of who released what. Every call the require_approval stage is holding, shown with its arguments verbatim — the approver authorises what will actually run, not a summary of it — plus Approve and Deny in the page, and a history of every decided request with its approver and note. Admin only."
+version: "1.0.0"
+enabled: true
+starred: true
+# `category`, `tags` and `query` are forward-compatible metadata — the core
+# loader ignores them today; the call also lives in `description` and view.html.
+category: admin
+tags:
+  - admin
+  - governance
+  - approvals
+  - audit
+  - actions
+# The admin systemprompt MCP server (services/mcp/systemprompt.yaml), whose
+# oauth.scopes require the admin role — so this page is closed at runtime as
+# well as by the systemprompt-admin plugin's single rule.
+#
+# This list is the allowlist the host enforces, and it must match the tools
+# view.html actually calls exactly — nothing derives one from the other, and a
+# drift surfaces only at runtime as "not in this artifact's mcp_tools
+# allowlist". The two reads come first, then the one write.
+#
+# mcp__systemprompt__systemprompt (the CLI passthrough) is deliberately absent:
+# every figure on this page is a typed row from a typed tool, and a CLI shell
+# would put a rendered table between the queue and its reader.
+mcp_tools:
+  - "mcp__systemprompt__approval_list"
+  - "mcp__systemprompt__approval_history"
+  - "mcp__systemprompt__approval_decide"
+query: |
+  two typed reads: approval_list (calls held by the require_approval stage) and
+  approval_history (recently decided, with approver) — each answering with rows
+  under `items`
+  write: approval_decide — approve or deny one held call by call_id, stamping
+  the signed-in admin as the approver
+  table: approval_requests, through core's ApprovalRepository
+file: view.html

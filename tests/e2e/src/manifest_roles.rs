@@ -24,7 +24,11 @@ const USER_ARTIFACTS: &[&str] = &["my-day", "sales-pipeline"];
 // user directory and the two brain@ knowledge dashboards were retired: roles
 // are granted at /admin/access/users and proposals are decided at
 // /admin/governance/approvals, neither of which is a dashboard.
-const ADMIN_ARTIFACTS: &[&str] = &["admin-activity-requests", "admin-usage-costs"];
+const ADMIN_ARTIFACTS: &[&str] = &[
+    "admin-activity-requests",
+    "admin-usage-costs",
+    "governance-approvals",
+];
 
 fn ids(manifest: &serde_json::Value, key: &str) -> BTreeSet<String> {
     manifest[key]

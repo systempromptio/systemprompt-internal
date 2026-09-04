@@ -208,3 +208,5 @@ extensions/web/admin/src/handlers/ssr/ssr_governance_decisions.rs	# internal sco
 extensions/web/admin/src/handlers/ssr/ssr_demo_help/pages.rs	# internal ships help copy for the four /admin/demo/* pages; the template mounts no demo surface
 extensions/web/admin/src/handlers/webhook/governance/types.rs	# internal maps core `next`'s Decision::Warn onto the Allow wire value; the template's 0.44 core has no Warn variant to match on
 extensions/web/admin/src/handlers/ssr/types/charts.rs	# internal adds the daily-count chart builder over the demo series repository, which the template does not have
+extensions/mcp/systemprompt/src/tools.rs	# internal adds the three approval tool inputs (approval_list/decide/history) behind the governance-approvals dashboard; the template ships no approvals surface
+extensions/mcp/systemprompt/src/server/tool.rs	# dispatches the three approval tools and carries the db_pool they need; the template's admin server is CLI passthrough only

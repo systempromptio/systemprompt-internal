@@ -1,18 +1,35 @@
-//! The `systemprompt` MCP server exposes exactly one tool, and its schema is
+//! The `systemprompt` MCP server's tool surface.
+//!
+//! The CLI passthrough tool is named for the server itself, and its schema is
 //! the whole contract: the model has to learn from the description alone that
 //! the `systemprompt` prefix must be omitted, and `command` has to be the one
 //! required argument or a call with no command reaches the CLI. The output
 //! schema is the typed `CliArtifact` shape, so the client can render the
 //! artifact rather than a blob of stdout.
+//!
+//! Beside it sit the three approval tools backing the governance-approvals
+//! dashboard. They are pinned here by name because the dashboard's `mcp_tools`
+//! allowlist names them literally — renaming one silently breaks every button
+//! on that page rather than failing a build.
 
 use systemprompt_mcp_agent::tools::{
     CliInput, CliOutput, SERVER_NAME, input_schema, list_tools, output_schema,
 };
 
 #[test]
-fn exactly_one_tool_is_exposed_under_the_server_name() {
+fn the_cli_passthrough_and_the_three_approval_tools_are_exposed() {
     let tools = list_tools();
-    assert_eq!(tools.len(), 1);
+    let names: Vec<&str> = tools.iter().map(|t| t.name.as_ref()).collect();
+    assert_eq!(
+        names,
+        vec![
+            "systemprompt",
+            "approval_list",
+            "approval_decide",
+            "approval_history"
+        ],
+        "the governance-approvals dashboard allowlists these by name"
+    );
     assert_eq!(tools[0].name.as_ref(), SERVER_NAME);
     assert_eq!(SERVER_NAME, "systemprompt");
 }

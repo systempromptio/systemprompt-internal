@@ -5,6 +5,10 @@
 //! the `tool` submodule.
 
 #[doc(hidden)]
+pub mod approval;
+#[doc(hidden)]
+pub mod approval_shape;
+#[doc(hidden)]
 pub mod tool;
 
 use crate::error::SystempromptToolError;
@@ -161,6 +165,7 @@ impl ServerHandler for SystempromptServer {
                 request_context: &request_context,
                 client: &client,
                 cli: &cli,
+                db_pool: &self.db_pool,
             },
             &tool_name,
             &auth_token,

@@ -61,6 +61,12 @@ plugin:
       # be stale.
       - admin-activity-requests
       - admin-usage-costs
+      # The held-call queue. Typed tools on the same admin server, not the CLI
+      # passthrough: the page reads rows and writes one decision, so the
+      # approver acts on the arguments themselves rather than a rendering of
+      # them. /admin/governance/approvals stays the web surface; this is the
+      # same queue inside the workspace.
+      - governance-approvals
       # admin-users-directory was retired: /admin/access/users is the surface
       # that grants roles, and a read-only mirror of it earned no place.
       # knowledge-feed and knowledge-approve-ingestion went with it; the brain@

@@ -1,15 +1,16 @@
 # Set Up the Control Plane
 
-Install every dashboard the bridge staged — all four — into the Artifacts library, retire the
+Install every dashboard the bridge staged — all five — into the Artifacts library, retire the
 dashboards they replaced, and confirm the admin CLI server answers. That is the two workspace pages
-every role's data feeds (**My Day**, **Sales Pipeline**) plus the two control-plane pages (request
-activity, spend by model). Safe to run on every new session: it reconciles rather than seeds, so
+every role's data feeds (**My Day**, **Sales Pipeline**) plus the three control-plane pages (request
+activity, spend by model, and the governance approvals queue). Safe to run on every new session: it reconciles rather than seeds, so
 re-running is the point, not a waste.
 
-**These four dashboards write, not just read.** Ticking an activity, moving a lead to another
+**These dashboards write, not just read.** Ticking an activity, moving a lead to another
 stage, closing a deal won or lost, logging a note, scheduling a follow-up — each is a real Odoo
 write, executed as the signed-in user against their own login, so Odoo's own record rules are the
-authorisation boundary. That is why the tool allowlist matters more than it used to; Step 3 says
+authorisation boundary. **Governance — Approvals** writes too, and further: approving a held call
+releases it to run, and the decision is stamped with the approver's name on the audited row. That is why the tool allowlist matters more than it used to; Step 3 says
 what a mismatch costs now.
 
 **Installing dashboards is an admin job, and this is the only skill that does it.** There is no
@@ -71,9 +72,9 @@ The pages are not in it and you never read them: `create_artifact` copies a page
 
 **Take every record in the manifest.** Do not filter on `plugins` — the manifest holds exactly the
 bundles your signed manifest granted, so every record in it is one you are meant to install. That
-printed set **is** the bundle: count it, never assume it. On this instance expect four — the two
-workspace pages (`my-day`, `sales-pipeline`) and the two control-plane pages
-(`admin-activity-requests`, `admin-usage-costs`). If the count differs, install what is there and
+printed set **is** the bundle: count it, never assume it. On this instance expect five — the two
+workspace pages (`my-day`, `sales-pipeline`) and the three control-plane pages
+(`admin-activity-requests`, `admin-usage-costs`, `governance-approvals`). If the count differs, install what is there and
 say so — the manifest is the authority, not this list.
 
 ### If every rung missed
@@ -105,7 +106,7 @@ control-plane request log, while `My Day` carries the team's activity feed. Buil
 - **Present** — bundled and already there.
 - **Stale** — present, but the bundled `version` differs from what was installed.
 - **Superseded** — a library entry carrying one of the retired ids below. Offer to remove it: it
-  can no longer load data, and one of the four bundled dashboards is its replacement.
+  can no longer load data, and one of the bundled dashboards is its replacement.
 
   | retired id | replaced by |
   |---|---|
@@ -117,8 +118,11 @@ control-plane request log, while `My Day` carries the team's activity feed. Buil
   The last row has no replacement, so say so plainly rather than pointing at a substitute. Removing
   `knowledge-feed` and `knowledge-approve-ingestion` changed nothing about the brain@ pipeline
   itself: it still runs, and its proposals are still decided in chat or at
-  `/admin/governance/approvals`. `admin-users-directory` was a read-only mirror of
-  `/admin/access/users`, which is where roles are actually granted.
+  `/admin/governance/approvals`.
+
+  Name the retired ids and stop there. Do not append what a removed page "would have" covered, or
+  which surface now owns a job nobody asked about — the reader is removing stale records, not
+  reading a tour of the admin area.
 
 Leave every library entry that is not in the manifest alone. It may be the user's own artifact, and
 nothing here owns it.
