@@ -5,7 +5,8 @@ use systemprompt_web_admin::repositories::demo::filter::DemoFilter;
 use systemprompt_web_admin::repositories::demo::logbook::{LogbookKind, list_demo_logbook};
 
 use crate::fixtures::{
-    DecisionSpec, EventSpec, insert_decision, insert_event, insert_user, unclaimed_email, unique,
+    DecisionSpec, EventSpec, insert_decision, insert_event, insert_skill_event, insert_user,
+    unclaimed_email, unique,
 };
 use crate::tempdb::TempDb;
 
@@ -18,7 +19,7 @@ async fn entries_are_newest_first_across_all_four_sources() {
     let session = unique("sess");
     let at = Utc::now() - Duration::minutes(20);
 
-    insert_event(
+    insert_skill_event(
         &db.pool,
         &EventSpec::skill(&unique("evt"), &user, &session, "p:one").at(at),
     )
@@ -59,12 +60,12 @@ async fn the_user_filter_excludes_every_other_users_entry() {
 
     let mine = unique("sess");
     let theirs = unique("sess");
-    insert_event(
+    insert_skill_event(
         &db.pool,
         &EventSpec::skill(&unique("evt"), &user, &mine, "p:mine").at(at),
     )
     .await;
-    insert_event(
+    insert_skill_event(
         &db.pool,
         &EventSpec::skill(&unique("evt"), &other, &theirs, "p:theirs").at(at),
     )

@@ -7,7 +7,8 @@ use systemprompt_web_admin::repositories::demo::skill_invocations::{
 };
 
 use crate::fixtures::{
-    EventSpec, RequestSpec, insert_event, insert_request, insert_user, unclaimed_email, unique,
+    EventSpec, RequestSpec, insert_event, insert_request, insert_skill_event, insert_user,
+    unclaimed_email, unique,
 };
 use crate::tempdb::TempDb;
 
@@ -20,7 +21,7 @@ async fn a_request_inside_the_window_is_attributed_to_the_invocation() {
     let session = unique("sess");
     let start = Utc::now() - Duration::minutes(30);
 
-    insert_event(
+    insert_skill_event(
         &db.pool,
         &EventSpec::skill(&unique("evt"), &user, &session, "p:alpha").at(start),
     )
@@ -56,12 +57,12 @@ async fn a_request_after_the_next_skill_belongs_to_the_second_invocation() {
     let session = unique("sess");
     let start = Utc::now() - Duration::minutes(30);
 
-    insert_event(
+    insert_skill_event(
         &db.pool,
         &EventSpec::skill(&unique("evt"), &user, &session, "p:first").at(start),
     )
     .await;
-    insert_event(
+    insert_skill_event(
         &db.pool,
         &EventSpec::skill(&unique("evt"), &user, &session, "p:second")
             .at(start + Duration::minutes(2)),
@@ -90,7 +91,7 @@ async fn a_request_past_the_pad_after_the_last_event_is_not_attributed() {
     let session = unique("sess");
     let start = Utc::now() - Duration::minutes(30);
 
-    insert_event(
+    insert_skill_event(
         &db.pool,
         &EventSpec::skill(&unique("evt"), &user, &session, "p:late").at(start),
     )
@@ -117,7 +118,7 @@ async fn another_users_request_is_never_attributed() {
     let session = unique("sess");
     let start = Utc::now() - Duration::minutes(30);
 
-    insert_event(
+    insert_skill_event(
         &db.pool,
         &EventSpec::skill(&unique("evt"), &user, &session, "p:mine").at(start),
     )
@@ -145,12 +146,12 @@ async fn totals_sum_the_invocations_of_each_skill() {
 
     let s1 = unique("sess");
     let s2 = unique("sess");
-    insert_event(
+    insert_skill_event(
         &db.pool,
         &EventSpec::skill(&unique("evt"), &user, &s1, "p:shared").at(start),
     )
     .await;
-    insert_event(
+    insert_skill_event(
         &db.pool,
         &EventSpec::skill(&unique("evt"), &other, &s2, "p:shared").at(start + Duration::minutes(1)),
     )

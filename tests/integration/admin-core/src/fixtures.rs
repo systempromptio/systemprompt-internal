@@ -404,6 +404,19 @@ pub async fn insert_decision(pool: &PgPool, spec: &DecisionSpec<'_>) {
     .expect("insert governance decision");
 }
 
+// A Skill tool call is only an invocation when a governance decision sits
+// beside it: every genuine tool call is governed before it runs, so
+// skill_invocation_events requires one and a Skill row without it did not come
+// from a client. Writing the event alone builds an invocation the product does
+// not recognise, which is a fixture that tests nothing.
+pub async fn insert_skill_event(pool: &PgPool, spec: &EventSpec<'_>) {
+    insert_event(pool, spec).await;
+    let mut governed = DecisionSpec::allow(&unique("dec"), spec.user_id, spec.session_id);
+    governed.tool_name = "Skill";
+    governed.created_at = spec.created_at;
+    insert_decision(pool, &governed).await;
+}
+
 pub struct EventSpec<'a> {
     pub id: String,
     pub user_id: &'a UserId,
