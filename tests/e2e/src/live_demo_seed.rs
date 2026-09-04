@@ -25,6 +25,12 @@ use crate::live_smoke::{
 
 const HOOK_PLUGIN: &str = "systemprompt-business";
 
+// `governance_decisions.tool_name` carries the full prefixed name on the hook
+// path, so the read-back queries match on it verbatim.
+const BLOCKED_TOOL: &str = "mcp__odoo__crm_lead_delete";
+const HELD_TOOL: &str = "mcp__odoo__note_add";
+const ALLOWED_TOOL: &str = "mcp__odoo__crm_lead_search";
+
 struct Seat {
     login: &'static str,
     bearer: String,
@@ -112,31 +118,33 @@ async fn govern(
     seat: &Seat,
     session: &str,
     tool: &str,
-) -> String {
-    let body: Value = http
-        .post(format!(
-            "{base}/api/public/hooks/govern?plugin_id={HOOK_PLUGIN}"
-        ))
-        .bearer_auth(&seat.hook_token)
-        .json(&json!({
-            "hook_event_name": "PreToolUse",
-            "session_id": session,
-            "cwd": "/var/www/html/systemprompt-internal",
-            "transcript_path": "/tmp/demo-seed-transcript",
-            "permission_mode": "default",
-            "tool_name": tool,
-            "tool_input": { "demo": true },
-            "tool_use_id": format!("toolu_gov_{}", uuid::Uuid::new_v4().simple()),
-        }))
-        .send()
-        .await
-        .expect("hooks/govern answers")
-        .json()
-        .await
-        .expect("hooks/govern is json");
-    body["hookSpecificOutput"]["permissionDecision"]
+) -> Value {
+    http.post(format!(
+        "{base}/api/public/hooks/govern?plugin_id={HOOK_PLUGIN}"
+    ))
+    .bearer_auth(&seat.hook_token)
+    .json(&json!({
+        "hook_event_name": "PreToolUse",
+        "session_id": session,
+        "cwd": "/var/www/html/systemprompt-internal",
+        "transcript_path": "/tmp/demo-seed-transcript",
+        "permission_mode": "default",
+        "tool_name": tool,
+        "tool_input": { "demo": true },
+        "tool_use_id": format!("toolu_gov_{}", uuid::Uuid::new_v4().simple()),
+    }))
+    .send()
+    .await
+    .expect("hooks/govern answers")
+    .json()
+    .await
+    .expect("hooks/govern is json")
+}
+
+fn decision_of(response: &Value, tool: &str) -> String {
+    response["hookSpecificOutput"]["permissionDecision"]
         .as_str()
-        .unwrap_or_else(|| panic!("no permissionDecision for {tool}: {body:#}"))
+        .unwrap_or_else(|| panic!("no permissionDecision for {tool}: {response:#}"))
         .to_owned()
 }
 
@@ -276,7 +284,7 @@ fn database_url() -> String {
         )
 }
 
-async fn assert_rows(sales: &Seat) {
+async fn assert_rows(admin: &Seat, sales: &Seat, admin_allow: &Value) {
     let pool = sqlx::PgPool::connect(&database_url())
         .await
         .expect("the seed connects to the server's database");
@@ -326,6 +334,25 @@ async fn assert_rows(sales: &Seat) {
         held > 0,
         "the salesperson's note_add must be HELD (require_approval/pending) in \
          governance_decisions"
+    );
+
+    // An allowed verdict has to be audited too. A spine that records only the
+    // refusals cannot answer "what did this agent do", which is the whole
+    // claim the demo pages make.
+    let allowed: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM governance_decisions \
+         WHERE user_id = $1 AND tool_name = $2 AND decision = 'allow'",
+    )
+    .bind(&admin.user_id)
+    .bind(ALLOWED_TOOL)
+    .fetch_one(&pool)
+    .await
+    .expect("allowed decisions read back");
+    assert!(
+        allowed > 0,
+        "the admin's {ALLOWED_TOOL} PreToolUse answered allow but no allow row reached \
+         governance_decisions for user {}. The endpoint's response was: {admin_allow:#}",
+        admin.user_id
     );
 }
 
@@ -389,35 +416,33 @@ async fn live_demo_seed_fills_the_demo_dashboards() {
         .last()
         .cloned()
         .expect("the salesperson ran a session");
-    let denied = govern(
-        &http,
-        &base,
-        &sales,
-        &sales_session,
-        "mcp__odoo__crm_lead_delete",
-    )
-    .await;
-    assert_eq!(denied, "deny", "tool_blocklist refuses a delete tool");
-    let held = govern(&http, &base, &sales, &sales_session, "mcp__odoo__note_add").await;
-    assert_eq!(held, "ask", "require_approval holds note_add for a human");
+    let denied = govern(&http, &base, &sales, &sales_session, BLOCKED_TOOL).await;
+    assert_eq!(
+        decision_of(&denied, BLOCKED_TOOL),
+        "deny",
+        "tool_blocklist refuses a delete tool"
+    );
+    let held = govern(&http, &base, &sales, &sales_session, HELD_TOOL).await;
+    assert_eq!(
+        decision_of(&held, HELD_TOOL),
+        "ask",
+        "require_approval holds note_add for a human"
+    );
 
     let admin_session = admin
         .sessions
         .last()
         .cloned()
         .expect("the admin ran a session");
-    let allowed = govern(
-        &http,
-        &base,
-        &admin,
-        &admin_session,
-        "mcp__odoo__crm_lead_search",
-    )
-    .await;
-    assert_eq!(allowed, "allow", "a read tool runs unattended");
+    let admin_allow = govern(&http, &base, &admin, &admin_session, ALLOWED_TOOL).await;
+    assert_eq!(
+        decision_of(&admin_allow, ALLOWED_TOOL),
+        "allow",
+        "a read tool runs unattended"
+    );
 
     step("read the rows back");
-    assert_rows(&sales).await;
+    assert_rows(&admin, &sales, &admin_allow).await;
 
     step("done — demo dashboards seeded for both roles");
 }
