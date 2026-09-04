@@ -166,7 +166,7 @@ impl McpToolHandler for LeadConvertHandler {
     ) -> impl Future<Output = Result<(Self::Output, String), McpError>> + Send {
         let call = self.call.clone();
         async move {
-            // `convert_opportunity(partner_id)` — false lets Odoo match or
+            // Why: `convert_opportunity(partner_id)` — false lets Odoo match or
             // create the partner from the lead's own contact fields.
             let partner = input
                 .partner_id

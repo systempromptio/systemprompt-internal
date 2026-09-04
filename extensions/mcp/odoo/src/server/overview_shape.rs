@@ -21,11 +21,11 @@ use super::work_shape::{activity_rows, event_rows, task_rows};
 
 pub(crate) use crate::shape as odoo;
 
-/// One `read_group` bucket of the pipeline.
-///
-/// Not a record: `__count` and the summed revenue exist only in the
-/// aggregate, which is why the pipeline block is metric cards rather than a
-/// seventh row type nothing else would ever return.
+// Why: One `read_group` bucket of the pipeline.
+//
+// Not a record: `__count` and the summed revenue exist only in the
+// aggregate, which is why the pipeline block is metric cards rather than a
+// seventh row type nothing else would ever return.
 #[derive(Debug, Clone, serde::Deserialize)]
 struct PipelineGroup {
     #[serde(deserialize_with = "odoo::many2one", default)]
@@ -140,7 +140,9 @@ fn pipeline_section(briefing: &Briefing) -> Result<DashboardSection, serde_json:
     )
 }
 
-pub(crate) fn briefing_dashboard(briefing: &Briefing) -> Result<DashboardArtifact, serde_json::Error> {
+pub(crate) fn briefing_dashboard(
+    briefing: &Briefing,
+) -> Result<DashboardArtifact, serde_json::Error> {
     let sections = vec![
         pipeline_section(briefing)?,
         rows_section(

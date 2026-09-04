@@ -8,7 +8,7 @@ use sqlx::PgPool;
 
 use super::context::DemoSkillsContext;
 use super::view::{
-    AttributedTotals, SkillCatalogIndex, matrix_view, skill_total_view, user_total_views,
+    AttributedTotals, load_skill_catalog, matrix_view, skill_total_view, user_total_views,
 };
 use super::{ATTRIBUTION_NOTE, CHART_DAYS, skill_kpi_strip};
 use crate::error::{AdminError, AdminHtmlResult};
@@ -104,22 +104,7 @@ async fn build_page_json(pool: &PgPool, tab: SkillsTab) -> DemoSkillsContext {
     // Why: every query runs on both tabs because the pinned KPI strip is fed
     // by all of them — distinct skills from the totals, distinct users from
     // the matrix, tokens and cost from the totals. Only the body is split.
-    // Why: read the on-disk catalog so a recorded name that no longer names a
-    // skill can be marked retired instead of passing as live. A failure here
-    // costs only the badge, so it degrades to "nothing is judged".
-    let catalog = crate::handlers::shared::get_services_path().ok().map_or_else(
-        SkillCatalogIndex::default,
-        |path| {
-            let plugins = crate::repositories::marketplace::plugins::list_plugin_catalog(&path)
-                .unwrap_or_default()
-                .into_iter()
-                .map(|p| p.id)
-                .collect::<Vec<_>>();
-            let skills = crate::repositories::marketplace::plugins::list_skill_catalog(&path)
-                .unwrap_or_default();
-            SkillCatalogIndex::new(&plugins, &skills)
-        },
-    );
+    let catalog = load_skill_catalog();
     let skills: Vec<_> = totals
         .iter()
         .map(|t| skill_total_view(t, &catalog))

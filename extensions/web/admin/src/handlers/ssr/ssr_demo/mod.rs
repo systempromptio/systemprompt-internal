@@ -12,6 +12,7 @@
 
 mod context;
 mod logbook;
+mod matrix_view;
 mod me;
 mod skills;
 mod tools;
@@ -92,7 +93,7 @@ fn attributed_kpis(usage: &AttributedTotals) -> [KpiView; 2] {
     ]
 }
 
-fn combined_usage(kpis: &DemoKpis) -> AttributedTotals {
+const fn combined_usage(kpis: &DemoKpis) -> AttributedTotals {
     AttributedTotals {
         total_tokens: kpis.attributed_tokens,
         cost_microdollars: kpis.attributed_cost_microdollars,

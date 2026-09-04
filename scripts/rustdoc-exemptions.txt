@@ -6,3 +6,6 @@
 # tool parameter description the model reads. Converting it to `// Why:` empties
 # the description from the generated schema, so the placement rule cannot apply.
 extensions/mcp/systemprompt/src/tools.rs
+extensions/mcp/odoo/src/tools/inputs/mod.rs
+extensions/mcp/odoo/src/tools/inputs/sales.rs
+extensions/mcp/odoo/src/tools/inputs/work.rs

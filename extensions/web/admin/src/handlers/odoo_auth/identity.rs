@@ -20,9 +20,9 @@ pub(crate) struct IdentityResponse {
     odoo_login: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     odoo_uid: Option<i32>,
-    /// Whether the stored credential authenticates against Odoo right now.
-    /// `None` when nothing is linked, or when Odoo could not be reached to
-    /// ask — an unreachable Odoo is not evidence that the credential is bad.
+    // Why: Whether the stored credential authenticates against Odoo right now.
+    // `None` when nothing is linked, or when Odoo could not be reached to
+    // ask — an unreachable Odoo is not evidence that the credential is bad.
     #[serde(skip_serializing_if = "Option::is_none")]
     credential_live: Option<bool>,
 }

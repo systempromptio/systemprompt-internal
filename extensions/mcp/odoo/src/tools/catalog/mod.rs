@@ -1,6 +1,6 @@
 //! The tool definitions, grouped by plane.
 //!
-//! The knowledge and work planes live in [`work`].
+//! The knowledge and work planes live in `work`.
 //!
 //! Split from [`super`] only for size: each group is a builder returning its
 //! slice of [`super::list_tools`]. Descriptions are written for an agent
@@ -93,8 +93,8 @@ pub fn lead_tools() -> Vec<Tool> {
     ]
 }
 
-/// The closing actions — the reason a pipeline can be emptied as well as
-/// filled. Split from [`lead_tools`] to keep each builder readable.
+// Why: The closing actions — the reason a pipeline can be emptied as well as
+// filled. Split from `lead_tools` to keep each builder readable.
 pub fn closing_tools() -> Vec<Tool> {
     vec![
         create_tool(&ToolDef {
@@ -128,10 +128,10 @@ pub fn closing_tools() -> Vec<Tool> {
     ]
 }
 
-/// The lookups that turn a name a person said into an id Odoo needs.
-///
-/// These exist because the alternative is a model guessing. Every one of them
-/// is cheap, and a wrong guess writes to the wrong record.
+// Why: The lookups that turn a name a person said into an id Odoo needs.
+//
+// These exist because the alternative is a model guessing. Every one of them
+// is cheap, and a wrong guess writes to the wrong record.
 pub fn discovery_tools() -> Vec<Tool> {
     vec![
         create_tool(&ToolDef {
@@ -163,7 +163,7 @@ pub fn discovery_tools() -> Vec<Tool> {
     ]
 }
 
-/// `res.partner` writes: the customer database itself.
+// Why: `res.partner` writes: the customer database itself.
 pub fn partner_write_tools() -> Vec<Tool> {
     vec![
         create_tool(&ToolDef {
@@ -186,7 +186,7 @@ pub fn partner_write_tools() -> Vec<Tool> {
     ]
 }
 
-/// Quote-to-cash: `sale.order` (writable) and `account.move` (read-only).
+// Why: Quote-to-cash: `sale.order` (writable) and `account.move` (read-only).
 pub fn sales_tools() -> Vec<Tool> {
     vec![
         create_tool(&ToolDef {

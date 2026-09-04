@@ -144,10 +144,10 @@ async fn crm_tools(
     })
 }
 
-/// Closing a deal, writing the customer, and the id lookups.
-///
-/// A plane of its own for the same reason the others are: each handler is a
-/// distinct type and they cannot all share one stack frame.
+// Why: Closing a deal, writing the customer, and the id lookups.
+//
+// A plane of its own for the same reason the others are: each handler is a
+// distinct type and they cannot all share one stack frame.
 async fn closing_tools(
     ctx: &Dispatch<'_>,
     call: OdooCall,

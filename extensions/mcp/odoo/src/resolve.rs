@@ -203,10 +203,10 @@ pub async fn activity_type_id(client: &OdooClient, creds: &Credentials) -> Resul
         })
 }
 
-/// Resolve an activity type by the name a person would say ("Call").
-///
-/// Falls back to [`activity_type_id`]'s default when `named` is absent, so a
-/// caller that does not care still gets a to-do rather than an error.
+// Why: Resolve an activity type by the name a person would say ("Call").
+//
+// Falls back to [`activity_type_id`]'s default when `named` is absent, so a
+// caller that does not care still gets a to-do rather than an error.
 pub async fn activity_type_id_named(
     client: &OdooClient,
     creds: &Credentials,

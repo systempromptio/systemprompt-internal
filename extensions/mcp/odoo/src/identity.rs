@@ -92,13 +92,14 @@ pub async fn resolve_credentials(
     })
 }
 
-/// Write back a `odoo_uid` that Odoo has just confirmed for this credential.
-///
-/// Why this never fails the caller: the tool call it accompanies has already
-/// succeeded on the refreshed uid. A failure to persist costs one extra
-/// `authenticate` round trip on the next call and nothing else, so it is
-/// logged rather than turned into a user-visible error on a request that
-/// worked.
+// Why: Write back a `odoo_uid` that Odoo has just confirmed for this
+// credential.
+//
+// Why this never fails the caller: the tool call it accompanies has already
+// succeeded on the refreshed uid. A failure to persist costs one extra
+// `authenticate` round trip on the next call and nothing else, so it is
+// logged rather than turned into a user-visible error on a request that
+// worked.
 pub async fn persist_uid(pool: &DbPool, user_id: &UserId, odoo_uid: i32) {
     let Some(pg_pool) = pool.pool() else {
         return;

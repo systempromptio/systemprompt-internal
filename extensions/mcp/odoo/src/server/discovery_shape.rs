@@ -13,7 +13,7 @@ pub(crate) use crate::shape as odoo;
 
 /// One `crm.stage`.
 ///
-/// `is_won` is the flag, not a name match: [`lead_domain`] already refuses to
+/// `is_won` is the flag, not a name match: `lead_domain` already refuses to
 /// filter "open" by stage name because a rename would break it, and a stage
 /// menu that has to guess which entry closes a deal has the same problem.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -66,7 +66,7 @@ pub fn stage_table(rows: &[StageRow]) -> TableArtifact {
             },
         })
         .collect();
-    // The pipeline is short and already in `sequence` order from the query;
+    // Why: The pipeline is short and already in `sequence` order from the query;
     // re-sorting it in the client would only scramble the reader's mental model
     // of their own funnel.
     TableArtifact::new(columns)

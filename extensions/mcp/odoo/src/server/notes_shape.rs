@@ -35,8 +35,8 @@ pub struct NoteRow {
     pub date: Option<String>,
     #[serde(deserialize_with = "odoo::text", default)]
     pub message_type: Option<String>,
-    /// Plain text. Odoo stores HTML; [`note_rows`] strips it here so that no
-    /// consumer downstream has to.
+    // Why: Plain text. Odoo stores HTML; [`note_rows`] strips it here so that no
+    // consumer downstream has to.
     #[serde(deserialize_with = "odoo::text", default)]
     pub body: Option<String>,
 }
@@ -77,8 +77,8 @@ fn items(rows: &[NoteRow]) -> Vec<serde_json::Value> {
         .collect()
 }
 
-/// The cross-record view: every hit needs its anchor, so `model` and `res_id`
-/// are columns rather than hidden payload.
+// Why: The cross-record view: every hit needs its anchor, so `model` and
+// `res_id` are columns rather than hidden payload.
 #[doc(hidden)]
 #[must_use]
 pub fn note_search_table(rows: &[NoteRow]) -> TableArtifact {
@@ -101,8 +101,8 @@ pub fn note_search_table(rows: &[NoteRow]) -> TableArtifact {
         )
 }
 
-/// One record's thread: the anchor is the question the caller already answered,
-/// so the columns are the conversation itself.
+// Why: One record's thread: the anchor is the question the caller already
+// answered, so the columns are the conversation itself.
 #[doc(hidden)]
 #[must_use]
 pub fn note_thread_table(rows: &[NoteRow]) -> TableArtifact {

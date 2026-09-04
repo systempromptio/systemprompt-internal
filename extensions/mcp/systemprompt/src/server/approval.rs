@@ -119,7 +119,11 @@ impl McpToolHandler for ApprovalDecideHandler {
         } else {
             ApprovalStatus::Denied
         };
-        let note = input.note.as_deref().map(str::trim).filter(|n| !n.is_empty());
+        let note = input
+            .note
+            .as_deref()
+            .map(str::trim)
+            .filter(|n| !n.is_empty());
 
         let decided = repository(&self.db_pool)?
             .resolve(

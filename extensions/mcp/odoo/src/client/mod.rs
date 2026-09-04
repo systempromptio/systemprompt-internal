@@ -92,7 +92,7 @@ impl OdooClient {
         })
     }
 
-    /// Let this client persist a `odoo_uid` correction it discovers.
+    // Why: Let this client persist a `odoo_uid` correction it discovers.
     #[must_use]
     pub fn with_identity_store(mut self, pool: DbPool) -> Self {
         self.identity_store = Some(pool);

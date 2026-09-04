@@ -22,7 +22,7 @@ mod view;
 // Why: anonymous visitors are user rows; the roster excludes them unless the
 // operator asks, so the page can still be used to inspect raw traffic.
 #[derive(Debug, Default, Deserialize)]
-pub(crate) struct UsersQuery {
+pub(crate) struct UsersRosterQuery {
     #[serde(default)]
     pub include_anonymous: bool,
 }
@@ -32,7 +32,7 @@ pub(crate) async fn users_page(
     Extension(mkt_ctx): Extension<MarketplaceContext>,
     Extension(engine): Extension<AdminTemplateEngine>,
     State(pool): State<Arc<PgPool>>,
-    Query(query): Query<UsersQuery>,
+    Query(query): Query<UsersRosterQuery>,
 ) -> AdminHtmlResult<Response> {
     if !user_ctx.is_admin {
         return Err(AdminError::Forbidden("Admin access required.".to_owned()).into());

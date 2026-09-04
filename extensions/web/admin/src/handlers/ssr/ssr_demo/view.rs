@@ -8,9 +8,10 @@ use crate::handlers::ssr::format::format_token_total;
 use crate::repositories::demo::logbook::{LogbookKind, LogbookRow};
 use crate::repositories::demo::mcp_tools::McpToolStatRow;
 use crate::repositories::demo::skill_invocations::SkillTotalRow;
-use crate::repositories::demo::{UsageMatrix, UsageMatrixRow};
 use crate::types::SkillCatalogEntry;
 use systemprompt::identifiers::SessionId;
+
+pub(super) use super::matrix_view::{MatrixView, UserTotalView, matrix_view, user_total_views};
 
 #[derive(Debug, Serialize)]
 // Why: `testid` and `variant` are always serialized, empty when unset — the
@@ -55,7 +56,7 @@ pub(super) struct SkillTotalView {
     // user typing /plugin:skill; "tool call" is the model dispatching the
     // Skill tool. A skill that has done both reads "both".
     pub source_label: &'static str,
-    // Why: true when the recorded name no longer matches any skill in
+    // Why: true when the recorded name matches no skill in
     // services/skills. The row was real when it was written, so it is marked
     // rather than hidden.
     pub is_retired: bool,
@@ -94,7 +95,7 @@ pub(super) struct AttributedTotals {
 }
 
 impl AttributedTotals {
-    pub(super) fn add(&mut self, tokens: i64, cost_microdollars: i64) {
+    pub(super) const fn add(&mut self, tokens: i64, cost_microdollars: i64) {
         self.total_tokens += tokens;
         self.cost_microdollars += cost_microdollars;
     }
@@ -119,41 +120,6 @@ pub(super) struct ServerCardView {
     pub cost_display: String,
 }
 
-#[derive(Debug, Serialize)]
-pub(super) struct UserTotalView {
-    pub user_email: String,
-    pub total: i64,
-    pub tokens_display: String,
-    pub cost_display: String,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct MatrixCellView {
-    pub count: i64,
-    pub pct: i64,
-    pub is_zero: bool,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct MatrixRowView {
-    pub user_email: String,
-    pub cells: Vec<MatrixCellView>,
-    pub total: i64,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct MatrixColumnView {
-    pub label: String,
-    pub full: String,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct MatrixView {
-    pub columns: Vec<MatrixColumnView>,
-    pub rows: Vec<MatrixRowView>,
-    pub has_data: bool,
-}
-
 const MICRODOLLARS_PER_CENT: i64 = 10_000;
 
 // Why: attributed cost is often a fraction of a cent, and printing six decimals
@@ -170,7 +136,7 @@ pub(super) fn format_demo_cost(microdollars: i64) -> String {
     format!("${:.2}", microdollars as f64 / 1_000_000.0)
 }
 
-fn describe_user(email: Option<&String>, fallback: &str) -> String {
+pub(super) fn describe_user(email: Option<&String>, fallback: &str) -> String {
     email.map_or_else(|| fallback.to_owned(), Clone::clone)
 }
 
@@ -216,7 +182,7 @@ pub(super) fn logbook_row_view(row: &LogbookRow) -> LogbookRowView {
 // Why: the demo tables key everything on a `qualifier:name` string — a skill is
 // `plugin:skill`, an MCP tool is `server:tool`. One split, so a matrix column
 // header and a table row can never disagree about where the boundary is.
-fn split_qualified(id: &str) -> (String, String) {
+pub(super) fn split_qualified(id: &str) -> (String, String) {
     id.split_once(':').map_or_else(
         || (String::new(), id.to_owned()),
         |(qualifier, name)| (qualifier.to_owned(), name.to_owned()),
@@ -253,6 +219,24 @@ impl SkillCatalogIndex {
     }
 }
 
+// Why: read the on-disk catalog so a recorded name absent from services/skills
+// is marked retired instead of passing as live. A failure here costs only the
+// badge, so it degrades to "nothing is judged".
+pub(super) fn load_skill_catalog() -> SkillCatalogIndex {
+    crate::handlers::shared::get_services_path()
+        .ok()
+        .map_or_else(SkillCatalogIndex::default, |path| {
+            let plugins = crate::repositories::marketplace::plugins::list_plugin_catalog(&path)
+                .unwrap_or_default()
+                .into_iter()
+                .map(|p| p.id)
+                .collect::<Vec<_>>();
+            let skills = crate::repositories::marketplace::plugins::list_skill_catalog(&path)
+                .unwrap_or_default();
+            SkillCatalogIndex::new(&plugins, &skills)
+        })
+}
+
 const fn source_label(slash: i64, tool: i64) -> &'static str {
     match (slash > 0, tool > 0) {
         (true, true) => "both",
@@ -261,10 +245,7 @@ const fn source_label(slash: i64, tool: i64) -> &'static str {
     }
 }
 
-pub(super) fn skill_total_view(
-    row: &SkillTotalRow,
-    catalog: &SkillCatalogIndex,
-) -> SkillTotalView {
+pub(super) fn skill_total_view(row: &SkillTotalRow, catalog: &SkillCatalogIndex) -> SkillTotalView {
     let (plugin, skill) = split_qualified(&row.skill);
     let is_retired = catalog.is_retired(&plugin, &skill);
     SkillTotalView {
@@ -299,67 +280,4 @@ pub(super) fn mcp_tool_stat_view(row: &McpToolStatRow) -> McpToolStatView {
         cost_display: format_demo_cost(row.cost_microdollars),
         last_used_at: row.last_used_at.map(|d| d.to_rfc3339()),
     }
-}
-
-pub(super) fn matrix_view(matrix: &UsageMatrix) -> MatrixView {
-    let max = matrix
-        .rows
-        .iter()
-        .flat_map(|r| r.cells.iter().copied())
-        .max()
-        .unwrap_or(0);
-    MatrixView {
-        columns: matrix
-            .columns
-            .iter()
-            .map(String::as_str)
-            .map(matrix_column_view)
-            .collect(),
-        rows: matrix
-            .rows
-            .iter()
-            .map(|r| matrix_row_view(r, max))
-            .collect(),
-        has_data: !matrix.columns.is_empty() && !matrix.rows.is_empty(),
-    }
-}
-
-// Why: the header shows the bare name and carries the qualified id as its
-// title. A column per `plugin:skill` string is what made this table wider than
-// the page it sits in, and the qualifier repeats down the whole header row.
-fn matrix_column_view(column: &str) -> MatrixColumnView {
-    let (_, name) = split_qualified(column);
-    MatrixColumnView {
-        label: name,
-        full: column.to_owned(),
-    }
-}
-
-fn matrix_row_view(row: &UsageMatrixRow, max: i64) -> MatrixRowView {
-    MatrixRowView {
-        user_email: describe_user(row.user_email.as_ref(), row.user_id.as_str()),
-        cells: row
-            .cells
-            .iter()
-            .map(|&count| MatrixCellView {
-                count,
-                pct: crate::handlers::ssr::types::bar_pct(count, max),
-                is_zero: count == 0,
-            })
-            .collect(),
-        total: row.total,
-    }
-}
-
-pub(super) fn user_total_views(matrix: &UsageMatrix) -> Vec<UserTotalView> {
-    matrix
-        .rows
-        .iter()
-        .map(|r| UserTotalView {
-            user_email: describe_user(r.user_email.as_ref(), r.user_id.as_str()),
-            total: r.total,
-            tokens_display: format_token_total(r.total_tokens),
-            cost_display: format_demo_cost(r.cost_microdollars),
-        })
-        .collect()
 }

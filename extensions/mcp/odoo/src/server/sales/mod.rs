@@ -6,7 +6,7 @@
 //! model mistake away from the ledger. Reading invoices is what the pipeline
 //! actually needs — whether the money arrived.
 //!
-//! Invoice reads live in [`invoice`].
+//! Invoice reads live in `invoice`.
 //!
 //! `sale_order_create` writes a DRAFT. Nothing here confirms an order or sends
 //! it to a customer: a person does that in Odoo, having read it.
@@ -201,7 +201,7 @@ impl McpToolHandler for SaleOrderCreateHandler {
                 ));
             }
 
-            // Odoo's x2many write command: (0, 0, values) creates a new line.
+            // Why: Odoo's x2many write command: (0, 0, values) creates a new line.
             let lines: Vec<serde_json::Value> = input
                 .lines
                 .iter()

@@ -128,10 +128,10 @@ pub async fn find(pool: &PgPool, user_id: &UserId) -> Result<Option<OdooIdentity
     }))
 }
 
-/// The stored credential in plaintext, for a liveness probe only.
-///
-/// See the module doc: this is the sole admin-plane reader, and callers must
-/// not return it to a client, log it, or keep it.
+// Why: The stored credential in plaintext, for a liveness probe only.
+//
+// See the module doc: this is the sole admin-plane reader, and callers must
+// not return it to a client, log it, or keep it.
 pub async fn find_api_key(
     pool: &PgPool,
     user_id: &UserId,

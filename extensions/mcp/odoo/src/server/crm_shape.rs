@@ -235,10 +235,10 @@ pub fn lead_table(rows: &[LeadRow]) -> TableArtifact {
             },
         })
         .collect();
-    // A search over an open pipeline routinely returns forty-odd leads. Without
-    // a page size every one of them rendered, so the artifact grew with the
-    // pipeline; with one it is a fixed-height component the reader can sort and
-    // filter in place.
+    // Why: A search over an open pipeline routinely returns forty-odd leads.
+    // Without a page size every one of them renders, so the artifact grows with
+    // the pipeline; with one it is a fixed-height component the reader can sort
+    // and filter in place.
     TableArtifact::new(columns)
         .with_title("CRM Leads")
         .with_rows(items)

@@ -1,7 +1,7 @@
 //! The four `crm.lead` record tools: search, get, create, update.
 //!
-//! The closing actions live in [`lifecycle`]; aggregation lives next door in
-//! [`crate::server::report`].
+//! The closing actions live in `lifecycle`; aggregation lives next door in
+//! `crate::server::report`.
 
 mod lifecycle;
 
