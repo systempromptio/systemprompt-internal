@@ -29,6 +29,15 @@
 //! and `core/tokens.css`, not `var(--sp-*)` references — the artifact renders
 //! inside a sandboxed `srcdoc` iframe where the site's stylesheets are not in
 //! scope, so a `var()` pointing at them resolves to nothing.
+//!
+//! The theme has two slots and this file now uses both. `tokens` re-declares
+//! `--mcpui-*` values and lands in `:root` before every renderer stylesheet;
+//! `extra_css` is appended *after* them, so it can override a rule and not just
+//! a value. The split is the useful boundary: anything expressible as a token
+//! belongs in `TOKENS`, and `EXTRA_CSS` is reserved for the few facts about
+//! *where* this deployment's artifacts render — inside Cowork's own tool-call
+//! card, which already supplies a header and a frame. A restyle that would be
+//! right for every deployment belongs in core's stylesheets instead, not here.
 
 use systemprompt::mcp::register_artifact_theme;
 use systemprompt::mcp::services::ui_renderer::ArtifactTheme;
@@ -78,9 +87,9 @@ const TOKENS: &str = r#"
   /* ── radii ── the branded asymmetric corner.
    * Core documents these as four-value TL/TR/BR/BL slots precisely so a brand
    * with a notch can drop in; the top-right is a quarter of the others. */
-  --mcpui-radius-card:  1.125rem 0.375rem 1.125rem 1.125rem;
-  --mcpui-radius-inner: 0.625rem 0.25rem 0.625rem 0.625rem;
-  --mcpui-radius-sm:    0.375rem 0.125rem 0.375rem 0.375rem;
+  --mcpui-radius-card:  0.75rem 0.25rem 0.75rem 0.75rem;
+  --mcpui-radius-inner: 0.5rem 0.1875rem 0.5rem 0.5rem;
+  --mcpui-radius-sm:    0.3125rem 0.125rem 0.3125rem 0.3125rem;
   /* pill stays symmetric: a notched pill reads as a rendering fault. */
 
   /* ── elevation ── warm-tinted, with an orange cast on the raised state. */
@@ -110,10 +119,59 @@ const TOKENS: &str = r#"
 
   --mcpui-tracking-tight: -0.02em;
 
+  /* ── spacing ── compressed for a card inside a card.
+   * Core's scale (0.25 → 2rem) is sized for an artifact that owns a page. Ours
+   * never does: it renders in a sandboxed iframe that Cowork has already
+   * wrapped in its own padded, bordered tool-call card, inside a narrow chat
+   * column. At core's scale the padding is paid twice and a six-row table costs
+   * a screenful. Every renderer stylesheet spends only these six properties, so
+   * re-declaring them here tightens tables, text, cards, lists and dashboards
+   * in one place rather than rule by rule. */
+  --mcpui-space-1: 0.1875rem;
+  --mcpui-space-2: 0.375rem;
+  --mcpui-space-3: 0.5rem;
+  --mcpui-space-4: 0.75rem;
+  --mcpui-space-5: 1rem;
+  --mcpui-space-6: 1.25rem;
+
+  --mcpui-leading-normal: 1.45;
+
   --mcpui-ease: cubic-bezier(0.4, 0, 0.2, 1);
 "#;
 
+// Why: what a custom property cannot express. `extra_css` is appended after
+// every renderer stylesheet (`html.rs`), so these override rules rather than
+// values — which is exactly why the scope is kept to the two things that are
+// true of *this* deployment's placement and would be wrong to push into core:
+// the artifact is not the page, and it is not the card.
+const EXTRA_CSS: &str = r#"
+/* Cowork's tool-call card already carries a header naming the server and the
+ * tool — "odoo · activity_list" — directly above this iframe. The artifact's
+ * own <h1> restated it one line later ("Odoo Activities") under an accent rule,
+ * which cost roughly 70px per artifact to say the same thing twice. The title
+ * stays on the artifact struct: it still fills the document <title> and any
+ * surface that renders an artifact on its own. Only the duplicate is hidden. */
+.mcp-app-title {
+  display: none;
+}
+
+/* Cowork draws the border, the radius and the elevation around the frame. A
+ * second raised card inside the first reads as a rendering fault, so the
+ * content blocks keep a hairline and drop the shadow. */
+.table-wrapper,
+.text-content,
+.card {
+  box-shadow: none;
+}
+
+/* The description is the first thing left once the title is gone, so it stops
+ * being offset for a heading that is no longer above it. */
+.mcp-app-title + .mcp-app-description {
+  margin-top: 0;
+}
+"#;
+
 register_artifact_theme!(
-    || ArtifactTheme::new(TOKENS),
+    || ArtifactTheme::new(TOKENS).with_extra_css(EXTRA_CSS),
     name = "systemprompt-internal"
 );

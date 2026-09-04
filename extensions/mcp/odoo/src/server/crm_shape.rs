@@ -7,7 +7,7 @@
 
 use std::collections::HashMap;
 
-use systemprompt::models::artifacts::{Column, ColumnType, TableArtifact};
+use systemprompt::models::artifacts::{Column, ColumnType, TableArtifact, TableHints};
 
 use crate::format::field_or_dash;
 use crate::tools::inputs::{LeadSearchInput, LeadSort};
@@ -211,18 +211,18 @@ pub fn tag_names(tags: &[serde_json::Value]) -> HashMap<i64, String> {
 #[doc(hidden)]
 #[must_use]
 pub fn lead_table(rows: &[LeadRow]) -> TableArtifact {
+    // Why: this carried eleven columns, of which about five fitted the chat
+    // column — email, revenue, probability, dates and tags sat past the scroll
+    // edge, invisible unless the reader dragged the table sideways, while
+    // widening every visible cell to make room for them. These six are what a
+    // reader scans; the full record is one `crm_lead_get` away.
     let columns = vec![
         Column::new("id", ColumnType::Integer),
         Column::new("name", ColumnType::String).with_header("Subject"),
         Column::new("stage_id", ColumnType::String).with_header("Stage"),
         Column::new("user_id", ColumnType::String).with_header("Salesperson"),
         Column::new("partner_name", ColumnType::String).with_header("Contact"),
-        Column::new("email_from", ColumnType::String).with_header("Email"),
         Column::new("expected_revenue", ColumnType::Currency).with_header("Expected revenue"),
-        Column::new("probability", ColumnType::Percentage).with_header("Probability"),
-        Column::new("create_date", ColumnType::Date).with_header("Created"),
-        Column::new("date_deadline", ColumnType::Date).with_header("Expected close"),
-        Column::new("tags", ColumnType::String).with_header("Tags"),
     ];
     // JSON: protocol boundary — TableArtifact carries rows as JSON values.
     let items = rows
@@ -235,9 +235,25 @@ pub fn lead_table(rows: &[LeadRow]) -> TableArtifact {
             },
         })
         .collect();
+    // A search over an open pipeline routinely returns forty-odd leads. Without
+    // a page size every one of them rendered, so the artifact grew with the
+    // pipeline; with one it is a fixed-height component the reader can sort and
+    // filter in place.
     TableArtifact::new(columns)
         .with_title("CRM Leads")
         .with_rows(items)
+        .with_hints(
+            TableHints::new()
+                .with_page_size(8)
+                .filterable()
+                .with_sortable(vec![
+                    "id".to_owned(),
+                    "name".to_owned(),
+                    "stage_id".to_owned(),
+                    "user_id".to_owned(),
+                    "expected_revenue".to_owned(),
+                ]),
+        )
 }
 
 #[doc(hidden)]

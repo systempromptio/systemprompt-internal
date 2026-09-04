@@ -4,7 +4,7 @@
 //! No I/O, so every function here is directly assertable from the external
 //! test workspace — the same split [`super::crm_shape`] makes.
 
-use systemprompt::models::artifacts::{Column, ColumnType, TableArtifact};
+use systemprompt::models::artifacts::{Column, ColumnType, TableArtifact, TableHints};
 
 use crate::tools::inputs::{InvoiceListInput, SaleOrderListInput};
 
@@ -213,6 +213,19 @@ pub fn order_table(rows: &[OrderRow]) -> TableArtifact {
     TableArtifact::new(columns)
         .with_title("Quotations & Orders")
         .with_rows(items)
+        .with_hints(
+            TableHints::new()
+                .with_page_size(8)
+                .filterable()
+                .with_sortable(vec![
+                    "id".to_owned(),
+                    "name".to_owned(),
+                    "partner_id".to_owned(),
+                    "state".to_owned(),
+                    "date_order".to_owned(),
+                    "amount_total".to_owned(),
+                ]),
+        )
 }
 
 #[doc(hidden)]
@@ -242,4 +255,17 @@ pub fn invoice_table(rows: &[InvoiceRow]) -> TableArtifact {
     TableArtifact::new(columns)
         .with_title("Customer Invoices")
         .with_rows(items)
+        .with_hints(
+            TableHints::new()
+                .with_page_size(8)
+                .filterable()
+                .with_sortable(vec![
+                    "id".to_owned(),
+                    "name".to_owned(),
+                    "partner_id".to_owned(),
+                    "invoice_date_due".to_owned(),
+                    "amount_total".to_owned(),
+                    "amount_residual".to_owned(),
+                ]),
+        )
 }

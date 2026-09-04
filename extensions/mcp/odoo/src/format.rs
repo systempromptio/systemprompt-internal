@@ -43,9 +43,13 @@ pub fn detail_lines(record: &serde_json::Value, keys: &[(&str, &str)]) -> String
         .join("\n")
 }
 
+// Why: the markdown builders above join sections with blank lines, which
+// leaves a leading or trailing one whenever a section comes back empty. The
+// renderer treats every line as content, so an unnoticed blank line at either
+// end became visible dead space at the top or bottom of the card.
 #[must_use]
 pub fn text_artifact(title: &str, body: &str) -> CliArtifact {
-    CliArtifact::text(TextArtifact::new(body).with_title(title))
+    CliArtifact::text(TextArtifact::new(body.trim()).with_title(title))
 }
 
 #[must_use]

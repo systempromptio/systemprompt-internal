@@ -29,7 +29,15 @@ const _THEME_CRATE_ANCHOR: usize = systemprompt_mcp_shared::MAX_REASON_LEN;
 pub const BRAND_ACCENT: &str = "oklch(0.67 0.18 50)";
 // The notched top-right corner — the other half of the brand, and the one a
 // colour-only assertion would not catch.
-const BRAND_RADIUS: &str = "--mcpui-radius-card:  1.125rem 0.375rem 1.125rem 1.125rem;";
+const BRAND_RADIUS: &str = "--mcpui-radius-card:  0.75rem 0.25rem 0.75rem 0.75rem;";
+// The compressed spacing scale. These artifacts render inside Cowork's own
+// padded tool-call card, so the theme re-declares core's page-sized scale; if
+// this is missing they are back to paying core's padding on top of Cowork's.
+const BRAND_SPACING: &str = "--mcpui-space-3: 0.5rem;";
+// `extra_css` is appended after every renderer stylesheet and is what suppresses
+// the artifact's own <h1> — the one Cowork's header already duplicates. A theme
+// that lost its extra_css would still be branded and still be twice as tall.
+const BRAND_EXTRA_CSS: &str = ".mcp-app-title {\n  display: none;\n}";
 
 pub fn gallery_dir() -> PathBuf {
     // `tests/target/…` sits two levels below the repository root, the same
@@ -107,7 +115,7 @@ fn cases() -> Vec<Case> {
             payload: serde_json::json!({
                 "x-artifact-type": "text",
                 "title": "Handover note",
-                "content": "The pilot closes on 30 September.\n\nTwo blockers remain: the SSO mapping for the sales group, and a signed DPA.\n\nEverything else is agreed."
+                "content": "The pilot closes on 30 September.\n\nTwo blockers remain:\n\n- **[23] SSO mapping** for the sales group — `res.groups`, due 2026-09-08\n- **[24] Signed DPA** from legal — due 2026-09-11\n\nEverything else is agreed."
             }),
         },
         Case {
@@ -324,6 +332,18 @@ async fn every_artifact_type_renders_with_the_brand_theme() {
             html.contains(BRAND_RADIUS),
             "{}: the notched card radius is missing — half the brand is colour \
              and half is this corner",
+            case.artifact_type
+        );
+        assert!(
+            html.contains(BRAND_SPACING),
+            "{}: the compressed spacing scale is missing — this artifact is \
+             rendering at core's page-sized padding inside Cowork's card",
+            case.artifact_type
+        );
+        assert!(
+            html.contains(BRAND_EXTRA_CSS),
+            "{}: the theme's extra_css did not reach the document, so the \
+             artifact restates the title Cowork's own header already shows",
             case.artifact_type
         );
         assert!(
