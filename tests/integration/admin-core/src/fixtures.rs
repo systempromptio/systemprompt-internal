@@ -358,6 +358,7 @@ pub struct DecisionSpec<'a> {
     pub decision: &'a str,
     pub policy: &'a str,
     pub reason: &'a str,
+    pub plugin_id: Option<&'a str>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -373,6 +374,7 @@ impl<'a> DecisionSpec<'a> {
             decision: "allow",
             policy: "scope_check",
             reason: "within scope",
+            plugin_id: None,
             created_at: Utc::now(),
         }
     }
@@ -382,8 +384,8 @@ pub async fn insert_decision(pool: &PgPool, spec: &DecisionSpec<'_>) {
     sqlx::query(
         "INSERT INTO governance_decisions (
              id, user_id, session_id, context_id, tool_name, agent_id, agent_scope,
-             decision, policy, reason, actor_kind, actor_id, created_at)
-         VALUES ($1, $2, $3, $11, $4, $5, $6, $7, $8, $9, 'user', $2, $10)",
+             decision, policy, reason, plugin_id, actor_kind, actor_id, created_at)
+         VALUES ($1, $2, $3, $11, $4, $5, $6, $7, $8, $9, $12, 'user', $2, $10)",
     )
     .bind(&spec.id)
     .bind(spec.user_id.as_str())
@@ -396,6 +398,7 @@ pub async fn insert_decision(pool: &PgPool, spec: &DecisionSpec<'_>) {
     .bind(spec.reason)
     .bind(spec.created_at)
     .bind(LEGACY_CONTEXT_ID)
+    .bind(spec.plugin_id)
     .execute(pool)
     .await
     .expect("insert governance decision");

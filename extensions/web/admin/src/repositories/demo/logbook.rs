@@ -1,8 +1,9 @@
 //! Merged chronological demo logbook: skills, MCP calls, decisions, approvals.
 //!
-//! `include_allows = false` drops the `allow` decisions produced by the
-//! per-request authorization stages. Those fire on every call and would bury
-//! the entries a demo is watching for — the refusals, the holds, and the tool
+//! The per-request server authorization rows are dropped unconditionally by the
+//! predicate documented in [`super::policy`]. `include_allows = false` then
+//! drops the remaining `allow` verdicts, which are real but routine and would
+//! bury what a demo is watching for: the refusals, the holds, and the tool
 //! calls themselves.
 
 use chrono::{DateTime, Utc};
@@ -99,10 +100,8 @@ pub async fn list_demo_logbook(
             FROM governance_decisions g
             WHERE g.created_at >= $1
               AND ($2::text IS NULL OR g.user_id = $2)
-              AND (
-                    g.decision IN ('deny', 'pending')
-                 OR ($3 AND g.policy NOT IN ('authz', 'authz_rule_based', 'default_allow'))
-              )
+              AND g.policy <> 'authz' AND NOT (g.policy = 'authz_rule_based' AND g.plugin_id IS NULL)
+              AND (g.decision IN ('deny', 'pending') OR $3)
 
             UNION ALL
 

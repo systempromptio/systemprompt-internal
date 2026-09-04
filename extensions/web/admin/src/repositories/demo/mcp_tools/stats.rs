@@ -106,14 +106,14 @@ async fn apply_governance(
     let rows = sqlx::query!(
         r#"
         SELECT
-            tool_name AS "tool!",
-            COUNT(*) FILTER (WHERE decision = 'allow')::bigint   AS "allowed!",
-            COUNT(*) FILTER (WHERE decision = 'deny')::bigint    AS "denied!",
-            COUNT(*) FILTER (WHERE decision = 'pending')::bigint AS "held!"
-        FROM governance_decisions
-        WHERE created_at >= $1
-          AND ($2::text IS NULL OR user_id = $2)
-          AND policy NOT IN ('authz', 'authz_rule_based', 'default_allow')
+            CASE WHEN g.tool_name LIKE 'mcp\_\_%' THEN substr(g.tool_name, length('mcp__' || split_part(g.tool_name, '__', 2) || '__') + 1) ELSE g.tool_name END AS "tool!",
+            COUNT(*) FILTER (WHERE g.decision = 'allow')::bigint   AS "allowed!",
+            COUNT(*) FILTER (WHERE g.decision = 'deny')::bigint    AS "denied!",
+            COUNT(*) FILTER (WHERE g.decision = 'pending')::bigint AS "held!"
+        FROM governance_decisions g
+        WHERE g.created_at >= $1
+          AND ($2::text IS NULL OR g.user_id = $2)
+          AND g.policy <> 'authz' AND NOT (g.policy = 'authz_rule_based' AND g.plugin_id IS NULL)
         GROUP BY 1
         "#,
         filter.since,

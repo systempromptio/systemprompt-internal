@@ -1,4 +1,8 @@
 //! The KPI strip shared by all four demo pages.
+//!
+//! `allowed` counts real tool verdicts only; see [`super::policy`] for why the
+//! per-request server authorization rows are excluded by shape rather than by
+//! policy name.
 
 use serde::Serialize;
 use sqlx::PgPool;
@@ -9,6 +13,7 @@ use super::filter::DemoFilter;
 #[derive(Debug, Clone, Copy, Default, Serialize)]
 pub struct DemoKpis {
     pub skill_invocations: i64,
+    pub allowed: i64,
     pub mcp_calls: i64,
     pub mcp_failures: i64,
     pub held: i64,
@@ -31,6 +36,7 @@ pub async fn get_demo_kpis(pool: &PgPool, filter: &DemoFilter) -> Result<DemoKpi
 
     Ok(DemoKpis {
         skill_invocations: events.0,
+        allowed: decisions.4,
         mcp_calls: events.1,
         mcp_failures: events.2,
         held: decisions.0,
@@ -72,7 +78,7 @@ async fn get_event_counts(
 async fn get_decision_counts(
     pool: &PgPool,
     filter: &DemoFilter,
-) -> Result<(i64, i64, i64, i64), sqlx::Error> {
+) -> Result<(i64, i64, i64, i64, i64), sqlx::Error> {
     let row = sqlx::query!(
         r#"
         SELECT
@@ -87,14 +93,26 @@ async fn get_decision_counts(
                 AND g.decision = 'deny' AND g.policy = 'tool_blocklist')::bigint AS "blocked!",
             (SELECT COUNT(*) FROM approval_requests a
               WHERE a.created_at >= $1 AND ($2::text IS NULL OR a.requested_by = $2)
-                AND a.status = 'approved')::bigint AS "approved!"
+                AND a.status = 'approved')::bigint AS "approved!",
+            (SELECT COUNT(*) FROM governance_decisions g
+              WHERE g.created_at >= $1 AND ($2::text IS NULL OR g.user_id = $2)
+                AND g.decision = 'allow'
+                AND g.policy <> 'authz'
+                AND NOT (g.policy = 'authz_rule_based' AND g.plugin_id IS NULL))::bigint
+                AS "allowed!"
         "#,
         filter.since,
         filter.user_filter(),
     )
     .fetch_one(pool)
     .await?;
-    Ok((row.held, row.refused, row.blocked, row.approved))
+    Ok((
+        row.held,
+        row.refused,
+        row.blocked,
+        row.approved,
+        row.allowed,
+    ))
 }
 
 async fn get_attributed_usage(

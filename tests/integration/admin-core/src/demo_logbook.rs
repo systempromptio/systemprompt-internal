@@ -79,7 +79,7 @@ async fn the_user_filter_excludes_every_other_users_entry() {
 }
 
 #[tokio::test]
-async fn include_allows_false_hides_the_per_request_authz_noise() {
+async fn the_server_authorization_is_always_hidden_and_allows_are_optional() {
     let Some(db) = TempDb::create().await else {
         return;
     };
@@ -87,11 +87,20 @@ async fn include_allows_false_hides_the_per_request_authz_noise() {
     let session = unique("sess");
     let at = Utc::now() - Duration::minutes(20);
 
+    // The per-request server authorization: no plugin_id, tool_name is a server.
     let mut noise = DecisionSpec::allow(&unique("gd"), &user, &session);
-    noise.tool_name = "crm_lead_search";
+    noise.tool_name = "odoo";
     noise.policy = "authz_rule_based";
     noise.created_at = at;
     insert_decision(&db.pool, &noise).await;
+
+    // Same policy, but a real per-tool verdict, so it is an allow like any other.
+    let mut real_allow = DecisionSpec::allow(&unique("gd"), &user, &session);
+    real_allow.tool_name = "crm_lead_search";
+    real_allow.policy = "authz_rule_based";
+    real_allow.plugin_id = Some("systemprompt-business");
+    real_allow.created_at = at + Duration::seconds(30);
+    insert_decision(&db.pool, &real_allow).await;
 
     let mut signal = DecisionSpec::allow(&unique("gd"), &user, &session);
     signal.tool_name = "note_add";
@@ -115,5 +124,9 @@ async fn include_allows_false_hides_the_per_request_authz_noise() {
     let unfiltered = list_demo_logbook(&db.pool, &DemoFilter::for_user(user), true)
         .await
         .expect("list logbook with allows");
-    assert_eq!(unfiltered.len(), 2);
+    assert_eq!(unfiltered.len(), 3);
+    assert!(
+        !unfiltered.iter().any(|r| r.label == "odoo"),
+        "the server authorization row must never reach the logbook"
+    );
 }

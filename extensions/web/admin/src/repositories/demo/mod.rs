@@ -14,6 +14,7 @@ pub mod filter;
 pub mod kpis;
 pub mod logbook;
 pub mod mcp_tools;
+pub mod policy;
 pub mod series;
 pub mod skill_invocations;
 pub mod skill_matrix;
