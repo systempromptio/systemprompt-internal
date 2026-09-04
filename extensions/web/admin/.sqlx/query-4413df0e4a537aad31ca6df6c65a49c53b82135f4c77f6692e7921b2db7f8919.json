@@ -1,0 +1,114 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH ev AS (\n            SELECT user_id, session_id, created_at, tool_name, metadata, plugin_id\n            FROM plugin_usage_events\n            WHERE created_at >= $1\n              AND ($2::text IS NULL OR user_id = $2)\n        ),\n        session_bounds AS (\n            SELECT session_id, MAX(created_at) AS last_at FROM ev GROUP BY session_id\n        ),\n        inv AS (\n            SELECT\n                e.user_id,\n                e.session_id,\n                e.plugin_id,\n                e.metadata->'tool_input'->>'skill' AS skill,\n                e.metadata->>'tool_use_id'         AS tool_use_id,\n                e.created_at                       AS invoked_at,\n                LEAD(e.created_at) OVER (\n                    PARTITION BY e.session_id ORDER BY e.created_at\n                ) AS next_at\n            FROM ev e\n            WHERE e.tool_name = 'Skill'\n              AND e.metadata->'tool_input'->>'skill' IS NOT NULL\n        ),\n        bounded AS (\n            SELECT i.*,\n                   LEAST(\n                       COALESCE(i.next_at, 'infinity'::timestamptz),\n                       b.last_at + make_interval(mins => $3::int)\n                   ) AS window_end\n            FROM inv i\n            JOIN session_bounds b ON b.session_id = i.session_id\n        )\n        SELECT\n            bd.user_id      AS \"user_id!: UserId\",\n            u.email         AS \"user_email?\",\n            bd.session_id   AS \"session_id!: SessionId\",\n            bd.skill        AS \"skill!\",\n            bd.plugin_id    AS \"plugin_id?\",\n            bd.tool_use_id  AS \"tool_use_id?\",\n            bd.invoked_at   AS \"invoked_at!\",\n            a.request_count      AS \"request_count!\",\n            a.total_tokens       AS \"total_tokens!\",\n            a.cost_microdollars  AS \"cost_microdollars!\"\n        FROM bounded bd\n        LEFT JOIN users u ON u.id = bd.user_id\n        LEFT JOIN LATERAL (\n            SELECT\n                COUNT(*)::bigint AS request_count,\n                COALESCE(SUM(COALESCE(r.input_tokens, 0) + COALESCE(r.output_tokens, 0)), 0)::bigint\n                    AS total_tokens,\n                COALESCE(SUM(r.cost_microdollars), 0)::bigint AS cost_microdollars\n            FROM ai_requests r\n            WHERE r.user_id = bd.user_id\n              AND r.created_at >= bd.invoked_at AND r.created_at < bd.window_end\n        ) a ON TRUE\n        ORDER BY bd.invoked_at DESC\n        LIMIT $4\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id!: UserId",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "plugin_usage_events",
+            "name": "user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "user_email?",
+        "type_info": "Varchar",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "email"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "session_id!: SessionId",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "plugin_usage_events",
+            "name": "session_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "skill!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "plugin_id?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "plugin_usage_events",
+            "name": "plugin_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "tool_use_id?",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "invoked_at!",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "plugin_usage_events",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "request_count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "total_tokens!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
+        "name": "cost_microdollars!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Text",
+        "Int4",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      true,
+      null,
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "4413df0e4a537aad31ca6df6c65a49c53b82135f4c77f6692e7921b2db7f8919"
+}

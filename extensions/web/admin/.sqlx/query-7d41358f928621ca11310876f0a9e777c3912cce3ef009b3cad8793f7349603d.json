@@ -1,0 +1,50 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            tool_name AS \"tool!\",\n            COUNT(*) FILTER (WHERE decision = 'allow')::bigint   AS \"allowed!\",\n            COUNT(*) FILTER (WHERE decision = 'deny')::bigint    AS \"denied!\",\n            COUNT(*) FILTER (WHERE decision = 'pending')::bigint AS \"held!\"\n        FROM governance_decisions\n        WHERE created_at >= $1\n          AND ($2::text IS NULL OR user_id = $2)\n          AND policy NOT IN ('authz', 'authz_rule_based', 'default_allow')\n        GROUP BY 1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "tool!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "governance_decisions",
+            "name": "tool_name"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "allowed!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "denied!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "held!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "7d41358f928621ca11310876f0a9e777c3912cce3ef009b3cad8793f7349603d"
+}

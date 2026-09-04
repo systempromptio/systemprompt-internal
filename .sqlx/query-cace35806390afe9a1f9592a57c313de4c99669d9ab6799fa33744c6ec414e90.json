@@ -1,0 +1,45 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            (SELECT COUNT(*) FROM governance_decisions g\n              WHERE g.created_at >= $1 AND ($2::text IS NULL OR g.user_id = $2)\n                AND g.decision = 'pending')::bigint AS \"held!\",\n            (SELECT COUNT(*) FROM governance_decisions g\n              WHERE g.created_at >= $1 AND ($2::text IS NULL OR g.user_id = $2)\n                AND g.decision = 'deny' AND g.policy = 'secret_scan')::bigint AS \"refused!\",\n            (SELECT COUNT(*) FROM governance_decisions g\n              WHERE g.created_at >= $1 AND ($2::text IS NULL OR g.user_id = $2)\n                AND g.decision = 'deny' AND g.policy = 'tool_blocklist')::bigint AS \"blocked!\",\n            (SELECT COUNT(*) FROM approval_requests a\n              WHERE a.created_at >= $1 AND ($2::text IS NULL OR a.requested_by = $2)\n                AND a.status = 'approved')::bigint AS \"approved!\"\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "held!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "refused!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "blocked!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "approved!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "cace35806390afe9a1f9592a57c313de4c99669d9ab6799fa33744c6ec414e90"
+}
