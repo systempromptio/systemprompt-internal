@@ -25,6 +25,10 @@ GET    /admin/catalog/plugins                                anonymous=307 non-a
 GET    /admin/catalog/plugins/{plugin_id}                    anonymous=307 non-admin=303 admin=404
 GET    /admin/catalog/skills                                 anonymous=307 non-admin=303 admin=200
 GET    /admin/catalog/skills/{skill_id}                      anonymous=307 non-admin=303 admin=404
+GET    /admin/demo                                           anonymous=307 non-admin=303 admin=200
+GET    /admin/demo/me                                        anonymous=307 non-admin=200 admin=200
+GET    /admin/demo/skills                                    anonymous=307 non-admin=303 admin=200
+GET    /admin/demo/tools                                     anonymous=307 non-admin=303 admin=200
 GET    /admin/enterprises                                    anonymous=307 non-admin=303 admin=200
 GET    /admin/enterprises/{slug}                             anonymous=307 non-admin=303 admin=404
 GET    /admin/entities/contexts                              anonymous=307 non-admin=303 admin=200
