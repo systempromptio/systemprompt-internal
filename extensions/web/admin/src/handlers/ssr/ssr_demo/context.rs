@@ -6,7 +6,7 @@ use super::view::{
     KpiView, LogbookRowView, MatrixView, McpToolStatView, ScenarioCard, ServerCardView,
     SkillTotalView, UserTotalView,
 };
-use crate::handlers::ssr::types::ChartView;
+use crate::handlers::ssr::types::{ChartView, TabLinkView};
 
 #[derive(Debug, Serialize)]
 pub(super) struct DemoLogbookContext {
@@ -27,6 +27,9 @@ pub(super) struct DemoSkillsContext {
     pub subtitle: &'static str,
     pub kpis: Vec<KpiView>,
     pub chart: ChartView,
+    pub tabs: Vec<TabLinkView>,
+    pub is_by_skill: bool,
+    pub is_by_user: bool,
     pub skills: Vec<SkillTotalView>,
     pub has_skills: bool,
     pub matrix: MatrixView,

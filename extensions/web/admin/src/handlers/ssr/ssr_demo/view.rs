@@ -131,8 +131,14 @@ pub(super) struct MatrixRowView {
 }
 
 #[derive(Debug, Serialize)]
+pub(super) struct MatrixColumnView {
+    pub label: String,
+    pub full: String,
+}
+
+#[derive(Debug, Serialize)]
 pub(super) struct MatrixView {
-    pub columns: Vec<String>,
+    pub columns: Vec<MatrixColumnView>,
     pub rows: Vec<MatrixRowView>,
     pub has_data: bool,
 }
@@ -196,11 +202,18 @@ pub(super) fn logbook_row_view(row: &LogbookRow) -> LogbookRowView {
 
 // Why: skills are recorded as `plugin:skill`; splitting here keeps the table
 // sortable by plugin without a second query.
+// Why: the demo tables key everything on a `qualifier:name` string — a skill is
+// `plugin:skill`, an MCP tool is `server:tool`. One split, so a matrix column
+// header and a table row can never disagree about where the boundary is.
+fn split_qualified(id: &str) -> (String, String) {
+    id.split_once(':').map_or_else(
+        || (String::new(), id.to_owned()),
+        |(qualifier, name)| (qualifier.to_owned(), name.to_owned()),
+    )
+}
+
 pub(super) fn skill_total_view(row: &SkillTotalRow) -> SkillTotalView {
-    let (plugin, skill) = row.skill.split_once(':').map_or_else(
-        || (String::new(), row.skill.clone()),
-        |(p, s)| (p.to_owned(), s.to_owned()),
-    );
+    let (plugin, skill) = split_qualified(&row.skill);
     SkillTotalView {
         plugin,
         skill,
@@ -241,13 +254,29 @@ pub(super) fn matrix_view(matrix: &UsageMatrix) -> MatrixView {
         .max()
         .unwrap_or(0);
     MatrixView {
-        columns: matrix.columns.clone(),
+        columns: matrix
+            .columns
+            .iter()
+            .map(String::as_str)
+            .map(matrix_column_view)
+            .collect(),
         rows: matrix
             .rows
             .iter()
             .map(|r| matrix_row_view(r, max))
             .collect(),
         has_data: !matrix.columns.is_empty() && !matrix.rows.is_empty(),
+    }
+}
+
+// Why: the header shows the bare name and carries the qualified id as its
+// title. A column per `plugin:skill` string is what made this table wider than
+// the page it sits in, and the qualifier repeats down the whole header row.
+fn matrix_column_view(column: &str) -> MatrixColumnView {
+    let (_, name) = split_qualified(column);
+    MatrixColumnView {
+        label: name,
+        full: column.to_owned(),
     }
 }
 

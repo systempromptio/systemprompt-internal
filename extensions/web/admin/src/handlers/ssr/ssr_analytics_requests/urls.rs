@@ -9,7 +9,8 @@ use urlencoding::encode as urlencode;
 
 use crate::handlers::ssr::list_view::{PageWindow, Pagination};
 
-use super::context::{ChipView, RequestsTab, TabLinkView};
+use super::context::{ChipView, RequestsTab};
+use crate::handlers::ssr::types::TabLinkView;
 use super::{BASE_URL, RequestsQuery};
 
 // Why: a breakdown row drills into the Log tab carrying its own dimension as a

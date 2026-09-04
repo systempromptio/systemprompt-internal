@@ -2,7 +2,7 @@
     {{#*inline "content"}}
     {{> components/page-header title=title subtitle=subtitle}}
 
-    <section class="contexts-kpis" aria-label="Demo KPIs">
+    <section class="demo-skills__kpis" aria-label="Skill adoption headline">
         {{#each kpis}}
         {{> components/stat-card label=label value=value variant=variant testid=testid}}
         {{/each}}
@@ -10,7 +10,10 @@
 
     {{> components/timeseries-chart chart}}
 
-    <section aria-label="Skills">
+    {{> components/tabs tabs=tabs label="Skill adoption views"}}
+
+    {{#if is_by_skill}}
+    <section class="demo-skills__panel" aria-label="By skill">
         {{#if has_skills}}
         {{#> components/data-table}}
             <thead><tr>
@@ -41,19 +44,22 @@
             {{/each}}
             </tbody>
         {{/components/data-table}}
+        <p class="demo-skills__note">{{attribution_note}}</p>
         {{else}}
         {{> components/empty-state message="No skill invocations recorded yet."}}
         {{/if}}
     </section>
+    {{/if}}
 
-    <section aria-label="Users by skill">
+    {{#if is_by_user}}
+    <section class="demo-skills__panel" aria-label="Who ran what">
         <h2 class="section-title">Who ran what</h2>
         {{#if matrix.has_data}}
         <div class="demo-matrix">
             <table class="demo-matrix__table">
                 <thead><tr>
                     <th scope="col">User</th>
-                    {{#each matrix.columns}}<th scope="col">{{this}}</th>{{/each}}
+                    {{#each matrix.columns}}<th scope="col" title="{{this.full}}">{{this.label}}</th>{{/each}}
                     <th scope="col" class="numeric">Total</th>
                 </tr></thead>
                 <tbody>
@@ -74,7 +80,8 @@
         {{/if}}
     </section>
 
-    <section aria-label="Per-user totals">
+    <section class="demo-skills__panel" aria-label="Per-user totals">
+        <h2 class="section-title">Per-user totals</h2>
         {{#if has_user_totals}}
         {{#> components/data-table}}
             <thead><tr>
@@ -94,8 +101,11 @@
             {{/each}}
             </tbody>
         {{/components/data-table}}
+        {{else}}
+        {{> components/empty-state message="No per-user skill activity in this window."}}
         {{/if}}
-        <p class="text-tertiary text-xs mt-3">{{attribution_note}}</p>
+        <p class="demo-skills__note">{{attribution_note}}</p>
     </section>
+    {{/if}}
     {{/inline}}
 {{/layout}}
