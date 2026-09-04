@@ -22,20 +22,20 @@
                 <th>Skill</th>
                 <th class="numeric col-numeric">Invocations</th>
                 <th class="numeric col-numeric">Users</th>
-                <th class="numeric col-numeric">Sessions (est.)</th>
-                <th class="numeric col-numeric">Tokens (est.)</th>
-                <th class="numeric col-numeric">Cost (est.)</th>
+                <th class="numeric col-numeric">Requests (attr.)</th>
+                <th class="numeric col-numeric">Tokens (attr.)</th>
+                <th class="numeric col-numeric">Cost (attr.)</th>
                 <th class="col-date">Last used</th>
             </tr></thead>
             <tbody>
             {{#each skills}}
             <tr>
-                <td><span class="badge badge-blue">{{skill_id}}</span></td>
+                <td><span class="badge badge-blue">{{skill}}</span></td>
                 <td class="numeric">{{formatNumber invocation_count}}</td>
                 <td class="numeric">{{formatNumber distinct_users}}</td>
-                <td class="numeric">{{formatNumber estimated_session_count}}</td>
-                <td class="numeric">{{formatNumber estimated_tokens}}</td>
-                <td class="numeric">${{estimated_cost_usd}}</td>
+                <td class="numeric">{{formatNumber attributed_request_count}}</td>
+                <td class="numeric">{{formatNumber attributed_tokens}}</td>
+                <td class="numeric">${{attributed_cost_usd}}</td>
                 <td class="col-date">
                     {{#if last_used_at}}<span title="{{formatDate last_used_at}}">{{relativeTime last_used_at}}</span>
                     {{else}}<span class="text-tertiary">Never</span>{{/if}}
@@ -45,9 +45,11 @@
             </tbody>
         {{/components/data-table}}
         <p class="text-tertiary text-xs mt-3">
-            Sessions, tokens, and cost are session-attributed estimates: any AI
-            request in the same session as a skill invocation is counted
-            toward it, not just requests the skill itself made.
+            Requests, tokens, and cost are attributed, not measured. An AI
+            request counts toward an invocation when it belongs to the same
+            user and falls between that invocation and whichever comes first:
+            the next skill invocation in the session, or five minutes after the
+            session's last event.
         </p>
         {{else}}
         {{> components/empty-state message="No skill invocations recorded yet."}}

@@ -1,7 +1,6 @@
 //! Typed template context for `skill-usage.hbs`.
 
 use serde::Serialize;
-use systemprompt::identifiers::SkillId;
 
 #[derive(Debug, Serialize)]
 pub(super) struct SkillsPageContext {
@@ -24,15 +23,14 @@ pub(super) struct PageStat {
 
 #[derive(Debug, Serialize)]
 pub(super) struct SkillRowView {
-    pub(super) skill_id: SkillId,
+    pub(super) skill: String,
     pub(super) invocation_count: i64,
     pub(super) distinct_users: i64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) first_used_at: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) last_used_at: Option<String>,
-    pub(super) estimated_session_count: i64,
-    pub(super) estimated_request_count: i64,
-    pub(super) estimated_tokens: i64,
-    pub(super) estimated_cost_usd: f64,
+    pub(super) attributed_request_count: i64,
+    pub(super) attributed_tokens: i64,
+    pub(super) attributed_cost_usd: f64,
 }
