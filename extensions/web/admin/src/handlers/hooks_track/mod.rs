@@ -18,7 +18,7 @@ pub(crate) mod session_summary;
 use crate::error::AdminResult;
 use crate::event_hub::EventHub;
 use crate::repositories::marketplace::webhook;
-use crate::types::webhook::{HookEvent, HookEventPayload};
+use crate::types::webhook::{HookEvent, HookEventPayload, TrackQuery};
 use auth::extract_and_validate_jwt;
 use axum::Json;
 use axum::extract::{Extension, Query, State};
@@ -27,12 +27,7 @@ use axum::response::{IntoResponse, Response};
 use sqlx::PgPool;
 use std::sync::Arc;
 use systemprompt::ai::AiService;
-use systemprompt::identifiers::{SessionId, UserId};
-
-#[derive(Debug, Clone, Default, serde::Deserialize)]
-pub(crate) struct TrackQuery {
-    pub plugin_id: Option<String>,
-}
+use systemprompt::identifiers::{PluginId, SessionId, UserId};
 
 pub(crate) async fn handle_hook_track(
     Extension(event_hub): Extension<EventHub>,
@@ -45,7 +40,7 @@ pub(crate) async fn handle_hook_track(
     Json(raw): Json<serde_json::Value>,
 ) -> AdminResult<Response> {
     let (user_id, plugin_id, jwt_token) =
-        extract_and_validate_jwt(&headers, query.plugin_id.as_deref())?;
+        extract_and_validate_jwt(&headers, query.plugin_id.as_ref().map(PluginId::as_str))?;
     tracing::trace!(payload = %helpers::sanitize_metadata(&raw), "Hook track received payload");
     let (payload, warnings) = HookEventPayload::from_value(raw);
     if matches!(&payload.event, HookEvent::PreToolUse(_)) {

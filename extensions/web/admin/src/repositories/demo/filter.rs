@@ -29,18 +29,6 @@ impl DemoFilter {
         }
     }
 
-    #[must_use]
-    pub fn since(mut self, since: DateTime<Utc>) -> Self {
-        self.since = since;
-        self
-    }
-
-    #[must_use]
-    pub fn limit(mut self, limit: i64) -> Self {
-        self.limit = limit;
-        self
-    }
-
     pub fn user_filter(&self) -> Option<&str> {
         self.user_id.as_ref().map(UserId::as_str)
     }
