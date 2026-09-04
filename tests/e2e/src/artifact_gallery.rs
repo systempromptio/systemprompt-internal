@@ -34,9 +34,10 @@ const BRAND_RADIUS: &str = "--mcpui-radius-card:  0.75rem 0.25rem 0.75rem 0.75re
 // padded tool-call card, so the theme re-declares core's page-sized scale; if
 // this is missing they are back to paying core's padding on top of Cowork's.
 const BRAND_SPACING: &str = "--mcpui-space-3: 0.5rem;";
-// `extra_css` is appended after every renderer stylesheet and is what suppresses
-// the artifact's own <h1> — the one Cowork's header already duplicates. A theme
-// that lost its extra_css would still be branded and still be twice as tall.
+// `extra_css` is appended after every renderer stylesheet and is what
+// suppresses the artifact's own <h1> — the one Cowork's header already
+// duplicates. A theme that lost its extra_css would still be branded and still
+// be twice as tall.
 const BRAND_EXTRA_CSS: &str = ".mcp-app-title {\n  display: none;\n}";
 
 pub fn gallery_dir() -> PathBuf {

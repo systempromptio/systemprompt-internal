@@ -28,11 +28,15 @@ use systemprompt_mcp_agent::{CliLocation, filter_hallucinated_args};
 
 use crate::tempdb::TempDb;
 
-fn executor(pool: &Arc<PgPool>) -> McpToolExecutor {
-    let db_pool = Arc::new(Database::from_pools(
+fn db_pool(pool: &Arc<PgPool>) -> Arc<Database> {
+    Arc::new(Database::from_pools(
         Arc::clone(pool),
         Some(Arc::clone(pool)),
-    ));
+    ))
+}
+
+fn executor(pool: &Arc<PgPool>) -> McpToolExecutor {
+    let db_pool = db_pool(pool);
     let usage = Arc::new(ToolUsageRepository::new(&db_pool).expect("tool usage repository"));
     let artifacts = Arc::new(McpArtifactRepository::new(&db_pool).expect("artifact repository"));
     McpToolExecutor::new(usage, artifacts, "systemprompt")
@@ -79,6 +83,7 @@ async fn run(
     command: &str,
 ) -> Result<rmcp::model::CallToolResult, rmcp::ErrorData> {
     let executor = executor(&db.pool);
+    let db_pool = db_pool(&db.pool);
     let request = call(command);
     let profile = client();
     systemprompt_mcp_agent::server::tool::dispatch_tool(
@@ -88,6 +93,7 @@ async fn run(
             request_context: &request_context(),
             client: &profile,
             cli,
+            db_pool: &db_pool,
         },
         "systemprompt",
         "test-bearer-token",

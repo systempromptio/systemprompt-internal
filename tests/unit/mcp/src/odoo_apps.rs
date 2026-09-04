@@ -186,7 +186,8 @@ fn a_permission_refusal_quoting_access_denied_is_still_a_permission_refusal() {
             .to_owned(),
     );
 
-    let OdooError::AccessDenied(message) = map_access_denied("sales@example.com", "crm.lead", fault)
+    let OdooError::AccessDenied(message) =
+        map_access_denied("sales@example.com", "crm.lead", fault)
     else {
         panic!("expected AccessDenied");
     };
@@ -202,7 +203,8 @@ fn a_permission_refusal_quoting_access_denied_is_still_a_permission_refusal() {
 fn a_bare_authentication_failure_still_asks_for_a_relink() {
     let fault = OdooError::Odoo("odoo.exceptions.AccessDenied: Access Denied".to_owned());
 
-    let OdooError::AccessDenied(message) = map_access_denied("sales@example.com", "crm.lead", fault)
+    let OdooError::AccessDenied(message) =
+        map_access_denied("sales@example.com", "crm.lead", fault)
     else {
         panic!("expected AccessDenied");
     };

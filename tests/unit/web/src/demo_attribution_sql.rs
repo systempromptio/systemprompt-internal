@@ -1,14 +1,13 @@
-//! Pins the two SQL rules that nothing else type-checks.
+//! Pins the SQL rules that nothing else type-checks.
 //!
-//! The attribution window is documented once in
-//! `repositories::demo::attribution` and executed twice, and the real-verdict
-//! predicate is documented once in `repositories::demo::policy` and executed
-//! three times. These assertions fail the moment a query drifts from the
-//! documented form.
+//! The pad is documented once in `repositories::demo::attribution` and the
+//! real-verdict predicate once in `repositories::demo::policy`, and each is
+//! executed by several queries. These assertions fail the moment a query
+//! drifts from the documented form. The attribution *window* is no longer
+//! among them: it lives in the `skill_invocation_events` view, where the
+//! database holds it once for all four readers.
 
-use systemprompt_web_admin::repositories::demo::attribution::{
-    ATTRIBUTION_PAD_MINUTES, MCP_WINDOW_PREDICATE, SKILL_WINDOW_PREDICATE,
-};
+use systemprompt_web_admin::repositories::demo::attribution::ATTRIBUTION_PAD_MINUTES;
 use systemprompt_web_admin::repositories::demo::policy::{
     BARE_TOOL_NAME_SQL, REAL_VERDICT_PREDICATE,
 };
@@ -23,22 +22,6 @@ const LOGBOOK_SQL: &str =
     include_str!("../../../../extensions/web/admin/src/repositories/demo/logbook.rs");
 const KPIS_SQL: &str =
     include_str!("../../../../extensions/web/admin/src/repositories/demo/kpis.rs");
-
-#[test]
-fn the_skill_query_uses_the_documented_window() {
-    assert!(
-        SKILL_SQL.contains(SKILL_WINDOW_PREDICATE),
-        "skill_invocations.rs no longer contains SKILL_WINDOW_PREDICATE"
-    );
-}
-
-#[test]
-fn the_mcp_query_uses_the_documented_window() {
-    assert!(
-        MCP_SQL.contains(MCP_WINDOW_PREDICATE),
-        "mcp_tools/invocations.rs no longer contains MCP_WINDOW_PREDICATE"
-    );
-}
 
 #[test]
 fn both_queries_pad_by_the_documented_interval() {
