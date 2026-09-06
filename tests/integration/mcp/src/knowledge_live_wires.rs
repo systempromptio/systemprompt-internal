@@ -147,7 +147,7 @@ async fn anthropic_round_trip(
     )
     .await
     .unwrap_or_else(|e| panic!("anthropic / {title}: {e}"));
-    let parsed = anthropic::parse_response(&value, model);
+    let parsed = anthropic::parse_response(&value, model).expect("anthropic reply parses");
     let content = tool_input(&parsed)
         .unwrap_or_else(|| panic!("anthropic / {title}: no tool_use block in {value}"));
     assert_categorized("anthropic", title, &content)
@@ -174,7 +174,7 @@ async fn openai_round_trip(
     )
     .await
     .unwrap_or_else(|e| panic!("openai / {title}: {e}"));
-    let parsed = openai_chat::parse_response(&value, model);
+    let parsed = openai_chat::parse_response(&value, model).expect("openai reply parses");
     assert_categorized("openai", title, &text(&parsed))
 }
 
@@ -199,7 +199,7 @@ async fn gemini_round_trip(
     )
     .await
     .unwrap_or_else(|e| panic!("gemini / {title}: {e}"));
-    let parsed = gemini::parse_response(&value, model);
+    let parsed = gemini::parse_response(&value, model).expect("gemini reply parses");
     assert_categorized("gemini", title, &text(&parsed))
 }
 
