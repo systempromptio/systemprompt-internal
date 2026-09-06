@@ -435,6 +435,8 @@ preflight: preflight-static preflight-lint
 # Tier 0 — seconds. Formatting, sqlx cache freshness, and the source gates.
 preflight-static:
     cargo fmt --all -- --check
+    cargo fmt --manifest-path tests/Cargo.toml --all -- --check
+    cargo fmt --manifest-path bridge/Cargo.toml --all -- --check
     bash scripts/check-sqlx-cache.sh
     {{just_executable()}} lint-gates
 

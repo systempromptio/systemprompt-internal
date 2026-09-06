@@ -176,9 +176,6 @@ jobs:
       # unrelated churn elsewhere must not block a bridge release.
       - run: cargo fmt --manifest-path bridge/Cargo.toml -p systemprompt-internal-bridge -- --check
         working-directory: systemprompt-internal
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: systemprompt-internal/bridge
