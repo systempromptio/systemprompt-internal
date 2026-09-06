@@ -3,6 +3,23 @@
 All notable changes to this repository are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.47.0] - 2026-09-06
+
+### Changed
+
+- Adopted systemprompt core 0.47.0 from crates.io; the `[patch.crates-io]`
+  blocks in `Cargo.toml` and `tests/Cargo.toml` stay dormant,
+  `bridge/CORE_REF` pins the `v0.47.0` tag, and all three lockfiles are
+  re-resolved.
+- The Cerebras `gpt-oss-120b` entry declares `cache_read_per_million: 0.0`.
+  Core 0.47.0 excludes cached prompt tokens from `input_tokens` and refuses to
+  boot a gateway route that can dispatch a token-billed model with no declared
+  cache-read rate. Three of the four routes in `services/ai/gateway.yaml`
+  reach this model, so an absent rate is now a boot failure rather than a
+  silently free cached slice; Cerebras bills none, and the zero says so. The
+  Anthropic catalogue already declared its rates, and no route reaches the
+  OpenAI entries.
+
 ## [0.46.0] - 2026-09-04
 
 ### Added
