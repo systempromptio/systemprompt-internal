@@ -556,7 +556,9 @@ jobs:
 
   gateway:
     name: Build gateway ${{ matrix.name }}
-    needs: [version, ci, quality]
+    # Why: a compile publishes nothing, so it starts at t=0 and overlaps the
+    # gates; release-gateway, which signs and uploads, is what waits on them.
+    needs: [version]
     if: needs.version.outputs.publish == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
@@ -628,7 +630,7 @@ jobs:
 
   release-gateway:
     name: Sign & publish gateway
-    needs: [version, gateway]
+    needs: [version, gateway, ci, quality]
     if: needs.version.outputs.publish == 'true'
     runs-on: ubuntu-latest
     env:
