@@ -167,6 +167,7 @@ fn keep_sets_shrink_every_list_to_what_survived() {
             agents: std::collections::HashSet::new(),
             hooks: keep(&["hook-a"], |s| HookId::new(s)),
             mcp_servers: keep(&["odoo"], |s| McpServerId::new(s)),
+            marketplaces: std::collections::HashSet::new(),
         },
     );
     assert_eq!(kept.plugins.len(), 1);
@@ -230,9 +231,10 @@ fn an_unowned_artifact_is_dropped_rather_than_defaulting_to_visible() {
 #[test]
 fn the_assembly_context_passes_through_untouched() {
     let mut input = candidate();
-    input.marketplace_id = Some(systemprompt::identifiers::MarketplaceId::new(
-        "systemprompt",
-    ));
+    input.membership.access.insert(
+        systemprompt::identifiers::MarketplaceId::new("systemprompt"),
+        systemprompt::models::services::MarketplaceAccess::default(),
+    );
     input.diagnostics.push("assembly warning".to_owned());
     let owners = input.artifact_owners.clone();
 
@@ -246,9 +248,12 @@ fn the_assembly_context_passes_through_untouched() {
         },
     );
     assert_eq!(kept.artifact_owners, owners);
-    assert_eq!(
-        kept.marketplace_id.map(|id| id.to_string()),
-        Some("systemprompt".to_owned())
+    assert!(
+        kept.membership
+            .all_ids()
+            .iter()
+            .any(|id| id.as_str() == "systemprompt"),
+        "membership is assembly context and passes through retention"
     );
     assert_eq!(kept.diagnostics, vec!["assembly warning".to_owned()]);
 }
@@ -267,6 +272,7 @@ fn keeping_everything_is_the_identity() {
             agents: keep(&["agent-a"], |s| AgentId::new(s)),
             hooks: keep(&["hook-a"], |s| HookId::new(s)),
             mcp_servers: keep(&["odoo", "systemprompt"], |s| McpServerId::new(s)),
+            marketplaces: std::collections::HashSet::new(),
         },
     );
     assert_eq!(kept.plugins.len(), 2);
