@@ -29,8 +29,8 @@ pub(crate) fn build(db: &DbHandles, auth_deps: admin::AuthDeps) -> Option<SsrRou
         .ok()?
         .with_branding(branding);
     Some(SsrRouters {
-        bridge_auth: admin::bridge_auth_ssr_router(Arc::clone(&db.read), engine.clone()),
-        admin: admin::admin_ssr_router(Arc::clone(&db.read), engine, auth_deps),
+        bridge_auth: admin::bridge_auth_ssr_router(Arc::clone(&db.write), engine.clone()),
+        admin: admin::admin_ssr_router(Arc::clone(&db.write), engine, auth_deps),
     })
 }
 

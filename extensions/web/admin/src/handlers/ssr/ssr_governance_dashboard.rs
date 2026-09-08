@@ -88,8 +88,11 @@ fn format_local(t: chrono::DateTime<chrono::Utc>) -> String {
         .to_string()
 }
 
-fn build_policy_rows(window_by_id: &mut HashMap<String, PerPolicyCounts>) -> Vec<PolicyRow> {
-    governance_engine::engine()
+fn build_policy_rows(
+    window_by_id: &mut HashMap<String, PerPolicyCounts>,
+) -> Result<Vec<PolicyRow>, AdminError> {
+    Ok(governance_engine::engine()
+        .map_err(AdminError::internal)?
         .policies()
         .map(|(cfg, p)| {
             let id = p.id().as_str().to_owned();
@@ -117,7 +120,7 @@ fn build_policy_rows(window_by_id: &mut HashMap<String, PerPolicyCounts>) -> Vec
                 id,
             }
         })
-        .collect()
+        .collect())
 }
 
 fn build_top_policy_rows(top_policies: &[TopPolicy]) -> Vec<TopPolicyRow> {
@@ -149,7 +152,7 @@ fn build_top_actor_rows(top_actors: &[TopActor]) -> Vec<TopActorRow> {
         .collect()
 }
 
-async fn build_page_json(pool: &PgPool) -> GovernanceDashboardContext {
+async fn build_page_json(pool: &PgPool) -> Result<GovernanceDashboardContext, AdminError> {
     let (lifetime, window, per_policy_window, top_policies, top_actors) = tokio::join!(
         governance::get_governance_counts(pool),
         governance::get_governance_counts_windowed(pool, WINDOW_24H_SECS),
@@ -183,11 +186,11 @@ async fn build_page_json(pool: &PgPool) -> GovernanceDashboardContext {
         Vec::new()
     });
 
-    let policies = build_policy_rows(&mut window_by_id);
+    let policies = build_policy_rows(&mut window_by_id)?;
     let top_policies_view = build_top_policy_rows(&top_policies);
     let top_actors_view = build_top_actor_rows(&top_actors);
 
-    GovernanceDashboardContext {
+    Ok(GovernanceDashboardContext {
         page: "governance",
         title: "Governance",
         window_total: window.total,
@@ -202,7 +205,7 @@ async fn build_page_json(pool: &PgPool) -> GovernanceDashboardContext {
         has_top_actors: !top_actors_view.is_empty(),
         top_actors: top_actors_view,
         config_path: "services/governance/config.yaml",
-    }
+    })
 }
 
 pub(crate) async fn governance_dashboard_page(
@@ -214,7 +217,7 @@ pub(crate) async fn governance_dashboard_page(
     if !user_ctx.is_admin {
         return Err(AdminError::Forbidden("Admin access required.".to_owned()).into());
     }
-    let payload = build_page_json(&pool).await;
+    let payload = build_page_json(&pool).await?;
     Ok(super::render_typed_page(
         &engine,
         "governance",

@@ -28,7 +28,7 @@ async fn the_wire_name_splits_into_server_and_tool() {
     )
     .await;
 
-    let rows = list_mcp_tool_invocations(&db.pool, &DemoFilter::for_user(user))
+    let rows = list_mcp_tool_invocations(&db.pool, &DemoFilter::for_demo_user(user))
         .await
         .expect("list mcp invocations");
     let row = rows.first().expect("one invocation");
@@ -55,7 +55,7 @@ async fn a_post_tool_use_failure_is_marked_as_a_failure() {
     )
     .await;
 
-    let rows = list_mcp_tool_invocations(&db.pool, &DemoFilter::for_user(user))
+    let rows = list_mcp_tool_invocations(&db.pool, &DemoFilter::for_demo_user(user))
         .await
         .expect("list mcp invocations");
     let row = rows.first().expect("one invocation");

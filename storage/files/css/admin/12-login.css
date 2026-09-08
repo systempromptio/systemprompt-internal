@@ -1,5 +1,4 @@
 @layer components {
-
 .login-container {
     display: flex;
     align-items: center;
@@ -11,7 +10,9 @@
         radial-gradient(ellipse at 70% 80%, color-mix(in oklch, var(--sp-login-glow) 4%, transparent) 0%, transparent 50%),
         linear-gradient(180deg, var(--sp-bg-canvas) 0%, var(--sp-bg-base) 100%);
 }
+}
 
+@layer components {
 .login-container .card {
     width: 100%;
     max-width: 420px;
@@ -22,20 +23,26 @@
     border: 1px solid var(--sp-border-subtle);
     padding: var(--sp-space-8) var(--sp-space-6);
 }
+}
 
+@layer components {
 .login-title {
     font-size: var(--sp-text-xl);
     font-weight: 700;
     margin: 0 0 var(--sp-space-1);
     color: var(--sp-text-primary);
 }
+}
 
+@layer components {
 .login-subtitle {
     font-size: var(--sp-text-sm);
     color: var(--sp-text-tertiary);
     margin: 0 0 var(--sp-space-5);
 }
+}
 
+@layer components {
 .login-error {
     display: block;
     background: var(--sp-danger-dim);
@@ -46,11 +53,15 @@
     margin-bottom: var(--sp-space-4);
     text-align: left;
 }
+}
 
+@layer components {
 .login-error[hidden] {
     display: none;
 }
+}
 
+@layer components {
 .login-loading {
     flex-direction: column;
     align-items: center;
@@ -59,11 +70,15 @@
     color: var(--sp-text-tertiary);
     font-size: var(--sp-text-sm);
 }
+}
 
+@layer components {
 .login-loading:not([hidden]) {
     display: flex;
 }
+}
 
+@layer components {
 .login-spinner {
     width: 32px;
     height: 32px;
@@ -72,47 +87,65 @@
     border-radius: var(--sp-radius-full);
     animation: spin var(--sp-duration-slow) linear infinite;
 }
+}
 
+@layer components {
 .login-retry {
     display: block;
     margin-top: var(--sp-space-2);
 }
+}
 
+@layer components {
 .login-retry[hidden] {
     display: none;
 }
+}
 
+@layer components {
 .login-retry a {
     color: var(--sp-accent);
     text-decoration: none;
     font-size: var(--sp-text-sm);
 }
+}
 
+@layer components {
 .login-retry a:hover {
     text-decoration: underline;
 }
+}
 
+@layer components {
 .login-logo img {
     max-width: 100%;
     height: auto;
 }
+}
 
+@layer components {
 .login-container .form-group input:focus-visible,
 .login-container .form-group select:focus-visible,
 .login-container .form-group textarea:focus-visible {
     outline: 2px solid var(--sp-accent);
     outline-offset: 2px;
 }
+}
 
+@layer components {
 .login-container .btn,
 .login-container button[type="submit"] {
     border-radius: var(--sp-radius-button);
 }
+}
 
+@layer components {
 main.login-container {
     display: flex;
 }
+}
 
+@layer components {
 .auth-page {
     display: grid;
     place-items: center;
@@ -126,117 +159,11 @@ main.login-container {
         radial-gradient(ellipse at 70% 80%, color-mix(in oklch, var(--sp-section-plugins) 4%, transparent) 0%, transparent 50%),
         linear-gradient(180deg, var(--sp-bg-canvas) 0%, var(--sp-bg-base) 100%);
 }
+}
 
+@layer components {
 body:has(.auth-page) {
     margin: 0;
     background: var(--sp-bg-base);
 }
-
-.auth-card {
-    width: 100%;
-    max-width: 380px;
-    padding: var(--sp-space-8) var(--sp-space-7);
-    background: var(--sp-bg-surface);
-    border: 1px solid var(--sp-border-subtle);
-    border-radius: var(--sp-radius-card-brand);
-    box-shadow: var(--sp-shadow-login-card);
-}
-
-.auth-card .login-logo {
-    margin-bottom: var(--sp-space-6);
-}
-
-.auth-title {
-    font-size: var(--sp-text-xl);
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    margin: 0 0 var(--sp-space-1);
-    color: var(--sp-text-primary);
-}
-
-.auth-subtitle {
-    font-size: var(--sp-text-sm);
-    color: var(--sp-text-tertiary);
-    margin: 0 0 var(--sp-space-6);
-}
-
-.auth-form {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-space-4);
-}
-
-.auth-form[hidden] {
-    display: none;
-}
-
-.auth-form .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-space-2);
-    margin: 0;
-    text-align: left;
-}
-
-.auth-form label {
-    font-size: var(--sp-text-sm);
-    font-weight: 500;
-    color: var(--sp-text-secondary);
-}
-
-.auth-form .form-input {
-    width: 100%;
-}
-
-.auth-form .btn {
-    margin-top: var(--sp-space-2);
-}
-
-.auth-alt {
-    margin: var(--sp-space-6) 0 0;
-    padding-top: var(--sp-space-5);
-    border-top: 1px solid var(--sp-border-subtle);
-    text-align: center;
-    font-size: var(--sp-text-sm);
-}
-
-.auth-alt a,
-.login-switch a {
-    color: var(--sp-accent);
-    text-decoration: none;
-}
-
-.auth-alt a:hover,
-.login-switch a:hover {
-    text-decoration: underline;
-}
-
-.login-switch {
-    margin: var(--sp-space-1) 0 0;
-    text-align: center;
-    color: var(--sp-text-tertiary);
-    font-size: var(--sp-text-xs);
-}
-
-.step-num {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 1.4rem;
-    height: 1.4rem;
-    border-radius: var(--sp-radius-full);
-    background: var(--sp-accent);
-    color: var(--sp-text-on-accent);
-    font-size: var(--sp-text-xs);
-    font-weight: 700;
-    flex-shrink: 0;
-    margin-top: 0.1rem;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .login-spinner {
-        animation: none;
-    }
-}
-
 }

@@ -29,7 +29,7 @@ fn freshness_for(ts: Option<chrono::DateTime<chrono::Utc>>) -> &'static str {
 // the user's id or department) are applied as allow/deny overrides.
 pub(super) fn resolve_marketplaces(
     yaml_defaults: &[(String, String)],
-    overrides: &[&repositories::departments::UserMarketplaceOverride],
+    overrides: &[&repositories::departments::DepartmentUserMarketplaceOverride],
 ) -> Vec<UserMarketplaceRef> {
     let mut entries: Vec<UserMarketplaceRef> = yaml_defaults
         .iter()
@@ -62,14 +62,14 @@ pub(super) fn resolve_marketplaces(
 
 pub(super) fn enrich_users(
     users: &[crate::types::UserSummary],
-    aggregates: &[repositories::departments::UserManagementAggregate],
+    aggregates: &[repositories::departments::DepartmentUserManagementAggregate],
     runtime: &[repositories::users::queries::UserRuntimeAggregate],
-    overrides: &[repositories::departments::UserMarketplaceOverride],
+    overrides: &[repositories::departments::DepartmentUserMarketplaceOverride],
     yaml_marketplaces: &[(String, String)],
 ) -> Vec<EnrichedUserView> {
     let agg_map: std::collections::HashMap<
         &str,
-        &repositories::departments::UserManagementAggregate,
+        &repositories::departments::DepartmentUserManagementAggregate,
     > = aggregates.iter().map(|a| (a.user_id.as_str(), a)).collect();
     let rt_map: std::collections::HashMap<
         &str,
@@ -77,7 +77,7 @@ pub(super) fn enrich_users(
     > = runtime.iter().map(|r| (r.user_id.as_str(), r)).collect();
     let mut ovr_map: std::collections::HashMap<
         &str,
-        Vec<&repositories::departments::UserMarketplaceOverride>,
+        Vec<&repositories::departments::DepartmentUserMarketplaceOverride>,
     > = std::collections::HashMap::new();
     for o in overrides {
         ovr_map.entry(o.user_id.as_str()).or_default().push(o);

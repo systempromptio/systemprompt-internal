@@ -1,10 +1,10 @@
-//! The tab strip shared by every SSR page that splits its body into views.
+//! The tab strip shared by paged admin views.
+//!
+//! Every tab is a link, so a view is bookmarkable and the server renders only
+//! the active tab's body.
 
 use serde::Serialize;
 
-// Why: One link in an `sp-tabs` strip. Each tab is a plain GET against the
-// page's own URL, so a view is bookmarkable and only the active tab's queries
-// run.
 #[derive(Debug, Serialize)]
 pub(crate) struct TabLinkView {
     pub slug: &'static str,

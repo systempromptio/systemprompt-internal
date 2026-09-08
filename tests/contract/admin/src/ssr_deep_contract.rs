@@ -144,34 +144,34 @@ async fn seeded_detail_pages_render_the_record_and_miss_cleanly() {
     let found: [(&str, String, String); 6] = [
         (
             "the session detail page",
-            format!("/admin/entities/sessions/{}", trail.session_id),
+            format!("/admin/sessions/{}", trail.session_id),
             trail.session_id.clone(),
         ),
         (
             "the context detail page",
-            format!("/admin/entities/contexts/{}", trail.context_id),
+            format!("/admin/contexts/{}", trail.context_id),
             trail.context_id.clone(),
         ),
         (
             "the trace detail page, addressed by trace id",
-            format!("/admin/entities/traces/{}", trail.trace_id),
+            format!("/admin/traces/{}", trail.trace_id),
             "Waterfall".to_owned(),
         ),
         // The same page resolves a session id too — a caller holding either
         // half of the pair must land somewhere useful.
         (
             "the trace detail page, addressed by session id",
-            format!("/admin/entities/traces/{}", trail.session_id),
+            format!("/admin/traces/{}", trail.session_id),
             "Waterfall".to_owned(),
         ),
         (
             "the governance audit chain for a request",
-            format!("/admin/entities/requests/{}", trail.request_id),
+            format!("/admin/requests/{}", trail.request_id),
             "Policy chain".to_owned(),
         ),
         (
             "the per-user page",
-            format!("/admin/access/user?id={}", trail.user_id.as_str()),
+            format!("/admin/users/{}", trail.user_id.as_str()),
             trail.user_id.as_str().to_owned(),
         ),
     ];
@@ -200,25 +200,25 @@ async fn seeded_detail_pages_render_the_record_and_miss_cleanly() {
     let missing: [(&str, String); 5] = [
         (
             "a session id in no table",
-            "/admin/entities/sessions/no-such-session".to_owned(),
+            "/admin/sessions/no-such-session".to_owned(),
         ),
         (
             "a context id that is a well-formed UUID but matches nothing",
-            format!("/admin/entities/contexts/{}", uuid::Uuid::new_v4()),
+            format!("/admin/contexts/{}", uuid::Uuid::new_v4()),
         ),
         // The context id segment is parsed as a UUID before any query runs, so
         // a non-UUID is a miss rather than a parser panic.
         (
             "a context id that is not a UUID at all",
-            "/admin/entities/contexts/not-a-uuid".to_owned(),
+            "/admin/contexts/not-a-uuid".to_owned(),
         ),
         (
             "a trace id in no table",
-            "/admin/entities/traces/no-such-trace".to_owned(),
+            "/admin/traces/no-such-trace".to_owned(),
         ),
         (
             "a request id in no table",
-            "/admin/entities/requests/no-such-request".to_owned(),
+            "/admin/requests/no-such-request".to_owned(),
         ),
     ];
     for (label, path) in missing {
@@ -235,10 +235,10 @@ async fn seeded_detail_pages_render_the_record_and_miss_cleanly() {
     // The same pages under a non-admin principal are refused rather than
     // rendered — these carry another customer's conversation content.
     for path in [
-        format!("/admin/entities/sessions/{}", trail.session_id),
-        format!("/admin/entities/contexts/{}", trail.context_id),
-        format!("/admin/entities/traces/{}", trail.trace_id),
-        format!("/admin/entities/requests/{}", trail.request_id),
+        format!("/admin/sessions/{}", trail.session_id),
+        format!("/admin/contexts/{}", trail.context_id),
+        format!("/admin/traces/{}", trail.trace_id),
+        format!("/admin/requests/{}", trail.request_id),
     ] {
         let (status, _) = app.call(Call::get(&path, Principal::NonAdmin)).await;
         if !(status == StatusCode::FORBIDDEN || status.is_redirection()) {
@@ -276,64 +276,62 @@ async fn seeded_list_pages_render_rows_rather_than_the_empty_state() {
     let cases: [(&str, String, String, Option<&str>); 10] = [
         (
             "the trace explorer",
-            "/admin/entities/traces".to_owned(),
+            "/admin/traces".to_owned(),
             trail.session_id.clone(),
             Some("No traces in the selected window."),
         ),
         (
             "the trace explorer filtered to denials",
-            "/admin/entities/traces?deny_only=true".to_owned(),
+            "/admin/traces?deny_only=true".to_owned(),
             trail.session_id.clone(),
             None,
         ),
         (
             "the trace explorer filtered to errors",
-            "/admin/entities/traces?error_only=true".to_owned(),
+            "/admin/traces?error_only=true".to_owned(),
             trail.session_id.clone(),
             None,
         ),
         (
             "the trace explorer filtered by policy and decision",
-            "/admin/entities/traces?policy=blocklist&decision=deny".to_owned(),
+            "/admin/traces?policy=blocklist&decision=deny".to_owned(),
             trail.session_id.clone(),
             None,
         ),
         (
             "the trace explorer sorted by cost",
-            "/admin/entities/traces?sort=cost&dir=asc".to_owned(),
+            "/admin/traces?sort=cost&dir=asc".to_owned(),
             trail.session_id.clone(),
             None,
         ),
         (
             "the contexts list",
-            "/admin/entities/contexts".to_owned(),
+            "/admin/contexts".to_owned(),
             "Contract conversation".to_owned(),
             Some("No conversation contexts match your filters."),
         ),
         (
             "the contexts list grouped by user",
-            "/admin/entities/contexts?view=users".to_owned(),
+            "/admin/contexts?view=users".to_owned(),
             trail.user_id.as_str().to_owned(),
             Some("No users with conversation contexts match your filters."),
         ),
         (
             "the contexts list searched for the seeded name",
-            "/admin/entities/contexts?q=Contract".to_owned(),
+            "/admin/contexts?q=Contract".to_owned(),
             "Contract conversation".to_owned(),
             None,
         ),
-        // `/entities/sessions` is the live agent-session board: a row per
-        // session whose summary reported activity inside the liveness window,
-        // linked by session id.
+        // The canonical sessions list links each conversation to its reader.
         (
-            "the live session board",
-            "/admin/entities/sessions".to_owned(),
-            trail.session_id.clone(),
+            "the sessions list",
+            "/admin/sessions".to_owned(),
+            trail.context_id.clone(),
             Some("No sessions have reported activity in the liveness window."),
         ),
         (
             "the roster",
-            "/admin/access/users".to_owned(),
+            "/admin/users".to_owned(),
             trail.user_id.as_str().to_owned(),
             None,
         ),
@@ -385,7 +383,7 @@ async fn organization_pages_render_a_seeded_customer() {
         return;
     };
 
-    let credentials = principal::provision(&db.pool).await;
+    let credentials = principal::provision_dashboard(&db.pool).await;
     let app = App::new(&db.pool, credentials);
 
     // The customer pages need a customer. This used to adopt whichever tenant
@@ -399,7 +397,7 @@ async fn organization_pages_render_a_seeded_customer() {
     let mut failures = Vec::new();
 
     let (status, body) = app
-        .call(Call::get("/admin/enterprises", Principal::Admin))
+        .call(Call::get("/admin/enterprises", Principal::PlatformAdmin))
         .await;
     if status != StatusCode::OK {
         failures.push(format!("  the customer roster -> {}", status.as_u16()));
@@ -410,7 +408,7 @@ async fn organization_pages_render_a_seeded_customer() {
     }
 
     let path = format!("/admin/enterprises/{slug}");
-    let (status, body) = app.call(Call::get(&path, Principal::Admin)).await;
+    let (status, body) = app.call(Call::get(&path, Principal::PlatformAdmin)).await;
     if status != StatusCode::OK {
         failures.push(format!(
             "  {path} -> {} (expected 200): {}",
@@ -424,7 +422,7 @@ async fn organization_pages_render_a_seeded_customer() {
     let (status, _) = app
         .call(Call::get(
             "/admin/enterprises/no-such-customer",
-            Principal::Admin,
+            Principal::PlatformAdmin,
         ))
         .await;
     if !(status == StatusCode::NOT_FOUND || status == StatusCode::OK) {
@@ -441,7 +439,10 @@ async fn organization_pages_render_a_seeded_customer() {
         .await
         .expect("read a seeded department");
     let (status, body) = app
-        .call(Call::get("/admin/access/departments", Principal::Admin))
+        .call(Call::get(
+            "/admin/access/departments",
+            Principal::PlatformAdmin,
+        ))
         .await;
     if status != StatusCode::OK {
         failures.push(format!("  the departments page -> {}", status.as_u16()));
@@ -450,7 +451,7 @@ async fn organization_pages_render_a_seeded_customer() {
     }
     if let Some(id) = dept {
         let path = format!("/admin/access/departments/{id}");
-        let (status, body) = app.call(Call::get(&path, Principal::Admin)).await;
+        let (status, body) = app.call(Call::get(&path, Principal::PlatformAdmin)).await;
         if status != StatusCode::OK {
             failures.push(format!(
                 "  {path} -> {} (expected 200): {}",
@@ -464,7 +465,7 @@ async fn organization_pages_render_a_seeded_customer() {
     let (status, _) = app
         .call(Call::get(
             "/admin/access/departments/no-such-department",
-            Principal::Admin,
+            Principal::PlatformAdmin,
         ))
         .await;
     if status.is_server_error() {
@@ -490,44 +491,42 @@ async fn analytics_pages_aggregate_the_seeded_trail() {
         return;
     };
 
-    let credentials = principal::provision(&db.pool).await;
+    let credentials = principal::provision_dashboard(&db.pool).await;
     let app = App::new(&db.pool, credentials);
     let trail = seed_trail(&db.pool).await;
+    let report_org = seed_customer(&db.pool).await;
 
     let mut failures = Vec::new();
     let paths: [(&str, String); 8] = [
         (
             "the requests log filtered to the seeded model",
-            "/admin/entities/requests?tab=log&model=claude-contract-model".to_owned(),
+            "/admin/requests?tab=log&model=claude-contract-model".to_owned(),
         ),
         (
             "the requests log filtered to failures",
-            "/admin/entities/requests?tab=log&status=error".to_owned(),
+            "/admin/requests?tab=log&status=error".to_owned(),
         ),
         (
             "the requests log searched for the seeded session",
-            format!("/admin/entities/requests?tab=log&q={}", trail.session_id),
+            format!("/admin/requests?tab=log&q={}", trail.session_id),
         ),
         (
             "the model breakdown",
-            "/admin/entities/requests?tab=models".to_owned(),
+            "/admin/requests?tab=models".to_owned(),
         ),
         (
             "the provider breakdown",
-            "/admin/entities/requests?tab=providers".to_owned(),
+            "/admin/requests?tab=providers".to_owned(),
         ),
-        (
-            "the outcome mix",
-            "/admin/entities/requests?tab=status".to_owned(),
-        ),
+        ("the outcome mix", "/admin/requests?tab=status".to_owned()),
         ("the internal report", "/admin/reports/internal".to_owned()),
         (
             "the customer report over the current month",
-            "/admin/reports/customer".to_owned(),
+            format!("/admin/reports/customer?org={report_org}"),
         ),
     ];
     for (label, path) in paths {
-        let (status, body) = app.call(Call::get(&path, Principal::Admin)).await;
+        let (status, body) = app.call(Call::get(&path, Principal::PlatformAdmin)).await;
         if status != StatusCode::OK {
             failures.push(format!(
                 "  {label} -> {} (expected 200): {}",
@@ -541,8 +540,8 @@ async fn analytics_pages_aggregate_the_seeded_trail() {
     // rendering: the seeded model must appear in the model breakdown.
     let (_, body) = app
         .call(Call::get(
-            "/admin/entities/requests?tab=models",
-            Principal::Admin,
+            "/admin/requests?tab=models",
+            Principal::PlatformAdmin,
         ))
         .await;
     if !body.contains("claude-contract-model") {
@@ -606,4 +605,58 @@ async fn seed_customer(pool: &PgPool) -> String {
     .expect("join the customer organization");
 
     slug
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn report_exports_enforce_platform_and_organization_boundaries() {
+    if !globals::init() {
+        return;
+    }
+    let Some(db) = TempDb::create().await else {
+        return;
+    };
+    let credentials = principal::provision_dashboard(&db.pool).await;
+    let app = App::new(&db.pool, credentials);
+    let own = seed_trail(&db.pool).await;
+    let other = seed_trail(&db.pool).await;
+    let own_slug = seed_customer(&db.pool).await;
+    let other_slug = seed_customer(&db.pool).await;
+    for (user_id, slug) in [(&own.user_id, &own_slug), (&other.user_id, &other_slug)] {
+        sqlx::query("INSERT INTO organization_members (user_id, org_id, org_role) SELECT $1, id, 'member' FROM organizations WHERE slug = $2")
+            .bind(user_id.as_str()).bind(slug).execute(&*db.pool).await.expect("attach report user");
+    }
+    sqlx::query("INSERT INTO organization_members (user_id, org_id, org_role) SELECT u.id, o.id, 'admin' FROM users u CROSS JOIN organizations o WHERE u.email = 'contract-admin@contract.test' AND o.slug = $1")
+        .bind(&own_slug).execute(&*db.pool).await.expect("attach customer administrator");
+    for principal in [
+        Principal::Admin,
+        Principal::ProjectManager,
+        Principal::NonAdmin,
+    ] {
+        let (status, _) = app
+            .call(Call::get("/admin/reports/internal.csv", principal))
+            .await;
+        assert!(
+            !status.is_success(),
+            "{} obtained platform costs",
+            principal.label()
+        );
+    }
+    let (status, _) = app
+        .call(Call::get(
+            "/admin/reports/internal.csv",
+            Principal::PlatformAdmin,
+        ))
+        .await;
+    assert_eq!(status, StatusCode::OK);
+    let month = chrono::Utc::now().format("%Y-%m");
+    let path = format!("/admin/reports/customer.csv?org={other_slug}&month={month}");
+    let (status, body) = app.call(Call::get(&path, Principal::Admin)).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains(&format!("{}@contract.test", own.user_id)));
+    assert!(!body.contains(&format!("{}@contract.test", other.user_id)));
+    let (status, body) = app.call(Call::get(&path, Principal::PlatformAdmin)).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains(&format!("{}@contract.test", other.user_id)));
+    assert!(!body.contains(&format!("{}@contract.test", own.user_id)));
+    db.cleanup().await;
 }

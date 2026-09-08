@@ -24,7 +24,7 @@ pub(super) async fn load_user_groups(
     pool: &PgPool,
     users: &[crate::types::UserSummary],
 ) -> Vec<DepartmentGroup> {
-    let aggregates = repositories::departments::list_user_management_aggregates(pool)
+    let aggregates = repositories::departments::list_department_user_management_aggregates(pool)
         .await
         .unwrap_or_else(|e| {
             tracing::warn!(error = %e, "Failed to fetch user management aggregates");
@@ -45,7 +45,7 @@ pub(super) async fn load_user_groups(
     // failure direction on this page that over-reports access, so it degrades
     // to showing nothing rather than to showing everything.
     let (overrides, overrides_failed) =
-        match repositories::departments::list_user_marketplace_overrides(pool).await {
+        match repositories::departments::list_department_user_marketplace_overrides(pool).await {
             Ok(rows) => (rows, false),
             Err(e) => {
                 tracing::warn!(error = %e, "Failed to fetch marketplace overrides");
@@ -85,7 +85,7 @@ pub(super) async fn collect_user_detail_extras(
 
     let mut assignments = UserAssignmentSummary::default();
     let devices_count = if let Ok(rows) =
-        repositories::departments::list_user_management_aggregates(pool).await
+        repositories::departments::list_department_user_management_aggregates(pool).await
         && let Some(row) = rows.into_iter().find(|r| r.user_id == d.user_id.as_str())
     {
         assignments.skills_count = row.assigned_skills_count;
@@ -98,9 +98,9 @@ pub(super) async fn collect_user_detail_extras(
     // *denials*, so an explicitly denied marketplace would render as granted.
     // Show none rather than all.
     let (user_overrides, overrides_failed): (
-        Vec<repositories::departments::UserMarketplaceOverride>,
+        Vec<repositories::departments::DepartmentUserMarketplaceOverride>,
         bool,
-    ) = match repositories::departments::list_user_marketplace_overrides(pool).await {
+    ) = match repositories::departments::list_department_user_marketplace_overrides(pool).await {
         Ok(rows) => (
             rows.into_iter()
                 .filter(|o| o.user_id == d.user_id.as_str())
@@ -120,7 +120,7 @@ pub(super) async fn collect_user_detail_extras(
             .map(|m| (m.id.to_string(), m.name))
             .collect()
     };
-    let override_refs: Vec<&repositories::departments::UserMarketplaceOverride> =
+    let override_refs: Vec<&repositories::departments::DepartmentUserMarketplaceOverride> =
         user_overrides.iter().collect();
     assignments.marketplaces = view::resolve_marketplaces(&yaml_marketplaces, &override_refs);
     assignments.marketplaces_count = assignments.marketplaces.len() as i64;

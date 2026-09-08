@@ -14,7 +14,7 @@ use axum::extract::{Extension, State};
 use axum::response::Response;
 use sqlx::PgPool;
 
-use context::{PageStat, SkillRowView, SkillsPageContext};
+use context::{PageStat, SkillUsageRowView, SkillsPageContext};
 
 fn microdollars_to_usd(microdollars: i64) -> f64 {
     microdollars as f64 / 1_000_000.0
@@ -32,7 +32,7 @@ async fn build_page_json(pool: &PgPool) -> SkillsPageContext {
     let total_invocations = rows.iter().map(|r| r.invocation_count).sum();
     let skill_rows = rows
         .iter()
-        .map(|row| SkillRowView {
+        .map(|row| SkillUsageRowView {
             skill: row.skill.clone(),
             invocation_count: row.invocation_count,
             distinct_users: row.distinct_users,

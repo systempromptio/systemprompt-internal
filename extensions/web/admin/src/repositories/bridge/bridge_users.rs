@@ -4,7 +4,7 @@ use sqlx::PgPool;
 use systemprompt::identifiers::UserId;
 
 #[derive(Debug, Clone)]
-pub struct BridgeUserRow {
+pub struct BridgeIdentityRow {
     pub id: String,
     pub name: String,
     pub email: String,
@@ -15,7 +15,7 @@ pub struct BridgeUserRow {
 pub async fn find_bridge_user(
     pool: &PgPool,
     user_id: &UserId,
-) -> Result<Option<BridgeUserRow>, sqlx::Error> {
+) -> Result<Option<BridgeIdentityRow>, sqlx::Error> {
     let row = sqlx::query!(
         r#"SELECT id, name, email, display_name,
                   COALESCE(roles, '{}') as "roles!: Vec<String>"
@@ -24,7 +24,7 @@ pub async fn find_bridge_user(
     )
     .fetch_optional(pool)
     .await?;
-    Ok(row.map(|r| BridgeUserRow {
+    Ok(row.map(|r| BridgeIdentityRow {
         id: r.id,
         name: r.name,
         email: r.email,

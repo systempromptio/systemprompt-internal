@@ -1,0 +1,137 @@
+@layer components {
+@media (max-width: 768px) {
+    .side-panel {
+        width: 100vw;
+        max-width: 100vw;
+    }
+
+    .edit-panel,
+    .assign-panel {
+        width: 100vw;
+    }
+
+    .panel-header {
+        padding: var(--sp-space-3) var(--sp-space-4);
+    }
+
+    .panel-body {
+        padding: var(--sp-space-3) var(--sp-space-4);
+    }
+
+    .panel-footer {
+        padding: var(--sp-space-3) var(--sp-space-4);
+    }
+
+    .form-row,
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .form-actions {
+        flex-wrap: wrap;
+    }
+
+    .form-actions .btn {
+        flex: 1 1 auto;
+        min-width: 0;
+        text-align: center;
+    }
+
+    .checklist-item {
+        min-height: 2.75rem;
+        padding: var(--sp-space-1) 0;
+    }
+
+    .checklist-item input[type="checkbox"] {
+        width: 1.375rem;
+        height: 1.375rem;
+    }
+}
+}
+
+@layer components {
+.field-hint {
+    margin: var(--sp-space-1) 0 0;
+    font-size: var(--sp-text-xs);
+    color: var(--sp-text-tertiary);
+    line-height: var(--sp-leading-normal);
+}
+}
+
+@layer components {
+.form-advanced {
+    margin-top: var(--sp-space-3);
+}
+}
+
+@layer components {
+.form-advanced > summary {
+    cursor: pointer;
+    font-size: var(--sp-text-sm);
+    font-weight: var(--sp-font-medium);
+    color: var(--sp-text-secondary);
+    padding: var(--sp-space-2) 0;
+}
+}
+
+@layer components {
+.install-block {
+    margin-top: var(--sp-space-4);
+    padding-top: var(--sp-space-4);
+    border-top: 1px solid var(--sp-border-subtle);
+}
+}
+
+@layer components {
+.install-intro {
+    font-size: var(--sp-text-sm);
+    color: var(--sp-text-secondary);
+    margin: 0 0 var(--sp-space-2);
+}
+}
+
+@layer components {
+.download-link,
+.install-guide-link {
+    font-size: var(--sp-text-sm);
+    font-weight: var(--sp-font-medium);
+    color: var(--sp-accent);
+    text-decoration: none;
+}
+}
+
+@layer components {
+.download-link:hover,
+.install-guide-link:hover {
+    color: var(--sp-accent-hover);
+    text-decoration: underline;
+}
+}
+
+@layer components {
+.snippet-wrap {
+    position: relative;
+}
+}
+
+@layer components {
+.btn-copy-snippet {
+    position: absolute;
+    top: var(--sp-space-2);
+    right: var(--sp-space-2);
+}
+}
+
+@layer components {
+.panel-footer-state {
+    display: flex;
+    gap: var(--sp-space-2);
+    width: 100%;
+}
+}
+
+@layer components {
+.panel-footer-state[hidden] {
+    display: none;
+}
+}

@@ -1,10 +1,4 @@
-//! The shapes the access matrix is rendered from.
-//!
-//! Why these are separate from the resolution in [`super::matrix`]: they are
-//! the serialisation contract the admin page renders against, and nothing here
-//! decides anything. Keeping them apart leaves `matrix.rs` as resolution only,
-//! so a change to what a cell *means* cannot be mistaken for a change to how
-//! it is drawn.
+//! Access matrix response shapes.
 
 use serde::Serialize;
 
@@ -21,6 +15,8 @@ pub struct UserMatrixUser {
     pub display_name: Option<String>,
     pub roles: Vec<String>,
     pub department: Option<String>,
+    pub group_ids: Vec<String>,
+    pub project_ids: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]

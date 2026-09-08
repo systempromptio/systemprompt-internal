@@ -28,6 +28,9 @@ pub struct MonthRange {
     pub label: String,
     pub from: DateTime<Utc>,
     pub to: DateTime<Utc>,
+    // Why: False for the month currently in progress. A report over a partial
+    // month is still useful, but it must say so — a half-month of cost read
+    // as a full month makes every margin look twice as good as it is.
     pub is_complete: bool,
 }
 
@@ -40,12 +43,15 @@ pub struct MonthOption {
 }
 
 impl MonthRange {
+    // Why: The equivalent rolling-window type, so repositories already written
+    // against [`TimeRange`] can be reused for a month unchanged.
     #[must_use]
     pub const fn as_time_range(&self) -> TimeRange {
         TimeRange {
             from: self.from,
             to: self.to,
             preset: TimeRangePreset::Custom,
+            rejected_bounds: false,
         }
     }
 
@@ -61,6 +67,10 @@ impl MonthRange {
     }
 }
 
+// Why: Anything absent or unparseable falls back to the last *complete* month.
+// These are end-of-month reports, and opening one on the 2nd to a
+// two-days-of-data month reads as a collapse in usage rather than as a
+// month that has barely started.
 #[must_use]
 pub fn parse_month_range(query: &MonthQuery) -> MonthRange {
     query
@@ -110,7 +120,7 @@ fn from_start(instant: DateTime<Utc>) -> MonthRange {
     }
 }
 
-fn month_start(instant: DateTime<Utc>) -> DateTime<Utc> {
+pub(crate) fn month_start(instant: DateTime<Utc>) -> DateTime<Utc> {
     // Why: the first of the month at midnight always exists, so the fallible
     // constructors cannot fail here; returning the input unchanged rather than
     // panicking keeps a report renderable in the impossible case.

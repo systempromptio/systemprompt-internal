@@ -14,7 +14,9 @@ CREATE TABLE IF NOT EXISTS plugin_usage_events (
     cwd TEXT,
     content_input_bytes BIGINT DEFAULT 0,
     content_output_bytes BIGINT DEFAULT 0,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    loc_added BIGINT NOT NULL DEFAULT 0,
+    loc_removed BIGINT NOT NULL DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS idx_plugin_usage_user ON plugin_usage_events(user_id, created_at DESC);
@@ -103,3 +105,6 @@ FROM (
 ) d
 WHERE prev_at IS NULL
    OR invoked_at - prev_at > interval '5 seconds';
+
+CREATE INDEX IF NOT EXISTS idx_plugin_usage_session_created
+    ON plugin_usage_events(session_id, created_at);

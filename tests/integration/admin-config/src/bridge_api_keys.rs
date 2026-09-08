@@ -4,7 +4,7 @@
 use chrono::{Duration, Utc};
 use systemprompt_web_admin::repositories::bridge::api_keys::API_KEY_PREFIX;
 use systemprompt_web_admin::repositories::bridge::{
-    BridgeRepoError, issue_api_key, list_api_keys_for_user, revoke_api_key,
+    BridgeRepoError, issue_bridge_api_key, list_api_keys_for_user, revoke_bridge_api_key,
 };
 
 use crate::fixtures::{insert_user, unique, user_id};
@@ -18,7 +18,7 @@ async fn issue_api_key_returns_a_secret_that_extends_its_prefix() {
     let user = unique("u");
     insert_user(&db.pool, &user).await;
 
-    let issued = issue_api_key(&db.pool, &user_id(&user), "laptop", None)
+    let issued = issue_bridge_api_key(&db.pool, &user_id(&user), "laptop", None)
         .await
         .expect("issue key");
 
@@ -38,7 +38,7 @@ async fn issue_api_key_stores_only_a_hash_of_the_secret() {
     let user = unique("u");
     insert_user(&db.pool, &user).await;
 
-    let issued = issue_api_key(&db.pool, &user_id(&user), "laptop", None)
+    let issued = issue_bridge_api_key(&db.pool, &user_id(&user), "laptop", None)
         .await
         .expect("issue key");
 
@@ -61,10 +61,10 @@ async fn issue_api_key_trims_the_name_and_rejects_a_blank_one() {
     let user = unique("u");
     insert_user(&db.pool, &user).await;
 
-    let issued = issue_api_key(&db.pool, &user_id(&user), "  laptop  ", None)
+    let issued = issue_bridge_api_key(&db.pool, &user_id(&user), "  laptop  ", None)
         .await
         .expect("issue key");
-    let blank = issue_api_key(&db.pool, &user_id(&user), "   ", None).await;
+    let blank = issue_bridge_api_key(&db.pool, &user_id(&user), "   ", None).await;
 
     assert_eq!(issued.name, "laptop");
     assert!(matches!(blank, Err(BridgeRepoError::Validation(_))));
@@ -81,7 +81,7 @@ async fn issue_api_key_records_an_expiry_when_one_is_given() {
     insert_user(&db.pool, &user).await;
     let expires = Utc::now() + Duration::days(30);
 
-    let issued = issue_api_key(&db.pool, &user_id(&user), "laptop", Some(expires))
+    let issued = issue_bridge_api_key(&db.pool, &user_id(&user), "laptop", Some(expires))
         .await
         .expect("issue key");
 
@@ -96,7 +96,7 @@ async fn issue_api_key_fails_for_a_user_who_does_not_exist() {
         return;
     };
 
-    let result = issue_api_key(&db.pool, &user_id(&unique("ghost")), "laptop", None).await;
+    let result = issue_bridge_api_key(&db.pool, &user_id(&unique("ghost")), "laptop", None).await;
 
     assert!(matches!(result, Err(BridgeRepoError::Database(_))));
 
@@ -111,10 +111,10 @@ async fn issued_keys_are_distinct_across_calls() {
     let user = unique("u");
     insert_user(&db.pool, &user).await;
 
-    let first = issue_api_key(&db.pool, &user_id(&user), "one", None)
+    let first = issue_bridge_api_key(&db.pool, &user_id(&user), "one", None)
         .await
         .expect("issue first key");
-    let second = issue_api_key(&db.pool, &user_id(&user), "two", None)
+    let second = issue_bridge_api_key(&db.pool, &user_id(&user), "two", None)
         .await
         .expect("issue second key");
 
@@ -151,10 +151,10 @@ async fn list_api_keys_for_user_is_scoped_to_that_user() {
     let theirs = unique("u");
     insert_user(&db.pool, &mine).await;
     insert_user(&db.pool, &theirs).await;
-    issue_api_key(&db.pool, &user_id(&theirs), "theirs", None)
+    issue_bridge_api_key(&db.pool, &user_id(&theirs), "theirs", None)
         .await
         .expect("issue their key");
-    let own = issue_api_key(&db.pool, &user_id(&mine), "mine", None)
+    let own = issue_bridge_api_key(&db.pool, &user_id(&mine), "mine", None)
         .await
         .expect("issue my key");
 
@@ -177,14 +177,14 @@ async fn revoke_api_key_reports_whether_it_changed_anything() {
     };
     let user = unique("u");
     insert_user(&db.pool, &user).await;
-    let issued = issue_api_key(&db.pool, &user_id(&user), "laptop", None)
+    let issued = issue_bridge_api_key(&db.pool, &user_id(&user), "laptop", None)
         .await
         .expect("issue key");
 
-    let first = revoke_api_key(&db.pool, &user_id(&user), &issued.id)
+    let first = revoke_bridge_api_key(&db.pool, &user_id(&user), &issued.id)
         .await
         .expect("revoke");
-    let second = revoke_api_key(&db.pool, &user_id(&user), &issued.id)
+    let second = revoke_bridge_api_key(&db.pool, &user_id(&user), &issued.id)
         .await
         .expect("revoke again");
 
@@ -207,11 +207,11 @@ async fn revoke_api_key_will_not_revoke_someone_elses_key() {
     let stranger = unique("u");
     insert_user(&db.pool, &owner).await;
     insert_user(&db.pool, &stranger).await;
-    let issued = issue_api_key(&db.pool, &user_id(&owner), "laptop", None)
+    let issued = issue_bridge_api_key(&db.pool, &user_id(&owner), "laptop", None)
         .await
         .expect("issue key");
 
-    let revoked = revoke_api_key(&db.pool, &user_id(&stranger), &issued.id)
+    let revoked = revoke_bridge_api_key(&db.pool, &user_id(&stranger), &issued.id)
         .await
         .expect("attempt revoke");
 

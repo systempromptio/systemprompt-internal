@@ -57,13 +57,16 @@ async fn catalog_pages_render_entities_from_the_profile() {
     let listings: [(&str, &str); 3] = [
         (
             "/admin/catalog/plugins",
-            "Plugins are the installable units in the catalog",
+            "A plugin bundles skills, MCP servers, agents and hooks",
         ),
         (
             "/admin/catalog/skills",
-            "Skills are reusable instruction sets",
+            "The instruction sets people invoke",
         ),
-        ("/admin/catalog/mcp", "MCP servers expose tools to agents"),
+        (
+            "/admin/catalog/mcp",
+            "Every tool server this instance declares",
+        ),
     ];
     for (path, marker) in listings {
         let (status, body) = app.call(Call::get(path, Principal::Admin)).await;

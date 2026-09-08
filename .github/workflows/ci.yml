@@ -88,7 +88,7 @@ jobs:
           path: .core-sibling
       - name: Link sibling core beside the workspace
         run: ln -sfn "$GITHUB_WORKSPACE/.core-sibling" "$GITHUB_WORKSPACE/../systemprompt-core"
-      - uses: dtolnay/rust-toolchain@stable
+      - run: rustup show
       - uses: Swatinem/rust-cache@v2
       - run: cargo build --workspace --locked
 
@@ -114,7 +114,7 @@ jobs:
           path: .core-sibling
       - name: Link sibling core beside the workspace
         run: ln -sfn "$GITHUB_WORKSPACE/.core-sibling" "$GITHUB_WORKSPACE/../systemprompt-core"
-      - uses: dtolnay/rust-toolchain@stable
+      - run: rustup show
       - uses: Swatinem/rust-cache@v2
       # Every extension crate that invokes a sqlx query macro must ship a
       # committed .sqlx/ cache so the -D warnings offline build above is
@@ -124,9 +124,23 @@ jobs:
       - run: cargo check --workspace --locked
 
   test:
-    name: Test (unit, integration, contract)
+    name: Test (${{ matrix.name }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: workspace 1/3
+            partition: "count:1/3"
+          - name: workspace 2/3
+            partition: "count:2/3"
+          - name: workspace 3/3
+            partition: "count:3/3"
+          - name: admin
+            command: cargo nextest run -p systemprompt-web-admin --tests
+          - name: web assets
+            command: cargo nextest run -p systemprompt-web-extension --tests
     # The test workspace verifies behaviour; linting it is quality.yml's job,
     # so it does not inherit the -D warnings RUSTFLAGS.
     env:
@@ -165,9 +179,12 @@ jobs:
           path: .core-sibling
       - name: Link sibling core beside the workspace
         run: ln -sfn "$GITHUB_WORKSPACE/.core-sibling" "$GITHUB_WORKSPACE/../systemprompt-core"
-      - uses: dtolnay/rust-toolchain@stable
+      - run: rustup show
+      # Why: every matrix entry compiles the same dependency graph, so they must
+      # share one cache key rather than each keying on its own job name.
       - uses: Swatinem/rust-cache@v2
         with:
+          shared-key: test
           workspaces: |
             .
             tests
@@ -188,17 +205,18 @@ jobs:
       # The e2e suite spawns the real odoo and agent MCP binaries; without
       # it the test would self-skip, and in CI it asserts instead of skipping.
       - name: Build the MCP binaries the e2e suite spawns
+        if: matrix.partition
         run: cargo build -p systemprompt-mcp-odoo -p systemprompt-mcp-agent --locked
-      - name: Run the tests workspace (unit, integration, contract, e2e)
+      - name: Run the tests workspace partition (unit, integration, contract, e2e)
+        if: matrix.partition
         env:
           SYSTEMPROMPT_TEST_DATABASE_URL: postgres://test:test@localhost:5432/postgres
-        run: cargo nextest run --manifest-path tests/Cargo.toml --workspace
-
-      - name: Run admin unit tests
-        run: cargo nextest run -p systemprompt-web-admin --tests
-
-      - name: Front-end asset manifest and standards gate
-        run: cargo nextest run -p systemprompt-web-extension --tests
+        run: cargo nextest run --manifest-path tests/Cargo.toml --workspace --partition ${{ matrix.partition }}
+      - name: Run ${{ matrix.name }} tests
+        if: matrix.command
+        env:
+          SYSTEMPROMPT_TEST_DATABASE_URL: postgres://test:test@localhost:5432/postgres
+        run: ${{ matrix.command }}
 
   bridge:
     name: Bridge (standalone workspace)
@@ -221,7 +239,8 @@ jobs:
           path: systemprompt-core
       # keyring → dbus-secret-service → libdbus-sys builds from pkg-config.
       - run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config
-      - uses: dtolnay/rust-toolchain@stable
+      - run: rustup show
+        working-directory: systemprompt-internal
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: systemprompt-internal/bridge

@@ -15,9 +15,9 @@ fn usage_params<'a>(
     dedup_key: &'a str,
 ) -> UsageEventParams<'a> {
     UsageEventParams {
+        plugin_id: None,
         user_id: user,
         session_id: session,
-        plugin_id: Some("systemprompt-business"),
         event_type: "PostToolUse",
         tool_name: Some("Bash"),
         metadata,
@@ -27,6 +27,8 @@ fn usage_params<'a>(
         dedup_key,
         content_input_bytes: 120,
         content_output_bytes: 340,
+        loc_added: 0,
+        loc_removed: 0,
     }
 }
 

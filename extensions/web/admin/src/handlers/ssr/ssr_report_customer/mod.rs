@@ -183,3 +183,5 @@ fn build_context(input: BuildInput<'_>) -> ReportCustomerContext {
 fn month_url(slug: &str, key: &str) -> String {
     format!("{BASE_URL}?org={slug}&month={key}")
 }
+
+pub(crate) mod csv;

@@ -82,22 +82,26 @@ impl Extension for WebExtension {
     fn seeds(&self) -> Vec<Seed> {
         vec![
             Seed::new(
-                "admin_oauth_client",
-                include_str!("../schema/seeds/admin_oauth_client.sql"),
+                "dashboard_unassigned_group",
+                include_str!("../schema/seeds/dashboard_unassigned_group.sql"),
             ),
             Seed::new(
-                "default_department",
-                include_str!("../schema/seeds/default_department.sql"),
+                "admin_oauth_client",
+                include_str!("../schema/seeds/admin_oauth_client.sql"),
             ),
             Seed::new(
                 "house_organization",
                 include_str!("../schema/seeds/house_organization.sql"),
             ),
+            Seed::new(
+                "default_department",
+                include_str!("../schema/seeds/default_department.sql"),
+            ),
         ]
     }
 
     fn dependencies(&self) -> Vec<&'static str> {
-        vec!["content", "users", "authz"]
+        vec!["content", "users", "authz", "ai"]
     }
 
     fn cross_extension_tables(&self) -> Vec<&'static str> {

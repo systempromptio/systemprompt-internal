@@ -1,0 +1,147 @@
+{{#> layout title=title page=page}}
+    {{#*inline "head_extra"}}{{/inline}}
+    {{#*inline "content"}}
+    {{> components/breadcrumbs crumbs=breadcrumbs}}
+    {{#> components/page-header title=title subtitle="Every access-control rule on this instance, and where it came from. Rules are written where their subject lives: a group's band on its Access tab, a person's overrides on theirs."}}
+        {{#*inline "header_actions"}}
+        <a class="sp-btn sp-btn--sm sp-btn--outline" href="/admin/groups">Group rules</a>
+        <button type="button" class="sp-btn sp-btn--sm sp-btn--outline" data-action="show-yaml">Show as YAML</button>
+        {{#if can_write}}
+        <button type="button" class="sp-btn sp-btn--sm sp-btn--primary" data-action="new-group">+ New group</button>
+        {{/if}}
+        {{/inline}}
+        {{#*inline "header_meta"}}
+        <span><strong>{{stats.groups}}</strong> groups</span>
+        <span><strong>{{stats.projects}}</strong> projects</span>
+        <span><strong>{{stats.users}}</strong> people</span>
+        <span>Rules bootstrap from <code class="sp-code-inline">services/**/*.yaml</code>; edits made in the console stay in this instance</span>
+        <span>Per-person access: open a user and choose Access</span>
+        {{/inline}}
+    {{/components/page-header}}
+
+    <section class="sp-kpi-grid" aria-label="Rule totals">
+        {{#each ledger.kpis}}
+        {{> components/kpi label=label value=value note=note tone=tone}}
+        {{/each}}
+    </section>
+
+    {{#> components/section title="Rule ledger" count=ledger.total note="Every access-control rule on this instance, and whether the YAML in the source repository declares it."}}
+        {{#*inline "section_actions"}}
+        {{#if ledger.filters_applied}}<a class="sp-btn sp-btn--sm sp-btn--outline" href="{{ledger.clear_url}}">Clear filters</a>{{/if}}
+        {{/inline}}
+    {{/components/section}}
+
+    <form class="sp-toolbar sp-toolbar--fields" method="get" action="/admin/access-control" role="search" aria-label="Filter access rules">
+        <div class="sp-toolbar__field">
+            <label class="sp-toolbar__field-label" for="ac-filter-subject">Subject kind</label>
+            <select class="sp-select" id="ac-filter-subject" name="subject_kind">
+            {{#each ledger.subject_options}}<option value="{{value}}"{{#if selected}} selected{{/if}}>{{label}}</option>{{/each}}
+            </select>
+        </div>
+        <div class="sp-toolbar__field">
+            <label class="sp-toolbar__field-label" for="ac-filter-entity">Entity kind</label>
+            <select class="sp-select" id="ac-filter-entity" name="entity_kind">
+            {{#each ledger.entity_options}}<option value="{{value}}"{{#if selected}} selected{{/if}}>{{label}}</option>{{/each}}
+            </select>
+        </div>
+        <div class="sp-toolbar__field">
+            <label class="sp-toolbar__field-label" for="ac-filter-source">Rule source</label>
+            <select class="sp-select" id="ac-filter-source" name="source">
+            {{#each ledger.source_options}}<option value="{{value}}"{{#if selected}} selected{{/if}}>{{label}}</option>{{/each}}
+            </select>
+        </div>
+        <label class="sp-u-sr-only" for="ac-filter-q">Search rules</label>
+        <div class="sp-toolbar__search">
+            <input class="sp-search-input" id="ac-filter-q" type="search" name="q" value="{{ledger.search}}" placeholder="Entity or subject">
+        </div>
+        <div class="sp-toolbar__actions">
+            <button type="submit" class="sp-btn sp-btn--sm sp-btn--secondary">Apply</button>
+        </div>
+    </form>
+
+    {{#if ledger.rows}}
+    {{#> components/table caption="Access-control rules on this instance" pagination=ledger.pagination modifier="sp-p-ac__ledger"}}
+        <thead><tr>
+            {{#each ledger.sort_headers}}{{> components/sort-header this}}{{/each}}
+            <th class="sp-col-default">Entity default</th>
+            <th class="sp-col-why">Why</th>
+        </tr></thead>
+        <tbody>
+        {{#each ledger.rows}}
+        <tr>
+            <td>{{entity_type_label}}</td>
+            <td class="sp-u-mono">{{entity_id}}</td>
+            <td>{{subject_kind}}</td>
+            <td class="sp-u-mono">{{subject}}</td>
+            <td>{{> components/badge tone=access_tone text=access}}</td>
+            <td>{{> components/badge tone=source_tone text=source}}</td>
+            <td class="sp-u-text-muted">{{default_label}}</td>
+            <td class="sp-u-text-muted">{{truncate justification 60}}</td>
+        </tr>
+        {{/each}}
+        </tbody>
+    {{/components/table}}
+    {{else}}
+    {{> components/empty-state title="No rules match" message="No access-control rule matches these filters. Clear them to see the whole ledger."}}
+    {{/if}}
+
+    {{#if ledger.capped}}
+    {{> components/notice tone="warn" title="Listing is capped" message="Only the first 1000 rules are shown. Narrow the filters to see the rest."}}
+    {{/if}}
+
+    <dialog class="sp-dialog sp-ac-dialog" data-dialog="yaml" aria-labelledby="ac-yaml-title">
+        <div class="sp-ac-dialog__header">
+            <h2 id="ac-yaml-title">Current state as YAML</h2>
+            <button type="button" class="sp-ac-dialog__close" data-action="close-dialog" aria-label="Close">&times;</button>
+        </div>
+        <div class="sp-ac-dialog__body">
+            <p class="sp-ac-modal-hint">
+                The database state of the band rules on this instance, in the loader's schema.
+                Copy what you want to keep into <code class="sp-code-inline">services/</code> in the
+                source repository and redeploy. Per-user overrides are deliberately excluded.
+            </p>
+            <pre class="sp-ac-yaml-pre" data-ac="yaml-content"><span class="sp-loading">Loading…</span></pre>
+        </div>
+        <div class="sp-ac-dialog__actions">
+            <button type="button" class="sp-btn sp-btn--secondary" data-action="copy-yaml">Copy</button>
+            <button type="button" class="sp-btn sp-btn--outline" data-action="close-dialog">Close</button>
+        </div>
+    </dialog>
+
+    {{#if can_write}}
+    <dialog class="sp-dialog sp-ac-dialog" data-dialog="new-group" aria-labelledby="ac-new-group-title">
+        <div class="sp-ac-dialog__header">
+            <h2 id="ac-new-group-title">Create group</h2>
+            <button type="button" class="sp-ac-dialog__close" data-action="close-dialog" aria-label="Close">&times;</button>
+        </div>
+        <div class="sp-ac-dialog__body">
+            <label class="sp-ac-field">
+                <span>Identifier</span>
+                <input type="text" data-ac="new-group-id" class="sp-search-input" placeholder="engineering" autocomplete="off" maxlength="64">
+            </label>
+            <label class="sp-ac-field">
+                <span>Name</span>
+                <input type="text" data-ac="new-group-name" class="sp-search-input" placeholder="Engineering" autocomplete="off" maxlength="64">
+            </label>
+            <label class="sp-ac-field">
+                <span>Description</span>
+                <input type="text" data-ac="new-group-desc" class="sp-search-input" autocomplete="off">
+            </label>
+            <p class="sp-ac-form-error" data-ac="new-group-error" hidden></p>
+            <p class="sp-ac-modal-hint">
+                The group is created in this instance's database. People the directory has not
+                placed anywhere stay in <strong>Unassigned</strong>.
+            </p>
+        </div>
+        <div class="sp-ac-dialog__actions">
+            <button type="button" class="sp-btn sp-btn--primary" data-action="save-group">Create</button>
+            <button type="button" class="sp-btn sp-btn--outline" data-action="close-dialog">Cancel</button>
+        </div>
+    </dialog>
+    {{/if}}
+
+    {{/inline}}
+    {{#*inline "scripts"}}
+    <script data-cfasync="false" type="module" src="/js/pages/admin-access-control.js?v={{css_version}}"></script>
+    {{/inline}}
+{{/layout}}

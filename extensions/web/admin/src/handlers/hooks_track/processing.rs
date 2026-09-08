@@ -7,9 +7,7 @@ use systemprompt::ai::AiService;
 use systemprompt::identifiers::{SessionId, UserId};
 
 use crate::event_hub::EventHub;
-use crate::repositories::dashboard::{
-    conversation_analytics, hooks_track, session_registry, usage_aggregations,
-};
+use crate::repositories::dashboard::{conversation_analytics, hooks_track, usage_aggregations};
 
 use crate::types::webhook::{HookEvent, HookEventPayload};
 use crate::types::{ENTITY_SKILL, EVENT_SESSION_END, EVENT_SESSION_START, EVENT_STOP};
@@ -25,6 +23,8 @@ pub(super) struct ProcessInsertedEventParams<'a> {
     pub tool_name: Option<&'a str>,
     pub content_input_bytes: i64,
     pub content_output_bytes: i64,
+    pub loc_added: i64,
+    pub loc_removed: i64,
     pub payload: &'a HookEventPayload,
     pub event_hub: &'a EventHub,
     pub ai_service: Option<&'a Arc<AiService>>,
@@ -47,9 +47,13 @@ pub(super) async fn process_inserted_event(params: &ProcessInsertedEventParams<'
         tool_name: params.tool_name,
         content_input_bytes: params.content_input_bytes,
         content_output_bytes: params.content_output_bytes,
+        loc_added: params.loc_added,
+        loc_removed: params.loc_removed,
         is_error: matches!(&payload.event, HookEvent::PostToolUseFailure(_)),
     })
     .await;
+
+    super::commits::record_observed_commits(pool, user_id, session_id, payload).await;
 
     let has_session = !session_id.as_str().is_empty();
 
@@ -81,15 +85,15 @@ async fn update_session_tracking(params: &ProcessInsertedEventParams<'_>) {
         event_type: params.event_type,
         content_input_bytes: params.content_input_bytes,
         content_output_bytes: params.content_output_bytes,
+        loc_added: params.loc_added,
+        loc_removed: params.loc_removed,
         is_subagent_stop: matches!(&params.payload.event, HookEvent::SubagentStop(_)),
         file_path: file_path.as_deref(),
         is_from_subagent,
-        cwd: Some(params.payload.common.cwd.as_str()),
     })
     .await;
 
-    assign_handle_if_new(params).await;
-    record_current_activity(params).await;
+    super::registry::record(params).await;
 
     if params.event_type == EVENT_SESSION_START
         && let HookEvent::SessionStart(ref data) = params.payload.event
@@ -113,26 +117,6 @@ async fn update_session_tracking(params: &ProcessInsertedEventParams<'_>) {
         )
         .await;
     }
-}
-
-async fn record_current_activity(params: &ProcessInsertedEventParams<'_>) {
-    let activity = match params.payload.event {
-        HookEvent::UserPromptSubmit(ref data) if !data.prompt.is_empty() => {
-            helpers::derive_title(&data.prompt)
-        },
-        _ => match params.tool_name {
-            Some(tool) if !tool.is_empty() => tool.to_owned(),
-            _ => return,
-        },
-    };
-    session_registry::update_session_activity(params.pool, params.session_id, &activity).await;
-}
-
-async fn assign_handle_if_new(params: &ProcessInsertedEventParams<'_>) {
-    let Some(workspace) = session_registry::derive_workspace(&params.payload.common.cwd) else {
-        return;
-    };
-    session_registry::assign_session_handle(params.pool, params.session_id, &workspace).await;
 }
 
 async fn track_session_entity(

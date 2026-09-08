@@ -22,7 +22,7 @@ impl DemoFilter {
         }
     }
 
-    pub fn for_user(user_id: UserId) -> Self {
+    pub fn for_demo_user(user_id: UserId) -> Self {
         Self {
             user_id: Some(user_id),
             ..Self::all_users()

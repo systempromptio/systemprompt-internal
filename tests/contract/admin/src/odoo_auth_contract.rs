@@ -24,6 +24,13 @@ const UNLINK_PATH: &str = "/admin/api/profile/odoo/unlink";
 
 async fn app(db: &TempDb) -> App {
     let credentials = principal::provision(&db.pool).await;
+    // The client seed must run after its real admin owner exists, as at boot.
+    sqlx::raw_sql(include_str!(
+        "../../../../extensions/web/schema/seeds/admin_oauth_client.sql"
+    ))
+    .execute(&*db.pool)
+    .await
+    .expect("seed admin OAuth client");
     App::new(&db.pool, credentials)
 }
 

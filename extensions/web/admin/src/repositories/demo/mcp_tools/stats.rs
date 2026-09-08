@@ -27,7 +27,7 @@ pub struct McpToolStatRow {
     pub last_used_at: Option<DateTime<Utc>>,
 }
 
-pub async fn list_mcp_tool_stats(
+pub async fn list_demo_mcp_tool_stats(
     pool: &PgPool,
     filter: &DemoFilter,
 ) -> Result<Vec<McpToolStatRow>, sqlx::Error> {

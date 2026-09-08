@@ -142,8 +142,18 @@ fn check(
         fail("anonymous callers must not be served a success response");
     }
 
-    // An authenticated admin must never be turned away by the auth layers.
+    // Company-wide organization and business reports require platform authority.
+    let platform_only = route.template == "/admin/reports/internal"
+        || route.template == "/admin/reports/internal.csv"
+        || route.template == "/admin/enterprises"
+        || route.template.starts_with("/admin/enterprises/");
+    if principal == Principal::Admin && platform_only && status != StatusCode::FORBIDDEN {
+        fail("an ordinary admin must not reach the platform-only business surface");
+    }
+
+    // Ordinary admin routes remain reachable to admins.
     if principal == Principal::Admin
+        && !platform_only
         && matches!(status, StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN)
     {
         fail("an admin must not be rejected by authentication or authorisation");

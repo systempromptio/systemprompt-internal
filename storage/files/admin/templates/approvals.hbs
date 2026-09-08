@@ -62,6 +62,8 @@
         title="Pending approvals"
         subtitle="Tool calls held by the require_approval policy, and inbound emails the brain@ pipeline proposes to project into Odoo. Approving a held call resumes it; approving a proposal writes to Odoo as you within a minute."}}
 
+    <p><a class="sp-btn sp-btn--sm sp-btn--outline" href="/admin/governance/approvals">All approvals and decision history</a></p>
+
     {{#if is_empty}}
       {{> components/empty-state message="Nothing is waiting. Held calls appear here the moment a governed tool call matches an approval rule; ingestion proposals appear on the hour after brain@ receives an email."}}
     {{else}}

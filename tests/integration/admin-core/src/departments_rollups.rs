@@ -147,7 +147,7 @@ async fn list_user_management_aggregates_counts_the_grants_a_user_receives() {
     )
     .await;
 
-    let rows = departments::list_user_management_aggregates(&db.pool)
+    let rows = departments::list_department_user_management_aggregates(&db.pool)
         .await
         .expect("listing succeeds");
 
@@ -193,7 +193,7 @@ async fn list_user_marketplace_overrides_reports_both_scopes() {
     )
     .await;
 
-    let rows = departments::list_user_marketplace_overrides(&db.pool)
+    let rows = departments::list_department_user_marketplace_overrides(&db.pool)
         .await
         .expect("listing succeeds");
 

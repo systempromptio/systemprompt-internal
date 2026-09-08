@@ -6,7 +6,7 @@ use serde::Serialize;
 pub(super) struct SkillsPageContext {
     pub(super) page: &'static str,
     pub(super) title: &'static str,
-    pub(super) skills: Vec<SkillRowView>,
+    pub(super) skills: Vec<SkillUsageRowView>,
     pub(super) page_stats: Vec<PageStat>,
 }
 
@@ -22,7 +22,7 @@ pub(super) struct PageStat {
 }
 
 #[derive(Debug, Serialize)]
-pub(super) struct SkillRowView {
+pub(super) struct SkillUsageRowView {
     pub(super) skill: String,
     pub(super) invocation_count: i64,
     pub(super) distinct_users: i64,

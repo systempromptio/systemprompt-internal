@@ -26,6 +26,20 @@ pub(crate) fn extract_user_from_cookie(
     extract_user_with_audiences(headers, &[JwtAudience::Api])
 }
 
+// Why: The token accessors core calls to mint a downstream bearer are reached
+// with whatever credential the caller already holds, and a bridge-forwarded
+// token carries `Mcp`, not `Api`. Widening happens here rather than in
+// `extract_user_from_cookie` so the browser-session path keeps its single
+// audience.
+pub(crate) fn extract_mcp_accessor_user(
+    headers: &HeaderMap,
+) -> Result<crate::types::CookieSession, AdminError> {
+    extract_user_with_audiences(
+        headers,
+        &[JwtAudience::Api, JwtAudience::Mcp, JwtAudience::Bridge],
+    )
+}
+
 fn extract_user_with_audiences(
     headers: &HeaderMap,
     audiences: &[JwtAudience],
@@ -87,7 +101,9 @@ pub(crate) async fn dashboard_handler(State(pool): State<Arc<PgPool>>) -> AdminR
 }
 
 pub(crate) async fn list_users_handler(State(pool): State<Arc<PgPool>>) -> AdminResult<Response> {
-    let users = repositories::users::queries::list_users(&pool).await?;
+    let users =
+        repositories::users::queries::list_users(&pool, &repositories::scope::SubjectScope::All)
+            .await?;
     Ok(Json(UsersListResponse { users }).into_response())
 }
 

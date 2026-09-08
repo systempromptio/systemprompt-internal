@@ -167,7 +167,7 @@ async fn totals_sum_the_invocations_of_each_skill() {
     assert_eq!(shared.invocation_count, 2);
     assert_eq!(shared.distinct_users, 2);
 
-    let scoped = list_skill_totals(&db.pool, &DemoFilter::for_user(user.clone()))
+    let scoped = list_skill_totals(&db.pool, &DemoFilter::for_demo_user(user.clone()))
         .await
         .expect("list totals for user");
     let shared = scoped

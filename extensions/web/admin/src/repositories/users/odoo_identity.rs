@@ -153,7 +153,7 @@ pub async fn list_odoo_logins(pool: &PgPool) -> Result<Vec<String>, sqlx::Error>
     Ok(rows.into_iter().map(|r| r.odoo_login).collect())
 }
 
-pub async fn delete(pool: &PgPool, user_id: &UserId) -> Result<(), sqlx::Error> {
+pub async fn delete_odoo_identity(pool: &PgPool, user_id: &UserId) -> Result<(), sqlx::Error> {
     sqlx::query!(
         "DELETE FROM odoo_identity WHERE user_id = $1",
         user_id.as_str()

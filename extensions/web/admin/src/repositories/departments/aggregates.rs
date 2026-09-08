@@ -5,7 +5,7 @@ use sqlx::PgPool;
 use systemprompt::identifiers::{MarketplaceId, UserId};
 
 #[derive(Debug, Clone, sqlx::FromRow)]
-pub struct UserManagementAggregate {
+pub struct DepartmentUserManagementAggregate {
     pub user_id: UserId,
     pub department: String,
     pub assigned_skills_count: i64,
@@ -14,18 +14,20 @@ pub struct UserManagementAggregate {
 }
 
 #[derive(Debug, Clone, sqlx::FromRow)]
-pub struct UserMarketplaceOverride {
+pub struct DepartmentUserMarketplaceOverride {
     pub user_id: UserId,
     pub department: String,
     pub entity_id: MarketplaceId,
     pub access: String,
 }
 
-pub async fn list_user_marketplace_overrides(
+// Why: lint-ok: unused-pub — the internal user roster displays inherited
+// marketplace grants.
+pub async fn list_department_user_marketplace_overrides(
     pool: &PgPool,
-) -> Result<Vec<UserMarketplaceOverride>, sqlx::Error> {
+) -> Result<Vec<DepartmentUserMarketplaceOverride>, sqlx::Error> {
     sqlx::query_as!(
-        UserMarketplaceOverride,
+        DepartmentUserMarketplaceOverride,
         r#"
         SELECT
             u.id AS "user_id!: UserId",
@@ -45,11 +47,13 @@ pub async fn list_user_marketplace_overrides(
     .await
 }
 
-pub async fn list_user_management_aggregates(
+// Why: lint-ok: unused-pub — the internal user roster includes department
+// aggregates.
+pub async fn list_department_user_management_aggregates(
     pool: &PgPool,
-) -> Result<Vec<UserManagementAggregate>, sqlx::Error> {
+) -> Result<Vec<DepartmentUserManagementAggregate>, sqlx::Error> {
     sqlx::query_as!(
-        UserManagementAggregate,
+        DepartmentUserManagementAggregate,
         r#"
         SELECT
             u.id AS "user_id!: UserId",

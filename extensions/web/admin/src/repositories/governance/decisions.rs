@@ -1,5 +1,4 @@
-//! Raw decision-row queries: per-policy detail for the policy cards.
-#![cfg(feature = "governance-ssr")]
+//! Raw decision-row queries: search, per-policy detail, and the recent feed.
 
 use sqlx::PgPool;
 

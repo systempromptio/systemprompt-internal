@@ -93,6 +93,22 @@ impl TempDb {
         install_extension_schemas(&registry, database.write())
             .await
             .expect("install extension schemas");
+        // Why: dashboard fixtures must exercise the production registration
+        // path. A missing new relation is setup failure, not an empty dashboard.
+        let dashboard_ready: bool = sqlx::query_scalar(
+            "SELECT to_regclass('groups') IS NOT NULL
+                 AND to_regclass('projects') IS NOT NULL
+                 AND to_regclass('conversation_requests') IS NOT NULL
+                 AND to_regclass('dev_login_codes') IS NOT NULL",
+        )
+        .fetch_one(&*pool)
+        .await
+        .expect("check dashboard schema registration");
+        assert!(
+            dashboard_ready,
+            "dashboard schema registrations are missing"
+        );
+
 
         Some(Self {
             pool,

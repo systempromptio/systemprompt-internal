@@ -12,7 +12,7 @@
     display: inline-flex;
     align-items: center;
     gap: var(--sp-space-1);
-    padding: 2px;
+    padding: var(--sp-space-05);
     background: var(--sp-bg-surface-raised);
     border: 1px solid var(--sp-border-subtle);
     border-radius: var(--sp-radius-full);
@@ -55,7 +55,7 @@
 .time-range__label {
     display: inline-flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--sp-space-05);
     font-size: var(--sp-text-xs);
     color: var(--sp-text-tertiary);
 }

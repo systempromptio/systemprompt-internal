@@ -1,0 +1,34 @@
+@layer components {
+
+@media (max-width: 767px) {
+    .data-table th:first-child,
+    .data-table td:first-child {
+        position: sticky;
+        left: 0;
+        z-index: var(--sp-z-sticky);
+        background: var(--sp-bg-surface);
+    }
+
+    .data-table th:first-child {
+        background: var(--sp-bg-card-header);
+    }
+}
+
+@media (max-width: 480px) {
+    .table-container {
+        margin-left: calc(-1 * var(--sp-space-2));
+        margin-right: calc(-1 * var(--sp-space-2));
+    }
+}
+
+}
+
+@layer responsive {
+
+@media (hover: none) {
+    .data-table tr:hover td {
+        background: inherit;
+    }
+}
+
+}

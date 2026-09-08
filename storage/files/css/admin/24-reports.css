@@ -103,7 +103,7 @@
     .report-print-header {
         display: flex;
         flex-direction: column;
-        gap: 2px;
+        gap: var(--sp-space-05);
         margin-bottom: 8mm;
         padding-bottom: 3mm;
         border-bottom: 1px solid #000;

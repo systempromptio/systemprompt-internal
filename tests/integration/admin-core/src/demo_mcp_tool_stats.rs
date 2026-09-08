@@ -1,4 +1,5 @@
-//! `repositories::demo::mcp_tools::list_mcp_tool_stats` — the bare-name join.
+//! `repositories::demo::mcp_tools::list_demo_mcp_tool_stats` — the bare-name
+//! join.
 //!
 //! Hook events name a tool `mcp__<server>__<tool>`. `approval_requests` carries
 //! the bare name and `governance_decisions` carries either, so the rollup only
@@ -6,7 +7,7 @@
 
 use chrono::{Duration, Utc};
 use systemprompt_web_admin::repositories::demo::filter::DemoFilter;
-use systemprompt_web_admin::repositories::demo::mcp_tools::list_mcp_tool_stats;
+use systemprompt_web_admin::repositories::demo::mcp_tools::list_demo_mcp_tool_stats;
 
 use crate::fixtures::{
     ApprovalSpec, DecisionSpec, EventSpec, insert_approval, insert_decision, insert_event,
@@ -69,7 +70,7 @@ async fn decisions_and_approvals_join_on_the_bare_tool_name() {
     )
     .await;
 
-    let stats = list_mcp_tool_stats(&db.pool, &DemoFilter::for_user(user))
+    let stats = list_demo_mcp_tool_stats(&db.pool, &DemoFilter::for_demo_user(user))
         .await
         .expect("list stats");
     let row = stats
@@ -127,7 +128,7 @@ async fn a_real_allow_verdict_counts_but_the_server_authorization_does_not() {
     legacy_authz.policy = "authz";
     insert_decision(&db.pool, &legacy_authz).await;
 
-    let stats = list_mcp_tool_stats(&db.pool, &DemoFilter::for_user(user))
+    let stats = list_demo_mcp_tool_stats(&db.pool, &DemoFilter::for_demo_user(user))
         .await
         .expect("list stats");
     let row = stats

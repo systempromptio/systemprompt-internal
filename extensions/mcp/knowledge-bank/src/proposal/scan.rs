@@ -24,7 +24,14 @@ pub enum ScanVerdict {
 
 #[must_use]
 pub fn scan_body(user_id: &UserId, body: &str) -> ScanVerdict {
-    let Some((_, policy)) = GovernanceEngine::global()
+    let engine = match GovernanceEngine::global() {
+        Ok(engine) => engine,
+        Err(error) => {
+            tracing::error!(%error, "secret scan engine unavailable; withholding body");
+            return ScanVerdict::Withheld("Secret scanning is unavailable".to_owned());
+        },
+    };
+    let Some((_, policy)) = engine
         .policies()
         .find(|(config, _)| config.id == "secret_scan" && config.enabled)
     else {

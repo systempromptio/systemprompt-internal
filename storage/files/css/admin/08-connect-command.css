@@ -1,3 +1,4 @@
+@layer components {
 
 .sp-connect__cmd {
     margin: 0;
@@ -38,7 +39,6 @@
     color: var(--sp-text-tertiary);
     cursor: pointer;
     opacity: 0.75;
-    transition: opacity var(--sp-duration-fast) ease,
                 color var(--sp-duration-fast) ease;
 }
 
@@ -55,13 +55,13 @@
 
 .sp-copy__btn.is-copied {
     opacity: 1;
-    color: var(--sp-success);
+    color: var(--sp-success-strong);
     border-color: var(--sp-success);
 }
 
 .sp-copy__btn.is-failed {
     opacity: 1;
-    color: var(--sp-danger);
+    color: var(--sp-danger-strong);
     border-color: var(--sp-danger);
 }
 
@@ -70,4 +70,6 @@
     font-size: var(--sp-text-xs);
     color: var(--sp-text-tertiary);
     margin-bottom: var(--sp-space-2);
+}
+
 }

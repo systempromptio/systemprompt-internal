@@ -9,6 +9,8 @@
 
 use std::sync::Arc;
 
+use super::types::BreadcrumbView;
+
 use crate::error::AdminHtmlResult;
 use crate::templates::AdminTemplateEngine;
 use crate::types::{MarketplaceContext, UserContext};
@@ -19,6 +21,7 @@ use sqlx::PgPool;
 
 #[derive(Debug, Serialize)]
 struct SetupPageContext {
+    breadcrumbs: Vec<BreadcrumbView>,
     page: &'static str,
     title: &'static str,
     phases: Vec<SetupPhase>,
@@ -154,6 +157,10 @@ pub(crate) async fn setup_page(
     let phases = build_phases(&user_ctx, &state);
 
     let ctx = SetupPageContext {
+        breadcrumbs: vec![
+            BreadcrumbView::link("Admin", "/admin"),
+            BreadcrumbView::current("Setup Guide"),
+        ],
         page: "setup",
         title: "Setup Guide",
         all_phases_started: state.odoo_linked,

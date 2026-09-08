@@ -5,13 +5,13 @@
 //! they answer a different question: context decides what a page renders,
 //! these decide whether the request is allowed to reach one at all.
 
-use axum::extract::Request;
+use axum::extract::{Request, State};
 use axum::http::StatusCode;
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
 
 use crate::handlers::shared::ErrorBody;
-use crate::types::UserContext;
+use crate::types::{Role, UserContext, has_any};
 
 // Why: `nest_service` strips its prefix from `request.uri()`, so a layer
 // inside the admin SSR router sees `/profile` for a request to
@@ -66,27 +66,13 @@ pub(crate) async fn require_auth_middleware(request: Request, next: Next) -> Res
     }
 }
 
-pub(crate) async fn require_admin_middleware(request: Request, next: Next) -> Response {
-    let user_ctx = request.extensions().get::<UserContext>().cloned();
-    match user_ctx {
-        Some(ctx) if ctx.is_admin => next.run(request).await,
-        _ => (
-            StatusCode::FORBIDDEN,
-            axum::Json(ErrorBody {
-                error: "Admin access required".to_owned(),
-            }),
-        )
-            .into_response(),
-    }
-}
-
-// Why: separate from `require_admin_middleware` because they answer different
-// questions. The `admin` role says a caller may administer an organization;
-// this says they may administer every organization, which is the operator's
-// own view of its customers and their contracts. A customer's administrator
-// holds the first and must never be handed the second. The denial is HTML
-// because these are page routes, and a JSON body a browser renders raw tells
-// the reader nothing.
+// Why: the platform-console gate answers a different question than the
+// ordinary admin role gate. The `admin` role says a caller may administer an
+// organization; this says they may administer every organization, which is the
+// operator's own view of its customers and their contracts. A customer's
+// administrator holds the first and must never be handed the second. The denial
+// is HTML because these are page routes, and a JSON body a browser renders raw
+// tells the reader nothing.
 pub(crate) async fn require_platform_admin_middleware(request: Request, next: Next) -> Response {
     let user_ctx = request.extensions().get::<UserContext>().cloned();
     match user_ctx {
@@ -113,7 +99,7 @@ pub(crate) async fn non_admin_gate_middleware(request: Request, next: Next) -> R
     let Some(ctx) = user_ctx else {
         return next.run(request).await;
     };
-    if ctx.is_admin || ctx.user_id.as_str().is_empty() {
+    if ctx.is_console || ctx.user_id.as_str().is_empty() {
         return next.run(request).await;
     }
 
@@ -126,6 +112,7 @@ pub(crate) async fn non_admin_gate_middleware(request: Request, next: Next) -> R
 
 fn is_non_admin_allowed_path(path: &str) -> bool {
     path.starts_with("/admin/profile")
+        || path.starts_with("/admin/history")
         || path.starts_with("/admin/settings")
         || path.starts_with("/admin/auth/")
         || path.starts_with("/admin/api/")
@@ -135,4 +122,28 @@ fn is_non_admin_allowed_path(path: &str) -> bool {
         || path == "/admin/setup"
         || path == "/admin/"
         || path == "/admin"
+}
+
+pub(crate) async fn require_roles_middleware(
+    State(accepted): State<&'static [Role]>,
+    request: Request,
+    next: Next,
+) -> Response {
+    let user_ctx = request.extensions().get::<UserContext>().cloned();
+    let allowed = user_ctx.is_some_and(|ctx| has_any(&ctx.roles, accepted));
+    if allowed {
+        return next.run(request).await;
+    }
+    let names = accepted
+        .iter()
+        .map(|r| r.as_str())
+        .collect::<Vec<_>>()
+        .join(", ");
+    (
+        StatusCode::FORBIDDEN,
+        axum::Json(ErrorBody {
+            error: format!("Role required: {names}"),
+        }),
+    )
+        .into_response()
 }

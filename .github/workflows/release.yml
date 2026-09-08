@@ -176,9 +176,6 @@ jobs:
       # unrelated churn elsewhere must not block a bridge release.
       - run: cargo fmt --manifest-path bridge/Cargo.toml -p systemprompt-internal-bridge -- --check
         working-directory: systemprompt-internal
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: systemprompt-internal/bridge
@@ -224,9 +221,9 @@ jobs:
       - name: Install libdbus (linux)
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.rust_targets }}
+      - run: rustup show
+        working-directory: systemprompt-internal
+      - run: rustup target add ${{ matrix.rust_targets }}
 
       # Deliberately no build cache in the release job. A warm target/ served
       # the Linux 0.1.3 build a binary predating the overlay fix, so the
@@ -559,7 +556,9 @@ jobs:
 
   gateway:
     name: Build gateway ${{ matrix.name }}
-    needs: [version, ci, quality]
+    # Why: a compile publishes nothing, so it starts at t=0 and overlaps the
+    # gates; release-gateway, which signs and uploads, is what waits on them.
+    needs: [version]
     if: needs.version.outputs.publish == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
@@ -601,9 +600,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get -o Acquire::Retries=5 install -y clang pkg-config libssl-dev libpq-dev libdbus-1-dev
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
+      - run: rustup show
+      - run: rustup target add ${{ matrix.target }}
       - name: Build
         run: cargo build --release --workspace --locked --target ${{ matrix.target }}
       - name: Stage
@@ -632,7 +630,7 @@ jobs:
 
   release-gateway:
     name: Sign & publish gateway
-    needs: [version, gateway]
+    needs: [version, gateway, ci, quality]
     if: needs.version.outputs.publish == 'true'
     runs-on: ubuntu-latest
     env:

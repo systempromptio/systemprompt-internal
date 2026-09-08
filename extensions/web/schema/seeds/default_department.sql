@@ -5,7 +5,7 @@
 -- upgraded databases swap UNIQUE(name) for UNIQUE(org_id, name) in 022, so
 -- the conflict target is left unnamed (the seed linter requires ON CONFLICT
 -- on every INSERT; the NOT EXISTS guard does the real idempotency work).
-INSERT INTO departments (name, description)
-SELECT 'Default', 'Default department; contains every user without an explicit assignment.'
-WHERE NOT EXISTS (SELECT 1 FROM departments WHERE name = 'Default')
+INSERT INTO departments (org_id, name, description)
+SELECT 'house', 'Default', 'Default department; contains every user without an explicit assignment.'
+WHERE NOT EXISTS (SELECT 1 FROM departments WHERE org_id = 'house' AND name = 'Default')
 ON CONFLICT DO NOTHING;

@@ -12,6 +12,7 @@ pub struct UserRuntimeAggregate {
     pub lifetime_tokens: i64,
 }
 
+// Why: lint-ok: unused-pub — the internal fork still calls this.
 pub async fn list_user_runtime_aggregates(
     pool: &PgPool,
 ) -> Result<Vec<UserRuntimeAggregate>, sqlx::Error> {
@@ -62,6 +63,7 @@ pub struct UserRuntimeDetail {
     pub last_heartbeat_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
+// Why: lint-ok: unused-pub — the internal fork still calls this.
 pub async fn get_user_runtime_detail(
     pool: &PgPool,
     user_id: &UserId,

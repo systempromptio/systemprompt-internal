@@ -14,35 +14,70 @@ use systemprompt::identifiers::{TenantId, UserId};
 use systemprompt::models::Config;
 use uuid::Uuid;
 
-use systemprompt::analytics::ProfileUsageService;
-use systemprompt::models::api::cloud::BridgeProfileUsage;
+use crate::repositories::bridge::{BridgeIdentityRow, find_bridge_user};
+use crate::repositories::users::usage as usage_repo;
 
-use crate::repositories::bridge::{BridgeUserRow, find_bridge_user};
+use super::{
+    BridgeAgentItem, BridgeAgentsBlock, BridgeProfileBlock, BridgeProfileUsage,
+    ProfileMarketplaceView,
+};
 
-use super::{AgentItem, AgentsBlock, BridgeProfileBlock};
-
-pub(super) struct UsageSections {
-    pub(super) usage: BridgeProfileUsage,
-    pub(super) bridge_user: Option<BridgeUserRow>,
+pub(super) struct BridgeUsageSections {
+    pub(super) d1: usage_repo::UsageWindow,
+    pub(super) d7: usage_repo::UsageWindow,
+    pub(super) d30: usage_repo::UsageWindow,
+    pub(super) top_models: Vec<usage_repo::ModelShare>,
+    pub(super) conversations: usage_repo::ConversationSummary,
+    pub(super) bridge_user: Option<BridgeIdentityRow>,
 }
 
-// Why: the windows come from core's `ProfileUsageService` — the same derivation
-// `/v1/bridge/profile/usage` serves. This page used to run its own SQL, so the
-// two surfaces could and did report different numbers for one metric.
-pub(super) async fn load_usage_sections(pool: &Arc<PgPool>, user_id: &UserId) -> UsageSections {
-    let usage_service = ProfileUsageService::from_pool(Arc::clone(pool));
+pub(super) async fn load_usage_sections(
+    pool: &Arc<PgPool>,
+    user_id: &UserId,
+) -> BridgeUsageSections {
+    let pool_for_d1 = Arc::clone(pool);
+    let pool_for_d7 = Arc::clone(pool);
+    let pool_for_d30 = Arc::clone(pool);
+    let pool_for_models = Arc::clone(pool);
+    let pool_for_conv = Arc::clone(pool);
     let pool_for_user = Arc::clone(pool);
-    let user_id_usage = user_id.to_owned();
+
+    let user_id_d1 = user_id.to_owned();
+    let user_id_d7 = user_id.to_owned();
+    let user_id_d30 = user_id.to_owned();
+    let user_id_models = user_id.to_owned();
+    let user_id_conv = user_id.to_owned();
     let user_id_user = user_id.to_owned();
 
-    let (usage, bridge_user) = tokio::join!(
+    let (d1, d7, d30, top_models, conversations, bridge_user) = tokio::join!(
         async move {
-            usage_service
-                .get_profile_usage(&user_id_usage, chrono::Utc::now())
+            usage_repo::get_usage_window(&pool_for_d1, &user_id_d1, 1)
                 .await
-                .inspect_err(|e| {
-                    tracing::warn!(error = %e, user_id = %user_id_usage, "bridge_profile: profile usage failed");
-                })
+                .unwrap_or_default()
+        },
+        async move {
+            usage_repo::get_usage_window(&pool_for_d7, &user_id_d7, 7)
+                .await
+                .unwrap_or_default()
+        },
+        async move {
+            usage_repo::get_usage_window(&pool_for_d30, &user_id_d30, 30)
+                .await
+                .unwrap_or_default()
+        },
+        async move {
+            usage_repo::list_top_models(
+                &pool_for_models,
+                &user_id_models,
+                Some(usage_repo::CONVERSATION_WINDOW_DAYS),
+                5,
+            )
+            .await
+            .unwrap_or_default()
+        },
+        async move {
+            usage_repo::get_conversation_summary(&pool_for_conv, &user_id_conv)
+                .await
                 .unwrap_or_default()
         },
         async move {
@@ -56,14 +91,27 @@ pub(super) async fn load_usage_sections(pool: &Arc<PgPool>, user_id: &UserId) ->
         }
     );
 
-    UsageSections { usage, bridge_user }
+    BridgeUsageSections {
+        d1,
+        d7,
+        d30,
+        top_models,
+        conversations,
+        bridge_user,
+    }
 }
 
-pub(super) fn build_usage(sections: UsageSections) -> BridgeProfileUsage {
-    sections.usage
+pub(super) fn build_usage(sections: BridgeUsageSections) -> BridgeProfileUsage {
+    BridgeProfileUsage {
+        d1: sections.d1,
+        d7: sections.d7,
+        d30: sections.d30,
+        top_models: sections.top_models,
+        conversations: sections.conversations,
+    }
 }
 
-pub(super) fn read_config_strings() -> (Option<String>, Option<String>) {
+pub(crate) fn read_config_strings() -> (Option<String>, Option<String>) {
     Config::get().map_or((None, None), |c| {
         (
             Some(c.jwt_issuer.clone()),
@@ -122,17 +170,17 @@ fn canonicalize_org_uuid(tenant_id: &TenantId) -> String {
     Uuid::new_v5(&Uuid::NAMESPACE_OID, s.as_bytes()).to_string()
 }
 
-pub(super) fn build_agents_block() -> AgentsBlock {
+pub(super) fn build_agents_block() -> BridgeAgentsBlock {
     let services_path = match ProfileBootstrap::get() {
         Ok(p) => PathBuf::from(&p.paths.services),
-        Err(_) => return AgentsBlock::default(),
+        Err(_) => return BridgeAgentsBlock::default(),
     };
 
     let agents = match crate::repositories::config::agents::list_configured_agents(&services_path) {
         Ok(a) => a,
         Err(e) => {
             tracing::warn!(error = %e, "list_configured_agents failed for profile pane");
-            return AgentsBlock::default();
+            return BridgeAgentsBlock::default();
         },
     };
 
@@ -142,7 +190,7 @@ pub(super) fn build_agents_block() -> AgentsBlock {
 
     let items = visible
         .into_iter()
-        .map(|a| AgentItem {
+        .map(|a| BridgeAgentItem {
             id: a.id.as_str().to_owned(),
             display_name: if a.name.is_empty() {
                 a.id.as_str().to_owned()
@@ -154,9 +202,62 @@ pub(super) fn build_agents_block() -> AgentsBlock {
         })
         .collect();
 
-    AgentsBlock {
+    BridgeAgentsBlock {
         total,
         enabled,
         items,
     }
+}
+
+// Why: the card answers "what do I actually reach", not "what does the manifest
+// offer", so it resolves through the same subject matrix the admin pages use
+// rather than reading the YAML audience. A user whose group grants a
+// marketplace and whose per-user rule denies it must see it absent here.
+pub(super) async fn build_marketplaces(
+    pool: &PgPool,
+    user_id: &UserId,
+    roles: Vec<String>,
+) -> Vec<ProfileMarketplaceView> {
+    let Ok(services_path) = crate::handlers::shared::get_services_path() else {
+        return Vec::new();
+    };
+    let manifests =
+        crate::repositories::marketplace::manifests::list_marketplace_configs(&services_path)
+            .unwrap_or_default();
+    if manifests.is_empty() {
+        return Vec::new();
+    }
+    let rows = manifests
+        .iter()
+        .map(|m| (m.id.clone(), m.name.clone(), None))
+        .collect();
+    let sections = vec![("marketplace".to_owned(), "Marketplaces".to_owned(), rows)];
+
+    let subject =
+        crate::repositories::users::access_control::user_subject(pool, user_id, roles).await;
+    let resolved = crate::repositories::users::access_control::resolve_subject_matrix(
+        pool, &subject, sections,
+    )
+    .await
+    .inspect_err(|e| tracing::warn!(error = %e, "profile: marketplace matrix failed"))
+    .unwrap_or_default();
+
+    let Some(section) = resolved.into_iter().next() else {
+        return Vec::new();
+    };
+    section
+        .rows
+        .into_iter()
+        .filter(|row| row.effective == "allow")
+        .filter_map(|row| {
+            let manifest = manifests.iter().find(|m| m.id == row.entity_id)?;
+            Some(ProfileMarketplaceView {
+                id: manifest.id.clone(),
+                name: manifest.name.clone(),
+                version: manifest.version.clone(),
+                plugin_count: manifest.plugins.len(),
+                layer: row.source.layer,
+            })
+        })
+        .collect()
 }

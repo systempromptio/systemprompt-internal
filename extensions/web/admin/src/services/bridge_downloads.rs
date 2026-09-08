@@ -10,8 +10,6 @@
 //! lockstep with the release workflow's build matrix and
 //! `storage/files/js/pages/admin-bridge-setup.js`.
 
-use systemprompt_internal_brand::BRIDGE_BINARY_NAME;
-
 pub(crate) const BRIDGE_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub(crate) const RELEASE_REPO: &str = "systempromptio/systemprompt-internal";
 
@@ -26,21 +24,10 @@ pub(crate) fn release_base_url() -> String {
     )
 }
 
-pub(crate) fn release_page_url() -> String {
-    format!(
-        "https://github.com/{RELEASE_REPO}/releases/tag/{}",
-        release_tag()
-    )
-}
-
 pub(crate) fn install_command(gateway: &str, code: Option<&str>) -> String {
     let base = release_base_url();
     let code = code.map(|c| format!(" --code {c}")).unwrap_or_default();
     format!(
         "curl -fsSL {base}/install.sh | sh -s -- --download-base {base} --gateway {gateway}{code}"
     )
-}
-
-pub(crate) fn asset_name(platform: &str) -> String {
-    format!("{BRIDGE_BINARY_NAME}-{platform}")
 }
