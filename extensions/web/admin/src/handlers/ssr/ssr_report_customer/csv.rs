@@ -1,7 +1,7 @@
 //! `/admin/reports/customer.csv` — the customer usage report as a download.
 //!
-//! Scoped exactly as the page one module up: a console role may name a group
-//! or project, everyone else exports their own. `?dimension=` picks
+//! Scoped to the same organization as the page, then narrowed by any group
+//! or project filters. `?dimension=` picks
 //! users (default), projects, or models.
 
 use std::sync::Arc;
@@ -14,13 +14,15 @@ use sqlx::PgPool;
 use crate::error::{AdminError, AdminResult};
 use crate::handlers::ssr::csv::CsvBuilder;
 use crate::repositories::dashboard_reports::customer;
-use crate::repositories::scope::ScopeRequest;
+use crate::repositories::organizations::crud;
+use crate::repositories::scope::{ScopeRequest, SubjectScope};
 use crate::types::UserContext;
 use crate::util::month_range::{MonthQuery, parse_month_range};
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct CustomerCsvQuery {
     pub month: Option<String>,
+    pub org: Option<String>,
     pub group: Option<String>,
     pub project: Option<String>,
     pub dimension: Option<String>,
@@ -31,7 +33,7 @@ pub(crate) async fn report_customer_csv(
     State(pool): State<Arc<PgPool>>,
     Query(query): Query<CustomerCsvQuery>,
 ) -> AdminResult<Response> {
-    if !user_ctx.is_console {
+    if !user_ctx.is_admin {
         return Err(AdminError::Forbidden("Admin access required.".to_owned()));
     }
 
@@ -41,11 +43,21 @@ pub(crate) async fn report_customer_csv(
     let request =
         ScopeRequest::from_query(&user_ctx, query.group.as_deref(), query.project.as_deref());
     let scope = crate::repositories::scope::membership::get_subject_scope(&pool, &request).await?;
-    let slug = request
-        .project
-        .as_deref()
-        .or(request.group.as_deref())
-        .unwrap_or("all");
+    let slug = super::resolve_slug(&pool, &user_ctx, query.org.as_deref()).await?;
+    let Some(org) = crud::find_organization_by_slug(&pool, &slug).await? else {
+        return Err(AdminError::NotFound(format!(
+            "No organization with slug '{slug}'."
+        )));
+    };
+    // Why: a group filter may only narrow the organization's membership.
+    let members = crud::list_members(&pool, &org.id).await?;
+    let scope = SubjectScope::Users(
+        members
+            .into_iter()
+            .map(|member| member.user_id.as_str().to_owned())
+            .filter(|id| scope.as_sql().is_none_or(|ids| ids.contains(id)))
+            .collect(),
+    );
 
     let dimension = query.dimension.as_deref().unwrap_or("users");
     let filename = format!("usage-{slug}-{}-{dimension}.csv", month.key);

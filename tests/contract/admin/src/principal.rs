@@ -136,13 +136,19 @@ pub async fn provision_dashboard(pool: &PgPool) -> Credentials {
         provision_one(pool, "contract-user", &["user"], true).await;
     let (developer, _) = provision_one(pool, "contract-dev", &["developer", "user"], true).await;
     let (admin, _) = provision_one(pool, "contract-admin", &["admin", "user"], false).await;
-    let (platform_admin, _) = provision_one(
+    let (platform_admin, platform_user_id) = provision_one(
         pool,
         "contract-platform",
         &["platform_admin", "admin", "user"],
         false,
     )
     .await;
+    // Cross-customer access also requires membership in the platform tenant.
+    sqlx::query("INSERT INTO organization_members (user_id, org_id, org_role) VALUES ($1, 'house', 'admin')")
+        .bind(platform_user_id.as_str())
+        .execute(pool)
+        .await
+        .expect("place the platform principal in the house organization");
     let (project_manager, _) =
         provision_one(pool, "contract-pm", &["project_manager", "user"], true).await;
     let (knowledge_worker, knowledge_worker_user_id) =

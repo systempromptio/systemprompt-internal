@@ -3,6 +3,8 @@
 
 use std::sync::Arc;
 
+use super::types::BreadcrumbView;
+
 use axum::extract::{Extension, Query, State};
 use axum::response::Response;
 use serde::{Deserialize, Serialize};
@@ -35,6 +37,7 @@ struct DecisionRowView {
 
 #[derive(Debug, Serialize)]
 struct GovernanceDecisionsContext {
+    breadcrumbs: Vec<BreadcrumbView>,
     page: &'static str,
     title: &'static str,
     hero_subtitle: String,
@@ -96,6 +99,10 @@ pub(crate) async fn governance_decisions_page(
     let denied = rows.iter().filter(|r| r.is_deny).count();
 
     let ctx = GovernanceDecisionsContext {
+        breadcrumbs: vec![
+            BreadcrumbView::link("Admin", "/admin"),
+            BreadcrumbView::current("Governance Decisions"),
+        ],
         page: "governance-decisions",
         title: "Governance Decisions",
         hero_subtitle: if policy.is_empty() {

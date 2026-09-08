@@ -29,8 +29,10 @@ pub(crate) async fn report_internal_csv(
     State(pool): State<Arc<PgPool>>,
     Query(query): Query<InternalCsvQuery>,
 ) -> AdminResult<Response> {
-    if !user_ctx.is_console {
-        return Err(AdminError::Forbidden("Admin access required.".to_owned()));
+    if !user_ctx.is_platform_admin {
+        return Err(AdminError::Forbidden(
+            "Platform admin access required.".to_owned(),
+        ));
     }
     let month = parse_month_range(&MonthQuery {
         month: query.month.clone(),
