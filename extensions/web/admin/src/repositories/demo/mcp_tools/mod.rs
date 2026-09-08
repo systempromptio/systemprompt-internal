@@ -12,4 +12,4 @@ mod stats;
 
 pub use invocations::{McpToolInvocationRow, list_mcp_tool_invocations};
 pub use matrix::list_user_mcp_tool_matrix;
-pub use stats::{McpToolStatRow, list_mcp_tool_stats};
+pub use stats::{McpToolStatRow, list_demo_mcp_tool_stats};

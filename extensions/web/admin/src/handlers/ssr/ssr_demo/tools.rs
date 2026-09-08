@@ -16,7 +16,7 @@ use super::{ATTRIBUTION_NOTE, CHART_DAYS, tool_kpi_strip};
 use crate::error::{AdminError, AdminHtmlResult};
 use crate::handlers::ssr::types::daily_count_chart;
 use crate::repositories::demo::kpis::{DemoKpis, get_demo_kpis};
-use crate::repositories::demo::mcp_tools::{list_mcp_tool_stats, list_user_mcp_tool_matrix};
+use crate::repositories::demo::mcp_tools::{list_demo_mcp_tool_stats, list_user_mcp_tool_matrix};
 use crate::repositories::demo::series::list_mcp_tool_daily_series;
 use crate::repositories::demo::{DemoFilter, UsageMatrix};
 use crate::templates::AdminTemplateEngine;
@@ -62,7 +62,7 @@ async fn build_page_json(pool: &PgPool) -> DemoToolsContext {
     let filter = DemoFilter::all_users();
     let (kpis, stats, series, matrix) = tokio::join!(
         get_demo_kpis(pool, &filter),
-        list_mcp_tool_stats(pool, &filter),
+        list_demo_mcp_tool_stats(pool, &filter),
         list_mcp_tool_daily_series(pool, &filter, CHART_DAYS),
         list_user_mcp_tool_matrix(pool, &filter),
     );

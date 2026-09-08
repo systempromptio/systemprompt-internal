@@ -86,7 +86,8 @@ impl UsageAnomalyJob {
     }
 }
 
-/// A metric past its threshold. Public for the unit tests behind `internals`.
+// Why: A metric past its threshold. Public for the unit tests behind
+// `internals`.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct Finding {
     pub metric: &'static str,

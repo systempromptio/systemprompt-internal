@@ -11,11 +11,9 @@ use systemprompt::identifiers::{ContextId, SessionId, UserId};
 
 mod kpis;
 mod list;
-mod users;
 
 pub use kpis::{ContextListKpis, get_context_list_kpis, list_distinct_models};
 pub use list::list_context_list;
-pub use users::list_context_user_summary;
 
 #[derive(Debug, Clone, Default)]
 pub struct ContextListFilter {
@@ -48,17 +46,6 @@ impl ContextSortColumn {
             Self::Cost => "cost",
         }
     }
-
-    #[must_use]
-    pub fn parse_context_column(value: Option<&str>) -> Self {
-        match value {
-            Some("requests") => Self::Requests,
-            Some("messages") => Self::Messages,
-            Some("tokens") => Self::Tokens,
-            Some("cost") => Self::Cost,
-            _ => Self::Activity,
-        }
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -73,15 +60,6 @@ impl ContextSortDir {
         match self {
             Self::Asc => "asc",
             Self::Desc => "desc",
-        }
-    }
-
-    #[must_use]
-    pub fn parse_context_dir(value: Option<&str>) -> Self {
-        if value == Some("asc") {
-            Self::Asc
-        } else {
-            Self::Desc
         }
     }
 }

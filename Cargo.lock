@@ -5172,7 +5172,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-dev-login"
-version = "0.47.0"
+version = "0.48.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -5317,7 +5317,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-internal"
-version = "0.47.0"
+version = "0.48.0"
 dependencies = [
  "anyhow",
  "systemprompt",
@@ -5328,11 +5328,11 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-internal-brand"
-version = "0.47.0"
+version = "0.48.0"
 
 [[package]]
 name = "systemprompt-knowledge-jobs"
-version = "0.47.0"
+version = "0.48.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -5461,7 +5461,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-mcp-agent"
-version = "0.47.0"
+version = "0.48.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -5479,7 +5479,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-mcp-knowledge-bank"
-version = "0.47.0"
+version = "0.48.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -5501,7 +5501,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-mcp-odoo"
-version = "0.47.0"
+version = "0.48.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -5524,7 +5524,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-mcp-shared"
-version = "0.47.0"
+version = "0.48.0"
 dependencies = [
  "chrono",
  "inventory",
@@ -5866,7 +5866,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-web-admin"
-version = "0.47.0"
+version = "0.48.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5903,7 +5903,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-web-content"
-version = "0.47.0"
+version = "0.48.0"
 dependencies = [
  "axum",
  "chrono",
@@ -5922,7 +5922,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-web-extension"
-version = "0.47.0"
+version = "0.48.0"
 dependencies = [
  "axum",
  "inventory",
@@ -5938,7 +5938,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-web-jobs"
-version = "0.47.0"
+version = "0.48.0"
 dependencies = [
  "async-trait",
  "inventory",
@@ -5957,7 +5957,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-web-shared"
-version = "0.47.0"
+version = "0.48.0"
 dependencies = [
  "axum",
  "chrono",
@@ -5975,7 +5975,7 @@ dependencies = [
 
 [[package]]
 name = "systemprompt-web-site"
-version = "0.47.0"
+version = "0.48.0"
 dependencies = [
  "async-trait",
  "chrono",

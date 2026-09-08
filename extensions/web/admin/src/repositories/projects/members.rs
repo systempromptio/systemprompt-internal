@@ -105,6 +105,7 @@ pub async fn delete_project_member(
     Ok(())
 }
 
+// Why: lint-ok: unused-pub — called by the downstream ADFS sign-in integration.
 pub async fn replace_directory_project_memberships(
     pool: &PgPool,
     user_id: &UserId,

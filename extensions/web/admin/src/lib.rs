@@ -123,7 +123,8 @@ pub fn secrets_router(pool: Arc<PgPool>) -> Router {
 }
 
 pub fn admin_router(pool: Arc<PgPool>) -> Router {
-    admin_router_with_pools(Arc::clone(&pool), &pool)
+    let write_pool = Arc::clone(&pool);
+    admin_router_with_pools(pool, &write_pool)
 }
 
 pub fn admin_router_with_pools(read_pool: Arc<PgPool>, write_pool: &Arc<PgPool>) -> Router {

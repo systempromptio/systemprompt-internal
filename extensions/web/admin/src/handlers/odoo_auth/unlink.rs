@@ -21,7 +21,7 @@ pub(crate) async fn odoo_unlink(
     Extension(user_ctx): Extension<UserContext>,
     Extension(deps): Extension<AuthDeps>,
 ) -> AdminResult<Json<UnlinkResponse>> {
-    odoo_identity::delete(&deps.write_pool, &user_ctx.user_id).await?;
+    odoo_identity::delete_odoo_identity(&deps.write_pool, &user_ctx.user_id).await?;
     tracing::info!(user_id = %user_ctx.user_id, "Odoo identity unlinked");
     Ok(Json(UnlinkResponse { unlinked: true }))
 }

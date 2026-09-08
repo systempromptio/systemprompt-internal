@@ -10,3 +10,6 @@ storage/files/js/pages/admin-bridge-setup.js:raw-fetch
 # receives.
 storage/files/css/admin/24-reports.css:important
 
+
+# Print output must override screen styles.
+storage/files/css/admin/10-print.css:important

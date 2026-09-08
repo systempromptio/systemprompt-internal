@@ -77,14 +77,6 @@ pub async fn list_source_ad_groups(
     .await
 }
 
-pub async fn list_unassigned_users(pool: &PgPool) -> Result<Vec<UserId>, sqlx::Error> {
-    sqlx::query_scalar!(
-        r#"SELECT user_id AS "user_id!: UserId" FROM user_groups
-           WHERE group_id = 'unassigned' ORDER BY user_id"#
-    )
-    .fetch_all(pool)
-    .await
-}
 
 pub async fn insert_group_member(
     pool: &PgPool,
@@ -152,6 +144,7 @@ pub async fn delete_group_member(
 // granting anything, and the assertion is the whole truth about their
 // current directory membership. Manual rows are untouched, which is the
 // point of keeping `source` in the key.
+// Why: lint-ok: unused-pub — called by the downstream ADFS sign-in integration.
 pub async fn replace_directory_group_memberships(
     pool: &PgPool,
     user_id: &UserId,

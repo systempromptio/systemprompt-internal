@@ -7,8 +7,8 @@
 //! scripts/frontend-standards-exemptions.txt. Reserve it for cases with a
 //! documented reason, never as a way to mute a fixable violation.
 
-mod support;
 
+mod support;
 use support::{repo_root, walk};
 
 use std::collections::BTreeSet;
@@ -157,11 +157,42 @@ fn source_files(root: &Path, subdir: &str, ext: &str) -> Vec<(PathBuf, String)> 
         .collect()
 }
 
+// A divider banner (`/* --- Layout --- */`) or a comment with too few words to
+// carry a reason.
+fn is_banner_or_stub(raw: &str) -> bool {
+    let Some(rest) = raw.split_once("/*").map(|(_, r)| r) else {
+        return false;
+    };
+    let body = rest.trim_start_matches('*').trim_end_matches("*/").trim();
+    if body.is_empty() {
+        return true;
+    }
+    let banner = body
+        .chars()
+        .all(|c| c == '-' || c == '=' || c == '*' || c == ' ')
+        || (body.starts_with('-') && body.ends_with('-'));
+    // A continuation line of a multi-line comment carries no `/*` of its own, so
+    // only the opening line is judged, and it is judged on its own length.
+    banner || body.split_whitespace().count() < 4
+}
+
 fn check_js_line(v: &mut Violations, rel: &str, line_no: usize, raw: &str) {
     let trimmed = raw.trim_start();
-    if trimmed.starts_with("//") || trimmed.starts_with("/*") {
+    // Same reasoning as the CSS rule: javascript-coding-standards asks for a WHY
+    // on a non-obvious decision, so what is banned is the divider banner, the
+    // one-liner too short to be a reason, and commented-out code — not the
+    // reason itself.
+    if trimmed.starts_with("/*") && is_banner_or_stub(trimmed) {
         v.report(rel, line_no, "comments", raw);
         return;
+    }
+    if let Some(body) = trimmed.strip_prefix("//") {
+        let body = body.trim();
+        let commented_code = body.ends_with(';') || body.ends_with('{') || body.ends_with('}');
+        if body.is_empty() || commented_code || body.split_whitespace().count() < 4 {
+            v.report(rel, line_no, "comments", raw);
+            return;
+        }
     }
     let code = strip_literals_and_comment(raw);
 
@@ -245,7 +276,12 @@ fn check_css_line(v: &mut Violations, rel: &str, line_no: usize, raw: &str) {
     if has_token_fallback(raw) && !FALLBACK_OK.iter().any(|ok| raw.contains(ok)) {
         v.report(rel, line_no, "token-fallback", raw);
     }
-    if raw.contains("/*") && !rel.contains("core/fonts.css") {
+    // css-coding-standards requires a WHY comment on an invariant a file exists
+    // to protect and on a contrast-critical token, so a blanket ban on comments
+    // would forbid the one comment the standard asks for. What stays banned is
+    // the section-divider banner — a file that needs sections needs splitting —
+    // and the one-liner too short to be a reason.
+    if raw.contains("/*") && !rel.contains("core/fonts.css") && is_banner_or_stub(raw) {
         v.report(rel, line_no, "css-comments", raw);
     }
 }
@@ -258,18 +294,32 @@ fn frontend_sources_meet_textual_standards() {
         found: Vec::new(),
     };
 
-    for (path, rel) in source_files(&root, "storage/files/js", "js") {
-        let Ok(content) = std::fs::read_to_string(&path) else {
-            continue;
-        };
+    // Why: the assertion below is "no violations", which an empty corpus
+    // satisfies. Renaming either source directory would otherwise turn this
+    // gate green by giving it nothing to read.
+    let js = source_files(&root, "storage/files/js", "js");
+    let css = source_files(&root, "storage/files/css", "css");
+    assert!(
+        !js.is_empty(),
+        "no JavaScript sources under {}/storage/files/js",
+        root.display()
+    );
+    assert!(
+        !css.is_empty(),
+        "no CSS sources under {}/storage/files/css",
+        root.display()
+    );
+
+    for (path, rel) in js {
+        let content = std::fs::read_to_string(&path)
+            .unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
         for (idx, line) in content.lines().enumerate() {
             check_js_line(&mut v, &rel, idx + 1, line);
         }
     }
-    for (path, rel) in source_files(&root, "storage/files/css", "css") {
-        let Ok(content) = std::fs::read_to_string(&path) else {
-            continue;
-        };
+    for (path, rel) in css {
+        let content = std::fs::read_to_string(&path)
+            .unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
         for (idx, line) in content.lines().enumerate() {
             check_css_line(&mut v, &rel, idx + 1, line);
         }
@@ -279,5 +329,169 @@ fn frontend_sources_meet_textual_standards() {
         v.found.is_empty(),
         "front-end standards violations (exempt via scripts/frontend-standards-exemptions.txt only with a documented reason):\n{}",
         v.found.join("\n")
+    );
+}
+
+// Design-system hygiene over storage/files/css/admin. These four are what make
+// the token layer the only place a value is decided, so a later dark theme is a
+// change to 01-tokens-*.css and nothing else.
+
+fn admin_css(root: &Path) -> Vec<(PathBuf, String)> {
+    let mut files = Vec::new();
+    walk(&root.join("storage/files/css/admin"), "css", &mut files);
+    files.sort();
+    assert!(!files.is_empty(), "no admin CSS under {}", root.display());
+    files
+        .into_iter()
+        .map(|p| {
+            let rel = p.strip_prefix(root).unwrap_or(&p).display().to_string();
+            (p, rel)
+        })
+        .collect()
+}
+
+// Custom properties do not resolve in print engines, so @media print is the one
+// place a literal colour and an !important are the only mechanism available.
+fn print_block_lines(css: &str) -> BTreeSet<usize> {
+    let mut out = BTreeSet::new();
+    let mut depth: i32 = 0;
+    let mut start_depth: Option<i32> = None;
+    for (idx, line) in css.lines().enumerate() {
+        if line.contains("@media print") {
+            start_depth = Some(depth);
+        }
+        if start_depth.is_some() {
+            out.insert(idx + 1);
+        }
+        depth += i32::try_from(line.matches('{').count()).unwrap_or(0);
+        depth -= i32::try_from(line.matches('}').count()).unwrap_or(0);
+        if let Some(sd) = start_depth {
+            if depth <= sd {
+                start_depth = None;
+            }
+        }
+    }
+    out
+}
+
+#[test]
+fn admin_css_files_stay_under_the_line_limit() {
+    let root = repo_root();
+    let over: Vec<String> = admin_css(&root)
+        .into_iter()
+        .filter_map(|(path, rel)| {
+            let lines = std::fs::read_to_string(&path).unwrap().lines().count();
+            (lines > 200).then(|| format!("{rel}: {lines} lines"))
+        })
+        .collect();
+    assert!(
+        over.is_empty(),
+        "admin CSS file(s) over 200 lines — split by component:\n{}",
+        over.join("\n")
+    );
+}
+
+#[test]
+fn admin_css_holds_no_colour_literal_outside_the_token_files() {
+    let root = repo_root();
+    let mut bad = Vec::new();
+    for (path, rel) in admin_css(&root) {
+        if rel.contains("01-tokens-") {
+            continue;
+        }
+        let css = std::fs::read_to_string(&path).unwrap();
+        let print = print_block_lines(&css);
+        for (idx, line) in css.lines().enumerate() {
+            if print.contains(&(idx + 1)) {
+                continue;
+            }
+            let code = line.split("/*").next().unwrap_or(line);
+            let hex = code.split('#').skip(1).any(|tail| {
+                let run = tail.chars().take_while(char::is_ascii_hexdigit).count();
+                matches!(run, 3 | 4 | 6 | 8)
+            });
+            if hex || code.contains("rgb(") || code.contains("rgba(") {
+                bad.push(format!("{rel}:{}: {}", idx + 1, code.trim()));
+            }
+        }
+    }
+    assert!(
+        bad.is_empty(),
+        "colour literal(s) outside storage/files/css/admin/01-tokens-*.css — add a token instead:\n{}",
+        bad.join("\n")
+    );
+}
+
+#[test]
+fn admin_css_uses_important_only_in_the_reset() {
+    let root = repo_root();
+    let mut bad = Vec::new();
+    for (path, rel) in admin_css(&root) {
+        if rel.ends_with("02-reset.css") {
+            continue;
+        }
+        let css = std::fs::read_to_string(&path).unwrap();
+        let print = print_block_lines(&css);
+        for (idx, line) in css.lines().enumerate() {
+            if line.contains("!important") && !print.contains(&(idx + 1)) {
+                bad.push(format!("{rel}:{}: {}", idx + 1, line.trim()));
+            }
+        }
+    }
+    assert!(
+        bad.is_empty(),
+        "!important outside the reduced-motion reset — restructure the selector:\n{}",
+        bad.join("\n")
+    );
+}
+
+#[test]
+fn admin_css_spaces_in_tokens_not_pixels() {
+    let root = repo_root();
+    let props = [
+        "padding",
+        "margin",
+        "gap",
+        "row-gap",
+        "column-gap",
+        "padding-top",
+        "padding-bottom",
+        "padding-left",
+        "padding-right",
+        "padding-inline",
+        "padding-block",
+        "margin-top",
+        "margin-bottom",
+        "margin-left",
+        "margin-right",
+        "margin-inline",
+        "margin-block",
+    ];
+    let mut bad = Vec::new();
+    for (path, rel) in admin_css(&root) {
+        let css = std::fs::read_to_string(&path).unwrap();
+        for (idx, line) in css.lines().enumerate() {
+            let code = line.split("/*").next().unwrap_or(line).trim();
+            let Some((name, value)) = code.split_once(':') else {
+                continue;
+            };
+            let name = name.trim();
+            if !props.contains(&name) {
+                continue;
+            }
+            // 0px and 1px are hairlines and offsets, not spacing steps.
+            let offending = value.split_whitespace().any(|tok| {
+                let tok = tok.trim_start_matches('-').trim_end_matches([';', ')']);
+                tok.ends_with("px") && tok != "0px" && tok != "1px" && !tok.contains("var(")
+            });
+            if offending {
+                bad.push(format!("{rel}:{}: {code}", idx + 1));
+            }
+        }
+    }
+    assert!(
+        bad.is_empty(),
+        "pixel spacing in admin CSS — use a --sp-space-* or --sp-density-* token:\n{}",
+        bad.join("\n")
     );
 }

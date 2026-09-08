@@ -50,12 +50,12 @@ where
     // Why: only explicit directory memberships establish a directory-owned
     // grant. Existing local users' free-text roles remain editable.
     sqlx::query_scalar::<_, String>(
-        r#"SELECT r FROM users u, UNNEST(u.roles) AS r
+        r"SELECT r FROM users u, UNNEST(u.roles) AS r
         WHERE u.id = $1
           AND (EXISTS (SELECT 1 FROM group_members gm WHERE gm.user_id = u.id AND gm.source = 'adfs')
             OR EXISTS (SELECT 1 FROM project_members pm WHERE pm.user_id = u.id AND pm.source = 'adfs'))
           AND NOT EXISTS (SELECT 1 FROM user_manual_roles m WHERE m.user_id = u.id AND m.role = r)
-        ORDER BY r"#,
+        ORDER BY r",
     )
     .bind(user_id.as_str())
     .fetch_all(executor)

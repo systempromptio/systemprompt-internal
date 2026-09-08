@@ -37,7 +37,7 @@ async fn entries_are_newest_first_across_all_four_sources() {
     held.created_at = at + Duration::minutes(2);
     insert_decision(&db.pool, &held).await;
 
-    let rows = list_demo_logbook(&db.pool, &DemoFilter::for_user(user), false)
+    let rows = list_demo_logbook(&db.pool, &DemoFilter::for_demo_user(user), false)
         .await
         .expect("list logbook");
     assert_eq!(rows.len(), 3);
@@ -71,7 +71,7 @@ async fn the_user_filter_excludes_every_other_users_entry() {
     )
     .await;
 
-    let rows = list_demo_logbook(&db.pool, &DemoFilter::for_user(user.clone()), false)
+    let rows = list_demo_logbook(&db.pool, &DemoFilter::for_demo_user(user.clone()), false)
         .await
         .expect("list logbook");
     assert_eq!(rows.len(), 1);
@@ -116,13 +116,13 @@ async fn the_server_authorization_is_always_hidden_and_allows_are_optional() {
     approved.created_at = at + Duration::minutes(2);
     insert_decision(&db.pool, &approved).await;
 
-    let filtered = list_demo_logbook(&db.pool, &DemoFilter::for_user(user.clone()), false)
+    let filtered = list_demo_logbook(&db.pool, &DemoFilter::for_demo_user(user.clone()), false)
         .await
         .expect("list logbook");
     assert_eq!(filtered.len(), 1);
     assert_eq!(filtered[0].policy.as_deref(), Some("secret_scan"));
 
-    let unfiltered = list_demo_logbook(&db.pool, &DemoFilter::for_user(user), true)
+    let unfiltered = list_demo_logbook(&db.pool, &DemoFilter::for_demo_user(user), true)
         .await
         .expect("list logbook with allows");
     assert_eq!(unfiltered.len(), 3);

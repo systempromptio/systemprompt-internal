@@ -75,19 +75,12 @@ pub(crate) async fn govern_tool_use(
     let input = governed_input(&payload);
     // Why: echo the caller's event back so a `UserPromptSubmit` gate is not handed
     // a `PreToolUse` envelope it would have to ignore.
-    let response_event = if payload.prompt().is_some() {
-        "UserPromptSubmit"
-    } else {
-        "PreToolUse"
-    };
+    let response_event = response_event_name(&payload);
     let session_id = SessionId::new(payload.session_id());
     // Why: the hook body's agent id is a self-report (a Claude Code subagent
     // id, not a platform agent). It is kept for display and never becomes an
     // identity or a scope input.
-    let claimed = payload.common.agent_id.as_ref().map(|id| ClaimedAgent {
-        agent_id: id.as_str().to_owned(),
-        agent_type: payload.common.agent_type.clone(),
-    });
+    let claimed = claimed_agent(&payload);
     let plugin_id = query.plugin_id.as_ref();
 
     let denial_params = AuthDenialParams {
@@ -253,4 +246,19 @@ fn spawn_audit_recording(pool: &Arc<PgPool>, audit: DecisionAudit) {
             );
         }
     });
+}
+
+fn response_event_name(payload: &HookEventPayload) -> &'static str {
+    if payload.prompt().is_some() {
+        "UserPromptSubmit"
+    } else {
+        "PreToolUse"
+    }
+}
+
+fn claimed_agent(payload: &HookEventPayload) -> Option<ClaimedAgent> {
+    payload.common.agent_id.as_ref().map(|id| ClaimedAgent {
+        agent_id: id.as_str().to_owned(),
+        agent_type: payload.common.agent_type.clone(),
+    })
 }

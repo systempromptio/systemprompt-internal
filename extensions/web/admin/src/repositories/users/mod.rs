@@ -13,7 +13,6 @@ pub mod user_settings;
 pub use mutations::{create_user, delete_user, update_user};
 pub use share_token::find_share_token_version;
 
-pub mod aggregates;
 pub mod connector_accounts;
 pub mod connector_credentials;
 pub mod devices;

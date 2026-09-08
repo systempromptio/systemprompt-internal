@@ -21,16 +21,7 @@ pub(super) fn dashboard_routes() -> Router<Arc<PgPool>> {
             "/contexts/{context_id}",
             get(handlers::ssr::context_detail_page),
         )
-        .route("/devices", get(handlers::ssr::devices_page))
-        .route(
-            "/devices/certs/{id}",
-            axum::routing::delete(handlers::devices::revoke_cert),
-        )
-        .route("/devices/pats", post(handlers::devices::issue_pat))
-        .route(
-            "/devices/pats/{id}",
-            axum::routing::delete(handlers::devices::revoke_pat),
-        )
+        .merge(device_routes())
         .route("/gateway", get(handlers::ssr::gateway_page))
         .route("/governance/approvals", get(handlers::ssr::approvals_page))
         .route(
@@ -56,37 +47,13 @@ pub(super) fn dashboard_routes() -> Router<Arc<PgPool>> {
             "/history/conversations/{context_id}",
             get(handlers::ssr::history_conversation_page),
         )
-        .route(
-            "/marketplaces",
-            get(handlers::catalog::marketplaces::marketplaces_page),
-        )
-        .route(
-            "/marketplaces/{marketplace_id}",
-            get(handlers::catalog::marketplaces::marketplace_detail_page),
-        )
-        .route("/mcp", get(handlers::catalog::mcp::mcp_servers_page))
-        .route(
-            "/mcp/{mcp_id}",
-            get(handlers::catalog::mcp::mcp_detail_page),
-        )
-        .route("/plugins", get(handlers::catalog::plugins_page))
-        .route(
-            "/plugins/{plugin_id}",
-            get(handlers::catalog::plugin_detail_page),
-        )
+        .merge(catalog_routes())
         .route("/projects", get(handlers::ssr::projects_page))
         .route(
             "/projects/{project_id}",
             get(handlers::ssr::project_detail_page),
         )
-        .route(
-            "/reports/customer.csv",
-            get(handlers::ssr::report_customer_csv),
-        )
-        .route(
-            "/reports/internal.csv",
-            get(handlers::ssr::report_internal_csv),
-        )
+        .merge(report_routes())
         .route("/requests", get(handlers::ssr::analytics_requests_page))
         .route("/requests.csv", get(handlers::ssr::analytics_requests_csv))
         .route(
@@ -113,5 +80,53 @@ pub(super) fn dashboard_routes() -> Router<Arc<PgPool>> {
         .route(
             "/users/{user_id}",
             get(handlers::ssr::user_detail_by_id_page),
+        )
+}
+
+fn catalog_routes() -> Router<Arc<PgPool>> {
+    Router::new()
+        .route(
+            "/marketplaces",
+            get(handlers::catalog::marketplaces::marketplaces_page),
+        )
+        .route(
+            "/marketplaces/{marketplace_id}",
+            get(handlers::catalog::marketplaces::marketplace_detail_page),
+        )
+        .route("/mcp", get(handlers::catalog::mcp::mcp_servers_page))
+        .route(
+            "/mcp/{mcp_id}",
+            get(handlers::catalog::mcp::mcp_detail_page),
+        )
+        .route("/plugins", get(handlers::catalog::plugins_page))
+        .route(
+            "/plugins/{plugin_id}",
+            get(handlers::catalog::plugin_detail_page),
+        )
+}
+
+fn device_routes() -> Router<Arc<PgPool>> {
+    Router::new()
+        .route("/devices", get(handlers::ssr::devices_page))
+        .route(
+            "/devices/certs/{id}",
+            axum::routing::delete(handlers::devices::revoke_cert),
+        )
+        .route("/devices/pats", post(handlers::devices::issue_pat))
+        .route(
+            "/devices/pats/{id}",
+            axum::routing::delete(handlers::devices::revoke_pat),
+        )
+}
+
+fn report_routes() -> Router<Arc<PgPool>> {
+    Router::new()
+        .route(
+            "/reports/customer.csv",
+            get(handlers::ssr::report_customer_csv),
+        )
+        .route(
+            "/reports/internal.csv",
+            get(handlers::ssr::report_internal_csv),
         )
 }

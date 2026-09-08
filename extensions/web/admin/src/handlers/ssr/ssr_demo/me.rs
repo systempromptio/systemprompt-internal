@@ -18,18 +18,18 @@ use crate::handlers::ssr::types::daily_count_chart;
 use crate::repositories::demo::DemoFilter;
 use crate::repositories::demo::kpis::{DemoKpis, get_demo_kpis};
 use crate::repositories::demo::logbook::list_demo_logbook;
-use crate::repositories::demo::mcp_tools::list_mcp_tool_stats;
+use crate::repositories::demo::mcp_tools::list_demo_mcp_tool_stats;
 use crate::repositories::demo::series::{list_mcp_tool_daily_series, list_skill_daily_series};
 use crate::repositories::demo::skill_invocations::list_skill_totals;
 use crate::templates::AdminTemplateEngine;
 use crate::types::{MarketplaceContext, UserContext};
 
 async fn build_page_json(pool: &PgPool, user_ctx: &UserContext) -> DemoMeContext {
-    let filter = DemoFilter::for_user(user_ctx.user_id.clone());
+    let filter = DemoFilter::for_demo_user(user_ctx.user_id.clone());
     let (kpis, totals, stats, skill_series, tool_series, rows) = tokio::join!(
         get_demo_kpis(pool, &filter),
         list_skill_totals(pool, &filter),
-        list_mcp_tool_stats(pool, &filter),
+        list_demo_mcp_tool_stats(pool, &filter),
         list_skill_daily_series(pool, &filter, CHART_DAYS),
         list_mcp_tool_daily_series(pool, &filter, CHART_DAYS),
         list_demo_logbook(pool, &filter, false),

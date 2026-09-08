@@ -39,15 +39,17 @@ pub(crate) async fn report_internal_csv(
     let filename = format!("provider-cost-{}-{dimension}.csv", month.key);
 
     let csv = match dimension {
-        "model" => {
-            supplier_csv(internal::list_model_month_costs(&pool, month.from, month.to).await?)
-        },
-        _ => supplier_csv(internal::list_provider_month_costs(&pool, month.from, month.to).await?),
+        "model" => supplier_csv(
+            internal::export_list_model_month_costs(&pool, month.from, month.to).await?,
+        ),
+        _ => supplier_csv(
+            internal::export_list_provider_month_costs(&pool, month.from, month.to).await?,
+        ),
     };
     Ok(csv.into_response(&filename))
 }
 
-fn supplier_csv(rows: Vec<internal::SupplierMonthCost>) -> CsvBuilder {
+fn supplier_csv(rows: Vec<internal::ExportSupplierMonthCost>) -> CsvBuilder {
     let mut csv = CsvBuilder::new(&["key", "requests", "tokens", "cost_usd"]);
     for r in rows {
         csv.row(&[

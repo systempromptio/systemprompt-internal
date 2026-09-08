@@ -8,8 +8,7 @@ use crate::types::webhook::HookEvent;
 pub(super) async fn record(params: &ProcessInsertedEventParams<'_>) {
     let cwd = params.payload.common.cwd.trim();
     let workspace = session_registry::derive_workspace(cwd);
-    let result = sqlx::query("UPDATE plugin_session_summaries SET cwd = COALESCE(cwd, NULLIF($2, '')), workspace = COALESCE(workspace, $3), last_event_at = NOW() WHERE session_id = $1")
-        .bind(params.session_id.as_str()).bind(cwd).bind(workspace.as_deref())
+    let result = sqlx::query!("UPDATE plugin_session_summaries SET cwd = COALESCE(cwd, NULLIF($2, '')), workspace = COALESCE(workspace, $3), last_event_at = NOW() WHERE session_id = $1", params.session_id.as_str(), cwd, workspace.as_deref())
         .execute(params.pool).await;
     if let Err(error) = result {
         tracing::warn!(%error, "Failed to update internal session workspace");

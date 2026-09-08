@@ -52,19 +52,21 @@ pub(crate) async fn report_customer_csv(
 
     let csv = match dimension {
         "projects" => projects_csv(
-            customer::list_customer_month_projects(&pool, &scope, month.from, month.to).await?,
+            customer::export_list_customer_month_projects(&pool, &scope, month.from, month.to)
+                .await?,
         ),
         "models" => models_csv(
-            customer::list_customer_month_models(&pool, &scope, month.from, month.to).await?,
+            customer::export_list_customer_month_models(&pool, &scope, month.from, month.to)
+                .await?,
         ),
         _ => users_csv(
-            customer::list_customer_month_users(&pool, &scope, month.from, month.to).await?,
+            customer::export_list_customer_month_users(&pool, &scope, month.from, month.to).await?,
         ),
     };
     Ok(csv.into_response(&filename))
 }
 
-fn users_csv(rows: Vec<customer::CustomerUserUsage>) -> CsvBuilder {
+fn users_csv(rows: Vec<customer::ExportCustomerUserUsage>) -> CsvBuilder {
     let mut csv = CsvBuilder::new(&[
         "email",
         "display_name",
@@ -92,7 +94,7 @@ fn users_csv(rows: Vec<customer::CustomerUserUsage>) -> CsvBuilder {
     csv
 }
 
-fn projects_csv(rows: Vec<customer::CustomerProjectUsage>) -> CsvBuilder {
+fn projects_csv(rows: Vec<customer::ExportCustomerProjectUsage>) -> CsvBuilder {
     let mut csv = CsvBuilder::new(&[
         "project",
         "members",
@@ -116,7 +118,7 @@ fn projects_csv(rows: Vec<customer::CustomerProjectUsage>) -> CsvBuilder {
     csv
 }
 
-fn models_csv(rows: Vec<customer::CustomerModelUsage>) -> CsvBuilder {
+fn models_csv(rows: Vec<customer::ExportCustomerModelUsage>) -> CsvBuilder {
     let mut csv = CsvBuilder::new(&[
         "provider",
         "model",

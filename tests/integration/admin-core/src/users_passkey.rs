@@ -41,7 +41,7 @@ async fn odoo_identity_delete_is_fine_when_there_is_nothing_to_delete() {
     };
     let user = insert_user(&db.pool, &unique("user"), &unclaimed_email("unlink")).await;
 
-    odoo_identity::delete(&db.pool, &user)
+    odoo_identity::delete_odoo_identity(&db.pool, &user)
         .await
         .expect("deleting an absent link is not an error");
 
