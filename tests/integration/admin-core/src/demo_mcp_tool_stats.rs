@@ -1,4 +1,5 @@
-//! `repositories::demo::mcp_tools::list_demo_mcp_tool_stats` — the bare-name join.
+//! `repositories::demo::mcp_tools::list_demo_mcp_tool_stats` — the bare-name
+//! join.
 //!
 //! Hook events name a tool `mcp__<server>__<tool>`. `approval_requests` carries
 //! the bare name and `governance_decisions` carries either, so the rollup only
