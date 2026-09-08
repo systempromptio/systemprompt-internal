@@ -33,6 +33,8 @@ pub(crate) async fn list_user_sessions_handler(
     Path(user_id_raw): Path<String>,
 ) -> AdminResult<Response> {
     let user_id = UserId::new(user_id_raw);
+    // Why: Console readers inspect sessions; revocation requires admin.
+    // The write_boundaries contract covers both permissions.
     if !user_ctx.is_console {
         return Err(AdminError::Forbidden("Console access required".to_owned()));
     }

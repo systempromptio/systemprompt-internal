@@ -17,9 +17,12 @@ use uuid::Uuid;
 use crate::repositories::bridge::{BridgeIdentityRow, find_bridge_user};
 use crate::repositories::users::usage as usage_repo;
 
-use super::{AgentItem, AgentsBlock, BridgeProfileBlock, ProfileMarketplaceView, ProfileUsage};
+use super::{
+    BridgeAgentItem, BridgeAgentsBlock, BridgeProfileBlock, BridgeProfileUsage,
+    ProfileMarketplaceView,
+};
 
-pub(super) struct UsageSections {
+pub(super) struct BridgeUsageSections {
     pub(super) d1: usage_repo::UsageWindow,
     pub(super) d7: usage_repo::UsageWindow,
     pub(super) d30: usage_repo::UsageWindow,
@@ -28,7 +31,10 @@ pub(super) struct UsageSections {
     pub(super) bridge_user: Option<BridgeIdentityRow>,
 }
 
-pub(super) async fn load_usage_sections(pool: &Arc<PgPool>, user_id: &UserId) -> UsageSections {
+pub(super) async fn load_usage_sections(
+    pool: &Arc<PgPool>,
+    user_id: &UserId,
+) -> BridgeUsageSections {
     let pool_for_d1 = Arc::clone(pool);
     let pool_for_d7 = Arc::clone(pool);
     let pool_for_d30 = Arc::clone(pool);
@@ -85,7 +91,7 @@ pub(super) async fn load_usage_sections(pool: &Arc<PgPool>, user_id: &UserId) ->
         }
     );
 
-    UsageSections {
+    BridgeUsageSections {
         d1,
         d7,
         d30,
@@ -95,8 +101,8 @@ pub(super) async fn load_usage_sections(pool: &Arc<PgPool>, user_id: &UserId) ->
     }
 }
 
-pub(super) fn build_usage(sections: UsageSections) -> ProfileUsage {
-    ProfileUsage {
+pub(super) fn build_usage(sections: BridgeUsageSections) -> BridgeProfileUsage {
+    BridgeProfileUsage {
         d1: sections.d1,
         d7: sections.d7,
         d30: sections.d30,
@@ -164,17 +170,17 @@ fn canonicalize_org_uuid(tenant_id: &TenantId) -> String {
     Uuid::new_v5(&Uuid::NAMESPACE_OID, s.as_bytes()).to_string()
 }
 
-pub(super) fn build_agents_block() -> AgentsBlock {
+pub(super) fn build_agents_block() -> BridgeAgentsBlock {
     let services_path = match ProfileBootstrap::get() {
         Ok(p) => PathBuf::from(&p.paths.services),
-        Err(_) => return AgentsBlock::default(),
+        Err(_) => return BridgeAgentsBlock::default(),
     };
 
     let agents = match crate::repositories::config::agents::list_configured_agents(&services_path) {
         Ok(a) => a,
         Err(e) => {
             tracing::warn!(error = %e, "list_configured_agents failed for profile pane");
-            return AgentsBlock::default();
+            return BridgeAgentsBlock::default();
         },
     };
 
@@ -184,7 +190,7 @@ pub(super) fn build_agents_block() -> AgentsBlock {
 
     let items = visible
         .into_iter()
-        .map(|a| AgentItem {
+        .map(|a| BridgeAgentItem {
             id: a.id.as_str().to_owned(),
             display_name: if a.name.is_empty() {
                 a.id.as_str().to_owned()
@@ -196,7 +202,7 @@ pub(super) fn build_agents_block() -> AgentsBlock {
         })
         .collect();
 
-    AgentsBlock {
+    BridgeAgentsBlock {
         total,
         enabled,
         items,

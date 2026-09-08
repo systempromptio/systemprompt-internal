@@ -1,0 +1,16 @@
+.sp-tile__value {
+    font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--sp-text-primary);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin: var(--sp-space-1) 0 var(--sp-space-05);
+}
+
+.sp-tile--featured .sp-tile__value {
+    color: var(--sp-accent);
+}

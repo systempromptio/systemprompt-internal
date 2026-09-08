@@ -229,7 +229,7 @@ async fn load_mappings(
     let rows = data::load_mappings(pool, group_id).await;
     Some(people_view::mapping_rows(
         rows.into_iter().map(|r| (r.ad_group, r.source)),
-        user_ctx.is_platform_admin,
+        crate::types::roles_grant_platform(&user_ctx.roles),
     ))
 }
 

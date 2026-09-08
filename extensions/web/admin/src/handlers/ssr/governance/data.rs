@@ -32,7 +32,7 @@ const RANK_LIMIT: i64 = 10;
 const HOOK_LIMIT: i64 = 50;
 
 // Why: What one render of the page needs from the database.
-pub(super) struct GovernanceData {
+pub(super) struct DashboardGovernanceData {
     pub(super) stats: DecisionStats,
     pub(super) safety: SafetyStats,
     pub(super) policies: Vec<String>,
@@ -60,7 +60,7 @@ pub(super) struct GovernanceRead<'a> {
     pub(super) offset: i64,
 }
 
-pub(super) async fn load(pool: &PgPool, read: GovernanceRead<'_>) -> GovernanceData {
+pub(super) async fn load(pool: &PgPool, read: GovernanceRead<'_>) -> DashboardGovernanceData {
     let stats = get_decision_stats(pool, read.range, read.scope)
         .await
         .unwrap_or_else(|e| warn_default("governance decision stats", &e));
@@ -114,7 +114,7 @@ pub(super) async fn load(pool: &PgPool, read: GovernanceRead<'_>) -> GovernanceD
     let window_seconds = (read.range.to - read.range.from).num_seconds().max(1);
     let hooks = load_hooks(pool, read.tab, window_seconds).await;
 
-    GovernanceData {
+    DashboardGovernanceData {
         stats,
         safety,
         policies,

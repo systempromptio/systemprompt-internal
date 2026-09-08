@@ -14,6 +14,8 @@ pub struct DeviceAppLinkRow {
     pub last_seen_at: Option<DateTime<Utc>>,
 }
 
+// Why: lint-ok: unused-pub — the internal user roster displays device
+// connections.
 pub async fn list_device_app_links(
     pool: &PgPool,
     user_id: &UserId,

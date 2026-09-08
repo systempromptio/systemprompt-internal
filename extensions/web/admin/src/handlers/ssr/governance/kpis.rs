@@ -13,7 +13,7 @@
 use serde::Serialize;
 
 use super::GovernanceQuery;
-use super::data::GovernanceData;
+use super::data::DashboardGovernanceData;
 use super::urls::filter_url;
 
 // Why: One KPI tile, as `components/kpi` reads it. The supporting line is
@@ -21,7 +21,7 @@ use super::urls::filter_url;
 // it as `this.sub`, because a bare `sub` mustache resolves to the registered
 // helper of that name rather than to a field.
 #[derive(Debug, Serialize)]
-pub(super) struct GovernanceKpiView {
+pub(super) struct DashboardGovernanceKpiView {
     label: &'static str,
     value: String,
     sub: String,
@@ -31,7 +31,10 @@ pub(super) struct GovernanceKpiView {
     hint: &'static str,
 }
 
-pub(super) fn kpis(query: &GovernanceQuery, data: &GovernanceData) -> Vec<GovernanceKpiView> {
+pub(super) fn kpis(
+    query: &GovernanceQuery,
+    data: &DashboardGovernanceData,
+) -> Vec<DashboardGovernanceKpiView> {
     let s = data.stats;
     let f = data.safety;
     vec![
@@ -107,7 +110,7 @@ pub(super) struct StageFilterView {
 // write them. Reading the strip left to right is reading the chain.
 pub(super) fn stage_filters(
     query: &GovernanceQuery,
-    data: &GovernanceData,
+    data: &DashboardGovernanceData,
 ) -> Vec<StageFilterView> {
     let s = data.stats;
     [
@@ -145,7 +148,7 @@ fn tile(
     query: &GovernanceQuery,
     filter: Option<(&'static str, &'static str)>,
     hint: &'static str,
-) -> GovernanceKpiView {
+) -> DashboardGovernanceKpiView {
     let (href, active) = filter.map_or_else(
         || (filter_url(query, &[]), false),
         |(name, value)| {
@@ -157,7 +160,7 @@ fn tile(
             (filter_url(query, &[(name, value)]), current == Some(value))
         },
     );
-    GovernanceKpiView {
+    DashboardGovernanceKpiView {
         label,
         value: value.to_string(),
         sub,

@@ -7,8 +7,8 @@
 use serde::Serialize;
 
 use super::columns::columns;
-use super::data::GovernanceData;
-use super::kpis::{GovernanceKpiView, StageFilterView, kpis, stage_filters};
+use super::data::DashboardGovernanceData;
+use super::kpis::{DashboardGovernanceKpiView, StageFilterView, kpis, stage_filters};
 use super::urls::{ColumnHeader, build_pagination, filter_url, url_with};
 use super::{BASE_URL, GovernanceQuery, GovernanceTab, TabLink, view};
 use crate::handlers::ssr::list_view::{
@@ -27,7 +27,7 @@ pub(super) struct RankView {
 }
 
 #[derive(Debug, Serialize)]
-pub(super) struct GovernancePageContext {
+pub(super) struct DashboardGovernancePageContext {
     pub(super) page: &'static str,
     pub(super) title: &'static str,
     pub(super) subtitle: &'static str,
@@ -39,7 +39,7 @@ pub(super) struct GovernancePageContext {
     pub(super) is_hooks: bool,
     pub(super) time_range: TimeRangeContext,
     pub(super) scope_filter: ScopeFilterView,
-    pub(super) kpis: Vec<GovernanceKpiView>,
+    pub(super) kpis: Vec<DashboardGovernanceKpiView>,
     pub(super) stage_filters: Vec<StageFilterView>,
     pub(super) columns: Vec<ColumnHeader>,
     pub(super) decisions: Vec<view::DecisionRow>,
@@ -71,14 +71,14 @@ pub(super) struct Build<'a> {
     pub(super) page: i64,
     pub(super) sort: DecisionSort,
     pub(super) scope_filter: ScopeFilterView,
-    pub(super) data: &'a GovernanceData,
+    pub(super) data: &'a DashboardGovernanceData,
 }
 
 #[expect(
     clippy::too_many_lines,
     reason = "one page assembly per handler; splitting is tracked in docs/tech-debt.md"
 )]
-pub(super) fn build(input: Build<'_>) -> GovernancePageContext {
+pub(super) fn build(input: Build<'_>) -> DashboardGovernancePageContext {
     let Build {
         query,
         tab,
@@ -106,7 +106,7 @@ pub(super) fn build(input: Build<'_>) -> GovernancePageContext {
         noun,
     );
 
-    GovernancePageContext {
+    DashboardGovernancePageContext {
         page: "governance-warnings",
         title: "Governance",
         subtitle: "The policy chain and the safety scanners, over one window.",
@@ -173,7 +173,7 @@ pub(super) fn build(input: Build<'_>) -> GovernancePageContext {
 fn tab_links(
     query: &GovernanceQuery,
     active: GovernanceTab,
-    data: &GovernanceData,
+    data: &DashboardGovernanceData,
 ) -> Vec<TabLink> {
     [
         (GovernanceTab::Decisions, data.stats.evaluated),

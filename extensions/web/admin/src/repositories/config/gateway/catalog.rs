@@ -76,7 +76,7 @@ fn missing_gateway() -> MarketplaceError {
 pub fn dispatchable_routes_from_services() -> Result<Vec<GatewayRouteView>, MarketplaceError> {
     dispatchable_routes(
         ServicesBootstrap::get()
-            .map_err(|e| MarketplaceError::Internal(format!("services tree is not loaded: {e}")))?,
+            .map_err(|e| MarketplaceError::config_file("services/config/config.yaml", e))?,
     )
 }
 
@@ -115,7 +115,7 @@ pub fn retain_client_facing(
 pub fn client_facing_routes_from_services() -> Result<Vec<GatewayRouteView>, MarketplaceError> {
     client_facing_routes(
         ServicesBootstrap::get()
-            .map_err(|e| MarketplaceError::Internal(format!("services tree is not loaded: {e}")))?,
+            .map_err(|e| MarketplaceError::config_file("services/config/config.yaml", e))?,
     )
 }
 
@@ -134,6 +134,6 @@ pub fn registered_routes(route_ids: &[String]) -> RegisteredEntities {
 
 pub fn registered_routes_from_services() -> Result<RegisteredEntities, MarketplaceError> {
     let services = ServicesBootstrap::get()
-        .map_err(|e| MarketplaceError::Internal(format!("services tree is not loaded: {e}")))?;
+        .map_err(|e| MarketplaceError::config_file("services/config/config.yaml", e))?;
     Ok(registered_routes(&dispatchable_route_ids(services)))
 }

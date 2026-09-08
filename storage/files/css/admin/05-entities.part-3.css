@@ -1,0 +1,129 @@
+@layer components {
+.waterfall__legend li {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-space-1);
+}
+}
+
+@layer components {
+.waterfall__root {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--sp-space-05) * 1.5);
+    margin-top: var(--sp-space-3);
+}
+}
+
+@layer components {
+.waterfall__row {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    align-items: center;
+    gap: var(--sp-space-3);
+}
+}
+
+@layer components {
+.waterfall__label {
+    font-size: var(--sp-text-xs);
+    color: var(--sp-text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+}
+
+@layer components {
+.waterfall__track {
+    position: relative;
+    height: 20px;
+    background: var(--sp-bg-surface-alt);
+    border-radius: var(--sp-radius-xs);
+}
+}
+
+@layer components {
+.waterfall__bar {
+    position: absolute;
+    top: 2px;
+    bottom: 2px;
+    min-width: 2px;
+    border-radius: var(--sp-radius-xs);
+    display: flex;
+    align-items: center;
+    padding: 0 var(--sp-space-1);
+    overflow: hidden;
+}
+}
+
+@layer components {
+.waterfall__bar--bad {
+    outline: 1px solid var(--sp-danger);
+}
+}
+
+@layer components {
+.waterfall__dur {
+    font-size: 10px;
+    color: var(--sp-text-on-accent);
+    white-space: nowrap;
+}
+}
+
+@layer components {
+.waterfall__swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    background: var(--sp-text-tertiary);
+    flex-shrink: 0;
+}
+}
+
+@layer components {
+.waterfall__swatch--gateway { background: var(--sp-info); }
+}
+
+@layer components {
+.waterfall__swatch--governance { background: var(--sp-warning); }
+}
+
+@layer components {
+.waterfall__swatch--tool { background: var(--sp-success); }
+}
+
+@layer components {
+.waterfall__swatch--model { background: var(--sp-accent); }
+}
+
+@layer components {
+.waterfall__swatch--spawn { background: var(--sp-waterfall-spawn); }
+}
+
+@layer components {
+.alert__title {
+    font-weight: var(--sp-font-semibold);
+    margin: 0 0 var(--sp-space-1);
+}
+}
+
+@layer components {
+.transcript--compact {
+    font-size: var(--sp-text-sm);
+}
+}
+
+@layer components {
+.code-collapsible {
+    max-height: 320px;
+    overflow: auto;
+}
+}
+
+@layer components {
+.row-expandable {
+    cursor: pointer;
+}
+}

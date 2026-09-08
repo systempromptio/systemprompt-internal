@@ -83,9 +83,6 @@ extensions/web/admin/src/routes/mod.rs	# internal exports bridge_auth_ssr_router
 extensions/web/admin/src/routes/admin.rs	# internal issues per-device PATs under /users/:id/devices; the template issues account access tokens
 extensions/web/admin/src/middleware/mod.rs	# internal keeps auth_me_handler, which the bridge polls to confirm a linked session
 extensions/web/admin/src/handlers/ssr/ssr_management/mod.rs	# internal's fleet page lists devices and their online state; the template lists access tokens
-extensions/web/admin/src/handlers/ssr/ssr_users/data.rs	# internal loads each user's devices and per-device PATs
-extensions/web/admin/src/handlers/ssr/ssr_users/view.rs	# internal renders device freshness from last heartbeat, not last request
-extensions/web/admin/src/repositories/departments/aggregates.rs	# internal counts devices per department; the template counts tokens
 extensions/web/src/router/mod.rs	# internal nests /bridge-auth and builds the auth deps the SSR plane needs
 extensions/web/src/router/admin_ssr.rs	# internal builds the bridge sign-in router beside the dashboard, from the same engine
 extensions/web/admin/src/repositories/users/mod.rs	# internal persists devices, federated identities and Odoo credentials
@@ -199,3 +196,12 @@ extensions/web/admin/src/repositories/dashboard/mod.rs	# internal retains live s
 extensions/web/admin/src/handlers/hooks_track/mod.rs	# internal retains live session registry handles, workspace, activity and statusline alongside shared usage metrics
 extensions/web/admin/src/handlers/hooks_track/processing.rs	# internal retains live session registry handles, workspace, activity and statusline alongside shared usage metrics
 extensions/web/admin/src/handlers/webhook/tracking.rs	# internal retains live session registry handles, workspace, activity and statusline alongside shared usage metrics
+
+# Preserved business reporting and policy editor APIs.
+extensions/web/admin/src/handlers/ssr/ssr_report_customer/csv.rs	# internal uses dashboard_reports exports to preserve its organization billing report API; template uses the generic reports module
+extensions/web/admin/src/handlers/ssr/ssr_report_internal/csv.rs	# internal uses dashboard_reports exports to preserve its organization profit/loss API; template uses the generic reports module
+extensions/web/admin/src/repositories/governance/decisions.rs	# template policy editor consumes list_decisions_filtered; internal uses per-policy decisions without that editor
+extensions/web/admin/src/repositories/reports/customer.rs	# internal calculates customer organization licences and seats; template exports scoped project usage without commercial data
+extensions/web/admin/src/repositories/reports/internal.rs	# internal calculates organization revenue, cost and margin; template reports provider costs by month
+extensions/web/admin/src/repositories/reports/mod.rs	# documents internal commercial reporting versus template generic project usage and provider cost reporting
+extensions/web/admin/src/repositories/dashboard/hooks_track.rs	# template retains the Stop-event APM concurrency writer; internal retired unused APM metrics in migration 031 before this port

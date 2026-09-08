@@ -86,8 +86,7 @@ impl UsageAnomalyJob {
     }
 }
 
-// Why: A metric past its threshold. Public for the unit tests behind
-// `internals`.
+// Why: a metric past its threshold is persisted and logged once per window.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct Finding {
     pub metric: &'static str,
@@ -186,9 +185,9 @@ fn alert(finding: Finding, obs: &HourlyObservation) {
     tracing::warn!(
         metric = finding.metric,
         window_start = %obs.window_start,
-        %observed,
-        %baseline,
-        "Usage anomaly detected; inspect dashboard analytics and request log"
+        observed,
+        baseline,
+        "Usage anomaly detected; inspect the request log"
     );
 }
 

@@ -39,7 +39,7 @@ pub(crate) struct ProfileIdentity {
 pub(crate) use crate::repositories::users::usage::{ConversationSummary, ModelShare, UsageWindow};
 
 #[derive(Debug, Clone, Default, Serialize)]
-pub(crate) struct ProfileUsage {
+pub(crate) struct BridgeProfileUsage {
     pub d1: UsageWindow,
     pub d7: UsageWindow,
     pub d30: UsageWindow,
@@ -68,7 +68,7 @@ pub(crate) struct ProfileMarketplaceView {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub(crate) struct AgentItem {
+pub(crate) struct BridgeAgentItem {
     pub id: String,
     pub display_name: String,
     pub enabled: bool,
@@ -76,10 +76,10 @@ pub(crate) struct AgentItem {
 }
 
 #[derive(Debug, Clone, Default, Serialize)]
-pub(crate) struct AgentsBlock {
+pub(crate) struct BridgeAgentsBlock {
     pub total: i64,
     pub enabled: i64,
-    pub items: Vec<AgentItem>,
+    pub items: Vec<BridgeAgentItem>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -125,8 +125,8 @@ pub(crate) struct BridgeProfilePageData {
     // issue a connect code. The code itself is never part of page data.
     pub bridge_connect_available: bool,
     pub bridge_profile: Option<BridgeProfileBlock>,
-    pub usage: ProfileUsage,
-    pub agents: AgentsBlock,
+    pub usage: BridgeProfileUsage,
+    pub agents: BridgeAgentsBlock,
     pub marketplaces: Vec<ProfileMarketplaceView>,
     pub marketplaces_count: usize,
 }

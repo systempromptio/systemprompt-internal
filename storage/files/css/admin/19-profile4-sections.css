@@ -120,7 +120,7 @@
 .sp-conv-table__title a code {
     font-size: var(--sp-text-xs);
     background: var(--sp-bg-surface-alt);
-    padding: 2px var(--sp-space-2);
+    padding: var(--sp-space-05) var(--sp-space-2);
     border-radius: 4px;
     border: 1px solid var(--sp-border-subtle);
     color: var(--sp-text-secondary);

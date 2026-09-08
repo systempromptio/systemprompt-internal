@@ -8,7 +8,6 @@ use crate::activity::{
     ActivityAction, ActivityCategory, ActivityCategorySummary, ActivityTimelineEvent,
 };
 
-
 pub async fn list_user_recent_activity(
     pool: &PgPool,
     user_id: &UserId,

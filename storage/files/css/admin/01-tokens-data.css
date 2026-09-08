@@ -1,5 +1,6 @@
 @layer tokens {
 :root {
+    --sp-waterfall-spawn: #a06bff;
     --sp-chart-purple: oklch(0.55 0.22 295);
     --sp-chart-blue:   oklch(0.62 0.18 260);
     --sp-chart-green:  oklch(0.69 0.17 165);

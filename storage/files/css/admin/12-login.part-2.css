@@ -1,0 +1,138 @@
+@layer components {
+.auth-card {
+    width: 100%;
+    max-width: 380px;
+    padding: var(--sp-space-8) var(--sp-space-7);
+    background: var(--sp-bg-surface);
+    border: 1px solid var(--sp-border-subtle);
+    border-radius: var(--sp-radius-card-brand);
+    box-shadow: var(--sp-shadow-login-card);
+}
+}
+
+@layer components {
+.auth-card .login-logo {
+    margin-bottom: var(--sp-space-6);
+}
+}
+
+@layer components {
+.auth-title {
+    font-size: var(--sp-text-xl);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0 0 var(--sp-space-1);
+    color: var(--sp-text-primary);
+}
+}
+
+@layer components {
+.auth-subtitle {
+    font-size: var(--sp-text-sm);
+    color: var(--sp-text-tertiary);
+    margin: 0 0 var(--sp-space-6);
+}
+}
+
+@layer components {
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-space-4);
+}
+}
+
+@layer components {
+.auth-form[hidden] {
+    display: none;
+}
+}
+
+@layer components {
+.auth-form .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-space-2);
+    margin: 0;
+    text-align: left;
+}
+}
+
+@layer components {
+.auth-form label {
+    font-size: var(--sp-text-sm);
+    font-weight: 500;
+    color: var(--sp-text-secondary);
+}
+}
+
+@layer components {
+.auth-form .form-input {
+    width: 100%;
+}
+}
+
+@layer components {
+.auth-form .btn {
+    margin-top: var(--sp-space-2);
+}
+}
+
+@layer components {
+.auth-alt {
+    margin: var(--sp-space-6) 0 0;
+    padding-top: var(--sp-space-5);
+    border-top: 1px solid var(--sp-border-subtle);
+    text-align: center;
+    font-size: var(--sp-text-sm);
+}
+}
+
+@layer components {
+.auth-alt a,
+.login-switch a {
+    color: var(--sp-accent);
+    text-decoration: none;
+}
+}
+
+@layer components {
+.auth-alt a:hover,
+.login-switch a:hover {
+    text-decoration: underline;
+}
+}
+
+@layer components {
+.login-switch {
+    margin: var(--sp-space-1) 0 0;
+    text-align: center;
+    color: var(--sp-text-tertiary);
+    font-size: var(--sp-text-xs);
+}
+}
+
+@layer components {
+.step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.4rem;
+    height: 1.4rem;
+    border-radius: var(--sp-radius-full);
+    background: var(--sp-accent);
+    color: var(--sp-text-on-accent);
+    font-size: var(--sp-text-xs);
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+}
+}
+
+@layer components {
+@media (prefers-reduced-motion: reduce) {
+    .login-spinner {
+        animation: none;
+    }
+}
+}

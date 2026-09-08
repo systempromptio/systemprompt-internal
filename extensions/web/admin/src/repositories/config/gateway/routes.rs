@@ -141,9 +141,8 @@ pub fn reorder_routes(gateway_path: &Path, order: &[usize]) -> Result<(), Market
     Ok(())
 }
 
-// Why: Explicit maintenance helper retained for existing callers. Dashboard
-// reads Why: and ordinary route edits synthesize IDs in memory and never invoke
-// it.
+// Why: explicit maintenance persists IDs; ordinary reads and edits derive them
+// in memory.
 pub fn ensure_route_ids(config_path: &Path) -> Result<bool, MarketplaceError> {
     let mut doc = read_gateway_file(config_path)?;
     let mut changed = false;
