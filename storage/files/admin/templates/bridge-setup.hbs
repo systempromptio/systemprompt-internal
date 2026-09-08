@@ -2,101 +2,88 @@
     {{#*inline "content"}}
     {{> components/page-header title="Connect your workstation"}}
 
-    <div class="card mb-6">
-        <div class="card-body">
+    <div class="sp-card sp-u-mb-6">
+        <div class="sp-card__body">
             <p>Three steps. About a minute. Signed in as <strong>{{user_email}}</strong>.
-               <span id="gateway-pill" class="pill pending" data-gateway-url="{{gateway_url}}" data-download-base="{{download_base_url}}">Checking gateway&hellip;</span>
+               <span id="gateway-pill" class="sp-pill is-pending" data-gateway-url="{{gateway_url}}" data-download-base="{{download_base_url}}">Checking gateway&hellip;</span>
             </p>
 
-            <div class="setup-step">
-                <div class="step-num">1</div>
+            <div class="sp-setup-step">
+                <div class="sp-step-num">1</div>
                 <div>
-                    <h2>Download the bridge</h2>
-                    <p class="text-tertiary">Double-click to launch. A tray icon appears in your menu bar.</p>
+                    <h2 class="sp-section__title">Download the bridge</h2>
+                    <p class="sp-u-text-tertiary">Double-click to launch. A tray icon appears in your menu bar.</p>
                     <p>
-                        <a id="download-cta" class="download-cta" href="#" rel="noopener">Download&hellip;</a>
+                        <a id="download-cta" class="sp-download-cta" href="{{download_base_url}}/systemprompt-internal-bridge-windows.exe" rel="noopener">Download for Windows</a>
+                        <a id="download-checksum" href="{{download_base_url}}/systemprompt-internal-bridge-windows.exe.sha256">sha256</a>
                     </p>
-                    <details class="download-other">
-                        <summary>All platforms &mdash; bridge {{bridge_version}}</summary>
+                    <details class="sp-download-other">
+                        <summary>Other platforms</summary>
                         <ul>
-                            <li><a href="{{download_base_url}}/{{asset_macos}}">macOS (.dmg, Apple Silicon + Intel)</a></li>
-                            <li><a href="{{download_base_url}}/{{asset_windows}}">Windows (.exe)</a></li>
-                            <li><a href="{{download_base_url}}/{{asset_linux_x86_64}}">Linux (.tar.gz, x86_64)</a></li>
-                            <li><a href="{{download_base_url}}/{{asset_linux_aarch64}}">Linux (.tar.gz, aarch64)</a></li>
+                            <li><a href="{{download_base_url}}/systemprompt-internal-bridge-macos.dmg">macOS (.dmg)</a></li>
+                            <li><a href="{{download_base_url}}/systemprompt-internal-bridge-windows.exe">Windows (.exe)</a></li>
+                            <li><a href="{{download_base_url}}/systemprompt-internal-bridge-linux-x86_64.tar.gz">Linux (.tar.gz, x86_64)</a></li>
+                            <li><a href="{{download_base_url}}/systemprompt-internal-bridge-linux-aarch64.tar.gz">Linux (.tar.gz, aarch64)</a></li>
                         </ul>
-                        <p class="text-tertiary text-sm">Checksums and signatures: <a href="{{release_page_url}}" rel="noopener">release {{bridge_version}} on GitHub</a>.</p>
                     </details>
-                    <p class="text-tertiary text-sm">Bridge {{bridge_version}} is the build released with this gateway. macOS is signed and notarized. Windows is unsigned: choose &ldquo;More info &rarr; Run anyway&rdquo; at the SmartScreen prompt.</p>
                 </div>
             </div>
 
-            {{#unless odoo_linked}}
-            <div class="setup-step">
-                <div class="step-num">!</div>
+            <div class="sp-setup-step">
+                <div class="sp-step-num">2</div>
                 <div>
-                    <h2>Link your Odoo account</h2>
-                    <p>Your bridge signs in as you, and the Odoo tools act with <em>your</em> Odoo credential &mdash; but you haven't linked one yet, so every Odoo tool call will fail.</p>
-                    <p><a href="/admin/profile" class="download-cta">Link Odoo on your profile &rarr;</a></p>
-                    <p class="text-tertiary text-sm">Generate an API key in your Odoo preferences, then paste it into the Odoo card on the profile page.</p>
-                </div>
-            </div>
-            {{/unless}}
-
-            <div class="setup-step">
-                <div class="step-num">2</div>
-                <div>
-                    <h2>Get your access token</h2>
-                    <p>Open <a href="/bridge-auth/device-link" class="download-cta">/bridge-auth/device-link &rarr;</a></p>
-                    <p class="text-tertiary">Approve the request, then copy the <code>sp-live-&hellip;</code> token. It is shown once.</p>
+                    <h2 class="sp-section__title">Get your access token</h2>
+                    <p>Open <a href="/bridge-auth/device-link" class="sp-download-cta">/bridge-auth/device-link &rarr;</a></p>
+                    <p class="sp-u-text-tertiary">Approve the request, then copy the <code>sp-live-&hellip;</code> token. It is shown once.</p>
                 </div>
             </div>
 
-            <div class="setup-step">
-                <div class="step-num">3</div>
+            <div class="sp-setup-step">
+                <div class="sp-step-num">3</div>
                 <div>
-                    <h2>Paste it into the bridge</h2>
-                    <div class="tabs" role="tablist">
-                        <button type="button" class="active" role="tab" data-tab="tray">Tray app (macOS / Windows)</button>
-                        <button type="button" role="tab" data-tab="terminal">Terminal (any OS)</button>
-                        <button type="button" role="tab" data-tab="linux">Linux (one-line install)</button>
+                    <h2 class="sp-section__title">Paste it into the bridge</h2>
+                    <div class="sp-tabs" role="tablist" data-tabs="bridge-setup" aria-label="How to sign in">
+                        <button type="button" class="sp-tab sp-tab--active" role="tab" id="tab-btn-tray" aria-controls="tab-tray" aria-selected="true" data-tab="tray">Tray app (macOS / Windows)</button>
+                        <button type="button" class="sp-tab" role="tab" id="tab-btn-terminal" aria-controls="tab-terminal" aria-selected="false" tabindex="-1" data-tab="terminal">Terminal (any OS)</button>
+                        <button type="button" class="sp-tab" role="tab" id="tab-btn-linux" aria-controls="tab-linux" aria-selected="false" tabindex="-1" data-tab="linux">Linux (one-line install)</button>
                     </div>
-                    <div class="tab-panel" id="tab-tray" role="tabpanel">
+                    <div class="sp-tab-panel" id="tab-tray" role="tabpanel" aria-labelledby="tab-btn-tray">
                         <ol>
                             <li>Click the systemprompt tray icon.</li>
                             <li>Paste your <code>sp-live-&hellip;</code> token.</li>
                             <li>Click <strong>Sign in</strong>. The icon turns green.</li>
                         </ol>
                     </div>
-                    <div class="tab-panel" id="tab-terminal" role="tabpanel" hidden>
-                        <div class="snippet">
-                            <button type="button" class="btn btn-sm copy-btn" id="cli-copy-btn">Copy</button>
-                            <pre><code id="cli-snippet">systemprompt-bridge login sp-live-YOUR_TOKEN --gateway {{gateway_url}}</code></pre>
+                    <div class="sp-tab-panel" id="tab-terminal" role="tabpanel" aria-labelledby="tab-btn-terminal" hidden>
+                        <div class="sp-snippet">
+                            <button type="button" class="sp-btn sp-btn--sm sp-btn--copy" id="cli-copy-btn">Copy</button>
+                            <pre><code id="cli-snippet">systemprompt-internal-bridge login sp-live-YOUR_TOKEN --gateway {{gateway_url}}</code></pre>
                         </div>
-                        <p class="text-tertiary text-sm">Replace <code>sp-live-YOUR_TOKEN</code> with the token from step 2.</p>
+                        <p class="sp-u-text-tertiary sp-u-text-sm">Replace <code>sp-live-YOUR_TOKEN</code> with the token from step 2.</p>
                     </div>
-                    <div class="tab-panel" id="tab-linux" role="tabpanel" hidden>
+                    <div class="sp-tab-panel" id="tab-linux" role="tabpanel" aria-labelledby="tab-btn-linux" hidden>
                         <p>One command &mdash; downloads, verifies the checksum, installs to <code>~/.local/bin</code>, and writes the environment.</p>
-                        <div class="snippet">
-                            <button type="button" class="btn btn-sm copy-btn" id="linux-copy-btn">Copy</button>
-                            <pre><code id="linux-snippet">{{install_command}}</code></pre>
+                        <div class="sp-snippet">
+                            <button type="button" class="sp-btn sp-btn--sm sp-btn--copy" id="linux-copy-btn">Copy</button>
+                            <pre><code id="linux-snippet">curl -fsSL {{download_base_url}}/install.sh | sh -s -- --download-base {{download_base_url}} --gateway {{gateway_url}} --host claude-code</code></pre>
                         </div>
-                        <p class="text-tertiary text-sm">Then open a new login shell and run <code>claude</code>. No manual exports: the installer writes <code>~/.config/systemprompt-internal/env.sh</code> and a managed block in <code>~/.profile</code>, and registers the systemd user units for sync and the loopback proxy.</p>
+                        <p class="sp-u-text-tertiary sp-u-text-sm">Then run <code>claude</code> — no new shell and nothing to source. The installer merges the gateway settings into <code>~/.claude/settings.json</code>, which Claude Code reads on every run, and registers the systemd user units for sync and the loopback proxy. It also writes <code>~/.config/systemprompt/env.sh</code> for other Anthropic-API clients.</p>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <details class="advanced card">
-        <summary class="card-header">Advanced &mdash; manual config, session &amp; mTLS modes, revoke</summary>
-        <div class="card-body">
-            <h3>Revoke a token</h3>
-            <p>On the owner's user page click <strong>Revoke</strong> on the token row. Locally, run <code>systemprompt-bridge logout</code> to wipe the on-disk credential.</p>
+    <details class="is-advanced sp-card">
+        <summary class="sp-section__head">Advanced &mdash; manual config, session &amp; mTLS modes, revoke</summary>
+        <div class="sp-card__body">
+            <h3 class="sp-section__title">Revoke a token</h3>
+            <p>On the owner's user page click <strong>Revoke</strong> on the token row. Locally, run <code>systemprompt-internal-bridge logout</code> to wipe the on-disk credential.</p>
 
-            <h3>Hand-edit the config</h3>
+            <h3 class="sp-section__title">Hand-edit the config</h3>
             <p>The bridge writes its own config; only edit by hand if you need session or mTLS mode.</p>
-            <div class="snippet">
-                <button type="button" class="btn btn-sm copy-btn" id="toml-copy-btn">Copy</button>
+            <div class="sp-snippet">
+                <button type="button" class="sp-btn sp-btn--sm sp-btn--copy" id="toml-copy-btn">Copy</button>
                 <pre><code id="toml-snippet">gateway_url = "{{gateway_url}}"
 
 # Pick one section. Providers probe in order: mtls -> session -> pat.
@@ -114,13 +101,13 @@ enabled = true
 # SYSTEMPROMPT_BRIDGE_DEVICE_CERT_SHA256 (cert-store thumbprint).
 # cert_keystore_ref = "~/.config/systemprompt/device.pem"</code></pre>
             </div>
-            <p class="text-tertiary text-sm">
+            <p class="sp-u-text-tertiary sp-u-text-sm">
                 Stored at <code>$XDG_CONFIG_HOME/systemprompt/</code> on Linux,
                 <code>~/Library/Application Support/systemprompt/</code> on macOS,
                 <code>%APPDATA%\systemprompt\</code> on Windows.
             </p>
 
-            <h3>Session &amp; mTLS modes</h3>
+            <h3 class="sp-section__title">Session &amp; mTLS modes</h3>
             <p>See <code>systemprompt-core/bin/bridge/README.md</code> for browser-consent (session) and OS-keystore-certificate (mTLS) flows, including the <code>systemprompt admin bridge enroll-cert</code> step required for mTLS.</p>
         </div>
     </details>

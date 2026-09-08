@@ -74,6 +74,10 @@ pub async fn set_entity_rules(
     entity_id: &str,
     rules: &[AccessControlRuleInput],
 ) -> Result<Vec<AccessControlRule>, AuthzError> {
+    // Why: core's `ensure_entity` takes the pool, not this transaction, so the
+    // catalog row is committed before the rules are replaced. A failure between
+    // the two leaves a catalog row with no grants — an entity that exists and
+    // grants nothing, which is what an unruled entity already means here.
     catalog(pool)
         .ensure_entity(entity_type, entity_id, SOURCE_LABEL)
         .await?;

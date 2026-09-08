@@ -15,24 +15,25 @@ const buildRow = (span, t0, total) => {
   const width = Math.max(0.5, ((end - start) / total) * 100);
 
   const row = document.createElement('div');
-  row.className = 'waterfall__row';
+  row.className = 'sp-waterfall__row';
 
   const label = document.createElement('span');
-  label.className = 'waterfall__label';
+  label.className = 'sp-waterfall__label';
   label.textContent = span.name || span.kind;
 
   const track = document.createElement('div');
-  track.className = 'waterfall__track';
+  track.className = 'sp-waterfall__track';
 
-  const bad = span.status === 'deny' || span.status === 'error';
   const bar = document.createElement('div');
-  bar.className = `waterfall__bar waterfall__swatch--${span.kind}${bad ? ' waterfall__bar--bad' : ''}`;
+  // The `sp-` prefix was missing, so every drawer bar rendered unstyled, and
+  // the `--bad` modifier it appended has never had a rule to apply.
+  bar.className = `sp-waterfall__bar sp-waterfall__swatch--${span.kind}`;
   bar.style.left = `${left}%`;
   bar.style.width = `${width}%`;
   bar.title = `${span.name} · ${span.duration_ms} ms · ${span.status}`;
 
   const duration = document.createElement('span');
-  duration.className = 'waterfall__dur';
+  duration.className = 'sp-waterfall__dur';
   duration.textContent = `${span.duration_ms} ms`;
 
   bar.append(duration);
@@ -55,7 +56,7 @@ const renderWaterfall = () => {
 
   if (!spans.length) {
     const empty = document.createElement('p');
-    empty.className = 'text-tertiary';
+    empty.className = 'sp-u-text-tertiary';
     empty.textContent = 'No spans to plot.';
     root.replaceChildren(empty);
     return;
@@ -69,8 +70,8 @@ const renderWaterfall = () => {
 };
 
 const init = () => {
-  sizeBars('.latency-histogram', 'data-count', 'data-histogram-max');
-  sizeBars('.cost-spark', 'data-cost', 'data-cost-max');
+  sizeBars('.sp-latency-histogram', 'data-count', 'data-histogram-max');
+  sizeBars('.sp-cost-spark', 'data-cost', 'data-cost-max');
   renderWaterfall();
 };
 

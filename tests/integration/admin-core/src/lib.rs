@@ -105,3 +105,6 @@ mod users_identity;
 mod users_lookups;
 #[cfg(test)]
 mod users_passkey;
+
+#[cfg(test)]
+mod usage_conversation_summary;

@@ -1,13 +1,17 @@
 //! Persistence for the admin dashboard and control centre.
 
 pub mod aggregates;
+pub mod apm_metrics;
+pub mod commits;
 pub mod conversation_analytics;
 pub mod hooks_track;
 pub mod overview;
 pub mod queries;
 pub mod session_analyses;
-pub mod session_registry;
 pub mod traffic;
 pub mod usage_aggregations;
+pub mod usage_rollups;
 
 pub use overview::{get_dashboard_data, list_events};
+
+pub mod session_registry;

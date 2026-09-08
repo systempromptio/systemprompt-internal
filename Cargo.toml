@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "extensions/cli/dev-login",
     "extensions/brand",
     "extensions/web",
     "extensions/web/shared",
@@ -43,9 +44,9 @@ documentation = "https://systemprompt.io/documentation"
 # ============================================
 # CORE FACADE (single dependency for all systemprompt-core)
 # ============================================
-systemprompt = { version = "0.47.0", default-features = false, features = ["core", "database", "config"] }
-systemprompt-security = { version = "0.47.0" }
-systemprompt-extension = { version = "0.47.0" }
+systemprompt = { version = "0.48.0", default-features = false, features = ["core", "database", "config"] }
+systemprompt-security = { version = "0.48.0" }
+systemprompt-extension = { version = "0.48.0" }
 
 # ============================================
 # LOCAL EXTENSIONS
@@ -294,3 +295,7 @@ workspace = true
 # systemprompt-generator = { path = "../systemprompt-core/crates/app/generator" }
 # systemprompt-api = { path = "../systemprompt-core/crates/entry/api" }
 # systemprompt-cli = { path = "../systemprompt-core/crates/entry/cli" }
+
+# Published macro dependency compatibility fix; see vendor/README.md.
+[patch.crates-io.proc-macro-error2]
+path = "vendor/proc-macro-error2"

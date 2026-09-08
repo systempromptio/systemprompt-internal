@@ -89,3 +89,5 @@ pub(crate) async fn report_internal_page(
 fn month_url(key: &str) -> String {
     format!("{BASE_URL}?month={key}")
 }
+
+pub(crate) mod csv;

@@ -5,6 +5,7 @@ import { initHeaderActions } from './header-actions.js';
 import { initHeaderSearch } from './header-search.js';
 import { initLogout, initUserDisplay, getUserContext } from './auth.js';
 import { initFilterRibbon } from './filter-ribbon.js';
+import { initScope } from './scope.js';
 import { showToast } from './toast.js';
 
 const run = (init) => {
@@ -27,6 +28,7 @@ for (const init of [
   initHeaderActions,
   initHeaderSearch,
   initFilterRibbon,
+  initScope,
   initLogout,
   initUserDisplay,
   getUserContext

@@ -10,7 +10,6 @@ use axum::extract::Query;
 use axum::response::{Html, IntoResponse, Response};
 use systemprompt::identifiers::ClientId;
 
-
 mod context;
 pub(crate) mod entity_urls;
 pub(crate) mod format;
@@ -46,36 +45,6 @@ mod ssr_skills_contexts;
 mod ssr_users;
 mod ssr_users_sessions;
 pub(crate) mod types;
-
-pub(crate) use ssr_analytics_requests::analytics_requests_page;
-pub(crate) use ssr_approvals::{approval_approve, approval_deny, approvals_page};
-pub(crate) use ssr_bridge_device_link::{
-    device_link_approve, device_link_deny, device_link_page, device_link_switch,
-};
-pub(crate) use ssr_bridge_setup::bridge_setup_page;
-pub(crate) use ssr_chain::chain_envelope;
-pub(crate) use ssr_context_detail::context_detail_page;
-pub(crate) use ssr_conversations_raw::conversations_raw;
-pub(crate) use ssr_demo::{demo_logbook_page, demo_me_page, demo_skills_page, demo_tools_page};
-pub(crate) use ssr_enterprises::{enterprise_detail_page, enterprises_page};
-pub(crate) use ssr_governance_audit_detail::governance_audit_detail_page;
-pub(crate) use ssr_governance_dashboard::governance_dashboard_page;
-pub(crate) use ssr_governance_decisions::governance_decisions_page;
-pub(crate) use ssr_helpers::{branding_context, render_typed_page};
-pub(crate) use ssr_management::{management_department_detail_page, management_departments_page};
-pub(crate) use ssr_perf_trace_detail::perf_trace_detail_page;
-pub(crate) use ssr_perf_traces::perf_traces_page;
-pub(crate) use ssr_profile::profile_page;
-pub(crate) use ssr_report_customer::report_customer_page;
-pub(crate) use ssr_report_internal::report_internal_page;
-pub(crate) use ssr_search_resolve::search_resolve;
-pub(crate) use ssr_session_detail::session_detail_page;
-pub(crate) use ssr_settings::settings_page;
-pub(crate) use ssr_setup::setup_page;
-pub(crate) use ssr_skill_usage::skill_usage_page;
-pub(crate) use ssr_skills_contexts::skills_contexts_page;
-pub(crate) use ssr_users::{user_detail_page, users_page};
-pub(crate) use ssr_users_sessions::users_sessions_page;
 
 #[derive(serde::Deserialize)]
 pub(crate) struct LoginParams {
@@ -172,3 +141,90 @@ fn sanitize_login_redirect(raw: Option<&str>) -> Option<String> {
     let raw = raw?.trim();
     (raw.starts_with('/') && !raw.starts_with("//")).then(|| raw.to_owned())
 }
+
+mod approvals;
+
+pub(crate) mod conversation_header;
+
+pub(crate) mod csv;
+
+mod governance;
+
+mod overview;
+
+mod secrets_audit;
+
+mod ssr_analytics_dashboard;
+
+mod ssr_history;
+
+mod ssr_sessions_list;
+
+pub(crate) mod transcript_view;
+
+mod gateway;
+
+mod devices;
+
+pub(crate) mod people_chart;
+
+pub(crate) mod people_view;
+
+mod roles;
+
+mod ssr_access_control;
+
+mod ssr_group_detail;
+
+mod ssr_groups;
+
+mod ssr_projects;
+
+pub(crate) use approvals::approvals_page;
+pub(crate) use devices::devices_page;
+pub(crate) use gateway::gateway_page;
+pub(crate) use governance::{governance_csv, governance_page};
+pub(crate) use overview::overview_page;
+pub(crate) use roles::roles_page;
+pub(crate) use secrets_audit::{secrets_audit_csv, secrets_audit_page};
+pub(crate) use ssr_access_control::access_control_page;
+pub(crate) use ssr_analytics_dashboard::analytics_dashboard_page;
+pub(crate) use ssr_analytics_dashboard::csv::cost_csv;
+pub(crate) use ssr_analytics_requests::{analytics_requests_csv, analytics_requests_page};
+pub(crate) use ssr_approvals::{
+    approval_approve, approval_deny, approvals_page as ingestion_approvals_page,
+};
+pub(crate) use ssr_bridge_device_link::{
+    device_link_approve, device_link_deny, device_link_page, device_link_switch,
+};
+pub(crate) use ssr_bridge_setup::bridge_setup_page;
+pub(crate) use ssr_chain::chain_envelope;
+pub(crate) use ssr_context_detail::context_detail_page;
+pub(crate) use ssr_conversations_raw::conversations_raw;
+pub(crate) use ssr_demo::{demo_logbook_page, demo_me_page, demo_skills_page, demo_tools_page};
+pub(crate) use ssr_enterprises::{enterprise_detail_page, enterprises_page};
+pub(crate) use ssr_governance_audit_detail::governance_audit_detail_page;
+pub(crate) use ssr_governance_dashboard::governance_dashboard_page;
+pub(crate) use ssr_governance_decisions::governance_decisions_page;
+pub(crate) use ssr_group_detail::group_detail_page;
+pub(crate) use ssr_groups::groups_page;
+pub(crate) use ssr_helpers::{branding_context, render_typed_page};
+pub(crate) use ssr_history::{history_conversation_page, history_page, history_search};
+pub(crate) use ssr_management::{management_department_detail_page, management_departments_page};
+pub(crate) use ssr_perf_trace_detail::perf_trace_detail_page;
+pub(crate) use ssr_perf_traces::perf_traces_page;
+pub(crate) use ssr_profile::{issue_bridge_code, profile_page};
+pub(crate) use ssr_projects::{project_detail_page, projects_page};
+pub(crate) use ssr_report_customer::csv::report_customer_csv;
+pub(crate) use ssr_report_customer::report_customer_page;
+pub(crate) use ssr_report_internal::csv::report_internal_csv;
+pub(crate) use ssr_report_internal::report_internal_page;
+pub(crate) use ssr_search_resolve::search_resolve;
+pub(crate) use ssr_session_detail::session_detail_page;
+pub(crate) use ssr_sessions_list::sessions_list_page;
+pub(crate) use ssr_settings::settings_page;
+pub(crate) use ssr_setup::setup_page;
+pub(crate) use ssr_skill_usage::skill_usage_page;
+pub(crate) use ssr_skills_contexts::skills_contexts_page;
+pub(crate) use ssr_users::{user_detail_by_id_page, user_detail_page, users_page};
+pub(crate) use ssr_users_sessions::users_sessions_page;

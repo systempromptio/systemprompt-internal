@@ -113,7 +113,15 @@ pub(crate) async fn govern_tool_use(
     // Why: one POST is one call, and this hook is the only point that sees it —
     // an out-of-process agent has no second enforcement point to inherit from.
     let call_id = CallId::generate();
-    let evaluation = engine().evaluate(&PolicyContext {
+    let engine = match engine() {
+        Ok(engine) => engine,
+        Err(error) => {
+            tracing::error!(%error, "governance engine unavailable");
+            return crate::error::AdminError::Unavailable("Governance engine unavailable".into())
+                .into_response();
+        },
+    };
+    let evaluation = engine.evaluate(&PolicyContext {
         target: target.clone(),
         agent_scope: AgentScope::User {
             user_id: user_id.clone(),

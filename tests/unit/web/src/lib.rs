@@ -124,3 +124,30 @@ mod web_extension_providers;
 mod web_extension_wiring;
 #[cfg(test)]
 mod web_schemas;
+
+#[cfg(test)]
+mod conversation_sort;
+
+#[cfg(test)]
+mod conversation_view;
+
+#[cfg(test)]
+mod governance_warnings_rollup;
+
+#[cfg(test)]
+mod governance_pages;
+
+#[cfg(test)]
+mod hooks_track_commits_pure;
+
+#[cfg(test)]
+mod dashboard_people;
+
+#[cfg(test)]
+mod dev_login_pure;
+
+#[cfg(test)]
+mod governance_gateway;
+
+#[cfg(test)]
+mod support;

@@ -11,7 +11,7 @@ pub use api_keys::{
     ApiKeyRow, EnrollDeviceParams, EnrolledDevice, IssuedApiKey, enroll_device, issue_api_key,
     list_api_keys_for_user, revoke_api_key,
 };
-pub use bridge_users::{BridgeUserRow, find_bridge_user};
+pub use bridge_users::{BridgeIdentityRow, find_bridge_user};
 pub use device_certs::{DeviceCertRow, revoke_device_cert};
 pub use error::{BridgeRepoError, Result};
 pub use exchange_codes::{EXCHANGE_CODE_TTL_SECONDS, IssuedExchangeCode, issue_exchange_code};

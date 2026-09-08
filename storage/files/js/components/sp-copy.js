@@ -38,8 +38,10 @@ function enhance(block) {
 
     let timer = null;
     button.addEventListener('click', async () => {
+        const text = block.textContent.trim();
+        if (!text) return;
         try {
-            await writeClipboard(block.textContent.trim());
+            await writeClipboard(text);
             button.innerHTML = ICON_DONE;
             button.classList.add('is-copied');
             button.setAttribute('aria-label', 'Copied');

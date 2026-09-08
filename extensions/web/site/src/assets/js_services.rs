@@ -52,6 +52,7 @@ pub fn service_js_assets(storage_js: &Path) -> Vec<AssetDefinition> {
 
 fn service_core_js(p: &Path) -> Vec<AssetDefinition> {
     vec![
+        svc_js!(p, "scope.js"),
         svc_js!(p, "admin-token.js"),
         svc_js!(p, "api.js"),
         svc_js!(p, "auth.js"),
@@ -82,6 +83,10 @@ fn service_webauthn_js(p: &Path) -> Vec<AssetDefinition> {
 
 fn service_utils_js(storage_js: &Path) -> Vec<AssetDefinition> {
     vec![
+        AssetDefinition::js(
+            storage_js.join("components/sp-tabs.js"),
+            "js/components/sp-tabs.js",
+        ),
         AssetDefinition::js(
             storage_js.join("utils/storage-safe.js"),
             "js/utils/storage-safe.js",

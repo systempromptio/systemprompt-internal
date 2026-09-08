@@ -21,3 +21,15 @@ pub mod gateway;
 pub mod gateway_acl;
 pub mod plan_yaml_loader;
 pub mod plan_yaml_types;
+
+pub mod groups_yaml_loader;
+
+pub mod groups_yaml_types;
+
+pub mod linked_yaml_loader;
+
+pub mod linked_yaml_types;
+
+pub mod member_grants_yaml_loader;
+
+pub mod member_grants_yaml_types;

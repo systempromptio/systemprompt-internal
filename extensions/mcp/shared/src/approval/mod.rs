@@ -80,7 +80,16 @@ pub async fn enforce_approval(
     request: &CallToolRequestParams,
     request_context: &SysRequestContext,
 ) -> GateOutcome {
-    let Some(held) = held_call(server_name, tool_name, request, request_context) else {
+    let engine = match GovernanceEngine::global() {
+        Ok(engine) => engine,
+        Err(error) => {
+            tracing::error!(tool_name, %error, "approval policy engine unavailable; refusing call");
+            return GateOutcome::Refused(Box::new(refusal(
+                "The approval policy engine is unavailable. Try again once governance is ready.",
+            )));
+        },
+    };
+    let Some(held) = held_call(engine, server_name, tool_name, request, request_context) else {
         return GateOutcome::Proceed;
     };
 
@@ -110,6 +119,7 @@ pub async fn enforce_approval(
 }
 
 fn held_call<'a>(
+    engine: &GovernanceEngine,
     server_name: &'a str,
     tool_name: &'a str,
     request: &CallToolRequestParams,
@@ -120,7 +130,7 @@ fn held_call<'a>(
         .clone()
         .map_or(serde_json::Value::Null, serde_json::Value::Object);
 
-    let (policy_config, policy) = GovernanceEngine::global()
+    let (policy_config, policy) = engine
         .policies()
         .find(|(config, _)| config.id == "require_approval" && config.enabled)?;
 

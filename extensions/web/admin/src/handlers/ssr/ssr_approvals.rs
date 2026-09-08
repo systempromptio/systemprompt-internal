@@ -1,4 +1,5 @@
-//! `/admin/governance/approvals` — the queue of tool calls held for a human.
+//! `/admin/governance/approvals/ingestion` — the queue of tool calls held for a
+//! human.
 //!
 //! The counterpart to the MCP server's approval gate: a call parked by the
 //! `require_approval` policy blocks on its `approval_requests` row, and this
@@ -35,6 +36,7 @@ use crate::types::{MarketplaceContext, UserContext};
 
 const PAGE: &str = "approvals";
 const PAGE_URL: &str = "/admin/governance/approvals";
+const INGESTION_PAGE_URL: &str = "/admin/governance/approvals/ingestion";
 
 // Why: a backlog deeper than this is an operational problem to fix, not a
 // page to paginate. Proposals accrue for a week, so they get their own budget.
@@ -203,5 +205,5 @@ async fn resolve(
         );
     }
 
-    Ok(Redirect::to(PAGE_URL).into_response())
+    Ok(Redirect::to(INGESTION_PAGE_URL).into_response())
 }

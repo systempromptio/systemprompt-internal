@@ -11,8 +11,8 @@
 mod gates;
 
 pub(crate) use gates::{
-    non_admin_gate_middleware, require_admin_middleware, require_auth_middleware,
-    require_platform_admin_middleware, require_user_middleware,
+    non_admin_gate_middleware, require_auth_middleware, require_platform_admin_middleware,
+    require_roles_middleware, require_user_middleware,
 };
 
 use std::sync::Arc;
@@ -59,15 +59,30 @@ pub(crate) async fn user_context_middleware(
         .await
         .unwrap_or_else(|| (vec!["user".to_owned()], String::new()));
 
-    let is_admin = roles.contains(&"admin".to_owned());
+    let is_admin = crate::types::roles_grant_manage(&roles);
     // Why: resolved per request rather than carried in the session token —
     // revoking a super-admin has to take effect on the next request, not
     // whenever their JWT happens to refresh.
     let is_platform_admin = is_admin && platform_member(&pool, &session.user_id).await;
+    let access =
+        super::repositories::users::queries::find_user_access_profile(&pool, &session.user_id)
+            .await;
+    let (group_ids, project_ids) = match access {
+        Ok(Some(profile)) => (profile.group_ids, profile.project_ids),
+        Ok(None) => (Vec::new(), Vec::new()),
+        Err(error) => {
+            tracing::warn!(%error, "Failed to resolve group/project memberships");
+            (Vec::new(), Vec::new())
+        },
+    };
     let ctx = UserContext {
         user_id: session.user_id,
         username: session.username,
         email: session.email,
+        is_console: crate::types::roles_grant_console(&roles),
+        is_developer: crate::types::roles_grant_developer(&roles),
+        group_ids,
+        project_ids,
         roles,
         department,
         is_admin,

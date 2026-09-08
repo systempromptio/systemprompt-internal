@@ -1,4 +1,10 @@
-const HOSTED_ARTIFACTS = {
+import { initTabs } from '/js/components/sp-tabs.js';
+
+const hasStoredTab = (key) => {
+  try { return localStorage.getItem(`sp-tabs:${key}`) !== null; } catch { return false; }
+};
+
+const ARTIFACTS = {
   macos: { label: 'Download for macOS', file: 'systemprompt-internal-bridge-macos.dmg' },
   windows: { label: 'Download for Windows', file: 'systemprompt-internal-bridge-windows.exe' },
   'linux-x86_64': { label: 'Download for Linux (x86_64)', file: 'systemprompt-internal-bridge-linux-x86_64.tar.gz' },
@@ -6,8 +12,11 @@ const HOSTED_ARTIFACTS = {
 };
 
 const detectPlatform = (ua) => {
-  if (/Macintosh|Mac OS X/i.test(ua)) return 'macos';
-  if (/Linux|Android/i.test(ua)) return /aarch64|arm64|armv8/i.test(ua) ? 'linux-aarch64' : 'linux-x86_64';
+  if (/Mac/i.test(ua)) return 'macos';
+  if (/Win/i.test(ua)) return 'windows';
+  if (/Linux|Android/i.test(ua)) {
+    return /aarch64|arm64|armv8/i.test(ua) ? 'linux-aarch64' : 'linux-x86_64';
+  }
   return 'windows';
 };
 
@@ -16,36 +25,35 @@ const gateway = pill?.dataset.gatewayUrl || '';
 const downloadBase = pill?.dataset.downloadBase || '';
 
 const cta = document.getElementById('download-cta');
-if (cta) {
-  const artifact = HOSTED_ARTIFACTS[detectPlatform(navigator.userAgent)];
-  cta.href = `${downloadBase}/${artifact.file}`;
+if (cta && downloadBase) {
+  const artifact = ARTIFACTS[detectPlatform(navigator.userAgent)];
   cta.textContent = artifact.label;
+  if (artifact.file) {
+    cta.href = `${downloadBase}/${artifact.file}`;
+    const checksum = document.getElementById('download-checksum');
+    if (checksum) checksum.href = `${downloadBase}/${artifact.file}.sha256`;
+  } else {
+    const other = document.querySelector('.sp-download-other');
+    if (other) other.open = true;
+  }
 }
 
 if (pill) {
   fetch(`${gateway}/v1/auth/bridge/capabilities`)
     .then((r) => {
-      pill.className = r.ok ? 'pill ok' : 'pill err';
+      pill.className = r.ok ? 'sp-pill is-ok' : 'sp-pill is-err';
       pill.textContent = r.ok ? 'Gateway reachable' : `Gateway error ${r.status}`;
     })
     .catch(() => {
-      pill.className = 'pill err';
+      pill.className = 'sp-pill is-err';
       pill.textContent = 'Gateway unreachable';
     });
 }
 
-const tabs = [...document.querySelectorAll('.tabs button')];
-const selectTab = (name) => {
-  for (const b of tabs) b.classList.toggle('active', b.dataset.tab === name);
-  for (const b of tabs) {
-    const panel = document.getElementById(`tab-${b.dataset.tab}`);
-    if (panel) panel.hidden = b.dataset.tab !== name;
-  }
-};
-for (const btn of tabs) btn.addEventListener('click', () => selectTab(btn.dataset.tab));
-
-if (detectPlatform(navigator.userAgent).startsWith('linux') && tabs.some((b) => b.dataset.tab === 'linux')) {
-  selectTab('linux');
+const strip = document.querySelector('[data-tabs="bridge-setup"]');
+const tabs = strip ? initTabs(strip) : null;
+if (tabs && detectPlatform(navigator.userAgent).startsWith('linux') && !hasStoredTab('bridge-setup')) {
+  tabs.select('linux');
 }
 
 const wireCopy = (btnId, srcId) => {

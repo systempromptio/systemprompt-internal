@@ -441,6 +441,41 @@ async fn hook_track_deduplicates_and_rolls_up_the_session() {
         "the first UserPromptSubmit must derive a session title"
     );
 
+    let registry: (Option<String>, Option<String>, Option<String>, Option<String>, bool) =
+        sqlx::query_as("SELECT cwd, workspace, handle, current_activity, last_event_at IS NOT NULL FROM plugin_session_summaries WHERE session_id = $1")
+            .bind(&session).fetch_one(&*db.pool).await.expect("read session registry");
+    assert_eq!(registry.0.as_deref(), Some("/tmp/contract"));
+    assert_eq!(registry.1.as_deref(), Some("contract"));
+    assert!(
+        registry
+            .2
+            .is_some_and(|handle| handle.starts_with("contract"))
+    );
+    assert!(
+        registry
+            .3
+            .is_some_and(|activity| activity.contains("governance audit"))
+    );
+    assert!(registry.4, "hook receipt refreshes live session activity");
+
+    let statusline_path = format!("/hooks/statusline?session_id={session}");
+    let statusline = r#"{"model":{"api_model_id":"claude-contract"},"cost":{"total_cost_usd":0.25},"context_window":{"context_window_size":1000,"current_usage":{"input_tokens":100,"output_tokens":50}}}"#;
+    let (status, _) = app
+        .call_with_bearer(
+            Call::json("post", &statusline_path, Principal::Anonymous, statusline),
+            &token,
+        )
+        .await;
+    assert_eq!(status, StatusCode::NO_CONTENT);
+    let counters: (i64, i16, i64, i64) = sqlx::query_as(
+        "SELECT live_cost_microdollars, context_pct, total_input_tokens, total_output_tokens FROM plugin_session_summaries WHERE session_id = $1",
+    ).bind(&session).fetch_one(&*db.pool).await.expect("legacy and new statusline counters");
+    assert_eq!(counters, (250_000, 15, 100, 50));
+    let snapshot: (i64, i64, i64) = sqlx::query_as(
+        "SELECT total_cost_microdollars, input_tokens, output_tokens FROM session_cost_snapshots WHERE session_id = $1",
+    ).bind(&session).fetch_one(&*db.pool).await.expect("new dashboard cost snapshot");
+    assert_eq!(snapshot, (250_000, 100, 50));
+
     // A daily aggregation row is what the usage dashboards read; without it the
     // event is recorded but invisible.
     let daily: i64 =

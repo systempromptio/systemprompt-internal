@@ -20,7 +20,6 @@ pub struct ChainIdentity {
     pub user_id: UserId,
     pub agent_id: Option<AgentId>,
     pub agent_scope: Option<String>,
-    pub claimed_agent: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -43,8 +42,9 @@ pub struct AiRequestSummary {
     pub id: String,
     pub request_id: AiRequestId,
     pub trace_id: Option<TraceId>,
-    pub provider: String,
-    pub model: String,
+    // Why: NULL for a gateway-rejected request, which never reached a provider.
+    pub provider: Option<String>,
+    pub model: Option<String>,
     pub status: String,
     pub input_tokens: Option<i32>,
     pub output_tokens: Option<i32>,

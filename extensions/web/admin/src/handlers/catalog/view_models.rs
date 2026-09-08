@@ -7,19 +7,59 @@ use std::collections::HashMap;
 
 use systemprompt::identifiers::SkillId;
 
-use crate::types::{ConfiguredHook, ENTITY_MCP_SERVER, ENTITY_PLUGIN, ENTITY_SKILL};
+use crate::types::{ConfiguredHook, ENTITY_PLUGIN, ENTITY_SKILL};
 
 use super::data::Catalog;
+use super::visibility::{VisibilityView, carriers_of_plugin, carriers_of_skill, visibility_for};
+use crate::repositories::marketplace::manifests::MarketplaceConfigSummary;
+use crate::types::access_control::AccessControlRule;
+
+// Why: What the visibility badge needs that the catalog walk does not carry:
+// the declared marketplace audiences and the rules written against entities.
+pub(super) struct VisibilityInput<'a> {
+    pub(super) manifests: &'a [MarketplaceConfigSummary],
+    pub(super) rules: &'a [AccessControlRule],
+}
+
+impl VisibilityInput<'_> {
+    fn plugin(&self, plugin_id: &str) -> VisibilityView {
+        let carriers = carriers_of_plugin(self.manifests, plugin_id);
+        visibility_for(self.rules, ENTITY_PLUGIN, plugin_id, &carriers)
+    }
+
+    fn skill(&self, skill_id: &SkillId, plugin_ids: &[String]) -> VisibilityView {
+        let carriers = carriers_of_skill(self.manifests, plugin_ids);
+        visibility_for(self.rules, ENTITY_SKILL, skill_id.as_str(), &carriers)
+    }
+}
 use super::view::{
-    HookRef, LinkedEntity, McpDetailData, McpListRow, PluginDetailData, PluginListRow,
-    SkillDetailData, SkillListRow, matrix_url, mcp_url, plugin_url, skill_url,
+    HookRef, LinkedEntity, PluginDetailData, PluginListRow, SkillDetailData, SkillListRow,
+    matrix_url, mcp_url, plugin_url, skill_url,
 };
 
-pub(super) fn plugin_rows(catalog: Catalog, counts: &HashMap<String, i64>) -> Vec<PluginListRow> {
+// Why: the two-crumb trail every catalog detail page carries — the listing it
+// came from, then itself. Shared so a rename of a listing is one edit.
+fn trail(
+    listing: &'static str,
+    href: &'static str,
+    current: &str,
+) -> Vec<crate::handlers::ssr::types::BreadcrumbView> {
+    vec![
+        crate::handlers::ssr::types::BreadcrumbView::link(listing, href),
+        crate::handlers::ssr::types::BreadcrumbView::current(current.to_owned()),
+    ]
+}
+
+pub(super) fn plugin_rows(
+    catalog: Catalog,
+    counts: &HashMap<String, i64>,
+    visibility: &VisibilityInput<'_>,
+) -> Vec<PluginListRow> {
     catalog
         .plugins
         .into_iter()
         .map(|p| PluginListRow {
+            visibility: visibility.plugin(&p.id),
             detail_url: plugin_url(&p.id),
             matrix_url: matrix_url(ENTITY_PLUGIN, &p.id),
             skills_count: p.skills.len(),
@@ -37,30 +77,36 @@ pub(super) fn plugin_rows(catalog: Catalog, counts: &HashMap<String, i64>) -> Ve
         .collect()
 }
 
-pub(super) fn plugin_detail(
-    catalog: &Catalog,
-    plugin_id: &str,
-    assignment_count: i64,
-) -> Option<PluginDetailData> {
-    let skill_names: HashMap<String, String> = catalog
+// Why: a plugin names its skills by id; the catalog is what knows their
+// display names, and a skill a plugin names but the catalog has lost falls
+// back to its id rather than disappearing from the plugin's member list.
+fn plugin_skills(catalog: &Catalog, plugin: &crate::types::PluginDetail) -> Vec<LinkedEntity> {
+    let names: HashMap<String, String> = catalog
         .skills
         .iter()
         .map(|s| (s.id.as_str().to_owned(), s.name.clone()))
         .collect();
-    let plugin = catalog.plugins.iter().find(|p| p.id == plugin_id)?;
-
-    let skills = plugin
+    plugin
         .skills
         .iter()
         .map(|s| {
             let id = s.as_str().to_owned();
             LinkedEntity {
-                name: skill_names.get(&id).cloned().unwrap_or_else(|| id.clone()),
+                name: names.get(&id).cloned().unwrap_or_else(|| id.clone()),
                 url: skill_url(&id),
                 id,
             }
         })
-        .collect::<Vec<_>>();
+        .collect()
+}
+
+pub(super) fn plugin_detail(
+    catalog: &Catalog,
+    plugin_id: &str,
+    assignment_count: i64,
+) -> Option<PluginDetailData> {
+    let plugin = catalog.plugins.iter().find(|p| p.id == plugin_id)?;
+    let skills = plugin_skills(catalog, plugin);
     let mcp_servers = plugin
         .mcp_servers
         .iter()
@@ -96,6 +142,7 @@ pub(super) fn plugin_detail(
         .unwrap_or_default();
 
     Some(PluginDetailData {
+        breadcrumbs: trail("Plugins", "/admin/plugins", &plugin.name),
         page: "plugin-detail",
         title: plugin.name.clone(),
         matrix_url: matrix_url(ENTITY_PLUGIN, &plugin.id),
@@ -131,13 +178,23 @@ fn hook_ref(h: &ConfiguredHook) -> HookRef {
     }
 }
 
-pub(super) fn skill_rows(catalog: &Catalog, counts: &HashMap<String, i64>) -> Vec<SkillListRow> {
+pub(super) fn skill_rows(
+    catalog: &Catalog,
+    counts: &HashMap<String, i64>,
+    visibility: &VisibilityInput<'_>,
+) -> Vec<SkillListRow> {
     catalog
         .skills
         .iter()
         .map(|s| {
             let id = s.id.as_str().to_owned();
+            let plugin_ids: Vec<String> = catalog
+                .plugins_by_skill
+                .get(&id)
+                .map(|links| links.iter().map(|l| l.id.clone()).collect())
+                .unwrap_or_default();
             SkillListRow {
+                visibility: visibility.skill(&s.id, &plugin_ids),
                 detail_url: skill_url(&id),
                 matrix_url: matrix_url(ENTITY_SKILL, &id),
                 assignment_count: counts.get(&id).copied().unwrap_or(0),
@@ -165,6 +222,10 @@ pub(super) fn skill_detail(
         .cloned()
         .unwrap_or_default();
     Some(SkillDetailData {
+        breadcrumbs: trail("Skills", "/admin/skills", &entry.name),
+        // Why: the catalog page defines the skill; the analytics tab says who
+        // actually runs it. They are different pages and this is the hop.
+        activity_url: format!("/admin/analytics?tab=skills&skill={id}"),
         page: "skill-detail",
         title: entry.name.clone(),
         matrix_url: matrix_url(ENTITY_SKILL, id),
@@ -176,58 +237,5 @@ pub(super) fn skill_detail(
         description: entry.description.clone(),
         enabled: entry.enabled,
         source_path: entry.source_path.clone(),
-    })
-}
-
-pub(super) fn mcp_rows(catalog: &Catalog, counts: &HashMap<String, i64>) -> Vec<McpListRow> {
-    catalog
-        .mcp
-        .iter()
-        .map(|m| {
-            let id = m.id.as_str().to_owned();
-            McpListRow {
-                detail_url: mcp_url(&id),
-                matrix_url: matrix_url(ENTITY_MCP_SERVER, &id),
-                assignment_count: counts.get(&id).copied().unwrap_or(0),
-                plugin_count: catalog.plugins_by_mcp.get(&id).map_or(0, Vec::len),
-                name: id.clone(),
-                id,
-                description: m.description.clone(),
-                enabled: m.enabled,
-                oauth_required: m.oauth_required,
-                source_path: m.source_path.clone(),
-            }
-        })
-        .collect()
-}
-
-pub(super) fn mcp_detail(
-    catalog: &Catalog,
-    mcp_id: &str,
-    assignment_count: i64,
-) -> Option<McpDetailData> {
-    let server = catalog.mcp.iter().find(|m| m.id.as_str() == mcp_id)?;
-    let included_by = catalog
-        .plugins_by_mcp
-        .get(mcp_id)
-        .cloned()
-        .unwrap_or_default();
-    Some(McpDetailData {
-        page: "mcp-detail",
-        title: mcp_id.to_owned(),
-        matrix_url: matrix_url(ENTITY_MCP_SERVER, mcp_id),
-        assignment_count,
-        included_by_count: included_by.len(),
-        included_by,
-        description: server.description.clone(),
-        enabled: server.enabled,
-        server_type: server.server_type.clone(),
-        endpoint: server.endpoint.clone(),
-        port: server.port,
-        oauth_required: server.oauth_required,
-        oauth_scopes: server.oauth_scopes.clone(),
-        oauth_audience: server.oauth_audience.clone(),
-        source_path: server.source_path.clone(),
-        id: mcp_id.to_owned(),
     })
 }

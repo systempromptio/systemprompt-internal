@@ -1,26 +1,26 @@
 //! Effective-permissions computation for the user-detail page.
 //!
-//! For a given user's roles, resolves every gateway route and every MCP
-//! server through core's parent-chain resolver — the same chain the
-//! enforcement webhook and the bridge manifest use — returning per-entity
-//! Allow/Deny decisions with the rule that decided. The view layer renders
-//! these as collapsible sections under an "Effective Permissions" tab.
+//! For a given user's roles, runs the pure
+//! [`systemprompt_security::authz::resolver::resolve`] resolver against every
+//! gateway route and every MCP server, returning per-entity Allow/Deny
+//! decisions with the rule that decided. The view layer renders these as
+//! collapsible sections under an "Effective Permissions" tab.
 //!
 //! Every subject dimension this extension declares participates, not just user
-//! and role: the department a user belongs to is looked up once per page via
+//! and role: the AD groups a user holds are looked up once per page via
 //! [`crate::authz::subject_attributes_for`] and handed to the resolver with
-//! the rest, so a grant a department rule alone confers shows up here exactly
-//! as it does at the enforcement point.
+//! the rest, so a grant a group rule alone confers shows up here exactly as it
+//! does at the enforcement point.
 
 use std::sync::Arc;
 
 use serde::Serialize;
 use sqlx::PgPool;
 use systemprompt::identifiers::{McpServerId, RouteId, UserId};
-use systemprompt::loader::ConfigLoader;
+use systemprompt_security::authz::resolver::{ResolveInput, resolve};
 use systemprompt_security::authz::{
-    AccessControlRepository, AccessRule, ChainSources, Decision, EntityKind, EntityRef, MatchedBy,
-    ParentChainIndex, ResolveBase, SubjectAttributes, SubjectDimension,
+    AccessControlRepository, AccessRule, Decision, EntityKind, EntityRef, MatchedBy,
+    SubjectAttributes, SubjectDimension,
 };
 
 use crate::authz::{dimensions, subject_attributes_for};
@@ -43,6 +43,7 @@ pub struct EffectivePermissions {
     pub mcp_servers: Vec<EntityDecision>,
 }
 
+// Why: lint-ok: unused-pub — the internal fork still calls this.
 pub async fn compute_effective_permissions(
     pool: &PgPool,
     user_id: &UserId,
@@ -53,7 +54,6 @@ pub async fn compute_effective_permissions(
     let repo = AccessControlRepository::from_pool(Arc::new(pool.clone()));
     let attributes = subject_attributes_for(pool, user_id).await;
     let dimensions = dimensions(pool);
-    let index = load_chain_index(&repo).await;
 
     let gateway_rules = repo
         .list_rules_bulk(EntityKind::GatewayRoute, &gateway_ids)
@@ -77,7 +77,6 @@ pub async fn compute_effective_permissions(
             .flatten()
             .map(|e| e.default_included);
         gateway_routes.push(decide(DecideArgs {
-            index: &index,
             entity: EntityRef::GatewayRoute(RouteId::new(id.clone())),
             rules: &rules,
             user_id: user_id.as_str(),
@@ -101,7 +100,6 @@ pub async fn compute_effective_permissions(
             .flatten()
             .map(|e| e.default_included);
         mcp_servers.push(decide(DecideArgs {
-            index: &index,
             entity: EntityRef::McpServer(McpServerId::new(id.clone())),
             rules: &rules,
             user_id: user_id.as_str(),
@@ -118,24 +116,7 @@ pub async fn compute_effective_permissions(
     }
 }
 
-async fn load_chain_index(repo: &AccessControlRepository) -> ParentChainIndex {
-    let services = match ConfigLoader::load() {
-        Ok(services) => services,
-        Err(e) => {
-            tracing::warn!(error = %e, "effective: services config unavailable; no parent cascade");
-            return ParentChainIndex::default();
-        },
-    };
-    ParentChainIndex::load(repo, Arc::new(ChainSources::from_services(&services)))
-        .await
-        .unwrap_or_else(|e| {
-            tracing::warn!(error = %e, "effective: parent chain load failed; no parent cascade");
-            ParentChainIndex::default()
-        })
-}
-
 struct DecideArgs<'a> {
-    index: &'a ParentChainIndex,
     entity: EntityRef,
     rules: &'a [AccessRule],
     user_id: &'a str,
@@ -147,7 +128,6 @@ struct DecideArgs<'a> {
 
 fn decide(args: DecideArgs<'_>) -> EntityDecision {
     let DecideArgs {
-        index,
         entity,
         rules,
         user_id,
@@ -157,25 +137,22 @@ fn decide(args: DecideArgs<'_>) -> EntityDecision {
         dimensions,
     } = args;
     let uid = UserId::new(user_id);
-    let dec = index.resolve(
-        entity.kind(),
-        entity.id_str(),
-        ResolveBase {
-            rules,
-            user_id: &uid,
-            user_roles,
-            default_included,
-            attributes,
-            dimensions,
-        },
-    );
+    let dec = resolve(ResolveInput {
+        entity: &entity,
+        rules,
+        user_id: &uid,
+        user_roles,
+        default_included,
+        parents: &[],
+        attributes,
+        dimensions,
+    });
     let (decision, reason) = match dec {
         Decision::Allow { matched_by } => ("allow".to_owned(), allow_reason(&uid, &matched_by)),
         Decision::Warn { reason } => ("warn".to_owned(), reason.to_string()),
         Decision::Deny { reason } => ("deny".to_owned(), reason.to_string()),
-        // Why: the matrix reports what the chain said, verbatim. Rendering a
-        // hold as an allow or a deny would misreport the one cell whose
-        // answer is "it depends on a person".
+        // Why: a hold is neither reach nor refusal, and flattening it into
+        // either would misreport effective access. The view names it.
         Decision::Pending { reason } => ("pending".to_owned(), reason.to_string()),
     };
     let tab = if entity.kind() == EntityKind::GatewayRoute {
@@ -202,9 +179,11 @@ fn allow_reason(user_id: &UserId, matched_by: &MatchedBy) -> String {
 }
 
 fn collect_gateway_ids() -> Result<Vec<String>, AdminError> {
-    let cfg = repositories::config::gateway::get_gateway_config()
+    let services = systemprompt::loader::ServicesBootstrap::get()
         .map_err(|e| AdminError::internal(e.to_string()))?;
-    Ok(cfg.routes.into_iter().map(|r| r.id).collect())
+    Ok(repositories::config::gateway::dispatchable_route_ids(
+        services,
+    ))
 }
 
 fn collect_mcp_ids() -> Result<Vec<String>, AdminError> {

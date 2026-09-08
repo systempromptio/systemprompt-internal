@@ -1,46 +1,64 @@
 {{#> layout title=title page=page}}
-    {{#*inline "head_extra"}}{{/inline}}
     {{#*inline "content"}}
-    {{> components/page-header title=title subtitle="Skills are reusable instruction sets. Read-only: loaded from services/skills/* and granted to an enterprise by the plan it is on."}}
+    {{> components/breadcrumbs crumbs=breadcrumbs}}
+    {{#> components/page-header title=title subtitle=subtitle}}
+        {{#*inline "header_meta"}}
+            <span>Read-only: services/skills/&lt;id&gt;/config.yaml</span>
+        {{/inline}}
+        {{#*inline "header_actions"}}
+            <a class="sp-btn sp-btn--sm sp-btn--outline" href="/admin/analytics?tab=skills">Skill activity</a>
+            <a class="sp-btn sp-btn--sm sp-btn--outline" href="{{access_control_url}}">Who can run these</a>
+        {{/inline}}
+    {{/components/page-header}}
 
-    <div class="toolbar" role="toolbar" aria-label="Skill filters">
-        <div class="search-group">
-            <input type="text" class="search-input" placeholder="Search skills…" id="catalog-search" aria-label="Search skills">
-        </div>
-        <span class="text-muted catalog-count">{{skills_count}} skill{{#unless (eq skills_count 1)}}s{{/unless}}</span>
-    </div>
+    <section class="sp-kpi-grid" aria-label="Skill totals">
+        {{#each kpis}}
+        {{> components/kpi label=this.label value=this.value note=this.sub tone=this.tone}}
+        {{/each}}
+    </section>
 
-    {{#if skills_count}}
-    {{#> components/data-table}}
+    <section aria-label="Skills">
+    {{> components/section title="Skills" count=skills_count note="Definitions. Who actually runs them is on the skills tab of AI activity."}}
+    {{#> components/toolbar toolbar_count=skills_count}}
+        {{#*inline "toolbar_filters"}}
+        <form class="sp-toolbar__search" method="get" action="/admin/skills" role="search">
+            <label class="sp-u-sr-only" for="catalog-search">Search skills</label>
+            <input type="search" name="q" class="sp-search-input" id="catalog-search" value="{{search}}" placeholder="Filter skills…">
+        </form>
+        {{/inline}}
+        {{#*inline "toolbar_actions"}}
+        {{#if search}}<a class="sp-btn sp-btn--xs sp-btn--ghost" href="/admin/skills">Clear filter</a>{{/if}}
+        {{/inline}}
+    {{/components/toolbar}}
+
+    {{#> components/table caption="Skills with the plugins that carry them, visibility and grants" modifier="sp-p-catalog__table"}}
         <thead><tr>
-            <th>Name</th>
-            <th>ID</th>
-            <th>Description</th>
-            <th class="col-status">Status</th>
-            <th class="numeric col-numeric">Plugins</th>
-            <th class="numeric col-numeric">Assignments</th>
-            <th class="col-actions"></th>
+            {{#each sort_headers}}{{> components/sort-header this}}{{/each}}
+            <th class="sp-table__cell--actions"><span class="sp-u-sr-only">Actions</span></th>
         </tr></thead>
         <tbody>
         {{#each skills}}
-        <tr data-search="{{toLowerCase name}} {{toLowerCase id}}">
-            <td><a class="table-link" href="{{detail_url}}">{{name}}</a></td>
-            <td><code class="code-inline">{{id}}</code></td>
-            <td>{{#if description}}{{truncate description 90}}{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
-            <td class="col-status">{{#if enabled}}<span class="badge badge-success">enabled</span>{{else}}<span class="badge badge-muted">disabled</span>{{/if}}</td>
-            <td class="numeric col-numeric">{{plugin_count}}</td>
-            <td class="numeric col-numeric">{{assignment_count}}</td>
-            <td class="col-actions"><a class="btn btn-sm btn-outline" href="{{detail_url}}">View →</a></td>
+        <tr data-skill-id="{{id}}">
+            <td class="sp-table__cell--primary"><a class="sp-table__link" href="{{detail_url}}" title="{{description}}">{{name}}</a></td>
+            <td>{{#if enabled}}{{> components/badge tone="ok" text="enabled"}}{{else}}{{> components/badge tone="muted" text="disabled"}}{{/if}}</td>
+            <td class="sp-table__cell--num sp-u-num">{{plugin_count}}</td>
+            <td>{{> components/visibility-badge visibility}}</td>
+            <td class="sp-table__cell--num sp-u-num">{{#if assignment_count}}<a class="sp-table__link" href="{{matrix_url}}">{{assignment_count}}</a>{{else}}<span class="sp-u-text-tertiary">0</span>{{/if}}</td>
+            <td class="sp-table__cell--actions">
+                <a class="sp-btn sp-btn--xs sp-btn--outline" href="{{detail_url}}">Open</a>
+            </td>
         </tr>
+        {{else}}
+        <tr class="sp-table__empty"><td colspan="6">
+            {{#if search}}
+            {{> components/empty-state title="Nothing matches" message="No skill matches that filter."}}
+            {{else}}
+            {{> components/empty-state title="No skills" message="Add a services/skills/<id>/config.yaml and restart."}}
+            {{/if}}
+        </td></tr>
         {{/each}}
         </tbody>
-    {{/components/data-table}}
-    {{else}}
-    {{> components/empty-state message="No skills configured. Add a services/skills/<id>/config.yaml and restart."}}
-    {{/if}}
-
-    {{/inline}}
-    {{#*inline "scripts"}}
-    <script type="module" src="/js/pages/admin-catalog-filter.js?v={{css_version}}"></script>
+    {{/components/table}}
+    </section>
     {{/inline}}
 {{/layout}}

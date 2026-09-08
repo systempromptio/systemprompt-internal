@@ -1,208 +1,31 @@
-//! `/admin/access/users` user roster (grouped by department) and the
-//! per-user detail page.
+//! The People pages: the `/admin/users` roster and the per-user detail page.
+//!
+//! Both are flat and URL-driven — every filter, sort, page and tab is a query
+//! parameter, so any view an operator is looking at is a link they can send to
+//! someone else.
 
-use std::sync::Arc;
+mod detail;
+mod roster;
+mod scope_data;
 
-use systemprompt::identifiers::UserId;
+// Why: the roster's own URL, which every link on both pages is built relative
+// to.
+pub(super) const BASE_URL: &str = "/admin/users";
 
-use crate::error::{AdminError, AdminHtmlResult};
-use crate::repositories;
-use crate::templates::AdminTemplateEngine;
-use crate::types::{IdQuery, MarketplaceContext, UserContext};
-use axum::extract::{Extension, Query, State};
-use axum::response::Response;
-use serde::Deserialize;
-use sqlx::PgPool;
+pub(crate) use detail::user_detail_page as user_detail_by_id_page;
+pub(crate) use roster::users_page;
 
-use super::types::{PageStatView, UserDetailPageData, UserRuntimeView, UsersPageData};
+use axum::extract::Query;
+use axum::response::Redirect;
 
-mod data;
-mod view;
+use crate::types::IdQuery;
 
-// Why: anonymous visitors are user rows; the roster excludes them unless the
-// operator asks, so the page can still be used to inspect raw traffic.
-#[derive(Debug, Default, Deserialize)]
-pub(crate) struct UsersRosterQuery {
-    #[serde(default)]
-    pub include_anonymous: bool,
-}
-
-pub(crate) async fn users_page(
-    Extension(user_ctx): Extension<UserContext>,
-    Extension(mkt_ctx): Extension<MarketplaceContext>,
-    Extension(engine): Extension<AdminTemplateEngine>,
-    State(pool): State<Arc<PgPool>>,
-    Query(query): Query<UsersRosterQuery>,
-) -> AdminHtmlResult<Response> {
-    if !user_ctx.is_admin {
-        return Err(AdminError::Forbidden("Admin access required.".to_owned()).into());
-    }
-
-    let users = repositories::users::queries::list_users_filtered(&pool, query.include_anonymous)
-        .await
-        .unwrap_or_else(|e| {
-            tracing::warn!(error = %e, "Failed to list users");
-            vec![]
-        });
-
-    let total_users = users.len();
-    let active_users = users.iter().filter(|u| u.is_active).count();
-    let total_events: i64 = users.iter().map(|u| u.total_events).sum();
-
-    let anonymous_users = repositories::users::queries::count_anonymous_users(&pool)
-        .await
-        .unwrap_or_else(|e| {
-            tracing::warn!(error = %e, "Failed to count anonymous users");
-            0
-        });
-
-    let groups = data::load_user_groups(&pool, &users).await;
-
-    let page_stats = vec![
-        PageStatView {
-            value: total_users as i64,
-            label: "Users",
-        },
-        PageStatView {
-            value: active_users as i64,
-            label: "Active",
-        },
-        PageStatView {
-            value: total_events,
-            label: "Events",
-        },
-        PageStatView {
-            value: anonymous_users,
-            label: "Anonymous",
-        },
-    ];
-
-    let data = UsersPageData {
-        page: "users",
-        title: "Users",
-        groups,
-        total_users,
-        active_users,
-        total_events,
-        anonymous_users,
-        include_anonymous: query.include_anonymous,
-        page_stats,
-    };
-
-    Ok(super::render_typed_page(
-        &engine, "users", &data, &user_ctx, &mkt_ctx,
-    ))
-}
-
-pub(crate) async fn user_detail_page(
-    Extension(user_ctx): Extension<UserContext>,
-    Extension(mkt_ctx): Extension<MarketplaceContext>,
-    Extension(engine): Extension<AdminTemplateEngine>,
-    State(pool): State<Arc<PgPool>>,
-    Query(params): Query<IdQuery>,
-) -> AdminHtmlResult<Response> {
-    if !user_ctx.is_admin && Some(user_ctx.user_id.as_str()) != params.id() {
-        return Err(AdminError::Forbidden("You can only view your own profile.".to_owned()).into());
-    }
-
-    let Some(id) = params.id() else {
-        let data = blank_user_detail();
-        return Ok(super::render_typed_page(
-            &engine,
-            "user-detail",
-            &data,
-            &user_ctx,
-            &mkt_ctx,
-        ));
-    };
-    let user_id = UserId::new(id);
-
-    // Why: `Err` and `Ok(None)` must not collapse together here: this value alone
-    // decides whether the page renders "User not found.", so a failed query
-    // would tell an admin the account had been deleted. Only a genuine absence
-    // is a not-found.
-    let detail = repositories::users::queries::find_user_detail(&pool, &user_id).await?;
-    let gamification: Option<crate::types::UserGamificationProfile> = None;
-
-    let not_found = detail.is_none();
-
-    let (user_department, user_assignments, user_devices, user_devices_count, effective) =
-        match detail.as_ref() {
-            Some(d) => data::collect_user_detail_extras(&pool, d).await?,
-            None => (
-                String::new(),
-                super::types::UserAssignmentSummary::default(),
-                Vec::new(),
-                0,
-                None,
-            ),
-        };
-
-    let runtime = match detail.as_ref() {
-        Some(d) => load_runtime_view(&pool, d).await,
-        None => None,
-    };
-
-    let departments = data::list_departments(&pool, &user_department).await;
-
-    let has_effective_permissions = effective
-        .as_ref()
-        .is_some_and(|eff| !eff.gateway_routes.is_empty() || !eff.mcp_servers.is_empty());
-
-    let data = UserDetailPageData {
-        page: "user-detail",
-        title: "User Detail",
-        user: detail,
-        gamification,
-        not_found,
-        user_department,
-        user_assignments,
-        user_devices,
-        user_devices_count,
-        departments,
-        runtime,
-        effective_permissions: effective,
-        has_effective_permissions,
-    };
-    Ok(super::render_typed_page(
-        &engine,
-        "user-detail",
-        &data,
-        &user_ctx,
-        &mkt_ctx,
-    ))
-}
-
-fn blank_user_detail() -> UserDetailPageData {
-    UserDetailPageData {
-        page: "user-detail",
-        title: "User Detail",
-        user: None,
-        gamification: None,
-        not_found: true,
-        user_department: String::new(),
-        user_assignments: super::types::UserAssignmentSummary::default(),
-        user_devices: Vec::new(),
-        user_devices_count: 0,
-        departments: Vec::new(),
-        runtime: None,
-        effective_permissions: None,
-        has_effective_permissions: false,
-    }
-}
-
-async fn load_runtime_view(pool: &PgPool, d: &crate::types::UserDetail) -> Option<UserRuntimeView> {
-    repositories::users::queries::get_user_runtime_detail(pool, &d.user_id)
-        .await
-        .ok()
-        .map(|r| UserRuntimeView {
-            connected_agents: r.connected_agents,
-            total_agents: r.total_agents,
-            tokens_in: r.tokens_in,
-            tokens_out: r.tokens_out,
-            last_bridge_version: r.last_bridge_version,
-            last_os: r.last_os,
-            last_hostname: r.last_hostname,
-            last_heartbeat_at: r.last_heartbeat_at.map(|t| t.to_rfc3339()),
-        })
+// Why: the header search and a few older links still resolve a user as
+// `?id=`. There is one canonical URL for a person now, so this form redirects
+// to it rather than rendering a second copy of the page at a second address.
+pub(crate) async fn user_detail_page(Query(params): Query<IdQuery>) -> Redirect {
+    params.id().map_or_else(
+        || Redirect::permanent(BASE_URL),
+        |id| Redirect::permanent(&format!("{BASE_URL}/{}", urlencoding::encode(id))),
+    )
 }

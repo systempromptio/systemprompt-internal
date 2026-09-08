@@ -201,32 +201,6 @@ impl App {
         (status, headers.location.unwrap_or_default())
     }
 
-    // Status plus the response header the redirect-driven flows are specified
-    // in terms of.
-    //
-    // `call` reads the body, which is empty on a redirect: the entire outcome
-    // of a redirect — where the browser goes next — lives in `Location`.
-    async fn response_headers_with(
-        &self,
-        call: Call<'_>,
-        extra_headers: &[(&str, &str)],
-    ) -> (StatusCode, ResponseHeaders) {
-        let request = self.build_request(call, None, extra_headers);
-        let response = self
-            .router
-            .clone()
-            .oneshot(request)
-            .await
-            .expect("router is infallible");
-        let status = response.status();
-        let headers = response.headers();
-        let location = headers
-            .get("location")
-            .and_then(|v| v.to_str().ok())
-            .map(ToOwned::to_owned);
-        (status, ResponseHeaders { location })
-    }
-
     async fn dispatch(
         &self,
         call: Call<'_>,
@@ -282,11 +256,6 @@ impl App {
     }
 }
 
-// The response header the redirect-driven flows are specified in terms of.
-struct ResponseHeaders {
-    location: Option<String>,
-}
-
 // One request, spelled out.
 pub struct Call<'a> {
     pub method: &'a str,
@@ -322,3 +291,5 @@ impl<'a> Call<'a> {
         }
     }
 }
+
+mod response_headers;

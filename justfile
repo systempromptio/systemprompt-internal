@@ -99,6 +99,14 @@ build-force *FLAGS:
 _build-uncoordinated *FLAGS:
     #!/usr/bin/env bash
     set -euo pipefail
+    # Explicit offline validation must never migrate an existing database.
+    if [ "${SQLX_OFFLINE:-}" = "true" ]; then
+        export CC="${CC:-clang}"
+        export CXX="${CXX:-clang++}"
+        export RUSTFLAGS="${RUSTFLAGS:--D warnings}"
+        cargo build --workspace --locked {{FLAGS}}
+        exit 0
+    fi
     # Default to the `local` profile when one is set up but no SYSTEMPROMPT_PROFILE
     # is explicitly exported — keeps the in-build migrate step from failing
     # with "Profile '' not found" on a fresh clone where setup-local writes
@@ -2242,3 +2250,14 @@ bridge-windows-shots PORT="4312":
     done
     cd playwright && BRIDGE_PREVIEW_URL="http://127.0.0.1:{{PORT}}" \
         npx playwright test tests/bridge-windows-shell.spec.ts
+
+# Print a short-lived login link for an active user on a local development profile.
+dev-login USER:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    export SYSTEMPROMPT_PROFILE="${SYSTEMPROMPT_PROFILE:-{{justfile_directory()}}/.systemprompt/profiles/local/profile.yaml}"
+    exec {{CLI}} plugins run dev-login "{{USER}}"
+
+# Focused functional regression checks for shared dashboard changes.
+test-dashboard stage="all":
+    @scripts/build-coordinator.sh run test-dashboard "{{stage}}" -- bash scripts/test-dashboard.sh "{{stage}}"

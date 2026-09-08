@@ -43,14 +43,30 @@ pub(super) struct PluginListRow {
     pub(super) source_path: String,
     pub(super) detail_url: String,
     pub(super) matrix_url: String,
+    pub(super) visibility: super::visibility::VisibilityView,
+}
+
+// Why: A headline figure on a catalog list page.
+#[derive(Debug, Clone, Serialize)]
+pub(super) struct CatalogKpiView {
+    pub(super) label: &'static str,
+    pub(super) value: String,
+    pub(super) sub: String,
+    pub(super) tone: &'static str,
 }
 
 #[derive(Debug, Serialize)]
 pub(super) struct PluginsPageData {
     pub(super) page: &'static str,
     pub(super) title: &'static str,
+    pub(super) subtitle: &'static str,
+    pub(super) breadcrumbs: Vec<crate::handlers::ssr::types::BreadcrumbView>,
+    pub(super) kpis: Vec<CatalogKpiView>,
+    pub(super) sort_headers: Vec<super::sorting::SortHeaderView>,
     pub(super) plugins: Vec<PluginListRow>,
     pub(super) plugins_count: usize,
+    pub(super) access_control_url: &'static str,
+    pub(super) search: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -64,42 +80,28 @@ pub(super) struct SkillListRow {
     pub(super) source_path: String,
     pub(super) detail_url: String,
     pub(super) matrix_url: String,
+    pub(super) visibility: super::visibility::VisibilityView,
 }
 
 #[derive(Debug, Serialize)]
 pub(super) struct SkillsPageData {
     pub(super) page: &'static str,
     pub(super) title: &'static str,
+    pub(super) subtitle: &'static str,
+    pub(super) breadcrumbs: Vec<crate::handlers::ssr::types::BreadcrumbView>,
+    pub(super) kpis: Vec<CatalogKpiView>,
+    pub(super) sort_headers: Vec<super::sorting::SortHeaderView>,
     pub(super) skills: Vec<SkillListRow>,
     pub(super) skills_count: usize,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct McpListRow {
-    pub(super) id: String,
-    pub(super) name: String,
-    pub(super) description: String,
-    pub(super) enabled: bool,
-    pub(super) oauth_required: bool,
-    pub(super) plugin_count: usize,
-    pub(super) assignment_count: i64,
-    pub(super) source_path: String,
-    pub(super) detail_url: String,
-    pub(super) matrix_url: String,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct McpPageData {
-    pub(super) page: &'static str,
-    pub(super) title: &'static str,
-    pub(super) servers: Vec<McpListRow>,
-    pub(super) servers_count: usize,
+    pub(super) access_control_url: &'static str,
+    pub(super) search: String,
 }
 
 #[derive(Debug, Serialize)]
 pub(super) struct PluginDetailData {
     pub(super) page: &'static str,
     pub(super) title: String,
+    pub(super) breadcrumbs: Vec<crate::handlers::ssr::types::BreadcrumbView>,
     pub(super) id: String,
     pub(super) name: String,
     pub(super) description: String,
@@ -126,6 +128,8 @@ pub(super) struct PluginDetailData {
 pub(super) struct SkillDetailData {
     pub(super) page: &'static str,
     pub(super) title: String,
+    pub(super) breadcrumbs: Vec<crate::handlers::ssr::types::BreadcrumbView>,
+    pub(super) activity_url: String,
     pub(super) id: String,
     pub(super) name: String,
     pub(super) description: String,
@@ -137,40 +141,20 @@ pub(super) struct SkillDetailData {
     pub(super) included_by_count: usize,
 }
 
-#[derive(Debug, Serialize)]
-pub(super) struct McpDetailData {
-    pub(super) page: &'static str,
-    pub(super) title: String,
-    pub(super) id: String,
-    pub(super) description: String,
-    pub(super) enabled: bool,
-    pub(super) server_type: String,
-    pub(super) endpoint: String,
-    pub(super) port: u16,
-    pub(super) oauth_required: bool,
-    pub(super) oauth_scopes: Vec<String>,
-    pub(super) oauth_audience: String,
-    pub(super) source_path: String,
-    pub(super) matrix_url: String,
-    pub(super) assignment_count: i64,
-    pub(super) included_by: Vec<LinkedEntity>,
-    pub(super) included_by_count: usize,
-}
-
 pub(super) fn matrix_url(entity_type: &str, entity_id: &str) -> String {
-    format!("/admin/access/matrix?entity_type={entity_type}&entity_id={entity_id}")
+    format!("/admin/access-control?entity_type={entity_type}&entity_id={entity_id}")
 }
 
 pub(super) fn plugin_url(id: &str) -> String {
-    format!("/admin/catalog/plugins/{id}")
+    format!("/admin/plugins/{id}")
 }
 
 pub(super) fn skill_url(id: &str) -> String {
-    format!("/admin/catalog/skills/{id}")
+    format!("/admin/skills/{id}")
 }
 
 pub(super) fn mcp_url(id: &str) -> String {
-    format!("/admin/catalog/mcp/{id}")
+    format!("/admin/mcp/{id}")
 }
 
 pub(super) async fn assignment_counts_by_type(

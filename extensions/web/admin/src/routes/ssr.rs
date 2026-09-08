@@ -16,7 +16,9 @@ pub fn admin_ssr_router(
     engine: AdminTemplateEngine,
     auth_deps: AuthDeps,
 ) -> Router {
-    let inner = root_routes()
+    let inner = super::dashboard_redirects::legacy_routes()
+        .merge(super::ssr_dashboard::dashboard_routes())
+        .merge(root_routes())
         .merge(enterprise_routes())
         .merge(access_routes())
         .merge(catalog_routes())
@@ -24,6 +26,9 @@ pub fn admin_ssr_router(
         .merge(demo_routes())
         .merge(account_routes())
         .merge(api_routes())
+        .layer(axum_middleware::from_fn(
+            super::ssr_write_gate::require_write_access,
+        ))
         .layer(Extension(engine.clone()))
         .layer(Extension(auth_deps.clone()))
         .layer(axum_middleware::from_fn(
@@ -59,22 +64,26 @@ pub fn admin_ssr_router(
 // they have an Odoo account. Keeping them on separate paths means neither
 // login page has to explain the other's failure modes.
 fn public_routes() -> Router<Arc<PgPool>> {
-    Router::new()
+    let public = Router::new()
         .route("/login", get(handlers::ssr::login_page))
         .route("/login/operator", get(handlers::ssr::operator_login_page))
         .route("/auth/odoo/login", post(handlers::odoo_auth::odoo_login))
         .route(
             "/auth/passkey/register",
             post(handlers::passkey_auth::passkey_register),
+        );
+    if handlers::dev_login::dev_login_enabled() {
+        public.route(
+            "/auth/dev/login",
+            get(handlers::dev_login::dev_login_redeem),
         )
+    } else {
+        public
+    }
 }
 
 fn root_routes() -> Router<Arc<PgPool>> {
-    Router::new().route("/", get(root_redirect))
-}
-
-async fn root_redirect() -> axum::response::Redirect {
-    axum::response::Redirect::to("/admin/profile")
+    Router::new().route("/", get(handlers::ssr::overview_page))
 }
 
 fn enterprise_routes() -> Router<Arc<PgPool>> {
@@ -113,18 +122,9 @@ fn access_routes() -> Router<Arc<PgPool>> {
             "/reports/customer",
             get(handlers::ssr::report_customer_page),
         )
-        // Why: the token and access-matrix *pages* are gone — entitlement is
-        // derived from the organization's plan, and tokens are minted by the
-        // bridge's device-link flow. These endpoints are that flow's API.
-        .route("/devices/pats", post(handlers::devices::issue_pat))
-        .route(
-            "/devices/pats/{id}",
-            axum::routing::delete(handlers::devices::revoke_pat),
-        )
-        .route(
-            "/devices/certs/{id}",
-            axum::routing::delete(handlers::devices::revoke_cert),
-        )
+    // Why: the token and access-matrix *pages* are gone — entitlement is
+    // derived from the organization's plan, and tokens are minted by the
+    // bridge's device-link flow. These endpoints are that flow's API.
 }
 
 fn catalog_routes() -> Router<Arc<PgPool>> {
@@ -147,10 +147,13 @@ fn catalog_routes() -> Router<Arc<PgPool>> {
             "/catalog/skills/{skill_id}",
             get(handlers::catalog::skill_detail_page),
         )
-        .route("/catalog/mcp", get(handlers::catalog::mcp_servers_page))
+        .route(
+            "/catalog/mcp",
+            get(handlers::catalog::mcp::mcp_servers_page),
+        )
         .route(
             "/catalog/mcp/{mcp_id}",
-            get(handlers::catalog::mcp_detail_page),
+            get(handlers::catalog::mcp::mcp_detail_page),
         )
 }
 
@@ -168,7 +171,10 @@ fn entity_routes() -> Router<Arc<PgPool>> {
         // inherits the same session auth and admin gate as every other
         // mutation here, so a held tool call cannot be approved by anyone who
         // could not already change policy.
-        .route("/governance/approvals", get(handlers::ssr::approvals_page))
+        .route(
+            "/governance/approvals/ingestion",
+            get(handlers::ssr::ingestion_approvals_page),
+        )
         .route(
             "/governance/approvals/{call_id}/approve",
             post(handlers::ssr::approval_approve),
@@ -199,7 +205,11 @@ fn entity_routes() -> Router<Arc<PgPool>> {
             get(handlers::ssr::context_detail_page),
         )
         .route("/entities/skills", get(handlers::ssr::skill_usage_page))
-        .route("/governance", get(handlers::ssr::governance_dashboard_page))
+        .route("/governance", get(handlers::ssr::governance_page))
+        .route(
+            "/governance/policy-chain",
+            get(handlers::ssr::governance_dashboard_page),
+        )
         .route(
             "/governance/decisions",
             get(handlers::ssr::governance_decisions_page),
@@ -226,6 +236,10 @@ fn account_routes() -> Router<Arc<PgPool>> {
 
 fn api_routes() -> Router<Arc<PgPool>> {
     Router::new()
+        .route(
+            "/api/profile/salesforce/unlink",
+            post(handlers::salesforce_auth::salesforce_unlink),
+        )
         .route("/auth/me", get(middleware::auth_me_handler))
         .route(
             "/api/conversations/{session_id}/raw",
