@@ -202,7 +202,6 @@ jobs:
             asset: systemprompt-internal-bridge-macos.dmg
             # What the in-app updater downloads; the dmg stays the human one.
             updater_asset: systemprompt-internal-bridge-macos.zip
-            rust_targets: aarch64-apple-darwin,x86_64-apple-darwin
           - runner: windows-latest
             asset: systemprompt-internal-bridge-windows.exe
     steps:
@@ -223,7 +222,9 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config
       - run: rustup show
         working-directory: systemprompt-internal
-      - run: rustup target add ${{ matrix.rust_targets }}
+      - name: Install macOS universal targets
+        if: runner.os == 'macOS'
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
 
       # Deliberately no build cache in the release job. A warm target/ served
       # the Linux 0.1.3 build a binary predating the overlay fix, so the
