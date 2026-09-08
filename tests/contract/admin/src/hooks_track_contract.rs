@@ -596,7 +596,7 @@ async fn hook_track_stores_the_plugin_id_and_refuses_a_mismatched_one() {
         "the JWT plugin_id claim must be written to the row"
     );
 
-    let filter = DemoFilter::for_user(UserId::new(user_id.clone()));
+    let filter = DemoFilter::for_demo_user(UserId::new(user_id.clone()));
     let invocations = list_skill_invocations(&db.pool, &filter)
         .await
         .expect("list skill invocations");
