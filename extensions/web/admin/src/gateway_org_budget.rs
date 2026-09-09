@@ -28,12 +28,11 @@ use systemprompt::extension::{
 };
 use systemprompt::identifiers::UserId;
 use systemprompt_security::authz::resolver::{ResolveInput, resolve};
-use systemprompt_security::authz::{Decision, EntityRef};
+use systemprompt_security::authz::{AuthzError, Decision, EntityRef};
 
 use crate::authz;
 use crate::repositories::config::gateway_acl;
 use crate::repositories::organizations;
-use crate::repositories::organizations::spend::OrganizationSpend;
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct RouteEntitlementGuard;
@@ -52,8 +51,22 @@ impl GatewayRequestGuard for RouteEntitlementGuard {
             return Ok(());
         };
         let user_id = UserId::new(request.user_id.to_owned());
-        let Some(decision) = resolve_route(pool, route_id, &user_id).await else {
-            return Ok(());
+        // Why: every input to this decision — the route entity, its rules, the
+        // caller's roles and their subject attributes — reads as a grant when it
+        // is missing: no rule matches, and the request passes. A lookup that
+        // fails is not an entitlement, so the request is held instead.
+        let decision = match resolve_route(pool, route_id, &user_id).await {
+            Ok(Some(decision)) => decision,
+            Ok(None) => return Ok(()),
+            Err(e) => {
+                tracing::error!(
+                    error = %e, route_id, user_id = %user_id,
+                    "route entitlement unresolved: entitlement lookup failed",
+                );
+                return Err(GatewayDenyReason::unavailable(
+                    "Entitlements are temporarily unavailable.",
+                ));
+            },
         };
         let Decision::Deny { reason } = decision else {
             return Ok(());
@@ -73,22 +86,24 @@ impl GatewayRequestGuard for RouteEntitlementGuard {
     }
 }
 
-async fn resolve_route(pool: &PgPool, route_id: &str, user_id: &UserId) -> Option<Decision> {
-    let entity = gateway_acl::find_entity(pool, route_id)
-        .await
-        .inspect_err(|e| tracing::warn!(error = %e, route_id, "route entity lookup failed"))
-        .ok()?;
-    let rules = gateway_acl::list_rules_for_route(pool, route_id)
-        .await
-        .inspect_err(|e| tracing::warn!(error = %e, route_id, "route rule lookup failed"))
-        .ok()?;
-    let user_roles = load_roles(pool, user_id).await?;
-    let attributes = authz::subject_attributes_for(pool, user_id).await;
+async fn resolve_route(
+    pool: &PgPool,
+    route_id: &str,
+    user_id: &UserId,
+) -> Result<Option<Decision>, AuthzError> {
+    let entity = gateway_acl::find_entity(pool, route_id).await?;
+    let rules = gateway_acl::list_rules_for_route(pool, route_id).await?;
+    // Why: no `users` row is not a failed lookup — it is an answer, and the
+    // resolver reads it as a caller holding no roles.
+    let Some(user_roles) = load_roles(pool, user_id).await? else {
+        return Ok(None);
+    };
+    let attributes = authz::subject_attributes_for(pool, user_id).await?;
 
     let entity_ref =
         EntityRef::GatewayRoute(systemprompt::identifiers::RouteId::new(route_id.to_owned()));
 
-    Some(resolve(ResolveInput {
+    Ok(Some(resolve(ResolveInput {
         entity: &entity_ref,
         rules: &rules,
         user_id,
@@ -97,19 +112,17 @@ async fn resolve_route(pool: &PgPool, route_id: &str, user_id: &UserId) -> Optio
         parents: &[],
         attributes: &attributes,
         dimensions: authz::dimensions(pool),
-    }))
+    })))
 }
 
-async fn load_roles(pool: &PgPool, user_id: &UserId) -> Option<Vec<String>> {
-    sqlx::query_scalar!(
+async fn load_roles(pool: &PgPool, user_id: &UserId) -> Result<Option<Vec<String>>, AuthzError> {
+    let roles = sqlx::query_scalar!(
         r#"SELECT roles AS "roles!: Vec<String>" FROM users WHERE id = $1"#,
         user_id.as_str()
     )
     .fetch_optional(pool)
-    .await
-    .inspect_err(|e| tracing::warn!(error = %e, user_id = %user_id, "role lookup failed"))
-    .ok()
-    .flatten()
+    .await?;
+    Ok(roles)
 }
 
 #[async_trait::async_trait]
@@ -119,9 +132,26 @@ impl GatewayRequestGuard for OrgBudgetGuard {
         pool: &PgPool,
         request: &GatewayGuardRequest<'_>,
     ) -> Result<(), GatewayDenyReason> {
-        let Some(spend) = load_org_spend(pool, &UserId::new(request.user_id.to_owned())).await
-        else {
-            return Ok(());
+        // Why: a cap this guard cannot read is not a cap that was met. The
+        // module tolerates overshooting by one request because a request's cost
+        // is known only after it runs; a lookup that keeps failing overshoots
+        // without bound, so the request is held. Holding is the quota denial —
+        // 429, retryable — and costs a caller nothing once the read recovers.
+        // No spend row is a different answer: the caller is in no organization
+        // carrying a cap, and nothing constrains them here.
+        let user_id = UserId::new(request.user_id.to_owned());
+        let spend = match organizations::spend::find_spend_for_user(pool, &user_id).await {
+            Ok(Some(spend)) => spend,
+            Ok(None) => return Ok(()),
+            Err(e) => {
+                tracing::error!(
+                    error = %e, user_id = request.user_id,
+                    "organization budget unresolved: spend lookup failed",
+                );
+                return Err(GatewayDenyReason::unavailable(
+                    "Spend limits are temporarily unavailable.",
+                ));
+            },
         };
         if spend.spent_microdollars < spend.cap_microdollars {
             return Ok(());
@@ -141,16 +171,6 @@ impl GatewayRequestGuard for OrgBudgetGuard {
             micro_to_usd(spend.cap_microdollars),
         )))
     }
-}
-
-async fn load_org_spend(pool: &PgPool, user_id: &UserId) -> Option<OrganizationSpend> {
-    organizations::spend::find_spend_for_user(pool, user_id)
-        .await
-        .inspect_err(|e| {
-            tracing::warn!(error = %e, user_id = %user_id, "organization budget lookup failed; allowing request");
-        })
-        .ok()
-        .flatten()
 }
 
 #[expect(

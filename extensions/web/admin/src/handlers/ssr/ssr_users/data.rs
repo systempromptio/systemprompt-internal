@@ -131,7 +131,7 @@ pub(super) async fn collect_user_detail_extras(
         repositories::governance::effective::compute_effective_permissions(
             pool, &d.user_id, &roles,
         )
-        .await,
+        .await?,
     );
 
     Ok((department, assignments, devices, devices_count, effective))

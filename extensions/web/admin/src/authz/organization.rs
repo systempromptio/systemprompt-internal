@@ -24,7 +24,7 @@ use async_trait::async_trait;
 use sqlx::PgPool;
 use systemprompt::identifiers::UserId;
 use systemprompt_security::authz::{
-    ROLE_PRECEDENCE, RuleType, SubjectAttributeProvider, SubjectDimension,
+    AuthzError, ROLE_PRECEDENCE, RuleType, SubjectAttributeProvider, SubjectDimension,
 };
 use tokio::sync::RwLock;
 
@@ -92,9 +92,9 @@ impl SubjectAttributeProvider for OrganizationAttributeProvider {
         organization_dimension()
     }
 
-    async fn values_for(&self, user_id: &UserId) -> Vec<String> {
+    async fn values_for(&self, user_id: &UserId) -> Result<Vec<String>, AuthzError> {
         if let Some(values) = Self::cached(user_id).await {
-            return values;
+            return Ok(values);
         }
         let looked_up = sqlx::query_scalar!(
             r#"
@@ -108,17 +108,8 @@ impl SubjectAttributeProvider for OrganizationAttributeProvider {
         .fetch_optional(self.pool.as_ref())
         .await;
 
-        let values = match looked_up {
-            Ok(row) => row.map_or_else(Vec::new, |slug| vec![slug]),
-            Err(e) => {
-                tracing::warn!(
-                    error = %e, user_id = %user_id,
-                    "organization lookup failed; resolving with no organization attribute",
-                );
-                Vec::new()
-            },
-        };
+        let values = looked_up?.map_or_else(Vec::new, |slug| vec![slug]);
         Self::store(user_id, &values).await;
-        values
+        Ok(values)
     }
 }
