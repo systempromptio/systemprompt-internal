@@ -3,6 +3,38 @@
 All notable changes to this repository are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.49.0] - 2026-09-09
+
+### Changed
+
+- Adopted systemprompt core 0.49.0 from crates.io; the `[patch.crates-io]`
+  blocks in `Cargo.toml` and `tests/Cargo.toml` stay dormant,
+  `bridge/CORE_REF` pins the `v0.49.0` commit, and all three lockfiles are
+  re-resolved.
+- A gateway request whose entitlements cannot be looked up is refused. It was
+  allowed: the route entity, its access rules, the caller's roles and their
+  subject attributes each read as a grant when absent, so a database error at
+  any of the four served a customer a model tier their plan does not include.
+  The refusal is an `Unavailable` denial — transient and retryable, not a
+  verdict about the plan — using the deny kind core 0.49.0 adds.
+- A gateway request is also refused when the organization's spend cap cannot
+  be read, rather than allowed. The cap is enforced one request late by
+  design, because a request's cost is known only once it has run — but a
+  lookup that keeps failing overshoots a contract cap without bound. The
+  refusal is transient and clears as soon as the read recovers.
+- The five subject-attribute providers behind the access matrix — group,
+  project, department, organization and Salesforce — report a failed lookup
+  instead of resolving the dimension as empty. A lookup that failed used to
+  yield "this user holds no values for that dimension", which stops every deny
+  rule keyed on that dimension from matching: the request was then allowed on
+  the strength of a database error. Core 0.49.0 made
+  `SubjectAttributeProvider::values_for` fallible to remove exactly that, so
+  governance resolution, the gateway catalogue, the marketplace filter, the
+  effective-permissions view and the access matrix now surface the error.
+- `scripts/sync-release-version.sh` also rewrites the test workspace's
+  `systemprompt-models` pin. It rewrote only the `systemprompt` and
+  `-security` pins there, so that one crate silently stayed a release behind.
+
 ## [0.47.0] - 2026-09-06
 
 ### Changed

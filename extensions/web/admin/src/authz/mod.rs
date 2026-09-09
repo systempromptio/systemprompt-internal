@@ -25,7 +25,7 @@ use std::sync::{Arc, LazyLock, Mutex};
 use sqlx::PgPool;
 use systemprompt::identifiers::UserId;
 use systemprompt_security::authz::{
-    AuthzHookContext, NullAuditSink, SharedSubjectAttributeProvider, SubjectAttributes,
+    AuthzError, AuthzHookContext, NullAuditSink, SharedSubjectAttributeProvider, SubjectAttributes,
     SubjectDimension, dimensions_of, discover_subject_providers, gather_subject_attributes,
 };
 
@@ -97,7 +97,10 @@ pub fn dimensions(pool: &PgPool) -> &'static [SubjectDimension] {
     &registry(pool).dimensions
 }
 
-pub async fn subject_attributes_for(pool: &PgPool, user_id: &UserId) -> SubjectAttributes {
+pub async fn subject_attributes_for(
+    pool: &PgPool,
+    user_id: &UserId,
+) -> Result<SubjectAttributes, AuthzError> {
     gather_subject_attributes(&registry(pool).providers, user_id).await
 }
 

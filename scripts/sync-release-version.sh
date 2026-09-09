@@ -6,7 +6,7 @@
 #
 # Covered pins:
 #   Cargo.toml            workspace version + systemprompt/-security/-extension pins
-#   tests/Cargo.toml      its own systemprompt/-security pins (separate workspace)
+#   tests/Cargo.toml      its own systemprompt/-models/-security pins (separate workspace)
 #   bridge/Cargo.toml     the desktop bridge's version — one number with core, so
 #                         the bridge-v<X.Y.Z> release cut on main names the core
 #                         it was built against and clears core's MIN_BRIDGE_VERSION
@@ -72,7 +72,8 @@ check_or_apply Cargo.toml \
     "systemprompt-extension core pin"
 
 # tests/Cargo.toml — the test workspace is excluded from the root workspace and
-# carries its own copies of the same pins. Nothing else rewrites them, and a
+# carries its own copies of the same pins, systemprompt-models among them.
+# Nothing else rewrites them, and a
 # stale pin here silently disables the test workspace's [patch.crates-io].
 check_or_apply tests/Cargo.toml \
     "s|^systemprompt = { version = \"[0-9.]*\"|systemprompt = { version = \"$VERSION\"|" \
@@ -82,6 +83,10 @@ check_or_apply tests/Cargo.toml \
     "s|^systemprompt-security = { version = \"[0-9.]*\"|systemprompt-security = { version = \"$VERSION\"|" \
     "^systemprompt-security = \\{ version = \"$VERSION\"" \
     "systemprompt-security core pin (test workspace)"
+check_or_apply tests/Cargo.toml \
+    "s|^systemprompt-models = \"[0-9.]*\"|systemprompt-models = \"$VERSION\"|" \
+    "^systemprompt-models = \"$VERSION\"" \
+    "systemprompt-models core pin (test workspace)"
 
 # bridge/Cargo.toml — first `version =` is the package's own.
 check_or_apply bridge/Cargo.toml \
