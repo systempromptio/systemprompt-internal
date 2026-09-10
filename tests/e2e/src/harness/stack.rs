@@ -103,8 +103,24 @@ fn install_profile(secrets: &FixtureSecrets<'_>, govern_port: u16) {
 
     systemprompt::config::ProfileBootstrap::init_from_path(&dir.join("profile.yaml"))
         .expect("initialise the e2e fixture profile");
-    systemprompt::config::SecretsBootstrap::try_init().expect("load the fixture secrets");
-    systemprompt::config::try_init_config().expect("build config from the fixture profile");
+    // Why: `SecretsBootstrap::try_init` is async since core 0.50 and this
+    // initialiser is synchronous. `Runtime::block_on` panics when called from
+    // within a runtime, so the throwaway runtime is driven on a thread of its
+    // own, which is correct whether or not the caller already has one.
+    std::thread::scope(|scope| {
+        scope
+            .spawn(|| {
+                tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .expect("runtime for the secrets bootstrap")
+                    .block_on(systemprompt::config::SecretsBootstrap::try_init())
+                    .expect("load the fixture secrets");
+            })
+            .join()
+            .expect("the secrets bootstrap thread did not panic");
+    });
+    systemprompt::config::try_init_config(None).expect("build config from the fixture profile");
 
     // Why: the key is written to the profile's signing_key_path AND installed
     // in-process — a spawned MCP subprocess bootstraps from the same profile

@@ -104,6 +104,7 @@ async fn project_grants(
             rule_value: SALESFORCE_LINKED_VALUE,
             access: Access::Allow,
             justification: Some("granted to users who linked the downstream account"),
+            source: systemprompt_security::authz::YAML_SOURCE,
         })
         .await
         .map_err(|e| MarketplaceError::Internal(e.to_string()))?;

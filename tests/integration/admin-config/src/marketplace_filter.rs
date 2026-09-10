@@ -114,6 +114,7 @@ impl Harness {
                 rule_value: role,
                 access,
                 justification: None,
+                source: systemprompt_security::authz::DASHBOARD_SOURCE,
             })
             .await
             .expect("upsert rule");
