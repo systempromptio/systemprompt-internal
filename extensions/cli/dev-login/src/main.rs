@@ -45,8 +45,10 @@ async fn main() -> Result<()> {
         profile.runtime.environment,
         profile.target
     );
-    SecretsBootstrap::init().context("Failed to initialize secrets")?;
-    init_config().context("Failed to initialize configuration")?;
+    SecretsBootstrap::init()
+        .await
+        .context("Failed to initialize secrets")?;
+    init_config(None).context("Failed to initialize configuration")?;
 
     let ctx = AppContext::new()
         .await

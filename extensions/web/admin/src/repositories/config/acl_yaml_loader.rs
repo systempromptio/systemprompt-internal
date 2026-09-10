@@ -114,6 +114,7 @@ async fn load_roles_file(
             IngestOptions {
                 override_existing: true,
                 delete_orphans: false,
+                ..IngestOptions::default()
             },
             registered,
         )

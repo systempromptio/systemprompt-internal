@@ -3,6 +3,58 @@
 All notable changes to this repository are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.50.0] - 2026-09-10
+
+### Changed
+
+- Adopted systemprompt core 0.50.0 from crates.io; the `[patch.crates-io]`
+  blocks in `Cargo.toml` and `tests/Cargo.toml` stay dormant,
+  `bridge/CORE_REF` pins core `568f36172`, the `v0.50.0` commit, and all three lockfiles are
+  re-resolved.
+- **Breaking (core):** `SecretsBootstrap::init` and `try_init` are `async`.
+  The four extension binaries that bootstrap their own process — the
+  systemprompt, Odoo and knowledge-bank MCP servers and the `dev-login` CLI —
+  await them.
+- **Breaking (core):** `AppPaths::from_profile` takes a services-root
+  override. Every call site here passes `None`: this deployment composes no
+  services bundles and keeps the baked tree.
+- **Breaking (core):** `IngestOptions` carries `source` and `scope`, and
+  `UpsertRuleParams` carries `source`. Rules written from the admin dashboard
+  are stamped `DASHBOARD_SOURCE` so ingestion never overwrites or prunes an
+  operator edit; the YAML loaders under `extensions/web/admin` stamp
+  `YAML_SOURCE` and declare no scope, being the only writer of `yaml` rows.
+- The services tree, secrets source and gateway quota fault mode keep their
+  pre-0.50 behaviour: `services.sources` stays empty, `secrets.source` stays
+  `file`, and `gateway.quota_fault_mode` is left at its `open` default.
+  Adopting signed bundles or Vault is a separate, deliberate change.
+- Outbound HTTP that a caller can influence now runs on core's guarded client,
+  which re-checks every resolved address against the SSRF block list on the
+  first request and on each redirect hop. The governance authz hook, MCP
+  transport, OAuth metadata fetches, agent webhooks and Slack `response_url`
+  replies are covered by that change in core.
+- `governance_decisions` is append-only from core migration 018: an `UPDATE`
+  is refused by trigger. Nothing here updates a recorded decision.
+
+### Migration
+
+Production runs 0.47.0 and jumps to 0.50.0 in one step. This repository cut
+`v0.48.0` and `v0.49.0` but deployed neither, and no `[0.48.0]` section was
+ever written here, so an operator takes the 0.49.0 notes as well as these.
+
+- The 0.49.0 fail-closed changes land at the same time as this one: a gateway
+  request whose entitlements, spend cap or subject attributes cannot be read
+  is now refused with a transient `Unavailable` denial rather than allowed.
+  Expect refusals, not silent over-grants, during a database blip.
+- Core migrations 017 (`access_control_rules.source`), 018
+  (`governance_decisions` append-only) and 022
+  (`ai_requests.upstream_latency_ms`) run on first boot. 017 backfills
+  existing rows to the YAML source, so any rule an operator authored in the
+  dashboard before this release is claimable by a YAML pass until it is
+  re-saved.
+- No profile change is required. `services.sources`, `secrets.source: vault`
+  and `gateway.quota_fault_mode` are all opt-in and default to the 0.47.0
+  behaviour.
+
 ## [0.49.0] - 2026-09-09
 
 ### Changed

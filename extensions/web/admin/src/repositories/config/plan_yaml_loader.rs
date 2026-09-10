@@ -262,6 +262,7 @@ async fn project_grants(
             rule_value: slug,
             access: entry.access,
             justification: Some("granted by plan"),
+            source: systemprompt_security::authz::YAML_SOURCE,
         })
         .await
         .map_err(|e| MarketplaceError::Internal(e.to_string()))?;

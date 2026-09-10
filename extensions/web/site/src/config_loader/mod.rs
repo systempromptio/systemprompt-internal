@@ -23,7 +23,7 @@ static BRANDING_CONFIG: OnceLock<Result<Option<BrandingConfig>, String>> = OnceL
 fn load_app_paths() -> Result<AppPaths, ConfigError> {
     let profile =
         ProfileBootstrap::get().map_err(|e| ConfigError::PathsUnavailable(e.to_string()))?;
-    AppPaths::from_profile(&profile.paths, profile.path_resolution())
+    AppPaths::from_profile(&profile.paths, profile.path_resolution(), None)
         .map_err(|e| ConfigError::PathsUnavailable(e.to_string()))
 }
 

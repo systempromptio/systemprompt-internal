@@ -74,8 +74,24 @@ fn try_init() -> bool {
         &services_root.join("config/config.yaml"),
     )
     .expect("initialise the contract fixture services tree");
-    systemprompt::config::SecretsBootstrap::try_init().expect("load the fixture profile's secrets");
-    systemprompt::config::try_init_config().expect("build config from the fixture profile");
+    // Why: `SecretsBootstrap::try_init` is async since core 0.50 and this
+    // initialiser is synchronous. `Runtime::block_on` panics when called from
+    // within a runtime, so the throwaway runtime is driven on a thread of its
+    // own, which is correct whether or not the caller already has one.
+    std::thread::scope(|scope| {
+        scope
+            .spawn(|| {
+                tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .expect("runtime for the secrets bootstrap")
+                    .block_on(systemprompt::config::SecretsBootstrap::try_init())
+                    .expect("load the fixture profile's secrets");
+            })
+            .join()
+            .expect("the secrets bootstrap thread did not panic");
+    });
+    systemprompt::config::try_init_config(None).expect("build config from the fixture profile");
 
     // The local profile ships no signing key. A key generated per process is
     // enough because the same authority both mints and validates here.

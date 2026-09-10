@@ -68,6 +68,7 @@ pub async fn upsert_rule(
             rule_value,
             access,
             justification: None,
+            source: systemprompt_security::authz::DASHBOARD_SOURCE,
         })
         .await
         .map_err(|e| map_err(&e))

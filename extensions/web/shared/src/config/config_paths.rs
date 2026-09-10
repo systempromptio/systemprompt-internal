@@ -73,7 +73,7 @@ pub(super) fn resolve_blog_config_path() -> PathBuf {
     ProfileBootstrap::get()
         .map_err(|e| e.to_string())
         .and_then(|profile| {
-            AppPaths::from_profile(&profile.paths, profile.path_resolution())
+            AppPaths::from_profile(&profile.paths, profile.path_resolution(), None)
                 .map_err(|e| e.to_string())
         })
         .map_or_else(
@@ -87,7 +87,7 @@ pub(super) fn resolve_content_source_path(path: &str, base_path: &Path) -> PathB
     } else if path.starts_with("./") {
         let services_dir = ProfileBootstrap::get()
             .map_err(|e| e.to_string())
-            .and_then(|profile| AppPaths::from_profile(&profile.paths, profile.path_resolution()).map_err(|e| e.to_string()))
+            .and_then(|profile| AppPaths::from_profile(&profile.paths, profile.path_resolution(), None).map_err(|e| e.to_string()))
             .map_or_else(
                 |e| {
                     tracing::warn!(error = %e, "Failed to get app paths, using fallback services dir");

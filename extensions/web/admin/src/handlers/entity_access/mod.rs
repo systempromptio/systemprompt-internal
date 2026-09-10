@@ -77,6 +77,7 @@ pub(crate) async fn upsert_entity_rule_handler(
             rule_value: &rule_value,
             access,
             justification: body.justification.as_deref(),
+            source: systemprompt_security::authz::DASHBOARD_SOURCE,
         })
         .await
         .map_err(AdminError::internal)?;
@@ -209,6 +210,7 @@ pub(crate) async fn apply_template_handler(
                     rule_value: &rule_value,
                     access,
                     justification: None,
+                    source: systemprompt_security::authz::DASHBOARD_SOURCE,
                 })
                 .await
             {
