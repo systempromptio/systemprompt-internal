@@ -131,3 +131,15 @@ sha2 = "0.10"
 # Published macro dependency compatibility fix; see vendor/README.md.
 [patch.crates-io.proc-macro-error2]
 path = "../vendor/proc-macro-error2"
+
+# Optimise everything that is not a test crate.
+#
+# The suite is crypto-bound, not compile-bound: RS256 JWT minting and bcrypt
+# verification dominate the integration and contract tiers, and at
+# `opt-level = 0` an RSA-2048 operation is ~10x its optimised cost. `"*"`
+# covers the `systemprompt-*` crates too — they are path or registry
+# dependencies, not members — so production code under test is optimised
+# while the test bodies themselves stay unoptimised and quick to rebuild.
+# Mirrors systemprompt-core's crates/tests/Cargo.toml.
+[profile.dev.package."*"]
+opt-level = 2

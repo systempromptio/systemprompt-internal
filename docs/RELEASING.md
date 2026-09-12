@@ -5,9 +5,11 @@ version lands on crates.io.
 
 **What is automatic and what is not.** Nothing gates a push to `next`. The
 release pull request onto `main` (`just gate` → `just promote`) runs CI and
-Quality. Merging it is the release act: `.github/workflows/release.yml` fires
-on the push to `main`, re-runs CI and Quality on the merge commit, and — only
-if both pass — publishes the desktop bridge for macOS, Windows and Linux as
+Quality, and the `main` ruleset requires their `CI passed` and `Quality
+passed` checks. Merging it is the release act: `.github/workflows/release.yml`
+fires on the push to `main` and — without re-running CI or Quality, since the
+PR head is the frozen `promote` ref and the merge commit is the tree they
+gated — publishes the desktop bridge for macOS, Windows and Linux as
 GitHub Release `bridge-v<version>` and the container image
 `ghcr.io/systempromptio/systemprompt-internal:<version>` (also `:latest`).
 Deploying the instance (`just deploy`) is still a hand step.
@@ -205,8 +207,8 @@ bash scripts/check-release-version.sh
 by construction. `check-release-version` guards the silently-dropped patch above,
 which no build log can surface.
 
-**`ci.yml` and `quality.yml` trigger only on `pull_request` to `main`/`next`,
-`workflow_dispatch` and `workflow_call` — there is no `push` trigger.** A push
+**`ci.yml` and `quality.yml` trigger only on `pull_request` to `main`/`next`
+and `workflow_dispatch` — there is no `push` trigger.** A push
 to `next` runs nothing, so `next` accumulates gate debt in silence and the
 promotion PR is this repo's only remote proof. Anything the PR would catch has
 to be fixed on `next` before it opens; commit there, never to `main`.
@@ -230,15 +232,14 @@ When the release PR merges, `release.yml` on `main`:
    core at `CORE_REF` and asserts its version is `X.Y.Z`. If `bridge-vX.Y.Z`
    already exists (a merge with no bump) every later job is skipped with a
    notice.
-2. `ci` + `quality` — the full workflows, called on the merge commit.
-3. `checks` → `build` → `release` — bridge fmt/clippy, the four platform
+2. `checks` → `build` → `release` — bridge fmt/clippy, the four platform
    builds (macOS signed + notarized), cosign-signed assets, GitHub Release
    `bridge-vX.Y.Z` at the merge commit.
-4. `gateway` → `release-gateway` — `cargo build --release --workspace` for
+3. `gateway` → `release-gateway` — `cargo build --release --workspace` for
    `linux-amd64`, `linux-arm64`, `darwin-arm64`; tarballs with `bin/`
    (gateway + MCP servers), `services/`, extension manifests, `scripts/`;
    cosign-signed `SHA256SUMS`; GitHub Release `vX.Y.Z` at the merge commit.
-5. `publish-image` — `docker.yml`: multi-arch image, `:X.Y.Z`, `:X.Y`, `:X`,
+4. `publish-image` — `docker.yml`: multi-arch image, `:X.Y.Z`, `:X.Y`, `:X`,
    `:latest`, `:sha-…`, cosign-signed, smoke-run.
 
 Re-publish a release without re-merging with

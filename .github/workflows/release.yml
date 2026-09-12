@@ -126,30 +126,14 @@ jobs:
             echo "publish=$publish"
           } >> "$GITHUB_OUTPUT"
 
-  # Why called, not required by branch protection: the release must be proven
-  # on the merge commit itself, and a run started by this workflow is the only
-  # thing that can block the jobs below.
-  ci:
-    name: CI
-    needs: version
-    if: needs.version.outputs.publish == 'true'
-    uses: ./.github/workflows/ci.yml
-    with:
-      ref: ${{ github.sha }}
-    secrets: inherit
-
-  quality:
-    name: Quality
-    needs: version
-    if: needs.version.outputs.publish == 'true'
-    uses: ./.github/workflows/quality.yml
-    with:
-      ref: ${{ github.sha }}
-    secrets: inherit
-
+  # CI and Quality are not re-run here. The `main` ruleset requires
+  # `CI passed` and `Quality passed` on the release PR, and the PR head is the
+  # frozen `promote` ref, so the merge commit is exactly the tree those runs
+  # gated; re-running them added 25-40 min to every release for no new
+  # information.
   checks:
     name: Bridge quality gate
-    needs: [version, ci, quality]
+    needs: version
     if: needs.version.outputs.publish == 'true'
     runs-on: ubuntu-22.04
     steps:
@@ -631,7 +615,7 @@ jobs:
 
   release-gateway:
     name: Sign & publish gateway
-    needs: [version, gateway, ci, quality]
+    needs: [version, gateway]
     if: needs.version.outputs.publish == 'true'
     runs-on: ubuntu-latest
     env:
@@ -690,7 +674,7 @@ jobs:
   # events, so a `release: published` listener would never fire.
   publish-image:
     name: Publish image
-    needs: [version, ci, quality]
+    needs: [version]
     if: needs.version.outputs.publish == 'true'
     permissions:
       contents: read
