@@ -148,6 +148,19 @@ live database. Two things now hold that line:
   and `deploy` no longer leave the CLI pointed at production for whatever runs
   next. `build-all` also passes `--profile local` to `publish_pipeline`.
 
+### Secrets that left the environment (core 0.52.0)
+
+Core 0.52.0 no longer reads `gateway.bridge_releases.token_env` (renamed
+`token_secret`: a key in the secrets document, not a process variable),
+`MCP_CREDENTIAL_BROKER_SECRET` (now `secrets.custom["MCP_CREDENTIAL_BROKER_SECRET"]`)
+or `PGCA_CERT_PATH` (name a private CA with `?sslrootcert=` in the database
+URL). When the bump lands on 0.52.0: rename the key in
+`services/ai/gateway.yaml` and `docs/gateway-routes.md` (the old key is a
+parse error, loud not silent), and — because production's secrets source is
+`env` — list `SYSTEMPROMPT_BRIDGE_RELEASES_TOKEN` in the Fly app's
+`SYSTEMPROMPT_CUSTOM_SECRETS` as well as setting it. Check
+`flyctl secrets list` before that deploy.
+
 ### Lockfile agreement
 
 `scripts/check-core-crate-versions.sh` (in `preflight-static` and the
