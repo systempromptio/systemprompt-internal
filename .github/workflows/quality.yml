@@ -121,6 +121,10 @@ jobs:
       # needs the core sibling checked out above; every other gate is a
       # read-only source check.
       - run: BUILD_NO_COORD=1 just lint-gates
+      # The three lockfiles must agree on every systemprompt crate version —
+      # `cargo update -w` re-resolves the root workspace only, and a stale
+      # tests/ or bridge/ lockfile compiles a different core than the release.
+      - run: bash scripts/check-core-crate-versions.sh
 
   msrv:
     name: MSRV check (rust-version from Cargo.toml)

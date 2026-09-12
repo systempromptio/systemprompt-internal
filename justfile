@@ -446,6 +446,7 @@ preflight-static:
     cargo fmt --manifest-path tests/Cargo.toml --all -- --check
     cargo fmt --manifest-path bridge/Cargo.toml --all -- --check
     bash scripts/check-sqlx-cache.sh
+    bash scripts/check-core-crate-versions.sh
     {{just_executable()}} lint-gates
 
 # Tier 1 — compilers. Clippy (both workspaces), rustdoc as errors, MSRV.
@@ -936,12 +937,31 @@ backup *ARGS:
 # services/ tree are built from what is on disk, so uncommitted state ships to
 # production. The warning lists what is going out so a half-committed deploy
 # is at least a visible act, not a silent one.
-deploy *FLAGS: build-all deploy-check
+deploy *FLAGS: _docker-preflight build-all deploy-check
     @if [ -n "$(git status --porcelain)" ]; then \
         echo "WARNING: working tree is dirty — this deploy ships the uncommitted state below:"; \
         git status --porcelain | head -20; \
     fi
-    {{CLI_RELEASE}} cloud deploy --profile {{DEPLOY_PROFILE}} {{FLAGS}}
+    PATH="$(scripts/docker-path.sh)" {{CLI_RELEASE}} cloud deploy --profile {{DEPLOY_PROFILE}} {{FLAGS}}
+
+# `cloud deploy` shells out to `docker build`. A wrapper shim ahead of the real
+# binary on PATH (0.51.0 hit one) fails the build with an error that names
+# neither docker nor the shim, so pin /usr/bin first when the real binary is
+# there and name whatever else `docker` resolves to. `scripts/docker-path.sh`
+# prints the pinned PATH so the deploy step itself runs under it.
+_docker-preflight:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    export PATH="$(scripts/docker-path.sh)"
+    resolved="$(command -v docker || true)"
+    if [ -z "$resolved" ]; then
+        echo "ERROR: docker not found on PATH — cloud deploy needs 'docker build'"
+        exit 1
+    fi
+    case "$resolved" in
+        /usr/bin/*) ;;
+        *) echo "warning: docker resolves to $resolved, not /usr/bin/docker — a wrapper shim can fail 'docker build' with an unrelated error" ;;
+    esac
 
 # Deploy the NEXT stack to production (internal.systemprompt.io) as a
 # PARALLEL process: a dedicated git worktree of origin/next with its own
@@ -949,7 +969,7 @@ deploy *FLAGS: build-all deploy-check
 # builds and never touches `just deploy` (the main/crates.io release act).
 # The gitignored .systemprompt/ (profiles, secrets, Dockerfile) is synced in
 # because a worktree only carries tracked files.
-deploy-next *FLAGS:
+deploy-next *FLAGS: _docker-preflight
     #!/usr/bin/env bash
     set -euo pipefail
     root="{{justfile_directory()}}"
@@ -1013,7 +1033,7 @@ build-all:
     just build --release
     just build-mcp
     just web-build
-    {{CLI_RELEASE}} infra jobs run publish_pipeline
+    {{CLI_RELEASE}} infra jobs run publish_pipeline --profile local
     @echo "All components built"
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1909,13 +1929,21 @@ flake-check:
 # Step A of a release: bump every version pin to the new core release and
 # gate locally (migrate + build + clippy). Review + commit + push, then
 # `just release <version>`. See docs/RELEASING.md.
+#
+# LOCAL-ONLY. The migrate step names `--profile local` explicitly: the 0.51.0
+# bump ran a bare `infra db migrate` after `deploy-check` had switched the CLI
+# session to `production`, and the migration targeted the live database. The
+# explicit profile makes the target independent of session state, and the
+# failure is no longer swallowed — a migrate that cannot run stops the bump.
+# All three lockfiles are re-resolved; `cargo update -w` covers the root only.
 core-bump version:
     @! grep -q '^\[patch\.crates-io\]' Cargo.toml || (echo "ERROR: [patch.crates-io] is active — publish core and re-comment it first" && exit 1)
     scripts/sync-release-version.sh {{version}}
     cargo update -w
+    cargo update -w --manifest-path tests/Cargo.toml
     cargo update -w --manifest-path bridge/Cargo.toml
     just db-up
-    cargo run --bin systemprompt -- infra db migrate || true
+    cargo run --bin systemprompt -- infra db migrate --profile local
     just build
     just clippy
     @echo "core-bump {{version}} complete — review the diff, run tests, commit to main, push, then: just release {{version}}"

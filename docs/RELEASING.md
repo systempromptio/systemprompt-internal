@@ -130,9 +130,47 @@ This refuses to run with an active `[patch.crates-io]` override, then runs
 `scripts/sync-release-version.sh X.Y.Z` (bumps the workspace version, the
 `systemprompt` + `systemprompt-security` pins, Chart.yaml appVersion +
 chart version + artifacthub annotation/changelog, and the exact-pin deploy
-files: CasaOS compose, DigitalOcean compose + Packer default), runs
-`cargo update -w`, migrations against the local DB, `just build`, and
-`just clippy`.
+files: CasaOS compose, DigitalOcean compose + Packer default), re-resolves
+all three lockfiles (`cargo update -w` for the root, `tests/` and `bridge/`),
+runs `infra db migrate --profile local`, `just build`, and `just clippy`.
+
+**`core-bump` is local-only.** The migrate step names `--profile local` and
+is not `|| true`-swallowed: the 0.51.0 bump ran a bare `infra db migrate`
+after `just deploy-check` (which pins `--profile production`) had flipped the
+CLI's active session to production, and the migration was pointed at the
+live database. Two things now hold that line:
+
+- Core's CLI refuses `infra db migrate` and `infra jobs run` on a cloud
+  profile that was selected implicitly (the saved session or profile
+  discovery). To run either against a cloud profile you must pass
+  `--profile <name>` on that command.
+- An explicit `--profile` never rewrites the saved session, so `deploy-check`
+  and `deploy` no longer leave the CLI pointed at production for whatever runs
+  next. `build-all` also passes `--profile local` to `publish_pipeline`.
+
+### Lockfile agreement
+
+`scripts/check-core-crate-versions.sh` (in `preflight-static` and the
+`source-gates` job of `quality.yml`) fails when `Cargo.lock`,
+`tests/Cargo.lock` and `bridge/Cargo.lock` resolve any `systemprompt*` crate
+at more than one version. They drift easily: `cargo update -w` re-resolves
+the root workspace only, `tests/` is its own workspace with its own copy of
+every core pin (and its own commented `[patch.crates-io]` block pointing at
+`../../systemprompt-core/...`), and `bridge/` takes `systemprompt-bridge` by
+path from the sibling core checkout. A stale lockfile compiles against a
+different core than the one being released and surfaces as an unrelated
+compile error deep in a test or bridge build — 0.51.0 lost time to exactly
+that. A path copy and a registry copy of the same crate may coexist, but only
+at the same version.
+
+### Docker
+
+`cloud deploy` shells out to `docker build`. `deploy` and `deploy-next` run
+`_docker-preflight` first: when `/usr/bin/docker` exists, `/usr/bin` is pinned
+to the front of `PATH` for the deploy step, and if `docker` still resolves
+outside `/usr/bin` a warning names the path. A wrapper shim ahead of the real
+binary (0.51.0 hit one) fails the image build with an error that mentions
+neither docker nor the shim, so the warning is the only pointer you get.
 
 Then exercise anything the core changelog touches and review the diff.
 
