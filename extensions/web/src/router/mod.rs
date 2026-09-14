@@ -25,11 +25,11 @@ pub(crate) fn build(ctx: &dyn ExtensionContext) -> Option<ExtensionRouter> {
     let db = DbHandles::from_context(ctx)?;
     let session_service = pools::build_session_service(&db)?;
 
-    let auth_deps = admin::AuthDeps {
+    let sso_deps = admin::AdfsDeps {
+        config: crate::extension::WebExtension::adfs_config()
+            .unwrap_or_else(|| Arc::new(admin::AdfsConfig::disabled())),
         write_pool: Arc::clone(&db.write),
-        allowed_email_domains: Arc::new(admin::allowed_domains_from_env()),
-        oauth_repo: pools::build_oauth_repository(&db)?,
-        login_throttle: Arc::new(admin::LoginThrottle::new()),
+        session_service: Arc::clone(&session_service),
     };
 
     let api_router = api::build(&db, &session_service);
@@ -39,7 +39,7 @@ pub(crate) fn build(ctx: &dyn ExtensionContext) -> Option<ExtensionRouter> {
         .merge(share_api)
         .nest("/api/public", api_router);
 
-    match admin_ssr::build(&db, auth_deps) {
+    match admin_ssr::build(&db, sso_deps) {
         Some(ssr) => {
             combined = Router::new()
                 .nest_service("/admin", ssr.admin)

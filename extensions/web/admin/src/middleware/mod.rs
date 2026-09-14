@@ -11,8 +11,8 @@
 mod gates;
 
 pub(crate) use gates::{
-    non_admin_gate_middleware, require_auth_middleware, require_platform_admin_middleware,
-    require_roles_middleware, require_user_middleware,
+    non_admin_gate_middleware, require_auth_middleware, require_roles_middleware,
+    require_user_middleware,
 };
 
 use std::sync::Arc;
@@ -27,7 +27,10 @@ use sqlx::PgPool;
 use systemprompt::identifiers::{Email, UserId};
 
 use super::handlers::extract_user_from_cookie;
-use super::types::UserContext;
+use super::types::{
+    UserContext, roles_grant_console, roles_grant_developer, roles_grant_manage,
+    roles_grant_platform,
+};
 
 #[derive(Debug, Serialize)]
 struct AuthMeResponse {
@@ -35,8 +38,11 @@ struct AuthMeResponse {
     username: String,
     email: Email,
     roles: Vec<String>,
-    department: String,
+    group_ids: Vec<String>,
+    project_ids: Vec<String>,
     is_admin: bool,
+    is_console: bool,
+    is_platform_admin: bool,
 }
 
 pub(crate) use super::marketplace_context::marketplace_context_middleware;
@@ -55,58 +61,36 @@ pub(crate) async fn user_context_middleware(
         },
     };
 
-    let (roles, department) = find_roles_department(&pool, &session.user_id)
-        .await
-        .unwrap_or_else(|| (vec!["user".to_owned()], String::new()));
+    let profile = find_access_profile(&pool, &session.user_id).await;
+    let (roles, group_ids, project_ids) = profile.map_or_else(
+        || (vec!["user".to_owned()], Vec::new(), Vec::new()),
+        |p| (p.roles, p.group_ids, p.project_ids),
+    );
 
-    let is_admin = crate::types::roles_grant_manage(&roles);
-    // Why: resolved per request rather than carried in the session token —
-    // revoking a super-admin has to take effect on the next request, not
-    // whenever their JWT happens to refresh.
-    let is_platform_admin = is_admin && platform_member(&pool, &session.user_id).await;
-    let access =
-        super::repositories::users::queries::find_user_access_profile(&pool, &session.user_id)
-            .await;
-    let (group_ids, project_ids) = match access {
-        Ok(Some(profile)) => (profile.group_ids, profile.project_ids),
-        Ok(None) => (Vec::new(), Vec::new()),
-        Err(error) => {
-            tracing::warn!(%error, "Failed to resolve group/project memberships");
-            (Vec::new(), Vec::new())
-        },
-    };
     let ctx = UserContext {
         user_id: session.user_id,
         username: session.username,
         email: session.email,
-        is_console: crate::types::roles_grant_console(&roles),
-        is_developer: crate::types::roles_grant_developer(&roles),
+        is_admin: roles_grant_manage(&roles),
+        is_console: roles_grant_console(&roles),
+        is_platform_admin: roles_grant_platform(&roles),
+        is_developer: roles_grant_developer(&roles),
+        roles,
         group_ids,
         project_ids,
-        roles,
-        department,
-        is_admin,
-        is_platform_admin,
         email_verified: false,
         session_id: session.session_id,
-        source: crate::types::IdentitySource::SessionCookie,
     };
 
     request.extensions_mut().insert(ctx);
     next.run(request).await
 }
 
-async fn platform_member(pool: &PgPool, user_id: &UserId) -> bool {
-    super::repositories::organizations::crud::get_platform_membership(pool, user_id)
-        .await
-        .inspect_err(
-            |e| tracing::warn!(error = %e, user_id = %user_id, "platform membership lookup failed; denying"),
-        )
-        .unwrap_or(false)
-}
-
-async fn find_roles_department(pool: &PgPool, user_id: &UserId) -> Option<(Vec<String>, String)> {
-    super::repositories::users::queries::find_user_roles_department(pool, user_id)
+async fn find_access_profile(
+    pool: &PgPool,
+    user_id: &UserId,
+) -> Option<super::repositories::users::queries::UserAccessProfile> {
+    super::repositories::users::queries::find_user_access_profile(pool, user_id)
         .await
         .inspect_err(
             |e| tracing::warn!(error = %e, user_id = %user_id, "Failed to fetch user roles"),
@@ -124,8 +108,11 @@ pub(crate) async fn auth_me_handler(Extension(user_ctx): Extension<UserContext>)
         username: user_ctx.username,
         email: user_ctx.email,
         roles: user_ctx.roles,
-        department: user_ctx.department,
+        group_ids: user_ctx.group_ids,
+        project_ids: user_ctx.project_ids,
         is_admin: user_ctx.is_admin,
+        is_console: user_ctx.is_console,
+        is_platform_admin: user_ctx.is_platform_admin,
     })
     .into_response()
 }

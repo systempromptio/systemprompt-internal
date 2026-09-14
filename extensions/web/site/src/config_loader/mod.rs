@@ -8,12 +8,17 @@
 
 use std::sync::{Arc, OnceLock};
 
+mod adfs;
+mod downstream;
+
+use adfs::load_adfs_config;
+use downstream::load_salesforce_config;
+
 use systemprompt::config::ProfileBootstrap;
 use systemprompt::models::AppPaths;
 use thiserror::Error;
 
 #[doc(hidden)]
-pub mod skill_scope;
 pub mod skills;
 
 pub(crate) use skills::load_skills_page_config;
@@ -23,8 +28,12 @@ static BRANDING_CONFIG: OnceLock<Result<Option<BrandingConfig>, String>> = OnceL
 fn load_app_paths() -> Result<AppPaths, ConfigError> {
     let profile =
         ProfileBootstrap::get().map_err(|e| ConfigError::PathsUnavailable(e.to_string()))?;
-    AppPaths::from_profile(&profile.paths, profile.path_resolution(), None)
-        .map_err(|e| ConfigError::PathsUnavailable(e.to_string()))
+    AppPaths::from_profile(
+        &profile.paths,
+        profile.path_resolution(),
+        systemprompt::loader::ServicesRootBootstrap::get().map(|root| root.path.as_path()),
+    )
+    .map_err(|e| ConfigError::PathsUnavailable(e.to_string()))
 }
 
 use crate::homepage::HomepageConfig;
@@ -95,6 +104,12 @@ fn load_branding_config() -> Result<Option<BrandingConfig>, ConfigError> {
     Ok(Some(branding_config))
 }
 
+// Why: Both router builds and the HTTP contract suite need the engine
+// configured the same way; the templates read `branding.*` under strict mode,
+// so an engine built without it fails to render every page that has one.
+//
+// Cached: the router build and each prerender context ask for branding
+// independently, and re-reading theme.yaml per caller is pure waste.
 #[must_use]
 pub fn branding_config() -> Option<BrandingConfig> {
     log_and_discard_err(
@@ -108,6 +123,11 @@ static NAVIGATION_CONFIG: OnceLock<Result<Option<Arc<NavigationConfig>>, String>
 static HOMEPAGE_CONFIG: OnceLock<Result<Option<Arc<HomepageConfig>>, String>> = OnceLock::new();
 static SKILLS_PAGE_CONFIG: OnceLock<Result<Option<Arc<SkillsPageConfig>>, String>> =
     OnceLock::new();
+static ADFS_CONFIG: OnceLock<Result<Option<Arc<systemprompt_web_admin::AdfsConfig>>, String>> =
+    OnceLock::new();
+static SALESFORCE_CONFIG: OnceLock<
+    Result<Option<Arc<systemprompt_web_admin::SalesforceConfig>>, String>,
+> = OnceLock::new();
 
 #[must_use]
 pub fn navigation_config() -> Option<Arc<NavigationConfig>> {
@@ -136,6 +156,20 @@ pub fn skills_page_config() -> Option<Arc<SkillsPageConfig>> {
     )
 }
 
+#[must_use]
+pub fn adfs_config() -> Option<Arc<systemprompt_web_admin::AdfsConfig>> {
+    log_and_discard_err(&ADFS_CONFIG, load_adfs_config, "ADFS config error")
+}
+
+#[must_use]
+pub fn salesforce_config() -> Option<Arc<systemprompt_web_admin::SalesforceConfig>> {
+    log_and_discard_err(
+        &SALESFORCE_CONFIG,
+        load_salesforce_config,
+        "Salesforce config error",
+    )
+}
+
 #[doc(hidden)]
 pub fn log_and_discard_err<T: Clone>(
     lock: &OnceLock<Result<Option<T>, String>>,
@@ -147,14 +181,17 @@ pub fn log_and_discard_err<T: Clone>(
         Err(message) => {
             tracing::error!(
                 error = %message,
-                "{msg}: config failed to load; its pages and sections will not render"
+                config = msg,
+                "Config failed to load; its pages and sections will not render"
             );
             None
         },
     }
 }
 
-fn load_config_section(filename: &str) -> Result<Option<serde_yaml::Value>, ConfigError> {
+pub(super) fn load_config_section(
+    filename: &str,
+) -> Result<Option<serde_yaml::Value>, ConfigError> {
     let paths = match load_app_paths() {
         Ok(p) => p,
         Err(e) => {
@@ -191,17 +228,4 @@ fn load_config_section(filename: &str) -> Result<Option<serde_yaml::Value>, Conf
             config_name: filename.to_owned(),
             message: e.to_string(),
         })
-}
-
-mod downstream;
-static SALESFORCE_CONFIG: OnceLock<
-    Result<Option<Arc<systemprompt_web_admin::SalesforceConfig>>, String>,
-> = OnceLock::new();
-#[must_use]
-pub fn salesforce_config() -> Option<Arc<systemprompt_web_admin::SalesforceConfig>> {
-    log_and_discard_err(
-        &SALESFORCE_CONFIG,
-        downstream::load_salesforce_config,
-        "Salesforce config error",
-    )
 }

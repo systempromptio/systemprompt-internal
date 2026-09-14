@@ -120,19 +120,6 @@ pub struct HeroConfig {
     pub cta_secondary: String,
     #[serde(default)]
     pub cta_secondary_url: Option<String>,
-    #[serde(default)]
-    pub download_ctas: Vec<DownloadCta>,
-}
-
-/// One "Download for <OS>" link in the hero. Kept as label + url rather than
-/// an OS enum so the YAML alone decides what platforms appear. `os` becomes an
-/// `os-<value>` class on the anchor; the hero CSS maps it to a logo glyph.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DownloadCta {
-    pub label: String,
-    pub url: String,
-    #[serde(default)]
-    pub os: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -13,8 +13,15 @@ use systemprompt::traits::ProviderError;
 
 pub(crate) const PRIORITY_CRITICAL: u32 = 5;
 pub(crate) const PRIORITY_HIGH: u32 = 10;
+pub(crate) const PRIORITY_MID: u32 = 50;
 pub(crate) const PRIORITY_LOW: u32 = 90;
 pub(crate) const PRIORITY_LAST: u32 = 95;
+
+pub use super::partials_animations::{
+    AgenticMeshAnimationPartialRenderer, ArchitectureDiagramPartialRenderer,
+    CliRemoteAnimationPartialRenderer, MemoryLoopAnimationPartialRenderer,
+    RustMeshAnimationPartialRenderer,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub struct HeadAssetsPartialRenderer;

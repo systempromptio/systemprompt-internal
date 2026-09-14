@@ -7,6 +7,7 @@ use systemprompt::ai::AiService;
 use systemprompt::identifiers::{SessionId, UserId};
 
 use crate::event_hub::EventHub;
+use crate::numeric;
 use crate::repositories::dashboard::{conversation_analytics, hooks_track, usage_aggregations};
 
 use crate::types::webhook::{HookEvent, HookEventPayload};
@@ -66,6 +67,7 @@ pub(super) async fn process_inserted_event(params: &ProcessInsertedEventParams<'
 
     if event_type == EVENT_STOP && has_session {
         handle_session_analysis(params).await;
+        handle_apm_and_concurrent(params).await;
     }
 
     if event_type == EVENT_SESSION_END && has_session {
@@ -77,23 +79,12 @@ pub(super) async fn process_inserted_event(params: &ProcessInsertedEventParams<'
 
 async fn update_session_tracking(params: &ProcessInsertedEventParams<'_>) {
     let file_path = helpers::extract_file_path(params.payload);
-    let is_from_subagent = params.payload.common.agent_id.is_some();
-    usage_aggregations::increment_session_summary(&usage_aggregations::SessionSummaryParams {
-        pool: params.pool,
-        session_id: params.session_id,
-        user_id: params.user_id,
-        event_type: params.event_type,
-        content_input_bytes: params.content_input_bytes,
-        content_output_bytes: params.content_output_bytes,
-        loc_added: params.loc_added,
-        loc_removed: params.loc_removed,
-        is_subagent_stop: matches!(&params.payload.event, HookEvent::SubagentStop(_)),
-        file_path: file_path.as_deref(),
-        is_from_subagent,
-    })
+    usage_aggregations::refresh_session_summary(
+        params.pool,
+        params.session_id,
+        file_path.as_deref(),
+    )
     .await;
-
-    super::registry::record(params).await;
 
     if params.event_type == EVENT_SESSION_START
         && let HookEvent::SessionStart(ref data) = params.payload.event
@@ -200,4 +191,33 @@ async fn run_ai_analysis(params: &ProcessInsertedEventParams<'_>) {
         })
         .await;
     }
+}
+
+async fn handle_apm_and_concurrent(params: &ProcessInsertedEventParams<'_>) {
+    let pool = params.pool;
+    let user_id = params.user_id;
+    let session_id = params.session_id;
+
+    let (apm, eapm) =
+        crate::repositories::dashboard::apm_metrics::calculate_session_apm(pool, session_id).await;
+
+    let concurrent_raw =
+        match hooks_track::count_concurrent_sessions(pool, user_id, session_id).await {
+            Ok(v) => v,
+            Err(e) => {
+                tracing::error!(
+                    error = %e,
+                    session_id = %session_id.as_str(),
+                    "Failed to count concurrent sessions for APM"
+                );
+                return;
+            },
+        };
+
+    let concurrent = numeric::saturating_i32(concurrent_raw) + 1;
+
+    crate::repositories::dashboard::apm_metrics::update_session_apm(
+        pool, session_id, apm, eapm, concurrent,
+    )
+    .await;
 }

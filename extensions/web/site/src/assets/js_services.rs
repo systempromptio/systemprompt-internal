@@ -29,6 +29,7 @@ pub fn public_js_assets(storage_js: &Path) -> Vec<AssetDefinition> {
         site_js!(&site, "analytics-state.js"),
         site_js!(&site, "analytics-transport.js"),
         site_js!(&site, "copy-buttons.js"),
+        site_js!(&site, "docs-evidence-gallery.js"),
         site_js!(&site, "docs-export.js"),
         site_js!(&site, "docs-nav.js"),
         site_js!(&site, "docs-pagination.js"),
@@ -45,15 +46,12 @@ pub fn public_js_assets(storage_js: &Path) -> Vec<AssetDefinition> {
 pub fn service_js_assets(storage_js: &Path) -> Vec<AssetDefinition> {
     let p = storage_js.join("services");
     let mut v = service_core_js(&p);
-    v.extend(service_webauthn_js(&p));
     v.extend(service_utils_js(storage_js));
     v
 }
 
 fn service_core_js(p: &Path) -> Vec<AssetDefinition> {
     vec![
-        svc_js!(p, "scope.js"),
-        svc_js!(p, "admin-token.js"),
         svc_js!(p, "api.js"),
         svc_js!(p, "auth.js"),
         svc_js!(p, "bootstrap.js"),
@@ -63,34 +61,14 @@ fn service_core_js(p: &Path) -> Vec<AssetDefinition> {
         svc_js!(p, "filter-ribbon.js"),
         svc_js!(p, "header-actions.js"),
         svc_js!(p, "header-search.js"),
+        svc_js!(p, "scope.js"),
         svc_js!(p, "sidebar.js"),
         svc_js!(p, "toast.js"),
     ]
 }
 
-fn service_webauthn_js(p: &Path) -> Vec<AssetDefinition> {
-    vec![
-        svc_js!(p, "odoo-login.js"),
-        svc_js!(p, "webauthn-helpers.js"),
-        svc_js!(p, "webauthn-session.js"),
-        svc_js!(p, "webauthn-login.js"),
-        svc_js!(p, "webauthn-login-ui.js"),
-        svc_js!(p, "webauthn-passkey-helpers.js"),
-        svc_js!(p, "webauthn-register.js"),
-        svc_js!(p, "webauthn-utils.js"),
-    ]
-}
-
 fn service_utils_js(storage_js: &Path) -> Vec<AssetDefinition> {
     vec![
-        AssetDefinition::js(
-            storage_js.join("components/sp-tabs.js"),
-            "js/components/sp-tabs.js",
-        ),
-        AssetDefinition::js(
-            storage_js.join("utils/storage-safe.js"),
-            "js/utils/storage-safe.js",
-        ),
         AssetDefinition::js(
             storage_js.join("components/sp-toast.js"),
             "js/components/sp-toast.js",
@@ -106,6 +84,18 @@ fn service_utils_js(storage_js: &Path) -> Vec<AssetDefinition> {
         AssetDefinition::js(
             storage_js.join("components/sp-copy.js"),
             "js/components/sp-copy.js",
+        ),
+        AssetDefinition::js(
+            storage_js.join("components/sp-tabs.js"),
+            "js/components/sp-tabs.js",
+        ),
+        AssetDefinition::js(
+            storage_js.join("components/sp-evidence-lightbox.js"),
+            "js/components/sp-evidence-lightbox.js",
+        ),
+        AssetDefinition::js(
+            storage_js.join("components/sp-transcript.js"),
+            "js/components/sp-transcript.js",
         ),
     ]
 }

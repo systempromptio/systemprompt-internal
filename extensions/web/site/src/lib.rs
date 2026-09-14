@@ -7,7 +7,7 @@
 //!
 //! - [`homepage`], [`docs`] — section providers.
 //! - [`navigation`] — header / footer nav config consumed by every page.
-//! - [`partials`] — shared template fragments.
+//! - [`partials`] / `partials_animations` — shared template fragments.
 //! - [`extenders`] — URL extenders that splice org-specific routes onto the
 //!   public surface.
 //! - [`assets`] — `web_assets()` enumerates the static asset manifest for the
@@ -22,6 +22,7 @@ pub mod format;
 pub mod homepage;
 pub mod navigation;
 pub mod partials;
+mod partials_animations;
 mod repositories;
 pub mod skills_page;
 

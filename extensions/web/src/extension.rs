@@ -25,6 +25,8 @@ impl WebExtension {
         Self
     }
 
+    // Why: Backed by [`BlogConfigValidated::cached`], so every consumer sees the
+    // same load result; a load failure is logged and treated as "no config".
     #[must_use]
     pub fn blog_config() -> Option<Arc<BlogConfigValidated>> {
         match BlogConfigValidated::cached() {
@@ -53,13 +55,16 @@ impl WebExtension {
     pub fn skills_page_config() -> Option<Arc<SkillsPageConfig>> {
         config_loader::skills_page_config()
     }
-}
 
-register_extension!(WebExtension);
+    #[must_use]
+    pub fn adfs_config() -> Option<Arc<systemprompt_web_admin::AdfsConfig>> {
+        config_loader::adfs_config()
+    }
 
-impl WebExtension {
     #[must_use]
     pub fn salesforce_config() -> Option<Arc<systemprompt_web_admin::SalesforceConfig>> {
         config_loader::salesforce_config()
     }
 }
+
+register_extension!(WebExtension);

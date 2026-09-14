@@ -2,7 +2,6 @@
 name = "systemprompt-web-admin"
 version.workspace = true
 edition.workspace = true
-license.workspace = true
 authors.workspace = true
 description = "Admin dashboard extension for the systemprompt.io template: governed operations UI over agents, MCP servers, users, and analytics."
 repository.workspace = true
@@ -10,10 +9,9 @@ homepage.workspace = true
 publish = false
 
 [dependencies]
+systemprompt-mcp-shared = { workspace = true }
 semver = "1"
-jsonwebtoken = { version = "10", features = ["rust_crypto"] }
 # Foundation
-systemprompt-internal-brand = { workspace = true }
 systemprompt-web-shared = { workspace = true }
 # Audit: uses ai, identifiers, models, oauth, security — requires `full`.
 systemprompt = { workspace = true, features = ["full"] }
@@ -45,16 +43,24 @@ tracing = { workspace = true }
 
 # Crypto & encoding
 sha2 = { workspace = true }
+serde_jcs = { workspace = true }
 chacha20poly1305 = { workspace = true }
 hex = { workspace = true }
+jsonwebtoken = { workspace = true }
 base64 = { workspace = true }
 rand = { workspace = true }
 
 # Templating
 handlebars = { workspace = true }
 
-# HTTP client — Odoo JSON-RPC credential validation
+# Archive
+tempfile = { workspace = true }
+
+# HTTP client
 reqwest = { workspace = true }
+
+# ADFS SAML 2.0 relying party: pure-Rust XML-DSig, no libxml2/xmlsec.
+saml = { workspace = true }
 
 # Utilities
 url = { workspace = true }
@@ -63,21 +69,10 @@ inventory = { workspace = true }
 async-trait = { workspace = true }
 
 [features]
-# The governance dashboards and their repository queries. This fork ships them,
-# so the feature is on by default: the SSR handlers reference the gated items
-# unconditionally, and without this `cargo <cmd> -p systemprompt-web-admin`
-# fails to build even though the workspace (which turns it on from the root)
-# does not. It stays a feature so the files can remain identical to the
-# template fork, which compiles the queries out.
-default = ["governance-ssr"]
+# The ssr_governance surface lives upstream in systemprompt-template; this fork
+# does not ship it. The feature keeps the shared repository files identical
+# across both trees while compiling their dead-in-this-fork queries out.
 governance-ssr = []
-
-[dev-dependencies]
-anyhow = { workspace = true }
-serde_json = { workspace = true }
-serde_yaml = { workspace = true }
-tempfile = { workspace = true }
-tower = { workspace = true, features = ["util"] }
 
 [lints]
 workspace = true

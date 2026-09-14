@@ -82,30 +82,42 @@ impl Extension for WebExtension {
     fn seeds(&self) -> Vec<Seed> {
         vec![
             Seed::new(
-                "dashboard_unassigned_group",
-                include_str!("../schema/seeds/dashboard_unassigned_group.sql"),
-            ),
-            Seed::new(
                 "admin_oauth_client",
                 include_str!("../schema/seeds/admin_oauth_client.sql"),
             ),
             Seed::new(
-                "house_organization",
-                include_str!("../schema/seeds/house_organization.sql"),
+                "marketplace_plans",
+                include_str!("../schema/seeds/marketplace_plans.sql"),
             ),
             Seed::new(
-                "default_department",
-                include_str!("../schema/seeds/default_department.sql"),
+                "groups_projects",
+                include_str!("../schema/seeds/groups_projects.sql"),
             ),
         ]
     }
 
     fn dependencies(&self) -> Vec<&'static str> {
-        vec!["content", "users", "authz", "ai"]
+        vec![
+            "content",
+            "users",
+            "authz",
+            "evaluation",
+            "managed_resources",
+        ]
     }
 
     fn cross_extension_tables(&self) -> Vec<&'static str> {
-        vec!["markdown_content", "users"]
+        vec![
+            "eval_resource_revisions",
+            "eval_session_bindings",
+            "managed_installation_receipts",
+            "managed_invocation_attributions",
+            "managed_publications",
+            "managed_resources",
+            "markdown_content",
+            "mcp_tool_executions",
+            "users",
+        ]
     }
 
     fn router(&self, ctx: &dyn ExtensionContext) -> Option<ExtensionRouter> {
@@ -116,7 +128,7 @@ impl Extension for WebExtension {
         Some(SiteAuthConfig {
             login_path: "/admin/login",
             protected_prefixes: &["/admin", "/bridge-auth"],
-            public_prefixes: &["/admin/login"],
+            public_prefixes: &["/admin/login", "/admin/auth/adfs"],
             required_scope: "user",
         })
     }

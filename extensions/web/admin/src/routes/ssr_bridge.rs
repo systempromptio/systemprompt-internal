@@ -11,14 +11,6 @@ use super::super::templates::AdminTemplateEngine;
 use super::super::{handlers, middleware};
 
 pub fn bridge_auth_ssr_router(pool: Arc<PgPool>, engine: AdminTemplateEngine) -> Router {
-    // Why: switch-account must work precisely when the session should NOT
-    // decide anything — it clears the cookies and re-enters login — so it
-    // lives outside the auth-gated router.
-    let open = Router::new().route(
-        "/device-link/switch",
-        get(handlers::ssr::device_link_switch),
-    );
-
     let inner = Router::new()
         .route("/setup", get(handlers::ssr::bridge_setup_page))
         .route("/device-link", get(handlers::ssr::device_link_page))
@@ -28,7 +20,8 @@ pub fn bridge_auth_ssr_router(pool: Arc<PgPool>, engine: AdminTemplateEngine) ->
         )
         .route("/device-link/deny", post(handlers::ssr::device_link_deny))
         .layer(Extension(engine))
-        .layer(axum_middleware::from_fn(
+        .layer(axum_middleware::from_fn_with_state(
+            Arc::clone(&pool),
             middleware::marketplace_context_middleware,
         ))
         .layer(axum_middleware::from_fn(
@@ -43,6 +36,6 @@ pub fn bridge_auth_ssr_router(pool: Arc<PgPool>, engine: AdminTemplateEngine) ->
     Router::new().fallback_service(
         tower::ServiceBuilder::new()
             .layer(NormalizePathLayer::trim_trailing_slash())
-            .service(open.merge(inner)),
+            .service(inner),
     )
 }

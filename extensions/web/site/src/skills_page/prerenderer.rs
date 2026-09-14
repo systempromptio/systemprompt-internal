@@ -24,9 +24,8 @@ impl SkillsPagePrerenderer {
     }
 }
 
-const CATEGORY_ORDER: [&str; 5] = [
-    "Business on Odoo",
-    "Enterprise Demo",
+const CATEGORY_ORDER: [&str; 4] = [
+    "Consultancy Workflows",
     "Brand & Workspace",
     "Governance & Analytics",
     "Platform & Operations",
@@ -40,6 +39,8 @@ pub fn category_rank(name: &str) -> usize {
         .unwrap_or(CATEGORY_ORDER.len())
 }
 
+// JSON: template render data — the grouped categories are handed straight to
+// the Handlebars context, which takes data rather than a type.
 #[doc(hidden)]
 pub fn group_by_category(skills: &[SkillEntry]) -> Vec<serde_json::Value> {
     let mut grouped: BTreeMap<String, Vec<&SkillEntry>> = BTreeMap::new();

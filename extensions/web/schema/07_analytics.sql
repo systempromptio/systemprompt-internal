@@ -31,10 +31,10 @@ CREATE TABLE IF NOT EXISTS plugin_usage_daily (
     error_count BIGINT NOT NULL DEFAULT 0,
     content_input_bytes BIGINT DEFAULT 0,
     content_output_bytes BIGINT DEFAULT 0,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     loc_added BIGINT NOT NULL DEFAULT 0,
-    loc_removed BIGINT NOT NULL DEFAULT 0
+    loc_removed BIGINT NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_usage_daily_unique ON plugin_usage_daily(date, user_id, event_type, COALESCE(tool_name, ''));
 CREATE INDEX IF NOT EXISTS idx_usage_daily_date ON plugin_usage_daily(date DESC);
@@ -63,41 +63,23 @@ CREATE TABLE IF NOT EXISTS plugin_session_summaries (
     ai_summary TEXT,
     ai_tags TEXT,
     ai_description TEXT,
+    apm REAL,
+    eapm REAL,
+    peak_concurrent INT,
     permission_mode TEXT,
     client_source TEXT,
     subagent_spawns BIGINT NOT NULL DEFAULT 0,
     user_prompts INT,
     automated_actions INT,
-    -- Session registry: where the work is happening, whether the session is
-    -- still alive, and what it has spent. `handle` is the address other people
-    -- and agents use to reach it. See migrations/030_session_registry.sql for
-    -- the transition applied to databases that predate these columns.
-    cwd TEXT,
-    workspace TEXT,
-    git_branch TEXT,
-    handle TEXT,
-    last_event_at TIMESTAMPTZ,
-    current_activity TEXT,
-    live_cost_microdollars BIGINT,
-    context_pct SMALLINT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     loc_added BIGINT NOT NULL DEFAULT 0,
-    loc_removed BIGINT NOT NULL DEFAULT 0
+    loc_removed BIGINT NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_session_summary_user ON plugin_session_summaries(user_id, started_at DESC);
 CREATE INDEX IF NOT EXISTS idx_session_summary_session ON plugin_session_summaries(session_id);
 CREATE INDEX IF NOT EXISTS idx_session_summary_source ON plugin_session_summaries(user_id, client_source);
 CREATE INDEX IF NOT EXISTS idx_session_summary_mode ON plugin_session_summaries(user_id, permission_mode);
--- One live handle per user; partial so an ended session releases its address
--- rather than consuming it forever.
-CREATE UNIQUE INDEX IF NOT EXISTS idx_session_summary_handle
-    ON plugin_session_summaries (user_id, handle)
-    WHERE handle IS NOT NULL AND ended_at IS NULL;
-CREATE INDEX IF NOT EXISTS idx_session_summary_workspace
-    ON plugin_session_summaries (workspace) WHERE workspace IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_session_summary_last_event
-    ON plugin_session_summaries (last_event_at DESC);
 
 CREATE TABLE IF NOT EXISTS session_transcripts (
     id TEXT PRIMARY KEY,
@@ -110,24 +92,29 @@ CREATE TABLE IF NOT EXISTS session_transcripts (
     model TEXT,
     entries_counted INT DEFAULT 0,
     captured_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    search_tsv tsvector GENERATED ALWAYS AS
-        (to_tsvector('english', left(transcript::text, 262144))) STORED
+    -- Full-text search for the identity-scoped conversation-history surface.
+    -- Generated rather than trigger-maintained so it can never drift from the
+    -- transcript; capped at 256KB of text so a pathological transcript cannot
+    -- exceed the 1MB tsvector limit and reject the insert. Established
+    -- databases converge via migrations/033_transcript_fts.sql.
+    search_tsv tsvector
+        GENERATED ALWAYS AS (to_tsvector('english', left(transcript::text, 262144))) STORED
 );
 CREATE INDEX IF NOT EXISTS idx_session_transcripts_user ON session_transcripts(user_id, captured_at DESC);
 CREATE INDEX IF NOT EXISTS idx_session_transcripts_session ON session_transcripts(session_id, captured_at DESC);
--- Structural containment and ranked text search use separate indexes.
+-- jsonb_path_ops over to_tsvector: we filter transcripts by structural containment
+-- (`transcript @> '[{"role":"user"}]'`-style) and substring search against textual
+-- content, not by linguistic relevance. jsonb_path_ops gives ~30% smaller indexes
+-- than the default jsonb_ops and is sufficient for @>; full-text ranking is not
+-- a requirement for the conversations page, so we skip the generated tsvector
+-- column and the trigger maintenance it would imply.
 CREATE INDEX IF NOT EXISTS idx_session_transcripts_jsonb ON session_transcripts USING GIN (transcript jsonb_path_ops);
+
+CREATE INDEX IF NOT EXISTS idx_session_transcripts_fts
+    ON session_transcripts USING GIN (search_tsv);
 
 -- `governance_decisions` schema is owned by core's authz extension
 -- (`systemprompt_security::authz::AuthzExtension`). The table and its indexes
 -- are created from `crates/infra/security/src/authz/schema/governance_decisions.sql`
 -- before this analytics extension runs (migration_weight 110 vs analytics ~200).
 -- Triggers that depend on the table live in 14_audit_event_notify.sql.
-
--- Core 0.48 runs structural CREATE TABLE, then pending migrations, then
--- dependent CREATE INDEX statements. Migration 059 adds search_tsv on existing
--- tables before this index runs. Fresh installs stamp (do not run) migrations,
--- so both the column above and this declarative index are required.
--- Regression: tests/integration/admin-core/src/usage_conversation_summary_schema.rs.
-CREATE INDEX IF NOT EXISTS idx_session_transcripts_fts
-    ON session_transcripts USING GIN (search_tsv);

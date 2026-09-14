@@ -1,33 +1,19 @@
 //! User create, update, and delete.
 //!
-//! Creation is one of the two doors a seat is minted through (the other is SSO
-//! just-in-time provisioning in [`super::federated`]). Both resolve the
-//! organization the same way — from the email's domain — so which door a user
-//! arrives through cannot change whose contract they land on, and neither door
-//! can be the one that forgot to check the seat limit.
+//! Neither door touches group or project membership: those are what the
+//! directory says at SSO sign-in (see [`super::federated`]), never an operator
+//! edit. An operator-created account has no project until it signs in.
 
 use sqlx::PgPool;
 use systemprompt::identifiers::UserId;
 use systemprompt_web_shared::error::MarketplaceError;
 
-use crate::repositories::organizations;
 use crate::types::{CreateUserRequest, UpdateUserRequest, UserSummary};
 
 pub async fn create_user(
     pool: &PgPool,
     req: &CreateUserRequest,
 ) -> Result<UserSummary, MarketplaceError> {
-    // Why: resolved before the insert so a full plan rejects the request
-    // rather than leaving behind a user who exists but is entitled to nothing.
-    // An unclaimed domain is not an error — that user is not on a customer
-    // contract and consumes nobody's seat.
-    let org_id = organizations::crud::find_organization_for_email(pool, req.email.as_str()).await?;
-    if let Some(org_id) = org_id.as_deref()
-        && !is_existing_member(pool, &req.user_id, org_id).await?
-    {
-        organizations::seats::assert_seat_available(pool, org_id).await?;
-    }
-
     let user_id_str = req.user_id.as_str().to_owned();
     let status = req.status.clone().unwrap_or_else(|| "active".to_owned());
     let username = req.email.as_str();
@@ -66,27 +52,7 @@ pub async fn create_user(
     )
     .fetch_one(pool)
     .await?;
-
-    if let Some(org_id) = org_id.as_deref() {
-        organizations::crud::set_membership(pool, &summary.user_id, org_id, "member").await?;
-    }
-
     Ok(summary)
-}
-
-async fn is_existing_member(
-    pool: &PgPool,
-    user_id: &UserId,
-    org_id: &str,
-) -> Result<bool, MarketplaceError> {
-    let found = sqlx::query_scalar!(
-        "SELECT 1 AS present FROM organization_members WHERE user_id = $1 AND org_id = $2",
-        user_id.as_str(),
-        org_id
-    )
-    .fetch_optional(pool)
-    .await?;
-    Ok(found.is_some())
 }
 
 pub async fn update_user(
@@ -102,10 +68,12 @@ pub async fn update_user(
         }
     });
     let set_email_verified = req.is_active == Some(true);
-    let roles_update: Option<&[String]> = req.roles.as_deref();
-    let mut tx = pool.begin().await?;
+    // Why: roles moved to their own route, which is the only place the
+    // platform-admin and directory rules can be applied. The bind stays so the
+    // statement is untouched; B3 removes it with the column from the UPDATE.
+    let roles_update: Option<&[String]> = None;
 
-    let summary = sqlx::query_as!(
+    sqlx::query_as!(
         UserSummary,
         r#"
         UPDATE users
@@ -140,27 +108,8 @@ pub async fn update_user(
         status.as_deref(),
         set_email_verified,
     )
-    .fetch_optional(&mut *tx)
-    .await?;
-
-    if summary.is_some()
-        && let Some(department) = req.department.as_deref()
-    {
-        sqlx::query!(
-            r#"
-                INSERT INTO user_profile_ext (user_id, department)
-                VALUES ($1, $2)
-                ON CONFLICT (user_id) DO UPDATE SET department = EXCLUDED.department
-                "#,
-            user_id.as_str(),
-            department,
-        )
-        .execute(&mut *tx)
-        .await?;
-    }
-
-    tx.commit().await?;
-    Ok(summary)
+    .fetch_optional(pool)
+    .await
 }
 
 pub async fn delete_user(pool: &PgPool, user_id: &UserId) -> Result<bool, sqlx::Error> {

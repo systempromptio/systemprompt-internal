@@ -11,61 +11,19 @@
 pub(crate) use systemprompt_web_shared::pagination::PageWindow;
 
 use serde::Serialize;
+use std::collections::BTreeMap;
 
+use sqlx::PgPool;
+
+use crate::repositories::scope::ScopeRequest;
+use crate::repositories::{groups, projects};
+use crate::types::UserContext;
 
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct SelectOptionView {
     pub value: String,
     pub label: String,
     pub selected: bool,
-}
-
-#[derive(Debug, Serialize)]
-pub(crate) struct TimeRangeContext {
-    pub(crate) preset: String,
-    pub(crate) from: String,
-    pub(crate) to: String,
-    pub(crate) base_url: &'static str,
-    pub(crate) query: &'static str,
-    pub(crate) rejected: bool,
-}
-
-#[derive(Debug, Serialize)]
-pub(crate) struct Preserved {
-    pub(crate) name: &'static str,
-    pub(crate) value: String,
-}
-
-#[derive(Debug, Serialize)]
-pub(crate) struct AnnotatedOption {
-    pub(crate) id: String,
-    pub(crate) label: String,
-    pub(crate) count: i64,
-    pub(crate) selected: bool,
-}
-
-#[derive(Debug, Serialize)]
-pub(crate) struct Chip {
-    pub(crate) group_label: &'static str,
-    pub(crate) label: String,
-    pub(crate) value: String,
-    pub(crate) remove_url: String,
-}
-
-#[derive(Debug, Serialize)]
-pub(crate) struct Pagination {
-    pub(crate) current_page: i64,
-    pub(crate) total_pages: i64,
-    // Why: 1-based row range for "Showing 1-50 of 54"; `first_row` is 0 only
-    // when the page is empty.
-    pub(crate) first_row: i64,
-    pub(crate) last_row: i64,
-    pub(crate) total_rows: i64,
-    pub(crate) noun: &'static str,
-    pub(crate) has_prev: bool,
-    pub(crate) has_next: bool,
-    pub(crate) prev_url: Option<String>,
-    pub(crate) next_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -108,28 +66,40 @@ pub(crate) async fn scope_filter_view(
     let groups = group_rows
         .unwrap_or_default()
         .into_iter()
-        .map(|g| (g.id, g.name))
+        .map(|g| (g.id.as_str().to_owned(), g.name))
         .collect();
     let projects = project_rows
         .unwrap_or_default()
         .into_iter()
-        .map(|p| (p.id, p.name))
+        .map(|p| (p.id.as_str().to_owned(), p.name))
         .collect();
-    scope_filter_from_names(user_ctx, scope, base_url, hidden, &groups, &projects)
+    scope_filter_from_names(
+        user_ctx,
+        scope,
+        base_url,
+        hidden,
+        ScopeNames {
+            groups: &groups,
+            projects: &projects,
+        },
+    )
 }
 
-#[expect(
-    clippy::too_many_arguments,
-    reason = "one view built from the scope request plus the three name sources it renders"
-)]
+// Why: Carries display names for the containers a scope filter can select.
+#[derive(Clone, Copy)]
+pub(crate) struct ScopeNames<'a> {
+    pub(crate) groups: &'a BTreeMap<String, String>,
+    pub(crate) projects: &'a BTreeMap<String, String>,
+}
+
 pub(crate) fn scope_filter_from_names(
     user_ctx: &UserContext,
     scope: &ScopeRequest,
     base_url: &str,
     hidden: Vec<(String, String)>,
-    groups: &BTreeMap<String, String>,
-    projects: &BTreeMap<String, String>,
+    names: ScopeNames<'_>,
 ) -> ScopeFilterView {
+    let ScopeNames { groups, projects } = names;
     ScopeFilterView {
         show: user_ctx.is_console,
         base_url: base_url.to_owned(),
@@ -169,9 +139,54 @@ fn options(
     out
 }
 
+#[derive(Debug, Serialize)]
+pub(crate) struct TimeRangeContext {
+    pub(crate) preset: String,
+    pub(crate) from: String,
+    pub(crate) to: String,
+    pub(crate) base_url: &'static str,
+    pub(crate) query: &'static str,
+    // Why: carried from `TimeRange::rejected_bounds` so the partial can say
+    // the window is the default rather than the one the URL asked for. A
+    // listing that answers for a different window without saying so is read as
+    // the answer to the question that was asked.
+    pub(crate) rejected: bool,
+}
 
-use crate::repositories::scope::ScopeRequest;
-use crate::repositories::{groups, projects};
-use crate::types::UserContext;
-use sqlx::PgPool;
-use std::collections::BTreeMap;
+#[derive(Debug, Serialize)]
+pub(crate) struct Preserved {
+    pub(crate) name: &'static str,
+    pub(crate) value: String,
+}
+
+#[derive(Debug, Serialize)]
+pub(crate) struct AnnotatedOption {
+    pub(crate) id: String,
+    pub(crate) label: String,
+    pub(crate) count: i64,
+    pub(crate) selected: bool,
+}
+
+#[derive(Debug, Serialize)]
+pub(crate) struct Chip {
+    pub(crate) group_label: &'static str,
+    pub(crate) label: String,
+    pub(crate) value: String,
+    pub(crate) remove_url: String,
+}
+
+#[derive(Debug, Serialize)]
+pub(crate) struct Pagination {
+    pub(crate) current_page: i64,
+    pub(crate) total_pages: i64,
+    // Why: 1-based row range for "Showing 1-50 of 54"; `first_row` is 0 only
+    // when the page is empty.
+    pub(crate) first_row: i64,
+    pub(crate) last_row: i64,
+    pub(crate) total_rows: i64,
+    pub(crate) noun: &'static str,
+    pub(crate) has_prev: bool,
+    pub(crate) has_next: bool,
+    pub(crate) prev_url: Option<String>,
+    pub(crate) next_url: Option<String>,
+}

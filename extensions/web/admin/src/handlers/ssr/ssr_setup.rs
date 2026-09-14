@@ -1,44 +1,42 @@
-//! SSR page driving first-run setup, for admins and users alike.
-//!
-//! This is one of only three admin routes a non-admin can reach (see
-//! `middleware::gates::is_non_admin_allowed_path`), so it is the whole of a
-//! salesperson's in-app onboarding. Every phase must therefore describe
-//! something this instance actually ships, link somewhere that actually
-//! resolves, and read a distinct piece of state for its completion — a phase
-//! whose `complete` restates the previous phase's is a check that cannot fail.
-
-use std::sync::Arc;
-
-use super::types::BreadcrumbView;
+//! SSR page driving first-run instance setup.
 
 use crate::error::AdminHtmlResult;
+use crate::handlers::ssr::types::BreadcrumbView;
 use crate::templates::AdminTemplateEngine;
 use crate::types::{MarketplaceContext, UserContext};
-use axum::extract::{Extension, Query, State};
+use axum::extract::{Extension, Query};
 use axum::response::Response;
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 
 #[derive(Debug, Serialize)]
 struct SetupPageContext {
-    breadcrumbs: Vec<BreadcrumbView>,
     page: &'static str,
     title: &'static str,
     phases: Vec<SetupPhase>,
     all_phases_started: bool,
     just_verified: bool,
+    total_plugins: usize,
+    total_skills: usize,
+    complete_count: usize,
+    phase_count: usize,
+    breadcrumbs: Vec<BreadcrumbView>,
 }
 
 #[derive(Debug, Serialize)]
+// Why: `phase_title`, not `title` — the layout partial is invoked with a
+// `title=` hash, which shadows a field of that name inside every block, so the
+// phase rows all printed the page title.
 struct SetupPhase {
     number: u8,
-    title: String,
-    description: String,
+    phase_title: String,
+    description: &'static str,
     guide_url: &'static str,
     action_url: &'static str,
     action_label: &'static str,
     complete: bool,
     current: bool,
+    status_label: &'static str,
+    status_tone: &'static str,
 }
 
 #[derive(Deserialize, Debug)]
@@ -47,125 +45,97 @@ pub(crate) struct SetupQuery {
     verified: Option<String>,
 }
 
-// Why: each field is a distinct signal, so no phase can restate another's.
-struct SetupState {
-    odoo_linked: bool,
-    device_enrolled: bool,
-    gateway_used: bool,
-}
-
-async fn read_setup_state(pool: &PgPool, user_ctx: &UserContext) -> SetupState {
-    let odoo_linked = crate::repositories::users::odoo_identity::find(pool, &user_ctx.user_id)
-        .await
-        .ok()
-        .flatten()
-        .is_some();
-
-    // Why: an enrolled device holds a live API key; a revoked one is not enrolled.
-    let device_enrolled =
-        crate::repositories::bridge::list_api_keys_for_user(pool, &user_ctx.user_id)
-            .await
-            .is_ok_and(|keys| keys.iter().any(|k| k.revoked_at.is_none()));
-
-    // Why: a request through the gateway is the only proof the client is wired
-    // up and the skills are reachable — nothing else observes the other end.
-    // `PgPool` is internally reference-counted, so this clone is a handle copy.
-    let gateway_used =
-        systemprompt::analytics::ProfileUsageService::from_pool(Arc::new(pool.clone()))
-            .get_usage_window(
-                &user_ctx.user_id,
-                chrono::Utc::now(),
-                chrono::Duration::days(30),
-            )
-            .await
-            .is_ok_and(|w| w.requests > 0);
-
-    SetupState {
-        odoo_linked,
-        device_enrolled,
-        gateway_used,
-    }
-}
-
-fn build_phases(user_ctx: &UserContext, state: &SetupState) -> Vec<SetupPhase> {
-    // Why: admins hold a second, separate setup skill; a user does not, and
-    // must never be told to look for one that is not in their grant.
-    let run_setup_description = if user_ctx.is_admin {
-        "In your Claude client, run the Systemprompt Setup skill. It reports what your account was granted, then installs your workspace dashboards. As an admin, follow it with Systemprompt Setup — Control Plane for the user, activity, and cost dashboards."
-    } else {
-        "In your Claude client, run the Systemprompt Setup skill. It reports what your account was granted, checks your connections, and installs your dashboards."
-    };
-
-    vec![
+// Why: the marketplace counters are the only completion signal this page
+// has. Phase 2 was `phase1 && total_plugins > 0`, which is phase 1 restated
+// — the same condition twice, so the two steps could never disagree.
+fn setup_phases(mkt_ctx: &MarketplaceContext) -> Vec<SetupPhase> {
+    let phase1_complete = mkt_ctx.total_plugins > 0;
+    let phase2_complete = phase1_complete;
+    let phase3_complete = phase2_complete && mkt_ctx.total_skills > 0;
+    let mut phases = vec![
         SetupPhase {
             number: 1,
-            title: String::from("Sign in with a passkey"),
-            description: String::from(
-                "Done — you are signed in. There is no signup form and no password: your passkey is the credential, and every action you take is attributed to this account.",
-            ),
-            guide_url: "/documentation/authentication",
-            action_url: "/admin/profile",
-            action_label: "View Profile",
-            complete: true,
-            current: false,
+            phase_title: format!("Connect Claude to {}", mkt_ctx.site_url),
+            description: "The essential first step. Connect your Claude surface so skills, plugins, and analytics actually work. Without this, nothing else matters.",
+            guide_url: "/documentation/connect-claude-code",
+            action_url: "",
+            action_label: "",
+            complete: phase1_complete,
+            current: !phase1_complete,
+            status_label: "",
+            status_tone: "",
         },
         SetupPhase {
             number: 2,
-            title: String::from("Link your Odoo account"),
-            description: String::from(
-                "Odoo is the system of record, and every call runs as you — the server holds no service account. Add your Odoo login and personal API key on your profile; until you do, every CRM tool returns a clear error naming this page.",
-            ),
-            guide_url: "/documentation/odoo",
-            action_url: "/admin/profile",
-            action_label: "Link Odoo",
-            complete: state.odoo_linked,
-            current: !state.odoo_linked,
+            phase_title: String::from("Browse and Fork Plugins"),
+            description: "Explore the plugin catalogue. Fork industry-specific plugins to build your personalised skill library with proven defaults.",
+            guide_url: "/documentation/enterprise-tool-governance",
+            action_url: "/admin/plugins",
+            action_label: "Browse Plugins",
+            complete: phase2_complete,
+            current: phase1_complete && !phase2_complete,
+            status_label: "",
+            status_tone: "",
         },
         SetupPhase {
             number: 3,
-            title: String::from("Install the desktop bridge"),
-            description: String::from(
-                "The bridge points your Claude client at this instance and syncs the skills, servers, and dashboards your account was granted. Enrol this machine from your profile to get its key.",
-            ),
-            guide_url: "/documentation/connect-claude-code",
-            action_url: "/admin/profile",
-            action_label: "Enrol Device",
-            complete: state.device_enrolled,
-            current: state.odoo_linked && !state.device_enrolled,
+            phase_title: String::from("Customize Your Skills"),
+            description: "Use the Skill Manager MCP server to edit forked skills, create new ones, and build a library that matches how your team works.",
+            guide_url: "/documentation/skills",
+            action_url: "/admin/skills",
+            action_label: "My Skills",
+            complete: phase3_complete,
+            current: phase2_complete && !phase3_complete,
+            status_label: "",
+            status_tone: "",
         },
         SetupPhase {
             number: 4,
-            title: String::from("Run setup in your client"),
-            description: String::from(run_setup_description),
-            guide_url: "/documentation/",
-            action_url: "/skills/",
-            action_label: "Browse Skills",
-            complete: state.gateway_used,
-            current: state.device_enrolled && !state.gateway_used,
+            phase_title: String::from("Monitor, Report, and Improve"),
+            description: "Track skill effectiveness with the CLI. Identify what is working, retire what is not, and iterate your way to a world-class skill library.",
+            guide_url: "/documentation/dashboard",
+            action_url: "/admin/users",
+            action_label: "Open Admin",
+            complete: false,
+            current: phase3_complete,
+            status_label: "",
+            status_tone: "",
         },
-    ]
+    ];
+    for phase in &mut phases {
+        let (label, tone) = match (phase.complete, phase.current) {
+            (true, _) => ("Complete", "ok"),
+            (false, true) => ("Current", "accent"),
+            (false, false) => ("Not started", "muted"),
+        };
+        phase.status_label = label;
+        phase.status_tone = tone;
+    }
+    phases
 }
 
 pub(crate) async fn setup_page(
     Extension(user_ctx): Extension<UserContext>,
     Extension(mkt_ctx): Extension<MarketplaceContext>,
     Extension(engine): Extension<AdminTemplateEngine>,
-    State(pool): State<Arc<PgPool>>,
     Query(query): Query<SetupQuery>,
 ) -> AdminHtmlResult<Response> {
-    let state = read_setup_state(&pool, &user_ctx).await;
-    let phases = build_phases(&user_ctx, &state);
-
+    let phases = setup_phases(&mkt_ctx);
+    let complete_count = phases.iter().filter(|p| p.complete).count();
     let ctx = SetupPageContext {
-        breadcrumbs: vec![
-            BreadcrumbView::link("Admin", "/admin"),
-            BreadcrumbView::current("Setup Guide"),
-        ],
         page: "setup",
-        title: "Setup Guide",
-        all_phases_started: state.odoo_linked,
-        just_verified: query.verified.is_some(),
+        total_plugins: mkt_ctx.total_plugins,
+        total_skills: mkt_ctx.total_skills,
+        complete_count,
+        phase_count: phases.len(),
+        breadcrumbs: vec![
+            BreadcrumbView::link("Account", "/admin/profile"),
+            BreadcrumbView::current("Setup guide"),
+        ],
+        title: "Setup guide",
+        all_phases_started: phases.first().is_some_and(|p| p.complete),
         phases,
+        just_verified: query.verified.is_some(),
     };
 
     Ok(super::render_typed_page(

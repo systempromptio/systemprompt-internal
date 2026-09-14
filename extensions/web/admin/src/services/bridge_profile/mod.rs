@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 use serde::Serialize;
 use sqlx::PgPool;
-use systemprompt::identifiers::{TenantId, UserId};
+use systemprompt::identifiers::{MarketplaceId, TenantId, UserId};
 
 use crate::types::UserContext;
 
@@ -24,7 +24,6 @@ pub(crate) use assemble::read_config_strings;
 
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct ProfileIdentity {
-    pub source: crate::types::IdentitySource,
     pub email: String,
     pub display_name: Option<String>,
     pub user_id: UserId,
@@ -39,7 +38,7 @@ pub(crate) struct ProfileIdentity {
 pub(crate) use crate::repositories::users::usage::{ConversationSummary, ModelShare, UsageWindow};
 
 #[derive(Debug, Clone, Default, Serialize)]
-pub(crate) struct BridgeProfileUsage {
+pub(crate) struct ProfileUsage {
     pub d1: UsageWindow,
     pub d7: UsageWindow,
     pub d30: UsageWindow,
@@ -60,7 +59,7 @@ pub(crate) struct BridgeProfileBlock {
 // granted it — a person reading their own profile can see *why* they have it.
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct ProfileMarketplaceView {
-    pub id: String,
+    pub id: MarketplaceId,
     pub name: String,
     pub version: String,
     pub plugin_count: usize,
@@ -68,7 +67,7 @@ pub(crate) struct ProfileMarketplaceView {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub(crate) struct BridgeAgentItem {
+pub(crate) struct AgentItem {
     pub id: String,
     pub display_name: String,
     pub enabled: bool,
@@ -76,10 +75,10 @@ pub(crate) struct BridgeAgentItem {
 }
 
 #[derive(Debug, Clone, Default, Serialize)]
-pub(crate) struct BridgeAgentsBlock {
+pub(crate) struct AgentsBlock {
     pub total: i64,
     pub enabled: i64,
-    pub items: Vec<BridgeAgentItem>,
+    pub items: Vec<AgentItem>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -98,7 +97,7 @@ pub(crate) struct BridgeConnectBlock {
 
 // Why: not derivable here — `brand()` lives in the bridge crate, which the
 // admin extension does not depend on.
-pub(crate) const BRIDGE_BINARY: &str = systemprompt_internal_brand::BRIDGE_BINARY_NAME;
+pub(crate) const BRIDGE_BINARY: &str = "systemprompt-bridge";
 
 // Why: the host is named rather than left to `install.sh`'s PATH probe, which
 // enrols `opencode` only when its binary already exists. A user who installs
@@ -108,15 +107,13 @@ pub(crate) const BRIDGE_BINARY: &str = systemprompt_internal_brand::BRIDGE_BINAR
 // flag and is rejected by `install.sh`.
 fn install_command(gateway: &str, code: &str, host: &str) -> String {
     format!(
-        "{} --host {host}",
-        crate::services::bridge_downloads::install_command(gateway, Some(code))
+        "curl -fsSL {gateway}/files/downloads/install.sh | sh -s -- \
+         --download-base {gateway}/files/downloads --code {code} --host {host}"
     )
 }
 
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct BridgeProfilePageData {
-    pub download_base_url: String,
-    pub odoo: OdooLinkBlock,
     pub connections: Option<super::connector_accounts::ConnectionSnapshot>,
     pub page: &'static str,
     pub title: &'static str,
@@ -125,8 +122,8 @@ pub(crate) struct BridgeProfilePageData {
     // issue a connect code. The code itself is never part of page data.
     pub bridge_connect_available: bool,
     pub bridge_profile: Option<BridgeProfileBlock>,
-    pub usage: BridgeProfileUsage,
-    pub agents: BridgeAgentsBlock,
+    pub usage: ProfileUsage,
+    pub agents: AgentsBlock,
     pub marketplaces: Vec<ProfileMarketplaceView>,
     pub marketplaces_count: usize,
 }
@@ -209,7 +206,6 @@ pub(crate) async fn build_bridge_profile_data(
     let bridge_connect_available = gateway_url.is_some();
 
     let identity = ProfileIdentity {
-        source: user_ctx.source,
         email: user_ctx.email.as_str().to_owned(),
         display_name,
         user_id: user_ctx.user_id.clone(),
@@ -222,13 +218,26 @@ pub(crate) async fn build_bridge_profile_data(
     };
 
     let usage = build_usage(sections);
-    let agents = build_agents_block();
-    let marketplaces = build_marketplaces(&pool, &user_id, user_ctx.roles.clone()).await;
+    let mut agents = build_agents_block();
+    let access = crate::authz::catalog::CatalogAccess::load(&pool, &user_id).await?;
+    let ids = agents
+        .items
+        .iter()
+        .filter(|a| a.enabled)
+        .map(|a| a.id.clone())
+        .collect::<Vec<_>>();
+    let allowed = access
+        .allowed(systemprompt_security::authz::EntityKind::Agent, &ids)
+        .await?;
+    agents
+        .items
+        .retain(|a| a.enabled && allowed.contains(&a.id));
+    agents.total = agents.items.len() as i64;
+    agents.enabled = agents.total;
+    let marketplaces = build_marketplaces(&pool, &user_id, user_ctx.roles.clone()).await?;
 
     let connections = Some(super::connector_accounts::get_connections(&pool, &user_id).await?);
     Ok(BridgeProfilePageData {
-        download_base_url: crate::services::bridge_downloads::release_base_url(),
-        odoo: build_odoo_block(&pool, &user_id).await,
         connections,
         marketplaces_count: marketplaces.len(),
         marketplaces,
@@ -240,27 +249,4 @@ pub(crate) async fn build_bridge_profile_data(
         usage,
         agents,
     })
-}
-
-#[derive(Debug, Clone, Default, Serialize)]
-pub(crate) struct OdooLinkBlock {
-    pub linked: bool,
-    pub odoo_login: Option<String>,
-    pub configured: bool,
-}
-async fn build_odoo_block(pool: &PgPool, user_id: &UserId) -> OdooLinkBlock {
-    use crate::handlers::odoo_auth::OdooConnection;
-    use crate::repositories::users::odoo_identity;
-
-    let identity = odoo_identity::find(pool, user_id)
-        .await
-        .map_err(|e| tracing::warn!(error = %e, "could not read Odoo link status"))
-        .ok()
-        .flatten();
-
-    OdooLinkBlock {
-        linked: identity.is_some(),
-        odoo_login: identity.map(|i| i.odoo_login),
-        configured: OdooConnection::from_env().is_some(),
-    }
 }

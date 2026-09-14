@@ -7,7 +7,6 @@
 mod authz;
 pub(crate) mod engine;
 mod handler;
-mod scope;
 mod types;
 
 pub(crate) use authz::govern_authz;

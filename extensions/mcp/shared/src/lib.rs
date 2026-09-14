@@ -11,9 +11,7 @@ use systemprompt::database::DbPool;
 use systemprompt::identifiers::UserId;
 
 mod repositories;
-
 pub mod approval;
-pub mod artifact_theme;
 
 /// Audit-row metadata persisted to `user_activity.metadata` for every MCP
 /// access event. `reason` is present only on rejections.
@@ -140,3 +138,5 @@ pub async fn record_mcp_access_rejected(pool: &DbPool, server: &str, tool: &str,
         tracing::warn!(error = %e, "Failed to record MCP access rejection (non-fatal)");
     }
 }
+
+pub mod access_policy;

@@ -20,9 +20,10 @@ pub fn web_assets(paths: &dyn systemprompt::extension::AssetPaths) -> Vec<AssetD
         storage_video.join("showreel.mp4"),
         "video/showreel.mp4",
     ));
-    // Why: nothing under `storage/files/` outside these roots is declared.
-    // `/files/**` is served straight from storage, so anything else placed
-    // there is reachable without being copied into `web/dist`.
+    // Why: client downloads (`storage/files/downloads/`) are deliberately NOT
+    // declared here. `/files/**` is served straight from `storage/files/`, so
+    // the bridge tarball and `install.sh` are already reachable at
+    // `/files/downloads/<asset>` without being copied into `web/dist`.
     assets.extend(js_services::public_js_assets(&storage_js));
     assets.extend(js_services::service_js_assets(&storage_js));
     assets

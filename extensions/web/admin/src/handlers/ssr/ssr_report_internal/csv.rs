@@ -14,7 +14,7 @@ use sqlx::PgPool;
 
 use crate::error::{AdminError, AdminResult};
 use crate::handlers::ssr::csv::{CsvBuilder, usd};
-use crate::repositories::dashboard_reports::internal;
+use crate::repositories::reports::internal;
 use crate::types::UserContext;
 use crate::util::month_range::{MonthQuery, parse_month_range};
 
@@ -29,10 +29,8 @@ pub(crate) async fn report_internal_csv(
     State(pool): State<Arc<PgPool>>,
     Query(query): Query<InternalCsvQuery>,
 ) -> AdminResult<Response> {
-    if !user_ctx.is_platform_admin {
-        return Err(AdminError::Forbidden(
-            "Platform admin access required.".to_owned(),
-        ));
+    if !user_ctx.is_console {
+        return Err(AdminError::Forbidden("Admin access required.".to_owned()));
     }
     let month = parse_month_range(&MonthQuery {
         month: query.month.clone(),
@@ -41,17 +39,15 @@ pub(crate) async fn report_internal_csv(
     let filename = format!("provider-cost-{}-{dimension}.csv", month.key);
 
     let csv = match dimension {
-        "model" => supplier_csv(
-            internal::export_list_model_month_costs(&pool, month.from, month.to).await?,
-        ),
-        _ => supplier_csv(
-            internal::export_list_provider_month_costs(&pool, month.from, month.to).await?,
-        ),
+        "model" => {
+            supplier_csv(internal::list_model_month_costs(&pool, month.from, month.to).await?)
+        },
+        _ => supplier_csv(internal::list_provider_month_costs(&pool, month.from, month.to).await?),
     };
     Ok(csv.into_response(&filename))
 }
 
-fn supplier_csv(rows: Vec<internal::ExportSupplierMonthCost>) -> CsvBuilder {
+fn supplier_csv(rows: Vec<internal::SupplierMonthCost>) -> CsvBuilder {
     let mut csv = CsvBuilder::new(&["key", "requests", "tokens", "cost_usd"]);
     for r in rows {
         csv.row(&[

@@ -27,7 +27,7 @@ gateway:
   inference_path_prefix: /v1
   bridge_releases:
     repo: systempromptio/systemprompt-internal
-    token_env: SYSTEMPROMPT_BRIDGE_RELEASES_TOKEN
+    token_secret: SYSTEMPROMPT_BRIDGE_RELEASES_TOKEN
     tag_prefix: bridge-v
     assets:
       macos: systemprompt-internal-bridge-macos.zip

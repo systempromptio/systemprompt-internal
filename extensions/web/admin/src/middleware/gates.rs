@@ -66,24 +66,32 @@ pub(crate) async fn require_auth_middleware(request: Request, next: Next) -> Res
     }
 }
 
-// Why: the platform-console gate answers a different question than the
-// ordinary admin role gate. The `admin` role says a caller may administer an
-// organization; this says they may administer every organization, which is the
-// operator's own view of its customers and their contracts. A customer's
-// administrator holds the first and must never be handed the second. The denial
-// is HTML because these are page routes, and a JSON body a browser renders raw
-// tells the reader nothing.
-pub(crate) async fn require_platform_admin_middleware(request: Request, next: Next) -> Response {
+// Why: one gate for all three tiers, taking the accepted roles as state, so
+// the router names the tier at the mount point and this file holds no list.
+// The message names the roles rather than saying "admin": a project manager
+// refused a write route otherwise reads it as a bug in their session.
+pub(crate) async fn require_roles_middleware(
+    State(accepted): State<&'static [Role]>,
+    request: Request,
+    next: Next,
+) -> Response {
     let user_ctx = request.extensions().get::<UserContext>().cloned();
-    match user_ctx {
-        Some(ctx) if ctx.is_platform_admin => next.run(request).await,
-        _ => crate::error::AdminHtmlError::from(crate::error::AdminError::Forbidden(
-            "This console manages every organization on the instance and is limited to platform \
-             administrators."
-                .to_owned(),
-        ))
-        .into_response(),
+    let allowed = user_ctx.is_some_and(|ctx| has_any(&ctx.roles, accepted));
+    if allowed {
+        return next.run(request).await;
     }
+    let names = accepted
+        .iter()
+        .map(|r| r.as_str())
+        .collect::<Vec<_>>()
+        .join(", ");
+    (
+        StatusCode::FORBIDDEN,
+        axum::Json(ErrorBody {
+            error: format!("Role required: {names}"),
+        }),
+    )
+        .into_response()
 }
 
 // Why: anonymous users are deliberately not handled here —
@@ -114,36 +122,12 @@ fn is_non_admin_allowed_path(path: &str) -> bool {
     path.starts_with("/admin/profile")
         || path.starts_with("/admin/history")
         || path.starts_with("/admin/settings")
+        || path.starts_with("/admin/requirements/")
         || path.starts_with("/admin/auth/")
         || path.starts_with("/admin/api/")
-        || path == "/admin/demo/me"
         || path == "/admin/logout"
         || path == "/admin/login"
         || path == "/admin/setup"
         || path == "/admin/"
         || path == "/admin"
-}
-
-pub(crate) async fn require_roles_middleware(
-    State(accepted): State<&'static [Role]>,
-    request: Request,
-    next: Next,
-) -> Response {
-    let user_ctx = request.extensions().get::<UserContext>().cloned();
-    let allowed = user_ctx.is_some_and(|ctx| has_any(&ctx.roles, accepted));
-    if allowed {
-        return next.run(request).await;
-    }
-    let names = accepted
-        .iter()
-        .map(|r| r.as_str())
-        .collect::<Vec<_>>()
-        .join(", ");
-    (
-        StatusCode::FORBIDDEN,
-        axum::Json(ErrorBody {
-            error: format!("Role required: {names}"),
-        }),
-    )
-        .into_response()
 }

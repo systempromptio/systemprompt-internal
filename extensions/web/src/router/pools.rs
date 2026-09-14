@@ -6,10 +6,11 @@ use std::sync::Arc;
 use systemprompt::analytics::AnalyticsService;
 use systemprompt::database::{Database, PgPool};
 use systemprompt::extension::prelude::ExtensionContext;
-use systemprompt::oauth::{OAuthRepository, SessionCreationService};
+use systemprompt::oauth::SessionCreationService;
 use systemprompt::users::UserService;
 
 pub(crate) struct DbHandles {
+    pub owner: systemprompt::identifiers::UserId,
     pub read: Arc<PgPool>,
     pub write: Arc<PgPool>,
 }
@@ -23,23 +24,19 @@ impl DbHandles {
             tracing::warn!(error = %e, "Failed to get write pool, falling back to read pool");
             Arc::clone(&read)
         });
-        Some(Self { read, write })
+        Some(Self {
+            read,
+            write,
+            owner: ctx.system_owner_id(),
+        })
     }
 
-    pub(crate) fn database(&self) -> Arc<Database> {
+    fn database(&self) -> Arc<Database> {
         Arc::new(Database::from_pools(
             Arc::clone(&self.read),
             Some(Arc::clone(&self.write)),
         ))
     }
-}
-
-// Why: the repository Odoo sign-in stores its authorization codes through.
-pub(crate) fn build_oauth_repository(db: &DbHandles) -> Option<Arc<OAuthRepository>> {
-    OAuthRepository::new(&db.database())
-        .map_err(|e| tracing::error!(error = %e, "Failed to build OAuth repository"))
-        .ok()
-        .map(Arc::new)
 }
 
 pub(crate) fn build_session_service(db: &DbHandles) -> Option<Arc<SessionCreationService>> {

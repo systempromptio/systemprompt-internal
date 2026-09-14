@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "clock": "2026-09-12T08:00:00Z",
+  "timezone": "UTC",
+  "dataset": "synthetic-evaluation",
+  "records": {
+    "skills": [
+      "manage_leads",
+      "pending_task",
+      "activity_report",
+      "close_deal"
+    ]
+  }
+}

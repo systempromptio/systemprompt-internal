@@ -9,20 +9,22 @@ use systemprompt::identifiers::{ClientId, UserId};
 use systemprompt::models::auth::JwtAudience;
 use systemprompt::oauth::OauthError;
 use systemprompt_security::authz::{Decision, DenyReason};
-use systemprompt_security::policy::types::AccessScope;
 
 use crate::handlers::webhook::helpers::{extract_bearer_token, get_jwt_issuer};
 
-use super::super::scope::scope_from_permissions;
 use super::super::types::AuthDenialParams;
 use super::{build_response, spawn_auth_denial};
 
 pub(super) struct Principal {
     pub user_id: UserId,
-    pub token_scope: AccessScope,
     pub client_id: Option<ClientId>,
 }
 
+// Why: `policy` names the plane and `detail` carries the cause — core added
+// `detail` precisely so a transient fault and a malformed token stop writing
+// byte-identical audit rows. Folding the cause into `policy`, as this did
+// before the field existed, would keep every failure looking like a distinct
+// policy and leave the audit column unqueryable.
 pub(super) fn deny_for_auth_failure(reason: &str) -> Decision {
     Decision::Deny {
         reason: DenyReason::HookUnavailable {
@@ -87,14 +89,13 @@ pub(super) fn authenticate_request(
 
     Ok(Principal {
         user_id: UserId::new(&claims.sub),
-        token_scope: scope_from_permissions(claims.permissions()),
-        client_id: claims.client_id.clone(),
+        client_id: claims.client_id,
     })
 }
 
 fn log_jwt_failure(err: &OauthError, expected_aud: &str, issuer: &str) {
     let (detail, message) = jwt_failure_detail(err);
-    tracing::warn!(detail = %detail, expected_aud, issuer, "{}", message);
+    tracing::warn!(detail = %detail, expected_aud, issuer, reason = message, "JWT rejected");
 }
 
 fn jwt_failure_detail(err: &OauthError) -> (String, &'static str) {

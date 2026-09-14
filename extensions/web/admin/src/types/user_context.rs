@@ -3,21 +3,7 @@
 use serde::Serialize;
 use systemprompt::identifiers::{Email, SessionId, UserId};
 
-use super::role::{ROLES_CONSOLE, ROLES_MANAGE, ROLES_PLATFORM, Role, has_any};
-
-/// Which credential store this identity came from.
-///
-/// The dashboard once rendered "signed in as admin" from one store while the
-/// data on the page was fetched under another — four were live at once, and
-/// they disagreed. There is exactly one now, and the page says which, so a
-/// second variant can never be added silently.
-#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
-#[serde(rename_all = "kebab-case")]
-pub enum IdentitySource {
-    // Why: the admin session cookie, resolved against the same pool the page
-    // reads — which is what makes identity and data share one origin.
-    SessionCookie,
-}
+use super::role::{ROLES_CONSOLE, ROLES_PLATFORM, Role, has_any};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct UserContext {
@@ -25,7 +11,6 @@ pub struct UserContext {
     pub username: String,
     pub email: Email,
     pub roles: Vec<String>,
-    pub department: String,
     // Why: the groups and projects the caller belongs to, resolved once per
     // request. Listings narrow to these for a caller who may not see the
     // whole estate, so they are part of identity rather than something each
@@ -41,7 +26,6 @@ pub struct UserContext {
     pub is_developer: bool,
     pub email_verified: bool,
     pub session_id: Option<SessionId>,
-    pub source: IdentitySource,
 }
 
 // Why: whether a role set reaches the admin dashboard. Kept beside
@@ -54,7 +38,7 @@ pub fn roles_grant_console(roles: &[String]) -> bool {
 
 #[must_use]
 pub fn roles_grant_manage(roles: &[String]) -> bool {
-    has_any(roles, ROLES_MANAGE)
+    systemprompt_mcp_shared::access_policy::roles_grant_manage(roles)
 }
 
 #[must_use]

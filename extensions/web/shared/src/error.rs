@@ -64,9 +64,9 @@ pub enum MarketplaceError {
     NotFound(String),
 
     // Why: The request was well-formed but conflicts with the current state — a
-    // seat limit already reached, a slug already taken. Distinct from
+    // name already taken, a mapping already owned. Distinct from
     // [`Self::BadRequest`] because the caller has nothing to fix in the
-    // request itself, and a UI should say "your plan is full", not "invalid".
+    // request itself, and a UI should say "already exists", not "invalid".
     #[error("Conflict: {0}")]
     Conflict(String),
 

@@ -5,10 +5,6 @@
 //! the `tool` submodule.
 
 #[doc(hidden)]
-pub mod approval;
-#[doc(hidden)]
-pub mod approval_shape;
-#[doc(hidden)]
 pub mod tool;
 
 use crate::error::SystempromptToolError;
@@ -28,18 +24,42 @@ use systemprompt::identifiers::McpServerId;
 use systemprompt::mcp::repository::ToolUsageRepository;
 use systemprompt::mcp::{
     ArtifactViewerConfig, McpArtifactRepository, McpToolExecutor, WEBSITE_URL,
-    artifact_shell_template, build_artifact_viewer_resource, build_extension_capabilities,
-    build_resource_template_list_result, build_tool_list_result, client_profile_from_peer,
-    parse_artifact_resource_uri, read_artifact_resource, read_artifact_viewer_resource,
+    build_artifact_viewer_resource, build_extension_capabilities,
+    build_resource_template_list_result, build_tool_list_result, parse_artifact_resource_uri,
+    read_artifact_resource, read_artifact_viewer_resource,
 };
 use systemprompt::security::authz::SharedAuthzHook;
 use systemprompt_mcp_shared::record_mcp_access;
 
+use systemprompt::mcp::client_profile_from_peer;
 use tool::{authenticate_tool_request, dispatch_tool};
+
+/// Which of the two services this binary is serving.
+///
+/// One binary carries both the admin console tools and the evaluation
+/// fixture; the `services/mcp` entry that launched it decides which tool set
+/// a session sees.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ServerRole {
+    Console,
+    EvaluationFixture,
+}
+
+impl ServerRole {
+    #[must_use]
+    pub fn of(service_id: &McpServerId) -> Self {
+        if service_id.as_str() == "evaluation_fixture" {
+            Self::EvaluationFixture
+        } else {
+            Self::Console
+        }
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct SystempromptServer {
     service_id: McpServerId,
+    role: ServerRole,
     db_pool: DbPool,
     executor: McpToolExecutor,
     authz_hook: SharedAuthzHook,
@@ -59,9 +79,10 @@ impl SystempromptServer {
             McpArtifactRepository::new(&db_pool)
                 .map_err(|e| SystempromptToolError::Internal(e.to_string()))?,
         );
-        let executor = McpToolExecutor::new(tool_usage_repo, artifact_repo, SERVER_NAME);
+        let executor = McpToolExecutor::new(tool_usage_repo, artifact_repo, service_id.as_str());
 
         Ok(Self {
+            role: ServerRole::of(&service_id),
             service_id,
             db_pool,
             executor,
@@ -79,6 +100,12 @@ impl ServerHandler for SystempromptServer {
                 .enable_extensions_with(build_extension_capabilities())
                 .build(),
         )
+        // Why: MCP Apps (SEP-1865) is a 2026-era extension, so a server that
+        // negotiates 2025-06-18 never runs the UI handshake — ClientProfile
+        // reports no UI support, core skips the renderer entirely, and every
+        // tool returns text with no embedded artifact and no error. The
+        // dashboards were invisible for exactly that reason. Core's own client
+        // and every server in the reference instance pin this version.
         .with_protocol_version(ProtocolVersion::V_2026_07_28)
         .with_server_info(
             Implementation::new(
@@ -117,7 +144,10 @@ impl ServerHandler for SystempromptServer {
         _request: Option<PaginatedRequestParams>,
         _ctx: RequestContext<RoleServer>,
     ) -> impl Future<Output = Result<ListToolsResult, McpError>> + MaybeSendFuture + '_ {
-        let tool_list = tools::list_tools();
+        let tool_list = match self.role {
+            ServerRole::EvaluationFixture => tools::fixture_tools(&self.db_pool),
+            ServerRole::Console => tools::list_tools(),
+        };
         std::future::ready(Ok(build_tool_list_result(tool_list)))
     }
 
@@ -160,12 +190,14 @@ impl ServerHandler for SystempromptServer {
         let cli = crate::cli::CliLocation::from_profile()?;
         dispatch_tool(
             &tool::Dispatch {
+                service_id: self.service_id.as_str(),
+                role: self.role,
+                db_pool: &self.db_pool,
                 executor: &self.executor,
                 request: &request,
                 request_context: &request_context,
                 client: &client,
                 cli: &cli,
-                db_pool: &self.db_pool,
             },
             &tool_name,
             &auth_token,
@@ -185,7 +217,7 @@ impl ServerHandler for SystempromptServer {
             description: "Interactive UI viewer for systemprompt.io artifacts. Receives the tool \
                           result via the MCP Apps ui/notifications/tool-result protocol and mounts \
                           the server-rendered artifact HTML it carries.",
-            template: &artifact_shell_template(),
+            template: &crate::reports::admin_artifact_shell(),
             icons: Some(vec![
                 Icon::new(format!("{WEBSITE_URL}/files/images/favicon-32x32.png"))
                     .with_mime_type("image/png")
@@ -207,7 +239,11 @@ impl ServerHandler for SystempromptServer {
                 .map(Into::into);
         }
 
-        read_artifact_viewer_resource(&request, SERVER_NAME, &artifact_shell_template())
-            .map(Into::into)
+        read_artifact_viewer_resource(
+            &request,
+            SERVER_NAME,
+            &crate::reports::admin_artifact_shell(),
+        )
+        .map(Into::into)
     }
 }

@@ -1,132 +1,12 @@
-//! The operator's profit-and-loss for one calendar month.
+//! The operator's provider cost for one calendar month.
 //!
-//! Revenue is the plan's monthly licence fee; cost is what the organization's
-//! members actually spent at the providers. Both are microdollars, the unit
-//! every price in the system is already accounted in, so the subtraction needs
-//! no conversion step that could round a margin into existence.
-//!
-//! This mirrors `organizations::metrics::list_organization_metrics`, which
-//! answers the same question over a rolling thirty days for the live console.
-//! The duplication is deliberate: a dashboard wants "recently", a report wants
-//! "in March", and collapsing the two would make one of them lie.
+//! By supplier and by model, plus the daily series behind the chart. Every
+//! figure is microdollars, the unit every price in the system is already
+//! accounted in.
 
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 use systemprompt_web_shared::error::MarketplaceError;
-
-/// One organization's month, with the commercial terms it was served under.
-#[derive(Debug, Clone)]
-pub struct OrganizationMonthPnl {
-    pub id: String,
-    pub slug: String,
-    pub name: String,
-    pub status: String,
-    pub is_platform: bool,
-    pub plan_name: Option<String>,
-    pub revenue_microdollars: i64,
-    pub cap_microdollars: Option<i64>,
-    pub seat_limit: Option<i32>,
-    pub seats_used: i64,
-    pub active_users: i64,
-    pub requests: i64,
-    pub tokens: i64,
-    pub cost_microdollars: i64,
-}
-
-impl OrganizationMonthPnl {
-    #[must_use]
-    pub const fn margin_microdollars(&self) -> i64 {
-        self.revenue_microdollars - self.cost_microdollars
-    }
-
-    #[must_use]
-    pub const fn margin_pct(&self) -> Option<i64> {
-        if self.revenue_microdollars <= 0 {
-            return None;
-        }
-        Some(self.margin_microdollars().saturating_mul(100) / self.revenue_microdollars)
-    }
-
-    #[must_use]
-    pub const fn cost_per_seat_microdollars(&self) -> i64 {
-        if self.seats_used <= 0 {
-            return 0;
-        }
-        self.cost_microdollars / self.seats_used
-    }
-
-    #[must_use]
-    pub fn budget_used_pct(&self) -> Option<i64> {
-        let cap = self.cap_microdollars.filter(|c| *c > 0)?;
-        Some(self.cost_microdollars.saturating_mul(100) / cap)
-    }
-}
-
-pub async fn list_organization_month_pnl(
-    pool: &PgPool,
-    from: DateTime<Utc>,
-    to: DateTime<Utc>,
-) -> Result<Vec<OrganizationMonthPnl>, MarketplaceError> {
-    let rows = sqlx::query!(
-        r#"
-        SELECT
-            o.id AS "id!",
-            o.slug AS "slug!",
-            o.name AS "name!",
-            o.status AS "status!",
-            o.is_platform AS "is_platform!",
-            p.name AS "plan_name?",
-            COALESCE(p.monthly_price_microdollars, 0) AS "revenue!",
-            p.monthly_cost_cap_microdollars AS "cap?",
-            COALESCE(o.seat_limit_override, p.seat_limit) AS "seat_limit?",
-            (SELECT COUNT(*) FROM organization_members m
-               JOIN users u ON u.id = m.user_id
-              WHERE m.org_id = o.id AND u.status = 'active') AS "seats_used!",
-            usage.active_users AS "active_users!",
-            usage.requests AS "requests!",
-            usage.tokens AS "tokens!",
-            usage.cost AS "cost!"
-        FROM organizations o
-        LEFT JOIN plans p ON p.id = o.plan_id
-        LEFT JOIN LATERAL (
-            SELECT
-                COUNT(*)::BIGINT AS requests,
-                COUNT(DISTINCT r.user_id)::BIGINT AS active_users,
-                COALESCE(SUM(r.input_tokens + r.output_tokens), 0)::BIGINT AS tokens,
-                COALESCE(SUM(r.cost_microdollars), 0)::BIGINT AS cost
-            FROM ai_requests r
-            JOIN organization_members m ON m.user_id = r.user_id
-            WHERE m.org_id = o.id
-              AND r.created_at >= $1 AND r.created_at < $2
-        ) usage ON TRUE
-        ORDER BY o.is_platform DESC, o.name
-        "#,
-        from,
-        to,
-    )
-    .fetch_all(pool)
-    .await?;
-
-    Ok(rows
-        .into_iter()
-        .map(|r| OrganizationMonthPnl {
-            id: r.id,
-            slug: r.slug,
-            name: r.name,
-            status: r.status,
-            is_platform: r.is_platform,
-            plan_name: r.plan_name,
-            revenue_microdollars: r.revenue,
-            cap_microdollars: r.cap,
-            seat_limit: r.seat_limit,
-            seats_used: r.seats_used,
-            active_users: r.active_users,
-            requests: r.requests,
-            tokens: r.tokens,
-            cost_microdollars: r.cost,
-        })
-        .collect())
-}
 
 /// What we owe one upstream, or spent on one model, for the month.
 #[derive(Debug, Clone)]
@@ -137,6 +17,9 @@ pub struct SupplierMonthCost {
     pub cost_microdollars: i64,
 }
 
+// Why: The supplier bill, by provider. Rejected requests never reached an
+// upstream and carry no provider, so they are excluded rather than grouped as
+// blank.
 pub async fn list_provider_month_costs(
     pool: &PgPool,
     from: DateTime<Utc>,
