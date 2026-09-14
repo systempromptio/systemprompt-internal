@@ -55,6 +55,7 @@ jobs:
       # rust-toolchain.toml pins the channel and its components; `rustup show`
       # installs exactly that toolchain, so fmt runs on the same version
       # developers use locally with no channel duplicated in this file.
+      - uses: ./.github/actions/core-checkout
       - run: rustup show
       - run: cargo fmt --all -- --check
       # tests/ is excluded from the root workspace, so --all does not reach it.
@@ -82,6 +83,7 @@ jobs:
           path: .core-sibling
       - name: Link sibling core beside the workspace
         run: ln -sfn "$GITHUB_WORKSPACE/.core-sibling" "$GITHUB_WORKSPACE/../systemprompt-core"
+      - uses: ./.github/actions/core-checkout
       - run: rustup show
       - uses: Swatinem/rust-cache@v2
       - run: cargo build --workspace --locked
@@ -108,6 +110,7 @@ jobs:
           path: .core-sibling
       - name: Link sibling core beside the workspace
         run: ln -sfn "$GITHUB_WORKSPACE/.core-sibling" "$GITHUB_WORKSPACE/../systemprompt-core"
+      - uses: ./.github/actions/core-checkout
       - run: rustup show
       - uses: Swatinem/rust-cache@v2
       # Every extension crate that invokes a sqlx query macro must ship a
@@ -173,6 +176,7 @@ jobs:
           path: .core-sibling
       - name: Link sibling core beside the workspace
         run: ln -sfn "$GITHUB_WORKSPACE/.core-sibling" "$GITHUB_WORKSPACE/../systemprompt-core"
+      - uses: ./.github/actions/core-checkout
       - run: rustup show
       # Why: every matrix entry compiles the same dependency graph, so they must
       # share one cache key rather than each keying on its own job name.
@@ -233,6 +237,7 @@ jobs:
           path: systemprompt-core
       # keyring → dbus-secret-service → libdbus-sys builds from pkg-config.
       - run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config
+      - uses: ./.github/actions/core-checkout
       - run: rustup show
         working-directory: systemprompt-internal
       - uses: Swatinem/rust-cache@v2

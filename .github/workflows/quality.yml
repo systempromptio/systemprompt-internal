@@ -51,6 +51,7 @@ jobs:
       # Clippy runs on the pinned toolchain declared in rust-toolchain.toml,
       # which `rustup show` installs — so lint results match local `just clippy`
       # with no channel duplicated here.
+      - uses: ./.github/actions/core-checkout
       - run: rustup show
       - uses: Swatinem/rust-cache@v2
       # No --all-targets on the root workspace: it would lint the in-crate
@@ -82,6 +83,7 @@ jobs:
           path: .core-sibling
       - name: Link sibling core beside the workspace
         run: ln -sfn "$GITHUB_WORKSPACE/.core-sibling" "$GITHUB_WORKSPACE/../systemprompt-core"
+      - uses: ./.github/actions/core-checkout
       - run: rustup show
       - uses: Swatinem/rust-cache@v2
       - run: cargo doc --workspace --no-deps
@@ -218,6 +220,7 @@ jobs:
       # Plain runner invocation, not cargo-deny-action: the action runs in a
       # container that mounts only the workspace, so the sibling link above
       # does not exist inside it and the patched graph cannot resolve.
+      - uses: ./.github/actions/core-checkout
       - run: rustup show
       - uses: taiki-e/install-action@v2
         with:
