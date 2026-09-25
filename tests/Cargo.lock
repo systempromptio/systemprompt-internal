@@ -7171,6 +7171,8 @@ dependencies = [
  "serde_json",
  "sqlx",
  "systemprompt",
+ "systemprompt-content",
+ "systemprompt-marketplace",
  "systemprompt-mcp-agent",
  "systemprompt-mcp-knowledge-bank",
  "systemprompt-web-admin",
