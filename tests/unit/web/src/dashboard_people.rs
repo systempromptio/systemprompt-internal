@@ -36,7 +36,7 @@ fn custom_directory_grant_remains_protected() {
 fn group_upgrade_preserves_legacy_organization_data_and_free_text_roles() {
     let root = repo_root();
     let sql = std::fs::read_to_string(
-        root.join("extensions/web/schema/migrations/052_dashboard_groups_projects.sql"),
+        root.join("extensions/web/schema/migrations/059_dashboard_groups_projects.sql"),
     )
     .expect("group migration")
     .to_lowercase();
