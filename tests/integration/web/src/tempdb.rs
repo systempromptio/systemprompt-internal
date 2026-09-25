@@ -86,6 +86,7 @@ impl TempDb {
                 extensions: vec![
                     Arc::new(systemprompt_content::ContentExtension),
                     Arc::new(systemprompt_marketplace::ManagedResourcesExtension),
+                    Arc::new(systemprompt_users::UsersExtension),
                 ],
                 ..Default::default()
             },
