@@ -226,6 +226,7 @@ single_use_lifetimes = "warn"
 [package]
 name = "systemprompt-internal"
 version.workspace = true
+license.workspace = true
 edition.workspace = true
 description = "Systemprompt Internal — AI business management on Odoo. A single compiled Rust binary that authenticates, authorises, rate-limits, logs, and costs every AI interaction. Self-hosted, air-gap capable, provider-agnostic. Built on systemprompt-core."
 readme = "README.md"
