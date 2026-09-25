@@ -2,7 +2,7 @@
 //! and compare the result with a fresh install.
 
 use internal_test_common::{TempDb, db_or_skip, empty_db_or_skip, repo_path};
-use systemprompt::ExtensionRegistry;
+use systemprompt::extension::ExtensionRegistry;
 use systemprompt::database::install_extension_schemas;
 
 use crate::catalog;

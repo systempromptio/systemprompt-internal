@@ -14,7 +14,7 @@
 use std::sync::Arc;
 
 use sqlx::{AssertSqlSafe, PgPool};
-use systemprompt::ExtensionRegistry;
+use systemprompt::extension::ExtensionRegistry;
 use systemprompt::database::{Database, install_extension_schemas};
 use url::Url;
 
