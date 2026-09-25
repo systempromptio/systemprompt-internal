@@ -143,8 +143,7 @@ fn held_call<'a>(
 
     let policy_ctx = PolicyContext {
         target: GovernedTarget::Tool {
-            tool: McpToolName::try_new(tool_name)
-                .expect("MCP tool names are validated at the protocol boundary"),
+            tool: McpToolName::try_new(tool_name).ok()?,
         },
         agent_scope: AgentScope::User {
             user_id: ctx.user_id().clone(),

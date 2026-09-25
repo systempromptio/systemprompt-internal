@@ -49,7 +49,11 @@ pub(super) async fn settle(
 
     match waited {
         ApprovalOutcome::Approved(request) => {
-            let stamp = approver_stamp(&request, "approved");
+            let Some(stamp) = approver_stamp(&request, "approved") else {
+                return GateOutcome::Refused(Box::new(refusal(
+                    "approval was missing approver identity",
+                )));
+            };
             tracing::info!(
                 tool_name,
                 call_id = %held.call_id,
@@ -60,7 +64,11 @@ pub(super) async fn settle(
             GateOutcome::Proceed
         },
         ApprovalOutcome::Denied(request) => {
-            let stamp = approver_stamp(&request, "denied");
+            let Some(stamp) = approver_stamp(&request, "denied") else {
+                return GateOutcome::Refused(Box::new(refusal(
+                    "approval was missing approver identity",
+                )));
+            };
             let who = stamp.username.clone();
             record_verdict(pool, &subject, &principal, stamp, false).await;
             GateOutcome::Refused(Box::new(refusal(&format!(

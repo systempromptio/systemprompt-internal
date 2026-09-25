@@ -61,7 +61,6 @@ systemprompt-mcp-shared = { path = "extensions/mcp/shared" }
 systemprompt-mcp-odoo = { path = "extensions/mcp/odoo" }
 systemprompt-mcp-knowledge-bank = { path = "extensions/mcp/knowledge-bank" }
 systemprompt-knowledge-jobs = { path = "extensions/knowledge/jobs" }
-serde_jcs = "0.1"
 
 # Core runtime dependencies
 tokio = { version = "1.49", features = ["rt-multi-thread", "net", "io-util", "time", "sync", "macros", "fs", "process", "signal"] }
