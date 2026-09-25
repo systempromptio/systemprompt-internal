@@ -51,7 +51,6 @@ systemprompt-extension = { version = "0.61.0" }
 # ============================================
 # LOCAL EXTENSIONS
 # ============================================
-systemprompt-internal-brand = { path = "extensions/brand" }
 systemprompt-web-extension = { path = "extensions/web" }
 systemprompt-web-shared = { path = "extensions/web/shared" }
 systemprompt-web-admin = { path = "extensions/web/admin" }
