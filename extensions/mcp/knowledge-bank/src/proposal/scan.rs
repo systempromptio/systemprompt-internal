@@ -1,3 +1,7 @@
+#![allow(
+    clippy::expect_used,
+    reason = "the MCP tool name is a static protocol constant"
+)]
 //! Running the instance's own `secret_scan` policy over a body this pipeline
 //! is about to push into Odoo.
 //!
@@ -24,13 +28,21 @@ pub enum ScanVerdict {
 
 #[must_use]
 pub fn scan_body(user_id: &UserId, body: &str) -> ScanVerdict {
-    let engine = match GovernanceEngine::global() {
-        Ok(engine) => engine,
+    let profile = match systemprompt::config::ProfileBootstrap::get() {
+        Ok(profile) => profile,
         Err(error) => {
-            tracing::error!(%error, "secret scan engine unavailable; withholding body");
+            tracing::error!(%error, "secret scan profile unavailable; withholding body");
             return ScanVerdict::Withheld("Secret scanning is unavailable".to_owned());
         },
     };
+    let engine =
+        match GovernanceEngine::from_services_root(std::path::Path::new(&profile.paths.services)) {
+            Ok(engine) => engine,
+            Err(error) => {
+                tracing::error!(%error, "secret scan engine unavailable; withholding body");
+                return ScanVerdict::Withheld("Secret scanning is unavailable".to_owned());
+            },
+        };
     let Some((_, policy)) = engine
         .policies()
         .find(|(config, _)| config.id == "secret_scan" && config.enabled)
@@ -46,7 +58,7 @@ pub fn scan_body(user_id: &UserId, body: &str) -> ScanVerdict {
     let call_id = CallId::new(format!("scan-{}", uuid::Uuid::new_v4()));
     let ctx = PolicyContext {
         target: GovernedTarget::Tool {
-            tool: McpToolName::new(TOOL_APPLY_PROPOSAL),
+            tool: McpToolName::try_new(TOOL_APPLY_PROPOSAL).expect("static MCP tool name is valid"),
         },
         agent_scope: AgentScope::System,
         access_scope: AccessScope::from_roles::<String>(&[]),

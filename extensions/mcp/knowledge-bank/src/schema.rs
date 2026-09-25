@@ -58,12 +58,7 @@ impl Extension for KnowledgeBankExtension {
 register_extension!(KnowledgeBankExtension);
 
 pub async fn ensure_installed(pool: &DbPool) -> Result<(), KnowledgeBankError> {
-    let write = pool.write_pool().ok_or_else(|| {
-        KnowledgeBankError::Internal(
-            "no Postgres write pool available; the knowledge bank cannot install its schema"
-                .to_owned(),
-        )
-    })?;
+    let write = pool.write_pool();
 
     for (table, sql) in [
         ("knowledge_documents", SCHEMA_KNOWLEDGE_DOCUMENTS),

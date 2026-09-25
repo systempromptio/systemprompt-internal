@@ -24,7 +24,6 @@
 # ---------------------------------------------------------------------
 src/lib.rs	# brand: crate doc names the product
 src/main.rs	# brand: binary entry names the product
-extensions/web/src/lib.rs	# brand: crate doc names the product
 
 # ---------------------------------------------------------------------
 # PRODUCT - surface the two forks deliberately do not share. Each fork
@@ -32,43 +31,15 @@ extensions/web/src/lib.rs	# brand: crate doc names the product
 # not drift. Converging these would mean shipping one product's pages
 # from the other's binary.
 # ---------------------------------------------------------------------
-extensions/web/admin/src/lib.rs	# internal mounts the Odoo account-linking deps + Slack alert surface; template mounts the bridge plugin-file plane
-extensions/mcp/systemprompt/src/server/mod.rs	# internal serves artifact resources by URI (parse/read/shell template); template serves only the viewer resource
-extensions/web/src/schemas.rs	# internal ships the Odoo identity schema
-extensions/web/src/router/pools.rs	# internal builds the OAuth repository Odoo sign-in mints codes through; template has no Odoo sign-in
-extensions/web/jobs/src/llms_txt.rs	# template emits a blog section; internal has no blog
-extensions/web/site/src/lib.rs	# template ships blog + features sections; internal ships the skills page
-extensions/web/site/src/navigation/provider.rs	# the blog nav link exists in the template only
-extensions/web/site/src/partials.rs	# internal dropped the mid-priority partial along with the animation partials, so PRIORITY_MID has no user here
-extensions/web/site/src/assets/css.rs	# template ships feature-page CSS; internal ships skills-page and showreel CSS
-extensions/web/site/src/assets/mod.rs	# internal serves the homepage showreel video
-extensions/web/site/src/homepage/mod.rs	# the template homepage renders the demo showcase; internal's does not, so the scanner and its config types are gone
-extensions/web/site/src/homepage/config/mod.rs	# no `demos` section: internal's homepage has no demo showcase to configure
 
 # The template ships an SSR governance policy editor that internal does not. It
 # needs every policy to declare the file it is defined in so the page can link
 # to it "as code"; in internal the field and its accessors would be dead code.
-extensions/web/admin/src/handlers/ssr/mod.rs	# template ships the SSR governance policy editor; internal does not
-extensions/web/admin/src/handlers/webhook/governance/mod.rs	# re-exports the policy editor the template alone mounts
-extensions/web/src/extension.rs	# internal loads a skills-page config; template loads a feature-pages config
-extensions/web/src/extension_impl.rs	# internal mounts the skills-page prerenderer; template mounts blog providers, feature prerenderers, the bridge router and an oauth-client seed
-extensions/web/admin/src/routes/ssr.rs	# internal mounts the Odoo account-linking routes and the enterprise console, and opens platform admins on /admin/enterprises; template mounts the governance routes and always redirects to /admin/profile
 
 # Internal is a pooled multi-tenant instance: its console is a cross-customer
 # view of organizations, plans, and margin, gated on membership of the platform
 # tenant. The template is single-tenant, has no such tenant to belong to, and
 # gates on the admin role alone.
-extensions/web/admin/src/types/user_context.rs	# internal carries is_platform_admin alongside is_admin
-extensions/web/admin/src/types/mod.rs	# re-exports internal's IdentitySource, which exists because internal has several credential stores (bridge JWT, cloud creds, CLI session) and the template has one
-extensions/web/admin/src/middleware/gates.rs	# internal adds the platform-admin gate guarding the cross-customer pages
-extensions/web/admin/src/handlers/ssr/types/mod.rs	# declares internal's enterprise page context types
-extensions/web/admin/src/handlers/ssr/ssr_demo_help/mod.rs	# internal explains the enterprise console; the template has no such page
-extensions/web/admin/src/handlers/ssr/ssr_management/departments.rs	# internal derives department entitlement from the enterprise plan, so it has no access-matrix link to pass the template
-extensions/web/admin/tests/authz_marketplace_pure.rs	# internal tests the organization subject dimension at precedence 300; the template has one tenant and no such band
-extensions/web/admin/tests/util_ranges.rs	# internal covers util::month_range behind its enterprise reports; the template has only util::time_range
-extensions/web/admin/src/authz/mod.rs	# internal registers the organization subject dimension at precedence 300; the template has one tenant and no such band
-extensions/web/admin/src/repositories/config/acl_yaml_loader.rs	# internal reads a third bootstrap file, plans.yaml, and projects each plan's grants onto its organizations
-extensions/web/admin/src/repositories/users/mutations.rs	# internal resolves the new user's organization from their email domain and refuses a full plan, so creation returns MarketplaceError rather than sqlx::Error
 
 
 
@@ -78,25 +49,10 @@ extensions/web/admin/src/repositories/users/mutations.rs	# internal resolves the
 # renamed its credentials to access tokens. Converging would delete the
 # endpoint internal's own binary calls at runtime.
 # ---------------------------------------------------------------------
-extensions/web/admin/src/error.rs	# internal carries a BridgeRepo error variant; the template's is AccessTokenRepo
-extensions/web/admin/src/routes/mod.rs	# internal exports bridge_auth_ssr_router alongside the admin router
-extensions/web/admin/src/routes/admin.rs	# internal issues per-device PATs under /users/:id/devices; the template issues account access tokens
-extensions/web/admin/src/middleware/mod.rs	# internal keeps auth_me_handler, which the bridge polls to confirm a linked session
-extensions/web/admin/src/handlers/ssr/ssr_management/mod.rs	# internal's fleet page lists devices and their online state; the template lists access tokens
-extensions/web/src/router/mod.rs	# internal nests /bridge-auth and builds the auth deps the SSR plane needs
-extensions/web/src/router/admin_ssr.rs	# internal builds the bridge sign-in router beside the dashboard, from the same engine
-extensions/web/admin/src/repositories/users/mod.rs	# internal persists devices, federated identities and Odoo credentials
 
 # ---------------------------------------------------------------------
 # ODOO / CATALOG - surface the template does not ship.
 # ---------------------------------------------------------------------
-extensions/web/admin/src/handlers/users.rs	# internal's token extraction is Api-audience only; the template additionally accepts an Mcp-audience accessor token
-extensions/web/admin/src/assets.rs	# internal registers the devices, entities and Odoo-profile page scripts; the template registers access-tokens and models
-extensions/web/admin/tests/activity_constructors.rs	# internal's activity fixtures name the Odoo MCP server; the template names its own
-extensions/web/admin/src/repositories/users/user_queries.rs	# internal's department rollup labels the unassigned bucket, which its access matrix reads back
-extensions/web/site/src/config_loader/mod.rs	# internal loads the skills-page config; the template loads a feature-pages config
-extensions/web/admin/src/handlers/mod.rs	# internal mounts the catalog and device handlers; the template mounts access tokens
-extensions/web/admin/src/handlers/ssr/list_view.rs	# chip, preset and preserved-query helpers back the template-only list pages
 
 # ---------------------------------------------------------------------
 # DEBT - one side is simply ahead. Port it, then delete the line.
@@ -108,10 +64,7 @@ extensions/web/admin/src/handlers/ssr/list_view.rs	# chip, preset and preserved-
 # Internal ships one theme. The template keeps the light/dark toggle, so it
 # still registers the theme module and still emits the colorScheme snippets
 # the inline-code gate has to excuse; neither exists here.
-extensions/web/site/src/assets/js_services.rs	# template registers theme.js for its light/dark toggle; internal has no theme module
 
-
-extensions/web/admin/src/gateway_safety.rs	# internal adds the WordBlocklistScanner (client-specific banned-word list); the template ships only the secrets scanner
 
 # ---------------------------------------------------------------------
 # APPROVAL (2026-08-27) - internal handles `Decision::Pending`, the third
@@ -121,9 +74,6 @@ extensions/web/admin/src/gateway_safety.rs	# internal adds the WordBlocklistScan
 # diverge: they are debt with a date on it. When the template adopts a core
 # that carries Pending, port them and delete these five lines.
 # ---------------------------------------------------------------------
-extensions/web/admin/src/handlers/webhook/governance/authz.rs	# internal degrades a hold to a deny on a plane that cannot park a request, and audits it verbatim; template's core has no Pending to match on
-extensions/web/admin/src/handlers/webhook/governance/handler/authn.rs	# internal is on core 0.42.0, where DenyReason::HookUnavailable separates policy from detail; port when the template adopts 0.42.0
-extensions/web/admin/src/handlers/webhook/governance/handler/mod.rs	# internal renders a hold as a [GOVERNANCE] reason on the hook plane; template's core has no Pending to match on
 
 # ---------------------------------------------------------------------
 # SESSION REGISTRY (2026-08-27) - internal's migration 030 added cwd,
@@ -137,8 +87,6 @@ extensions/web/admin/src/handlers/webhook/governance/handler/mod.rs	# internal r
 # ---------------------------------------------------------------------
 # PRODUCT (2026-08-27)
 # ---------------------------------------------------------------------
-extensions/mcp/shared/src/lib.rs	# internal declares the approval gate and the brand ArtifactTheme; the template ships neither
-extensions/web/admin/src/handlers/ssr/ssr_setup.rs	# each fork's setup cards link into its own documentation site; the two sites have different pages
 
 # ---------------------------------------------------------------------
 # CORE AUTHZ RE-EXPORT (2026-08-28) - core moved `resolve` and
@@ -158,7 +106,6 @@ extensions/web/admin/src/handlers/ssr/ssr_setup.rs	# each fork's setup cards lin
 # internal and is scope, not drift; only the re-export that publishes it
 # lands here. Converges when the device-link flow ships in the template.
 # ---------------------------------------------------------------------
-extensions/web/admin/src/repositories/users/queries/mod.rs	# internal re-exports find_user_identity for the device-link consent screen; the template has no such screen
 
 # ---------------------------------------------------------------------
 # CORE 0.44 CONFIG MOVE (2026-09-02) - core 0.44 moved the provider
@@ -171,37 +118,10 @@ extensions/web/admin/src/repositories/users/queries/mod.rs	# internal re-exports
 # compile there. Converges when the template adopts 0.44 — at which
 # point these entries stop differing and the gate deletes them for us.
 # ---------------------------------------------------------------------
-extensions/web/jobs/src/governance_bootstrap.rs	# reconciles routes read from the services tree, and stamps provenance as services:<path>
-extensions/web/jobs/src/error.rs	# JobError converts ConfigLoadError, which only the services bootstrap raises
-extensions/web/shared/src/error.rs	# MarketplaceError gains a Services variant for ConfigLoadError from the services bootstrap
-extensions/web/admin/src/handlers/ssr/ssr_governance_decisions.rs	# internal scopes the ledger to one policy stage as the dashboard's drill-through; the fork ships the fuller filterable ledger
 
 # ---------------------------------------------------------------------
 # PRODUCT (2026-09-04)
 # ---------------------------------------------------------------------
-extensions/web/admin/src/handlers/ssr/ssr_demo_help/pages.rs	# internal ships help copy for the four /admin/demo/* pages; the template mounts no demo surface
-extensions/mcp/systemprompt/src/tools.rs	# internal adds the three approval tool inputs (approval_list/decide/history) behind the governance-approvals dashboard; the template ships no approvals surface
-extensions/mcp/systemprompt/src/server/tool.rs	# dispatches the three approval tools and carries the db_pool they need; the template's admin server is CLI passthrough only
-extensions/web/admin/src/routes/dashboard_redirects.rs	# internal keeps enterprise reports, demo and catalog routes active; template redirects their retired aliases
-extensions/web/admin/src/routes/ssr_bridge.rs	# internal preserves Odoo account switching during bridge consent
-extensions/web/admin/src/routes/ssr_write_gate.rs	# internal additionally permits caller-owned Odoo account linking and unlinking
-extensions/web/admin/src/services/bridge_profile/mod.rs	# internal profile preserves Odoo linked identity and internal bridge binary/download commands
-extensions/web/admin/src/handlers/ssr/ssr_report_customer/mod.rs	# internal preserves organization commercial report pages alongside shared dashboard CSV exports
-extensions/web/admin/src/handlers/ssr/ssr_report_internal/mod.rs	# internal preserves organization commercial report pages alongside shared dashboard CSV exports
-extensions/web/admin/src/handlers/ssr/ssr_bridge_setup.rs	# internal retains release-service desktop setup and enterprise consent behavior
-extensions/web/admin/src/services/bridge_downloads.rs	# internal retains published release service; template accepts optional operator artifact directory
-extensions/web/admin/src/services/mod.rs	# internal registers its Odoo service alongside shared dashboard services
-extensions/web/admin/src/handlers/ssr/ssr_bridge_device_link.rs	# internal retains fresh account identity confirmation and account switching during device consent
-extensions/web/admin/src/repositories/dashboard/mod.rs	# internal retains live session registry handles, workspace, activity and statusline alongside shared usage metrics
-extensions/web/admin/src/handlers/hooks_track/mod.rs	# internal retains live session registry handles, workspace, activity and statusline alongside shared usage metrics
-extensions/web/admin/src/handlers/hooks_track/processing.rs	# internal retains live session registry handles, workspace, activity and statusline alongside shared usage metrics
-extensions/web/admin/src/handlers/webhook/tracking.rs	# internal retains live session registry handles, workspace, activity and statusline alongside shared usage metrics
 
 # Preserved business reporting and policy editor APIs.
-extensions/web/admin/src/handlers/ssr/ssr_report_customer/csv.rs	# internal uses dashboard_reports exports to preserve its organization billing report API; template uses the generic reports module
-extensions/web/admin/src/handlers/ssr/ssr_report_internal/csv.rs	# internal uses dashboard_reports exports to preserve its organization profit/loss API; template uses the generic reports module
-extensions/web/admin/src/repositories/governance/decisions.rs	# template policy editor consumes list_decisions_filtered; internal uses per-policy decisions without that editor
 extensions/web/admin/src/repositories/reports/customer.rs	# internal calculates customer organization licences and seats; template exports scoped project usage without commercial data
-extensions/web/admin/src/repositories/reports/internal.rs	# internal calculates organization revenue, cost and margin; template reports provider costs by month
-extensions/web/admin/src/repositories/reports/mod.rs	# documents internal commercial reporting versus template generic project usage and provider cost reporting
-extensions/web/admin/src/repositories/dashboard/hooks_track.rs	# template retains the Stop-event APM concurrency writer; internal retired unused APM metrics in migration 031 before this port

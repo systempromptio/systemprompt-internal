@@ -74,9 +74,7 @@ impl Job for KnowledgeCategorizationJob {
         let db = ctx
             .db_pool::<DbPool>()
             .ok_or(KnowledgeJobError::MissingContext("DbPool"))?;
-        let pool = db
-            .write_pool()
-            .ok_or(KnowledgeJobError::MissingContext("write PgPool"))?;
+        let pool = db.write_pool();
         let app_context = ctx
             .app_context::<Arc<AppContext>>()
             .ok_or(KnowledgeJobError::MissingContext("AppContext"))?;
@@ -183,6 +181,10 @@ struct CategorizeRun<'a> {
     actor: Actor,
 }
 
+#[expect(
+    clippy::expect_used,
+    reason = "the agent name is a static protocol constant"
+)]
 async fn categorize_one(
     run: &CategorizeRun<'_>,
     document: &RawDocument,
@@ -191,7 +193,7 @@ async fn categorize_one(
         SessionId::generate(),
         TraceId::generate(),
         ContextId::generate(),
-        AgentName::new(AGENT),
+        AgentName::try_new(AGENT).expect("static agent name is valid"),
     )
     .with_actor(run.actor.clone());
 
@@ -230,7 +232,7 @@ async fn categorize_one(
                     SessionId::generate(),
                     TraceId::generate(),
                     ContextId::generate(),
-                    AgentName::new(AGENT),
+                    AgentName::try_new(AGENT).expect("static agent name is valid"),
                 )
                 .with_actor(run.actor.clone()),
             )

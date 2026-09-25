@@ -42,7 +42,7 @@ pub(super) async fn settle(
 
     let waited = wait_for_decision(
         repo,
-        held.call_id.as_str(),
+        &held.call_id,
         Duration::from_secs(held.settings.hold_seconds),
     )
     .await;

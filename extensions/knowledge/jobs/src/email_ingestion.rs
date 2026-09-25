@@ -53,9 +53,7 @@ impl Job for EmailIngestionJob {
         let db = ctx
             .db_pool::<DbPool>()
             .ok_or(KnowledgeJobError::MissingContext("DbPool"))?;
-        let pool = db
-            .write_pool()
-            .ok_or(KnowledgeJobError::MissingContext("write PgPool"))?;
+        let pool = db.write_pool();
 
         let Some(config) = load_config(ctx)? else {
             return Ok(JobResult::success().with_stats(0, 0));

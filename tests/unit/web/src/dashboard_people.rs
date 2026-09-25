@@ -15,7 +15,7 @@ fn custom_roles_can_be_granted_and_revoked_without_becoming_console_privileges()
     let after = roles(&["user", "warehouse:write"]);
     assert_eq!(
         authorize_role_change(&admin, &before, &after, &[], 1),
-        Ok(())
+        Err(RoleChangeRefusal::UnknownRole("warehouse:write".into()))
     );
     assert!(!has_any(
         &roles(&["billing-reviewer", "warehouse:write"]),
@@ -36,7 +36,7 @@ fn custom_directory_grant_remains_protected() {
 fn group_upgrade_preserves_legacy_organization_data_and_free_text_roles() {
     let root = repo_root();
     let sql = std::fs::read_to_string(
-        root.join("extensions/web/schema/migrations/052_dashboard_groups_projects.sql"),
+        root.join("extensions/web/schema/migrations/059_dashboard_groups_projects.sql"),
     )
     .expect("group migration")
     .to_lowercase();

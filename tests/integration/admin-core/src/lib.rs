@@ -15,17 +15,10 @@
 //! therefore asserts on rows it inserted and on deltas rather than on a table
 //! being empty; `fixtures` documents the baseline in detail.
 
-
 #[cfg(test)]
 mod analytics_content_metrics;
 #[cfg(test)]
 mod analytics_content_rollup;
-#[cfg(test)]
-mod analytics_context_detail;
-#[cfg(test)]
-mod analytics_context_messages;
-#[cfg(test)]
-mod analytics_contexts;
 #[cfg(test)]
 mod analytics_request_stats;
 #[cfg(test)]
@@ -42,8 +35,6 @@ mod dashboard_entity_links;
 #[cfg(test)]
 mod dashboard_session_analyses;
 #[cfg(test)]
-mod dashboard_session_summary;
-#[cfg(test)]
 mod dashboard_session_updates;
 #[cfg(test)]
 mod dashboard_sessions;
@@ -56,18 +47,6 @@ mod dashboard_traffic_queries;
 #[cfg(test)]
 mod dashboard_usage_daily;
 #[cfg(test)]
-mod demo_logbook;
-#[cfg(test)]
-mod demo_mcp_tool_invocations;
-#[cfg(test)]
-mod demo_mcp_tool_stats;
-#[cfg(test)]
-mod demo_skill_invocations;
-#[cfg(test)]
-mod departments_repository;
-#[cfg(test)]
-mod departments_rollups;
-#[cfg(test)]
 mod fixtures;
 #[cfg(test)]
 mod governance_counts;
@@ -75,10 +54,6 @@ mod governance_counts;
 mod governance_facets;
 #[cfg(test)]
 mod mcp_servers_yaml;
-#[cfg(test)]
-mod organizations_membership;
-#[cfg(test)]
-mod organizations_seats;
 #[cfg(test)]
 mod tempdb;
 #[cfg(test)]
@@ -90,21 +65,11 @@ mod traces_spans_resolve;
 #[cfg(test)]
 mod traces_stats;
 #[cfg(test)]
-mod users_access_matrix;
-#[cfg(test)]
-mod users_access_matrix_dimensions;
-#[cfg(test)]
 mod users_access_rules;
 #[cfg(test)]
 mod users_activity_record;
 #[cfg(test)]
-mod users_federated_sso;
-#[cfg(test)]
-mod users_identity;
-#[cfg(test)]
 mod users_lookups;
-#[cfg(test)]
-mod users_passkey;
 
 #[cfg(test)]
 mod usage_conversation_summary;

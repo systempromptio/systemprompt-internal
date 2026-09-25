@@ -1,3 +1,7 @@
+#![allow(
+    clippy::expect_used,
+    reason = "resolved approval invariants are enforced by the approval state machine"
+)]
 //! The single executor for a decided proposal.
 //!
 //! Both the `proposal_decide` tool and the reconcile job land here with the
@@ -52,7 +56,10 @@ pub async fn settle_document(
         )));
     }
 
-    let approver = UserId::new(request.approver_id.clone().unwrap_or_default());
+    let approver = request
+        .approver_id
+        .clone()
+        .expect("resolved approval has an approver");
     let decided_at = request.decided_at.unwrap_or_else(Utc::now);
 
     match request.status {
@@ -88,7 +95,10 @@ async fn approve(
     request: &ApprovalRequest,
     exclude: &[usize],
 ) -> Result<SettleOutcome, KnowledgeBankError> {
-    let approver = UserId::new(request.approver_id.clone().unwrap_or_default());
+    let approver = request
+        .approver_id
+        .clone()
+        .expect("resolved approval has an approver");
     let decided_at = request.decided_at.unwrap_or_else(Utc::now);
 
     // Why: the first claim is the decision and is audited; a claim from
