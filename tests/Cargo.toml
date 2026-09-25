@@ -62,6 +62,8 @@ systemprompt = { version = "0.61.0", default-features = false, features = ["core
 systemprompt-models = "0.61.0"
 systemprompt-security = { version = "0.61.0" }
 systemprompt-api = { version = "0.61.0" }
+systemprompt-content = "0.61.0"
+systemprompt-marketplace = "0.61.0"
 
 # HTTP contract harness — drives the real admin router in-process.
 axum = "0.8"

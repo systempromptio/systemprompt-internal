@@ -13,6 +13,8 @@ workspace = true
 # the content-domain migrations (markdown_content, campaign_links,
 # link_clicks) these repositories query.
 systemprompt = { workspace = true, features = ["full"] }
+systemprompt-content = { workspace = true }
+systemprompt-marketplace = { workspace = true }
 systemprompt-web-content = { workspace = true }
 systemprompt-web-shared = { workspace = true }
 systemprompt-web-extension = { workspace = true }
