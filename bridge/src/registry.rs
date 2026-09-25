@@ -21,16 +21,15 @@ impl MarketplaceSource for SystempromptArtifactsSource {
     }
 
     fn items(&self, _ctx: &MarketplaceSourceCtx<'_>) -> Vec<MarketplaceItem> {
-        vec![MarketplaceItem::new(
-            "systemprompt-welcome",
-            "Systemprompt Internal — Welcome",
-            Some(
-                "Branded starter artifact contributed by the Systemprompt Internal bridge."
-                    .to_owned(),
-            ),
-            String::new(),
-            "systemprompt",
-        )]
+        vec![
+            MarketplaceItem::builder("systemprompt-welcome", "systemprompt")
+                .name("Systemprompt Internal — Welcome")
+                .summary(Some(
+                    "Branded starter artifact contributed by the Systemprompt Internal bridge."
+                        .to_owned(),
+                ))
+                .build(),
+        ]
     }
 }
 
