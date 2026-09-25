@@ -237,7 +237,6 @@ jobs:
           path: systemprompt-core
       # keyring → dbus-secret-service → libdbus-sys builds from pkg-config.
       - run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config
-      - uses: ./.github/actions/core-checkout
       - run: rustup show
         working-directory: systemprompt-internal
       - uses: Swatinem/rust-cache@v2
