@@ -181,6 +181,10 @@ struct CategorizeRun<'a> {
     actor: Actor,
 }
 
+#[expect(
+    clippy::expect_used,
+    reason = "the agent name is a static protocol constant"
+)]
 async fn categorize_one(
     run: &CategorizeRun<'_>,
     document: &RawDocument,
