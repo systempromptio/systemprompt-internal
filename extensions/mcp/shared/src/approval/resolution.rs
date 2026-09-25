@@ -1,4 +1,7 @@
-#![allow(clippy::expect_used)]
+#![allow(
+    clippy::expect_used,
+    reason = "protocol-boundary invariants are documented at each call site"
+)]
 //! The `governance_decisions` writer for approval milestones, and the stamp
 //! that names who answered.
 //!

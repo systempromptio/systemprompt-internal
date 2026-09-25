@@ -1,4 +1,7 @@
-#![allow(clippy::expect_used)]
+#![allow(
+    clippy::expect_used,
+    reason = "protocol-boundary invariants are documented at each call site"
+)]
 //! The human-approval gate, shared by every bundled MCP server.
 //!
 //! Call it from `ServerHandler::call_tool` **after** the server has

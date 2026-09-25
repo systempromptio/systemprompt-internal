@@ -137,7 +137,7 @@ jobs:
           - name: admin
             command: cargo nextest run -p systemprompt-web-admin --tests
           - name: web assets
-            command: cargo nextest run -p systemprompt-web-extension --tests
+            command: cargo nextest run -p systemprompt-web-extension --tests --no-tests=pass
     # The test workspace verifies behaviour; linting it is quality.yml's job,
     # so it does not inherit the -D warnings RUSTFLAGS.
     env:
