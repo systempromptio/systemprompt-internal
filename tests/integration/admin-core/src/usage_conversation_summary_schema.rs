@@ -2,8 +2,8 @@
 
 use std::sync::Arc;
 
-use systemprompt::extension::ExtensionRegistry;
 use systemprompt::database::{Database, install_extension_schemas};
+use systemprompt::extension::ExtensionRegistry;
 
 use crate::tempdb::TempDb;
 
