@@ -59,15 +59,11 @@ impl KnowledgeStore {
     }
 
     fn read(&self) -> Result<std::sync::Arc<sqlx::PgPool>, KnowledgeBankError> {
-        self.pool.pool().ok_or_else(|| {
-            KnowledgeBankError::Internal("no Postgres read pool available".to_owned())
-        })
+        Ok(self.pool.pool())
     }
 
     fn write(&self) -> Result<std::sync::Arc<sqlx::PgPool>, KnowledgeBankError> {
-        self.pool.write_pool().ok_or_else(|| {
-            KnowledgeBankError::Internal("no Postgres write pool available".to_owned())
-        })
+        Ok(self.pool.write_pool())
     }
 
     #[must_use]

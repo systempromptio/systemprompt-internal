@@ -45,7 +45,7 @@ use systemprompt::database::DbPool;
 use systemprompt::identifiers::McpServerId;
 use systemprompt::mcp::repository::ToolUsageRepository;
 use systemprompt::mcp::{
-    ArtifactViewerConfig, McpArtifactRepository, McpToolExecutor, artifact_shell_template,
+    ArtifactIngest, ArtifactViewerConfig, McpToolExecutor, artifact_shell_template,
     build_artifact_viewer_resource, build_extension_capabilities,
     build_resource_template_list_result, build_tool_list_result, client_profile_from_peer,
     parse_artifact_resource_uri, read_artifact_resource, read_artifact_viewer_resource,
@@ -85,10 +85,11 @@ impl OdooServer {
         let tool_usage_repo = Arc::new(
             ToolUsageRepository::new(&db_pool).map_err(|e| OdooError::Internal(e.to_string()))?,
         );
-        let artifact_repo = Arc::new(
-            McpArtifactRepository::new(&db_pool).map_err(|e| OdooError::Internal(e.to_string()))?,
+        let artifact_ingest = Arc::new(
+            ArtifactIngest::from_db(&db_pool, None)
+                .map_err(|e| OdooError::Internal(e.to_string()))?,
         );
-        let executor = McpToolExecutor::new(tool_usage_repo, artifact_repo, SERVER_NAME);
+        let executor = McpToolExecutor::new(tool_usage_repo, artifact_ingest, SERVER_NAME);
         let client = Arc::new(OdooClient::from_env()?.with_identity_store(Arc::clone(&db_pool)));
 
         tracing::info!(
@@ -248,9 +249,9 @@ impl ServerHandler for OdooServer {
         _ctx: RequestContext<RoleServer>,
     ) -> Result<ReadResourceResponse, McpError> {
         if parse_artifact_resource_uri(&request.uri).is_some() {
-            let repo = McpArtifactRepository::new(&self.db_pool)
+            let ingest = ArtifactIngest::from_db(&self.db_pool, None)
                 .map_err(|e| McpError::internal_error(e.to_string(), None))?;
-            return read_artifact_resource(&request, SERVER_NAME, &repo)
+            return read_artifact_resource(&request, SERVER_NAME, ingest.artifacts())
                 .await
                 .map(Into::into);
         }

@@ -65,7 +65,8 @@ pub async fn record_hold(
 ) {
     let decision = Decision::Pending {
         reason: PendingReason::ApprovalRequired {
-            tool: McpToolName::new(subject.tool_name),
+            tool: McpToolName::try_new(subject.tool_name)
+                .expect("MCP tool names are validated at the protocol boundary"),
             rule: rule.to_owned(),
         },
     };
@@ -124,7 +125,10 @@ pub async fn record_verdict(
 #[must_use]
 pub fn approver_stamp(request: &ApprovalRequest, action: &'static str) -> ApproverStamp {
     ApproverStamp {
-        user_id: UserId::new(request.approver_id.clone().unwrap_or_default()),
+        user_id: request
+            .approver_id
+            .clone()
+            .expect("resolved approval always has an approver id"),
         username: request
             .approver_username
             .clone()
@@ -157,7 +161,7 @@ async fn write(
     } = judgement;
     let audit = DecisionAudit {
         id: uuid::Uuid::new_v4().to_string(),
-        call_id: subject.call_id.as_str().to_owned(),
+        call_id: subject.call_id.clone(),
         origin: AuditOrigin::Governed,
         decision,
         principal: PrincipalSnapshot {
@@ -167,11 +171,11 @@ async fn write(
             agent_id: None,
             agent_scope: AccessScope::from_roles(principal.roles),
             client_id: principal.client_id.cloned(),
-            claimed: None,
         },
         target: AuditTarget {
             tool_name: subject.tool_name.to_owned(),
             plugin_id: None,
+            tool_use_id: None,
         },
         chain: vec![ChainEntryOutcome {
             policy_id: PolicyId::new(POLICY_ID),
