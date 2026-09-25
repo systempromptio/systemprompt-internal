@@ -108,8 +108,6 @@ impl Extension for WebExtension {
             "markdown_content",
             "mcp_tool_executions",
             "users",
-            "departments",
-            "plans",
         ]
     }
 
