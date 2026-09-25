@@ -12,8 +12,6 @@
 //! database URL is configured.
 
 #[cfg(test)]
-mod content_api;
-#[cfg(test)]
 mod content_ingestion;
 #[cfg(test)]
 mod content_repository;

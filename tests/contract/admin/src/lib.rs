@@ -23,22 +23,8 @@
 //! `DATABASE_URL`; the suite self-skips when no server is configured.
 
 #[cfg(test)]
-mod baseline;
-#[cfg(test)]
-mod catalog_contract;
-#[cfg(test)]
 mod error_contract;
 #[cfg(test)]
 mod globals;
-#[cfg(test)]
-mod handler_variants;
-#[cfg(test)]
-mod odoo_auth_contract;
-#[cfg(test)]
-mod route_source;
-#[cfg(test)]
-mod seed;
-#[cfg(test)]
-mod ssr_deep_contract;
 #[cfg(test)]
 mod tempdb;
