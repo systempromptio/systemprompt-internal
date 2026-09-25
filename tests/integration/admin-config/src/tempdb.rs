@@ -11,6 +11,7 @@
 //! for crates actually linked into this binary — hence the `use ... as _`
 //! below. Dropping one silently yields a partial schema rather than an error.
 
+use std::path::Path;
 use std::sync::Arc;
 
 use sqlx::{AssertSqlSafe, PgPool};
@@ -59,6 +60,12 @@ fn with_database(base: &str, db_name: &str) -> String {
 
 impl TempDb {
     pub async fn create() -> Option<Self> {
+        if !systemprompt::loader::ServicesBootstrap::is_initialized() {
+            let services =
+                Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../services/config/config.yaml");
+            systemprompt::loader::ServicesBootstrap::init_from_path(&services)
+                .expect("bootstrap services config for admin integration tests");
+        }
         let base = server_url()?;
         // CREATE DATABASE cannot run inside a transaction, so the maintenance
         // connection lives on `postgres` and executes autocommit.
