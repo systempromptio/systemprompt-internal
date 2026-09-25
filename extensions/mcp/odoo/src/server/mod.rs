@@ -213,7 +213,7 @@ impl ServerHandler for OdooServer {
         .await;
 
         let client = client_profile_from_peer(&ctx);
-        dispatch_tool(
+        Box::pin(dispatch_tool(
             &tool::Dispatch {
                 executor: &self.executor,
                 request: &request,
@@ -222,7 +222,7 @@ impl ServerHandler for OdooServer {
             },
             call,
             &tool_name,
-        )
+        ))
         .await
         .map(Into::into)
     }
