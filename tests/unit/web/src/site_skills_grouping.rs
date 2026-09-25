@@ -46,7 +46,7 @@ fn categories_render_in_curated_order_with_unlisted_ones_last() {
 
     assert_eq!(
         category_names(&grouped),
-        vec!["Business on Odoo", "Platform & Operations", "Zebra Tools"]
+        vec!["Platform & Operations", "Business on Odoo", "Zebra Tools"]
     );
 }
 
