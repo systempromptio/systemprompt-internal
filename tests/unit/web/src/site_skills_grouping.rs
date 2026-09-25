@@ -30,8 +30,8 @@ fn category_names(grouped: &[Value]) -> Vec<String> {
 
 #[test]
 fn the_curated_categories_rank_ahead_of_everything_else() {
-    assert_eq!(category_rank("Business on Odoo"), 0);
-    assert!(category_rank("Business on Odoo") < category_rank("Enterprise Demo"));
+    assert_eq!(category_rank("Consultancy Workflows"), 0);
+    assert!(category_rank("Consultancy Workflows") < category_rank("Enterprise Demo"));
     assert!(category_rank("Platform & Operations") < category_rank("General"));
     assert_eq!(category_rank("General"), category_rank("Anything Unlisted"));
 }
@@ -41,12 +41,12 @@ fn categories_render_in_curated_order_with_unlisted_ones_last() {
     let grouped = group_by_category(&[
         entry("z", Some("Zebra Tools"), None),
         entry("p", Some("Platform & Operations"), None),
-        entry("s", Some("Business on Odoo"), None),
+        entry("s", Some("Consultancy Workflows"), None),
     ]);
 
     assert_eq!(
         category_names(&grouped),
-        vec!["Platform & Operations", "Business on Odoo", "Zebra Tools"]
+        vec!["Consultancy Workflows", "Platform & Operations", "Zebra Tools"]
     );
 }
 
@@ -66,7 +66,7 @@ fn display_category_wins_and_a_categoryless_skill_lands_in_general() {
     let grouped = group_by_category(&[
         entry(
             "override",
-            Some("Business on Odoo"),
+            Some("Consultancy Workflows"),
             Some("Brand & Workspace"),
         ),
         entry("bare", None, None),

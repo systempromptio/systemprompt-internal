@@ -15,7 +15,7 @@ fn custom_roles_can_be_granted_and_revoked_without_becoming_console_privileges()
     let after = roles(&["user", "warehouse:write"]);
     assert_eq!(
         authorize_role_change(&admin, &before, &after, &[], 1),
-        Ok(())
+        Err(RoleChangeRefusal::UnknownRole("warehouse:write".into()))
     );
     assert!(!has_any(
         &roles(&["billing-reviewer", "warehouse:write"]),

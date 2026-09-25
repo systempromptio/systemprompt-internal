@@ -63,9 +63,6 @@ CREATE TABLE IF NOT EXISTS plugin_session_summaries (
     ai_summary TEXT,
     ai_tags TEXT,
     ai_description TEXT,
-    apm REAL,
-    eapm REAL,
-    peak_concurrent INT,
     permission_mode TEXT,
     client_source TEXT,
     subagent_spawns BIGINT NOT NULL DEFAULT 0,
@@ -76,10 +73,28 @@ CREATE TABLE IF NOT EXISTS plugin_session_summaries (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+-- Keep the fresh-install baseline aligned with the session registry migration.
+-- Existing installations receive these additions through migration 077.
+ALTER TABLE plugin_session_summaries
+    ADD COLUMN IF NOT EXISTS cwd TEXT,
+    ADD COLUMN IF NOT EXISTS workspace TEXT,
+    ADD COLUMN IF NOT EXISTS git_branch TEXT,
+    ADD COLUMN IF NOT EXISTS handle TEXT,
+    ADD COLUMN IF NOT EXISTS current_activity TEXT,
+    ADD COLUMN IF NOT EXISTS last_event_at TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS context_pct SMALLINT,
+    ADD COLUMN IF NOT EXISTS live_cost_microdollars BIGINT;
 CREATE INDEX IF NOT EXISTS idx_session_summary_user ON plugin_session_summaries(user_id, started_at DESC);
 CREATE INDEX IF NOT EXISTS idx_session_summary_session ON plugin_session_summaries(session_id);
 CREATE INDEX IF NOT EXISTS idx_session_summary_source ON plugin_session_summaries(user_id, client_source);
 CREATE INDEX IF NOT EXISTS idx_session_summary_mode ON plugin_session_summaries(user_id, permission_mode);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_session_summary_active_handle
+    ON plugin_session_summaries(user_id, handle)
+    WHERE handle IS NOT NULL AND ended_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_session_summary_workspace
+    ON plugin_session_summaries(workspace) WHERE workspace IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_session_summary_last_event
+    ON plugin_session_summaries(last_event_at DESC);
 
 CREATE TABLE IF NOT EXISTS session_transcripts (
     id TEXT PRIMARY KEY,
