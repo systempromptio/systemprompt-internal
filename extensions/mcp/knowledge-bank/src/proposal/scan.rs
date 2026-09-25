@@ -1,3 +1,7 @@
+#![allow(
+    clippy::expect_used,
+    reason = "the MCP tool name is a static protocol constant"
+)]
 //! Running the instance's own `secret_scan` policy over a body this pipeline
 //! is about to push into Odoo.
 //!

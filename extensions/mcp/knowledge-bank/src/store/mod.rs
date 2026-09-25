@@ -1,3 +1,7 @@
+#![allow(
+    clippy::unnecessary_wraps,
+    reason = "the public store API keeps read and write pool access fallible for backend compatibility"
+)]
 //! The knowledge bank's persistence layer: reads and writes against
 //! `knowledge_documents` on the tenant Postgres.
 //!

@@ -1,3 +1,7 @@
+#![allow(
+    clippy::expect_used,
+    reason = "resolved approval invariants are enforced by the approval state machine"
+)]
 //! The single executor for a decided proposal.
 //!
 //! Both the `proposal_decide` tool and the reconcile job land here with the
