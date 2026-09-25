@@ -66,8 +66,6 @@ src/main.rs	# brand: binary entry names the product
 # the inline-code gate has to excuse; neither exists here.
 
 
-extensions/web/admin/src/gateway_safety.rs	# internal adds the WordBlocklistScanner (client-specific banned-word list); the template ships only the secrets scanner
-
 # ---------------------------------------------------------------------
 # APPROVAL (2026-08-27) - internal handles `Decision::Pending`, the third
 # governance verdict. The template pins released systemprompt 0.40.0 from
