@@ -64,6 +64,7 @@ saml = { workspace = true }
 # Utilities
 url = { workspace = true }
 urlencoding = { workspace = true }
+inventory = { workspace = true }
 async-trait = { workspace = true }
 
 [features]
@@ -74,3 +75,6 @@ governance-ssr = []
 
 [lints]
 workspace = true
+
+[package.metadata.cargo-machete]
+ignored = ["inventory"]

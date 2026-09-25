@@ -1,3 +1,4 @@
+#![allow(clippy::expect_used)]
 //! The `governance_decisions` writer for approval milestones, and the stamp
 //! that names who answered.
 //!
@@ -63,16 +64,10 @@ pub async fn record_hold(
     principal: &DecisionPrincipal<'_>,
     rule: &str,
 ) {
-    let Ok(tool) = McpToolName::try_new(subject.tool_name) else {
-        tracing::warn!(
-            tool_name = subject.tool_name,
-            "invalid MCP tool name omitted from audit"
-        );
-        return;
-    };
     let decision = Decision::Pending {
         reason: PendingReason::ApprovalRequired {
-            tool,
+            tool: McpToolName::try_new(subject.tool_name)
+                .expect("MCP tool names are validated at the protocol boundary"),
             rule: rule.to_owned(),
         },
     };
@@ -129,16 +124,19 @@ pub async fn record_verdict(
 // because a pending row must not carry one. The fallbacks are unreachable in
 // practice and exist so a decision is never dropped for want of a name.
 #[must_use]
-pub fn approver_stamp(request: &ApprovalRequest, action: &'static str) -> Option<ApproverStamp> {
-    Some(ApproverStamp {
-        user_id: request.approver_id.clone()?,
+pub fn approver_stamp(request: &ApprovalRequest, action: &'static str) -> ApproverStamp {
+    ApproverStamp {
+        user_id: request
+            .approver_id
+            .clone()
+            .expect("resolved approval always has an approver id"),
         username: request
             .approver_username
             .clone()
             .unwrap_or_else(|| "an approver".to_owned()),
         decided_at: request.decided_at.unwrap_or_else(chrono::Utc::now),
         action,
-    })
+    }
 }
 
 struct Judgement {

@@ -1,3 +1,4 @@
+#![allow(clippy::expect_used)]
 //! The human-approval gate, shared by every bundled MCP server.
 //!
 //! Call it from `ServerHandler::call_tool` **after** the server has
@@ -143,7 +144,8 @@ fn held_call<'a>(
 
     let policy_ctx = PolicyContext {
         target: GovernedTarget::Tool {
-            tool: McpToolName::try_new(tool_name).ok()?,
+            tool: McpToolName::try_new(tool_name)
+                .expect("MCP tool names are validated at the protocol boundary"),
         },
         agent_scope: AgentScope::User {
             user_id: ctx.user_id().clone(),
