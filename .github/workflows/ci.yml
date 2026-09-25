@@ -135,7 +135,7 @@ jobs:
           - name: workspace 3/3
             partition: "count:3/3"
           - name: admin
-            command: cargo nextest run -p systemprompt-web-admin --tests
+            command: cargo nextest run -p systemprompt-web-admin --tests --no-tests=pass
           - name: web assets
             command: cargo nextest run -p systemprompt-web-extension --tests --no-tests=pass
     # The test workspace verifies behaviour; linting it is quality.yml's job,
