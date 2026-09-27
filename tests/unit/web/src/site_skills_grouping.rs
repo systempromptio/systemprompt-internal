@@ -46,7 +46,11 @@ fn categories_render_in_curated_order_with_unlisted_ones_last() {
 
     assert_eq!(
         category_names(&grouped),
-        vec!["Consultancy Workflows", "Platform & Operations", "Zebra Tools"]
+        vec![
+            "Consultancy Workflows",
+            "Platform & Operations",
+            "Zebra Tools"
+        ]
     );
 }
 

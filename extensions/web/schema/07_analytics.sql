@@ -70,20 +70,17 @@ CREATE TABLE IF NOT EXISTS plugin_session_summaries (
     automated_actions INT,
     loc_added BIGINT NOT NULL DEFAULT 0,
     loc_removed BIGINT NOT NULL DEFAULT 0,
+    cwd TEXT,
+    workspace TEXT,
+    git_branch TEXT,
+    handle TEXT,
+    current_activity TEXT,
+    last_event_at TIMESTAMPTZ,
+    context_pct SMALLINT,
+    live_cost_microdollars BIGINT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
--- Keep the fresh-install baseline aligned with the session registry migration.
--- Existing installations receive these additions through migration 077.
-ALTER TABLE plugin_session_summaries
-    ADD COLUMN IF NOT EXISTS cwd TEXT,
-    ADD COLUMN IF NOT EXISTS workspace TEXT,
-    ADD COLUMN IF NOT EXISTS git_branch TEXT,
-    ADD COLUMN IF NOT EXISTS handle TEXT,
-    ADD COLUMN IF NOT EXISTS current_activity TEXT,
-    ADD COLUMN IF NOT EXISTS last_event_at TIMESTAMPTZ,
-    ADD COLUMN IF NOT EXISTS context_pct SMALLINT,
-    ADD COLUMN IF NOT EXISTS live_cost_microdollars BIGINT;
 CREATE INDEX IF NOT EXISTS idx_session_summary_user ON plugin_session_summaries(user_id, started_at DESC);
 CREATE INDEX IF NOT EXISTS idx_session_summary_session ON plugin_session_summaries(session_id);
 CREATE INDEX IF NOT EXISTS idx_session_summary_source ON plugin_session_summaries(user_id, client_source);

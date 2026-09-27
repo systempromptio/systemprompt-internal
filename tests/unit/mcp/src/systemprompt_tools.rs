@@ -22,10 +22,7 @@ fn the_cli_passthrough_and_admin_report_tools_are_exposed() {
     let names: Vec<&str> = tools.iter().map(|t| t.name.as_ref()).collect();
     assert_eq!(
         names,
-        vec![
-            "systemprompt",
-            "admin_report"
-        ],
+        vec!["systemprompt", "admin_report"],
         "the governance-approvals dashboard allowlists these by name"
     );
     assert_eq!(tools[0].name.as_ref(), SERVER_NAME);
