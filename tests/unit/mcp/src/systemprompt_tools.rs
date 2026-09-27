@@ -17,17 +17,12 @@ use systemprompt_mcp_agent::tools::{
 };
 
 #[test]
-fn the_cli_passthrough_and_the_three_approval_tools_are_exposed() {
+fn the_cli_passthrough_and_admin_report_tools_are_exposed() {
     let tools = list_tools();
     let names: Vec<&str> = tools.iter().map(|t| t.name.as_ref()).collect();
     assert_eq!(
         names,
-        vec![
-            "systemprompt",
-            "approval_list",
-            "approval_decide",
-            "approval_history"
-        ],
+        vec!["systemprompt", "admin_report"],
         "the governance-approvals dashboard allowlists these by name"
     );
     assert_eq!(tools[0].name.as_ref(), SERVER_NAME);

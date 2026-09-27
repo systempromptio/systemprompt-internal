@@ -110,9 +110,14 @@ async fn settle_one(
     repo: &ApprovalRepository,
     row: &SettleableRow,
 ) -> Result<(), KnowledgeJobError> {
-    let request = repo.find(&row.call_id).await?.ok_or_else(|| {
-        KnowledgeJobError::Other(format!("approval {} has vanished", row.call_id))
-    })?;
+    let call_id = systemprompt::identifiers::CallId::new(row.call_id.clone());
+    let request = repo
+        .find(&call_id)
+        .await
+        .map_err(|error| KnowledgeJobError::Other(error.to_string()))?
+        .ok_or_else(|| {
+            KnowledgeJobError::Other(format!("approval {} has vanished", row.call_id))
+        })?;
     let outcome = settle_document(store, row.document_id, &request, &[]).await?;
     tracing::info!(document_id = %row.document_id, outcome = ?outcome, "knowledge_odoo_apply: settled");
     Ok(())

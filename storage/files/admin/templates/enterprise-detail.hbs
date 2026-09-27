@@ -1,7 +1,7 @@
 {{#> layout title=title page=page}}
     {{#*inline "head_extra"}}{{/inline}}
     {{#*inline "content"}}
-    {{> components/back-button href="/admin/enterprises" label="All enterprises"}}
+    {{> components/back-button href="/admin/users" label="All enterprises"}}
     {{> components/page-header title=enterprise.name subtitle=enterprise.slug}}
 
     <section class="ent-summary card" aria-label="Contract">
@@ -73,7 +73,7 @@
             <tbody>
             {{#each departments}}
                 <tr>
-                    <td><a href="/admin/access/departments/{{id}}">{{name}}</a></td>
+                    <td><a href="/admin/access-control?department={{id}}">{{name}}</a></td>
                     <td>{{#if description}}{{description}}{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
                     <td class="numeric">{{member_count}}</td>
                 </tr>

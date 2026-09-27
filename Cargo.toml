@@ -13,7 +13,6 @@ members = [
     "extensions/mcp/knowledge-bank",
     "extensions/mcp/shared",
     "extensions/mcp/odoo",
-    "extensions/evaluator/relay",
 ]
 # The test workspace under tests/ is a separate workspace so it never compiles
 # when these extension crates are consumed as dependencies. Run it explicitly:
@@ -34,7 +33,7 @@ opt-level = "z"
 [workspace.package]
 edition = "2024"
 rust-version = "1.96"
-version = "0.52.0"
+version = "0.61.0"
 authors = ["systemprompt.io <ed@systemprompt.io>"]
 license = "MIT"
 repository = "https://github.com/systempromptio/systemprompt-internal"
@@ -45,14 +44,13 @@ documentation = "https://systemprompt.io/documentation"
 # ============================================
 # CORE FACADE (single dependency for all systemprompt-core)
 # ============================================
-systemprompt = { version = "0.52.0", default-features = false, features = ["core", "database", "config"] }
-systemprompt-security = { version = "0.52.0" }
-systemprompt-extension = { version = "0.52.0" }
+systemprompt = { version = "0.61.0", default-features = false, features = ["core", "database", "config"] }
+systemprompt-security = { version = "0.61.0" }
+systemprompt-extension = { version = "0.61.0" }
 
 # ============================================
 # LOCAL EXTENSIONS
 # ============================================
-systemprompt-internal-brand = { path = "extensions/brand" }
 systemprompt-web-extension = { path = "extensions/web" }
 systemprompt-web-shared = { path = "extensions/web/shared" }
 systemprompt-web-admin = { path = "extensions/web/admin" }
@@ -63,13 +61,11 @@ systemprompt-mcp-shared = { path = "extensions/mcp/shared" }
 systemprompt-mcp-odoo = { path = "extensions/mcp/odoo" }
 systemprompt-mcp-knowledge-bank = { path = "extensions/mcp/knowledge-bank" }
 systemprompt-knowledge-jobs = { path = "extensions/knowledge/jobs" }
-serde_jcs = "0.1"
 
 # Core runtime dependencies
 tokio = { version = "1.49", features = ["rt-multi-thread", "net", "io-util", "time", "sync", "macros", "fs", "process", "signal"] }
 anyhow = "1.0"
 clap = { version = "4.6", features = ["derive"] }
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing = "0.1"
 async-trait = "0.1"
 
@@ -96,8 +92,6 @@ chacha20poly1305 = "0.10"
 schemars = { version = "1.2", features = ["derive"] }
 inventory = "0.3"
 walkdir = "2.0"
-glob = "0.3"
-tempfile = "3.0"
 url = "2.5"
 urlencoding = "2.1"
 jsonwebtoken = "10"
@@ -118,7 +112,7 @@ handlebars = "6"
 # unification with systemprompt-core, which declares them. The MRTR approval
 # gate depends on them, so they are named here rather than inherited: a change
 # to core's feature list must not silently stop this workspace compiling.
-rmcp = { version = "=3.1.3", features = ["server", "client", "transport-io", "transport-streamable-http-server", "transport-streamable-http-server-session", "transport-streamable-http-client", "transport-streamable-http-client-reqwest", "macros", "auth", "elicitation", "request-state"] }
+rmcp = { version = "=3.3.0", features = ["server", "client", "transport-io", "transport-streamable-http-server", "transport-streamable-http-server-session", "transport-streamable-http-client", "transport-streamable-http-client-reqwest", "macros", "auth", "elicitation", "request-state"] }
 
 # The tests/ workspace deliberately relaxes a handful of these (unwrap/expect/
 # panic and the doc lints) in its own [workspace.lints.clippy] block — see
@@ -228,6 +222,7 @@ single_use_lifetimes = "warn"
 [package]
 name = "systemprompt-internal"
 version.workspace = true
+license.workspace = true
 edition.workspace = true
 description = "Systemprompt Internal — AI business management on Odoo. A single compiled Rust binary that authenticates, authorises, rate-limits, logs, and costs every AI interaction. Self-hosted, air-gap capable, provider-agnostic. Built on systemprompt-core."
 readme = "README.md"
@@ -264,12 +259,12 @@ anyhow = { workspace = true }
 workspace = true
 # Core 0.47.0 is published; the patch below is dormant. Uncomment (together with the mirror in
 # tests/Cargo.toml — [patch] only applies per-workspace) to work against
-# ../systemprompt-core, and add an "ACTIVE: core X.Y.Z is unreleased" marker,
-# which the pre-commit hook requires before an active patch may be committed.
+# ../systemprompt-core. Published releases resolve from crates.io; this retained
+# metadata documents the full override set for the next unreleased-core cycle.
 # The version requirements above must track whatever the patch points at: a
 # patch whose version does not satisfy them is silently ignored and the build
 # falls back to the last published release.
-[patch.crates-io]
+[workspace.metadata.unreleased-core-patch]
 systemprompt = { path = "../systemprompt-core/systemprompt" }
 systemprompt-models = { path = "../systemprompt-core/crates/shared/models" }
 systemprompt-traits = { path = "../systemprompt-core/crates/shared/traits" }

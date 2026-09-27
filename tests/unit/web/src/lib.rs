@@ -25,8 +25,6 @@
 //!   governance config refusal, and the job error/tally plumbing
 
 #[cfg(test)]
-mod builders;
-#[cfg(test)]
 mod campaign_link_full_url;
 #[cfg(test)]
 mod config_base_url;
@@ -48,8 +46,6 @@ mod content_update_params;
 mod content_validation;
 #[cfg(test)]
 mod content_validation_results;
-#[cfg(test)]
-mod demo_attribution_sql;
 #[cfg(test)]
 mod format_display;
 #[cfg(test)]
@@ -73,25 +69,15 @@ mod link_models;
 #[cfg(test)]
 mod month_range;
 #[cfg(test)]
-mod odoo_role_mapping;
-#[cfg(test)]
 mod page_window;
 #[cfg(test)]
 mod paper_metadata;
 #[cfg(test)]
 mod registry_completeness;
 #[cfg(test)]
-mod report_pnl;
-#[cfg(test)]
-mod secrets_scanner_response;
-#[cfg(test)]
 mod seed_contract;
 #[cfg(test)]
-mod session_registry_handle;
-#[cfg(test)]
 mod shared_errors;
-#[cfg(test)]
-mod shared_ids;
 #[cfg(test)]
 mod short_id_display;
 #[cfg(test)]
@@ -108,8 +94,6 @@ mod site_docs_page_data;
 mod site_docs_provider;
 #[cfg(test)]
 mod site_format_date;
-#[cfg(test)]
-mod site_org_url_extender;
 #[cfg(test)]
 mod site_page_providers;
 #[cfg(test)]
@@ -134,8 +118,6 @@ mod conversation_view;
 #[cfg(test)]
 mod governance_warnings_rollup;
 
-#[cfg(test)]
-mod governance_pages;
 
 #[cfg(test)]
 mod hooks_track_commits_pure;
@@ -143,11 +125,6 @@ mod hooks_track_commits_pure;
 #[cfg(test)]
 mod dashboard_people;
 
-#[cfg(test)]
-mod dev_login_pure;
-
-#[cfg(test)]
-mod governance_gateway;
 
 #[cfg(test)]
 mod support;

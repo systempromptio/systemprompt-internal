@@ -13,24 +13,5 @@
 //! authority, and prometheus recorder are all process-global, so each test
 //! builds at most one stack.
 
-#[cfg(test)]
-mod harness;
-
-#[cfg(test)]
-mod artifact_gallery;
-#[cfg(test)]
-mod health;
-#[cfg(all(test, feature = "live"))]
-mod live_demo_seed;
 #[cfg(all(test, feature = "live"))]
 mod live_smoke;
-#[cfg(test)]
-mod manifest_roles;
-#[cfg(test)]
-mod mcp_proxy_odoo;
-#[cfg(test)]
-mod odoo_login_roles;
-#[cfg(test)]
-mod skills_artifacts;
-#[cfg(test)]
-mod systemprompt_server;

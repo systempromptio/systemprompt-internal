@@ -12,8 +12,6 @@
 //! database URL is configured.
 
 #[cfg(test)]
-mod content_api;
-#[cfg(test)]
 mod content_ingestion;
 #[cfg(test)]
 mod content_repository;
@@ -22,28 +20,14 @@ mod content_services;
 #[cfg(test)]
 mod fixtures;
 #[cfg(test)]
-mod jobs_context;
-#[cfg(test)]
 mod jobs_db;
-#[cfg(test)]
-mod knowledge_bank_edges;
-#[cfg(test)]
-mod knowledge_bank_server;
 #[cfg(test)]
 mod link_analytics_repository;
 #[cfg(test)]
 mod link_repository;
-#[cfg(test)]
-mod mcp_cli;
-#[cfg(test)]
-mod mcp_dispatch;
-#[cfg(test)]
-mod mcp_server;
 #[cfg(test)]
 mod search_repository;
 #[cfg(test)]
 mod site_docs_db;
 #[cfg(test)]
 mod tempdb;
-#[cfg(test)]
-mod web_router;

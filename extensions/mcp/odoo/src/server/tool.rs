@@ -98,7 +98,7 @@ pub async fn dispatch_tool(
     // distinct handler type, and holding all of them in one stack frame costs
     // half a megabyte — over clippy's frame ceiling, and a real cost on a
     // server that runs one of these per request.
-    if let Some(result) = crm_tools(ctx, call.clone(), tool_name).await {
+    if let Some(result) = Box::pin(crm_tools(ctx, call.clone(), tool_name)).await {
         return result;
     }
     if let Some(result) = closing_tools(ctx, call.clone(), tool_name).await {
@@ -139,7 +139,7 @@ async fn crm_tools(
         TOOL_LEAD_REPORT => ctx.run(&report::LeadReportHandler { call }).await,
         TOOL_PARTNER_SEARCH => ctx.run(&partner::PartnerSearchHandler { call }).await,
         TOOL_PARTNER_GET => ctx.run(&partner::PartnerGetHandler { call }).await,
-        TOOL_OVERVIEW => ctx.run(&overview::OverviewHandler { call }).await,
+        TOOL_OVERVIEW => Box::pin(ctx.run(&overview::OverviewHandler { call })).await,
         _ => return None,
     })
 }

@@ -70,9 +70,7 @@ pub async fn resolve_credentials(
     pool: &DbPool,
     user_id: &UserId,
 ) -> Result<Credentials, OdooError> {
-    let pg_pool = pool
-        .pool()
-        .ok_or_else(|| OdooError::Internal("no Postgres pool available".to_owned()))?;
+    let pg_pool = pool.pool();
 
     let row = sqlx::query!(
         "SELECT odoo_login, odoo_uid, odoo_api_key_encrypted FROM odoo_identity WHERE user_id = $1",
@@ -101,9 +99,7 @@ pub async fn resolve_credentials(
 // logged rather than turned into a user-visible error on a request that
 // worked.
 pub async fn persist_uid(pool: &DbPool, user_id: &UserId, odoo_uid: i32) {
-    let Some(pg_pool) = pool.pool() else {
-        return;
-    };
+    let pg_pool = pool.pool();
     let result = sqlx::query!(
         "UPDATE odoo_identity SET odoo_uid = $2, updated_at = CURRENT_TIMESTAMP WHERE user_id = $1",
         user_id.as_str(),

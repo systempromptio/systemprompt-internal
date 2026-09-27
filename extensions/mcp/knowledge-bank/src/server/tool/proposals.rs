@@ -6,7 +6,7 @@
 //! document stuck on a credential the approver does not have.
 
 use rmcp::ErrorData as McpError;
-use systemprompt::identifiers::McpExecutionId;
+use systemprompt::identifiers::{CallId, McpExecutionId};
 use systemprompt::mcp::McpToolHandler;
 use systemprompt::models::execution::context::RequestContext as SysRequestContext;
 use systemprompt::security::policy::{ApprovalRepository, ApprovalStatus, ApprovalVerdict};
@@ -195,7 +195,7 @@ impl McpToolHandler for ProposalDecideHandler {
             .await
             .map_err(internal)?
             .ok_or_else(|| McpError::invalid_params(format!("no document {id}"), None))?;
-        let call_id = doc.proposal_call_id.clone().ok_or_else(|| {
+        let call_id = CallId::new(doc.proposal_call_id.clone().ok_or_else(|| {
             McpError::invalid_params(
                 format!(
                     "document {id} is {}; nothing to decide",
@@ -203,7 +203,7 @@ impl McpToolHandler for ProposalDecideHandler {
                 ),
                 None,
             )
-        })?;
+        })?);
 
         if input.decision == DecisionInput::Approve {
             resolve_credentials(self.store.pool(), ctx.user_id())

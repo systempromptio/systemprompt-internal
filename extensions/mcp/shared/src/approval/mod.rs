@@ -1,3 +1,7 @@
+#![allow(
+    clippy::expect_used,
+    reason = "protocol-boundary invariants are documented at each call site"
+)]
 //! The human-approval gate, shared by every bundled MCP server.
 //!
 //! Call it from `ServerHandler::call_tool` **after** the server has
@@ -80,7 +84,18 @@ pub async fn enforce_approval(
     request: &CallToolRequestParams,
     request_context: &SysRequestContext,
 ) -> GateOutcome {
-    let engine = match GovernanceEngine::global() {
+    let profile = match systemprompt::config::ProfileBootstrap::get() {
+        Ok(profile) => profile,
+        Err(error) => {
+            tracing::error!(tool_name, %error, "approval policy profile unavailable; refusing call");
+            return GateOutcome::Refused(Box::new(refusal(
+                "The approval policy engine is unavailable. Try again once governance is ready.",
+            )));
+        },
+    };
+    let engine = match GovernanceEngine::from_services_root(std::path::Path::new(
+        &profile.paths.services,
+    )) {
         Ok(engine) => engine,
         Err(error) => {
             tracing::error!(tool_name, %error, "approval policy engine unavailable; refusing call");
@@ -89,23 +104,11 @@ pub async fn enforce_approval(
             )));
         },
     };
-    let Some(held) = held_call(engine, server_name, tool_name, request, request_context) else {
+    let Some(held) = held_call(&engine, server_name, tool_name, request, request_context) else {
         return GateOutcome::Proceed;
     };
 
-    let Some(pg_pool) = db_pool.pool() else {
-        // Why: the approval row IS the gate. With no database there is nowhere
-        // to record the hold and no way for a human to answer it, so the only
-        // honest outcome is a refusal — letting the call through would run an
-        // unapproved write and report it as approved.
-        tracing::error!(
-            tool_name,
-            "no database available to hold a call for approval; refusing it"
-        );
-        return GateOutcome::Refused(Box::new(refusal(
-            "This tool requires human approval, but the approval store is unavailable.",
-        )));
-    };
+    let pg_pool = db_pool.pool();
     let repo = ApprovalRepository::new((*pg_pool).clone());
 
     if let Err(err) = open_hold(&repo, &held).await {
@@ -144,7 +147,8 @@ fn held_call<'a>(
 
     let policy_ctx = PolicyContext {
         target: GovernedTarget::Tool {
-            tool: McpToolName::new(tool_name),
+            tool: McpToolName::try_new(tool_name)
+                .expect("MCP tool names are validated at the protocol boundary"),
         },
         agent_scope: AgentScope::User {
             user_id: ctx.user_id().clone(),
@@ -177,7 +181,10 @@ fn held_call<'a>(
 // Why: `open` is insert-if-absent, not upsert. SEP-2322 retries re-enter this
 // path with the same derived call id, so an upsert would reset the deadline
 // every round and the call could never expire.
-async fn open_hold(repo: &ApprovalRepository, held: &Held<'_>) -> Result<(), sqlx::Error> {
+async fn open_hold(
+    repo: &ApprovalRepository,
+    held: &Held<'_>,
+) -> Result<(), systemprompt::database::RepositoryError> {
     repo.open(&NewApprovalRequest {
         call_id: &held.call_id,
         tool_name: held.tool_name,

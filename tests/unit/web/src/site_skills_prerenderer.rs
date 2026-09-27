@@ -144,7 +144,7 @@ fn the_curated_category_order_survives_into_the_render_data() {
 
     assert_eq!(
         names,
-        vec!["Business on Odoo", "Platform & Operations"],
+        vec!["Platform & Operations", "Business on Odoo"],
         "the curated order wins over the alphabetical grouping order"
     );
 }

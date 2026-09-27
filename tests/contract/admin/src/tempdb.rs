@@ -13,8 +13,8 @@
 use std::sync::Arc;
 
 use sqlx::{AssertSqlSafe, PgPool};
-use systemprompt::ExtensionRegistry;
 use systemprompt::database::{Database, install_extension_schemas};
+use systemprompt::extension::ExtensionRegistry;
 use url::Url;
 
 use systemprompt_web_extension as _;

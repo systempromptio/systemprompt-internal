@@ -63,9 +63,6 @@ CREATE TABLE IF NOT EXISTS plugin_session_summaries (
     ai_summary TEXT,
     ai_tags TEXT,
     ai_description TEXT,
-    apm REAL,
-    eapm REAL,
-    peak_concurrent INT,
     permission_mode TEXT,
     client_source TEXT,
     subagent_spawns BIGINT NOT NULL DEFAULT 0,
@@ -73,6 +70,14 @@ CREATE TABLE IF NOT EXISTS plugin_session_summaries (
     automated_actions INT,
     loc_added BIGINT NOT NULL DEFAULT 0,
     loc_removed BIGINT NOT NULL DEFAULT 0,
+    cwd TEXT,
+    workspace TEXT,
+    git_branch TEXT,
+    handle TEXT,
+    current_activity TEXT,
+    last_event_at TIMESTAMPTZ,
+    context_pct SMALLINT,
+    live_cost_microdollars BIGINT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -80,6 +85,13 @@ CREATE INDEX IF NOT EXISTS idx_session_summary_user ON plugin_session_summaries(
 CREATE INDEX IF NOT EXISTS idx_session_summary_session ON plugin_session_summaries(session_id);
 CREATE INDEX IF NOT EXISTS idx_session_summary_source ON plugin_session_summaries(user_id, client_source);
 CREATE INDEX IF NOT EXISTS idx_session_summary_mode ON plugin_session_summaries(user_id, permission_mode);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_session_summary_active_handle
+    ON plugin_session_summaries(user_id, handle)
+    WHERE handle IS NOT NULL AND ended_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_session_summary_workspace
+    ON plugin_session_summaries(workspace) WHERE workspace IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_session_summary_last_event
+    ON plugin_session_summaries(last_event_at DESC);
 
 CREATE TABLE IF NOT EXISTS session_transcripts (
     id TEXT PRIMARY KEY,

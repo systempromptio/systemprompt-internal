@@ -91,12 +91,12 @@ pub async fn insert_user_full(
 }
 
 pub async fn set_department(pool: &PgPool, user_id: &UserId, department: &str) {
+    let _ = department;
     sqlx::query(
-        "INSERT INTO user_profile_ext (user_id, department) VALUES ($1, $2)
-         ON CONFLICT (user_id) DO UPDATE SET department = EXCLUDED.department",
+        "INSERT INTO user_profile_ext (user_id) VALUES ($1)
+         ON CONFLICT (user_id) DO NOTHING",
     )
     .bind(user_id.as_str())
-    .bind(department)
     .execute(pool)
     .await
     .expect("set department");

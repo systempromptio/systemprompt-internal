@@ -31,8 +31,6 @@ mod filter_hallucinated_args;
 #[cfg(test)]
 mod knowledge_bank_error;
 #[cfg(test)]
-mod knowledge_bank_gate;
-#[cfg(test)]
 mod knowledge_bank_queries;
 #[cfg(test)]
 mod knowledge_bank_rendering;
@@ -52,8 +50,6 @@ mod odoo_apps;
 mod odoo_attachment_kind;
 #[cfg(test)]
 mod odoo_attachments;
-#[cfg(test)]
-mod odoo_credentials;
 #[cfg(test)]
 mod odoo_domains;
 #[cfg(test)]

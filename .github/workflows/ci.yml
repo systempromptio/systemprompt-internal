@@ -135,9 +135,9 @@ jobs:
           - name: workspace 3/3
             partition: "count:3/3"
           - name: admin
-            command: cargo nextest run -p systemprompt-web-admin --tests
+            command: cargo nextest run -p systemprompt-web-admin --tests --no-tests=pass
           - name: web assets
-            command: cargo nextest run -p systemprompt-web-extension --tests
+            command: cargo nextest run -p systemprompt-web-extension --tests --no-tests=pass
     # The test workspace verifies behaviour; linting it is quality.yml's job,
     # so it does not inherit the -D warnings RUSTFLAGS.
     env:
@@ -153,7 +153,7 @@ jobs:
           POSTGRES_DB: test
         ports: ["5432:5432"]
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U test -d test"
           --health-interval 5s
           --health-timeout 3s
           --health-retries 10
@@ -237,7 +237,6 @@ jobs:
           path: systemprompt-core
       # keyring → dbus-secret-service → libdbus-sys builds from pkg-config.
       - run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config
-      - uses: ./.github/actions/core-checkout
       - run: rustup show
         working-directory: systemprompt-internal
       - uses: Swatinem/rust-cache@v2

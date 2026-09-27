@@ -98,12 +98,7 @@ fn prerenderers_and_seeds_survive_an_unconfigured_profile() {
     let seeds = extension.seeds();
     assert_eq!(
         seeds.iter().map(|seed| seed.id).collect::<Vec<_>>(),
-        [
-            "dashboard_unassigned_group",
-            "admin_oauth_client",
-            "house_organization",
-            "default_department"
-        ]
+        ["admin_oauth_client", "marketplace_plans", "groups_projects"]
     );
     assert!(seeds.iter().all(|s| !s.sql.trim().is_empty()));
 }

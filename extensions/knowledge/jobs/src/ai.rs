@@ -5,11 +5,11 @@
 use std::sync::Arc;
 
 use systemprompt::ai::{AiService, AiServiceProviders};
-use systemprompt::analytics::AnalyticsAiSessionProvider;
 use systemprompt::database::DbPool;
 use systemprompt::loader::ConfigLoader;
 use systemprompt::mcp::McpToolProvider;
 use systemprompt::system::AppContext;
+use systemprompt::users::{SessionRepository, UsersAiSessionProvider};
 
 use crate::error::KnowledgeJobError;
 
@@ -24,8 +24,8 @@ pub(crate) fn build_ai_service(
         app_context.mcp_registry().clone(),
         &services_config.ai.mcp.resilience,
     ));
-    let session_provider = Arc::new(AnalyticsAiSessionProvider::from_repository(
-        app_context.analytics_repositories().sessions.clone(),
+    let session_provider = Arc::new(UsersAiSessionProvider::from_repository(
+        SessionRepository::new(db_pool).map_err(other)?,
     ));
     Ok(Arc::new(
         AiService::new(
