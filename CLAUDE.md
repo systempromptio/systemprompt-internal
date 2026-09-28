@@ -458,9 +458,11 @@ plugin:
     include: []
 ```
 
-**A plugin is the role boundary.** Every plugin has exactly one `entity_type: plugin` rule in
-`services/access-control/roles.yaml` — `[user]` (shared by every role; admins hold `user` too) or
-`[admin]` — and every skill and artifact inside it inherits that rule. The cascade is
+**A plugin is the role boundary.** Every plugin is declared exactly once as `plugin/<id>` in
+`services/access-control/rules.yaml`, the one declarative source of entitlement (each entity with a
+required `why`; marketplace configs carry no `access:` block) — `[user]` (shared by every role;
+admins hold `user` too) or `[admin]`. Until the rules.yaml loader lands the server still reads
+`roles.yaml`, and `scripts/validate-services.sh` fails unless the two agree entry for entry — and every skill and artifact inside it inherits that rule. The cascade is
 skill/artifact → plugin → marketplace and the nearest level that declares any rule decides, so a
 `[admin]` plugin closes its ruleless skills to users even though the marketplace admits them. Never
 write a per-skill `allow` rule; never mix scopes in one plugin. Three plugins ship here, 6 skills

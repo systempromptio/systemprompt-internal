@@ -1,0 +1,152 @@
+# Access control — the one declarative source of entitlement on this instance.
+#
+# Every entity a signed-in person can be allowed or refused — marketplaces,
+# plugins, skills, MCP servers, gateway routes, Slack channels — is declared
+# here. The runtime enforces the DATABASE (`access_control_rules` +
+# `access_control_entities`); this file is what the database is expected to
+# contain. On boot the server SEEDS an empty database from this file and
+# otherwise only COMPARES the two and reports drift. It never overwrites:
+# reconciling code and database is a deliberate act on /admin/sync (Insert
+# only · Overwrite from code · Export from dashboard). Full explanation:
+# /documentation/access-control.
+#
+# TRANSITION. The loader that reads this file (rules_yaml_loader) has not
+# landed on this instance yet; until it does, the running server still reads
+# services/access-control/roles.yaml (and departments.yaml). This file is the
+# declaration the loader will seed from, converted entry for entry from those
+# two, and scripts/validate-services.sh fails if the two disagree. Change
+# both until roles.yaml is retired. plans.yaml (organization band) and
+# odoo-roles.yaml (Odoo group → platform role) are separate inputs and stay
+# their own files.
+#
+# How a decision is made (core resolver, narrowest band wins):
+#   person (0) → project (140) → group (150) → connected server (160)
+#   → role (200) → organization (300, plans.yaml)
+# The narrowest band in which the person matches ANY rule decides; inside that
+# band a deny beats an allow. An entity that declares any rule is CLOSED to
+# everyone its rules do not name unless `default: open`. An entity with no
+# rules at all inherits from its parent (skill → plugin → marketplace).
+#
+# Shape:
+#   entities:
+#     - entity: <kind>/<id>       kind ∈ marketplace | plugin | skill | mcp_server |
+#                                 agent | gateway_route | hook | slack_channel
+#                                 (gateway_route, hook and slack_channel take only
+#                                 the glob `*`, expanded against the live catalog:
+#                                 their ids are generated or external, never
+#                                 hand-written)
+#       owner: bundle:<name>     OPTIONAL — the entity arrives in a remote services
+#                                 bundle (deploy/kit/known-kits.json), not this tree;
+#                                 it may be absent until that bundle is active and is
+#                                 reported on /admin/sync as "awaiting its bundle"
+#       default: open | closed   what an unmatched person gets, and whether the
+#                                 entity is included by default (default: closed)
+#       why: "..."               REQUIRED — lands on every rule row as its justification
+#       valid_until: <RFC 3339>  OPTIONAL — every rule of the entity lapses at this
+#                                 instant; a past value means "not declared", and the
+#                                 hourly access_expiry sweep deletes the rows
+#       allow:                   band → subjects; a band may also be
+#         role: [...]              { values: [...], why: "..." } to override the why
+#         group: [...]
+#         project: [...]
+#         connector: [...]       value = the server id; matches people whose Connections
+#                                 page shows that server as connected (a live OAuth grant)
+#       deny: {}                 same bands
+#
+# Groups and projects named here must exist in services/web/config/groups.yaml.
+#
+# A plugin is the role boundary: every plugin declares exactly one plugin/<id>
+# entity with a role allow of [user] (default: open) or [admin] (default:
+# closed); skills and dashboards inherit it. A skill entity is for `deny` only.
+# scripts/validate-services.sh checks all of this in CI.
+
+entities:
+  # ─── Workspaces (marketplaces) ───────────────────────────────────────────
+  # The bridge manifest filter resolves this rule and cascades it onto every
+  # member skill, dashboard and MCP server that lacks a rule of its own.
+  - entity: marketplace/enterprise-demo
+    default: open
+    why: Public Odoo CRM productivity workspace for signed-in users.
+    allow:
+      role: [user]
+
+  # ─── Plugins (one scope each) ────────────────────────────────────────────
+  - entity: plugin/systemprompt-business
+    default: open
+    why: >-
+      The business plugin every role sees: the seven Odoo dashboards and the
+      skills that read and write them. Admins hold the user role too.
+    allow:
+      role: [user]
+
+  - entity: plugin/systemprompt-demo
+    default: open
+    why: >-
+      Stages the governance verdicts with real tool calls; shown to every
+      signed-in role.
+    allow:
+      role: [user]
+
+  - entity: plugin/systemprompt-admin
+    default: closed
+    why: >-
+      The admin control plane; closed to every role but admin, so its
+      ruleless skills and dashboards are closed to users even though the
+      marketplace admits them.
+    allow:
+      role: [admin]
+
+  # ─── MCP servers ─────────────────────────────────────────────────────────
+  # Every call is executed as the calling user with their own Odoo login and
+  # API key (services/mcp/odoo.yaml); Odoo's own record rules decide what they
+  # can see.
+  - entity: mcp_server/odoo
+    default: open
+    why: The one business server shipped to users; Odoo is the system of record.
+    allow:
+      role: [user]
+
+  # Admin-only and not default-included, so it reaches no signed manifest by
+  # default — an admin opts in deliberately. The in-process read filter
+  # (`ReadScope`) and the `require_admin` checks on `upload_document` and the
+  # `proposal_*` tools sit behind this grant, not in place of it.
+  - entity: mcp_server/knowledge-bank
+    default: closed
+    why: >-
+      The curated reference documents and the brain@ inbox pipeline with its
+      approval queue behind them; administrators only.
+    allow:
+      role: [admin]
+
+  # Its own rule (not just the admin plugin's) because MCP servers are
+  # marketplace members in their own right and the runtime MCP RBAC check
+  # resolves the server, not the plugin.
+  - entity: mcp_server/systemprompt
+    default: closed
+    why: >-
+      The admin CLI-passthrough server. Gated a second time by oauth.scopes in
+      services/mcp/systemprompt.yaml.
+    allow:
+      role: [admin]
+
+  # ─── Model routes ─────────────────────────────────────────────────────────
+  - entity: gateway_route/*
+    default: open
+    why: >-
+      Every model route is reachable by every signed-in role. Usage is shaped
+      by governance and quotas, not by entitlement. Route ids are generated
+      (slug + fnv1a6), so only the glob is ever written here.
+    allow:
+      role: [user, admin]
+
+  # ─── Slack inbound surface ────────────────────────────────────────────────
+  # Channel ids are Slack's, never ours, so only the glob is written. Channels
+  # inherit their workspace grant via authz parent inheritance; to demonstrate
+  # a denial, narrow this with a deny band — deny beats allow inside a band.
+  - entity: slack_channel/*
+    default: open
+    why: >-
+      Every Slack channel for the `user` role, the role federated Slack users
+      are minted with.
+    allow:
+      role: [user]

@@ -3,8 +3,15 @@
 #
 # Catches at commit time what otherwise only fails (or silently stops
 # matching) at boot: access-control rules pointing at ids that no resource
-# defines, and MCP port declarations drifting between services/mcp/ and the
-# extension manifest.
+# defines, plugins and marketplaces including members no file declares (the
+# composition rule ServicesConfig::validate() enforces — a dangling include
+# stops the tree composing), and MCP port declarations drifting between
+# services/mcp/ and the extension manifest.
+#
+# Entitlement is declared in services/access-control/rules.yaml (checked
+# below). While the server still reads the legacy roles.yaml, both files are
+# validated and must agree entry for entry, so the transition cannot fork the
+# grant.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
@@ -50,6 +57,41 @@ for p in root.glob("services/plugins/*/config.yaml"):
     if single:
         plugins.add(single)
 
+# Cross-file includes. A plugin lists agents by id; a marketplace lists MCP
+# servers by id. Composition refuses an id nothing declares. (Skills,
+# artifacts and a plugin's MCP servers are checked with their enabled state in
+# the plugin-scope invariants below.)
+def includes(block):
+    block = block or {}
+    if not isinstance(block, dict) or block.get("source", "explicit") != "explicit":
+        return []
+    return block.get("include") or []
+
+
+for p in root.glob("services/plugins/*/config.yaml"):
+    doc = load(p)
+    blocks = list((doc.get("plugins") or {}).values())
+    if doc.get("plugin"):
+        blocks.append(doc["plugin"])
+    for block in blocks:
+        pid = block.get("id", p.parent.name)
+        for member in includes(block.get("agents")):
+            if member not in agents:
+                errors.append(
+                    f"{p}: plugin '{pid}': agents.include references unknown agent '{member}'"
+                )
+
+for p in root.glob("services/marketplaces/*/config.yaml"):
+    mp = load(p).get("marketplace") or {}
+    if not mp.get("id"):
+        errors.append(f"{p}: marketplace declares no id")
+    for member in includes(mp.get("mcp_servers")):
+        if member not in mcp_servers:
+            errors.append(
+                f"{p}: marketplace '{mp.get('id')}': mcp_servers.include references "
+                f"unknown mcp_server '{member}'"
+            )
+
 known = {
     "skill": skills,
     "agent": agents,
@@ -57,37 +99,171 @@ known = {
     "marketplace": marketplaces,
     "plugin": plugins,
 }
-# Nothing registers a `hook` entity: no loader or bootstrap writes that kind,
-# so a literal hook id has no catalog to be checked against — and, like a
-# gateway_route id, it would be minted rather than validated. A hook rule may
-# use entity_match; a literal id is rejected below with the route ids.
-minted_not_validated = {"gateway_route", "hook"}
+# services/access-control/rules.yaml is the ONE declarative source of
+# entitlement. Every entity it names must exist, every group/project it names
+# must be declared, every entity must say why, and no marketplace config may
+# carry an `access:` block of its own — that second truth is exactly what this
+# file replaced.
+RULES = root / "services/access-control/rules.yaml"
+BANDS = {"role", "group", "project", "connector"}
+# Nothing registers a `hook` entity, gateway_route ids are generated and Slack
+# channel ids are Slack's, so a literal id of any of them would be minted
+# rather than validated. Only the glob is accepted for them, and only for them.
+glob_only = {"gateway_route", "hook", "slack_channel"}
 
-roles = load(root / "services/access-control/roles.yaml")
+groups_doc = load(root / "services/web/config/groups.yaml")
+group_ids = {g.get("id") for g in (groups_doc.get("groups") or [])} | {"unassigned"}
+project_ids = {p.get("id") for p in (groups_doc.get("projects") or [])}
+member_ids = {"group": group_ids, "project": project_ids}
+
+
+def band_values(spec):
+    if isinstance(spec, dict):
+        return spec.get("values") or [], spec.get("why")
+    return spec or [], None
+
+
+rules_doc = load(RULES) if RULES.exists() else {}
+if not RULES.exists():
+    errors.append(f"{RULES}: missing — it is the one declarative source of entitlement")
+declared_entities = {}
+for decl in rules_doc.get("entities") or []:
+    ref = str(decl.get("entity", ""))
+    if "/" not in ref:
+        errors.append(f"rules.yaml: entity '{ref}' must be written as <kind>/<id>")
+        continue
+    if ref in declared_entities:
+        errors.append(f"rules.yaml: {ref}: declared twice")
+    declared_entities[ref] = decl
+    etype, eid = ref.split("/", 1)
+    if not str(decl.get("why") or "").strip():
+        errors.append(f"rules.yaml: {ref}: `why` is required")
+    if decl.get("default", "closed") not in ("open", "closed"):
+        errors.append(f"rules.yaml: {ref}: default must be open or closed")
+    if etype in glob_only:
+        if eid != "*":
+            errors.append(
+                f"rules.yaml: {ref}: {etype} ids are generated, never written — use {etype}/*"
+            )
+    elif "*" in eid:
+        errors.append(f"rules.yaml: {ref}: only {sorted(glob_only)} take a glob")
+    else:
+        pool = known.get(etype)
+        owner = decl.get("owner")
+        # An entity a remote bundle owns (`owner: bundle:<name>`) may be absent
+        # from this tree: composition forbids an id both local and bundled, so
+        # the kit's marketplace is declared here and arrives with the bundle.
+        if owner is not None:
+            if not (isinstance(owner, str) and owner.startswith("bundle:") and owner[7:].strip()):
+                errors.append(f"rules.yaml: {ref}: owner must be written as bundle:<name>")
+            if etype not in ("marketplace", "plugin", "skill"):
+                errors.append(f"rules.yaml: {ref}: only a marketplace, plugin or skill can name an owner")
+            if pool is not None and eid in pool:
+                errors.append(
+                    f"rules.yaml: {ref}: is defined in this tree and names owner {owner} — "
+                    f"composition refuses an id that is both local and bundled"
+                )
+        elif pool is None:
+            errors.append(f"rules.yaml: {ref}: unknown entity kind '{etype}'")
+        elif eid not in pool:
+            errors.append(f"rules.yaml: {ref}: matches no defined resource")
+    allow = decl.get("allow") or {}
+    deny = decl.get("deny") or {}
+    if not allow and not deny:
+        errors.append(f"rules.yaml: {ref}: declares no allow and no deny")
+    for verb, bands in (("allow", allow), ("deny", deny)):
+        for band, spec in bands.items():
+            if band not in BANDS:
+                errors.append(f"rules.yaml: {ref}: unknown band '{band}' under {verb}")
+                continue
+            values, why = band_values(spec)
+            if not values:
+                errors.append(f"rules.yaml: {ref}: {verb}.{band} names no subjects")
+            if isinstance(spec, dict) and not str(why or "").strip():
+                errors.append(f"rules.yaml: {ref}: {verb}.{band} has a `why` key that is empty")
+            for value in values:
+                if band in member_ids and value not in member_ids[band]:
+                    errors.append(
+                        f"rules.yaml: {ref}: {band} '{value}' is not declared in "
+                        f"services/web/config/groups.yaml"
+                    )
+    for band in set(allow) & set(deny):
+        both = set(band_values(allow[band])[0]) & set(band_values(deny[band])[0])
+        for value in sorted(both):
+            errors.append(f"rules.yaml: {ref}: {band} '{value}' is both allowed and denied")
+
+for p in root.glob("services/marketplaces/*/config.yaml"):
+    if "access" in (load(p).get("marketplace") or {}):
+        errors.append(
+            f"{p}: marketplace configs carry no `access:` block — declare "
+            f"marketplace/<id> in services/access-control/rules.yaml instead"
+        )
+
+
+def role_set(decl, verb):
+    return set(band_values((decl.get(verb) or {}).get("role"))[0])
+
+
+# ---------------------------------------------------------------------------
+# Legacy roles.yaml — still what the running server reads until the
+# rules.yaml loader lands. Validated as before, and every rule must have its
+# twin in rules.yaml (and every role-only rules.yaml entity its twin here).
+# Delete this section with roles.yaml.
+# ---------------------------------------------------------------------------
+ROLES = root / "services/access-control/roles.yaml"
+roles = load(ROLES) if ROLES.exists() else {}
+legacy_refs = set()
 for rule in roles.get("rules") or []:
     etype = rule.get("entity_type")
     eid = rule.get("entity_id")
+    match = rule.get("entity_match")
     if eid is None:
+        ref = f"{etype}/{match}"
+    else:
+        ref = f"{etype}/{eid}"
+        # A literal gateway_route id cannot be validated here (profiles are
+        # gitignored, so CI has no route list) and cannot be correct either:
+        # route ids are generated as synthesize_route_id(model_pattern,
+        # provider), so no hand-written id matches a real route.
+        if etype in glob_only:
+            errors.append(
+                f"roles.yaml: {etype} rules must use entity_match, not a literal "
+                f"entity_id ('{eid}') — no catalog registers a written-out {etype} id, "
+                f"so it would be minted, not checked"
+            )
+            continue
+        pool = known.get(etype)
+        if pool is None:
+            errors.append(f"roles.yaml: unknown entity_type '{etype}' on '{eid}'")
+            continue
+        if eid not in pool:
+            errors.append(
+                f"roles.yaml: entity_id '{eid}' (type {etype}) matches no defined resource"
+            )
+    legacy_refs.add(ref)
+    twin = declared_entities.get(ref)
+    if twin is None:
+        errors.append(f"roles.yaml: {ref} has no twin in rules.yaml — declare it there too")
         continue
-    # A literal gateway_route id cannot be validated here (profiles are
-    # gitignored, so CI has no route list) and cannot be correct either: route
-    # ids are generated as synthesize_route_id(model_pattern, provider), so no
-    # hand-written id matches a real route. Reject the practice rather than the
-    # value — that needs no profile.
-    if etype in minted_not_validated:
+    verb = "allow" if rule.get("access", "allow") == "allow" else "deny"
+    if role_set(twin, verb) != set(rule.get("roles") or []):
         errors.append(
-            f"roles.yaml: {etype} rules must use entity_match, not a literal "
-            f"entity_id ('{eid}') — no catalog registers a written-out {etype} id, "
-            f"so it would be minted, not checked"
+            f"roles.yaml: {ref}: {verb} roles {sorted(rule.get('roles') or [])} disagree "
+            f"with rules.yaml {verb}.role {sorted(role_set(twin, verb))}"
         )
-        continue
-    pool = known.get(etype)
-    if pool is None:
-        errors.append(f"roles.yaml: unknown entity_type '{etype}' on '{eid}'")
-    elif eid not in pool:
+    if bool(rule.get("default_included", False)) != (twin.get("default", "closed") == "open"):
         errors.append(
-            f"roles.yaml: entity_id '{eid}' (type {etype}) matches no defined resource"
+            f"roles.yaml: {ref}: default_included {rule.get('default_included', False)} "
+            f"disagrees with rules.yaml default '{twin.get('default', 'closed')}'"
         )
+if ROLES.exists():
+    for ref, decl in declared_entities.items():
+        role_only = set((decl.get("allow") or {})) | set((decl.get("deny") or {})) <= {"role"}
+        if role_only and ref not in legacy_refs:
+            errors.append(
+                f"rules.yaml: {ref} has no twin in roles.yaml, which the server still "
+                f"reads — declare it there too until the rules.yaml loader lands"
+            )
 
 for svc_path in root.glob("services/mcp/*.yaml"):
     for name, cfg in (load(svc_path).get("mcp_servers") or {}).items():
@@ -170,19 +346,16 @@ for p in root.glob("services/mcp/*.yaml"):
     for name, cfg in (load(p).get("mcp_servers") or {}).items():
         mcp_docs[name] = (cfg or {}, p)
 
-rules = roles.get("rules") or []
-plugin_rules = {}
-for rule in rules:
-    if rule.get("entity_type") == "plugin" and rule.get("entity_id"):
-        plugin_rules.setdefault(rule["entity_id"], []).append(rule)
+plugin_decls = {
+    ref.split("/", 1)[1]: decl
+    for ref, decl in declared_entities.items()
+    if ref.startswith("plugin/")
+}
 
 admin_only_mcp = {
-    r["entity_id"]
-    for r in rules
-    if r.get("entity_type") == "mcp_server"
-    and r.get("entity_id")
-    and r.get("access", "allow") == "allow"
-    and set(r.get("roles") or []) == {"admin"}
+    ref.split("/", 1)[1]
+    for ref, decl in declared_entities.items()
+    if ref.startswith("mcp_server/") and role_set(decl, "allow") == {"admin"}
 }
 
 
@@ -193,35 +366,32 @@ def selection(body, key):
     return []
 
 
-# 1–2. Every plugin declares exactly one scope, and the sentinel matches it.
+# 1–2. Every plugin declares exactly one scope, and its default matches it.
 plugin_scope = {}
 for pid, (body, path) in sorted(plugin_docs.items()):
-    declared = plugin_rules.get(pid, [])
-    allows = [r for r in declared if r.get("access", "allow") == "allow"]
-    if len(allows) != 1:
+    decl = plugin_decls.get(pid)
+    if decl is None:
         errors.append(
-            f"{path}: plugin '{pid}' must declare exactly one entity_type: plugin allow "
-            f"rule in roles.yaml (found {len(allows)}) — that rule is its role scope"
+            f"{path}: plugin '{pid}' must be declared as plugin/{pid} in rules.yaml "
+            f"with a role allow — that entity is its role scope"
         )
         continue
-    rule = allows[0]
-    rr = set(rule.get("roles") or [])
+    rr = role_set(decl, "allow")
     if rr == {"admin"}:
         scope = "admin"
     elif "user" in rr:
         scope = "user"
     else:
         errors.append(
-            f"roles.yaml: plugin '{pid}' roles {sorted(rr)} name neither 'user' nor "
+            f"rules.yaml: plugin/{pid} allow.role {sorted(rr)} names neither 'user' nor "
             f"exactly ['admin'] — scope must be user (shared by every role) or admin"
         )
         continue
     plugin_scope[pid] = scope
-    want_default = scope == "user"
-    if bool(rule.get("default_included", False)) != want_default:
+    want_default = "open" if scope == "user" else "closed"
+    if decl.get("default", "closed") != want_default:
         errors.append(
-            f"roles.yaml: plugin '{pid}' is {scope}-scoped, so default_included must be "
-            f"{str(want_default).lower()}"
+            f"rules.yaml: plugin/{pid} is {scope}-scoped, so default must be {want_default}"
         )
 
 # 3. Every enabled plugin's members exist and are enabled; 7. admin servers stay
@@ -276,22 +446,19 @@ for aid, (doc, path) in sorted(artifact_docs.items()):
             f"it reaches no client; add it to a plugin or set enabled: false"
         )
 
-# 5. Skills inherit their plugin: an allow-type skill rule is the drift this
+# 5. Skills inherit their plugin: an allow on a skill entity is the drift this
 #    model removes. A deny must target a shipped skill.
-for rule in rules:
-    if rule.get("entity_type") != "skill" or not rule.get("entity_id"):
+for ref, decl in declared_entities.items():
+    if not ref.startswith("skill/") or decl.get("owner"):
         continue
-    sid = rule["entity_id"]
-    if rule.get("access", "allow") == "allow":
+    sid = ref.split("/", 1)[1]
+    if decl.get("allow"):
         errors.append(
-            f"roles.yaml: skill '{sid}' carries an allow rule — skills inherit their "
-            f"plugin's rule; move the grant to the plugin (or use access: deny to "
-            f"exclude one skill)"
+            f"rules.yaml: {ref} carries an allow — skills inherit their plugin's rule; "
+            f"move the grant to the plugin (or use deny to exclude one skill)"
         )
     elif sid not in shipped_skills:
-        errors.append(
-            f"roles.yaml: skill deny on '{sid}' names a skill no enabled plugin ships"
-        )
+        errors.append(f"rules.yaml: {ref}: deny names a skill no enabled plugin ships")
 
 # 6. Exactly one enabled plugin owns the session-global governance hooks.
 owners = [

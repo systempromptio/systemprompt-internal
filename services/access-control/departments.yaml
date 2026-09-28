@@ -1,5 +1,9 @@
 # Department definitions and department-scoped access control rules.
 #
+# SUPERSEDED by services/access-control/rules.yaml (and groups in
+# services/web/config/groups.yaml) once its loader lands. Empty here, so
+# nothing converts; the server still reads the file until then.
+#
 # This file is the BOOTSTRAP source of truth. On startup the publish pipeline:
 #   1. Upserts each department by `name` into the `departments` table.
 #   2. Upserts each rule into `access_control_rules` (rule_type=department).

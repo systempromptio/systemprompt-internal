@@ -16,12 +16,10 @@ marketplace:
     - invoices
     - productivity
   license: proprietary
-  access:
-    default_included: true
-    roles: [user]
-    justification: "Public Odoo CRM productivity workspace for signed-in users"
-  # One scope per plugin, declared by its entity_type: plugin rule in
-  # services/access-control/roles.yaml: business and demo are [user] (shared
+  # No `access:` block: who reaches this marketplace is declared once, as
+  # marketplace/enterprise-demo in services/access-control/rules.yaml.
+  # One scope per plugin, declared by its plugin/<id> entity in
+  # services/access-control/rules.yaml: business and demo are [user] (shared
   # by every role — admins hold the user role too); admin is [admin].
   # Business carries the seven dashboards every role sees (business overview,
   # inbound leads, open pipeline, upcoming deals, recent activity, to-do
