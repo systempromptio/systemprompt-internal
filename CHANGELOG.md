@@ -191,6 +191,17 @@ Conventions (strict — hold every entry to them):
   made only of `DROP ... IF EXISTS`, which core runs as a retirement on a fresh install after
   the structural DDL, so it dropped the new declarative table. 006 now drops the legacy table
   only in its legacy shape, and declares `@supersedes-checksum` for databases that applied it.
+- Admin pages that answered 500 on this release's templates: `/admin/profile` (the bridge
+  download links read a `download_base_url` the view no longer carried),
+  `/bridge-auth/device-link` and the device-code page (they read account fields their handler
+  stopped providing), and the governance decisions tab (a template older than its handler).
+  The printed bridge login and install commands named `systemprompt-bridge`; they read the
+  binary name from `extensions/brand` (`systemprompt-internal-bridge`). The dead
+  `/admin/conversations` route, whose template does not exist here, is no longer mounted.
+- The declarative skill-attribution trigger ended in a `SELECT` with no destination, so every
+  skill invocation failed its insert and the hook track answered 503.
+- Group and project membership validity is migration 095; migration 090 keeps the text the
+  0.61.0 schema rung recorded.
 - Every hook `Stop` event failed an `UPDATE` of `plugin_session_summaries.apm`/`eapm`/
   `peak_concurrent`, columns migration 078 dropped; the stale offline query cache hid it at
   compile time. The APM writer and its concurrent-session count are removed.

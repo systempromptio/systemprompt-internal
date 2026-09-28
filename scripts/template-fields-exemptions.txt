@@ -5,13 +5,8 @@
 # Never add a line here for new code: define the field or fix the template.
 storage/files/admin/partials/components/month-selector.hbs: org_slug
 storage/files/admin/templates/approvals.hbs: ingestion_count
-storage/files/admin/templates/bridge-device-code.hbs: account_email
 storage/files/admin/templates/bridge-device-link-blocked.hbs: blocked_reason
 storage/files/admin/templates/bridge-device-link-blocked.hbs: switch_account_href
-storage/files/admin/templates/bridge-device-link.hbs: account_email
-storage/files/admin/templates/bridge-device-link.hbs: session_email
-storage/files/admin/templates/bridge-device-link.hbs: signed_in_via
-storage/files/admin/templates/bridge-device-link.hbs: switch_account_href
 storage/files/admin/templates/demo-logbook.hbs: attribution_note
 storage/files/admin/templates/demo-logbook.hbs: heading
 storage/files/admin/templates/demo-me.hbs: attribution_note

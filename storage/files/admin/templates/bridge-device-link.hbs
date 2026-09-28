@@ -23,9 +23,7 @@
 
         <dl class="sp-device-facts">
             <dt class="sp-device-facts__key">Account</dt>
-            <dd class="sp-device-facts__value">{{account_email}}</dd>
-            {{#if account_name}}<dt class="sp-device-facts__key">Name</dt><dd class="sp-device-facts__value">{{account_name}}</dd>{{/if}}
-            {{#if signed_in_via}}<dt class="sp-device-facts__key">Signed in via</dt><dd class="sp-device-facts__value">{{signed_in_via}}</dd>{{/if}}
+            <dd class="sp-device-facts__value">{{user_email}}</dd>
             {{#if redirect_host}}
             <dt class="sp-device-facts__key">Helper</dt>
             <dd class="sp-device-facts__value">{{redirect_host}}</dd>
@@ -34,10 +32,6 @@
             <dd class="sp-device-facts__value">{{code_ttl_seconds}}&nbsp;seconds</dd>
         </dl>
 
-        <p class="sp-device-note"><a href="{{switch_account_href}}">Not you? Use a different account</a></p>
-        {{#if email_mismatch}}
-        <p class="sp-device-note">Your browser session says <strong>{{session_email}}</strong>, but this account is <strong>{{account_email}}</strong>. The token will be issued to <strong>{{account_email}}</strong>. Use a different account above if this is not the account you intended.</p>
-        {{/if}}
         <p class="sp-device-note">
             Only approve if you started <code>{{#if redirect_host}}sp-bridge-auth{{else}}systemprompt-internal-bridge login{{/if}}</code> yourself.
         </p>
@@ -45,7 +39,6 @@
         <div class="sp-device-actions">
             <form method="POST" action="/bridge-auth/device-link/approve" class="sp-device-actions__form">
                 {{#if redirect}}<input type="hidden" name="redirect" value="{{redirect}}">{{/if}}
-                <input type="hidden" name="confirm_account" value="{{account_email}}">
                 <button type="submit" class="sp-btn sp-btn--primary">Allow</button>
             </form>
             <form method="POST" action="/bridge-auth/device-link/deny" class="sp-device-actions__form">

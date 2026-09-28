@@ -35,6 +35,9 @@ struct ProfilePageView {
     has_recent: bool,
     // Why: side calls stay out of the table; one muted line says they exist.
     side_call_note: Option<String>,
+    // Why: the bridge download links on the profile page share the setup
+    // page's base, so the two cannot point at different trees.
+    download_base_url: &'static str,
 }
 
 #[derive(Debug, Serialize)]
@@ -89,6 +92,7 @@ pub(crate) async fn profile_page(
         recent_count: recent_conversations.len(),
         has_recent: !recent_conversations.is_empty(),
         side_call_note: side_call_note(conversations),
+        download_base_url: super::ssr_bridge_setup::DOWNLOAD_BASE_URL,
         recent_conversations,
         data,
         breadcrumbs: vec![

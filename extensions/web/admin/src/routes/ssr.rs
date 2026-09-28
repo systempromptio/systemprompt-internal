@@ -155,11 +155,6 @@ fn ai_activity_routes() -> Router<Arc<PgPool>> {
             "/traces/{trace_id}",
             get(handlers::ssr::perf_trace_detail_page),
         )
-        // Why: the org-wide twin of "My conversations". It reads one
-        // conversation per row where `/contexts` reads one context, and it is
-        // the page an operator looks for under AI activity when they want to
-        // see what everyone has been asking.
-        .route("/conversations", get(handlers::ssr::conversations_page))
         .route("/contexts", get(handlers::ssr::skills_contexts_page))
         .route(
             "/contexts/{context_id}",

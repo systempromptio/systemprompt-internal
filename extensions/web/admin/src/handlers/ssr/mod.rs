@@ -76,9 +76,7 @@ pub(crate) use ssr_governance_audit_detail::governance_audit_detail_page;
 pub(crate) use ssr_group_detail::group_detail_page;
 pub(crate) use ssr_groups::groups_page;
 pub(crate) use ssr_helpers::{branding_context, render_typed_page};
-pub(crate) use ssr_history::{
-    conversations_page, history_conversation_page, history_page, history_search,
-};
+pub(crate) use ssr_history::{history_conversation_page, history_page, history_search};
 pub(crate) use ssr_perf_trace_detail::perf_trace_detail_page;
 pub(crate) use ssr_perf_traces::perf_traces_page;
 pub(crate) use ssr_profile::{issue_bridge_code, profile_page};

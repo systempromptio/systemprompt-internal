@@ -48,6 +48,7 @@ documentation = "https://systemprompt.io/documentation"
 systemprompt = { version = "0.62.0", default-features = false, features = ["core", "database", "config"] }
 systemprompt-security = { version = "0.62.0" }
 systemprompt-extension = { version = "0.62.0" }
+systemprompt-internal-brand = { path = "extensions/brand" }
 
 # ============================================
 # LOCAL EXTENSIONS

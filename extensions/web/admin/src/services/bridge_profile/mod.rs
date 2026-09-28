@@ -95,9 +95,9 @@ pub(crate) struct BridgeConnectBlock {
     pub just_login_command: String,
 }
 
-// Why: not derivable here — `brand()` lives in the bridge crate, which the
-// admin extension does not depend on.
-pub(crate) const BRIDGE_BINARY: &str = "systemprompt-bridge";
+// Why: the `[[bin]]` name the bridge ships under; the leaf brand crate is the
+// one place both the bridge and these printed commands read it from.
+pub(crate) const BRIDGE_BINARY: &str = systemprompt_internal_brand::BRIDGE_BINARY_NAME;
 
 // Why: the host is named rather than left to `install.sh`'s PATH probe, which
 // enrols `opencode` only when its binary already exists. A user who installs
