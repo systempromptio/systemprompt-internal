@@ -1,18 +1,24 @@
 #!/usr/bin/env bash
 # Sync every version pin in the repo to a single release version.
 #
+# Lockstep: this repository's version IS the core version it builds against,
+# so one number covers the workspace, the bridge, the image and every core
+# pin. The core-pin half (both workspaces' pins, the residual sweep and
+# bridge/CORE_REF) lives in scripts/sync-core-version.sh, called here with the
+# same version, so the two can never be bumped apart.
+#
 #   scripts/sync-release-version.sh 0.21.0          # apply
 #   scripts/sync-release-version.sh 0.21.0 --check  # verify only (CI guard)
 #
 # Covered pins:
-#   Cargo.toml            workspace version + systemprompt/-security/-extension pins
-#   tests/Cargo.toml      its own systemprompt/-models/-security pins (separate workspace)
+#   Cargo.toml            workspace version
+#   core pins + CORE_REF  via scripts/sync-core-version.sh (same version)
 #   bridge/Cargo.toml     the desktop bridge's version — one number with core, so
 #                         the bridge-v<X.Y.Z> release cut on main names the core
 #                         it was built against and clears core's MIN_BRIDGE_VERSION
-#   bridge/CORE_REF       v<X.Y.Z> on apply; --check also accepts a commit SHA
-#                         (next tracks core next by SHA — the release workflow
-#                         proves that commit's own version is X.Y.Z)
+#   bridge/CORE_REF       v<X.Y.Z> while [patch.crates-io] is dormant; a core
+#                         `next` SHA (just core-pin) while it is active —
+#                         scripts/check-core-ref.sh owns the shape rules
 #   helm/gateway/Chart.yaml  appVersion + artifacthub images annotation
 #                            (chart `version:` is bumped separately on apply)
 #   deploy/casaos/docker-compose.yml                exact image tag
@@ -57,74 +63,20 @@ check_or_apply Cargo.toml \
     "^version = \"$VERSION\"" \
     "workspace version"
 
-# Cargo.toml — core crate pins.
-check_or_apply Cargo.toml \
-    "s|^systemprompt = { version = \"[0-9.]*\"|systemprompt = { version = \"$VERSION\"|" \
-    "^systemprompt = \\{ version = \"$VERSION\"" \
-    "systemprompt core pin"
-check_or_apply Cargo.toml \
-    "s|^systemprompt-security = { version = \"[0-9.]*\"|systemprompt-security = { version = \"$VERSION\"|" \
-    "^systemprompt-security = \\{ version = \"$VERSION\"" \
-    "systemprompt-security core pin"
-check_or_apply Cargo.toml \
-    "s|^systemprompt-extension = { version = \"[0-9.]*\"|systemprompt-extension = { version = \"$VERSION\"|" \
-    "^systemprompt-extension = \\{ version = \"$VERSION\"" \
-    "systemprompt-extension core pin"
-
-# tests/Cargo.toml — the test workspace is excluded from the root workspace and
-# carries its own copies of the same pins, systemprompt-models among them.
-# Nothing else rewrites them, and a
-# stale pin here silently disables the test workspace's [patch.crates-io].
-check_or_apply tests/Cargo.toml \
-    "s|^systemprompt = { version = \"[0-9.]*\"|systemprompt = { version = \"$VERSION\"|" \
-    "^systemprompt = \\{ version = \"$VERSION\"" \
-    "systemprompt core pin (test workspace)"
-check_or_apply tests/Cargo.toml \
-    "s|^systemprompt-security = { version = \"[0-9.]*\"|systemprompt-security = { version = \"$VERSION\"|" \
-    "^systemprompt-security = \\{ version = \"$VERSION\"" \
-    "systemprompt-security core pin (test workspace)"
-check_or_apply tests/Cargo.toml \
-    "s|^systemprompt-models = \"[0-9.]*\"|systemprompt-models = \"$VERSION\"|" \
-    "^systemprompt-models = \"$VERSION\"" \
-    "systemprompt-models core pin (test workspace)"
-
 # bridge/Cargo.toml — first `version =` is the package's own.
 check_or_apply bridge/Cargo.toml \
     "s|^version = \"[0-9.]*\"|version = \"$VERSION\"|" \
     "^version = \"$VERSION\"" \
     "bridge version"
 
-# bridge/CORE_REF — a tag, not a SHA, so the pin is legible and provably the
-# core this version was released against.
+# Every core crate pin (both workspaces, residual sweep of any other
+# manifest) and bridge/CORE_REF. Lockstep: the core version IS the release
+# version, so the core half is scripts/sync-core-version.sh at the same
+# number. A drift there is reported and fails --check like any other.
 if [ "$MODE" = "--check" ]; then
-    core_ref=$(tr -d '[:space:]' < bridge/CORE_REF)
-    case "$core_ref" in
-        "v$VERSION") ;;
-        *[!0-9a-f]*|"") echo "DRIFT: bridge/CORE_REF is '$core_ref', expected v$VERSION or a commit SHA"; fail=1 ;;
-        *) [ ${#core_ref} -eq 40 ] || { echo "DRIFT: bridge/CORE_REF '$core_ref' is not a full SHA"; fail=1; } ;;
-    esac
+    scripts/sync-core-version.sh "$VERSION" --check || fail=1
 else
-    printf 'v%s\n' "$VERSION" > bridge/CORE_REF
-fi
-
-# Residual sweep: any core pin in any manifest that the rules above do not
-# already move. A pin added to a new crate would otherwise sit stale forever,
-# because no gate distinguishes a forgotten pin from a deliberate one.
-#
-# Why: both cargo spellings must be swept. `tests/Cargo.toml` carried
-# `systemprompt-models = "0.43.0"` — the bare-string form — through a release
-# while this sweep matched only `= { version = "…" }` and reported sync OK. An
-# active [patch.crates-io] masked it; the moment the patch went dormant the
-# test workspace resolved 0.43.0 and 0.44.0 of the same core crates side by
-# side. A sweep that misses a form is worse than none: it buys confidence it
-# has not earned.
-stale=$(grep -rnE '^systemprompt[a-z-]* = (\{ version = )?"' --include=Cargo.toml . \
-    | grep -v '/target/' | grep -vE "= (\{ version = )?\"$VERSION\"" || true)
-if [ -n "$stale" ]; then
-    echo "DRIFT: core pins not on $VERSION and not covered by this script:"
-    echo "$stale"
-    fail=1
-    [ "$MODE" = "--check" ] || exit 1
+    scripts/sync-core-version.sh "$VERSION"
 fi
 
 # Helm chart — appVersion + images annotation.
