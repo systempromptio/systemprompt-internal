@@ -10,6 +10,9 @@ homepage.workspace = true
 publish = false
 
 [dependencies]
+# Why: only referenced from inside `register_artifact_theme!`, which
+# cargo-machete cannot see through.
+inventory = { workspace = true }
 # Audit: uses database, identifiers, models (execution context), traits (ExtensionError) — requires `full`.
 systemprompt = { workspace = true, features = ["full"] }
 sqlx = { workspace = true }
@@ -23,3 +26,6 @@ uuid = { workspace = true }
 
 [lints]
 workspace = true
+
+[package.metadata.cargo-machete]
+ignored = ["inventory"]

@@ -5779,6 +5779,7 @@ name = "systemprompt-mcp-shared"
 version = "0.62.0"
 dependencies = [
  "chrono",
+ "inventory",
  "rmcp",
  "serde",
  "serde_json",

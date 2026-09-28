@@ -202,6 +202,8 @@ Conventions (strict — hold every entry to them):
   skill invocation failed its insert and the hook track answered 503.
 - Group and project membership validity is migration 095; migration 090 keeps the text the
   0.61.0 schema rung recorded.
+- Cowork artifacts render with the brand theme again: `mcp/shared/artifact_theme.rs`, deleted
+  in 2f9efe57 although it is on this repo's keep list, registers its tokens with core.
 - Every hook `Stop` event failed an `UPDATE` of `plugin_session_summaries.apm`/`eapm`/
   `peak_concurrent`, columns migration 078 dropped; the stale offline query cache hid it at
   compile time. The APM writer and its concurrent-session count are removed.
