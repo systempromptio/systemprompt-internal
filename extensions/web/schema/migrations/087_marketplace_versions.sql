@@ -3,9 +3,9 @@
 -- `marketplace_version_at` function is declarative and applied before
 -- migrations run).
 --
--- Migration 006 dropped an unrelated legacy `marketplace_versions`; a
--- database replaying the chain from before 006 loses the declarative table
--- there, and this re-creates it.
+-- Migration 006 drops the unrelated legacy `marketplace_versions` (the one
+-- without `content_hash`); a database that still had it created no table in
+-- the structural phase, and this creates it after 006 has run.
 
 CREATE TABLE IF NOT EXISTS marketplace_versions (
     marketplace_id TEXT NOT NULL,
