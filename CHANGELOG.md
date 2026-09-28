@@ -83,6 +83,12 @@ Conventions (strict — hold every entry to them):
   Dockerfile paths, dropped schema, docs version, core ref, schema ladder, coverage badge,
   template fields; `check-migration-numbers` is wired in). Known debt is listed explicitly and
   fails when stale.
+- **Tests:** `tests/integration/gateway` (REQ-020/024/033/037/038 against core's gateway
+  types) joins `test-integration`; `tests/common` names each throwaway database after the
+  process that owns it and sweeps the ones a killed run left behind; unit
+  `services_tree_declarations`, `migration_cost` (a migration writing a hot table declares
+  `-- @cost:`; 068, 071, 073 and 092 are grandfathered), `profile_schema` and admin-core
+  `governance_warn_mode` / `gateway_policy_warn_mode` are ported.
 - **Tests:** the admin front-end gates live in `tests/unit/web/src/` —
   `admin_css_classes.rs` (every template class has a rule, every admin CSS class is
   `sp-`/`is-` namespaced and has a consumer; `scripts/admin-css-orphan-exemptions.txt` lists

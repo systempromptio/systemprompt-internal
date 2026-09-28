@@ -283,7 +283,7 @@ _test-integration-uncoordinated:
     set -euo pipefail
     db_env="$({{just_executable()}} _test-database-url)"
     eval "$db_env"
-    cargo nextest run --no-fail-fast --manifest-path tests/Cargo.toml --workspace -E 'package(mcp-integration-tests) | package(web-integration-tests) | package(admin-db-core-tests) | package(admin-db-config-tests) | package(schema-upgrade-tests)'
+    cargo nextest run --no-fail-fast --manifest-path tests/Cargo.toml --workspace -E 'package(mcp-integration-tests) | package(web-integration-tests) | package(admin-db-core-tests) | package(admin-db-config-tests) | package(gateway-integration-tests) | package(schema-upgrade-tests)'
 
 # HTTP contract suite: drives every admin route under three principals and
 # diffs the result against tests/contract/admin/baseline.txt. Same throwaway-
