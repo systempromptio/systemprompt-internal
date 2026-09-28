@@ -18,19 +18,12 @@
 # under the same name by a surviving schema file (here or in core) is not
 # dead and is skipped.
 #
-# Known debt, found when this gate was adopted here and listed by table so
-# nothing else can hide behind it. Each is a finding, not an exemption, and
-# the schema-tooling stage of the astound backport clears them:
-#   * odoo_identity — 15_odoo_identity.sql went in 2f9efe57, but the Odoo MCP
-#     server (extensions/mcp/odoo/src/identity.rs) still reads and writes it:
-#     a fresh install has no table for per-user Odoo credentials. The fix is
-#     to RESTORE the declaration, not to drop the table.
-#   * email_outbox, comms_channel_members, comms_channels, comms_messages,
-#     comms_reads — left by the deleted email and comms MCP servers; they need
-#     a DROP TABLE IF EXISTS … CASCADE migration at the next free slot (083+).
-# TODO(stage-2 backport): empty this list. An entry whose table becomes
+# Known debt, listed by table so nothing else can hide behind it. Each is a
+# finding, not an exemption. The list adopted with this gate (odoo_identity,
+# email_outbox and the four comms_* tables) was cleared by restoring
+# 15_odoo_identity.sql and by migration 084. An entry whose table becomes
 # declared or dropped fails the gate as stale.
-KNOWN_UNDROPPED=(odoo_identity email_outbox comms_channel_members comms_channels comms_messages comms_reads)
+KNOWN_UNDROPPED=()
 
 set -euo pipefail
 
@@ -64,7 +57,7 @@ while IFS=$'\t' read -r commit path; do
     for t in $tables; do
         if grep -qx "$t" <<<"$declared_now"; then continue; fi
         if grep -qx "$t" <<<"$dropped"; then continue; fi
-        if printf '%s\n' "${KNOWN_UNDROPPED[@]}" | grep -qx "$t"; then
+        if printf '%s\n' ${KNOWN_UNDROPPED[@]+"${KNOWN_UNDROPPED[@]}"} | grep -qx "$t"; then
             known_seen="$known_seen$t "
             echo "check-dropped-schema: known debt (TODO stage-2): '$t' from $path"
             continue
@@ -78,7 +71,7 @@ done < <(git log --diff-filter=D --name-only --format='%H' HEAD -- 'extensions/*
 # A shallow clone has no deletion history to find the debt in, so staleness
 # is only judged with full history (gates.yml checks out with fetch-depth 0).
 [ "$(git rev-parse --is-shallow-repository)" = "true" ] && known_seen=" ${KNOWN_UNDROPPED[*]} "
-for t in "${KNOWN_UNDROPPED[@]}"; do
+for t in ${KNOWN_UNDROPPED[@]+"${KNOWN_UNDROPPED[@]}"}; do
     case "$known_seen" in
         *" $t "*) ;;
         *) echo "check-dropped-schema: stale KNOWN_UNDROPPED entry '$t' (declared or dropped now) — delete it" >&2; status=1 ;;
