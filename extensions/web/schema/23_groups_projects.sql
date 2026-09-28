@@ -4,7 +4,7 @@
 -- here, an existing one is migrated there. Both must stay identical, so every
 -- statement is IF NOT EXISTS / CREATE OR REPLACE.
 --
--- Membership and manual role grants carry a validity window (migration 090):
+-- Membership and manual role grants carry a validity window (migration 095):
 -- `valid_from` / `valid_until` bound when the row counts, `revoked_at` is
 -- stamped by the hourly expiry sweep so the row stays as the audit trail. A
 -- row is live when
