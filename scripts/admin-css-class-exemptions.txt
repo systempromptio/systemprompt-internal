@@ -22,3 +22,11 @@ expanded
 loading
 error
 success
+
+# Emitted by the navState Handlebars helper (Rust), which the gate does not scan
+is-ancestor
+
+# Trace status states rendered from data (`is-{{this.status}}` in perf-trace-detail.hbs)
+is-error
+is-rejected
+is-warn

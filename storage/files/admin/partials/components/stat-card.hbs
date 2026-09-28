@@ -4,16 +4,16 @@
   the 16 denied traces). `active` marks that filter as currently applied.
 --}}
 {{#if href}}
-<a class="stat-card stat-card--link{{#if variant}} {{variant}}{{/if}}{{#if active}} is-active{{/if}}"
+<a class="sp-kpi sp-kpi--link{{#if variant}} sp-kpi--{{variant}}{{/if}}{{#if active}} is-active{{/if}}"
    href="{{href}}"{{#if hint}} title="{{hint}}"{{/if}}>
-    <div class="label">{{label}}</div>
-    <div class="value"{{#if testid}} data-testid="{{testid}}"{{/if}}>{{value}}</div>
-    {{#if subtitle}}<div class="kpi-subtitle">{{subtitle}}</div>{{/if}}
+    <div class="sp-kpi__label">{{label}}</div>
+    <div class="sp-kpi__value"{{#if testid}} data-testid="{{testid}}"{{/if}}>{{value}}</div>
+    {{#if subtitle}}<div class="sp-kpi__sub">{{subtitle}}</div>{{/if}}
 </a>
 {{else}}
-<div class="stat-card{{#if variant}} {{variant}}{{/if}}"{{#if hint}} title="{{hint}}"{{/if}}>
-    <div class="label">{{label}}</div>
-    <div class="value"{{#if testid}} data-testid="{{testid}}"{{/if}}>{{value}}</div>
-    {{#if subtitle}}<div class="kpi-subtitle">{{subtitle}}</div>{{/if}}
+<div class="sp-kpi{{#if variant}} sp-kpi--{{variant}}{{/if}}"{{#if hint}} title="{{hint}}"{{/if}}>
+    <div class="sp-kpi__label">{{label}}</div>
+    <div class="sp-kpi__value"{{#if testid}} data-testid="{{testid}}"{{/if}}>{{value}}</div>
+    {{#if subtitle}}<div class="sp-kpi__sub">{{subtitle}}</div>{{/if}}
 </div>
 {{/if}}

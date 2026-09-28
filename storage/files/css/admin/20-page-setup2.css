@@ -1,0 +1,84 @@
+@layer components {
+.sp-setup-badge {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    padding: 0.125rem 0.5rem;
+    border-radius: var(--sp-radius-full);
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.sp-setup-badge--complete {
+    background: color-mix(in oklch, var(--sp-success) 15%, transparent);
+    color: var(--sp-success);
+}
+
+.sp-setup-badge--current {
+    background: color-mix(in oklch, var(--sp-accent) 15%, transparent);
+    color: var(--sp-accent);
+}
+
+.sp-setup-phase-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-space-4);
+    margin-bottom: var(--sp-space-2);
+}
+
+.sp-setup-phase-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: var(--sp-text-sm);
+    font-weight: 500;
+    color: var(--sp-accent);
+    text-decoration: none;
+    transition: gap 0.15s ease;
+}
+
+.sp-setup-phase-link:hover {
+    gap: 0.5rem;
+    text-decoration: underline;
+}
+
+.sp-setup-phase-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: var(--sp-text-sm);
+    font-weight: 600;
+    color: var(--sp-text-primary);
+    text-decoration: none;
+    padding: var(--sp-space-1) var(--sp-space-3);
+    border: 1px solid var(--sp-border-default);
+    border-radius: var(--sp-radius-sm);
+    background: var(--sp-bg-surface);
+    transition: border-color 0.15s ease, gap 0.15s ease;
+}
+
+.sp-setup-phase-action:hover {
+    border-color: var(--sp-accent);
+    gap: 0.5rem;
+}
+@media (max-width: 640px) {
+    .sp-setup-page {
+        padding: var(--sp-space-4) var(--sp-space-2);
+    }
+
+    .sp-setup-phase-indicator {
+        width: 2rem;
+    }
+
+    .sp-setup-phase-number {
+        width: 2rem;
+        height: 2rem;
+        font-size: 0.75rem;
+    }
+
+    .sp-setup-phase-actions {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+}

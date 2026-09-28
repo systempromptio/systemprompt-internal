@@ -109,10 +109,26 @@ Conventions (strict — hold every entry to them):
   `check-docs-version` now enforces their version.
 - **Gates:** `lint-schema.sh` ignores dollar-quoted function bodies and exempts
   `schema/retire/`.
+- **Admin CSS:** `storage/files/css/admin/` follows one layer scheme — `00` layer order,
+  `01-tokens-*`, `02-reset`, `03-shell-*`, `04`–`08` components, `09-utilities`,
+  `10-print`/`10-responsive`, `20-page-<name>` and `90-login*` — with the token, shell and
+  component layers taken from astound. The 84 legacy files (`02-base-*`, `08-*` gap files,
+  `10-panels-*`, `11`–`27`) are gone; every rule a template still used was re-homed as a
+  `20-page-<name>.css` (approvals, enterprises, departments, demo, reports, setup, governance
+  dashboard, profile definitions, trace waterfall, create-user panel) or as a component
+  (`05-connection`, `07-chain-drawer*`, `90-login3` for the Odoo and operator sign-in card).
+  Every admin class is now `sp-`/`is-` namespaced: the templates that still used bare
+  `btn`, `badge-*`, `card`, `text-*`, `col-*`, `stat-card`, `data-table` and page-prefixed
+  classes use the `sp-` components instead. The filter, scope and time-range apply buttons
+  are `sp-btn` like astound's, and `services/scope.js` marks the active range with `is-active`.
 
 ### Fixed
 
 - The access-control page logs a failed open-entity count instead of silently rendering zero.
+- Several stylesheet rules named tokens that were never defined (`--sp-radius-card`,
+  `--sp-radius-card-brand`), so those cards rendered square; they use `--sp-corners-*`.
+- The group detail page's allow/deny badge rendered the class `sp-badge-is-success`, which
+  matched nothing; it is `sp-badge--ok` / `sp-badge--err`.
 - `odoo_identity` is declared again (`schema/15_odoo_identity.sql`, migration 083): its
   schema file was deleted in 2f9efe57 while the Odoo MCP server still read and wrote the
   table, so a database installed since had nowhere to keep per-user Odoo credentials.

@@ -2,7 +2,7 @@
     {{#*inline "content"}}
     {{> components/page-header title=title subtitle=subtitle}}
 
-    <section class="contexts-kpis" aria-label="Demo KPIs">
+    <section class="sp-kpi-grid" aria-label="Demo KPIs">
         {{#each kpis}}
         {{> components/stat-card label=label value=value variant=variant testid=testid}}
         {{/each}}
@@ -12,17 +12,17 @@
 
     <section aria-label="MCP servers">
         {{#if has_servers}}
-        <div class="demo-scenarios">
+        <div class="sp-demo-scenarios">
             {{#each servers}}
-            <div class="demo-scenario demo-scenario--accent">
-                <span class="demo-scenario__body">
-                    <span class="demo-scenario__heading">{{server}}</span>
-                    <span class="demo-scenario__description">
+            <div class="sp-demo-scenario sp-demo-scenario--accent">
+                <span class="sp-demo-scenario__body">
+                    <span class="sp-demo-scenario__heading">{{server}}</span>
+                    <span class="sp-demo-scenario__description">
                         {{formatNumber tool_count}} tools · {{formatNumber failure_count}} failed ·
                         {{formatNumber denied}} denied · {{formatNumber held}} held · {{cost_display}}
                     </span>
                 </span>
-                <span class="demo-scenario__count">{{formatNumber call_count}}</span>
+                <span class="sp-demo-scenario__count">{{formatNumber call_count}}</span>
             </div>
             {{/each}}
         </div>
@@ -35,40 +35,40 @@
             <thead><tr>
                 <th>Server</th>
                 <th>Tool</th>
-                <th class="numeric col-numeric">Calls</th>
-                <th class="numeric col-numeric">Failed</th>
-                <th class="numeric col-numeric">Failure rate</th>
-                <th class="numeric col-numeric">Users</th>
-                <th class="numeric col-numeric">Allowed</th>
-                <th class="numeric col-numeric">Denied</th>
-                <th class="numeric col-numeric">Held</th>
-                <th class="numeric col-numeric">Approved</th>
-                <th class="numeric col-numeric">Rejected</th>
-                <th class="numeric col-numeric">Pending</th>
-                <th class="numeric col-numeric">Tokens</th>
-                <th class="numeric col-numeric">Cost</th>
-                <th class="col-date">Last used</th>
+                <th class="sp-u-num sp-table__cell--num">Calls</th>
+                <th class="sp-u-num sp-table__cell--num">Failed</th>
+                <th class="sp-u-num sp-table__cell--num">Failure rate</th>
+                <th class="sp-u-num sp-table__cell--num">Users</th>
+                <th class="sp-u-num sp-table__cell--num">Allowed</th>
+                <th class="sp-u-num sp-table__cell--num">Denied</th>
+                <th class="sp-u-num sp-table__cell--num">Held</th>
+                <th class="sp-u-num sp-table__cell--num">Approved</th>
+                <th class="sp-u-num sp-table__cell--num">Rejected</th>
+                <th class="sp-u-num sp-table__cell--num">Pending</th>
+                <th class="sp-u-num sp-table__cell--num">Tokens</th>
+                <th class="sp-u-num sp-table__cell--num">Cost</th>
+                <th class="sp-col-date">Last used</th>
             </tr></thead>
             <tbody>
             {{#each tools}}
             <tr>
-                <td><span class="badge badge-secondary">{{server}}</span></td>
-                <td><code class="code-inline">{{tool}}</code></td>
-                <td class="numeric">{{formatNumber call_count}}</td>
-                <td class="numeric">{{formatNumber failure_count}}</td>
-                <td class="numeric">{{failure_rate_display}}</td>
-                <td class="numeric">{{formatNumber distinct_users}}</td>
-                <td class="numeric">{{formatNumber allowed}}</td>
-                <td class="numeric">{{formatNumber denied}}</td>
-                <td class="numeric">{{formatNumber held}}</td>
-                <td class="numeric">{{formatNumber approved}}</td>
-                <td class="numeric">{{formatNumber rejected}}</td>
-                <td class="numeric">{{formatNumber approval_pending}}</td>
-                <td class="numeric">{{tokens_display}}</td>
-                <td class="numeric">{{cost_display}}</td>
-                <td class="col-date">
+                <td><span class="sp-badge sp-badge--muted">{{server}}</span></td>
+                <td><code class="sp-code-inline">{{tool}}</code></td>
+                <td class="sp-u-num">{{formatNumber call_count}}</td>
+                <td class="sp-u-num">{{formatNumber failure_count}}</td>
+                <td class="sp-u-num">{{failure_rate_display}}</td>
+                <td class="sp-u-num">{{formatNumber distinct_users}}</td>
+                <td class="sp-u-num">{{formatNumber allowed}}</td>
+                <td class="sp-u-num">{{formatNumber denied}}</td>
+                <td class="sp-u-num">{{formatNumber held}}</td>
+                <td class="sp-u-num">{{formatNumber approved}}</td>
+                <td class="sp-u-num">{{formatNumber rejected}}</td>
+                <td class="sp-u-num">{{formatNumber approval_pending}}</td>
+                <td class="sp-u-num">{{tokens_display}}</td>
+                <td class="sp-u-num">{{cost_display}}</td>
+                <td class="sp-col-date">
                     {{#if last_used_at}}<span title="{{formatDate last_used_at}}">{{relativeTime last_used_at}}</span>
-                    {{else}}<span class="text-tertiary">Never</span>{{/if}}
+                    {{else}}<span class="sp-u-text-tertiary">Never</span>{{/if}}
                 </td>
             </tr>
             {{/each}}
@@ -80,23 +80,23 @@
     </section>
 
     <section aria-label="Users by tool">
-        <h2 class="section-title">Who called what</h2>
+        <h2 class="sp-section__title">Who called what</h2>
         {{#if matrix.has_data}}
-        <div class="demo-matrix">
-            <table class="demo-matrix__table">
+        <div class="sp-demo-matrix">
+            <table class="sp-demo-matrix__table">
                 <thead><tr>
                     <th scope="col">User</th>
                     {{#each matrix.columns}}<th scope="col" title="{{this.full}}">{{this.label}}</th>{{/each}}
-                    <th scope="col" class="numeric">Total</th>
+                    <th scope="col" class="sp-u-num">Total</th>
                 </tr></thead>
                 <tbody>
                 {{#each matrix.rows}}
                 <tr>
                     <th scope="row">{{user_email}}</th>
                     {{#each cells}}
-                    <td class="demo-matrix__cell{{#if is_zero}} demo-matrix__cell--empty{{/if}}" style="--v:{{pct}}%">{{count}}</td>
+                    <td class="sp-demo-matrix__cell{{#if is_zero}} sp-demo-matrix__cell--empty{{/if}}" style="--v:{{pct}}%">{{count}}</td>
                     {{/each}}
-                    <td class="numeric">{{formatNumber total}}</td>
+                    <td class="sp-u-num">{{formatNumber total}}</td>
                 </tr>
                 {{/each}}
                 </tbody>
@@ -105,7 +105,7 @@
         {{else}}
         {{> components/empty-state message="No per-user MCP tool activity in this window."}}
         {{/if}}
-        <p class="text-tertiary text-xs mt-3">{{attribution_note}}</p>
+        <p class="sp-u-text-tertiary sp-u-text-xs sp-u-mt-3">{{attribution_note}}</p>
     </section>
     {{/inline}}
 {{/layout}}

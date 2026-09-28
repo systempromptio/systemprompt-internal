@@ -74,13 +74,6 @@
     white-space: nowrap;
 }
 
-.sp-cost-spark {
-    display: flex;
-    align-items: flex-end;
-    gap: var(--sp-space-05);
-    height: 140px;
-}
-
 .sp-pagination__current {
     font-size: var(--sp-text-sm);
     color: var(--sp-text-tertiary);

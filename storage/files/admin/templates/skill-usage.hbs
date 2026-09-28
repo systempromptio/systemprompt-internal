@@ -3,13 +3,13 @@
     {{#*inline "content"}}
     {{> components/page-header title=title subtitle="Which skills get used, by whom, and roughly what they cost."}}
 
-    <p class="text-secondary">
+    <p class="sp-u-text-secondary">
         Skill invocations run through the same policy chain as every other
         tool call — see the <a href="/admin/governance">governance
         dashboard</a> for what got allowed, denied, or held.
     </p>
 
-    <section class="contexts-kpis" aria-label="Skill usage KPIs">
+    <section class="sp-kpi-grid" aria-label="Skill usage KPIs">
       {{#each page_stats}}
       {{> components/stat-card label=label value=(formatNumber value)}}
       {{/each}}
@@ -20,31 +20,31 @@
         {{#> components/data-table}}
             <thead><tr>
                 <th>Skill</th>
-                <th class="numeric col-numeric">Invocations</th>
-                <th class="numeric col-numeric">Users</th>
-                <th class="numeric col-numeric">Requests (attr.)</th>
-                <th class="numeric col-numeric">Tokens (attr.)</th>
-                <th class="numeric col-numeric">Cost (attr.)</th>
-                <th class="col-date">Last used</th>
+                <th class="sp-u-num sp-table__cell--num">Invocations</th>
+                <th class="sp-u-num sp-table__cell--num">Users</th>
+                <th class="sp-u-num sp-table__cell--num">Requests (attr.)</th>
+                <th class="sp-u-num sp-table__cell--num">Tokens (attr.)</th>
+                <th class="sp-u-num sp-table__cell--num">Cost (attr.)</th>
+                <th class="sp-col-date">Last used</th>
             </tr></thead>
             <tbody>
             {{#each skills}}
             <tr>
-                <td><span class="badge badge-blue">{{skill}}</span></td>
-                <td class="numeric">{{formatNumber invocation_count}}</td>
-                <td class="numeric">{{formatNumber distinct_users}}</td>
-                <td class="numeric">{{formatNumber attributed_request_count}}</td>
-                <td class="numeric">{{formatNumber attributed_tokens}}</td>
-                <td class="numeric">${{attributed_cost_usd}}</td>
-                <td class="col-date">
+                <td><span class="sp-badge sp-badge--info">{{skill}}</span></td>
+                <td class="sp-u-num">{{formatNumber invocation_count}}</td>
+                <td class="sp-u-num">{{formatNumber distinct_users}}</td>
+                <td class="sp-u-num">{{formatNumber attributed_request_count}}</td>
+                <td class="sp-u-num">{{formatNumber attributed_tokens}}</td>
+                <td class="sp-u-num">${{attributed_cost_usd}}</td>
+                <td class="sp-col-date">
                     {{#if last_used_at}}<span title="{{formatDate last_used_at}}">{{relativeTime last_used_at}}</span>
-                    {{else}}<span class="text-tertiary">Never</span>{{/if}}
+                    {{else}}<span class="sp-u-text-tertiary">Never</span>{{/if}}
                 </td>
             </tr>
             {{/each}}
             </tbody>
         {{/components/data-table}}
-        <p class="text-tertiary text-xs mt-3">
+        <p class="sp-u-text-tertiary sp-u-text-xs sp-u-mt-3">
             Requests, tokens, and cost are attributed, not measured. An AI
             request counts toward an invocation when it belongs to the same
             user and falls between that invocation and whichever comes first:

@@ -2,17 +2,17 @@
     {{#*inline "head_extra"}}{{/inline}}
     {{#*inline "content"}}
     {{> components/page-header title=title}}
-    <div class="setup-page">
-        <div class="setup-hero">
+    <div class="sp-setup-page">
+        <div class="sp-setup-hero">
             <h2>Get started with {{marketplace.site_url}}</h2>
             <p>Four phases to get from a signed-in account to running the business from your Claude client. Each one is marked complete from what this instance can actually see &mdash; a linked Odoo account, an enrolled device, a request through the gateway &mdash; not from you having read it.</p>
         </div>
 
-        <div class="setup-stepper" role="list" aria-label="Setup phases">
+        <div class="sp-setup-stepper" role="list" aria-label="Setup phases">
             {{#each phases}}
-            <div class="setup-phase {{#if complete}}setup-phase--complete{{else}}{{#if current}}setup-phase--current{{else}}setup-phase--upcoming{{/if}}{{/if}}" role="listitem">
-                <div class="setup-phase-indicator" aria-hidden="true">
-                    <div class="setup-phase-number">
+            <div class="sp-setup-phase {{#if complete}}sp-setup-phase--complete{{else}}{{#if current}}sp-setup-phase--current{{else}}sp-setup-phase--upcoming{{/if}}{{/if}}" role="listitem">
+                <div class="sp-setup-phase-indicator" aria-hidden="true">
+                    <div class="sp-setup-phase-number">
                         {{#if complete}}
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                             <path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"/>
@@ -22,32 +22,32 @@
                         {{/if}}
                     </div>
                     {{#unless @last}}
-                    <div class="setup-phase-connector"></div>
+                    <div class="sp-setup-phase-connector"></div>
                     {{/unless}}
                 </div>
-                <div class="setup-phase-content">
-                    <div class="setup-phase-header">
+                <div class="sp-setup-phase-content">
+                    <div class="sp-setup-phase-header">
                         <h3>Phase {{number}}: {{title}}</h3>
                         {{#if complete}}
-                        <span class="setup-badge setup-badge--complete">Complete</span>
+                        <span class="sp-setup-badge sp-setup-badge--complete">Complete</span>
                         {{else}}
                         {{#if current}}
-                        <span class="setup-badge setup-badge--current">Current</span>
+                        <span class="sp-setup-badge sp-setup-badge--current">Current</span>
                         {{else}}
-                        <span class="sr-only">Upcoming</span>
+                        <span class="sp-u-sr-only">Upcoming</span>
                         {{/if}}
                         {{/if}}
                     </div>
                     <p>{{description}}</p>
-                    <div class="setup-phase-actions">
-                        <a href="{{guide_url}}" class="setup-phase-link" target="_blank" rel="noopener noreferrer">
+                    <div class="sp-setup-phase-actions">
+                        <a href="{{guide_url}}" class="sp-setup-phase-link" target="_blank" rel="noopener noreferrer">
                             Read the guide
                             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                 <path d="M5 3l5 5-5 5"/>
                             </svg>
                         </a>
                         {{#if action_url}}
-                        <a href="{{action_url}}" class="setup-phase-action">
+                        <a href="{{action_url}}" class="sp-setup-phase-action">
                             {{action_label}}
                             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                 <path d="M5 3l5 5-5 5"/>

@@ -156,7 +156,7 @@
             <tr data-user-id="{{user_id}}">
                 <td>
                     <a href="{{detail_href}}" class="sp-user-cell">
-                        <span class="sp-avatar sp-avatar-sm">{{initials display_name}}</span>
+                        <span class="sp-avatar sp-avatar--sm">{{initials display_name}}</span>
                         <span class="sp-user-cell-text">
                             <span class="sp-user-cell-name">{{display_name}}</span>
                             {{#if email}}<span class="sp-user-cell-email">{{email}}</span>{{/if}}
@@ -277,7 +277,7 @@
             {{#each rows}}
             <tr data-entity-type="{{entity_type}}" data-entity-id="{{entity_id}}">
                 <td>{{entity_name}}</td>
-                <td class="sp-col-status"><span class="sp-badge sp-badge-{{#if (eq effective "allow")}}is-success{{else}}is-danger{{/if}}">{{effective}}</span></td>
+                <td class="sp-col-status"><span class="sp-badge {{#if (eq effective "allow")}}sp-badge--ok{{else}}sp-badge--err{{/if}}">{{effective}}</span></td>
                 <td><span class="sp-access-layer">{{layer}}</span> <span class="sp-u-text-tertiary sp-u-text-xs">{{detail}}</span></td>
                 <td class="sp-table__cell--actions">
                     <select class="sp-filter-select" data-action="set-group-rule" data-entity-type="{{entity_type}}" data-entity-id="{{entity_id}}" aria-label="Rule for {{entity_name}}"{{#unless @root.can_manage}} disabled{{/unless}}>

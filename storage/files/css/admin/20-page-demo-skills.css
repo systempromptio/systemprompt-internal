@@ -1,0 +1,49 @@
+@layer components {
+
+.sp-demo-skills__kpis {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: var(--sp-space-3);
+    margin-bottom: var(--sp-space-6);
+}
+
+@media (max-width: 1100px) {
+    .sp-demo-skills__kpis { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 600px) {
+    .sp-demo-skills__kpis { grid-template-columns: repeat(2, 1fr); }
+}
+
+[data-section="demo-skills"] .sp-shell__main > .sp-timeseries {
+    margin-block-end: var(--sp-space-6);
+}
+
+.sp-demo-skills__panel {
+    min-width: 0;
+}
+
+.sp-demo-skills__panel + .sp-demo-skills__panel {
+    margin-block-start: var(--sp-space-8);
+}
+
+.sp-demo-skills__panel > .sp-section__title {
+    margin-block: 0 var(--sp-space-4);
+}
+
+.sp-demo-skills__note {
+    margin-block-start: var(--sp-space-4);
+    color: var(--sp-text-tertiary);
+    font-size: var(--sp-text-xs);
+    line-height: 1.6;
+    max-inline-size: 90ch;
+}
+
+.sp-shell__main .sp-demo-skills__panel .sp-demo-matrix {
+    margin-left: calc(-1 * var(--sp-gutter));
+    margin-right: 0;
+    border-radius: 0 0.375rem 1.125rem 0;
+    border-left: none;
+}
+
+}

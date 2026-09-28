@@ -20,7 +20,8 @@
     margin-top: 0.1rem;
 }
 
-.sp-table__el td.sp-col-model {
+.sp-table__el td.sp-col-model,
+.sp-table__el td.sp-col-client {
     white-space: nowrap;
 }
 

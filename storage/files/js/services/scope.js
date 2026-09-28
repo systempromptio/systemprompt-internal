@@ -43,7 +43,7 @@ const bindRanges = (params) => {
     url.searchParams.set(RANGE_KEY, range);
     url.searchParams.delete('page');
     link.href = `${url.pathname}${url.search}`;
-    link.classList.toggle('sp-scope-filter__range--active', range === active);
+    link.classList.toggle('is-active', range === active);
     if (range === active) {
       link.setAttribute('aria-current', 'true');
     } else {

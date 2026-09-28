@@ -1,0 +1,102 @@
+/* The single-card sign-in used by the Odoo and operator passkey pages. It is
+   a centred card rather than the two-column information layout of 90-login,
+   so it owns its own page wrapper instead of reusing sp-auth-page. */
+@layer components {
+
+.sp-auth-center {
+    display: grid;
+    place-items: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: var(--sp-space-5);
+    color: var(--sp-text-primary);
+    font-family: var(--sp-font-body);
+    background:
+        radial-gradient(ellipse at 30% 20%, color-mix(in oklch, var(--sp-accent) 6%, transparent) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 80%, color-mix(in oklch, var(--sp-section-plugins) 4%, transparent) 0%, transparent 50%),
+        linear-gradient(180deg, var(--sp-bg-canvas) 0%, var(--sp-bg-base) 100%);
+}
+
+body:has(.sp-auth-center) {
+    margin: 0;
+    background: var(--sp-bg-base);
+}
+
+.sp-auth-card {
+    width: 100%;
+    max-width: 380px;
+    padding: var(--sp-space-8) var(--sp-space-7);
+    background: var(--sp-bg-surface);
+    border: 1px solid var(--sp-border-subtle);
+    border-radius: var(--sp-corners-lg);
+    box-shadow: var(--sp-shadow-login-card);
+}
+
+.sp-auth-card .sp-login-logo {
+    margin-bottom: var(--sp-space-6);
+}
+
+.sp-auth-title {
+    font-size: var(--sp-text-xl);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0 0 var(--sp-space-1);
+    color: var(--sp-text-primary);
+}
+
+.sp-auth-subtitle {
+    font-size: var(--sp-text-sm);
+    color: var(--sp-text-tertiary);
+    margin: 0 0 var(--sp-space-6);
+}
+
+.sp-auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-space-4);
+}
+
+.sp-auth-form[hidden] {
+    display: none;
+}
+
+.sp-auth-form .sp-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-space-2);
+    margin: 0;
+    text-align: left;
+}
+
+.sp-auth-form label {
+    font-size: var(--sp-text-sm);
+    font-weight: 500;
+    color: var(--sp-text-secondary);
+}
+
+.sp-auth-form .sp-field-input {
+    width: 100%;
+}
+
+.sp-auth-form .sp-btn {
+    margin-top: var(--sp-space-2);
+}
+
+.sp-auth-alt {
+    margin: var(--sp-space-6) 0 0;
+    padding-top: var(--sp-space-5);
+    border-top: 1px solid var(--sp-border-subtle);
+    text-align: center;
+    font-size: var(--sp-text-sm);
+}
+
+.sp-auth-alt a {
+    color: var(--sp-accent);
+    text-decoration: none;
+}
+
+.sp-auth-alt a:hover {
+    text-decoration: underline;
+}
+
+}

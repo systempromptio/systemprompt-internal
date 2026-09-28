@@ -1,0 +1,52 @@
+/* The profile page's identity facts render as a term/definition grid; the
+   accent chip marks the role the signed-in person holds. */
+@layer components {
+
+.sp-chip--accent {
+    background: color-mix(in oklch, var(--sp-accent) 14%, var(--sp-bg-surface));
+    color: var(--sp-accent);
+    border-color: color-mix(in oklch, var(--sp-accent) 30%, transparent);
+}
+
+.sp-deflist {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: var(--sp-space-2) var(--sp-space-5);
+    margin: 0;
+    font-size: var(--sp-text-sm);
+}
+
+.sp-deflist dt {
+    color: var(--sp-text-tertiary);
+    font-size: var(--sp-text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+    align-self: center;
+}
+
+.sp-deflist dd {
+    margin: 0;
+    color: var(--sp-text-primary);
+    font-variant-numeric: tabular-nums;
+    align-self: center;
+    min-width: 0;
+}
+
+.sp-deflist dd code {
+    font-family: var(--sp-font-mono);
+    font-size: 0.85em;
+    background: var(--sp-bg-surface-alt);
+    padding: 1px var(--sp-space-2);
+    border-radius: var(--sp-radius-xs);
+    border: 1px solid var(--sp-border-subtle);
+    color: var(--sp-text-primary);
+}
+
+.sp-deflist__break {
+    word-break: break-all;
+    display: inline-block;
+    max-width: 100%;
+}
+
+}

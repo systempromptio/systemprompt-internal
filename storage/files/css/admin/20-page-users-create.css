@@ -1,0 +1,19 @@
+/* The role checkboxes in the create-user panel on the Users page wrap as one
+   group, so a long role list stays readable inside the side panel. */
+@layer components {
+
+.sp-checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-space-2) var(--sp-space-4);
+}
+
+.sp-checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-space-1);
+    font-size: var(--sp-text-sm);
+    cursor: pointer;
+}
+
+}

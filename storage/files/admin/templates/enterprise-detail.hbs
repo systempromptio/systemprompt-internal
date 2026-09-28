@@ -4,26 +4,26 @@
     {{> components/back-button href="/admin/users" label="All enterprises"}}
     {{> components/page-header title=enterprise.name subtitle=enterprise.slug}}
 
-    <section class="ent-summary card" aria-label="Contract">
-        <div class="ent-summary__facts">
-            <div class="ent-fact">
-                <span class="ent-fact__label">Plan</span>
-                <span class="ent-fact__value">{{#if enterprise.plan_name}}{{enterprise.plan_name}}{{else}}No plan{{/if}}</span>
+    <section class="sp-ent-summary sp-card" aria-label="Contract">
+        <div class="sp-ent-summary__facts">
+            <div class="sp-ent-fact">
+                <span class="sp-ent-fact__label">Plan</span>
+                <span class="sp-ent-fact__value">{{#if enterprise.plan_name}}{{enterprise.plan_name}}{{else}}No plan{{/if}}</span>
             </div>
-            <div class="ent-fact">
-                <span class="ent-fact__label">Status</span>
-                <span class="ent-fact__value">{{#if enterprise.is_active}}<span class="badge badge-success">Active</span>{{else}}<span class="badge badge-secondary">{{enterprise.status}}</span>{{/if}}</span>
+            <div class="sp-ent-fact">
+                <span class="sp-ent-fact__label">Status</span>
+                <span class="sp-ent-fact__value">{{#if enterprise.is_active}}<span class="sp-badge sp-badge--ok">Active</span>{{else}}<span class="sp-badge sp-badge--muted">{{enterprise.status}}</span>{{/if}}</span>
             </div>
-            <div class="ent-fact">
-                <span class="ent-fact__label">Seats</span>
-                <span class="ent-fact__value">{{enterprise.seats_used}}{{#if enterprise.has_seat_limit}} / {{enterprise.seat_limit}}{{else}} · unlimited{{/if}}</span>
+            <div class="sp-ent-fact">
+                <span class="sp-ent-fact__label">Seats</span>
+                <span class="sp-ent-fact__value">{{enterprise.seats_used}}{{#if enterprise.has_seat_limit}} / {{enterprise.seat_limit}}{{else}} · unlimited{{/if}}</span>
             </div>
-            <div class="ent-fact">
-                <span class="ent-fact__label">Budget</span>
-                <span class="ent-fact__value">{{#if enterprise.has_budget}}<span class="ent-pill ent-pill--{{enterprise.budget_state}}">{{enterprise.budget_pct}}%</span>{{else}}<span class="text-tertiary">uncapped</span>{{/if}}</span>
+            <div class="sp-ent-fact">
+                <span class="sp-ent-fact__label">Budget</span>
+                <span class="sp-ent-fact__value">{{#if enterprise.has_budget}}<span class="sp-ent-pill sp-ent-pill--{{enterprise.budget_state}}">{{enterprise.budget_pct}}%</span>{{else}}<span class="sp-u-text-tertiary">uncapped</span>{{/if}}</span>
             </div>
         </div>
-        <div class="ent-summary__pl">
+        <div class="sp-ent-summary__pl">
             {{> components/stat-card label="Licence revenue" value=(formatUsd enterprise.revenue_microdollars) subtitle="billed this month"}}
             {{> components/stat-card label="Inference cost" value=(formatUsd enterprise.cost_mtd_microdollars) subtitle="month to date"}}
             {{> components/stat-card label="Margin" value=(formatUsd enterprise.margin_microdollars) variant=margin_variant subtitle="revenue less cost"}}
@@ -31,31 +31,31 @@
         </div>
     </section>
 
-    <section aria-label="Members" class="card ent-section">
-        <h2>Users <span class="ent-count">{{enterprise.seats_used}} active</span></h2>
+    <section aria-label="Members" class="sp-card sp-ent-section">
+        <h2>Users <span class="sp-ent-count">{{enterprise.seats_used}} active</span></h2>
         {{#if members}}
         {{#> components/data-table}}
             <thead><tr>
                 <th>User</th>
                 <th>Role in enterprise</th>
                 <th>Department</th>
-                <th class="col-status">Status</th>
+                <th class="sp-col-status">Status</th>
             </tr></thead>
             <tbody>
             {{#each members}}
                 <tr>
                     <td>
-                        <a href="/admin/user/?id={{user_id}}" class="user-cell">
-                            <span class="avatar avatar-sm">{{initials (default display_name email)}}</span>
-                            <span class="user-cell-text">
-                                <span class="user-cell-name">{{default display_name email}}</span>
-                                <span class="user-cell-email">{{email}}</span>
+                        <a href="/admin/user/?id={{user_id}}" class="sp-user-cell">
+                            <span class="sp-avatar sp-avatar--sm">{{initials (default display_name email)}}</span>
+                            <span class="sp-user-cell-text">
+                                <span class="sp-user-cell-name">{{default display_name email}}</span>
+                                <span class="sp-user-cell-email">{{email}}</span>
                             </span>
                         </a>
                     </td>
-                    <td><span class="badge badge-gray">{{org_role}}</span></td>
-                    <td>{{#if department}}{{department}}{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
-                    <td class="col-status">{{#if is_active}}<span class="badge badge-success">Active</span>{{else}}<span class="badge badge-secondary">Inactive</span>{{/if}}</td>
+                    <td><span class="sp-badge sp-badge--muted">{{org_role}}</span></td>
+                    <td>{{#if department}}{{department}}{{else}}<span class="sp-u-text-tertiary">—</span>{{/if}}</td>
+                    <td class="sp-col-status">{{#if is_active}}<span class="sp-badge sp-badge--ok">Active</span>{{else}}<span class="sp-badge sp-badge--muted">Inactive</span>{{/if}}</td>
                 </tr>
             {{/each}}
             </tbody>
@@ -65,17 +65,17 @@
         {{/if}}
     </section>
 
-    <section aria-label="Departments" class="card ent-section">
-        <h2>Departments <span class="ent-count">{{enterprise.departments}}</span></h2>
+    <section aria-label="Departments" class="sp-card sp-ent-section">
+        <h2>Departments <span class="sp-ent-count">{{enterprise.departments}}</span></h2>
         {{#if departments}}
         {{#> components/data-table}}
-            <thead><tr><th>Department</th><th>Description</th><th class="numeric col-numeric">Members</th></tr></thead>
+            <thead><tr><th>Department</th><th>Description</th><th class="sp-u-num sp-table__cell--num">Members</th></tr></thead>
             <tbody>
             {{#each departments}}
                 <tr>
                     <td><a href="/admin/access-control?department={{id}}">{{name}}</a></td>
-                    <td>{{#if description}}{{description}}{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
-                    <td class="numeric">{{member_count}}</td>
+                    <td>{{#if description}}{{description}}{{else}}<span class="sp-u-text-tertiary">—</span>{{/if}}</td>
+                    <td class="sp-u-num">{{member_count}}</td>
                 </tr>
             {{/each}}
             </tbody>
@@ -85,18 +85,18 @@
         {{/if}}
     </section>
 
-    <section aria-label="Entitlements" class="card ent-section">
-        <h2>Entitlements <span class="ent-count">{{enterprise.entitlements}} granted</span></h2>
-        <p class="text-muted">Read-only. These rules are projected from the plan in <code class="code-inline">services/access-control/plans.yaml</code> and are what the resolver reads at enforcement time. A department or user rule can narrow them; nothing here can widen them.</p>
+    <section aria-label="Entitlements" class="sp-card sp-ent-section">
+        <h2>Entitlements <span class="sp-ent-count">{{enterprise.entitlements}} granted</span></h2>
+        <p class="sp-u-text-muted">Read-only. These rules are projected from the plan in <code class="sp-code-inline">services/access-control/plans.yaml</code> and are what the resolver reads at enforcement time. A department or user rule can narrow them; nothing here can widen them.</p>
         {{#if entitlements}}
         {{#> components/data-table}}
-            <thead><tr><th>Type</th><th>Entity</th><th class="col-status">Access</th></tr></thead>
+            <thead><tr><th>Type</th><th>Entity</th><th class="sp-col-status">Access</th></tr></thead>
             <tbody>
             {{#each entitlements}}
                 <tr>
-                    <td><span class="badge badge-gray">{{entity_type}}</span></td>
-                    <td><code class="code-inline">{{entity_id}}</code></td>
-                    <td class="col-status">{{#if allowed}}<span class="badge badge-success">allow</span>{{else}}<span class="badge badge-danger">deny</span>{{/if}}</td>
+                    <td><span class="sp-badge sp-badge--muted">{{entity_type}}</span></td>
+                    <td><code class="sp-code-inline">{{entity_id}}</code></td>
+                    <td class="sp-col-status">{{#if allowed}}<span class="sp-badge sp-badge--ok">allow</span>{{else}}<span class="sp-badge sp-badge--err">deny</span>{{/if}}</td>
                 </tr>
             {{/each}}
             </tbody>
@@ -106,25 +106,25 @@
         {{/if}}
     </section>
 
-    <section aria-label="Usage" class="card ent-section">
-        <h2>Model usage <span class="ent-count">last 30 days</span></h2>
+    <section aria-label="Usage" class="sp-card sp-ent-section">
+        <h2>Model usage <span class="sp-ent-count">last 30 days</span></h2>
         {{#if models}}
         {{#> components/data-table}}
             <thead><tr>
                 <th>Model</th>
-                <th class="numeric col-numeric">Requests</th>
-                <th class="numeric col-numeric">Tokens</th>
-                <th class="numeric col-numeric">Cost</th>
+                <th class="sp-u-num sp-table__cell--num">Requests</th>
+                <th class="sp-u-num sp-table__cell--num">Tokens</th>
+                <th class="sp-u-num sp-table__cell--num">Cost</th>
                 <th>Share of spend</th>
             </tr></thead>
             <tbody>
             {{#each models}}
                 <tr>
-                    <td><code class="code-inline">{{model}}</code></td>
-                    <td class="numeric">{{formatNumber requests}}</td>
-                    <td class="numeric">{{formatNumber tokens}}</td>
-                    <td class="numeric">{{formatUsd cost_microdollars}}</td>
-                    <td><span class="ent-bar ent-bar--wide" style="--ent-bar-pct:{{share_pct}}%"><span class="ent-bar__fill"></span></span></td>
+                    <td><code class="sp-code-inline">{{model}}</code></td>
+                    <td class="sp-u-num">{{formatNumber requests}}</td>
+                    <td class="sp-u-num">{{formatNumber tokens}}</td>
+                    <td class="sp-u-num">{{formatUsd cost_microdollars}}</td>
+                    <td><span class="sp-ent-bar sp-ent-bar--wide" style="--ent-bar-pct:{{share_pct}}%"><span class="sp-ent-bar__fill"></span></span></td>
                 </tr>
             {{/each}}
             </tbody>

@@ -3,7 +3,7 @@
     {{#*inline "content"}}
     {{> components/page-header title=title subtitle=subtitle}}
 
-    <section class="ent-kpis" aria-label="Portfolio totals">
+    <section class="sp-ent-kpis" aria-label="Portfolio totals">
       {{> components/stat-card label="Enterprises" value=(formatNumber total_enterprises)}}
       {{> components/stat-card label="Seats" value=(formatNumber total_seats) subtitle="active members on all plans"}}
       {{> components/stat-card label="Departments" value=(formatNumber total_departments)}}
@@ -19,54 +19,54 @@
         <thead><tr>
             <th>Enterprise</th>
             <th>Plan</th>
-            <th class="col-status" title="Active members against the plan's seat limit">Seats</th>
-            <th class="numeric col-numeric">Depts</th>
-            <th class="numeric col-numeric" title="Allow rules this organization's plan projected">Skills</th>
-            <th class="numeric col-numeric" title="Model tokens consumed in the last 30 days">Tokens 30d</th>
-            <th class="numeric col-numeric" title="Inference cost this calendar month">Cost</th>
-            <th class="numeric col-numeric" title="Monthly licence fee">Revenue</th>
-            <th class="numeric col-numeric" title="Licence revenue less inference cost">Margin</th>
-            <th class="col-status" title="Month-to-date spend against the plan's cap">Budget</th>
+            <th class="sp-col-status" title="Active members against the plan's seat limit">Seats</th>
+            <th class="sp-u-num sp-table__cell--num">Depts</th>
+            <th class="sp-u-num sp-table__cell--num" title="Allow rules this organization's plan projected">Skills</th>
+            <th class="sp-u-num sp-table__cell--num" title="Model tokens consumed in the last 30 days">Tokens 30d</th>
+            <th class="sp-u-num sp-table__cell--num" title="Inference cost this calendar month">Cost</th>
+            <th class="sp-u-num sp-table__cell--num" title="Monthly licence fee">Revenue</th>
+            <th class="sp-u-num sp-table__cell--num" title="Licence revenue less inference cost">Margin</th>
+            <th class="sp-col-status" title="Month-to-date spend against the plan's cap">Budget</th>
         </tr></thead>
         <tbody>
         {{#each enterprises}}
             <tr>
                 <td>
-                    <a href="/admin/enterprises/{{slug}}" class="user-cell">
-                        <span class="avatar avatar-sm">{{initials name}}</span>
-                        <span class="user-cell-text">
-                            <span class="user-cell-name">{{name}}</span>
-                            <span class="user-cell-email">{{slug}}</span>
+                    <a href="/admin/enterprises/{{slug}}" class="sp-user-cell">
+                        <span class="sp-avatar sp-avatar--sm">{{initials name}}</span>
+                        <span class="sp-user-cell-text">
+                            <span class="sp-user-cell-name">{{name}}</span>
+                            <span class="sp-user-cell-email">{{slug}}</span>
                         </span>
                     </a>
                 </td>
                 <td>
-                    {{#if plan_name}}<span class="badge badge-orange">{{plan_name}}</span>{{else}}<span class="text-tertiary">No plan</span>{{/if}}
-                    {{#if is_platform}}<span class="badge badge-blue" title="The operator's own tenant">Platform</span>{{/if}}
-                    {{#unless is_active}}<span class="badge badge-secondary" title="A suspended organization resolves no plan grants">{{status}}</span>{{/unless}}
+                    {{#if plan_name}}<span class="sp-badge sp-badge--warn">{{plan_name}}</span>{{else}}<span class="sp-u-text-tertiary">No plan</span>{{/if}}
+                    {{#if is_platform}}<span class="sp-badge sp-badge--info" title="The operator's own tenant">Platform</span>{{/if}}
+                    {{#unless is_active}}<span class="sp-badge sp-badge--muted" title="A suspended organization resolves no plan grants">{{status}}</span>{{/unless}}
                 </td>
-                <td class="col-status">
-                    <span class="ent-seats">
-                        <span class="ent-seats__count">{{seats_used}}{{#if has_seat_limit}} / {{seat_limit}}{{/if}}</span>
-                        {{#if has_seat_limit}}<span class="ent-bar" style="--ent-bar-pct:{{seats_pct}}%"><span class="ent-bar__fill"></span></span>{{else}}<span class="ent-seats__note">unlimited</span>{{/if}}
+                <td class="sp-col-status">
+                    <span class="sp-ent-seats">
+                        <span class="sp-ent-seats__count">{{seats_used}}{{#if has_seat_limit}} / {{seat_limit}}{{/if}}</span>
+                        {{#if has_seat_limit}}<span class="sp-ent-bar" style="--ent-bar-pct:{{seats_pct}}%"><span class="sp-ent-bar__fill"></span></span>{{else}}<span class="sp-ent-seats__note">unlimited</span>{{/if}}
                     </span>
                 </td>
-                <td class="numeric">{{departments}}</td>
-                <td class="numeric">{{entitlements}}</td>
-                <td class="numeric">{{#if tokens_30d}}{{formatNumber tokens_30d}}{{else}}<span class="text-tertiary">0</span>{{/if}}</td>
-                <td class="numeric">{{formatUsd cost_mtd_microdollars}}</td>
+                <td class="sp-u-num">{{departments}}</td>
+                <td class="sp-u-num">{{entitlements}}</td>
+                <td class="sp-u-num">{{#if tokens_30d}}{{formatNumber tokens_30d}}{{else}}<span class="sp-u-text-tertiary">0</span>{{/if}}</td>
+                <td class="sp-u-num">{{formatUsd cost_mtd_microdollars}}</td>
                 {{#if is_platform}}
-                <td class="numeric text-tertiary" title="The operator's own tenant bills nobody">—</td>
-                <td class="numeric text-tertiary" title="Internal spend, not a margin">—</td>
+                <td class="sp-u-num sp-u-text-tertiary" title="The operator's own tenant bills nobody">—</td>
+                <td class="sp-u-num sp-u-text-tertiary" title="Internal spend, not a margin">—</td>
                 {{else}}
-                <td class="numeric">{{#if revenue_microdollars}}{{formatUsd revenue_microdollars}}{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
-                <td class="numeric ent-margin{{#unless margin_positive}} ent-margin--negative{{/unless}}">{{formatUsd margin_microdollars}}</td>
+                <td class="sp-u-num">{{#if revenue_microdollars}}{{formatUsd revenue_microdollars}}{{else}}<span class="sp-u-text-tertiary">—</span>{{/if}}</td>
+                <td class="sp-u-num sp-ent-margin{{#unless margin_positive}} sp-ent-margin--negative{{/unless}}">{{formatUsd margin_microdollars}}</td>
                 {{/if}}
-                <td class="col-status">
+                <td class="sp-col-status">
                     {{#if has_budget}}
-                        <span class="ent-pill ent-pill--{{budget_state}}" title="{{budget_pct}}% of the plan's monthly cap consumed">{{budget_pct}}%</span>
+                        <span class="sp-ent-pill sp-ent-pill--{{budget_state}}" title="{{budget_pct}}% of the plan's monthly cap consumed">{{budget_pct}}%</span>
                     {{else}}
-                        <span class="text-tertiary" title="This plan has no spend cap">uncapped</span>
+                        <span class="sp-u-text-tertiary" title="This plan has no spend cap">uncapped</span>
                     {{/if}}
                 </td>
             </tr>

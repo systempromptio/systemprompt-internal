@@ -4,8 +4,8 @@
     {{> components/page-header title=title}}
 
     <section aria-label="Live agent sessions">
-        <h2 class="section-heading">Live Sessions <span class="badge badge-info">{{session_count}}</span></h2>
-        <p class="text-muted">Sessions that reported activity in the last {{window_minutes}} minutes. <strong>Handle</strong> is the address used to reach a session.</p>
+        <h2 class="sp-section__title">Live Sessions <span class="sp-badge sp-badge--info">{{session_count}}</span></h2>
+        <p class="sp-u-text-muted">Sessions that reported activity in the last {{window_minutes}} minutes. <strong>Handle</strong> is the address used to reach a session.</p>
         {{#if sessions}}
         {{#> components/data-table}}
             <thead>
@@ -16,28 +16,28 @@
                     <th>Branch</th>
                     <th>Activity</th>
                     <th>Model</th>
-                    <th class="numeric">Tools</th>
-                    <th class="numeric">Prompts</th>
-                    <th class="numeric">Errors</th>
-                    <th class="numeric">Cost</th>
-                    <th class="numeric">Context</th>
+                    <th class="sp-u-num">Tools</th>
+                    <th class="sp-u-num">Prompts</th>
+                    <th class="sp-u-num">Errors</th>
+                    <th class="sp-u-num">Cost</th>
+                    <th class="sp-u-num">Context</th>
                     <th>Last seen</th>
                 </tr>
             </thead>
             <tbody>
                 {{#each sessions}}
                 <tr>
-                    <td><a href="{{this.detail_url}}"><code class="code-inline">{{this.handle}}</code></a></td>
+                    <td><a href="{{this.detail_url}}"><code class="sp-code-inline">{{this.handle}}</code></a></td>
                     <td>{{this.display_name}}</td>
                     <td title="{{this.cwd}}">{{this.workspace}}</td>
                     <td>{{this.git_branch}}</td>
                     <td>{{this.current_activity}}</td>
                     <td>{{this.model}}</td>
-                    <td class="numeric">{{this.tool_uses}}</td>
-                    <td class="numeric">{{this.prompts}}</td>
-                    <td class="numeric">{{#if this.errors}}<span class="badge badge-danger">{{this.errors}}</span>{{else}}0{{/if}}</td>
-                    <td class="numeric">{{this.cost}}</td>
-                    <td class="numeric">{{#if this.context_pct}}{{this.context_pct}}%{{else}}—{{/if}}</td>
+                    <td class="sp-u-num">{{this.tool_uses}}</td>
+                    <td class="sp-u-num">{{this.prompts}}</td>
+                    <td class="sp-u-num">{{#if this.errors}}<span class="sp-badge sp-badge--err">{{this.errors}}</span>{{else}}0{{/if}}</td>
+                    <td class="sp-u-num">{{this.cost}}</td>
+                    <td class="sp-u-num">{{#if this.context_pct}}{{this.context_pct}}%{{else}}—{{/if}}</td>
                     <td>{{this.idle_for}}</td>
                 </tr>
                 {{/each}}
@@ -49,29 +49,29 @@
     </section>
 
     <section aria-label="Cost by workspace">
-        <h2 class="section-heading">Cost by Workspace</h2>
-        <p class="text-muted">Inference spend attributed to the repository the session was working in, last {{cost_days}} days.</p>
+        <h2 class="sp-section__title">Cost by Workspace</h2>
+        <p class="sp-u-text-muted">Inference spend attributed to the repository the session was working in, last {{cost_days}} days.</p>
         {{#if workspaces}}
         {{#> components/data-table}}
             <thead>
                 <tr>
                     <th>Workspace</th>
-                    <th class="numeric">Sessions</th>
-                    <th class="numeric">Requests</th>
-                    <th class="numeric">Input tokens</th>
-                    <th class="numeric">Output tokens</th>
-                    <th class="numeric">Cost</th>
+                    <th class="sp-u-num">Sessions</th>
+                    <th class="sp-u-num">Requests</th>
+                    <th class="sp-u-num">Input tokens</th>
+                    <th class="sp-u-num">Output tokens</th>
+                    <th class="sp-u-num">Cost</th>
                 </tr>
             </thead>
             <tbody>
                 {{#each workspaces}}
                 <tr>
-                    <td><code class="code-inline">{{this.workspace}}</code></td>
-                    <td class="numeric">{{this.session_count}}</td>
-                    <td class="numeric">{{this.request_count}}</td>
-                    <td class="numeric">{{this.input_tokens}}</td>
-                    <td class="numeric">{{this.output_tokens}}</td>
-                    <td class="numeric">{{this.cost}}</td>
+                    <td><code class="sp-code-inline">{{this.workspace}}</code></td>
+                    <td class="sp-u-num">{{this.session_count}}</td>
+                    <td class="sp-u-num">{{this.request_count}}</td>
+                    <td class="sp-u-num">{{this.input_tokens}}</td>
+                    <td class="sp-u-num">{{this.output_tokens}}</td>
+                    <td class="sp-u-num">{{this.cost}}</td>
                 </tr>
                 {{/each}}
             </tbody>

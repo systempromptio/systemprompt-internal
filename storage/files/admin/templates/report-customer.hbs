@@ -7,35 +7,35 @@
     --}}
     {{> components/page-header title=org_name subtitle=month_label}}
 
-    <div class="report-toolbar">
+    <div class="sp-report-toolbar">
         {{#if is_platform_admin}}
-        <form class="month-selector" method="get" action="{{base_url}}" data-print-hide>
+        <form class="sp-month-selector" method="get" action="{{base_url}}" data-print-hide>
             <input type="hidden" name="month" value="{{month_key}}" />
-            <label class="month-selector__label" for="org-select">Enterprise</label>
-            <select class="month-selector__select" id="org-select" name="org">
+            <label class="sp-month-selector__label" for="org-select">Enterprise</label>
+            <select class="sp-month-selector__select" id="org-select" name="org">
                 {{#each org_options}}
                 <option value="{{this.slug}}"{{#if this.selected}} selected{{/if}}>{{this.name}}</option>
                 {{/each}}
             </select>
-            <button class="btn btn-primary" type="submit">Show</button>
+            <button class="sp-btn sp-btn--primary" type="submit">Show</button>
         </form>
         {{/if}}
         {{> components/month-selector}}
-        <button class="btn btn-secondary" type="button" data-print-report>Print / Save PDF</button>
+        <button class="sp-btn sp-btn--secondary" type="button" data-print-report>Print / Save PDF</button>
     </div>
 
-    <div class="report-print-header" aria-hidden="true">
+    <div class="sp-report-print-header" aria-hidden="true">
         <strong>{{org_name}} — usage report</strong>
         <span>{{month_label}} · generated {{generated_at}}</span>
     </div>
 
     {{#unless month_complete}}
-    <p class="report-notice" role="status">
+    <p class="sp-report-notice" role="status">
         {{month_label}} is still in progress — these figures cover the month so far.
     </p>
     {{/unless}}
 
-    <section class="report-kpis" aria-label="Usage summary for {{month_label}}">
+    <section class="sp-report-kpis" aria-label="Usage summary for {{month_label}}">
       {{> components/stat-card label="Plan" value=(default plan_name "No plan") subtitle=(concat "seats " summary.seats_display)}}
       {{#if has_price}}
       {{> components/stat-card label="Licence for this month" value=(formatUsd plan_price_microdollars) subtitle="as contracted"}}
@@ -49,31 +49,31 @@
     </section>
 
     <section aria-label="Usage by department" data-page="report-customer">
-    <h2 class="report-section-title">By department</h2>
+    <h2 class="sp-report-section-title">By department</h2>
     {{#if departments}}
     {{#> components/data-table}}
         <thead><tr>
             <th>Department</th>
-            <th class="col-share">Share</th>
-            <th class="numeric col-numeric" title="Members who made at least one request">People</th>
-            <th class="numeric col-numeric">Requests</th>
-            <th class="numeric col-numeric">Input</th>
-            <th class="numeric col-numeric">Output</th>
-            <th class="numeric col-numeric">Total tokens</th>
+            <th class="sp-col-share">Share</th>
+            <th class="sp-u-num sp-table__cell--num" title="Members who made at least one request">People</th>
+            <th class="sp-u-num sp-table__cell--num">Requests</th>
+            <th class="sp-u-num sp-table__cell--num">Input</th>
+            <th class="sp-u-num sp-table__cell--num">Output</th>
+            <th class="sp-u-num sp-table__cell--num">Total tokens</th>
         </tr></thead>
         <tbody>
         {{#each departments}}
         <tr>
             <td>{{this.department}}</td>
-            <td class="col-share">
-                <span class="share-bar" style="--v:{{this.share_pct}}%" aria-hidden="true"></span>
-                <span class="share-bar__value">{{this.share_display}}</span>
+            <td class="sp-col-share">
+                <span class="sp-share-bar" style="--v:{{this.share_pct}}%" aria-hidden="true"></span>
+                <span class="sp-share-bar__value">{{this.share_display}}</span>
             </td>
-            <td class="numeric">{{this.members}}</td>
-            <td class="numeric">{{formatNumber this.requests}}</td>
-            <td class="numeric">{{this.input_tokens_display}}</td>
-            <td class="numeric">{{this.output_tokens_display}}</td>
-            <td class="numeric">{{this.total_tokens_display}}</td>
+            <td class="sp-u-num">{{this.members}}</td>
+            <td class="sp-u-num">{{formatNumber this.requests}}</td>
+            <td class="sp-u-num">{{this.input_tokens_display}}</td>
+            <td class="sp-u-num">{{this.output_tokens_display}}</td>
+            <td class="sp-u-num">{{this.total_tokens_display}}</td>
         </tr>
         {{/each}}
         </tbody>
@@ -84,33 +84,33 @@
     </section>
 
     <section aria-label="Usage by model">
-    <h2 class="report-section-title">By model</h2>
+    <h2 class="sp-report-section-title">By model</h2>
     {{#if models}}
     {{#> components/data-table}}
         <thead><tr>
             <th>Model</th>
             <th>Provider</th>
-            <th class="col-share">Share</th>
-            <th class="numeric col-numeric">Requests</th>
-            <th class="numeric col-numeric">Input</th>
-            <th class="numeric col-numeric">Output</th>
-            <th class="numeric col-numeric">Cached</th>
-            <th class="numeric col-numeric">Total tokens</th>
+            <th class="sp-col-share">Share</th>
+            <th class="sp-u-num sp-table__cell--num">Requests</th>
+            <th class="sp-u-num sp-table__cell--num">Input</th>
+            <th class="sp-u-num sp-table__cell--num">Output</th>
+            <th class="sp-u-num sp-table__cell--num">Cached</th>
+            <th class="sp-u-num sp-table__cell--num">Total tokens</th>
         </tr></thead>
         <tbody>
         {{#each models}}
         <tr>
-            <td><code class="code-inline">{{this.model}}</code></td>
+            <td><code class="sp-code-inline">{{this.model}}</code></td>
             <td>{{this.provider}}</td>
-            <td class="col-share">
-                <span class="share-bar" style="--v:{{this.share_pct}}%" aria-hidden="true"></span>
-                <span class="share-bar__value">{{this.share_display}}</span>
+            <td class="sp-col-share">
+                <span class="sp-share-bar" style="--v:{{this.share_pct}}%" aria-hidden="true"></span>
+                <span class="sp-share-bar__value">{{this.share_display}}</span>
             </td>
-            <td class="numeric">{{formatNumber this.requests}}</td>
-            <td class="numeric">{{this.input_tokens_display}}</td>
-            <td class="numeric">{{this.output_tokens_display}}</td>
-            <td class="numeric">{{this.cache_read_tokens_display}}</td>
-            <td class="numeric">{{this.total_tokens_display}}</td>
+            <td class="sp-u-num">{{formatNumber this.requests}}</td>
+            <td class="sp-u-num">{{this.input_tokens_display}}</td>
+            <td class="sp-u-num">{{this.output_tokens_display}}</td>
+            <td class="sp-u-num">{{this.cache_read_tokens_display}}</td>
+            <td class="sp-u-num">{{this.total_tokens_display}}</td>
         </tr>
         {{/each}}
         </tbody>
@@ -121,41 +121,41 @@
     </section>
 
     <section aria-label="Usage by user">
-    <h2 class="report-section-title">By user</h2>
+    <h2 class="sp-report-section-title">By user</h2>
     {{#if users}}
     {{#> components/data-table}}
         <thead><tr>
             <th>User</th>
             <th>Department</th>
-            <th class="col-share">Share</th>
-            <th class="numeric col-numeric">Requests</th>
-            <th class="numeric col-numeric">Input</th>
-            <th class="numeric col-numeric">Output</th>
-            <th class="numeric col-numeric">Total tokens</th>
-            <th class="numeric col-numeric" title="Distinct models this person reached">Models</th>
+            <th class="sp-col-share">Share</th>
+            <th class="sp-u-num sp-table__cell--num">Requests</th>
+            <th class="sp-u-num sp-table__cell--num">Input</th>
+            <th class="sp-u-num sp-table__cell--num">Output</th>
+            <th class="sp-u-num sp-table__cell--num">Total tokens</th>
+            <th class="sp-u-num sp-table__cell--num" title="Distinct models this person reached">Models</th>
         </tr></thead>
         <tbody>
         {{#each users}}
         <tr>
             <td>
-                <span class="user-cell">
-                    <span class="avatar avatar-sm">{{initials this.display_name}}</span>
-                    <span class="user-cell-text">
-                        <span class="user-cell-name">{{this.display_name}}</span>
-                        <span class="user-cell-email">{{this.email}}</span>
+                <span class="sp-user-cell">
+                    <span class="sp-avatar sp-avatar--sm">{{initials this.display_name}}</span>
+                    <span class="sp-user-cell-text">
+                        <span class="sp-user-cell-name">{{this.display_name}}</span>
+                        <span class="sp-user-cell-email">{{this.email}}</span>
                     </span>
                 </span>
             </td>
             <td>{{this.department}}</td>
-            <td class="col-share">
-                <span class="share-bar" style="--v:{{this.share_pct}}%" aria-hidden="true"></span>
-                <span class="share-bar__value">{{this.share_display}}</span>
+            <td class="sp-col-share">
+                <span class="sp-share-bar" style="--v:{{this.share_pct}}%" aria-hidden="true"></span>
+                <span class="sp-share-bar__value">{{this.share_display}}</span>
             </td>
-            <td class="numeric">{{formatNumber this.requests}}</td>
-            <td class="numeric">{{this.input_tokens_display}}</td>
-            <td class="numeric">{{this.output_tokens_display}}</td>
-            <td class="numeric">{{this.total_tokens_display}}</td>
-            <td class="numeric">{{this.distinct_models}}</td>
+            <td class="sp-u-num">{{formatNumber this.requests}}</td>
+            <td class="sp-u-num">{{this.input_tokens_display}}</td>
+            <td class="sp-u-num">{{this.output_tokens_display}}</td>
+            <td class="sp-u-num">{{this.total_tokens_display}}</td>
+            <td class="sp-u-num">{{this.distinct_models}}</td>
         </tr>
         {{/each}}
         </tbody>
@@ -165,7 +165,7 @@
     {{/if}}
     </section>
 
-    <p class="report-footer">
+    <p class="sp-report-footer">
         {{org_name}} · {{month_label}} · generated {{generated_at}}. Token counts are metered per
         request at the gateway.
     </p>

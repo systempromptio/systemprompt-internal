@@ -10,12 +10,6 @@
         linear-gradient(180deg, var(--sp-bg-canvas) 0%, var(--sp-bg-base) 100%);
 }
 
-.sp-login-subtitle {
-    font-size: var(--sp-text-sm);
-    color: var(--sp-text-tertiary);
-    margin: 0 0 var(--sp-space-5);
-}
-
 .sp-login-error {
     display: block;
     background: var(--sp-danger-dim);
@@ -77,8 +71,6 @@
     height: auto;
 }
 
-.sp-login-logo .sp-logo-dark { display: none; }
-
 .sp-login-container .sp-form-group input:focus-visible,
 .sp-login-container .sp-form-group select:focus-visible,
 .sp-login-container .sp-form-group textarea:focus-visible {
@@ -93,43 +85,5 @@
 
 main.sp-login-container {
     display: flex;
-}
-
-.sp-auth-page {
-    display: flex;
-    min-height: 100vh;
-    background:
-        linear-gradient(180deg, var(--sp-bg-canvas) 0%, var(--sp-bg-base) 100%);
-}
-
-.sp-auth-info {
-    flex: 1;
-    max-width: 640px;
-    padding: 3rem 3rem 3rem 4rem;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-}
-
-.sp-auth-form-col {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-    min-width: 420px;
-}
-
-.sp-auth-info h2 {
-    font-size: var(--sp-text-md);
-    font-weight: 700;
-    color: var(--sp-text-primary);
-    margin: 1.5rem 0 0.5rem;
-}
-
-.sp-auth-info h3 {
-    font-size: var(--sp-text-sm);
-    font-weight: 600;
-    color: var(--sp-text-primary);
-    margin: 0.75rem 0 0.25rem;
 }
 }

@@ -9,15 +9,15 @@
     <link rel="stylesheet" href="/css/admin-bundle.css?v={{css_version}}">
 </head>
 <body>
-    <div class="login-container">
-        <div class="card">
-            <div class="login-logo"><img src="/files/images/logo-white.svg" alt="{{branding.domain}}" height="40"></div>
-            <h1 class="text-xl mb-2">Cannot authorise this device</h1>
-            <p class="text-sm text-tertiary mb-3">{{blocked_reason}}</p>
-            <p class="text-sm text-tertiary mb-4">
+    <div class="sp-login-container">
+        <div class="sp-card">
+            <div class="sp-login-logo"><img src="/files/images/logo-white.svg" alt="{{branding.domain}}" height="40"></div>
+            <h1 class="sp-u-text-lg">Cannot authorise this device</h1>
+            <p class="sp-u-text-sm sp-u-text-tertiary sp-u-mt-3">{{blocked_reason}}</p>
+            <p class="sp-u-text-sm sp-u-text-tertiary sp-u-mt-3">
                 Nothing was issued and nothing was granted.
             </p>
-            <a class="btn btn-primary w-full" href="{{switch_account_href}}">Sign in again</a>
+            <a class="sp-btn sp-btn--primary sp-u-w-full" href="{{switch_account_href}}">Sign in again</a>
         </div>
     </div>
 </body>

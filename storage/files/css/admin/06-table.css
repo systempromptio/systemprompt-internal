@@ -108,7 +108,10 @@
 /* The first column that is not a checkbox carries the row's identity, so it is
    the one that absorbs the slack rather than the one that pays for it. Named as
    a class too, for a table whose identity column is not first. */
-.sp-table__el td:first-child:not(:has(input)),
+/* ...unless it has already been typed. A date, a number or a status cell names
+   its own width, and the 22ch floor applied over the top of that widened the
+   Started column past the 6.5rem it asks for. A typed column is not slack. */
+.sp-table__el td:first-child:not(:has(input)):not(.sp-col-date):not(.sp-col-status):not(.sp-table__cell--date):not(.sp-table__cell--num),
 .sp-table__el td:has(input) + td,
 .sp-table__el td.sp-table__cell--primary {
     max-width: none;

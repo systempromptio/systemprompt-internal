@@ -1,0 +1,102 @@
+@layer components {
+.sp-report-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sp-space-3);
+    margin-bottom: var(--sp-space-4);
+}
+
+.sp-month-selector {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-space-2);
+}
+
+.sp-month-selector__label {
+    color: var(--sp-text-secondary);
+    font-size: var(--sp-text-sm);
+}
+
+.sp-month-selector__select {
+    min-width: 12ch;
+}
+
+.sp-month-selector__step {
+    padding-inline: var(--sp-space-3);
+}
+
+.sp-report-kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: var(--sp-space-3);
+    margin-bottom: var(--sp-space-5);
+}
+
+.sp-report-section-title {
+    margin: var(--sp-space-5) 0 var(--sp-space-2);
+    font-size: var(--sp-text-base);
+    font-weight: 600;
+}
+
+.sp-report-split {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+    gap: var(--sp-space-4);
+}
+
+.sp-report-notice {
+    margin-bottom: var(--sp-space-4);
+    padding: var(--sp-space-3);
+    border-left: 3px solid var(--sp-warning);
+    background: var(--sp-bg-surface-alt);
+    color: var(--sp-text-secondary);
+    font-size: var(--sp-text-sm);
+}
+
+.sp-report-subvalue {
+    display: block;
+    color: var(--sp-text-tertiary);
+    font-size: var(--sp-text-xs);
+}
+
+.sp-report-footer {
+    margin-top: var(--sp-space-5);
+    color: var(--sp-text-tertiary);
+    font-size: var(--sp-text-sm);
+}
+
+.sp-report-print-header {
+    display: none;
+}
+
+}
+
+@media print {
+    .sp-report-toolbar {
+        display: none;
+    }
+
+    .sp-report-print-header {
+        display: flex;
+        flex-direction: column;
+        gap: var(--sp-space-05);
+        margin-bottom: 8mm;
+        padding-bottom: 3mm;
+        border-bottom: 1px solid #000;
+        font-size: 10pt;
+    }
+
+    .sp-report-kpis {
+        grid-template-columns: repeat(4, 1fr);
+        break-inside: avoid;
+    }
+
+    .sp-report-split {
+        grid-template-columns: 1fr;
+    }
+
+    .sp-report-section-title {
+        break-after: avoid;
+    }
+}

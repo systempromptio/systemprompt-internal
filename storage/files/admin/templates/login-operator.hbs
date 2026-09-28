@@ -9,56 +9,56 @@
     <link rel="stylesheet" href="/css/admin-bundle.css?v={{css_version}}">
 </head>
 <body>
-    <main class="auth-page">
-        <div class="auth-card">
-            <div class="login-logo">
+    <main class="sp-auth-center">
+        <div class="sp-auth-card">
+            <div class="sp-login-logo">
                 <img src="/files/images/logo-white.svg" alt="{{branding.domain}}" height="36">
             </div>
 
             <!-- ids consumed by webauthn-login.js -->
             <div id="pane-signin">
-                <h1 class="auth-title">Operator sign-in</h1>
-                <p class="auth-subtitle">Passkey access for platform staff</p>
+                <h1 class="sp-auth-title">Operator sign-in</h1>
+                <p class="sp-auth-subtitle">Passkey access for platform staff</p>
 
-                <div id="error" class="login-error" role="alert" aria-live="polite"></div>
+                <div id="error" class="sp-login-error" role="alert" aria-live="polite"></div>
 
-                <div id="login-form" class="auth-form" hidden>
-                    <div class="form-group">
+                <div id="login-form" class="sp-auth-form" hidden>
+                    <div class="sp-form-group">
                         <label for="login-email">Email</label>
-                        <input class="form-input" type="email" id="login-email"
+                        <input class="sp-field-input" type="email" id="login-email"
                                placeholder="you@systemprompt.io" required autocomplete="email"
                                autocapitalize="none" spellcheck="false" aria-describedby="error">
                     </div>
-                    <button type="button" id="sign-in-btn" class="btn btn-primary w-full">Sign in with passkey</button>
-                    <p class="login-switch">New here? <a href="#" id="show-register">Create an account</a></p>
+                    <button type="button" id="sign-in-btn" class="sp-btn sp-btn--primary sp-u-w-full">Sign in with passkey</button>
+                    <p class="sp-login-switch">New here? <a href="#" id="show-register">Create an account</a></p>
                 </div>
 
-                <div id="register-form" class="auth-form" hidden>
-                    <div class="form-group">
+                <div id="register-form" class="sp-auth-form" hidden>
+                    <div class="sp-form-group">
                         <label for="register-email">Work email</label>
-                        <input class="form-input" type="email" id="register-email"
+                        <input class="sp-field-input" type="email" id="register-email"
                                placeholder="you@systemprompt.io" required autocomplete="email"
                                autocapitalize="none" spellcheck="false" aria-describedby="error">
                     </div>
-                    <div class="form-group">
+                    <div class="sp-form-group">
                         <label for="register-name">Name</label>
-                        <input class="form-input" type="text" id="register-name" placeholder="Your name" autocomplete="name">
+                        <input class="sp-field-input" type="text" id="register-name" placeholder="Your name" autocomplete="name">
                     </div>
-                    <button type="button" id="register-btn" class="btn btn-primary w-full">Create account with passkey</button>
-                    <p class="login-switch">Already registered? <a href="#" id="show-signin">Sign in</a></p>
+                    <button type="button" id="register-btn" class="sp-btn sp-btn--primary sp-u-w-full">Create account with passkey</button>
+                    <p class="sp-login-switch">Already registered? <a href="#" id="show-signin">Sign in</a></p>
                 </div>
 
-                <div id="loading" class="login-loading" hidden aria-live="polite">
-                    <div class="login-spinner" role="status" aria-label="Loading"></div>
+                <div id="loading" class="sp-login-loading" hidden aria-live="polite">
+                    <div class="sp-login-spinner" role="status" aria-label="Loading"></div>
                     <p id="loading-text">Processing…</p>
                 </div>
 
-                <div id="retry" class="login-retry">
+                <div id="retry" class="sp-login-retry">
                     <a href="/admin/login">Try again</a>
                 </div>
             </div>
 
-            <p class="auth-alt"><a href="/admin/login">Sign in with Odoo</a></p>
+            <p class="sp-auth-alt"><a href="/admin/login">Sign in with Odoo</a></p>
         </div>
     </main>
 

@@ -83,7 +83,7 @@ td.sp-table__cell--num { white-space: nowrap; }
 .sp-table__cell--stacked {
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    gap: 0.125rem;
     min-width: 0;
 }
 
@@ -95,6 +95,29 @@ td.sp-table__cell--num { white-space: nowrap; }
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+/* Why: a `td` may never carry a display other than `table-cell`. Any other value
+   pulls it out of the table box model, the browser wraps it in an anonymous cell,
+   and the flex box then shrink-to-fits inside that cell instead of filling the
+   column — so the cell's own background, zebra stripe included, stopped short and
+   left a dead band the width of the remaining column. The class is also used on
+   inner `div`s, where the flex container above is correct and load-bearing
+   (`analytics-requests.hbs` relies on `align-items: flex-end`), so the correction
+   is scoped to the `td` case rather than applied to the class. */
+.sp-table__el td.sp-table__cell--stacked {
+    display: table-cell;
+}
+
+/* The two lines stack because they are blocks, not because a flex container
+   ordered them to. */
+.sp-table__el td.sp-table__cell--stacked > * {
+    display: block;
+}
+
+/* The gap the flex container used to draw between the two lines. */
+.sp-table__el td.sp-table__cell--stacked > * + * {
+    margin-block-start: 0.125rem;
 }
 
 .sp-table__cell--spark {

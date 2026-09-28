@@ -1,24 +1,5 @@
 @layer components {
 
-.sp-kpi__label {
-    font-size: var(--sp-text-xs);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--sp-text-tertiary);
-}
-
-.sp-kpi__value {
-    font-size: var(--sp-text-xl);
-    font-weight: 600;
-    color: var(--sp-text-primary);
-    font-variant-numeric: tabular-nums;
-}
-
-.sp-kpi__sub {
-    font-size: var(--sp-text-xs);
-    color: var(--sp-text-secondary);
-}
-
 .sp-kpi--danger .sp-kpi__value { color: var(--sp-danger-strong); }
 
 .sp-kpi--warning .sp-kpi__value { color: var(--sp-warning-strong); }

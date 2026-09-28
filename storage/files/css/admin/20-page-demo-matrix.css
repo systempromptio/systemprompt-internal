@@ -1,0 +1,55 @@
+@layer components {
+
+.sp-demo-matrix {
+    overflow-x: auto;
+    max-inline-size: 100%;
+    border: 1px solid var(--sp-border-default);
+    border-radius: var(--sp-corners-md);
+    background: var(--sp-bg-surface);
+}
+
+.sp-demo-matrix__table {
+    border-collapse: collapse;
+    inline-size: 100%;
+    font-size: var(--sp-text-sm);
+}
+
+.sp-demo-matrix__table th,
+.sp-demo-matrix__table td {
+    padding: var(--sp-space-2) var(--sp-space-3);
+    border-block-end: 1px solid var(--sp-border-subtle);
+    text-align: start;
+    white-space: nowrap;
+}
+
+.sp-demo-matrix__table thead th {
+    color: var(--sp-text-tertiary);
+    font-size: var(--sp-text-xs);
+    font-weight: var(--sp-font-medium);
+}
+
+.sp-demo-matrix__table tbody th {
+    color: var(--sp-text-secondary);
+    font-weight: var(--sp-font-normal);
+}
+
+.sp-demo-matrix__cell {
+    background: color-mix(in oklch, var(--sp-accent) var(--v), transparent);
+    color: var(--sp-text-primary);
+    font-family: var(--sp-font-mono);
+    font-variant-numeric: tabular-nums;
+    text-align: end;
+}
+
+.sp-demo-matrix__cell--empty {
+    background: transparent;
+    color: var(--sp-text-disabled);
+}
+
+.sp-demo-matrix__table td.sp-u-num {
+    font-family: var(--sp-font-mono);
+    font-variant-numeric: tabular-nums;
+    text-align: end;
+}
+
+}

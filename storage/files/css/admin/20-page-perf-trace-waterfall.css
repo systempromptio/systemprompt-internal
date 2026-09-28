@@ -1,0 +1,53 @@
+/* The trace detail's span waterfall. admin-entities.js draws one row per span:
+   the span name, then a track holding a bar positioned by inline left/width,
+   with the duration printed inside the bar. */
+@layer components {
+
+.sp-waterfall__root {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-space-05);
+    margin-top: var(--sp-space-3);
+}
+
+.sp-waterfall__row {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    align-items: center;
+    gap: var(--sp-space-3);
+}
+
+.sp-waterfall__label {
+    font-size: var(--sp-text-xs);
+    color: var(--sp-text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sp-waterfall__track {
+    position: relative;
+    height: 20px;
+    background: var(--sp-bg-surface-alt);
+    border-radius: var(--sp-radius-xs);
+}
+
+.sp-waterfall__bar {
+    position: absolute;
+    top: 2px;
+    bottom: 2px;
+    min-width: 2px;
+    border-radius: var(--sp-radius-xs);
+    display: flex;
+    align-items: center;
+    padding: 0 var(--sp-space-1);
+    overflow: hidden;
+}
+
+.sp-waterfall__dur {
+    font-size: var(--sp-text-2xs);
+    color: var(--sp-text-on-accent);
+    white-space: nowrap;
+}
+
+}

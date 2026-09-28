@@ -6,20 +6,6 @@
     gap: var(--sp-space-4);
 }
 
-.sp-checkbox-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--sp-space-2) var(--sp-space-4);
-}
-
-.sp-checkbox-label {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--sp-space-1);
-    font-size: var(--sp-text-sm);
-    cursor: pointer;
-}
-
 .sp-search-input {
     width: 100%;
     background: var(--sp-bg-surface);
@@ -108,6 +94,7 @@
     line-height: 1.4;
     white-space: nowrap;
     cursor: pointer;
+    transition: color var(--sp-duration-fast), background-color var(--sp-duration-fast),
                 border-color var(--sp-duration-fast);
 }
 

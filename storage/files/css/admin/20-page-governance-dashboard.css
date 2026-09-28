@@ -1,0 +1,26 @@
+/* The policy dashboard: disabled policies fade out of the table, allowed
+   counts read green, and the two top-offender tables sit side by side. */
+@layer components {
+
+.sp-row-muted {
+    opacity: 0.55;
+}
+
+.sp-u-text-success {
+    color: var(--sp-success);
+}
+
+.sp-enforcement-section__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sp-space-6);
+    margin-top: var(--sp-space-8);
+}
+
+@media (max-width: 900px) {
+    .sp-enforcement-section__grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+}

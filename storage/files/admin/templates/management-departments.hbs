@@ -3,11 +3,11 @@
     {{#*inline "content"}}
     {{> components/page-header title=title subtitle="Org units that group users and roll up skill, marketplace, and access assignments."}}
 
-    <div class="toolbar" role="toolbar" aria-label="Actions">
-        <div class="search-group">
-            <input type="text" class="search-input" placeholder="Search departments..." id="dept-search" aria-label="Search departments...">
+    <div class="sp-toolbar" role="toolbar" aria-label="Actions">
+        <div class="sp-toolbar__search">
+            <input type="text" class="sp-search-input" placeholder="Search departments..." id="dept-search" aria-label="Search departments...">
         </div>
-        <button type="button" class="btn btn-primary" id="btn-new-department">+ New department</button>
+        <button type="button" class="sp-btn sp-btn--primary" id="btn-new-department">+ New department</button>
     </div>
 
     <section aria-label="Departments list" data-page="management-departments">
@@ -15,49 +15,49 @@
     {{#> components/data-table}}
         <thead><tr>
             <th>Name</th>
-            <th class="numeric col-numeric">Members</th>
-            <th class="numeric col-numeric">Assignments</th>
-            <th class="numeric col-numeric">Requests (30d)</th>
-            <th class="numeric col-numeric">Tokens (30d)</th>
+            <th class="sp-u-num sp-table__cell--num">Members</th>
+            <th class="sp-u-num sp-table__cell--num">Assignments</th>
+            <th class="sp-u-num sp-table__cell--num">Requests (30d)</th>
+            <th class="sp-u-num sp-table__cell--num">Tokens (30d)</th>
             <th>Description</th>
-            <th class="col-actions"></th>
+            <th class="sp-table__cell--actions"></th>
         </tr></thead>
         <tbody>
         {{#each departments}}
         <tr data-dept-id="{{id}}" data-dept-name="{{toLowerCase name}}">
             <td><a href="/admin/access/departments/{{id}}"><strong>{{name}}</strong></a></td>
-            <td class="numeric col-numeric">{{member_count}}</td>
-            <td class="numeric col-numeric">{{assignment_count}}</td>
-            <td class="numeric col-numeric">{{requests}}</td>
-            <td class="numeric col-numeric">{{add input_tokens output_tokens}}</td>
+            <td class="sp-u-num sp-table__cell--num">{{member_count}}</td>
+            <td class="sp-u-num sp-table__cell--num">{{assignment_count}}</td>
+            <td class="sp-u-num sp-table__cell--num">{{requests}}</td>
+            <td class="sp-u-num sp-table__cell--num">{{add input_tokens output_tokens}}</td>
             <td>{{description}}</td>
-            <td class="col-actions">
-                <a class="btn btn-sm btn-outline" href="/admin/access/departments/{{id}}">Open →</a>
-                {{#unless (eq name "Default")}}<button type="button" class="btn btn-sm btn-danger" data-delete-dept="{{id}}" data-dept-name="{{name}}">Delete</button>{{/unless}}
+            <td class="sp-table__cell--actions">
+                <a class="sp-btn sp-btn--sm sp-btn--outline" href="/admin/access/departments/{{id}}">Open →</a>
+                {{#unless (eq name "Default")}}<button type="button" class="sp-btn sp-btn--sm sp-btn--danger" data-delete-dept="{{id}}" data-dept-name="{{name}}">Delete</button>{{/unless}}
             </td>
         </tr>
         {{/each}}
         </tbody>
     {{/components/data-table}}
     {{else}}
-    <div class="empty-state empty-state--pad-lg">
+    <div class="sp-empty sp-empty--pad-lg">
         <h3>No departments yet</h3>
-        <p class="text-muted">Departments group users and let you bulk-assign skills, marketplaces, and access rules.</p>
-        <button type="button" class="btn btn-primary" id="btn-new-department-empty">+ Create your first department</button>
+        <p class="sp-u-text-muted">Departments group users and let you bulk-assign skills, marketplaces, and access rules.</p>
+        <button type="button" class="sp-btn sp-btn--primary" id="btn-new-department-empty">+ Create your first department</button>
     </div>
     {{/if}}
     </section>
 
-    <dialog id="dept-create-dialog" class="dialog">
-        <form id="dept-create-form" class="dialog-form">
+    <dialog id="dept-create-dialog" class="sp-dialog">
+        <form id="dept-create-form" class="sp-dialog-form">
             <h3>New department</h3>
             <label>Name<input type="text" name="name" required maxlength="64" autocomplete="off" placeholder="e.g. Engineering"></label>
             <label>Description<textarea name="description" rows="2" placeholder="Optional"></textarea></label>
             <menu>
-                <button type="button" class="btn btn-sm btn-outline" id="dept-create-cancel">Cancel</button>
-                <button type="submit" class="btn btn-sm btn-primary">Create</button>
+                <button type="button" class="sp-btn sp-btn--sm sp-btn--outline" id="dept-create-cancel">Cancel</button>
+                <button type="submit" class="sp-btn sp-btn--sm sp-btn--primary">Create</button>
             </menu>
-            <p id="dept-create-error" class="text-danger" hidden></p>
+            <p id="dept-create-error" class="sp-u-text-danger" hidden></p>
         </form>
     </dialog>
 

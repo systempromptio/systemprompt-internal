@@ -89,7 +89,7 @@
             <tr class="sp-table__row--expand" data-user-id="{{this.user_id}}">
                 <td class="sp-col-identity">
                     <a href="{{this.user_url}}" class="sp-user-cell" title="{{this.user_id}}">
-                        <span class="sp-avatar sp-avatar-sm" aria-hidden="true">{{initials this.user_label}}</span>
+                        <span class="sp-avatar sp-avatar--sm" aria-hidden="true">{{initials this.user_label}}</span>
                         <span>{{this.user_label}}</span>
                     </a>
                 </td>
@@ -104,7 +104,7 @@
                 <td class="sp-table__cell--num sp-u-mono">{{this.cost_display}}</td>
                 <td class="sp-col-model sp-p-contexts__models">{{#each this.models}}<span class="sp-badge sp-badge--info">{{this}}</span> {{/each}}</td>
                 <td class="sp-table__cell--actions">
-                    <button class="sp-btn--actions sp-table__row-toggle"
+                    <button class="sp-btn sp-btn--sm sp-btn--icon sp-btn--ghost sp-table__row-toggle"
                             type="button"
                             aria-expanded="false"
                             aria-controls="user-contexts-{{this.user_id}}"

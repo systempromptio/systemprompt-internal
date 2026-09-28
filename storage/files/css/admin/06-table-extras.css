@@ -99,13 +99,6 @@
     line-height: 1.4;
 }
 
-.sp-table__cell--stacked {
-    display: flex;
-    flex-direction: column;
-    gap: 0.125rem;
-    min-width: 0;
-}
-
 .sp-table__cell--primary {
     font-weight: 500;
     color: var(--sp-text-primary);

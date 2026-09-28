@@ -32,8 +32,10 @@
 .sp-badge--err  { color: var(--sp-danger-strong);  background: var(--sp-danger-dim); }
 .sp-badge--info { color: var(--sp-info-strong);    background: color-mix(in oklch, var(--sp-info) 12%, transparent); }
 .sp-badge--accent { color: var(--sp-accent-text);  background: var(--sp-accent-dim); }
+/* Why: tertiary text on the tertiary surface fell under 4.5:1 and the source
+   column on Groups was unreadable; secondary text keeps the tone quiet at AA. */
 .sp-badge--muted {
-    color: var(--sp-text-tertiary);
+    color: var(--sp-text-secondary);
     background: var(--sp-bg-tertiary);
     border-color: var(--sp-border-subtle);
 }

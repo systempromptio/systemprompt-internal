@@ -2,20 +2,20 @@
     {{#*inline "content"}}
     {{> components/page-header title=title subtitle=subtitle}}
 
-    <section class="contexts-kpis" aria-label="Demo KPIs">
+    <section class="sp-kpi-grid" aria-label="Demo KPIs">
         {{#each kpis}}
         {{> components/stat-card label=label value=value variant=variant testid=testid}}
         {{/each}}
     </section>
 
-    <section class="demo-scenarios" aria-label="Governance scenarios">
+    <section class="sp-demo-scenarios" aria-label="Governance scenarios">
         {{#each scenarios}}
-        <a class="demo-scenario demo-scenario--{{tone}}" href="{{href}}">
-            <span class="demo-scenario__body">
-                <span class="demo-scenario__heading">{{heading}}</span>
-                <span class="demo-scenario__description">{{description}}</span>
+        <a class="sp-demo-scenario sp-demo-scenario--{{tone}}" href="{{href}}">
+            <span class="sp-demo-scenario__body">
+                <span class="sp-demo-scenario__heading">{{heading}}</span>
+                <span class="sp-demo-scenario__description">{{description}}</span>
             </span>
-            <span class="demo-scenario__count">{{formatNumber count}}</span>
+            <span class="sp-demo-scenario__count">{{formatNumber count}}</span>
         </a>
         {{/each}}
     </section>
@@ -24,27 +24,27 @@
         {{#if has_rows}}
         {{#> components/data-table}}
             <thead><tr>
-                <th class="col-date">Time</th>
-                <th class="col-status">Kind</th>
+                <th class="sp-col-date">Time</th>
+                <th class="sp-col-status">Kind</th>
                 <th>User</th>
                 <th>What</th>
                 <th>Detail</th>
-                <th class="col-status">Outcome</th>
+                <th class="sp-col-status">Outcome</th>
                 <th>Policy</th>
             </tr></thead>
             <tbody>
             {{#each rows}}
             <tr>
-                <td class="col-date"><span title="{{formatDate at}}">{{relativeTime at}}</span></td>
-                <td class="col-status"><span class="badge badge-secondary">{{kind_label}}</span></td>
+                <td class="sp-col-date"><span title="{{formatDate at}}">{{relativeTime at}}</span></td>
+                <td class="sp-col-status"><span class="sp-badge sp-badge--muted">{{kind_label}}</span></td>
                 <td>{{user_email}}</td>
-                <td><code class="code-inline">{{label}}</code></td>
-                <td>{{#if detail}}{{detail}}{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
-                <td class="col-status">
+                <td><code class="sp-code-inline">{{label}}</code></td>
+                <td>{{#if detail}}{{detail}}{{else}}<span class="sp-u-text-tertiary">—</span>{{/if}}</td>
+                <td class="sp-col-status">
                     {{#if status}}{{> components/badge color=status_color text=status}}
-                    {{else}}<span class="text-tertiary">—</span>{{/if}}
+                    {{else}}<span class="sp-u-text-tertiary">—</span>{{/if}}
                 </td>
-                <td>{{#if policy}}<code class="code-inline">{{policy}}</code>{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
+                <td>{{#if policy}}<code class="sp-code-inline">{{policy}}</code>{{else}}<span class="sp-u-text-tertiary">—</span>{{/if}}</td>
             </tr>
             {{/each}}
             </tbody>
@@ -52,7 +52,7 @@
         {{else}}
         {{> components/empty-state message="Nothing recorded yet. Run a skill or an MCP tool through Claude Code and this logbook fills in live."}}
         {{/if}}
-        <p class="text-tertiary text-xs mt-3">{{attribution_note}}</p>
+        <p class="sp-u-text-tertiary sp-u-text-xs sp-u-mt-3">{{attribution_note}}</p>
     </section>
     {{/inline}}
 {{/layout}}

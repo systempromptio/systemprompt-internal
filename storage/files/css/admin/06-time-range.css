@@ -59,22 +59,6 @@
     border-color: var(--sp-accent);
 }
 
-.sp-time-range__apply {
-    padding: var(--sp-space-1) var(--sp-space-3);
-    background: var(--sp-accent-fill);
-    border: 1px solid var(--sp-accent);
-    border-radius: var(--sp-radius-full);
-    font-size: var(--sp-text-sm);
-    font-weight: 600;
-    color: var(--sp-text-on-accent);
-    cursor: pointer;
-    transition: filter var(--sp-duration-fast);
-}
-
-.sp-time-range__apply:hover {
-    filter: brightness(1.08);
-}
-
 .sp-time-range__btn {
     display: inline-flex;
     align-items: center;

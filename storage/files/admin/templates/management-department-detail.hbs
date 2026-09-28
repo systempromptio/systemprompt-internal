@@ -2,7 +2,7 @@
     {{#*inline "head_extra"}}{{/inline}}
     {{#*inline "content"}}
 
-    <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <nav class="sp-breadcrumbs" aria-label="Breadcrumb">
         <a href="/admin/access-control">Departments</a>
         <span aria-hidden="true">›</span>
         <span aria-current="page">{{department.name}}</span>
@@ -10,41 +10,41 @@
 
     {{> components/page-header title=department.name subtitle=department.description}}
 
-    <section aria-label="Department usage" class="card dept-section">
-        <div class="dept-stat-grid">
-            <div><div class="text-muted dept-stat-label">Members</div><div class="dept-stat-value">{{member_count}}</div></div>
-            <div><div class="text-muted dept-stat-label">Requests (30d)</div><div class="dept-stat-value">{{total_requests}}</div></div>
-            <div><div class="text-muted dept-stat-label">Tokens in (30d)</div><div class="dept-stat-value">{{total_input_tokens}}</div></div>
-            <div><div class="text-muted dept-stat-label">Tokens out (30d)</div><div class="dept-stat-value">{{total_output_tokens}}</div></div>
-            <div><div class="text-muted dept-stat-label">Cost (30d)</div><div class="dept-stat-value">{{formatUsd total_cost_microdollars}}</div></div>
+    <section aria-label="Department usage" class="sp-card sp-dept-section">
+        <div class="sp-dept-stat-grid">
+            <div><div class="sp-u-text-muted sp-dept-stat-label">Members</div><div class="sp-dept-stat-value">{{member_count}}</div></div>
+            <div><div class="sp-u-text-muted sp-dept-stat-label">Requests (30d)</div><div class="sp-dept-stat-value">{{total_requests}}</div></div>
+            <div><div class="sp-u-text-muted sp-dept-stat-label">Tokens in (30d)</div><div class="sp-dept-stat-value">{{total_input_tokens}}</div></div>
+            <div><div class="sp-u-text-muted sp-dept-stat-label">Tokens out (30d)</div><div class="sp-dept-stat-value">{{total_output_tokens}}</div></div>
+            <div><div class="sp-u-text-muted sp-dept-stat-label">Cost (30d)</div><div class="sp-dept-stat-value">{{formatUsd total_cost_microdollars}}</div></div>
         </div>
     </section>
 
-    <section aria-label="Entitlement" class="card dept-section">
+    <section aria-label="Entitlement" class="sp-card sp-dept-section">
         <h2>Entitlement</h2>
         <p>What members of <strong>{{department.name}}</strong> can reach is decided by the plan their enterprise is on. Skills, marketplaces, plugins, MCP servers, and gateway routes are granted to the enterprise and inherited here; a department rule can narrow that, never widen it.</p>
         <p>
-            <a class="btn btn-primary" href="/admin/users">View enterprises and their plans →</a>
+            <a class="sp-btn sp-btn--primary" href="/admin/users">View enterprises and their plans →</a>
         </p>
     </section>
 
     {{#if top_tools}}
-    <section aria-label="Top tools" class="card dept-section">
+    <section aria-label="Top tools" class="sp-card sp-dept-section">
         <h2>Top tools (30d)</h2>
-        <div class="dept-tool-list">
+        <div class="sp-dept-tool-list">
             {{#each top_tools}}
-            <span class="badge badge-blue">{{tool_name}} · {{invocations}}</span>
+            <span class="sp-badge sp-badge--info">{{tool_name}} · {{invocations}}</span>
             {{/each}}
         </div>
     </section>
     {{/if}}
 
     <section aria-label="Department members" data-dept-id="{{department.id}}" data-dept-name="{{department.name}}">
-        <div class="toolbar">
-            <div class="search-group">
-                <input type="text" class="search-input" placeholder="Search members..." id="member-search">
+        <div class="sp-toolbar">
+            <div class="sp-toolbar__search">
+                <input type="text" class="sp-search-input" placeholder="Search members..." id="member-search">
             </div>
-            <button type="button" class="btn btn-primary" id="btn-add-member">+ Add member</button>
+            <button type="button" class="sp-btn sp-btn--primary" id="btn-add-member">+ Add member</button>
         </div>
         {{#if members}}
         {{#> components/data-table}}
@@ -52,61 +52,61 @@
                 <th>Email</th>
                 <th>Display name</th>
                 <th>Status</th>
-                <th class="numeric col-numeric">Requests (30d)</th>
-                <th class="numeric col-numeric">Tokens (30d)</th>
-                <th class="numeric col-numeric">Cost (30d)</th>
+                <th class="sp-u-num sp-table__cell--num">Requests (30d)</th>
+                <th class="sp-u-num sp-table__cell--num">Tokens (30d)</th>
+                <th class="sp-u-num sp-table__cell--num">Cost (30d)</th>
                 <th>Last active</th>
-                <th class="col-actions"></th>
+                <th class="sp-table__cell--actions"></th>
             </tr></thead>
             <tbody>
             {{#each members}}
             <tr data-member-email="{{toLowerCase email}}">
                 <td><a href="/admin/access/user?id={{id}}">{{email}}</a></td>
-                <td>{{#if display_name}}{{display_name}}{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
-                <td><span class="badge {{#if (eq status "active")}}badge-green{{else}}badge-gray{{/if}}">{{status}}</span></td>
-                <td class="numeric col-numeric">{{requests}}</td>
-                <td class="numeric col-numeric">{{add input_tokens output_tokens}}</td>
-                <td class="numeric col-numeric">{{formatUsd cost_microdollars}}</td>
-                <td>{{#if last_active}}{{relativeTime last_active}}{{else}}<span class="text-tertiary">—</span>{{/if}}</td>
-                <td class="col-actions">
-                    <button type="button" class="btn btn-sm btn-outline" data-unassign-user="{{id}}">Move to Default</button>
+                <td>{{#if display_name}}{{display_name}}{{else}}<span class="sp-u-text-tertiary">—</span>{{/if}}</td>
+                <td><span class="sp-badge {{#if (eq status "active")}}sp-badge--ok{{else}}sp-badge--muted{{/if}}">{{status}}</span></td>
+                <td class="sp-u-num sp-table__cell--num">{{requests}}</td>
+                <td class="sp-u-num sp-table__cell--num">{{add input_tokens output_tokens}}</td>
+                <td class="sp-u-num sp-table__cell--num">{{formatUsd cost_microdollars}}</td>
+                <td>{{#if last_active}}{{relativeTime last_active}}{{else}}<span class="sp-u-text-tertiary">—</span>{{/if}}</td>
+                <td class="sp-table__cell--actions">
+                    <button type="button" class="sp-btn sp-btn--sm sp-btn--outline" data-unassign-user="{{id}}">Move to Default</button>
                 </td>
             </tr>
             {{/each}}
             </tbody>
         {{/components/data-table}}
         {{else}}
-        <div class="empty-state empty-state--pad">
-            <p class="text-muted">No members in this department yet.</p>
-            <button type="button" class="btn btn-primary" id="btn-add-member-empty">+ Add member</button>
+        <div class="sp-empty sp-empty--pad">
+            <p class="sp-u-text-muted">No members in this department yet.</p>
+            <button type="button" class="sp-btn sp-btn--primary" id="btn-add-member-empty">+ Add member</button>
         </div>
         {{/if}}
     </section>
 
-    <dialog id="member-add-dialog" class="dialog">
-        <form id="member-add-form" class="dialog-form">
+    <dialog id="member-add-dialog" class="sp-dialog">
+        <form id="member-add-form" class="sp-dialog-form">
             <h3>Add member to {{department.name}}</h3>
             <label>User ID<input type="text" name="user_id" required placeholder="usr_…"></label>
-            <p class="text-muted dept-note">The user will be moved into <strong>{{department.name}}</strong>.</p>
+            <p class="sp-u-text-muted sp-dept-note">The user will be moved into <strong>{{department.name}}</strong>.</p>
             <menu>
-                <button type="button" class="btn btn-sm btn-outline" id="member-add-cancel">Cancel</button>
-                <button type="submit" class="btn btn-sm btn-primary">Add</button>
+                <button type="button" class="sp-btn sp-btn--sm sp-btn--outline" id="member-add-cancel">Cancel</button>
+                <button type="submit" class="sp-btn sp-btn--sm sp-btn--primary">Add</button>
             </menu>
-            <p id="member-add-error" class="text-danger" hidden></p>
+            <p id="member-add-error" class="sp-u-text-danger" hidden></p>
         </form>
     </dialog>
 
     {{#unless (eq department.name "Default")}}
-    <section aria-label="Department settings" class="mt-8">
-        <form id="dept-settings-form" class="card dept-settings-form">
+    <section aria-label="Department settings" class="sp-u-mt-8">
+        <form id="dept-settings-form" class="sp-card sp-dept-settings-form">
             <h2>Settings</h2>
             <label>Name<input type="text" name="name" value="{{department.name}}" required></label>
             <label>Description<textarea name="description" rows="3">{{department.description}}</textarea></label>
-            <div class="dept-form-actions">
-                <button type="submit" class="btn btn-primary">Save</button>
-                <button type="button" class="btn btn-danger" id="dept-delete-btn">Delete department</button>
+            <div class="sp-dept-form-actions">
+                <button type="submit" class="sp-btn sp-btn--primary">Save</button>
+                <button type="button" class="sp-btn sp-btn--danger" id="dept-delete-btn">Delete department</button>
             </div>
-            <p id="dept-settings-msg" class="text-muted" hidden></p>
+            <p id="dept-settings-msg" class="sp-u-text-muted" hidden></p>
         </form>
     </section>
     {{/unless}}
