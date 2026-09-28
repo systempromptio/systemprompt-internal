@@ -121,13 +121,11 @@ mod conversation_view;
 #[cfg(test)]
 mod governance_warnings_rollup;
 
-
 #[cfg(test)]
 mod hooks_track_commits_pure;
 
 #[cfg(test)]
 mod dashboard_people;
-
 
 #[cfg(test)]
 mod admin_css_classes;
@@ -149,6 +147,8 @@ mod access_control_export;
 mod access_control_review;
 #[cfg(test)]
 mod access_control_rules_yaml;
+#[cfg(test)]
+mod authz_quota_subjects;
 #[cfg(test)]
 mod gateway_policies_drift;
 #[cfg(test)]
@@ -175,5 +175,38 @@ mod sync_sources_hash;
 mod sync_staging;
 #[cfg(test)]
 mod time_bound_access;
+
 #[cfg(test)]
-mod authz_quota_subjects;
+mod analytics_conversations_redact;
+#[cfg(test)]
+mod builders;
+#[cfg(test)]
+mod dev_login_pure;
+#[cfg(test)]
+mod governance_pages;
+#[cfg(test)]
+mod hooks_track_ai_pure;
+#[cfg(test)]
+mod hooks_track_loc_pure;
+#[cfg(test)]
+mod kit_export;
+#[cfg(test)]
+mod managed_assets;
+#[cfg(test)]
+mod managed_bundle;
+#[cfg(test)]
+mod migration_cost;
+#[cfg(test)]
+mod profile_schema;
+#[cfg(test)]
+mod report_pnl;
+#[cfg(test)]
+mod secrets_scanner_response;
+#[cfg(test)]
+mod services_tree_declarations;
+#[cfg(test)]
+mod shared_ids;
+#[cfg(test)]
+mod site_org_url_extender;
+#[cfg(test)]
+mod traces_analytics_pure;

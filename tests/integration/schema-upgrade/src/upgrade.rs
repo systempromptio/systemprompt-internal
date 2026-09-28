@@ -7,9 +7,9 @@
 
 use std::path::PathBuf;
 
+use internal_test_common::{TempDb, db_or_skip, empty_db_or_skip, repo_path};
 use systemprompt::database::install_extension_schemas;
 use systemprompt::extension::ExtensionRegistry;
-use internal_test_common::{TempDb, db_or_skip, empty_db_or_skip, repo_path};
 
 use crate::catalog;
 

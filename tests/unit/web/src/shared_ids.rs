@@ -1,46 +1,44 @@
-//! The `MarketplaceId` / `RequestId` newtypes are transparent wrappers: every
-//! access path (`as_str`, `into_inner`, `Display`, `Deref`, the `From` impls)
-//! must yield the same string that went in, so wrapping a value never changes
-//! what a query or a template sees.
+//! The `GroupId` / `ProjectId` newtypes are transparent wrappers: every
+//! access path (`as_str`, `into_inner`, `Display`, the `From` impls) must
+//! yield the same string that went in, so wrapping a value never changes what
+//! a query or a template sees.
 
 use std::str::FromStr;
-use systemprompt_web_shared::{MarketplaceId, RankTier, RequestId, TierLevel};
+use systemprompt_web_shared::{GroupId, ProjectId, RankTier, TierLevel};
 
 #[test]
-fn marketplace_id_round_trips_through_every_accessor() {
-    let id = MarketplaceId::new("systemprompt-commons");
-    assert_eq!(id.as_str(), "systemprompt-commons");
-    assert_eq!(id.to_string(), "systemprompt-commons");
-    assert_eq!(AsRef::<str>::as_ref(&id), "systemprompt-commons");
-    // Deref to `str` means str methods apply directly to the newtype.
-    assert!(id.starts_with("systemprompt"));
-    assert_eq!(id.into_inner(), "systemprompt-commons");
+fn group_id_round_trips_through_every_accessor() {
+    let id = GroupId::new("europe-devs");
+    assert_eq!(id.as_str(), "europe-devs");
+    assert_eq!(id.to_string(), "europe-devs");
+    assert_eq!(AsRef::<str>::as_ref(&id), "europe-devs");
+    assert_eq!(id, "europe-devs");
+    assert_eq!(id.into_inner(), "europe-devs");
 }
 
 #[test]
-fn marketplace_id_from_owned_and_borrowed_are_equal() {
-    let from_str = MarketplaceId::from("plugin-a");
-    let from_string = MarketplaceId::from("plugin-a".to_owned());
+fn group_id_from_owned_and_borrowed_are_equal() {
+    let from_str = GroupId::from("commerce");
+    let from_string = GroupId::from("commerce".to_owned());
     assert_eq!(from_str, from_string);
-    assert_eq!(MarketplaceId::new("plugin-a"), from_str);
+    assert_eq!(GroupId::new("commerce"), from_str);
+    assert_eq!(String::from(from_str), "commerce");
 }
 
 #[test]
-fn request_id_round_trips_through_every_accessor() {
-    let id = RequestId::new("req_0123456789");
-    assert_eq!(id.as_str(), "req_0123456789");
-    assert_eq!(id.to_string(), "req_0123456789");
-    assert_eq!(id.len(), "req_0123456789".len());
-    assert_eq!(id.clone().into_inner(), "req_0123456789");
-    assert_eq!(RequestId::from("req_0123456789"), id);
+fn project_id_serialises_as_a_bare_string() {
+    let id = ProjectId::new("core");
+    assert_eq!(serde_json::to_string(&id).unwrap(), "\"core\"");
+    let back: ProjectId = serde_json::from_str("\"core\"").unwrap();
+    assert_eq!(back, id);
 }
 
 #[test]
 fn empty_ids_are_carried_verbatim() {
     // The newtypes do not validate; an empty id stays empty rather than
     // becoming a placeholder.
-    assert_eq!(MarketplaceId::new("").as_str(), "");
-    assert_eq!(RequestId::new(String::new()).to_string(), "");
+    assert_eq!(GroupId::new("").as_str(), "");
+    assert_eq!(ProjectId::new(String::new()).to_string(), "");
 }
 
 #[test]

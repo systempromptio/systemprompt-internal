@@ -1,12 +1,16 @@
 //! `repositories::marketplace::webhook` — plugin usage events.
 
-use systemprompt::identifiers::{SessionId, UserId};
+use std::sync::LazyLock;
+
+use systemprompt::identifiers::{PluginId, SessionId, UserId};
 use systemprompt_web_admin::repositories::marketplace::webhook::{
     UsageEventParams, insert_plugin_usage_event,
 };
 
 use crate::fixtures::{unique, user_id};
 use crate::tempdb::TempDb;
+
+static TEST_PLUGIN: LazyLock<PluginId> = LazyLock::new(|| PluginId::new("test"));
 
 fn usage_params<'a>(
     user: &'a UserId,
@@ -15,7 +19,7 @@ fn usage_params<'a>(
     dedup_key: &'a str,
 ) -> UsageEventParams<'a> {
     UsageEventParams {
-        plugin_id: None,
+        plugin_id: &TEST_PLUGIN,
         user_id: user,
         session_id: session,
         event_type: "PostToolUse",
@@ -38,6 +42,7 @@ async fn insert_plugin_usage_event_records_a_new_event() {
         return;
     };
     let user = user_id(&unique("u"));
+    crate::fixtures::insert_user(&db.pool, user.as_str()).await;
     let session = SessionId::new(unique("sess"));
     let metadata = serde_json::json!({ "exit_code": 0 });
     let dedup = unique("dedup");
@@ -68,6 +73,7 @@ async fn insert_plugin_usage_event_reports_a_replay_as_not_written() {
         return;
     };
     let user = user_id(&unique("u"));
+    crate::fixtures::insert_user(&db.pool, user.as_str()).await;
     let session = SessionId::new(unique("sess"));
     let metadata = serde_json::json!({});
     let dedup = unique("dedup");
@@ -103,6 +109,7 @@ async fn insert_plugin_usage_event_keeps_distinct_dedup_keys_apart() {
         return;
     };
     let user = user_id(&unique("u"));
+    crate::fixtures::insert_user(&db.pool, user.as_str()).await;
     let session = SessionId::new(unique("sess"));
     let metadata = serde_json::json!({});
     let first_key = unique("dedup");
@@ -140,6 +147,7 @@ async fn insert_plugin_usage_event_stores_the_metadata_verbatim() {
         return;
     };
     let user = user_id(&unique("u"));
+    crate::fixtures::insert_user(&db.pool, user.as_str()).await;
     let session = SessionId::new(unique("sess"));
     let metadata = serde_json::json!({ "nested": { "tool": "Bash", "ok": true } });
     let dedup = unique("dedup");

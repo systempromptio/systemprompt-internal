@@ -3,13 +3,24 @@
 // reading only that variant lets it out; these tests pin the widened surface.
 
 use systemprompt::ai::SafetyScanner;
+use systemprompt::identifiers::ModelId;
 use systemprompt::models::wire::canonical::{
     CanonicalContent, CanonicalMessage, CanonicalRequest, CanonicalResponse, Role,
 };
 use systemprompt::models::wire::inspect::{SurfaceBudget, string_leaves};
+use systemprompt_security::policy::{GovernanceConfig, GovernanceEngine};
 use systemprompt_web_admin::gateway_safety::SecretsScanner;
 
 const TOKEN: &str = "ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+const AWS_SHAPED: &str = "AKIAIOSFODNN7EXAMPLE";
+
+fn configured_scanner() -> SecretsScanner {
+    let config =
+        GovernanceConfig::parse(include_str!("../../../../services/governance/config.yaml"))
+            .unwrap();
+    let engine = GovernanceEngine::from_config(&config).unwrap();
+    SecretsScanner::with_scanner(engine.secret_scanner().unwrap().clone())
+}
 
 fn response(content: Vec<CanonicalContent>) -> CanonicalResponse {
     CanonicalResponse {
@@ -27,9 +38,10 @@ async fn credential_in_a_tool_use_argument_is_flagged() {
         name: "post_webhook".to_owned(),
         input: serde_json::json!({ "headers": { "authorization": TOKEN } }),
         signature: None,
+        cache_control: None,
     }]);
 
-    let findings = SecretsScanner::new().scan_response_final(&resp).await;
+    let findings = configured_scanner().scan_response_final(&resp).await;
 
     assert_eq!(findings.len(), 1, "got {findings:?}");
     assert_eq!(findings[0].category, "secret");
@@ -40,13 +52,14 @@ async fn credential_in_a_tool_use_argument_is_flagged() {
 async fn credential_in_a_tool_result_is_flagged() {
     let resp = response(vec![CanonicalContent::ToolResult {
         tool_use_id: "t1".to_owned(),
-        content: vec![CanonicalContent::Text(format!("token={TOKEN}"))],
+        content: vec![CanonicalContent::text(format!("token={TOKEN}"))],
         is_error: false,
         structured_content: None,
         meta: None,
+        cache_control: None,
     }]);
 
-    let findings = SecretsScanner::new().scan_response_final(&resp).await;
+    let findings = configured_scanner().scan_response_final(&resp).await;
 
     assert_eq!(findings.len(), 1, "got {findings:?}");
     assert_eq!(findings[0].category, "secret");
@@ -54,13 +67,13 @@ async fn credential_in_a_tool_result_is_flagged() {
 
 #[tokio::test]
 async fn credential_only_in_the_received_surface_is_flagged() {
-    let mut resp = response(vec![CanonicalContent::Text("all done".to_owned())]);
+    let mut resp = response(vec![CanonicalContent::text("all done".to_owned())]);
     resp.received_surface = string_leaves(
         format!(r#"{{"content":[{{"type":"unmodelled","blob":"{TOKEN}"}}]}}"#).as_bytes(),
         SurfaceBudget::default(),
     );
 
-    let findings = SecretsScanner::new().scan_response_final(&resp).await;
+    let findings = configured_scanner().scan_response_final(&resp).await;
 
     assert_eq!(findings.len(), 1, "got {findings:?}");
     assert_eq!(findings[0].category, "secret");
@@ -72,26 +85,41 @@ async fn credential_only_in_the_received_surface_is_flagged() {
 // request scan brings back the duplicate plane.
 #[tokio::test]
 async fn a_credential_in_a_request_is_left_to_the_governance_chain() {
-    let req = CanonicalRequest {
-        model: "test-model".to_owned(),
-        messages: vec![CanonicalMessage {
+    let req = CanonicalRequest::new(
+        ModelId::new("test-model"),
+        vec![CanonicalMessage {
             role: Role::User,
-            content: vec![CanonicalContent::Text(format!("my token is {TOKEN}"))],
+            content: vec![CanonicalContent::text(format!("my token is {TOKEN}"))],
         }],
-        ..Default::default()
-    };
+        256,
+    );
 
-    assert!(SecretsScanner::new().scan_request(&req).await.is_empty());
+    assert!(configured_scanner().scan_request(&req).await.is_empty());
 }
 
 #[tokio::test]
 async fn a_clean_response_yields_nothing() {
-    let resp = response(vec![CanonicalContent::Text(
+    let resp = response(vec![CanonicalContent::text(
         "here is the summary you asked for".to_owned(),
     )]);
 
     assert!(
-        SecretsScanner::new()
+        configured_scanner()
+            .scan_response_final(&resp)
+            .await
+            .is_empty()
+    );
+}
+
+// Why: this instance's catalogue declares `aws-access-key`
+// (services/governance/config.yaml), so an AWS-shaped key in a response is a
+// finding here, where a catalogue without the signature would pass it.
+#[tokio::test]
+async fn an_aws_access_key_in_a_response_is_flagged() {
+    let resp = response(vec![CanonicalContent::text(AWS_SHAPED.to_owned())]);
+
+    assert!(
+        !configured_scanner()
             .scan_response_final(&resp)
             .await
             .is_empty()

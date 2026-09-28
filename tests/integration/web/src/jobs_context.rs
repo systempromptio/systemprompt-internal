@@ -1,43 +1,42 @@
 //! The jobs whose entry point is `Job::execute(&JobContext)`.
 //!
-//! `jobs_db` covers the one job with a pool-only entry point. Everything else
-//! reads its pool and its `AppPaths` back out of a `JobContext`, and the two
-//! that write a file also read the process-wide `Config` for the deployment's
-//! external URL. All three are constructible in a test process — `AppPaths`
-//! from a `PathsConfig` pointing at a tempdir, `JobContext` from its public
-//! constructor, and `Config` through `Config::install` — so the job bodies run
-//! here against a throwaway database and a throwaway filesystem, rather than
-//! only their pure helpers.
+//! `AppPaths` is built over a tempdir, `JobContext` via its public
+//! constructor, and `Config` via `Config::install`, so the job bodies run
+//! against a throwaway database and filesystem.
 
 use std::path::Path;
 use std::sync::Arc;
 
+use systemprompt::config::AppPaths;
 use systemprompt::database::Database;
 use systemprompt::extension::{AssetDefinition, AssetType, ExtensionRegistry};
 use systemprompt::identifiers::{Actor, UserId};
-use systemprompt::models::config::RateLimitConfig;
-use systemprompt::models::profile::{ContentNegotiationConfig, PathsConfig, SecurityHeadersConfig};
-use systemprompt::models::{AppPaths, Config, PathResolution};
+use systemprompt::models::profile::{
+    ContentNegotiationConfig, PathsConfig, RateLimitsConfig, RetentionConfig, SecurityHeadersConfig,
+};
+use systemprompt::models::{Config, PathResolution};
 use systemprompt::traits::{Job, JobContext};
 use systemprompt_web_jobs::{
-    BundleAdminCssJob, ContentIngestionJob, ContentPrerenderJob, CopyExtensionAssetsJob,
-    LlmsTxtGenerationJob, PublishPipelineJob, RobotsTxtGenerationJob, SecretMigrationJob,
-    SitemapGenerationJob,
+    BundleAdminCssJob, ContentIngestionJob, ContentPrerenderJob as SiteContentPrerenderJob,
+    CopyExtensionAssetsJob, LlmsTxtGenerationJob, PublishPipelineJob, RobotsTxtGenerationJob,
+    SecretMigrationJob, SitemapGenerationJob,
 };
 use tempfile::TempDir;
 
 use crate::tempdb::TempDb;
 
-// Stage count of `PublishPipelineJob`: ingestion, CSS bundle, asset copy,
-// content prerender, page prerender, sitemap, llms.txt, robots.txt, feed, the
-// unconditional success the pipeline records between them, and asset
-// organisation. Asserting the total pins that no stage is silently dropped.
+// Every `PublishPipelineJob` stage plus its unconditional success record;
+// the total pins that no stage is silently dropped.
 const PIPELINE_STAGES: u64 = 11;
 
-// A 32-byte key, hex-encoded, so `load_master_key` accepts it. Under nextest
-// each test is its own process and sets this before spawning anything, so
-// there is no concurrent reader of the environment.
+// `load_master_key` accepts only a 32-byte hex key.
+#[expect(
+    unsafe_code,
+    reason = "set_var is unsafe in edition 2024; see the SAFETY note"
+)]
 fn set_master_key() {
+    // SAFETY: callers are current-thread `#[tokio::test]`s and nextest gives
+    // each test its own process, so nothing else reads the environment here.
     unsafe {
         std::env::set_var(
             "ENCRYPTION_MASTER_KEY",
@@ -46,11 +45,9 @@ fn set_master_key() {
     }
 }
 
-// Every job that reads the global `Config` reads exactly one field from it,
-// and `Config` is a process-wide `OnceLock` — so all tests in this binary must
-// agree on the value, or the first installer would silently decide it for the
-// rest. Fixing it here makes the assertions below independent of test order.
-const BASE_URL: &str = "https://systemprompt.test";
+// `Config` is a process-wide `OnceLock`: every test in this binary must
+// install the same value, or the first installer decides it for the rest.
+const BASE_URL: &str = "https://internal.test";
 
 const DOCUMENTATION_SOURCE_ENABLED: &str = "\
 content_sources:\n\
@@ -78,11 +75,11 @@ pub(crate) fn install_config() {
     if Config::is_initialized() {
         return;
     }
-    let _ = Config::install(Config {
+    let installed = Config::install(Config {
         instance_id: "jobs-context-tests".to_owned(),
         metrics_port: None,
         max_concurrent_streams: 16,
-        sitename: "systemprompt-test".to_owned(),
+        sitename: "internal-test".to_owned(),
         database_type: "postgres".to_owned(),
         database_url: "postgres://unused".to_owned(),
         database_write_url: None,
@@ -95,8 +92,6 @@ pub(crate) fn install_config() {
         settings_path: "/tmp".to_owned(),
         content_config_path: "/tmp".to_owned(),
         geoip_database_path: None,
-        system_admin_email: None,
-        login_page_url: None,
         web_path: "/tmp".to_owned(),
         web_config_path: "/tmp".to_owned(),
         web_metadata_path: "/tmp".to_owned(),
@@ -106,6 +101,7 @@ pub(crate) fn install_config() {
         api_internal_url: BASE_URL.to_owned(),
         api_external_url: BASE_URL.to_owned(),
         jwt_issuer: "https://issuer.test".to_owned(),
+        login_page_url: None,
         jwt_access_token_expiration: 3_600,
         jwt_refresh_token_expiration: 86_400,
         jwt_audiences: vec![],
@@ -114,20 +110,25 @@ pub(crate) fn install_config() {
         id_jag_ttl_secs: 300,
         signing_key_path: std::path::PathBuf::from("signing_key.pem"),
         use_https: true,
-        rate_limits: RateLimitConfig::default(),
+        rate_limits: RateLimitsConfig::default(),
+        retention: RetentionConfig::default(),
         cors_allowed_origins: vec![],
         trusted_proxies: vec![],
         is_cloud: false,
         content_negotiation: ContentNegotiationConfig::default(),
         security_headers: SecurityHeadersConfig::default(),
         allow_registration: false,
+        allow_dynamic_client_registration: false,
         system_admin_username: "admin".to_owned(),
+        system_admin_email: None,
     });
+    assert!(
+        installed.is_ok() || Config::is_initialized(),
+        "a Config is installed, by this call or a racing test"
+    );
 }
 
-// The jobs write into `paths.web().dist()` and read `paths.system()`, so the
-// tree has to exist before a job runs — `AppPaths::from_profile` canonicalises,
-// which a missing directory fails.
+// `AppPaths::from_profile` canonicalises, which fails on a missing directory.
 fn app_paths(root: &Path) -> Arc<AppPaths> {
     let root = root.to_string_lossy().to_string();
     Arc::new(
@@ -154,7 +155,7 @@ struct Harness {
 }
 
 impl Harness {
-    async fn create() -> Option<Self> {
+    async fn create_or_skip() -> Option<Self> {
         install_config();
         let db = TempDb::create().await?;
         let tmp = TempDir::new().expect("temporary tree");
@@ -168,10 +169,8 @@ impl Harness {
             Arc::clone(&self.db.pool),
             Some(Arc::clone(&self.db.pool)),
         ));
-        // The context type-erases each slot to `Arc<dyn Any>` and jobs downcast
-        // it back to `DbPool` (itself an `Arc<Database>`) and `Arc<AppPaths>` —
-        // so each value goes in wrapped in a second `Arc`, or the downcast
-        // misses and the job reports the slot as absent.
+        // `JobContext` type-erases slots to `Arc<dyn Any>` and jobs downcast to
+        // `DbPool` / `Arc<AppPaths>`, so each value is wrapped in a second `Arc`.
         JobContext::new(
             Actor::user(UserId::new("jobs-context-test")),
             Arc::new(database),
@@ -180,8 +179,6 @@ impl Harness {
         )
     }
 
-    // A context whose pool and paths are the unit type: both downcasts miss,
-    // which is the shape a job sees when the scheduler was wired wrong.
     fn empty_context() -> JobContext {
         JobContext::new(
             Actor::user(UserId::new("jobs-context-test")),
@@ -191,8 +188,6 @@ impl Harness {
         )
     }
 
-    // A context carrying the database but no `AppPaths`: the shape a job sees
-    // when the scheduler was wired with half its dependencies.
     fn context_without_paths(&self) -> JobContext {
         let database = Arc::new(Database::from_pools(
             Arc::clone(&self.db.pool),
@@ -220,9 +215,6 @@ impl Harness {
         std::fs::write(dir.join(name), contents).expect("write the stylesheet");
     }
 
-    // The ingestion job resolves its config from this context's own paths, so a
-    // per-test tree needs nothing process-global -- the file just has to sit
-    // where those paths say.
     fn point_blog_config_at(&self, yaml: &str) {
         let dir = self.paths.system().services().join("config");
         std::fs::create_dir_all(&dir).expect("create the services config directory");
@@ -239,6 +231,14 @@ impl Harness {
     }
 
     async fn seed_plaintext_secret(&self, id: &str, user_id: &str, name: &str, value: &str) {
+        sqlx::query(
+            "INSERT INTO users (id, name, email) VALUES ($1, $1, $1 || '@example.invalid') \
+             ON CONFLICT (id) DO NOTHING",
+        )
+        .bind(user_id)
+        .execute(&*self.db.pool)
+        .await
+        .expect("seed the secret's owner");
         sqlx::query(
             "INSERT INTO plugin_env_vars (id, user_id, plugin_id, var_name, var_value, is_secret) \
              VALUES ($1, $2, 'test-plugin', $3, $4, true)",
@@ -267,7 +267,7 @@ impl Harness {
 
 #[tokio::test]
 async fn robots_txt_is_written_into_dist_against_the_configured_base_url() {
-    let Some(h) = Harness::create().await else {
+    let Some(h) = Harness::create_or_skip().await else {
         return;
     };
 
@@ -292,7 +292,7 @@ async fn robots_txt_is_written_into_dist_against_the_configured_base_url() {
 
 #[tokio::test]
 async fn robots_txt_refuses_a_context_with_no_app_paths() {
-    let Some(h) = Harness::create().await else {
+    let Some(h) = Harness::create_or_skip().await else {
         return;
     };
 
@@ -311,7 +311,7 @@ async fn robots_txt_refuses_a_context_with_no_app_paths() {
 
 #[tokio::test]
 async fn llms_txt_lists_the_documentation_source_it_was_pointed_at() {
-    let Some(h) = Harness::create().await else {
+    let Some(h) = Harness::create_or_skip().await else {
         return;
     };
     h.write_content_config(DOCUMENTATION_SOURCE_ENABLED);
@@ -338,7 +338,7 @@ async fn llms_txt_lists_the_documentation_source_it_was_pointed_at() {
 
 #[tokio::test]
 async fn llms_txt_still_writes_a_file_when_the_documentation_source_is_disabled() {
-    let Some(h) = Harness::create().await else {
+    let Some(h) = Harness::create_or_skip().await else {
         return;
     };
     h.write_content_config(DOCUMENTATION_SOURCE_DISABLED);
@@ -363,7 +363,7 @@ async fn llms_txt_still_writes_a_file_when_the_documentation_source_is_disabled(
 
 #[tokio::test]
 async fn llms_txt_fails_when_the_content_config_is_absent() {
-    let Some(h) = Harness::create().await else {
+    let Some(h) = Harness::create_or_skip().await else {
         return;
     };
 
@@ -386,7 +386,7 @@ async fn llms_txt_fails_when_the_content_config_is_absent() {
 
 #[tokio::test]
 async fn llms_txt_fails_on_a_malformed_content_config() {
-    let Some(h) = Harness::create().await else {
+    let Some(h) = Harness::create_or_skip().await else {
         return;
     };
     h.write_content_config("content_sources: [this is a list, not a map]\n");
@@ -403,7 +403,7 @@ async fn llms_txt_fails_on_a_malformed_content_config() {
 
 #[tokio::test]
 async fn llms_txt_refuses_a_context_with_no_database() {
-    let Some(h) = Harness::create().await else {
+    let Some(h) = Harness::create_or_skip().await else {
         return;
     };
 
@@ -422,7 +422,7 @@ async fn llms_txt_refuses_a_context_with_no_database() {
 
 #[tokio::test]
 async fn sitemap_generation_refuses_a_context_with_no_database() {
-    let Some(h) = Harness::create().await else {
+    let Some(h) = Harness::create_or_skip().await else {
         return;
     };
 
@@ -438,13 +438,11 @@ async fn sitemap_generation_refuses_a_context_with_no_database() {
 
 #[tokio::test]
 async fn copy_extension_assets_copies_every_registered_required_asset() {
-    let Some(h) = Harness::create().await else {
+    let Some(h) = Harness::create_or_skip().await else {
         return;
     };
     let registry = ExtensionRegistry::discover().expect("discover extension registrations");
     let assets = registry.all_required_assets(h.paths.as_ref());
-    // Sources live under the temporary tree because `AppPaths` was built over
-    // it; creating each one is what makes the copy loop's success arm run.
     for (_, asset) in &assets {
         if let Some(parent) = asset.source().parent() {
             std::fs::create_dir_all(parent).expect("create the asset source directory");
@@ -476,7 +474,7 @@ async fn copy_extension_assets_copies_every_registered_required_asset() {
 
 #[tokio::test]
 async fn copy_extension_assets_fails_when_a_required_source_is_missing() {
-    let Some(h) = Harness::create().await else {
+    let Some(h) = Harness::create_or_skip().await else {
         return;
     };
 
@@ -494,7 +492,7 @@ async fn copy_extension_assets_fails_when_a_required_source_is_missing() {
 
 #[tokio::test]
 async fn copy_extension_assets_refuses_a_context_with_no_app_paths() {
-    let Some(h) = Harness::create().await else {
+    let Some(h) = Harness::create_or_skip().await else {
         return;
     };
 
@@ -552,7 +550,7 @@ async fn every_registered_job_reports_whether_it_is_enabled_and_schedulable() {
 
 #[tokio::test]
 async fn bundle_admin_css_concatenates_the_admin_stylesheets_in_filename_order() {
-    let Some(h) = Harness::create().await else {
+    let Some(h) = Harness::create_or_skip().await else {
         return;
     };
     h.write_admin_css("02-second.css", ".second {}");
@@ -575,7 +573,7 @@ async fn bundle_admin_css_concatenates_the_admin_stylesheets_in_filename_order()
 
 #[tokio::test]
 async fn bundle_admin_css_ignores_files_that_are_not_stylesheets() {
-    let Some(h) = Harness::create().await else {
+    let Some(h) = Harness::create_or_skip().await else {
         return;
     };
     h.write_admin_css("01-only.css", ".only {}");
@@ -596,7 +594,7 @@ async fn bundle_admin_css_ignores_files_that_are_not_stylesheets() {
 
 #[tokio::test]
 async fn bundle_admin_css_fails_when_the_admin_directory_is_absent() {
-    let Some(h) = Harness::create().await else {
+    let Some(h) = Harness::create_or_skip().await else {
         return;
     };
 
@@ -610,11 +608,11 @@ async fn bundle_admin_css_fails_when_the_admin_directory_is_absent() {
     h.cleanup().await;
 }
 
-// An entry that ends in `.css` but is a directory is collected and then fails
-// to read — the one path that reaches the `failed > 0` guard.
+// A `.css` directory is collected then fails to read: the only path to the
+// `failed > 0` guard.
 #[tokio::test]
 async fn bundle_admin_css_fails_when_a_collected_stylesheet_cannot_be_read() {
-    let Some(h) = Harness::create().await else {
+    let Some(h) = Harness::create_or_skip().await else {
         return;
     };
     h.write_admin_css("01-good.css", ".good {}");
@@ -644,8 +642,8 @@ async fn bundle_admin_css_refuses_a_context_with_no_app_paths() {
 }
 
 #[tokio::test]
-async fn content_prerender_refuses_a_context_with_no_database() {
-    let error = ContentPrerenderJob
+async fn site_content_prerender_refuses_a_context_with_no_database() {
+    let error = SiteContentPrerenderJob
         .execute(&Harness::empty_context())
         .await
         .expect_err("prerendering reads content out of the database");
@@ -654,12 +652,12 @@ async fn content_prerender_refuses_a_context_with_no_database() {
 }
 
 #[tokio::test]
-async fn content_prerender_refuses_a_context_with_no_app_paths() {
-    let Some(h) = Harness::create().await else {
+async fn site_content_prerender_refuses_a_context_with_no_app_paths() {
+    let Some(h) = Harness::create_or_skip().await else {
         return;
     };
 
-    let error = ContentPrerenderJob
+    let error = SiteContentPrerenderJob
         .execute(&h.context_without_paths())
         .await
         .expect_err("prerendering has nowhere to write without AppPaths");
@@ -670,7 +668,7 @@ async fn content_prerender_refuses_a_context_with_no_app_paths() {
 
 #[tokio::test]
 async fn secret_migration_does_nothing_when_no_master_key_is_configured() {
-    let Some(h) = Harness::create().await else {
+    let Some(h) = Harness::create_or_skip().await else {
         return;
     };
 
@@ -686,7 +684,7 @@ async fn secret_migration_does_nothing_when_no_master_key_is_configured() {
 
 #[tokio::test]
 async fn secret_migration_reports_no_work_when_every_secret_is_already_encrypted() {
-    let Some(h) = Harness::create().await else {
+    let Some(h) = Harness::create_or_skip().await else {
         return;
     };
     set_master_key();
@@ -704,7 +702,7 @@ async fn secret_migration_reports_no_work_when_every_secret_is_already_encrypted
 
 #[tokio::test]
 async fn secret_migration_encrypts_plaintext_rows_and_audits_each_one() {
-    let Some(h) = Harness::create().await else {
+    let Some(h) = Harness::create_or_skip().await else {
         return;
     };
     set_master_key();
@@ -760,7 +758,7 @@ async fn secret_migration_refuses_a_context_with_no_database() {
 
 #[tokio::test]
 async fn publish_pipeline_runs_every_stage_and_reports_each_outcome() {
-    let Some(h) = Harness::create().await else {
+    let Some(h) = Harness::create_or_skip().await else {
         return;
     };
     h.write_admin_css("01-first.css", ".first {}");
@@ -802,7 +800,7 @@ async fn publish_pipeline_refuses_a_context_with_no_database() {
 
 #[tokio::test]
 async fn publish_pipeline_refuses_a_context_with_no_app_paths() {
-    let Some(h) = Harness::create().await else {
+    let Some(h) = Harness::create_or_skip().await else {
         return;
     };
 
@@ -817,7 +815,7 @@ async fn publish_pipeline_refuses_a_context_with_no_app_paths() {
 
 #[tokio::test]
 async fn content_ingestion_walks_every_enabled_source_the_blog_config_names() {
-    let Some(h) = Harness::create().await else {
+    let Some(h) = Harness::create_or_skip().await else {
         return;
     };
     let tree = h.tmp.path().join("guides");
@@ -853,7 +851,7 @@ async fn content_ingestion_walks_every_enabled_source_the_blog_config_names() {
 
 #[tokio::test]
 async fn content_ingestion_counts_a_malformed_file_without_failing_the_job() {
-    let Some(h) = Harness::create().await else {
+    let Some(h) = Harness::create_or_skip().await else {
         return;
     };
     let tree = h.tmp.path().join("guides");
@@ -874,7 +872,7 @@ async fn content_ingestion_counts_a_malformed_file_without_failing_the_job() {
 
 #[tokio::test]
 async fn content_ingestion_prunes_orphans_only_when_the_environment_asks_for_it() {
-    let Some(h) = Harness::create().await else {
+    let Some(h) = Harness::create_or_skip().await else {
         return;
     };
     let tree = h.tmp.path().join("guides");
@@ -898,7 +896,7 @@ async fn content_ingestion_prunes_orphans_only_when_the_environment_asks_for_it(
 
 #[tokio::test]
 async fn content_ingestion_is_skipped_when_the_profile_has_no_blog_config() {
-    let Some(h) = Harness::create().await else {
+    let Some(h) = Harness::create_or_skip().await else {
         return;
     };
     let result = ContentIngestionJob
@@ -914,7 +912,7 @@ async fn content_ingestion_is_skipped_when_the_profile_has_no_blog_config() {
 
 #[tokio::test]
 async fn content_ingestion_fails_when_the_blog_config_does_not_validate() {
-    let Some(h) = Harness::create().await else {
+    let Some(h) = Harness::create_or_skip().await else {
         return;
     };
     h.point_blog_config_at(&single_source_config(&h.tmp.path().join("never-created")));
@@ -925,7 +923,7 @@ async fn content_ingestion_fails_when_the_blog_config_does_not_validate() {
         .expect_err("an enabled source pointing at nothing is a configuration error");
 
     assert!(
-        error.to_string().contains("Failed to load blog config"),
+        error.to_string().contains("configuration errors"),
         "unexpected error: {error}"
     );
 
@@ -979,8 +977,6 @@ async fn seed_orphan(h: &Harness, slug: &str) {
         .expect("seed a row whose file does not exist");
 }
 
-// A failing *optional* asset is counted, not fatal — the branch the registered
-// assets (all required) never take.
 #[tokio::test]
 async fn an_optional_asset_that_cannot_be_copied_is_counted_and_not_fatal() {
     let tmp = TempDir::new().expect("temporary tree");
@@ -1017,11 +1013,6 @@ async fn a_required_asset_that_cannot_be_copied_fails_the_copy() {
     let _ = error;
 }
 
-// `SitemapGenerationJob` and `ContentPrerenderJob` are not driven to
-// completion here. Both delegate to a core generator that loads the full
-// `WebConfig` from the *global* `Config`'s `web_config_path` — a
-// process-wide value fixed by the first test to install a config, which
-// cannot point at the per-test temporary tree the job writes into. Their
-// context lookups are asserted above, and the publish pipeline drives both
-// through their failure paths; rendering a fixture site is what the contract
-// suite does.
+// `SitemapGenerationJob` and `SiteContentPrerenderJob` are not driven to
+// completion: their core generator reads `web_config_path` from the global
+// `Config`, which cannot point at a per-test tree.

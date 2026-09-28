@@ -35,8 +35,6 @@ const MASTER_KEY_HEX: &str = "00112233445566778899aabbccddeeff001122334455667788
 pub struct Stack {
     pub router: Router,
     pub db: TempDb,
-    pub odoo: super::odoo_mock::OdooMock,
-    pub smtp: super::smtp_mock::SmtpMock,
     pub admin_token: String,
     pub user_token: String,
 }
@@ -58,8 +56,6 @@ pub fn profile_path() -> PathBuf {
 struct FixtureSecrets<'a> {
     database_url: &'a str,
     odoo_url: &'a str,
-    smtp_host: &'a str,
-    smtp_port: u16,
 }
 
 fn install_profile(secrets: &FixtureSecrets<'_>, govern_port: u16) {
@@ -71,17 +67,12 @@ fn install_profile(secrets: &FixtureSecrets<'_>, govern_port: u16) {
         .replace("__PROFILE_DIR__", &dir.to_string_lossy())
         .replace("__GOVERN_PORT__", &govern_port.to_string());
     std::fs::write(dir.join("profile.yaml"), yaml).expect("write fixture profile");
-    // odoo_url / odoo_db and the smtp_* keys ride along as custom secret keys —
-    // the same channel `just setup-local` uses — so the Odoo login handler and
-    // the mail transport both resolve their mocks without touching process env.
-    // `smtp_security: plaintext` is the opt-out that lets the transport reach a
-    // plaintext listener: the capture server negotiates no TLS, and without it
-    // every send would fail in STARTTLS before lettre ever built a message.
+    // odoo_url / odoo_db ride along as custom secret keys — the same channel
+    // `just setup-local` uses — so the Odoo client resolves its mock without
+    // touching process env.
     let FixtureSecrets {
         database_url,
         odoo_url,
-        smtp_host,
-        smtp_port,
     } = *secrets;
     let secrets = format!(
         r#"{{
@@ -90,13 +81,7 @@ fn install_profile(secrets: &FixtureSecrets<'_>, govern_port: u16) {
   "manifest_signing_secret_seed": "ZTJlLXN1aXRlLXNlZWQtbm90LXJlYWwtMDAwMDAwMDA=",
   "encryption_master_key": "{MASTER_KEY_HEX}",
   "odoo_url": "{odoo_url}",
-  "odoo_db": "e2e_odoo",
-  "smtp_host": "{smtp_host}",
-  "smtp_port": "{smtp_port}",
-  "smtp_username": "e2e-smtp-user",
-  "smtp_password": "e2e-smtp-password",
-  "smtp_from": "systemprompt.io <hello@systemprompt.io>",
-  "smtp_security": "plaintext"
+  "odoo_db": "e2e_odoo"
 }}"#
     );
     std::fs::write(dir.join("secrets.json"), secrets).expect("write fixture secrets");
@@ -239,15 +224,15 @@ async fn mint_user_token(pool: &PgPool, user_id: &UserId, email: &str) -> String
 async fn reapply_seeds(pool: &Arc<PgPool>) {
     let database =
         systemprompt::database::Database::from_pools(Arc::clone(pool), Some(Arc::clone(pool)));
-    let registry =
-        systemprompt::ExtensionRegistry::discover().expect("discover extension registrations");
+    let registry = systemprompt::extension::ExtensionRegistry::discover()
+        .expect("discover extension registrations");
     systemprompt::database::install_extension_schemas(&registry, database.write())
         .await
         .expect("re-apply extension seeds after provisioning the admin");
 }
 
 // The real logins, matching the live suite and the production clone. This
-// harness seeds a throwaway database and talks to a wiremock Odoo, so nothing
+// harness seeds a throwaway database and reaches no Odoo, so nothing
 // here reaches a real account — but the identities the assertions are written
 // against should still be the ones the system actually carries, so a manifest
 // or role expectation means the same thing in both tiers.
@@ -257,8 +242,6 @@ pub const USER_EMAIL: &str = "ed+notadmin@systemprompt.io";
 impl Stack {
     pub async fn create() -> Option<Self> {
         let db = TempDb::create().await?;
-        let odoo = super::odoo_mock::OdooMock::start().await;
-        let smtp = super::smtp_mock::SmtpMock::start().await;
         // Why: the profile's authz hook URL must be live before any config is
         // built, so the port is reserved first and the assembled router is
         // served on it below — a spawned MCP subprocess fail-closes on an
@@ -272,9 +255,9 @@ impl Stack {
         install_profile(
             &FixtureSecrets {
                 database_url: &db.url,
-                odoo_url: &odoo.url(),
-                smtp_host: &smtp.host,
-                smtp_port: smtp.port,
+                // Why: no Odoo is reached from this suite; the key is present
+                // so the profile resolves the same custom secrets it does live.
+                odoo_url: "http://127.0.0.1:9",
             },
             govern_port,
         );
@@ -326,8 +309,6 @@ impl Stack {
         Some(Self {
             router,
             db,
-            odoo,
-            smtp,
             admin_token,
             user_token,
         })
@@ -376,35 +357,6 @@ impl Stack {
             .expect("read body")
             .to_bytes();
         (status, String::from_utf8_lossy(&bytes).into_owned())
-    }
-
-    // Drive the real Odoo sign-in endpoint against the wiremock Odoo, using
-    // the seeded `marketplace-admin` OAuth client.
-    pub async fn odoo_login(&self, login: &str, credential: &str) -> (StatusCode, String) {
-        self.send(
-            "POST",
-            "/admin/auth/odoo/login",
-            None,
-            Some(serde_json::json!({
-                "login": login,
-                "credential": credential,
-                "client_id": "marketplace-admin",
-                "redirect_uri": "/admin/login",
-                "code_challenge": "e2e-code-challenge-not-real",
-                "code_challenge_method": "S256",
-            })),
-        )
-        .await
-    }
-
-    // A session bearer for an already-provisioned user, looked up by email.
-    pub async fn token_for_email(&self, email: &str) -> String {
-        let user_id: String = sqlx::query_scalar("SELECT id FROM users WHERE email = $1")
-            .bind(email)
-            .fetch_one(&*self.db.pool)
-            .await
-            .expect("the user exists");
-        mint_token(&self.db.pool, &UserId::new(user_id), email).await
     }
 
     // The decoded SignedManifest payload for one bearer. The envelope carries

@@ -31,7 +31,7 @@ use tower::ServiceExt as _;
 use crate::fixtures::{content_params, link_params};
 use crate::tempdb::TempDb;
 
-const BASE_URL: &str = "https://systemprompt.test";
+const BASE_URL: &str = "https://internal.test";
 
 fn blog_config() -> Arc<BlogConfigValidated> {
     Arc::new(
@@ -143,7 +143,7 @@ async fn generate_link_returns_a_short_url_built_from_the_configured_base_url() 
     let (status, body) = post(
         app(&db),
         "/links/generate",
-        &json!({ "target_url": "https://systemprompt.test/guides/one", "campaign_name": "launch" }),
+        &json!({ "target_url": "https://internal.test/guides/one", "campaign_name": "launch" }),
     )
     .await;
 
@@ -155,7 +155,7 @@ async fn generate_link_returns_a_short_url_built_from_the_configured_base_url() 
     );
     assert_eq!(
         body["target_url"],
-        json!("https://systemprompt.test/guides/one")
+        json!("https://internal.test/guides/one")
     );
 
     db.cleanup().await;
@@ -170,7 +170,7 @@ async fn generate_link_falls_back_to_a_literal_base_url_when_no_config_is_mounte
     let (status, body) = post(
         app_without_config(&db),
         "/links/generate",
-        &json!({ "target_url": "https://systemprompt.test/guides/two" }),
+        &json!({ "target_url": "https://internal.test/guides/two" }),
     )
     .await;
 
@@ -305,7 +305,7 @@ async fn recording_a_click_persists_the_attributes_the_caller_supplied() {
                         "link_id": link.id.as_str(),
                         "session_id": "session-explicit",
                         "referrer_page": "/guides/one",
-                        "referrer_url": "https://systemprompt.test/guides/one",
+                        "referrer_url": "https://internal.test/guides/one",
                         "user_agent": "integration-test",
                         "device_type": "desktop",
                     })
@@ -696,7 +696,7 @@ async fn the_query_handler_searches_the_body_it_is_given() {
         .await
         .expect("seed an article to find");
 
-    let response = systemprompt_web_content::api::handlers::query_handler(
+    let response = api::handlers::query_handler(
         State(state(&db)),
         JsonExtract(systemprompt_web_shared::models::SearchRequest {
             query: "query-target".to_owned(),
@@ -731,7 +731,7 @@ async fn listing_content_by_source_returns_only_that_source() {
     .await
     .expect("seed a documentation page");
 
-    let response = systemprompt_web_content::api::handlers::list_content_handler(
+    let response = api::handlers::list_content_handler(
         State(state(&db)),
         PathExtract(SourceId::new("blog".to_owned())),
     )
@@ -756,7 +756,7 @@ async fn getting_one_article_by_source_and_slug_returns_it() {
         .await
         .expect("seed the article");
 
-    let response = systemprompt_web_content::api::handlers::get_content_handler(
+    let response = api::handlers::get_content_handler(
         State(state(&db)),
         PathExtract((SourceId::new("blog".to_owned()), "wanted".to_owned())),
     )
@@ -777,7 +777,7 @@ async fn getting_an_article_that_does_not_exist_is_a_404() {
         return;
     };
 
-    let response = systemprompt_web_content::api::handlers::get_content_handler(
+    let response = api::handlers::get_content_handler(
         State(state(&db)),
         PathExtract((SourceId::new("blog".to_owned()), "absent".to_owned())),
     )
@@ -796,9 +796,9 @@ async fn getting_an_article_that_does_not_exist_is_a_404() {
 async fn setting_a_session_issues_an_access_cookie_and_a_refresh_cookie() {
     crate::jobs_context::install_config();
 
-    let (headers, _) = systemprompt_web_content::api::auth::set_session(
+    let (headers, _) = api::auth::set_session(
         HeaderMap::new(),
-        axum::Json(systemprompt_web_content::api::auth::SetSessionRequest {
+        axum::Json(api::auth::SetSessionRequest {
             access_token: "access-abc".to_owned(),
             expires_in: Some(120),
             refresh_token: Some("refresh-xyz".to_owned()),
@@ -824,9 +824,9 @@ async fn setting_a_session_issues_an_access_cookie_and_a_refresh_cookie() {
 async fn a_session_with_no_refresh_token_issues_only_the_access_cookie() {
     crate::jobs_context::install_config();
 
-    let (headers, body) = systemprompt_web_content::api::auth::set_session(
+    let (headers, body) = api::auth::set_session(
         HeaderMap::new(),
-        axum::Json(systemprompt_web_content::api::auth::SetSessionRequest {
+        axum::Json(api::auth::SetSessionRequest {
             access_token: "access-only".to_owned(),
             expires_in: None,
             refresh_token: None,
@@ -848,7 +848,7 @@ async fn a_session_with_no_refresh_token_issues_only_the_access_cookie() {
 async fn clearing_a_session_expires_both_cookies() {
     crate::jobs_context::install_config();
 
-    let (headers, body) = systemprompt_web_content::api::auth::clear_session().await;
+    let (headers, body) = api::auth::clear_session().await;
 
     assert!(body.ok);
     let cookies = set_cookies(&headers);

@@ -4,10 +4,10 @@
 use crate::fixtures::{insert_user, unclaimed_email, unique};
 use crate::tempdb::TempDb;
 use std::collections::BTreeMap;
-use systemprompt::identifiers::UserId;
+use systemprompt::identifiers::{ConsumerInstallationId, SessionId, UserId};
 use systemprompt::marketplace::managed::{
-    AssetDigest, AssetFile, ManagedError, ManagedRepository, NewResource, NewRevision,
-    ResourceKind, RevisionFiles, SnapshotProvenance, SourceSpec,
+    AssetDigest, AssetFile, ClientEvidence, ComparisonEvidence, ManagedError, ManagedRepository,
+    NewResource, NewRevision, ResourceKind, RevisionFiles, SnapshotProvenance, SourceSpec,
 };
 
 pub(crate) async fn revision_input(
@@ -85,7 +85,7 @@ async fn revision_round_trip_is_immutable_idempotent_and_owner_scoped() {
         &unclaimed_email("revision-bob"),
     )
     .await;
-    let repo = ManagedRepository::new((*db.pool).clone());
+    let repo = ManagedRepository::new(&db.db_pool()).expect("build the managed repository");
     let input = revision_input(&repo, &alice, &unique("managed_skill")).await;
     let id = repo
         .create_revision(&alice, &input)
@@ -105,12 +105,10 @@ async fn revision_round_trip_is_immutable_idempotent_and_owner_scoped() {
         repo.create_revision(&bob, &input).await,
         Err(ManagedError::Unavailable)
     ));
-    let mutation = sqlx::query!(
-        "UPDATE managed_revisions SET rationale='changed' WHERE id=$1",
-        id.as_str()
-    )
-    .execute(db.pool.as_ref())
-    .await;
+    let mutation = sqlx::query("UPDATE managed_revisions SET rationale='changed' WHERE id=$1")
+        .bind(id.as_str())
+        .execute(db.pool.as_ref())
+        .await;
     assert!(
         mutation.is_err(),
         "database must reject changes to immutable revisions"
@@ -125,19 +123,21 @@ async fn revision_round_trip_is_immutable_idempotent_and_owner_scoped() {
         .expect("candidate");
     assert_ne!(id, next);
     let summaries = repo.list_resources(&alice, 0).await.expect("resources");
-    assert_eq!(summaries.len(), 1);
-    assert_eq!(summaries[0].revision_count, 2);
-    assert_eq!(summaries[0].latest_revision, Some(next.clone()));
+    assert_eq!(summaries.items.len(), 1);
+    assert_eq!(summaries.items[0].revision_count, 2);
+    assert_eq!(summaries.items[0].latest_revision, Some(next.clone()));
     assert!(
         repo.list_resources(&bob, 0)
             .await
             .expect("foreign listing")
+            .items
             .is_empty()
     );
     assert_eq!(
         repo.list_revisions(&alice, &input.resource_id, 0)
             .await
             .expect("history")
+            .items
             .len(),
         2
     );
@@ -167,7 +167,7 @@ async fn resources_isolate_source_keys_and_reject_foreign_parents() {
         &unclaimed_email("source-bob"),
     )
     .await;
-    let repo = ManagedRepository::new((*db.pool).clone());
+    let repo = ManagedRepository::new(&db.db_pool()).expect("build the managed repository");
     let key = unique("source_skill");
     let input = revision_input(&repo, &alice, &key).await;
     let id = repo
@@ -212,13 +212,13 @@ async fn importing_the_current_baseline_is_repeatable_and_preserves_source_bytes
         &unclaimed_email("baseline-owner"),
     )
     .await;
-    let repo = ManagedRepository::new((*db.pool).clone());
+    let repo = ManagedRepository::new(&db.db_pool()).expect("build the managed repository");
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../services");
     let ids = [
-        "admin_daily_brief",
-        "admin_critical_projects",
-        "admin_ai_usage",
-        "systemprompt_cli",
+        "activity_report",
+        "manage_leads",
+        "pending_task",
+        "systemprompt_setup_admin",
     ]
     .map(str::to_owned);
     let captured = capture_skills(&root, &ids).expect("real baseline source");
@@ -279,7 +279,7 @@ async fn text_candidates_inherit_assets_and_comparisons_reject_foreign_resources
         &unclaimed_email("candidate-owner"),
     )
     .await;
-    let repo = ManagedRepository::new((*db.pool).clone());
+    let repo = ManagedRepository::new(&db.db_pool()).expect("build the managed repository");
     let input = revision_input(&repo, &owner, &unique("candidate_skill")).await;
     let baseline = repo
         .create_revision(&owner, &input)
@@ -357,7 +357,7 @@ async fn bundle_resolves_the_exact_owned_dependency_closure() {
         &unclaimed_email("bundle-foreign"),
     )
     .await;
-    let repo = ManagedRepository::new((*db.pool).clone());
+    let repo = ManagedRepository::new(&db.db_pool()).expect("build the managed repository");
     let mut supporting = revision_input(&repo, &owner, &unique("bundle_reference")).await;
     supporting
         .files
@@ -416,7 +416,7 @@ async fn reviewed_publications_are_idempotent_fenced_and_generation_pinned() {
         &unclaimed_email("publication-owner"),
     )
     .await;
-    let repo = ManagedRepository::new((*db.pool).clone());
+    let repo = ManagedRepository::new(&db.db_pool()).expect("build the managed repository");
     let key = unique("published_skill");
     let input = revision_input(&repo, &owner, &key).await;
     let baseline = repo.create_revision(&owner, &input).await.unwrap();
@@ -432,7 +432,7 @@ async fn reviewed_publications_are_idempotent_fenced_and_generation_pinned() {
         action: PublicationAction::InitialAdoption,
         expected_generation: 0,
         operation_key: unique("initial-adoption"),
-        comparison_evidence: serde_json::json!({"kind": "unevaluated_baseline"}),
+        comparison_evidence: evidence_recorded("kind", "unevaluated_baseline"),
         limitations: "Initial adoption is not an improvement claim".to_owned(),
     };
     let initial = repo
@@ -466,22 +466,20 @@ async fn reviewed_publications_are_idempotent_fenced_and_generation_pinned() {
         )
         .await
         .unwrap();
-    let unverified = PublicationRequest {
+    let unevidenced = PublicationRequest {
         resource_id: input.resource_id.clone(),
         revision_id: Some(candidate.clone()),
         action: PublicationAction::PublishImprovement,
         expected_generation: 1,
-        operation_key: unique("unverified-improvement"),
-        comparison_evidence: serde_json::json!({"experiment_id":"exp_test"}),
-        limitations: "Caller-asserted evidence must be rejected".to_owned(),
+        operation_key: unique("unevidenced-improvement"),
+        comparison_evidence: ComparisonEvidence::default(),
+        limitations: "An improvement without evidence must be rejected".to_owned(),
     };
     assert!(
-        repo.review_and_publish(&owner, &owner, &unverified)
+        repo.review_and_publish(&owner, &owner, &unevidenced)
             .await
             .is_err()
     );
-    crate::managed_attestation_fixture::retain(&db.pool, &repo, &owner, &candidate, "exp_test")
-        .await;
     let improvement = repo
         .review_and_publish(
             &owner,
@@ -492,7 +490,7 @@ async fn reviewed_publications_are_idempotent_fenced_and_generation_pinned() {
                 action: PublicationAction::PublishImprovement,
                 expected_generation: 1,
                 operation_key: unique("publish-improvement"),
-                comparison_evidence: serde_json::json!({"experiment_id": "exp_test"}),
+                comparison_evidence: evidence_recorded("review", "independent human"),
                 limitations: "Fixture comparison only".to_owned(),
             },
         )
@@ -524,7 +522,7 @@ async fn reviewed_publications_are_idempotent_fenced_and_generation_pinned() {
         action: PublicationAction::Rollback,
         expected_generation: 1,
         operation_key: unique("stale-rollback"),
-        comparison_evidence: serde_json::json!({"reason": "stale"}),
+        comparison_evidence: evidence_recorded("reason", "stale"),
         limitations: String::new(),
     };
     assert!(matches!(
@@ -541,7 +539,7 @@ async fn reviewed_publications_are_idempotent_fenced_and_generation_pinned() {
                 action: PublicationAction::Withdraw,
                 expected_generation: 2,
                 operation_key: unique("withdraw"),
-                comparison_evidence: serde_json::json!({"reason": "upstream_deleted"}),
+                comparison_evidence: evidence_recorded("reason", "upstream_deleted"),
                 limitations: "Disk content must not become authoritative".to_owned(),
             },
         )
@@ -554,13 +552,12 @@ async fn reviewed_publications_are_idempotent_fenced_and_generation_pinned() {
             .unwrap(),
         ManagedResolution::Withdrawn { generation: 3, .. }
     ));
-    let rows = sqlx::query_scalar!(
-        r#"SELECT count(*) AS "count!" FROM managed_distribution_outbox WHERE owner_id=$1"#,
-        owner.as_str()
-    )
-    .fetch_one(db.pool.as_ref())
-    .await
-    .unwrap();
+    let rows: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM managed_distribution_outbox WHERE owner_id=$1")
+            .bind(owner.as_str())
+            .fetch_one(db.pool.as_ref())
+            .await
+            .unwrap();
     assert_eq!(rows, 3, "each committed generation has one outbox event");
 }
 
@@ -603,7 +600,7 @@ async fn publication_races_corruption_receipts_and_rollback_fail_closed() {
         &unclaimed_email("lifecycle-owner"),
     )
     .await;
-    let repo = ManagedRepository::new((*db.pool).clone());
+    let repo = ManagedRepository::new(&db.db_pool()).expect("build the managed repository");
     let input = revision_input(&repo, &owner, &unique("lifecycle-skill")).await;
     let baseline = repo
         .create_revision(&owner, &input)
@@ -619,7 +616,7 @@ async fn publication_races_corruption_receipts_and_rollback_fail_closed() {
                 action: PublicationAction::InitialAdoption,
                 expected_generation: 0,
                 operation_key: unique("lifecycle-initial"),
-                comparison_evidence: serde_json::json!({"kind":"baseline"}),
+                comparison_evidence: evidence_recorded("kind", "baseline"),
                 limitations: "Initial adoption".to_owned(),
             },
         )
@@ -655,11 +652,9 @@ async fn publication_races_corruption_receipts_and_rollback_fail_closed() {
         action: PublicationAction::PublishImprovement,
         expected_generation: 1,
         operation_key: key,
-        comparison_evidence: serde_json::json!({"experiment_id":"race"}),
+        comparison_evidence: evidence_recorded("review", "concurrent human"),
         limitations: "Concurrent review".to_owned(),
     };
-    crate::managed_attestation_fixture::retain(&db.pool, &repo, &owner, &candidate_a, "race").await;
-    crate::managed_attestation_fixture::retain(&db.pool, &repo, &owner, &candidate_b, "race").await;
     let race_a = request(candidate_a.clone(), unique("race-a"));
     let race_b = request(candidate_b.clone(), unique("race-b"));
     let (left, right) = tokio::join!(
@@ -703,15 +698,18 @@ async fn publication_races_corruption_receipts_and_rollback_fail_closed() {
         .await
         .expect("bundle");
     let files = installed_files(&bundle);
-    let evidence =
-        serde_json::json!({"owner_id":owner.as_str(),"session_id":"clean-lifecycle-test"});
+    let evidence = ClientEvidence {
+        session_id: SessionId::new("clean-lifecycle-test"),
+        owner_id: owner.clone(),
+        recorded: BTreeMap::new(),
+    };
     let mut wrong = files.clone();
     wrong[0].executable = !wrong[0].executable;
     assert!(
         repo.record_installation(
             &owner,
             &InstallationReceiptRequest {
-                installation_id: "bad-mode".to_owned(),
+                installation_id: ConsumerInstallationId::new("bad-mode"),
                 publication_id: selected.publication_id.clone(),
                 resource_id: input.resource_id.clone(),
                 generation: 2,
@@ -727,7 +725,7 @@ async fn publication_races_corruption_receipts_and_rollback_fail_closed() {
         .record_installation(
             &owner,
             &InstallationReceiptRequest {
-                installation_id: "verified-install".to_owned(),
+                installation_id: ConsumerInstallationId::new("verified-install"),
                 publication_id: selected.publication_id.clone(),
                 resource_id: input.resource_id.clone(),
                 generation: 2,
@@ -750,7 +748,7 @@ async fn publication_races_corruption_receipts_and_rollback_fail_closed() {
                 action: PublicationAction::Rollback,
                 expected_generation: 2,
                 operation_key: unique("rollback"),
-                comparison_evidence: serde_json::json!({"receipt_id":receipt.id}),
+                comparison_evidence: evidence_recorded("receipt_id", receipt.id.as_str()),
                 limitations: "Return to retained baseline".to_owned(),
             },
         )
@@ -759,4 +757,10 @@ async fn publication_races_corruption_receipts_and_rollback_fail_closed() {
     assert_eq!(rollback.generation, 3);
     assert_ne!(rollback.publication_id, initial.publication_id);
     assert_ne!(rollback.revision_id, Some(selected_revision));
+}
+
+fn evidence_recorded(key: &str, value: &str) -> ComparisonEvidence {
+    ComparisonEvidence {
+        recorded: BTreeMap::from([(key.to_owned(), serde_json::Value::from(value))]),
+    }
 }

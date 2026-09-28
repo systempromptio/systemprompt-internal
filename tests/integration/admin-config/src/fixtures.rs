@@ -99,27 +99,6 @@ pub async fn add_member(pool: &PgPool, user: &str, org: &str) {
         .expect("insert organization member");
 }
 
-pub async fn set_department(pool: &PgPool, user: &str, department: &str) {
-    sqlx::query(
-        "INSERT INTO user_profile_ext (user_id, department) VALUES ($1, $2)
-         ON CONFLICT (user_id) DO UPDATE SET department = EXCLUDED.department",
-    )
-    .bind(user)
-    .bind(department)
-    .execute(pool)
-    .await
-    .expect("set department");
-}
-
-pub async fn set_user_status(pool: &PgPool, user: &str, status: &str) {
-    sqlx::query("UPDATE users SET status = $2 WHERE id = $1")
-        .bind(user)
-        .bind(status)
-        .execute(pool)
-        .await
-        .expect("update user status");
-}
-
 // One `ai_requests` row. Defaults describe a completed, costed request; each
 // test overrides only the columns its assertion reads.
 pub struct RequestSeed<'a> {

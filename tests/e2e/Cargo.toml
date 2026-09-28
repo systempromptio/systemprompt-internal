@@ -32,7 +32,6 @@ serde_json = { workspace = true }
 serde_yaml = { workspace = true }
 url = { workspace = true }
 chrono = { workspace = true }
-wiremock = { workspace = true }
 rmcp = { workspace = true }
 reqwest = { workspace = true }
 sha2 = { workspace = true }

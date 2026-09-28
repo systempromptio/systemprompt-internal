@@ -303,7 +303,6 @@ async fn render(case: &Case) -> String {
         title: Some(case.title.to_owned()),
     };
     artifact_ui_resource(&target)
-        .await
         .unwrap_or_else(|e| panic!("{} renders: {e}", case.artifact_type))
         .html
 }

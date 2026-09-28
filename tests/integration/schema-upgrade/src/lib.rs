@@ -10,6 +10,9 @@
 //! production while the first was green everywhere. This crate runs the
 //! second path on every push.
 
+use systemprompt_knowledge_jobs as _;
+use systemprompt_mcp_knowledge_bank as _;
+
 pub mod catalog;
 
 #[cfg(test)]

@@ -17,6 +17,7 @@ members = [
     "integration/web",
     "integration/admin-core",
     "integration/schema-upgrade",
+    "integration/gateway",
     "contract/admin",
     "e2e",
 ]
@@ -53,6 +54,7 @@ systemprompt-web-content = { path = "../extensions/web/content" }
 systemprompt-web-jobs = { path = "../extensions/web/jobs" }
 systemprompt-web-extension = { path = "../extensions/web" }
 systemprompt-web-site = { path = "../extensions/web/site" }
+systemprompt-kit-export = { path = "../extensions/cli/kit-export" }
 
 # Core facade — DbPool / Database / identifiers for the integration crate.
 # The contract crate additionally enables `full`, which links the core
@@ -81,6 +83,7 @@ url = "2.5"
 serde_yaml = { package = "serde_yaml_ng", version = "0.10" }
 clap = { version = "4", features = ["derive"] }
 tempfile = "3"
+anyhow = "1.0"
 async-trait = "0.1"
 zip = { version = "8", default-features = false, features = ["deflate"] }
 # Pinned to the exact version the root workspace pins, so the `ServerHandler`
@@ -91,8 +94,7 @@ uuid = { version = "1.18", features = ["v4"] }
 base64 = "0.22"
 # Pinned to the version core signs with, so the tokens this suite mints for the
 # hook audiences validate against core's own decoder.
-jsonwebtoken = { version = "10", features = ["rust_crypto"] }
-wiremock = "0.6"
+jsonwebtoken = { version = "11", features = ["rust_crypto"] }
 futures = "0.3"
 sse-stream = "0.2.4"
 sha2 = "0.10"

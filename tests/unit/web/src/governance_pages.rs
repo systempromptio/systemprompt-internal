@@ -9,7 +9,7 @@
 
 use chrono::{Duration, Utc};
 use serde_json::json;
-use systemprompt::identifiers::UserId;
+use systemprompt::identifiers::{CallId, UserId};
 use systemprompt_web_admin::repositories::governance::approvals::ApprovalRow;
 
 use crate::support::repo_root;
@@ -22,7 +22,7 @@ fn template(name: &str) -> String {
 fn pending_row(expires_in_minutes: i64) -> ApprovalRow {
     let now = Utc::now();
     ApprovalRow {
-        call_id: "call-1".to_owned(),
+        call_id: CallId::new("call-1"),
         tool_name: "write_file".to_owned(),
         server_name: "systemprompt".to_owned(),
         arguments: json!({ "path": "/etc/hosts" }),
@@ -76,7 +76,7 @@ fn a_decided_row_keeps_the_verdict_it_was_given() {
 fn every_approval_decision_control_sits_inside_the_admin_guard() {
     let source = template("governance-approvals.hbs");
     let mut depth: i32 = 0;
-    let mut guarded = 0_usize;
+    let mut guarded = 0usize;
     for line in source.lines() {
         if line.contains("{{#if ../can_decide}}") || line.contains("{{#if can_decide}}") {
             depth += 1;
@@ -146,5 +146,61 @@ fn the_reason_and_argument_columns_carry_their_full_text_on_the_title() {
     assert!(
         template("governance-approvals.hbs").contains("title=\"{{this.arguments_full}}\""),
         "an approver who cannot read the arguments is not approving anything"
+    );
+}
+
+// Why: the decisions table folds a call's evaluations into one row, and the
+// chain strip is the whole of what makes that fold lossless. A row without it
+// is not a denser log, it is a log with evaluations deleted from it.
+#[test]
+fn the_decisions_row_carries_every_evaluation_it_folded_in() {
+    let source = template("governance-warnings.hbs");
+    assert!(
+        source.contains("{{#each this.chain}}"),
+        "the chain strip is gone; the grouped row now hides the evaluations it folded"
+    );
+    assert!(
+        source.contains("{{this.chain_overflow}}"),
+        "a chain longer than the strip must say how many pills it left off"
+    );
+    assert!(
+        source.contains("href=\"{{this.href}}\""),
+        "each pill links to that evaluation's own audit detail, or the fold is one-way"
+    );
+}
+
+// Why: the band is a summary of the log below it, so it must never be the only
+// place a denial appears, and it must not draw itself when there is nothing to
+// report — an empty red box every day is a box nobody reads.
+#[test]
+fn the_attention_band_is_conditional_and_never_replaces_the_log() {
+    let source = template("governance-warnings.hbs");
+    assert!(
+        source.contains("{{#if attention}}"),
+        "the band must be guarded, or a clean window still draws it"
+    );
+    assert!(
+        source.contains("{{#if is_decisions}}"),
+        "the full log is rendered independently of the band"
+    );
+    let band = source
+        .split_once("{{#if attention}}")
+        .and_then(|(_, rest)| rest.split_once("{{#if is_decisions}}"))
+        .map(|(band, _)| band)
+        .unwrap_or_default();
+    assert!(
+        !band.is_empty() && band.contains("{{#each attention}}"),
+        "the band sits above the log and lists the calls that objected"
+    );
+}
+
+// Why: the user column showed a raw UUID, which named nobody. The id is still
+// carried on the title because it is what the operator pastes into a search.
+#[test]
+fn the_user_column_names_a_person_and_keeps_the_id_on_the_title() {
+    let source = template("governance-warnings.hbs");
+    assert!(
+        source.contains("title=\"{{this.user_id}}\">{{this.user_label}}"),
+        "the decisions row must render the display name with the raw id on the title"
     );
 }

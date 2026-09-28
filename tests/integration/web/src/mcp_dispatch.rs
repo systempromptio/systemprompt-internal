@@ -17,7 +17,7 @@ use sqlx::PgPool;
 use systemprompt::database::Database;
 use systemprompt::identifiers::{AgentName, ContextId, SessionId, TraceId};
 use systemprompt::mcp::repository::ToolUsageRepository;
-use systemprompt::mcp::{McpArtifactRepository, McpToolExecutor};
+use systemprompt::mcp::{ArtifactIngest, McpToolExecutor};
 use systemprompt::models::auth::{AuthenticatedUser, Permission};
 use systemprompt::models::execution::context::RequestContext as SysRequestContext;
 use systemprompt_mcp_knowledge_bank::store::{KnowledgeStore, NewDocument};
@@ -35,7 +35,7 @@ fn db_pool(pool: &Arc<PgPool>) -> Arc<Database> {
 fn executor(pool: &Arc<PgPool>, server_name: &str) -> McpToolExecutor {
     let db_pool = db_pool(pool);
     let usage = Arc::new(ToolUsageRepository::new(&db_pool).expect("tool usage repository"));
-    let artifacts = Arc::new(McpArtifactRepository::new(&db_pool).expect("artifact repository"));
+    let artifacts = Arc::new(ArtifactIngest::from_db(&db_pool, None).expect("artifact ingest"));
     McpToolExecutor::new(usage, artifacts, server_name)
 }
 
@@ -43,8 +43,8 @@ fn request_context() -> SysRequestContext {
     SysRequestContext::new(
         SessionId::new("dispatch-session"),
         TraceId::new("dispatch-trace"),
-        ContextId::new_unchecked("00000000-0000-4000-8000-00000000d15b"),
-        AgentName::new("dispatch-agent"),
+        ContextId::try_new("00000000-0000-4000-8000-00000000d15b").expect("a valid v4 uuid"),
+        AgentName::try_new("dispatch-agent").expect("a valid agent name"),
     )
 }
 
@@ -381,6 +381,8 @@ async fn an_unknown_systemprompt_tool_points_the_caller_at_the_cli_skill() {
     let profile = client();
     let error = systemprompt_mcp_agent::server::tool::dispatch_tool(
         &systemprompt_mcp_agent::server::tool::Dispatch {
+            service_id: "systemprompt",
+            role: systemprompt_mcp_agent::server::ServerRole::Console,
             executor: &executor,
             request: &request,
             request_context: &request_context(),

@@ -1,77 +1,88 @@
-//! `repositories::analytics::{contexts_list, conversations, agents, tools}` —
-//! the contexts index and its KPI strip, transcript flattening, and the
-//! per-agent / per-tool rollups.
+//! `repositories::analytics::{conversation_rows, agents, tools}` — the
+//! conversations index and its totals, and the per-agent / per-tool rollups.
+//!
+//! The fixture inserts requests with no `ai_request_payloads` row, so a lone
+//! request in a context is a side call by the view's rule; the tests that
+//! want one to be listed ask for side calls explicitly.
 
-use systemprompt::identifiers::{ContextId, SessionId, UserId};
-use systemprompt_web_admin::repositories::analytics::contexts_list::{
-    ContextListFilter, get_context_list_kpis, list_context_list, list_distinct_models,
+use systemprompt::identifiers::{ContextId, UserId};
+use systemprompt_web_admin::repositories::analytics::conversation_rows::{
+    ConversationFilter, ConversationPage, get_conversation_totals, list_conversations_paged,
+    list_distinct_models,
 };
-use systemprompt_web_admin::repositories::analytics::{conversations, list_agents, list_tools};
+use systemprompt_web_admin::repositories::analytics::{list_agents, list_tools};
 
 use crate::fixtures::{
-    EventSpec, RequestSpec, insert_event, insert_request, insert_user, unclaimed_email, unique,
+    EventSpec, RequestSpec, insert_event, insert_request, insert_user, new_context_id,
+    project_scope, set_project, unclaimed_email, unique,
 };
 use crate::tempdb::TempDb;
 
 #[tokio::test]
-async fn list_context_list_reports_a_contexts_rollup() {
+async fn list_conversations_reports_a_contexts_rollup() {
     let Some(db) = TempDb::create().await else {
         return;
     };
     let user = insert_user(&db.pool, &unique("user"), &unclaimed_email("ctx")).await;
-    let context = unique("ctx");
+    let context = new_context_id();
     for _ in 0..2 {
         let mut spec = RequestSpec::completed(&unique("req"), &user);
         spec.context_id = Some(&context);
         insert_request(&db.pool, &spec).await;
     }
-    let filter = ContextListFilter {
+    let filter = ConversationFilter {
         user_id: Some(user.clone()),
-        limit: 50,
-        ..ContextListFilter::default()
+        ..ConversationFilter::default()
     };
 
-    let rows = list_context_list(&db.pool, &filter)
+    let rows = list_conversations_paged(&db.pool, &filter, first_page())
         .await
-        .expect("query succeeds");
+        .expect("query succeeds")
+        .0;
 
     let row = rows
         .iter()
         .find(|r| r.context_id.as_str() == context)
         .expect("the context appears");
-    assert_eq!(row.request_count, 2);
+    assert_eq!(row.turn_count, 2);
+    assert_eq!(row.side_call_count, 0);
     assert_eq!(row.total_input_tokens, 200);
     assert_eq!(row.total_cost_microdollars, 10_000);
     assert_eq!(row.error_count, 0);
     assert_eq!(
-        row.message_count, 0,
-        "no ai_request_messages rows means no messages to count"
+        row.tool_call_count, 0,
+        "no ai_request_tool_calls rows means no tool calls to count"
+    );
+    assert!(
+        row.title.starts_with("Conversation "),
+        "no name, no prompt: the id stands in"
     );
     db.cleanup().await;
 }
 
 #[tokio::test]
-async fn list_context_list_filters_to_one_user() {
+async fn list_conversations_filters_to_one_user() {
     let Some(db) = TempDb::create().await else {
         return;
     };
     let mine = insert_user(&db.pool, &unique("user"), &unclaimed_email("ctxmine")).await;
     let theirs = insert_user(&db.pool, &unique("user"), &unclaimed_email("ctxtheirs")).await;
     for owner in [&mine, &theirs] {
-        let context = unique("ctx");
+        let context = new_context_id();
         let mut spec = RequestSpec::completed(&unique("req"), owner);
         spec.context_id = Some(&context);
         insert_request(&db.pool, &spec).await;
     }
-    let filter = ContextListFilter {
+    let filter = ConversationFilter {
         user_id: Some(mine.clone()),
-        limit: 50,
-        ..ContextListFilter::default()
+        include_side_calls: true,
+        ..ConversationFilter::default()
     };
 
-    let rows = list_context_list(&db.pool, &filter)
+    let rows = list_conversations_paged(&db.pool, &filter, first_page())
         .await
-        .expect("query succeeds");
+        .expect("query succeeds")
+        .0;
 
     assert!(
         rows.iter()
@@ -82,25 +93,27 @@ async fn list_context_list_filters_to_one_user() {
 }
 
 #[tokio::test]
-async fn list_context_list_counts_failed_requests_as_errors() {
+async fn list_conversations_counts_failed_requests_as_errors() {
     let Some(db) = TempDb::create().await else {
         return;
     };
     let user = insert_user(&db.pool, &unique("user"), &unclaimed_email("ctxerr")).await;
-    let context = unique("ctx");
+    let context = new_context_id();
     let mut failed = RequestSpec::completed(&unique("req"), &user);
     failed.context_id = Some(&context);
     failed.status = "failed";
     insert_request(&db.pool, &failed).await;
-    let filter = ContextListFilter {
+    let filter = ConversationFilter {
         user_id: Some(user.clone()),
-        limit: 50,
-        ..ContextListFilter::default()
+        include_side_calls: true,
+        error_only: true,
+        ..ConversationFilter::default()
     };
 
-    let rows = list_context_list(&db.pool, &filter)
+    let rows = list_conversations_paged(&db.pool, &filter, first_page())
         .await
-        .expect("query succeeds");
+        .expect("query succeeds")
+        .0;
 
     let row = rows
         .iter()
@@ -111,54 +124,66 @@ async fn list_context_list_counts_failed_requests_as_errors() {
 }
 
 #[tokio::test]
-async fn get_context_list_kpis_sums_only_the_filtered_user() {
+async fn get_conversation_totals_sums_only_the_filtered_user() {
     let Some(db) = TempDb::create().await else {
         return;
     };
     let user = insert_user(&db.pool, &unique("user"), &unclaimed_email("kpi")).await;
     let noise = insert_user(&db.pool, &unique("user"), &unclaimed_email("noise")).await;
-    let context = unique("ctx");
+    let context = new_context_id();
     let mut mine = RequestSpec::completed(&unique("req"), &user);
     mine.context_id = Some(&context);
     insert_request(&db.pool, &mine).await;
-    let other = unique("ctx");
+    // Why: only a harness-bound context (keyed on a client session) classifies a
+    // lone tool-less request as a utility side call; elsewhere it is a turn.
+    sqlx::query("UPDATE ai_requests SET client_session_id = $1 WHERE id = $2")
+        .bind(unique("csid"))
+        .bind(&mine.id)
+        .execute(db.pool.as_ref())
+        .await
+        .expect("bind the request to a client session");
+    let other = new_context_id();
     let mut theirs = RequestSpec::completed(&unique("req"), &noise);
     theirs.context_id = Some(&other);
     insert_request(&db.pool, &theirs).await;
-    let filter = ContextListFilter {
+    let filter = ConversationFilter {
         user_id: Some(user.clone()),
-        limit: 50,
-        ..ContextListFilter::default()
+        include_side_calls: true,
+        ..ConversationFilter::default()
     };
 
-    let kpis = get_context_list_kpis(&db.pool, &filter)
+    let totals = get_conversation_totals(&db.pool, &filter)
         .await
         .expect("query succeeds");
 
-    assert_eq!(kpis.total_contexts, 1);
-    assert_eq!(kpis.active_users, 1);
-    assert_eq!(kpis.total_requests, 1);
-    assert_eq!(kpis.total_cost_microdollars, 5_000);
+    assert_eq!(totals.conversations, 1);
+    assert_eq!(totals.users, 1);
+    assert_eq!(totals.turns + totals.side_calls, 1);
+    assert_eq!(
+        totals.side_calls, 1,
+        "a lone tool-less request in a harness-bound context is a side call"
+    );
+    assert_eq!(totals.total_cost_microdollars, 5_000);
+    assert_eq!(totals.side_call_cost_microdollars, 5_000);
     db.cleanup().await;
 }
 
 #[tokio::test]
-async fn get_context_list_kpis_returns_a_row_even_when_nothing_matches() {
+async fn get_conversation_totals_returns_a_row_even_when_nothing_matches() {
     let Some(db) = TempDb::create().await else {
         return;
     };
-    let filter = ContextListFilter {
+    let filter = ConversationFilter {
         user_id: Some(UserId::new(unique("absent"))),
-        limit: 50,
-        ..ContextListFilter::default()
+        ..ConversationFilter::default()
     };
 
-    let kpis = get_context_list_kpis(&db.pool, &filter)
+    let totals = get_conversation_totals(&db.pool, &filter)
         .await
         .expect("get_ over an aggregate always has a row to return");
 
-    assert_eq!(kpis.total_contexts, 0);
-    assert_eq!(kpis.total_cost_microdollars, 0);
+    assert_eq!(totals.conversations, 0);
+    assert_eq!(totals.total_cost_microdollars, 0);
     db.cleanup().await;
 }
 
@@ -168,7 +193,7 @@ async fn list_distinct_models_only_reports_models_used_inside_a_context() {
         return;
     };
     let user = insert_user(&db.pool, &unique("user"), &unclaimed_email("models")).await;
-    let context = unique("ctx");
+    let context = new_context_id();
     let mut inside = RequestSpec::completed(&unique("req"), &user);
     inside.context_id = Some(&context);
     inside.model = "context-model";
@@ -183,62 +208,6 @@ async fn list_distinct_models_only_reports_models_used_inside_a_context() {
 
     assert!(models.contains(&"context-model".to_owned()));
     assert!(!models.contains(&"contextless-model".to_owned()));
-    db.cleanup().await;
-}
-
-#[tokio::test]
-async fn find_raw_turns_returns_none_without_a_transcript() {
-    let Some(db) = TempDb::create().await else {
-        return;
-    };
-    let session = SessionId::new(unique("session"));
-
-    let turns = conversations::find_raw_turns(&db.pool, &session)
-        .await
-        .expect("lookup succeeds");
-
-    assert!(turns.is_none(), "no transcript is None, not an empty page");
-    db.cleanup().await;
-}
-
-#[tokio::test]
-async fn find_raw_turns_flattens_the_stored_transcript_array() {
-    let Some(db) = TempDb::create().await else {
-        return;
-    };
-    let session_id = unique("session");
-    let transcript = serde_json::json!([
-        { "role": "user", "content": "plain string body" },
-        { "role": "assistant", "content": [{ "text": "first" }, { "text": "second" }] },
-        { "role": "assistant", "text": "bare text field" },
-    ]);
-    let user = insert_user(&db.pool, &unique("user"), &unclaimed_email("transcript")).await;
-    sqlx::query(
-        "INSERT INTO session_transcripts (id, user_id, session_id, transcript)
-         VALUES ($1, $2, $3, $4)",
-    )
-    .bind(unique("transcript"))
-    .bind(user.as_str())
-    .bind(&session_id)
-    .bind(&transcript)
-    .execute(&*db.pool)
-    .await
-    .expect("insert transcript");
-    let session = SessionId::new(session_id);
-
-    let turns = conversations::find_raw_turns(&db.pool, &session)
-        .await
-        .expect("lookup succeeds")
-        .expect("the transcript exists");
-
-    assert_eq!(turns.len(), 3);
-    assert_eq!(turns[0].ordinal, 0);
-    assert_eq!(turns[0].content, "plain string body");
-    assert_eq!(
-        turns[1].content, "first\nsecond",
-        "block arrays join on newlines"
-    );
-    assert_eq!(turns[2].content, "bare text field");
     db.cleanup().await;
 }
 
@@ -317,17 +286,66 @@ async fn context_ids_round_trip_through_the_typed_identifier() {
     let mut spec = RequestSpec::completed(&unique("req"), &user);
     spec.context_id = Some(&context);
     insert_request(&db.pool, &spec).await;
-    let filter = ContextListFilter {
+    let filter = ConversationFilter {
         user_id: Some(user.clone()),
-        limit: 50,
-        ..ContextListFilter::default()
+        include_side_calls: true,
+        ..ConversationFilter::default()
     };
 
-    let rows = list_context_list(&db.pool, &filter)
+    let rows = list_conversations_paged(&db.pool, &filter, first_page())
         .await
-        .expect("query succeeds");
+        .expect("query succeeds")
+        .0;
 
     assert_eq!(rows.len(), 1);
-    assert_eq!(rows[0].context_id, ContextId::new_unchecked(context));
+    assert_eq!(
+        rows[0].context_id,
+        ContextId::try_new(context).expect("valid fixture identifier")
+    );
     db.cleanup().await;
+}
+
+#[tokio::test]
+async fn list_conversations_filters_by_project() {
+    let Some(db) = TempDb::create().await else {
+        return;
+    };
+    let commerce = insert_user(&db.pool, &unique("user"), &unclaimed_email("ctxcommerce")).await;
+    let core = insert_user(&db.pool, &unique("user"), &unclaimed_email("ctxcore")).await;
+    set_project(&db.pool, &commerce, Some("commerce")).await;
+    set_project(&db.pool, &core, Some("core")).await;
+    for owner in [&commerce, &core] {
+        let context = new_context_id();
+        let mut spec = RequestSpec::completed(&unique("req"), owner);
+        spec.context_id = Some(&context);
+        insert_request(&db.pool, &spec).await;
+    }
+    let scope = project_scope(&db.pool, "commerce").await;
+    let filter = ConversationFilter {
+        subject_ids: scope.as_sql().map(<[String]>::to_vec),
+        include_side_calls: true,
+        ..ConversationFilter::default()
+    };
+
+    let rows = list_conversations_paged(&db.pool, &filter, first_page())
+        .await
+        .expect("query succeeds")
+        .0;
+
+    assert!(
+        rows.iter().any(|r| r.user_id.as_ref() == Some(&commerce)),
+        "the commerce context is listed"
+    );
+    assert!(
+        rows.iter().all(|r| r.user_id.as_ref() != Some(&core)),
+        "the filter must not leak another project's contexts"
+    );
+    db.cleanup().await;
+}
+
+fn first_page() -> ConversationPage {
+    ConversationPage {
+        limit: 50,
+        ..ConversationPage::default()
+    }
 }

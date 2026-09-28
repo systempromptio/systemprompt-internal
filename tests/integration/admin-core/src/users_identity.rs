@@ -1,11 +1,14 @@
-//! `repositories::users` — identity CRUD, role/department lookup, the index
+//! `repositories::users` — identity CRUD, role and membership lookup, the index
 //! listing, and the per-user side tables.
 
 use systemprompt::identifiers::{Email, UserId};
-use systemprompt_web_admin::repositories::{organizations, users};
+use systemprompt_web_admin::repositories::users;
 use systemprompt_web_admin::types::{CreateUserRequest, UpdateUserRequest};
 
-use crate::fixtures::{insert_user, insert_user_full, set_department, unclaimed_email, unique};
+use crate::fixtures::{
+    insert_group, insert_group_member, insert_project, insert_project_member, insert_user,
+    insert_user_full, unclaimed_email, unique, unique_group, unique_project,
+};
 use crate::tempdb::TempDb;
 
 fn create_request(user_id: &str, email: &str) -> CreateUserRequest {
@@ -22,9 +25,7 @@ fn empty_update() -> UpdateUserRequest {
     UpdateUserRequest {
         display_name: None,
         email: None,
-        roles: None,
         is_active: None,
-        department: None,
     }
 }
 
@@ -44,28 +45,6 @@ async fn create_user_returns_the_row_it_inserted() {
     assert_eq!(summary.display_name.as_deref(), Some("Fixture User"));
     assert!(summary.is_active, "no status given defaults to active");
     assert_eq!(summary.roles, vec!["user".to_owned()]);
-    db.cleanup().await;
-}
-
-#[tokio::test]
-async fn create_user_with_unclaimed_domain_joins_no_organization() {
-    let Some(db) = TempDb::create().await else {
-        return;
-    };
-    let id = unique("user");
-    let email = unclaimed_email("unattached");
-
-    let summary = users::create_user(&db.pool, &create_request(&id, &email))
-        .await
-        .expect("create_user succeeds");
-
-    let org = organizations::crud::find_organization_for_user(&db.pool, &summary.user_id)
-        .await
-        .expect("membership lookup succeeds");
-    assert_eq!(
-        org, None,
-        "a domain no organization claims must leave the user unattached"
-    );
     db.cleanup().await;
 }
 
@@ -166,28 +145,6 @@ async fn update_user_deactivating_flips_is_active() {
 }
 
 #[tokio::test]
-async fn update_user_writes_the_department_side_row() {
-    let Some(db) = TempDb::create().await else {
-        return;
-    };
-    let user = insert_user(&db.pool, &unique("user"), &unclaimed_email("dept")).await;
-    let mut req = empty_update();
-    req.department = Some("Engineering".to_owned());
-
-    users::update_user(&db.pool, &user, &req)
-        .await
-        .expect("update succeeds")
-        .expect("an existing user yields a row");
-
-    let found = users::queries::find_user_roles_department(&db.pool, &user)
-        .await
-        .expect("lookup succeeds")
-        .expect("the user exists");
-    assert_eq!(found.1, "Engineering");
-    db.cleanup().await;
-}
-
-#[tokio::test]
 async fn update_user_leaves_fields_the_request_omits() {
     let Some(db) = TempDb::create().await else {
         return;
@@ -195,14 +152,14 @@ async fn update_user_leaves_fields_the_request_omits() {
     let email = unclaimed_email("partial");
     let user = insert_user(&db.pool, &unique("user"), &email).await;
     let mut req = empty_update();
-    req.roles = Some(vec!["admin".to_owned()]);
+    req.display_name = Some("Renamed Person".to_owned());
 
     let updated = users::update_user(&db.pool, &user, &req)
         .await
         .expect("update succeeds")
         .expect("an existing user yields a row");
 
-    assert_eq!(updated.roles, vec!["admin".to_owned()]);
+    assert_eq!(updated.display_name.as_deref(), Some("Renamed Person"));
     assert_eq!(
         updated.email.as_ref().map(Email::as_str),
         Some(email.as_str()),
@@ -231,13 +188,13 @@ async fn delete_user_reports_whether_a_row_went() {
 }
 
 #[tokio::test]
-async fn find_user_roles_department_returns_none_for_an_absent_user() {
+async fn find_user_access_profile_returns_none_for_an_absent_user() {
     let Some(db) = TempDb::create().await else {
         return;
     };
     let missing = UserId::new(unique("absent"));
 
-    let found = users::queries::find_user_roles_department(&db.pool, &missing)
+    let found = users::queries::find_user_access_profile(&db.pool, &missing)
         .await
         .expect("lookup succeeds");
 
@@ -249,7 +206,7 @@ async fn find_user_roles_department_returns_none_for_an_absent_user() {
 }
 
 #[tokio::test]
-async fn find_user_roles_department_defaults_to_default_without_a_profile_row() {
+async fn find_user_access_profile_reads_the_roles_and_the_derived_group() {
     let Some(db) = TempDb::create().await else {
         return;
     };
@@ -263,29 +220,43 @@ async fn find_user_roles_department_defaults_to_default_without_a_profile_row() 
     )
     .await;
 
-    let (roles, department) = users::queries::find_user_roles_department(&db.pool, &user)
+    let profile = users::queries::find_user_access_profile(&db.pool, &user)
         .await
         .expect("lookup succeeds")
         .expect("the user exists");
 
-    assert_eq!(roles, vec!["user".to_owned(), "auditor".to_owned()]);
-    assert_eq!(department, "Default");
+    assert_eq!(profile.roles, vec!["user".to_owned(), "auditor".to_owned()]);
+    assert_eq!(
+        profile.group_ids,
+        vec!["unassigned".to_owned()],
+        "no membership row is the derived group, not an empty list"
+    );
+    assert!(
+        profile.project_ids.is_empty(),
+        "work attribution is optional"
+    );
     db.cleanup().await;
 }
 
 #[tokio::test]
-async fn find_user_roles_department_reads_the_assigned_department() {
+async fn find_user_access_profile_reads_an_assigned_group_and_project() {
     let Some(db) = TempDb::create().await else {
         return;
     };
     let user = insert_user(&db.pool, &unique("user"), &unclaimed_email("assigned")).await;
-    set_department(&db.pool, &user, "Support").await;
+    let group = unique_group("grp");
+    let project = unique_project("proj");
+    insert_group(&db.pool, &group, "Commerce").await;
+    insert_group_member(&db.pool, &group, &user, "adfs").await;
+    insert_project(&db.pool, &project, "Commerce").await;
+    insert_project_member(&db.pool, &project, &user, "adfs").await;
 
-    let (_, department) = users::queries::find_user_roles_department(&db.pool, &user)
+    let profile = users::queries::find_user_access_profile(&db.pool, &user)
         .await
         .expect("lookup succeeds")
         .expect("the user exists");
 
-    assert_eq!(department, "Support");
+    assert_eq!(profile.group_ids, vec![group.as_str().to_owned()]);
+    assert_eq!(profile.project_ids, vec![project.as_str().to_owned()]);
     db.cleanup().await;
 }

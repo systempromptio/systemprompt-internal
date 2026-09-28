@@ -130,7 +130,7 @@ fn revision_diff_includes_metadata_changes_and_removed_files() {
     let original = files("SKILL.md");
     let before = RevisionManifest::from_files(snapshot.clone(), None, &original, BTreeMap::new())
         .expect("manifest");
-    let mut changed = original.clone();
+    let mut changed = original;
     changed.0.get_mut("SKILL.md").expect("file").executable = true;
     let after = RevisionManifest::from_files(snapshot.clone(), None, &changed, BTreeMap::new())
         .expect("manifest");

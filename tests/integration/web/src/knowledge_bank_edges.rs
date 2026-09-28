@@ -15,7 +15,7 @@ use sqlx::PgPool;
 use systemprompt::database::Database;
 use systemprompt::identifiers::{AgentName, ContextId, SessionId, TraceId};
 use systemprompt::mcp::repository::ToolUsageRepository;
-use systemprompt::mcp::{McpArtifactRepository, McpToolExecutor};
+use systemprompt::mcp::{ArtifactIngest, McpToolExecutor};
 use systemprompt::models::auth::{AuthenticatedUser, Permission};
 use systemprompt::models::execution::context::RequestContext as SysRequestContext;
 use systemprompt_mcp_knowledge_bank::server::tool::dispatch_tool;
@@ -29,7 +29,7 @@ const PROJECT: &str = "acme-storefront";
 fn executor(pool: &Arc<PgPool>) -> McpToolExecutor {
     let usage = Arc::new(ToolUsageRepository::new(&db_pool(pool)).expect("tool usage repository"));
     let artifacts =
-        Arc::new(McpArtifactRepository::new(&db_pool(pool)).expect("artifact repository"));
+        Arc::new(ArtifactIngest::from_db(&db_pool(pool), None).expect("artifact ingest"));
     McpToolExecutor::new(usage, artifacts, "knowledge-bank")
 }
 
@@ -48,8 +48,8 @@ fn request_context() -> SysRequestContext {
     SysRequestContext::new(
         SessionId::new("kb-edge-session"),
         TraceId::new("kb-edge-trace"),
-        ContextId::new_unchecked("00000000-0000-4000-8000-00000000e46e"),
-        AgentName::new("kb-edge-agent"),
+        ContextId::try_new("00000000-0000-4000-8000-00000000e46e").expect("a valid v4 uuid"),
+        AgentName::try_new("kb-edge-agent").expect("a valid agent name"),
     )
 }
 

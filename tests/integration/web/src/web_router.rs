@@ -3,7 +3,7 @@
 //! `Extension::router` is the only public way in: it takes the type-erased
 //! `ExtensionContext`, so the stub below hands it a real `Database` built on a
 //! throwaway pool. That exercises the whole assembly — pool extraction, the
-//! session service the webhook plane needs, and the JSON/API
+//! session service the SSO and webhook planes need, and the JSON/API
 //! plane — and pins where each plane is mounted by driving requests through the
 //! returned `axum::Router`.
 //!
@@ -33,10 +33,10 @@ impl ConfigProvider for StubConfig {
     fn get(&self, _key: &str) -> Option<String> {
         None
     }
-    fn database_url(&self) -> &str {
+    fn database_url(&self) -> &'static str {
         "postgres://unused/unused"
     }
-    fn system_path(&self) -> &str {
+    fn system_path(&self) -> &'static str {
         "/tmp"
     }
     fn api_port(&self) -> u16 {
@@ -63,11 +63,14 @@ impl PoolCtx {
 }
 
 impl ExtensionContext for PoolCtx {
+    fn system_owner_id(&self) -> systemprompt::identifiers::UserId {
+        systemprompt::identifiers::UserId::new("router-test-owner")
+    }
     fn config(&self) -> Arc<dyn ConfigProvider> {
         Arc::new(StubConfig)
     }
     fn database(&self) -> Arc<dyn DatabaseHandle> {
-        Arc::clone(&self.database) as Arc<dyn DatabaseHandle>
+        Arc::<Database>::clone(&self.database)
     }
     fn get_extension(&self, _id: &str) -> Option<Arc<dyn Extension>> {
         None
@@ -91,6 +94,9 @@ impl DatabaseHandle for ForeignDb {
 }
 
 impl ExtensionContext for ForeignDbCtx {
+    fn system_owner_id(&self) -> systemprompt::identifiers::UserId {
+        systemprompt::identifiers::UserId::new("router-test-owner")
+    }
     fn config(&self) -> Arc<dyn ConfigProvider> {
         Arc::new(StubConfig)
     }

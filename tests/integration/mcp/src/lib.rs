@@ -15,3 +15,8 @@ mod common;
 mod record_access;
 #[cfg(test)]
 mod rejection_fail_closed;
+
+#[cfg(test)]
+mod approval_gate;
+#[cfg(test)]
+mod knowledge_proposal_state;

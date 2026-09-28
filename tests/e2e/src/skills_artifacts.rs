@@ -254,15 +254,15 @@ async fn the_admin_bundle_is_served_to_admins_and_refused_to_users() {
     let paths = bundle_paths(&admin, "systemprompt-admin");
     for id in [
         "admin-activity-requests",
+        "admin-ai-usage",
         "admin-usage-costs",
-        "governance-approvals",
     ] {
         assert!(
             paths.contains(&format!("artifacts/{id}.html").as_str()),
             "{id} ships in the admin bundle: {paths:?}"
         );
     }
-    let (status, body) = stack
+    let (status, _) = stack
         .send(
             "GET",
             "/v1/bridge/plugins/systemprompt-admin/artifacts/manifest.json",
@@ -271,29 +271,6 @@ async fn the_admin_bundle_is_served_to_admins_and_refused_to_users() {
         )
         .await;
     assert_eq!(status, StatusCode::OK);
-
-    // The approvals page is load bearing twice over: short its allowlist and
-    // the queue still renders and still loads, but Approve and Deny fail at
-    // the click. The order is the order the config declares — the two reads,
-    // then the one write. The CLI passthrough is deliberately not among them:
-    // every figure on that page is a typed row.
-    let admin_bundle: serde_json::Value =
-        serde_json::from_str(&body).expect("admin manifest.json parses");
-    let approvals = admin_bundle["artifacts"]
-        .as_array()
-        .expect("artifact records")
-        .iter()
-        .find(|a| a["id"] == "governance-approvals")
-        .expect("governance-approvals bundled in systemprompt-admin");
-    assert_eq!(
-        approvals["mcpTools"],
-        serde_json::json!([
-            "mcp__systemprompt__approval_list",
-            "mcp__systemprompt__approval_history",
-            "mcp__systemprompt__approval_decide"
-        ]),
-        "the approvals dashboard reads the queue and the history, and writes one decision"
-    );
 
     let (status, body) = stack
         .send(

@@ -20,14 +20,14 @@ const ADMIN_PLUGINS: &[&str] = &["systemprompt-admin"];
 // business-overview; sales-pipeline replaced pipeline-open-deals,
 // upcoming-deals and leads-inbound-prospects.
 const USER_ARTIFACTS: &[&str] = &["my-day", "sales-pipeline"];
-// The control plane keeps two pages, both over the admin CLI passthrough. The
-// user directory and the two brain@ knowledge dashboards were retired: roles
-// are granted at /admin/access/users and proposals are decided at
-// /admin/governance/approvals, neither of which is a dashboard.
+// The control plane keeps three pages, all over the admin CLI passthrough.
+// The user directory, the two brain@ knowledge dashboards and the approvals
+// page were retired: roles are granted at /admin/access/users and held calls
+// are decided at /admin/governance/approvals, neither of which is a dashboard.
 const ADMIN_ARTIFACTS: &[&str] = &[
     "admin-activity-requests",
+    "admin-ai-usage",
     "admin-usage-costs",
-    "governance-approvals",
 ];
 
 fn ids(manifest: &serde_json::Value, key: &str) -> BTreeSet<String> {

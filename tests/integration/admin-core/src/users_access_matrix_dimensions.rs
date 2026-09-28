@@ -1,11 +1,12 @@
 //! `repositories::users::access_control::matrix` — the extension subject
 //! dimensions and the multi-section shape of the grid.
 //!
-//! `department` and `organization` are not core concepts: they reach the
-//! resolver only because this extension registers a `SubjectAttributeProvider`
-//! for each. A rule written against either therefore proves the whole
-//! registration path, not just the SQL. The remaining tests cover what the
-//! grid does with more than one section and with an entity type core's
+//! `group` and `project` are not core concepts: they reach the resolver only
+//! because this extension registers a `SubjectAttributeProvider` for each. A
+//! rule written against one therefore proves the whole registration path, not
+//! just the SQL, and the two together pin the 140/150 half of the ladder
+//! against the 160/170 link bands. The remaining tests cover what the grid
+//! does with more than one section and with an entity type core's
 //! `EntityKind` does not know.
 
 use systemprompt_web_admin::repositories::users::access_control::{
@@ -13,47 +14,90 @@ use systemprompt_web_admin::repositories::users::access_control::{
 };
 
 use crate::fixtures::{
-    OrgSpec, insert_acl_rule, insert_member, insert_org, insert_user, set_department,
-    unclaimed_email, unique,
+    insert_acl_rule, insert_group, insert_group_member, insert_project, insert_project_member,
+    insert_user, unclaimed_email, unique, unique_group, unique_project,
 };
 use crate::tempdb::TempDb;
 use crate::users_access_matrix::{grade, one_skill};
 
 #[tokio::test]
-async fn resolve_user_matrix_binds_a_department_rule_through_the_extension_dimension() {
+async fn resolve_user_matrix_binds_a_group_rule_through_the_extension_dimension() {
     let Some(db) = TempDb::create().await else {
         return;
     };
-    let user = insert_user(&db.pool, &unique("user"), &unclaimed_email("deptrule")).await;
-    set_department(&db.pool, &user, "Platform").await;
+    let user = insert_user(&db.pool, &unique("user"), &unclaimed_email("grouprule")).await;
+    let group = unique_group("grp");
+    insert_group(&db.pool, &group, "Commerce").await;
+    insert_group_member(&db.pool, &group, &user, "adfs").await;
     let skill = unique("skill");
-    insert_acl_rule(&db.pool, "skill", &skill, "department", "Platform", "allow").await;
+    insert_acl_rule(&db.pool, "skill", &skill, "group", group.as_str(), "allow").await;
 
     let row = grade(&db.pool, &user, &skill).await;
 
     assert_eq!(row.effective, "allow");
-    assert_eq!(row.source.layer, "department");
+    assert_eq!(row.source.layer, "group");
     db.cleanup().await;
 }
 
 #[tokio::test]
-async fn resolve_user_matrix_binds_an_organization_rule_through_the_extension_dimension() {
+async fn resolve_user_matrix_does_not_bind_a_rule_for_a_group_the_user_left() {
     let Some(db) = TempDb::create().await else {
         return;
     };
-    let user = insert_user(&db.pool, &unique("user"), &unclaimed_email("orgrule")).await;
-    let org_id = unique("org");
-    let slug = unique("slug");
-    insert_org(&db.pool, &OrgSpec::active(&org_id, &slug)).await;
-    insert_member(&db.pool, &user, &org_id, "member").await;
+    let user = insert_user(&db.pool, &unique("user"), &unclaimed_email("leftgroup")).await;
+    let held = unique_group("grp");
+    let granted = unique_group("grp");
+    insert_group(&db.pool, &held, "Core").await;
+    insert_group(&db.pool, &granted, "Commerce").await;
+    insert_group_member(&db.pool, &held, &user, "adfs").await;
     let skill = unique("skill");
-    // The organization dimension resolves to the org *slug*, not its id.
-    insert_acl_rule(&db.pool, "skill", &skill, "organization", &slug, "allow").await;
+    insert_acl_rule(
+        &db.pool,
+        "skill",
+        &skill,
+        "group",
+        granted.as_str(),
+        "allow",
+    )
+    .await;
 
     let row = grade(&db.pool, &user, &skill).await;
 
-    assert_eq!(row.effective, "allow");
-    assert_eq!(row.source.layer, "organization");
+    assert_eq!(row.effective, "deny");
+    db.cleanup().await;
+}
+
+// Why: the four extension bands must all reach the grid, and `project` (140)
+// must out-rank `group` (150) when both match the same entity. A ladder that
+// only ever resolves one band is indistinguishable from a broken one.
+#[tokio::test]
+async fn a_project_rule_out_ranks_a_group_rule_on_the_same_entity() {
+    let Some(db) = TempDb::create().await else {
+        return;
+    };
+    let user = insert_user(&db.pool, &unique("user"), &unclaimed_email("ladder")).await;
+    let group = unique_group("grp");
+    let project = unique_project("proj");
+    insert_group(&db.pool, &group, "Commerce").await;
+    insert_group_member(&db.pool, &group, &user, "adfs").await;
+    insert_project(&db.pool, &project, "Storefront").await;
+    insert_project_member(&db.pool, &project, &user, "adfs").await;
+    let skill = unique("skill");
+    insert_acl_rule(&db.pool, "skill", &skill, "group", group.as_str(), "allow").await;
+    insert_acl_rule(
+        &db.pool,
+        "skill",
+        &skill,
+        "project",
+        project.as_str(),
+        "deny",
+    )
+    .await;
+
+    let row = grade(&db.pool, &user, &skill).await;
+
+    assert_eq!(row.effective, "deny");
+    assert_eq!(row.source.layer, "project", "the narrower band decides");
     db.cleanup().await;
 }
 

@@ -1,19 +1,26 @@
 //! `repositories::users::federated` — the SSO resolution order, the profile
-//! connect/disconnect writes, and the seat check just-in-time provisioning
-//! shares with the operator-created door.
+//! connect/disconnect writes, and the role projection a returning sign-in
+//! performs.
+//!
+//! The role rule is the load-bearing one: the directory owns its own half of
+//! the set and a manual grant survives it, so a sign-in that demotes someone
+//! in AD must not also erase what an admin gave them by hand.
 
 use systemprompt_web_admin::repositories::users::federated::{
     FederatedClaims, LinkOutcome, delete_federated_identities_for_issuer, link_identity_to_user,
     resolve_federated_user,
 };
 
+use systemprompt_web_admin::repositories::users::roles::{list_manual_roles, set_manual_roles};
+
 use crate::fixtures::{
-    OrgSpec, insert_federated_identity, insert_member, insert_org, insert_plan, insert_user,
-    insert_user_full, unclaimed_email, unique,
+    insert_federated_identity, insert_user, insert_user_full, unclaimed_email, unique,
 };
 use crate::tempdb::TempDb;
 
-pub const ISSUER: &str = "https://idp.federated.test";
+pub(crate) const ISSUER: &str = "https://login.adfs.test/adfs";
+
+const USER_ROLE: &[String] = &[];
 
 fn claims<'a>(external_sub: &'a str, email: &'a str) -> FederatedClaims<'a> {
     FederatedClaims {
@@ -21,6 +28,7 @@ fn claims<'a>(external_sub: &'a str, email: &'a str) -> FederatedClaims<'a> {
         external_sub,
         email,
         display_name: "Federated Person",
+        roles: USER_ROLE,
     }
 }
 
@@ -33,11 +41,10 @@ async fn resolve_federated_user_returns_the_existing_mapping_first() {
     let sub = unique("sub");
     insert_federated_identity(&db.pool, ISSUER, &sub, &user).await;
 
-    let resolved =
-        resolve_federated_user(&db.pool, &claims(&sub, "other@elsewhere.test"), false, None)
-            .await
-            .expect("resolution succeeds")
-            .expect("an existing mapping resolves without provisioning");
+    let resolved = resolve_federated_user(&db.pool, &claims(&sub, "other@elsewhere.test"), false)
+        .await
+        .expect("resolution succeeds")
+        .expect("an existing mapping resolves without provisioning");
 
     assert_eq!(resolved.user_id, user, "the mapping wins over the email");
     db.cleanup().await;
@@ -52,7 +59,7 @@ async fn resolve_federated_user_links_a_verified_email_to_an_active_local_accoun
     let user = insert_user(&db.pool, &unique("user"), &email).await;
     let sub = unique("sub");
 
-    let resolved = resolve_federated_user(&db.pool, &claims(&sub, &email), false, None)
+    let resolved = resolve_federated_user(&db.pool, &claims(&sub, &email), false)
         .await
         .expect("resolution succeeds")
         .expect("an active local account is linked rather than duplicated");
@@ -83,7 +90,7 @@ async fn resolve_federated_user_matches_the_email_case_insensitively() {
     let user = insert_user(&db.pool, &unique("user"), &email).await;
     let shouted = email.to_uppercase();
 
-    let resolved = resolve_federated_user(&db.pool, &claims(&unique("sub"), &shouted), false, None)
+    let resolved = resolve_federated_user(&db.pool, &claims(&unique("sub"), &shouted), false)
         .await
         .expect("resolution succeeds")
         .expect("an upper-cased claim still finds the local account");
@@ -108,7 +115,7 @@ async fn resolve_federated_user_ignores_an_inactive_local_account() {
     )
     .await;
 
-    let resolved = resolve_federated_user(&db.pool, &claims(&unique("sub"), &email), false, None)
+    let resolved = resolve_federated_user(&db.pool, &claims(&unique("sub"), &email), false)
         .await
         .expect("resolution succeeds");
 
@@ -129,7 +136,6 @@ async fn resolve_federated_user_returns_none_when_provisioning_is_off() {
         &db.pool,
         &claims(&unique("sub"), &unclaimed_email("stranger")),
         false,
-        None,
     )
     .await
     .expect("resolution succeeds");
@@ -149,7 +155,7 @@ async fn resolve_federated_user_provisions_when_asked_to() {
     let email = unclaimed_email("jit");
     let sub = unique("sub");
 
-    let resolved = resolve_federated_user(&db.pool, &claims(&sub, &email), true, None)
+    let resolved = resolve_federated_user(&db.pool, &claims(&sub, &email), true)
         .await
         .expect("resolution succeeds")
         .expect("auto_provision mints the account");
@@ -167,187 +173,74 @@ async fn resolve_federated_user_provisions_when_asked_to() {
 }
 
 #[tokio::test]
-async fn resolve_federated_user_joins_the_organization_claiming_the_domain() {
+async fn a_sign_in_keeps_a_manually_granted_role_the_directory_never_mentions() {
     let Some(db) = TempDb::create().await else {
         return;
     };
-    let domain = format!("{}.example", uuid::Uuid::new_v4().simple());
-    let org_id = unique("org");
-    let mut spec = OrgSpec::active(&org_id, &org_id);
-    spec.email_domains = vec![domain.clone()];
-    insert_org(&db.pool, &spec).await;
-    let email = format!("newhire@{domain}");
-
-    let resolved = resolve_federated_user(&db.pool, &claims(&unique("sub"), &email), true, None)
+    let user = insert_user(&db.pool, &unique("user"), &unclaimed_email("keepsmanual")).await;
+    let granter = insert_user(&db.pool, &unique("admin"), &unclaimed_email("ssogranter")).await;
+    set_manual_roles(&db.pool, &user, &["developer".to_owned()], &granter)
         .await
-        .expect("resolution succeeds")
-        .expect("auto_provision mints the account");
-
-    let joined: Option<String> =
-        sqlx::query_scalar("SELECT org_id FROM organization_members WHERE user_id = $1")
-            .bind(resolved.user_id.as_str())
-            .fetch_optional(&*db.pool)
-            .await
-            .expect("membership lookup succeeds");
-    assert_eq!(joined.as_deref(), Some(org_id.as_str()));
-    db.cleanup().await;
-}
-
-#[tokio::test]
-async fn resolve_federated_user_refuses_to_provision_past_the_seat_limit() {
-    let Some(db) = TempDb::create().await else {
-        return;
-    };
-    let domain = format!("{}.example", uuid::Uuid::new_v4().simple());
-    let plan_id = unique("plan");
-    insert_plan(&db.pool, &plan_id, Some(1), None, 0).await;
-    let org_id = unique("org");
-    let mut spec = OrgSpec::active(&org_id, &org_id);
-    spec.plan_id = Some(&plan_id);
-    spec.email_domains = vec![domain.clone()];
-    insert_org(&db.pool, &spec).await;
-    let sitting = insert_user(&db.pool, &unique("user"), &format!("first@{domain}")).await;
-    insert_member(&db.pool, &sitting, &org_id, "member").await;
-
-    let refused = resolve_federated_user(
-        &db.pool,
-        &claims(&unique("sub"), &format!("second@{domain}")),
-        true,
-        None,
-    )
-    .await;
-
-    let err = refused.expect_err("the last seat is taken, so JIT must be refused");
-    assert!(
-        err.to_string().contains("seat limit reached"),
-        "a full plan is reported as a conflict the customer can act on: {err}"
-    );
-    let minted: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM users WHERE email = $1")
-        .bind(format!("second@{domain}"))
-        .fetch_one(&*db.pool)
-        .await
-        .expect("count succeeds");
-    assert_eq!(minted, 0, "the refused login must leave no orphan account");
-    db.cleanup().await;
-}
-
-
-// Why: granting `admin` from a federated claim is gated by default; these two
-// tests are about role propagation, so they opt in. The default is pinned by
-// the e2e suite (`an_odoo_admin_is_not_granted_platform_admin_by_default`).
-//
-// # Safety
-// nextest runs each test in its own process, so this mutates no other test's
-// environment, and it is set before the resolver reads it.
-fn permit_federated_admin_grants() {
-    unsafe {
-        std::env::set_var("FEDERATED_ROLES_MAY_GRANT_ADMIN", "1");
-    }
-}
-
-#[tokio::test]
-async fn resolve_federated_user_provisions_with_the_callers_roles() {
-    permit_federated_admin_grants();
-    let Some(db) = TempDb::create().await else {
-        return;
-    };
-    let desired = vec!["admin".to_owned(), "user".to_owned()];
-
-    let resolved = resolve_federated_user(
-        &db.pool,
-        &claims(&unique("sub"), &unclaimed_email("odooadmin")),
-        true,
-        Some(&desired),
-    )
-    .await
-    .expect("resolution succeeds")
-    .expect("auto_provision mints the account");
-
-    assert_eq!(
-        resolved.roles, desired,
-        "the identity provider's roles land on the freshly minted account"
-    );
-    db.cleanup().await;
-}
-
-#[tokio::test]
-async fn resolve_federated_user_refreshes_roles_on_a_returning_login() {
-    permit_federated_admin_grants();
-    let Some(db) = TempDb::create().await else {
-        return;
-    };
-    let user = insert_user(&db.pool, &unique("user"), &unclaimed_email("promoted")).await;
+        .expect("grant developer by hand");
     let sub = unique("sub");
     insert_federated_identity(&db.pool, ISSUER, &sub, &user).await;
-    let desired = vec!["admin".to_owned(), "user".to_owned()];
+    let mapped = ["user".to_owned()];
+    let claims = FederatedClaims {
+        roles: &mapped,
+        ..claims(&sub, "other@elsewhere.test")
+    };
 
-    let resolved =
-        resolve_federated_user(&db.pool, &claims(&sub, "x@y.test"), false, Some(&desired))
-            .await
-            .expect("resolution succeeds")
-            .expect("the mapping resolves");
-
-    assert_eq!(resolved.roles, desired);
-    let stored: Vec<String> = sqlx::query_scalar("SELECT roles FROM users WHERE id = $1")
-        .bind(user.as_str())
-        .fetch_one(&*db.pool)
+    let resolved = resolve_federated_user(&db.pool, &claims, false)
         .await
-        .expect("the user exists");
+        .expect("resolution succeeds")
+        .expect("an existing mapping resolves");
+
     assert_eq!(
-        stored, desired,
-        "a group change at the provider must land in users.roles at the next sign-in"
+        resolved.roles,
+        vec!["developer".to_owned(), "user".to_owned()],
+        "the effective set is the union, not the assertion alone"
+    );
+    assert_eq!(
+        list_manual_roles(&db.pool, &user)
+            .await
+            .expect("list manual"),
+        vec!["developer".to_owned()],
+        "and the manual grant is still recorded as one"
     );
     db.cleanup().await;
 }
 
 #[tokio::test]
-async fn resolve_federated_user_keeps_roles_when_the_caller_could_not_compute_them() {
+async fn losing_platform_admin_in_the_directory_reports_a_demotion() {
     let Some(db) = TempDb::create().await else {
         return;
     };
-    let email = unclaimed_email("unchanged");
     let user = insert_user_full(
         &db.pool,
         &unique("user"),
-        &email,
+        &unclaimed_email("wasplatform"),
         None,
-        &["admin".to_owned(), "user".to_owned()],
+        &["user".to_owned(), "platform_admin".to_owned()],
         "active",
     )
     .await;
     let sub = unique("sub");
     insert_federated_identity(&db.pool, ISSUER, &sub, &user).await;
+    let demoted = ["user".to_owned()];
+    let claims = FederatedClaims {
+        roles: &demoted,
+        ..claims(&sub, "other@elsewhere.test")
+    };
 
-    let resolved = resolve_federated_user(&db.pool, &claims(&sub, &email), false, None)
+    let resolved = resolve_federated_user(&db.pool, &claims, false)
         .await
         .expect("resolution succeeds")
-        .expect("the mapping resolves");
+        .expect("an existing mapping resolves");
 
-    assert_eq!(
-        resolved.roles,
-        vec!["admin".to_owned(), "user".to_owned()],
-        "a failed group lookup must never strip roles"
+    assert!(
+        resolved.lost_admin,
+        "platform_admin mints the same token permission as admin, so losing it must revoke too"
     );
-    db.cleanup().await;
-}
-
-#[tokio::test]
-async fn link_identity_to_user_is_idempotent_for_the_same_owner() {
-    let Some(db) = TempDb::create().await else {
-        return;
-    };
-    let user = insert_user(&db.pool, &unique("user"), &unclaimed_email("link")).await;
-    let sub = unique("sub");
-
-    let first = link_identity_to_user(&db.pool, ISSUER, &sub, &user)
-        .await
-        .expect("link succeeds");
-    let second = link_identity_to_user(&db.pool, ISSUER, &sub, &user)
-        .await
-        .expect("re-link succeeds");
-
-    assert_eq!(first, LinkOutcome::Linked);
-    assert_eq!(second, LinkOutcome::Linked);
     db.cleanup().await;
 }
 
@@ -406,5 +299,150 @@ async fn delete_federated_identities_for_issuer_is_zero_when_nothing_matches() {
         .expect("delete succeeds");
 
     assert_eq!(removed, 0);
+    db.cleanup().await;
+}
+
+#[tokio::test]
+async fn resolve_federated_user_reprojects_mapped_roles_on_a_returning_login() {
+    let Some(db) = TempDb::create().await else {
+        return;
+    };
+    let user = insert_user_full(
+        &db.pool,
+        &unique("user"),
+        &unclaimed_email("promoted"),
+        None,
+        &["user".to_owned(), "admin".to_owned()],
+        "active",
+    )
+    .await;
+    let sub = unique("sub");
+    insert_federated_identity(&db.pool, ISSUER, &sub, &user).await;
+    let demoted = ["user".to_owned()];
+    let claims = FederatedClaims {
+        roles: &demoted,
+        ..claims(&sub, "other@elsewhere.test")
+    };
+
+    let resolved = resolve_federated_user(&db.pool, &claims, false)
+        .await
+        .expect("resolution succeeds")
+        .expect("an existing mapping resolves");
+
+    assert_eq!(
+        resolved.roles, demoted,
+        "the directory's roles replace the row's"
+    );
+    let stored: Vec<String> = sqlx::query_scalar("SELECT roles FROM users WHERE id = $1")
+        .bind(user.as_str())
+        .fetch_one(&*db.pool)
+        .await
+        .expect("read roles");
+    assert_eq!(stored, demoted, "and the row itself was rewritten");
+    assert!(
+        resolved.lost_admin,
+        "the caller is told, so it can revoke the tokens minted while the role held"
+    );
+    db.cleanup().await;
+}
+
+#[tokio::test]
+async fn resolve_federated_user_does_not_report_a_demotion_on_a_lateral_change() {
+    let Some(db) = TempDb::create().await else {
+        return;
+    };
+    let user = insert_user_full(
+        &db.pool,
+        &unique("user"),
+        &unclaimed_email("lateral"),
+        None,
+        &["user".to_owned(), "admin".to_owned()],
+        "active",
+    )
+    .await;
+    let sub = unique("sub");
+    insert_federated_identity(&db.pool, ISSUER, &sub, &user).await;
+    let reordered = ["admin".to_owned(), "user".to_owned()];
+    let claims = FederatedClaims {
+        roles: &reordered,
+        ..claims(&sub, "other@elsewhere.test")
+    };
+
+    let resolved = resolve_federated_user(&db.pool, &claims, false)
+        .await
+        .expect("resolution succeeds")
+        .expect("an existing mapping resolves");
+
+    assert!(
+        !resolved.lost_admin,
+        "admin is still held — reordering must not tear down a live bridge"
+    );
+    db.cleanup().await;
+}
+
+// Why: these four columns are exactly what the signed bridge manifest's
+// `UserInfo` and `GET /v1/bridge/whoami` read back, so this is the test that
+// an ADFS-provisioned user arrives at the desktop app with a name and the
+// roles their AD group mapped to — not a bare id.
+#[tokio::test]
+async fn just_in_time_provisioning_writes_the_identity_the_bridge_reads() {
+    let Some(db) = TempDb::create().await else {
+        return;
+    };
+    let email = unclaimed_email("newstarter");
+    let sub = unique("sub");
+    let mapped = ["admin".to_owned(), "user".to_owned()];
+    let claims = FederatedClaims {
+        roles: &mapped,
+        ..claims(&sub, &email)
+    };
+
+    let resolved = resolve_federated_user(&db.pool, &claims, true)
+        .await
+        .expect("provisioning succeeds")
+        .expect("auto_provision mints the account");
+
+    let (name, stored_email, display_name, roles): (String, String, Option<String>, Vec<String>) =
+        sqlx::query_as("SELECT name, email, display_name, roles FROM users WHERE id = $1")
+            .bind(resolved.user_id.as_str())
+            .fetch_one(&*db.pool)
+            .await
+            .expect("the row exists");
+
+    assert_eq!(stored_email, email);
+    assert_eq!(name, email, "name falls back to the address AD asserted");
+    assert_eq!(display_name.as_deref(), Some("Federated Person"));
+    assert_eq!(roles, mapped, "the AD group map decides the roles");
+    assert!(!resolved.lost_admin, "a fresh account has lost nothing");
+    db.cleanup().await;
+}
+
+#[tokio::test]
+async fn resolve_federated_user_keeps_local_roles_when_the_idp_maps_none() {
+    let Some(db) = TempDb::create().await else {
+        return;
+    };
+    let user = insert_user_full(
+        &db.pool,
+        &unique("user"),
+        &unclaimed_email("operator"),
+        None,
+        &["admin".to_owned()],
+        "active",
+    )
+    .await;
+    let sub = unique("sub");
+    insert_federated_identity(&db.pool, ISSUER, &sub, &user).await;
+
+    let resolved = resolve_federated_user(&db.pool, &claims(&sub, "x@elsewhere.test"), false)
+        .await
+        .expect("resolution succeeds")
+        .expect("an existing mapping resolves");
+
+    assert_eq!(
+        resolved.roles,
+        vec!["admin".to_owned()],
+        "an empty claim is not a demotion"
+    );
     db.cleanup().await;
 }

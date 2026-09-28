@@ -17,8 +17,8 @@ fn anonymous() -> RequestContext {
     RequestContext::new(
         SessionId::new("kb-gate-session"),
         TraceId::new("kb-gate-trace"),
-        ContextId::new_unchecked("00000000-0000-4000-8000-00000000e46e"),
-        AgentName::new("kb-gate-agent"),
+        ContextId::try_new("00000000-0000-4000-8000-00000000e46e").expect("a valid v4 uuid"),
+        AgentName::try_new("kb-gate-agent").expect("a valid agent name"),
     )
 }
 

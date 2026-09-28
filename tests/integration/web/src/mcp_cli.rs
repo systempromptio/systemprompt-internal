@@ -20,10 +20,9 @@ use sqlx::PgPool;
 use systemprompt::database::Database;
 use systemprompt::identifiers::{AgentName, ContextId, SessionId, TraceId};
 use systemprompt::mcp::repository::ToolUsageRepository;
-use systemprompt::mcp::{McpArtifactRepository, McpToolExecutor};
+use systemprompt::mcp::{ArtifactIngest, McpToolExecutor};
 use systemprompt::models::artifacts::{CliArtifact, TextArtifact};
 use systemprompt::models::execution::context::RequestContext as SysRequestContext;
-use systemprompt::models::profile::PathsConfig;
 use systemprompt_mcp_agent::{CliLocation, filter_hallucinated_args};
 
 use crate::tempdb::TempDb;
@@ -38,7 +37,7 @@ fn db_pool(pool: &Arc<PgPool>) -> Arc<Database> {
 fn executor(pool: &Arc<PgPool>) -> McpToolExecutor {
     let db_pool = db_pool(pool);
     let usage = Arc::new(ToolUsageRepository::new(&db_pool).expect("tool usage repository"));
-    let artifacts = Arc::new(McpArtifactRepository::new(&db_pool).expect("artifact repository"));
+    let artifacts = Arc::new(ArtifactIngest::from_db(&db_pool, None).expect("artifact ingest"));
     McpToolExecutor::new(usage, artifacts, "systemprompt")
 }
 
@@ -46,8 +45,8 @@ fn request_context() -> SysRequestContext {
     SysRequestContext::new(
         SessionId::new("cli-session"),
         TraceId::new("cli-trace"),
-        ContextId::new_unchecked("00000000-0000-4000-8000-00000000c11e"),
-        AgentName::new("cli-agent"),
+        ContextId::try_new("00000000-0000-4000-8000-00000000c11e").expect("a valid v4 uuid"),
+        AgentName::try_new("cli-agent").expect("a valid agent name"),
     )
 }
 
@@ -88,6 +87,8 @@ async fn run(
     let profile = client();
     systemprompt_mcp_agent::server::tool::dispatch_tool(
         &systemprompt_mcp_agent::server::tool::Dispatch {
+            service_id: "systemprompt",
+            role: systemprompt_mcp_agent::server::ServerRole::Console,
             executor: &executor,
             request: &request,
             request_context: &request_context(),
@@ -371,97 +372,6 @@ fn the_location_comes_from_the_profile_and_says_so_when_there_is_none() {
     assert!(
         error.message.contains("Failed to get profile"),
         "the missing profile is named as the reason the CLI could not be located: {}",
-        error.message
-    );
-}
-
-// The profile names exactly one of target/{debug,release}, but the CLI is
-// routinely built into only the other one. Resolution has to cross to the
-// sibling, or every tool call dies on a bare ENOENT before the CLI runs.
-fn paths_config(bin: &std::path::Path, system: &std::path::Path) -> PathsConfig {
-    PathsConfig {
-        system: system.to_string_lossy().into_owned(),
-        services: system.join("services").to_string_lossy().into_owned(),
-        bin: bin.to_string_lossy().into_owned(),
-        web_path: None,
-        storage: None,
-        geoip_database: None,
-    }
-}
-
-fn touch_cli(dir: &std::path::Path) -> std::path::PathBuf {
-    std::fs::create_dir_all(dir).expect("create the build directory");
-    let path = dir.join("systemprompt");
-    std::fs::write(&path, "").expect("write the stand-in CLI");
-    path
-}
-
-#[test]
-fn a_release_only_build_tree_resolves_from_a_debug_profile() {
-    let tree = tempfile::tempdir().expect("tempdir");
-    let target = tree.path().join("target");
-    let release = touch_cli(&target.join("release"));
-    std::fs::create_dir_all(target.join("debug")).expect("create the empty debug directory");
-
-    let config = paths_config(&target.join("debug"), tree.path());
-    let location = CliLocation::from_paths(&config).expect("the sibling release build resolves");
-
-    assert_eq!(
-        location.bin, release,
-        "a debug profile with no debug binary falls back to the release sibling"
-    );
-}
-
-#[test]
-fn the_directory_the_profile_names_wins_when_both_are_built() {
-    let tree = tempfile::tempdir().expect("tempdir");
-    let target = tree.path().join("target");
-    touch_cli(&target.join("release"));
-    let debug = touch_cli(&target.join("debug"));
-
-    let config = paths_config(&target.join("debug"), tree.path());
-    let location = CliLocation::from_paths(&config).expect("the debug build resolves");
-
-    assert_eq!(
-        location.bin, debug,
-        "the fallback does not displace the binary the profile actually named"
-    );
-}
-
-#[test]
-fn neither_build_present_names_every_path_it_tried() {
-    let tree = tempfile::tempdir().expect("tempdir");
-    let target = tree.path().join("target");
-    std::fs::create_dir_all(target.join("debug")).expect("create the empty debug directory");
-
-    let config = paths_config(&target.join("debug"), tree.path());
-    let error = CliLocation::from_paths(&config).expect_err("there is no CLI to find");
-
-    assert!(
-        error.message.contains("debug") && error.message.contains("release"),
-        "both searched directories are named so the reader knows where to build: {}",
-        error.message
-    );
-}
-
-// A profile carried onto a machine without its system directory — the cloud
-// profile's `/app` used locally — spawns with a nonexistent cwd, which reports
-// the same ENOENT as a missing binary and hid which of the two was wrong.
-#[test]
-fn a_missing_system_directory_is_named_rather_than_left_to_the_spawn() {
-    let tree = tempfile::tempdir().expect("tempdir");
-    let target = tree.path().join("target");
-    touch_cli(&target.join("debug"));
-    let absent = tree.path().join("not-a-directory");
-
-    let config = paths_config(&target.join("debug"), &absent);
-    let error = CliLocation::from_paths(&config).expect_err("the working directory is absent");
-
-    assert!(
-        error
-            .message
-            .contains(&absent.to_string_lossy().into_owned()),
-        "the absent working directory is named: {}",
         error.message
     );
 }

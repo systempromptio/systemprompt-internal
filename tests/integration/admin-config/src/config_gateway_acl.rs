@@ -1,6 +1,7 @@
 //! `repositories::config::gateway_acl` — the route-scoped wrappers over core's
 //! access-control repository.
 
+use systemprompt::identifiers::RouteId;
 use systemprompt_security::authz::{Access, EntityKind, RuleType};
 use systemprompt_web_admin::repositories::config::gateway_acl;
 
@@ -13,7 +14,7 @@ async fn list_rules_for_route_returns_nothing_for_an_unknown_route() {
         return;
     };
 
-    let rules = gateway_acl::list_rules_for_route(&db.pool, &unique("route"))
+    let rules = gateway_acl::list_rules_for_route(&db.pool, &RouteId::new(unique("route")))
         .await
         .expect("list rules");
 
@@ -30,14 +31,19 @@ async fn upsert_rule_then_list_rules_for_route_round_trips() {
     let route = unique("route");
     insert_acl_entity(&db.pool, EntityKind::GatewayRoute.as_str(), &route, false).await;
 
-    let created =
-        gateway_acl::upsert_rule(&db.pool, &route, RuleType::ROLE, "admin", Access::Allow)
-            .await
-            .expect("upsert rule");
+    let created = gateway_acl::upsert_rule(
+        &db.pool,
+        &RouteId::new(&route),
+        RuleType::ROLE,
+        "admin",
+        Access::Allow,
+    )
+    .await
+    .expect("upsert rule");
     assert_eq!(created.rule_value, "admin");
     assert_eq!(created.access, Access::Allow);
 
-    let rules = gateway_acl::list_rules_for_route(&db.pool, &route)
+    let rules = gateway_acl::list_rules_for_route(&db.pool, &RouteId::new(&route))
         .await
         .expect("list rules");
     assert_eq!(rules.len(), 1);
@@ -54,16 +60,28 @@ async fn upsert_rule_updates_access_in_place_rather_than_duplicating() {
     let route = unique("route");
     insert_acl_entity(&db.pool, EntityKind::GatewayRoute.as_str(), &route, false).await;
 
-    let first = gateway_acl::upsert_rule(&db.pool, &route, RuleType::ROLE, "admin", Access::Allow)
-        .await
-        .expect("first upsert");
-    let second = gateway_acl::upsert_rule(&db.pool, &route, RuleType::ROLE, "admin", Access::Deny)
-        .await
-        .expect("second upsert");
+    let first = gateway_acl::upsert_rule(
+        &db.pool,
+        &RouteId::new(&route),
+        RuleType::ROLE,
+        "admin",
+        Access::Allow,
+    )
+    .await
+    .expect("first upsert");
+    let second = gateway_acl::upsert_rule(
+        &db.pool,
+        &RouteId::new(&route),
+        RuleType::ROLE,
+        "admin",
+        Access::Deny,
+    )
+    .await
+    .expect("second upsert");
 
     assert_eq!(first.id, second.id, "the unique key is entity + subject");
     assert_eq!(second.access, Access::Deny);
-    let rules = gateway_acl::list_rules_for_route(&db.pool, &route)
+    let rules = gateway_acl::list_rules_for_route(&db.pool, &RouteId::new(&route))
         .await
         .expect("list rules");
     assert_eq!(rules.len(), 1);
@@ -79,7 +97,7 @@ async fn upsert_rule_fails_without_a_catalog_entity() {
 
     let result = gateway_acl::upsert_rule(
         &db.pool,
-        &unique("route"),
+        &RouteId::new(unique("route")),
         RuleType::ROLE,
         "admin",
         Access::Allow,
@@ -105,15 +123,33 @@ async fn list_rules_bulk_groups_rules_by_route() {
     for route in [&route_a, &route_b] {
         insert_acl_entity(&db.pool, EntityKind::GatewayRoute.as_str(), route, false).await;
     }
-    gateway_acl::upsert_rule(&db.pool, &route_a, RuleType::ROLE, "admin", Access::Allow)
-        .await
-        .expect("rule on a");
-    gateway_acl::upsert_rule(&db.pool, &route_a, RuleType::ROLE, "user", Access::Deny)
-        .await
-        .expect("second rule on a");
-    gateway_acl::upsert_rule(&db.pool, &route_b, RuleType::ROLE, "admin", Access::Allow)
-        .await
-        .expect("rule on b");
+    gateway_acl::upsert_rule(
+        &db.pool,
+        &RouteId::new(&route_a),
+        RuleType::ROLE,
+        "admin",
+        Access::Allow,
+    )
+    .await
+    .expect("rule on a");
+    gateway_acl::upsert_rule(
+        &db.pool,
+        &RouteId::new(&route_a),
+        RuleType::ROLE,
+        "user",
+        Access::Deny,
+    )
+    .await
+    .expect("second rule on a");
+    gateway_acl::upsert_rule(
+        &db.pool,
+        &RouteId::new(&route_b),
+        RuleType::ROLE,
+        "admin",
+        Access::Allow,
+    )
+    .await
+    .expect("rule on b");
 
     let ids = vec![route_a.clone(), route_b.clone(), route_absent.clone()];
     let map = gateway_acl::list_rules_bulk(&db.pool, &ids)
@@ -138,9 +174,15 @@ async fn delete_rule_reports_whether_a_row_was_removed() {
     };
     let route = unique("route");
     insert_acl_entity(&db.pool, EntityKind::GatewayRoute.as_str(), &route, false).await;
-    let rule = gateway_acl::upsert_rule(&db.pool, &route, RuleType::ROLE, "admin", Access::Allow)
-        .await
-        .expect("upsert rule");
+    let rule = gateway_acl::upsert_rule(
+        &db.pool,
+        &RouteId::new(&route),
+        RuleType::ROLE,
+        "admin",
+        Access::Allow,
+    )
+    .await
+    .expect("upsert rule");
 
     let removed = gateway_acl::delete_rule(&db.pool, rule.id.as_str())
         .await
@@ -170,7 +212,7 @@ async fn find_entity_returns_none_for_an_unregistered_route() {
         return;
     };
 
-    let entity = gateway_acl::find_entity(&db.pool, &unique("route"))
+    let entity = gateway_acl::find_entity(&db.pool, &RouteId::new(unique("route")))
         .await
         .expect("find entity");
 
@@ -187,7 +229,7 @@ async fn find_entity_reads_back_default_included() {
     let route = unique("route");
     insert_acl_entity(&db.pool, EntityKind::GatewayRoute.as_str(), &route, true).await;
 
-    let entity = gateway_acl::find_entity(&db.pool, &route)
+    let entity = gateway_acl::find_entity(&db.pool, &RouteId::new(&route))
         .await
         .expect("find entity")
         .expect("registered entity");

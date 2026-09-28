@@ -14,6 +14,11 @@ internal-test-common = { workspace = true }
 # binary. The same set the shared harness links, so the "current installer"
 # this crate runs is the one the server runs at boot.
 systemprompt = { workspace = true, features = ["full"] }
+# Why: the two knowledge extensions register schemas the server binary links
+# and the recorded rungs therefore carry; without them the fresh install this
+# suite compares against would be missing their tables.
+systemprompt-mcp-knowledge-bank = { workspace = true }
+systemprompt-knowledge-jobs = { workspace = true }
 
 sqlx = { workspace = true }
 tokio = { workspace = true }

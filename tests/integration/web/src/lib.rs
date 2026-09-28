@@ -31,3 +31,20 @@ mod search_repository;
 mod site_docs_db;
 #[cfg(test)]
 mod tempdb;
+
+#[cfg(test)]
+mod content_api;
+#[cfg(test)]
+mod jobs_context;
+#[cfg(test)]
+mod knowledge_bank_edges;
+#[cfg(test)]
+mod knowledge_bank_server;
+#[cfg(test)]
+mod mcp_cli;
+#[cfg(test)]
+mod mcp_dispatch;
+#[cfg(test)]
+mod mcp_server;
+#[cfg(test)]
+mod web_router;

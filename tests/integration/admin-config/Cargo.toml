@@ -25,3 +25,4 @@ tempfile = { workspace = true }
 tokio = { workspace = true }
 url = { workspace = true }
 uuid = { workspace = true }
+serde_yaml = { workspace = true }

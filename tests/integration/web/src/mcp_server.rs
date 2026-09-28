@@ -1,7 +1,7 @@
 //! `SystempromptServer` constructed against a real pool.
 //!
 //! As with the knowledge bank, construction is what needs a database: the
-//! server builds a `ToolUsageRepository` and an `McpArtifactRepository` off the
+//! server builds a `ToolUsageRepository` and an `ArtifactIngest` off the
 //! pool before it can serve anything. The advertised identity and capability
 //! set are asserted on the constructed server, and the tools it exposes are
 //! pinned against `tools::list_tools`.
@@ -26,8 +26,12 @@ fn server(pool: &Arc<PgPool>) -> SystempromptServer {
         Arc::clone(pool),
         Some(Arc::clone(pool)),
     ));
-    SystempromptServer::new(db_pool, McpServerId::new("systemprompt"), hook())
-        .expect("construct the systemprompt server against a live pool")
+    SystempromptServer::new(
+        db_pool,
+        McpServerId::try_new("systemprompt").expect("a valid server id"),
+        hook(),
+    )
+    .expect("construct the systemprompt server against a live pool")
 }
 
 #[tokio::test]
@@ -107,8 +111,12 @@ async fn a_different_service_id_only_changes_the_server_name() {
         Arc::clone(&db.pool),
         Some(Arc::clone(&db.pool)),
     ));
-    let renamed = SystempromptServer::new(db_pool, McpServerId::new("sp-staging"), hook())
-        .expect("construct with a different service id");
+    let renamed = SystempromptServer::new(
+        db_pool,
+        McpServerId::try_new("sp-staging").expect("a valid server id"),
+        hook(),
+    )
+    .expect("construct with a different service id");
 
     let info = renamed.get_info();
 
@@ -122,32 +130,6 @@ async fn a_different_service_id_only_changes_the_server_name() {
     db.cleanup().await;
 }
 
-#[tokio::test]
-async fn the_server_exposes_the_cli_tool_and_the_three_approval_tools() {
-    let Some(db) = TempDb::create().await else {
-        return;
-    };
-    let _built = server(&db.pool);
-
-    let listed = tools::list_tools();
-
-    let surface: Vec<(&str, Option<&str>)> = listed
-        .iter()
-        .map(|t| (t.name.as_ref(), t.title.as_deref()))
-        .collect();
-    assert_eq!(
-        surface,
-        vec![
-            (tools::TOOL_SYSTEMPROMPT, Some("SystemPrompt CLI")),
-            (tools::TOOL_APPROVAL_LIST, Some("Held Calls")),
-            (tools::TOOL_APPROVAL_DECIDE, Some("Decide Held Call")),
-            (tools::TOOL_APPROVAL_HISTORY, Some("Decided Approvals")),
-        ],
-        "the CLI tool and the three approval tools are the whole tool surface"
-    );
-
-    db.cleanup().await;
-}
 
 #[tokio::test]
 async fn the_cli_tool_requires_a_command_string() {

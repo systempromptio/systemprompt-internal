@@ -36,9 +36,10 @@ url = { workspace = true }
 tempfile = { workspace = true }
 # `ServerHandler::get_info` is a trait method — asserting either MCP server's
 # advertised surface needs the trait in scope.
-rmcp = { workspace = true }
+rmcp = { workspace = true, features = ["client", "transport-async-rw"] }
 # The extension router is only reachable through `Extension::router`; driving
 # the `axum::Router` it returns is how each mounted plane is pinned.
 axum = { workspace = true }
 tower = { workspace = true }
 http-body-util = { workspace = true }
+async-trait = { workspace = true }

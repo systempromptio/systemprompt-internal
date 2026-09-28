@@ -8,7 +8,7 @@
 //! retryable rather than fatal — and it exercises settle end to end short of
 //! the Odoo call itself.
 
-use systemprompt::identifiers::UserId;
+use systemprompt::identifiers::{CallId, UserId};
 use systemprompt::security::policy::{ApprovalRepository, ApprovalStatus, ApprovalVerdict};
 use systemprompt_mcp_knowledge_bank::proposal::approval::{open_proposal_hold, proposal_call_id};
 use systemprompt_mcp_knowledge_bank::proposal::settle::{SettleOutcome, settle_document};
@@ -48,7 +48,7 @@ const ODOO_IDENTITY: &str = r"CREATE TABLE odoo_identity (
 )";
 
 async fn install(db: &TempDb) -> (KnowledgeStore, ApprovalRepository) {
-    let pool = db.pool.pool().expect("throwaway pool");
+    let pool = db.pool.pool();
     for definition in schema_definitions() {
         sqlx::raw_sql(sqlx::AssertSqlSafe(definition.sql.clone()))
             .execute(pool.as_ref())
@@ -68,7 +68,7 @@ async fn install(db: &TempDb) -> (KnowledgeStore, ApprovalRepository) {
 }
 
 async fn seed_categorized(db: &TempDb, subject: &str) -> Uuid {
-    let pool = db.pool.pool().expect("pool");
+    let pool = db.pool.pool();
     sqlx::query_scalar::<_, Uuid>(
         r#"INSERT INTO knowledge_documents
             (title, source, content, uploaded_by, status, category, metadata, structured)
@@ -112,7 +112,7 @@ fn proposal() -> Proposal {
 }
 
 async fn status_of(db: &TempDb, id: Uuid) -> (String, Option<String>, Option<String>) {
-    let pool = db.pool.pool().expect("pool");
+    let pool = db.pool.pool();
     sqlx::query_as::<_, (String, Option<String>, Option<String>)>(
         "SELECT status, proposal_error, decided_by FROM knowledge_documents WHERE id = $1",
     )
@@ -122,7 +122,7 @@ async fn status_of(db: &TempDb, id: Uuid) -> (String, Option<String>, Option<Str
     .expect("status")
 }
 
-async fn propose(store: &KnowledgeStore, db: &TempDb, owner: &UserId, id: Uuid) -> String {
+async fn propose(store: &KnowledgeStore, db: &TempDb, owner: &UserId, id: Uuid) -> CallId {
     let proposal = proposal();
     let call_id = proposal_call_id(owner, id, &proposal).expect("call id");
     assert!(
@@ -131,11 +131,11 @@ async fn propose(store: &KnowledgeStore, db: &TempDb, owner: &UserId, id: Uuid) 
             .await
             .expect("set_proposed")
     );
-    let pool = db.pool.pool().expect("pool");
+    let pool = db.pool.pool();
     open_proposal_hold(pool.as_ref(), owner, id, &proposal)
         .await
         .expect("open hold");
-    call_id.as_str().to_owned()
+    call_id
 }
 
 macro_rules! with_db {
@@ -170,7 +170,7 @@ async fn proposing_is_a_compare_and_set_and_opens_one_approval_row() {
         // A second worker racing the same document loses the CAS.
         assert!(
             !store
-                .set_proposed(id, &proposal(), &call_id)
+                .set_proposed(id, &proposal(), call_id.as_str())
                 .await
                 .expect("cas")
         );
@@ -270,7 +270,7 @@ async fn an_approver_without_an_odoo_link_leaves_the_document_retryable() {
                 .expect("retry due")
                 .is_empty()
         );
-        let pool = db.pool.pool().expect("pool");
+        let pool = db.pool.pool();
         let attempts: i32 =
             sqlx::query_scalar("SELECT apply_attempts FROM knowledge_documents WHERE id = $1")
                 .bind(id)

@@ -10,24 +10,11 @@ use chrono::{Duration, Utc};
 use systemprompt::identifiers::ContextId;
 use systemprompt_web_admin::repositories::analytics::context_detail as repo;
 
-use crate::analytics_context_detail::new_context_id;
-use crate::fixtures::{RequestSpec, insert_request, insert_user, unclaimed_email, unique};
+use crate::fixtures::{
+    RequestSpec, insert_message, insert_request, insert_user, new_context_id, unclaimed_email,
+    unique,
+};
 use crate::tempdb::TempDb;
-
-async fn insert_message(pool: &sqlx::PgPool, request_id: &str, seq: i32, role: &str, body: &str) {
-    sqlx::query(
-        "INSERT INTO ai_request_messages (id, request_id, role, content, sequence_number)
-         VALUES ($1, $2, $3, $4, $5)",
-    )
-    .bind(unique("msg"))
-    .bind(request_id)
-    .bind(role)
-    .bind(body)
-    .bind(seq)
-    .execute(pool)
-    .await
-    .expect("insert ai request message");
-}
 
 async fn insert_tool_call(pool: &sqlx::PgPool, request_id: &str, seq: i32, tool: &str) {
     sqlx::query(
@@ -63,9 +50,12 @@ async fn list_context_requests_returns_the_oldest_request_first() {
     new.context_id = Some(&context);
     insert_request(&db.pool, &new).await;
 
-    let requests = repo::list_context_requests(&db.pool, &ContextId::new_unchecked(context))
-        .await
-        .expect("list requests");
+    let requests = repo::list_context_requests(
+        &db.pool,
+        &ContextId::try_new(context).expect("valid fixture identifier"),
+    )
+    .await
+    .expect("list requests");
 
     assert_eq!(requests.len(), 2);
     assert_eq!(requests[0].id.as_str(), old_id);
@@ -82,11 +72,12 @@ async fn list_context_messages_is_empty_when_no_request_carries_messages() {
     };
     let user = insert_user(&db.pool, &unique("user"), &unclaimed_email("nomsgs")).await;
     let context = new_context_id();
-    let mut spec = RequestSpec::completed(&unique("req"), &user);
+    let request = unique("req");
+    let mut spec = RequestSpec::completed(&request, &user);
     spec.context_id = Some(&context);
     insert_request(&db.pool, &spec).await;
 
-    let messages = repo::list_context_messages(&db.pool, &ContextId::new_unchecked(context))
+    let messages = repo::list_messages_for_requests(&db.pool, std::slice::from_ref(&request))
         .await
         .expect("list messages");
 
@@ -115,9 +106,13 @@ async fn list_context_messages_orders_by_request_then_sequence() {
     insert_message(&db.pool, &first_req, 0, "user", "first line").await;
     insert_message(&db.pool, &second_req, 0, "user", "third line").await;
 
-    let messages = repo::list_context_messages(&db.pool, &ContextId::new_unchecked(context))
-        .await
-        .expect("list messages");
+    // Why: bodies are fetched by request id now, so the caller names the
+    // requests it wants rather than the context — see the repository module
+    // head for why a context-wide read could not be capped safely.
+    let messages =
+        repo::list_messages_for_requests(&db.pool, &[first_req.clone(), second_req.clone()])
+            .await
+            .expect("list messages");
 
     let bodies: Vec<&str> = messages.iter().map(|m| m.content.as_str()).collect();
     assert_eq!(bodies, ["first line", "second line", "third line"]);
@@ -140,7 +135,7 @@ async fn list_context_tool_calls_returns_the_calls_in_sequence_order() {
     insert_tool_call(&db.pool, &request, 1, "Read").await;
     insert_tool_call(&db.pool, &request, 0, "Bash").await;
 
-    let calls = repo::list_context_tool_calls(&db.pool, &ContextId::new_unchecked(context))
+    let calls = repo::list_tool_calls_for_requests(&db.pool, std::slice::from_ref(&request))
         .await
         .expect("list tool calls");
 
@@ -163,11 +158,16 @@ async fn list_context_tool_calls_is_empty_for_a_context_with_no_calls() {
         return;
     };
 
-    let calls =
-        repo::list_context_tool_calls(&db.pool, &ContextId::new_unchecked(new_context_id()))
-            .await
-            .expect("list tool calls");
+    let calls = repo::list_tool_calls_for_requests(&db.pool, &[unique("req-absent")])
+        .await
+        .expect("list tool calls");
 
     assert!(calls.is_empty());
+
+    // Why: an empty id list must not become an unfiltered read.
+    let none = repo::list_tool_calls_for_requests(&db.pool, &[])
+        .await
+        .expect("list tool calls");
+    assert!(none.is_empty());
     db.cleanup().await;
 }

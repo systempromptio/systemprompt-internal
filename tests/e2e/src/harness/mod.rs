@@ -2,6 +2,4 @@
 
 pub mod db;
 pub mod mcp;
-pub mod odoo_mock;
-pub mod smtp_mock;
 pub mod stack;

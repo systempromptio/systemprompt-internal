@@ -42,7 +42,7 @@ const SCHEMA: &str = r"CREATE TABLE approval_requests (
 )";
 
 async fn repo(db: &TempDb) -> ApprovalRepository {
-    let pool = db.pool.pool().expect("throwaway pool");
+    let pool = db.pool.pool();
     sqlx::query(SCHEMA)
         .execute(pool.as_ref())
         .await
@@ -106,7 +106,7 @@ async fn a_waiting_call_observes_an_approval_made_by_another_task() {
             tokio::spawn(async move {
                 tokio::time::sleep(Duration::from_millis(300)).await;
                 repo.resolve(
-                    call.as_str(),
+                    &call,
                     &ApprovalVerdict {
                         status: ApprovalStatus::Approved,
                         approver_id: &UserId::new("admin-1"),
@@ -119,7 +119,7 @@ async fn a_waiting_call_observes_an_approval_made_by_another_task() {
             })
         };
 
-        let outcome = wait_for_decision(&repo, call.as_str(), Duration::from_secs(10)).await;
+        let outcome = wait_for_decision(&repo, &call, Duration::from_secs(10)).await;
         approver
             .await
             .expect("approver task")
@@ -145,7 +145,7 @@ async fn a_refusal_comes_back_as_denied_with_the_refuser() {
         repo.open(&fx.held(&call, 900)).await.expect("open");
 
         repo.resolve(
-            call.as_str(),
+            &call,
             &ApprovalVerdict {
                 status: ApprovalStatus::Denied,
                 approver_id: &UserId::new("admin-1"),
@@ -157,7 +157,7 @@ async fn a_refusal_comes_back_as_denied_with_the_refuser() {
         .expect("resolve")
         .expect("row was still pending");
 
-        let outcome = wait_for_decision(&repo, call.as_str(), Duration::from_secs(5)).await;
+        let outcome = wait_for_decision(&repo, &call, Duration::from_secs(5)).await;
         match outcome {
             ApprovalOutcome::Denied(request) => {
                 assert_eq!(request.approver_username.as_deref(), Some("ed"));
@@ -177,14 +177,14 @@ async fn an_unanswered_round_hands_the_wait_back_instead_of_blocking_forever() {
 
         // Short hold, long expiry: the round gives up but the approval is
         // still open, which is what becomes an MRTR retry.
-        let outcome = wait_for_decision(&repo, call.as_str(), Duration::from_millis(600)).await;
+        let outcome = wait_for_decision(&repo, &call, Duration::from_millis(600)).await;
         assert!(
             matches!(outcome, ApprovalOutcome::StillPending(_)),
             "expected StillPending, got {outcome:?}"
         );
 
         // And the approval genuinely survives the round.
-        let found = repo.find(call.as_str()).await.expect("find").expect("row");
+        let found = repo.find(&call).await.expect("find").expect("row");
         assert_eq!(found.status, ApprovalStatus::Pending);
     });
 }
@@ -230,22 +230,19 @@ async fn a_decision_already_taken_cannot_be_overwritten() {
         };
 
         let first = repo
-            .resolve(call.as_str(), &verdict(ApprovalStatus::Approved, "ed"))
+            .resolve(&call, &verdict(ApprovalStatus::Approved, "ed"))
             .await
             .expect("first resolve");
         assert!(first.is_some(), "first decision should land");
 
         // A second admin clicking Deny on the same queue entry.
         let second = repo
-            .resolve(
-                call.as_str(),
-                &verdict(ApprovalStatus::Denied, "someone-else"),
-            )
+            .resolve(&call, &verdict(ApprovalStatus::Denied, "someone-else"))
             .await
             .expect("second resolve");
         assert!(second.is_none(), "a resolved call must not be re-decided");
 
-        let found = repo.find(call.as_str()).await.expect("find").expect("row");
+        let found = repo.find(&call).await.expect("find").expect("row");
         assert_eq!(found.status, ApprovalStatus::Approved);
         assert_eq!(found.approver_username.as_deref(), Some("ed"));
     });
@@ -260,7 +257,7 @@ async fn an_expired_call_is_swept_and_cannot_be_approved_late() {
         // Already past its deadline the moment it is opened.
         repo.open(&fx.held(&call, 0)).await.expect("open");
 
-        let outcome = wait_for_decision(&repo, call.as_str(), Duration::from_millis(200)).await;
+        let outcome = wait_for_decision(&repo, &call, Duration::from_millis(200)).await;
         assert!(
             matches!(outcome, ApprovalOutcome::Expired(_)),
             "expected Expired, got {outcome:?}"
@@ -270,7 +267,7 @@ async fn an_expired_call_is_swept_and_cannot_be_approved_late() {
 
         let late = repo
             .resolve(
-                call.as_str(),
+                &call,
                 &ApprovalVerdict {
                     status: ApprovalStatus::Approved,
                     approver_id: &UserId::new("admin-1"),

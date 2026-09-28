@@ -16,13 +16,16 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "http-body-util",
- "jsonwebtoken 10.4.0",
+ "internal-test-common",
+ "jsonwebtoken 11.1.0",
  "serde_json",
+ "sha2 0.10.9",
  "sqlx",
  "systemprompt",
  "systemprompt-security",
  "systemprompt-web-admin",
  "systemprompt-web-extension",
+ "systemprompt-web-jobs",
  "systemprompt-web-shared",
  "tokio",
  "tower",
@@ -37,6 +40,7 @@ version = "0.0.0"
 dependencies = [
  "chrono",
  "serde_json",
+ "serde_yaml_ng",
  "sqlx",
  "systemprompt",
  "systemprompt-marketplace",
@@ -56,12 +60,15 @@ dependencies = [
  "chrono",
  "internal-test-common",
  "serde_json",
+ "serde_yaml_ng",
  "sqlx",
  "systemprompt",
  "systemprompt-security",
  "systemprompt-web-admin",
  "systemprompt-web-extension",
+ "systemprompt-web-jobs",
  "systemprompt-web-shared",
+ "tempfile",
  "tokio",
  "url",
  "uuid",
@@ -241,16 +248,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.119",
-]
-
-[[package]]
-name = "assert-json-diff"
-version = "2.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "47e4f2b81832e72834d7518d8487a0396a28cc408186a2e8854c0f98011faf12"
-dependencies = [
- "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -1177,24 +1174,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4583a4551df46e2792f82ceeac45e850d2e2d5debba0b91f102385cda5b11f06"
 
 [[package]]
-name = "deadpool"
-version = "0.12.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0be2b1d1d6ec8d846f05e137292d0b89133caf95ef33695424c09568bdd39b1b"
-dependencies = [
- "deadpool-runtime",
- "lazy_static",
- "num_cpus",
- "tokio",
-]
-
-[[package]]
-name = "deadpool-runtime"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "092966b41edc516079bdf31ec78a2e0588d1d0c08f78b91d8307215928642b2b"
-
-[[package]]
 name = "der"
 version = "0.7.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1363,7 +1342,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "http-body-util",
- "jsonwebtoken 10.4.0",
+ "jsonwebtoken 11.1.0",
  "reqwest 0.12.28",
  "rmcp",
  "serde_json",
@@ -1379,7 +1358,6 @@ dependencies = [
  "tower",
  "url",
  "uuid",
- "wiremock",
 ]
 
 [[package]]
@@ -1804,6 +1782,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "gateway-integration-tests"
+version = "0.0.0"
+dependencies = [
+ "internal-test-common",
+ "serde_yaml_ng",
+ "systemprompt",
+]
+
+[[package]]
 name = "generator"
 version = "0.8.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1921,25 +1908,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "h2"
-version = "0.4.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ef8e5e5a340588f4452631496976cf8636d4a7ecf600239fdc27615d2530bc16"
-dependencies = [
- "atomic-waker",
- "bytes",
- "fnv",
- "futures-core",
- "futures-sink",
- "http",
- "indexmap",
- "slab",
- "tokio",
- "tokio-util",
- "tracing",
-]
-
-[[package]]
 name = "half"
 version = "2.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2026,12 +1994,6 @@ name = "heck"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
-
-[[package]]
-name = "hermit-abi"
-version = "0.5.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e17592d60ebacc7d5e169f4663c5f84f9161cc90328abcfe8456f41e4dfcb284"
 
 [[package]]
 name = "hex"
@@ -2154,7 +2116,6 @@ dependencies = [
  "bytes",
  "futures-channel",
  "futures-core",
- "h2",
  "http",
  "http-body",
  "httparse",
@@ -2599,18 +2560,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eba32bfb4ffdeaca3e34431072faf01745c9b26d25504aa7a6cf5684334fc4fc"
 dependencies = [
  "base64 0.22.1",
- "ed25519-dalek 2.2.0",
  "getrandom 0.2.17",
- "hmac 0.12.1",
  "js-sys",
- "p256",
- "p384",
  "pem",
- "rand 0.8.8",
- "rsa",
  "serde",
  "serde_json",
- "sha2 0.10.9",
  "signature 2.2.0",
  "simple_asn1",
  "zeroize",
@@ -3120,16 +3074,6 @@ checksum = "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841"
 dependencies = [
  "autocfg",
  "libm",
-]
-
-[[package]]
-name = "num_cpus"
-version = "1.17.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91df4bbde75afed763b708b7eee1e8e7651e02d97f6d5dd763e89367e957b23b"
-dependencies = [
- "hermit-abi",
- "libc",
 ]
 
 [[package]]
@@ -4514,6 +4458,8 @@ dependencies = [
  "internal-test-common",
  "sqlx",
  "systemprompt",
+ "systemprompt-knowledge-jobs",
+ "systemprompt-mcp-knowledge-bank",
  "tokio",
 ]
 
@@ -5734,6 +5680,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "systemprompt-internal-brand"
+version = "0.62.0"
+
+[[package]]
+name = "systemprompt-kit-export"
+version = "0.62.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "serde",
+ "serde_json",
+ "serde_yaml_ng",
+ "systemprompt",
+ "tempfile",
+]
+
+[[package]]
 name = "systemprompt-knowledge-jobs"
 version = "0.62.0"
 dependencies = [
@@ -5954,6 +5917,7 @@ name = "systemprompt-mcp-shared"
 version = "0.62.0"
 dependencies = [
  "chrono",
+ "inventory",
  "rmcp",
  "serde",
  "serde_json",
@@ -6333,6 +6297,7 @@ dependencies = [
  "sha2 0.10.9",
  "sqlx",
  "systemprompt",
+ "systemprompt-internal-brand",
  "systemprompt-mcp-shared",
  "systemprompt-security",
  "systemprompt-web-shared",
@@ -7186,6 +7151,7 @@ dependencies = [
 name = "web-integration-tests"
 version = "0.0.0"
 dependencies = [
+ "async-trait",
  "axum",
  "chrono",
  "http-body-util",
@@ -7235,19 +7201,26 @@ dependencies = [
 name = "web-unit-tests"
 version = "0.0.0"
 dependencies = [
+ "anyhow",
  "async-trait",
+ "axum",
  "chrono",
+ "handlebars",
+ "serde",
  "serde_json",
  "serde_yaml_ng",
  "sqlx",
  "systemprompt",
+ "systemprompt-kit-export",
  "systemprompt-security",
  "systemprompt-web-admin",
  "systemprompt-web-extension",
+ "systemprompt-web-jobs",
  "systemprompt-web-shared",
  "systemprompt-web-site",
  "tempfile",
  "tokio",
+ "tower",
  "zip",
 ]
 
@@ -7552,29 +7525,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23b97319f7b8343df12cc98938e5c3eb436064524c8d2b4e30a1d3a36eecdf81"
 dependencies = [
  "memchr",
-]
-
-[[package]]
-name = "wiremock"
-version = "0.6.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08db1edfb05d9b3c1542e521aea074442088292f00b5f28e435c714a98f85031"
-dependencies = [
- "assert-json-diff",
- "base64 0.22.1",
- "deadpool",
- "futures",
- "http",
- "http-body-util",
- "hyper",
- "hyper-util",
- "log",
- "once_cell",
- "regex",
- "serde",
- "serde_json",
- "tokio",
- "url",
 ]
 
 [[package]]

@@ -26,3 +26,6 @@ serde_json = { workspace = true }
 uuid = { workspace = true }
 url = { workspace = true }
 systemprompt-web-shared = { workspace = true }
+systemprompt-web-jobs = { workspace = true }
+serde_yaml = { workspace = true }
+tempfile = { workspace = true }

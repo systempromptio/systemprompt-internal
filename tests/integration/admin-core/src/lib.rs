@@ -75,6 +75,31 @@ mod users_lookups;
 mod usage_conversation_summary;
 
 #[cfg(test)]
+mod access_expiry;
+#[cfg(test)]
 mod usage_conversation_summary_schema;
 #[cfg(test)]
-mod access_expiry;
+mod users_odoo_identity;
+
+#[cfg(test)]
+mod analytics_context_detail;
+#[cfg(test)]
+mod analytics_context_messages;
+#[cfg(test)]
+mod analytics_contexts;
+#[cfg(test)]
+mod dashboard_session_summary;
+#[cfg(test)]
+mod gateway_policy_warn_mode;
+#[cfg(test)]
+mod governance_warn_mode;
+#[cfg(test)]
+mod managed_revisions;
+#[cfg(test)]
+mod users_access_matrix;
+#[cfg(test)]
+mod users_access_matrix_dimensions;
+#[cfg(test)]
+mod users_federated_sso;
+#[cfg(test)]
+mod users_identity;

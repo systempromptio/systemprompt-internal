@@ -1,7 +1,7 @@
 //! `KnowledgeBankServer` constructed against a real pool.
 //!
 //! Construction is the part worth a database: it builds a `ToolUsageRepository`
-//! and an `McpArtifactRepository` off the pool and opens the document store
+//! and an `ArtifactIngest` off the pool and opens the document store
 //! over it. The advertised surface (`get_info`, the tool list) is asserted
 //! alongside it so a capability or tool-name change cannot land silently.
 
@@ -26,8 +26,12 @@ fn server(pool: &Arc<PgPool>) -> KnowledgeBankServer {
         Arc::clone(pool),
         Some(Arc::clone(pool)),
     ));
-    KnowledgeBankServer::new(db_pool, McpServerId::new("knowledge-bank"), hook())
-        .expect("construct the knowledge-bank server against a live pool")
+    KnowledgeBankServer::new(
+        db_pool,
+        McpServerId::try_new("knowledge-bank").expect("a valid server id"),
+        hook(),
+    )
+    .expect("construct the knowledge-bank server against a live pool")
 }
 
 #[tokio::test]
@@ -88,8 +92,12 @@ async fn get_info_is_stable_across_service_ids_apart_from_the_name() {
         Arc::clone(&db.pool),
         Some(Arc::clone(&db.pool)),
     ));
-    let renamed = KnowledgeBankServer::new(db_pool, McpServerId::new("kb-staging"), hook())
-        .expect("construct with a different service id");
+    let renamed = KnowledgeBankServer::new(
+        db_pool,
+        McpServerId::try_new("kb-staging").expect("a valid server id"),
+        hook(),
+    )
+    .expect("construct with a different service id");
 
     let info = renamed.get_info();
 

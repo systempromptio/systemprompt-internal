@@ -4,7 +4,12 @@
 //! The master key is supplied directly rather than read from the environment,
 //! so these tests exercise the storage paths without mutating process state.
 
+use systemprompt::identifiers::PluginId;
 use systemprompt_web_admin::repositories::secrets::secret_crypto::{encrypt, generate_nonce};
+
+fn plug() -> PluginId {
+    PluginId::new("plug")
+}
 use systemprompt_web_admin::repositories::secrets::secret_keys::{
     get_or_create_user_dek, rotate_user_dek,
 };
@@ -17,13 +22,13 @@ use crate::tempdb::TempDb;
 const MASTER_KEY: [u8; 32] = [7u8; 32];
 
 // Stores `value` as a sealed secret the way the handler path would.
-async fn store_secret(pool: &sqlx::PgPool, user: &str, plugin: &str, name: &str, value: &str) {
+async fn store_secret(pool: &sqlx::PgPool, user: &str, plugin: &PluginId, name: &str, value: &str) {
     let dek = get_or_create_user_dek(pool, &user_id(user), &MASTER_KEY)
         .await
         .expect("issue dek");
     let nonce = generate_nonce();
     let sealed = encrypt(&dek, &nonce, value.as_bytes()).expect("seal value");
-    let id = insert_env_var(pool, user, plugin, name, "", true).await;
+    let id = insert_env_var(pool, user, plugin.as_str(), name, "", true).await;
     sqlx::query(
         "UPDATE plugin_env_vars SET encrypted_value = $1, value_nonce = $2, key_version = 1
          WHERE id = $3",
@@ -114,13 +119,13 @@ async fn rotate_user_dek_re_seals_every_secret_under_the_new_key() {
     };
     let user = unique("u");
     insert_user(&db.pool, &user).await;
-    store_secret(&db.pool, &user, "plug", "API_TOKEN", "s3cret").await;
+    store_secret(&db.pool, &user, &plug(), "API_TOKEN", "s3cret").await;
 
     rotate_user_dek(&db.pool, &user_id(&user), &MASTER_KEY)
         .await
         .expect("rotate dek");
 
-    let resolved = resolve_secrets_for_plugin(&db.pool, &user_id(&user), "plug", &MASTER_KEY)
+    let resolved = resolve_secrets_for_plugin(&db.pool, &user_id(&user), &plug(), &MASTER_KEY)
         .await
         .expect("resolve after rotation");
     assert_eq!(
@@ -138,7 +143,7 @@ async fn rotate_user_dek_bumps_the_key_version() {
     };
     let user = unique("u");
     insert_user(&db.pool, &user).await;
-    store_secret(&db.pool, &user, "plug", "API_TOKEN", "s3cret").await;
+    store_secret(&db.pool, &user, &plug(), "API_TOKEN", "s3cret").await;
 
     rotate_user_dek(&db.pool, &user_id(&user), &MASTER_KEY)
         .await

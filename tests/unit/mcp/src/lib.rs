@@ -76,3 +76,8 @@ mod systemprompt_error;
 mod systemprompt_tools;
 #[cfg(test)]
 mod truncate_on_char_boundary;
+
+#[cfg(test)]
+mod knowledge_bank_gate;
+#[cfg(test)]
+mod odoo_credentials;

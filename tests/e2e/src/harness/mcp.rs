@@ -1,10 +1,10 @@
-//! Spawn the real `systemprompt-mcp-odoo` binary and drive it over the MCP
+//! Spawn the real `systemprompt-mcp-agent` binary and drive it over the MCP
 //! Streamable-HTTP wire protocol with an rmcp client.
 //!
 //! The subprocess bootstraps from the same fixture profile as the in-process
 //! router — same throwaway database, same signing key (written beside the
-//! profile), same wiremock Odoo — so a Bearer token minted here validates
-//! there, and its tool calls hit the same state the assertions read.
+//! profile) — so a Bearer token minted here validates there, and its tool
+//! calls hit the same state the assertions read.
 
 use std::path::PathBuf;
 use std::time::Duration;
@@ -64,45 +64,12 @@ fn newest_binary(name: &str) -> Option<PathBuf> {
     found
 }
 
-fn binary() -> Option<PathBuf> {
-    newest_binary("systemprompt-mcp-odoo")
-}
-
 fn free_port() -> u16 {
     std::net::TcpListener::bind("127.0.0.1:0")
         .expect("bind an ephemeral port")
         .local_addr()
         .expect("read the bound address")
         .port()
-}
-
-pub async fn spawn_odoo_mcp(odoo_url: &str) -> Option<McpServerProc> {
-    let bin = binary()?;
-    let port = free_port();
-    let child = std::process::Command::new(&bin)
-        .env(
-            "SYSTEMPROMPT_PROFILE",
-            super::stack::profile_path().join("profile.yaml"),
-        )
-        .env("MCP_PORT", port.to_string())
-        .env("MCP_SERVICE_ID", "odoo")
-        .env("ODOO_URL", odoo_url)
-        .env("ODOO_DB", "e2e_odoo")
-        .stdout(log_sink())
-        .stderr(log_sink())
-        .spawn()
-        .expect("spawn systemprompt-mcp-odoo");
-    let proc = McpServerProc { child, port };
-
-    for _ in 0..100 {
-        if std::net::TcpStream::connect(("127.0.0.1", port)).is_ok() {
-            return Some(proc);
-        }
-        tokio::time::sleep(Duration::from_millis(200)).await;
-    }
-    panic!(
-        "systemprompt-mcp-odoo never opened port {port} — check the profile it was spawned with"
-    );
 }
 
 // initialize → tools/call → cancel, over genuine HTTP. Returns the textual
@@ -178,7 +145,7 @@ async fn raw_call_as(
         SessionId::new(uuid::Uuid::new_v4().to_string()),
         TraceId::generate(),
         ContextId::generate(),
-        AgentName::new("e2e-tests".to_owned()),
+        AgentName::try_new("e2e-tests").expect("a valid agent name"),
     );
     // Why: the transport calls `bearer_auth` on this value, which prepends
     // "Bearer " itself — passing a full header here reaches the server as
@@ -193,7 +160,9 @@ async fn raw_call_as(
     // made the server see a client without the UI extension, so no tool ever
     // embedded its artifact — the exact thing `call_tool_resource` asserts.
     let transport = StreamableHttpClientTransport::with_client(
-        HttpClientWithContext::new(request_context).with_client_capabilities(capabilities.clone()),
+        HttpClientWithContext::new(request_context)
+            .expect("build the MCP HTTP client")
+            .with_client_capabilities(capabilities.clone()),
         config,
     );
     // Why: every MCP server here advertises 2026-07-28, and rmcp refuses to
@@ -247,62 +216,6 @@ fn client_capabilities_for(ui_capable: bool) -> ClientCapabilities {
     capabilities
 }
 
-// The embedded UI resource — `ui://` URI, mime, and HTML — which is what
-// Cowork renders. `call_tool_full` above returns only the text and structured
-// blocks, so nothing there can see whether the artifact came back branded, or
-// came back at all.
-pub struct EmbeddedUi {
-    pub uri: String,
-    pub mime_type: Option<String>,
-    pub html: String,
-}
-
-pub async fn call_tool_resource(
-    url: &str,
-    bearer: &str,
-    tool: &str,
-    args: serde_json::Value,
-) -> Result<EmbeddedUi, String> {
-    let result = raw_call_as(url, bearer, tool, args, true).await?;
-    result
-        .content
-        .iter()
-        .find_map(|block| match block {
-            rmcp::model::ContentBlock::Resource(embedded) => match &embedded.resource {
-                rmcp::model::ResourceContents::TextResourceContents {
-                    uri,
-                    mime_type,
-                    text,
-                    ..
-                } => Some(EmbeddedUi {
-                    uri: uri.clone(),
-                    mime_type: mime_type.clone(),
-                    html: text.clone(),
-                }),
-                _ => None,
-            },
-            _ => None,
-        })
-        .ok_or_else(|| {
-            // Why: the block kinds and `_meta` say whether the server took the
-            // client for UI-capable at all, which a bare "no resource" cannot.
-            let kinds: Vec<String> = result
-                .content
-                .iter()
-                .map(|b| {
-                    serde_json::to_value(b)
-                        .ok()
-                        .and_then(|v| v.get("type").and_then(|t| t.as_str()).map(str::to_owned))
-                        .unwrap_or_else(|| "?".to_owned())
-                })
-                .collect();
-            let meta = serde_json::to_string(&result.meta).unwrap_or_default();
-            format!(
-                "{tool} returned no embedded text resource; content kinds {kinds:?}, _meta {meta}"
-            )
-        })
-}
-
 
 // The admin CLI-passthrough server: the profile tells it where the
 // `systemprompt` binary lives, so it needs no service-specific env beyond its
@@ -340,13 +253,13 @@ pub async fn list_tools(port: u16, bearer: &str) -> Result<Vec<rmcp::model::Tool
         SessionId::new(uuid::Uuid::new_v4().to_string()),
         TraceId::generate(),
         ContextId::generate(),
-        AgentName::new("e2e-tests".to_owned()),
+        AgentName::try_new("e2e-tests").expect("a valid agent name"),
     );
     let config =
         StreamableHttpClientTransportConfig::with_uri(format!("http://127.0.0.1:{port}/mcp"))
             .auth_header(bearer.to_owned());
     let transport = StreamableHttpClientTransport::with_client(
-        HttpClientWithContext::new(request_context),
+        HttpClientWithContext::new(request_context).expect("build the MCP HTTP client"),
         config,
     );
     let client_info = ClientInfo::new(
@@ -367,95 +280,6 @@ pub async fn list_tools(port: u16, bearer: &str) -> Result<Vec<rmcp::model::Tool
 
 // An MCP client that stays connected across MRTR rounds.
 //
-// `call_tool_full` above cannot be used for a tool that answers
-// `input_required`: rmcp's `call_tool` drives the MRTR loop internally, and
-// with no elicitation delegate installed it answers the server's request by
-// declining. That is the correct default for a client that cannot ask a human,
-// but it means the confirm round can never be observed, let alone answered.
-// `call_tool_once` issues exactly one round and hands back the raw response, so
-// a test can inspect what the server asked and reply on the retry — which is
-// the whole point of the flow under test.
-pub struct MrtrClient {
-    client: rmcp::service::RunningService<rmcp::service::RoleClient, ClientInfo>,
-}
-
-impl MrtrClient {
-    pub async fn connect(port: u16, bearer: &str) -> Result<Self, String> {
-        let request_context = RequestContext::new(
-            SessionId::new(uuid::Uuid::new_v4().to_string()),
-            TraceId::generate(),
-            ContextId::generate(),
-            AgentName::new("e2e-tests".to_owned()),
-        );
-        let config =
-            StreamableHttpClientTransportConfig::with_uri(format!("http://127.0.0.1:{port}/mcp"))
-                .auth_header(bearer.to_owned());
-        // Why: core's `HttpClientWithContext` stamps the SEP-2575 `_meta` that a
-        // 2026-07-28 server requires, and that is also what makes rmcp derive
-        // the `Mcp-Method` / `Mcp-Name` headers. Nothing test-specific needed.
-        let transport = StreamableHttpClientTransport::with_client(
-            HttpClientWithContext::new(request_context)
-                .with_client_capabilities(ClientCapabilities::default()),
-            config,
-        );
-        // Why: rmcp refuses to hand an `InputRequiredResult` to a peer that
-        // negotiated below 2026-07-28, and the default is older. Without this
-        // the server answers "-32600: InputRequiredResult requires negotiated
-        // protocol version 2026-07-28 or newer" and the confirm round can never
-        // be observed.
-        let client_info = ClientInfo::new(
-            ClientCapabilities::default(),
-            Implementation::new("e2e-tests", "0.0.0"),
-        )
-        .with_protocol_version(rmcp::model::ProtocolVersion::V_2026_07_28);
-        let client = tokio::time::timeout(Duration::from_secs(30), client_info.serve(transport))
-            .await
-            .map_err(|_| "initialize timed out".to_owned())?
-            .map_err(|e| format!("initialize failed: {e}"))?;
-        Ok(Self { client })
-    }
-
-    // One round, raw. `params` carries whatever `input_responses` /
-    // `request_state` the caller is answering with.
-    pub async fn call_once(
-        &self,
-        params: CallToolRequestParams,
-    ) -> Result<rmcp::model::CallToolResponse, String> {
-        self.client
-            .call_tool_once(params)
-            .await
-            .map_err(|e| format!("tools/call failed: {e}"))
-    }
-
-    pub async fn cancel(self) {
-        let _ = self.client.cancel().await;
-    }
-}
-
-// The arguments half of a call, without any MRTR answer attached.
-pub fn call_params(tool: &str, args: serde_json::Value) -> CallToolRequestParams {
-    let mut params = CallToolRequestParams::new(tool.to_owned());
-    params.arguments = args.as_object().cloned();
-    params
-}
-
-// Answer a confirm-round elicitation, in the shape a real client would send.
-pub fn with_confirmation(
-    mut params: CallToolRequestParams,
-    key: &str,
-    accept: bool,
-    confirm: bool,
-) -> CallToolRequestParams {
-    let action = if accept { "accept" } else { "decline" };
-    let mut responses = rmcp::model::InputResponses::new();
-    responses.insert(
-        key.to_owned(),
-        serde_json::json!({ "action": action, "content": { "confirm": confirm } }),
-    );
-    params.input_responses = Some(responses);
-    params
-}
-
 // Why: the subprocess is silent by default, which makes a server-side refusal
 // arrive at the test as a bare HTTP status with no cause. Setting
 // E2E_MCP_LOG=<path> tees its output somewhere readable.

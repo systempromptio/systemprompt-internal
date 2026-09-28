@@ -83,6 +83,11 @@ Conventions (strict — hold every entry to them):
   Dockerfile paths, dropped schema, docs version, core ref, schema ladder, coverage badge,
   template fields; `check-migration-numbers` is wired in). Known debt is listed explicitly and
   fails when stale.
+- **Tests:** every test file under `tests/` is declared again. The core-0.61 migration had
+  undeclared about ninety modules rather than fix them; those that test a surface this tree
+  still has are updated to it (astound's current versions where the code is shared) and run,
+  the rest — departments, organizations, demo KPIs, plans, reports, passkeys, Odoo sign-in,
+  retired core surfaces — are deleted.
 - **Tests:** `tests/integration/gateway` (REQ-020/024/033/037/038 against core's gateway
   types) joins `test-integration`; `tests/common` names each throwaway database after the
   process that owns it and sweeps the ones a killed run left behind; unit

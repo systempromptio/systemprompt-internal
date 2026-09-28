@@ -17,7 +17,13 @@
 #[cfg(test)]
 mod bridge_identity;
 #[cfg(test)]
+mod bridge_odoo_chain;
+#[cfg(test)]
 mod config_acl_detect;
+#[cfg(test)]
+mod config_acl_review;
+#[cfg(test)]
+mod config_acl_sync;
 #[cfg(test)]
 mod fixtures;
 #[cfg(test)]
@@ -32,7 +38,16 @@ mod reports_suppliers;
 mod secrets_migration;
 #[cfg(test)]
 mod tempdb;
+
 #[cfg(test)]
-mod config_acl_review;
+mod bridge_api_keys;
 #[cfg(test)]
-mod config_acl_sync;
+mod config_gateway_acl;
+#[cfg(test)]
+mod marketplace_env;
+#[cfg(test)]
+mod marketplace_usage;
+#[cfg(test)]
+mod secrets_keys;
+#[cfg(test)]
+mod secrets_resolve;

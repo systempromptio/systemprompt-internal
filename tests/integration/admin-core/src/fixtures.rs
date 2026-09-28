@@ -19,6 +19,7 @@ use sqlx::PgPool;
 use systemprompt::identifiers::{ContextId, UserId};
 use systemprompt_web_admin::repositories::scope::SubjectScope;
 use systemprompt_web_admin::util::time_range::{TimeRange, TimeRangePreset};
+use systemprompt_web_shared::{GroupId, ProjectId};
 
 // A window that starts after the newest seeded `ai_requests` row (migration
 // 025 writes none newer than a minute old) and runs into the future, so a
@@ -74,6 +75,20 @@ pub async fn insert_user_full(
     roles: &[String],
     status: &str,
 ) -> UserId {
+    // Why: the matrix resolver reads the composed services tree for the
+    // entity catalog; an empty tree is the neutral one for these tests.
+    static SERVICES: std::sync::Once = std::sync::Once::new();
+    SERVICES.call_once(|| {
+        if systemprompt::loader::ServicesBootstrap::is_initialized() {
+            return;
+        }
+        let directory = tempfile::tempdir().expect("services fixture");
+        let path = directory.path().join("config.yaml");
+        std::fs::write(&path, "{}").expect("write services fixture");
+        systemprompt::loader::ServicesBootstrap::init_from_path(&path)
+            .expect("install services fixture");
+    });
+
     sqlx::query(
         "INSERT INTO users (id, name, email, display_name, status, email_verified, roles)
          VALUES ($1, $2, $3, $4, $5, true, $6)",
@@ -100,94 +115,6 @@ pub async fn set_department(pool: &PgPool, user_id: &UserId, department: &str) {
     .execute(pool)
     .await
     .expect("set department");
-}
-
-pub async fn insert_plan(
-    pool: &PgPool,
-    id: &str,
-    seat_limit: Option<i32>,
-    cap_microdollars: Option<i64>,
-    price_microdollars: i64,
-) {
-    sqlx::query(
-        "INSERT INTO plans (id, name, seat_limit, monthly_cost_cap_microdollars,
-                            monthly_price_microdollars)
-         VALUES ($1, $2, $3, $4, $5)",
-    )
-    .bind(id)
-    .bind(format!("Plan {id}"))
-    .bind(seat_limit)
-    .bind(cap_microdollars)
-    .bind(price_microdollars)
-    .execute(pool)
-    .await
-    .expect("insert plan");
-}
-
-pub struct OrgSpec<'a> {
-    pub id: &'a str,
-    pub slug: &'a str,
-    pub name: &'a str,
-    pub plan_id: Option<&'a str>,
-    pub status: &'a str,
-    pub email_domains: Vec<String>,
-}
-
-impl<'a> OrgSpec<'a> {
-    // An active, unclaimed-domain organization on no plan.
-    pub const fn active(id: &'a str, slug: &'a str) -> Self {
-        Self {
-            id,
-            slug,
-            name: "Test Organization",
-            plan_id: None,
-            status: "active",
-            email_domains: Vec::new(),
-        }
-    }
-}
-
-pub async fn insert_org(pool: &PgPool, spec: &OrgSpec<'_>) {
-    sqlx::query(
-        "INSERT INTO organizations (id, slug, name, plan_id, status, email_domains)
-         VALUES ($1, $2, $3, $4, $5, $6)",
-    )
-    .bind(spec.id)
-    .bind(spec.slug)
-    .bind(spec.name)
-    .bind(spec.plan_id)
-    .bind(spec.status)
-    .bind(spec.email_domains.as_slice())
-    .execute(pool)
-    .await
-    .expect("insert organization");
-}
-
-pub async fn insert_member(pool: &PgPool, user_id: &UserId, org_id: &str, org_role: &str) {
-    sqlx::query(
-        "INSERT INTO organization_members (user_id, org_id, org_role) VALUES ($1, $2, $3)
-         ON CONFLICT (user_id) DO UPDATE
-            SET org_id = EXCLUDED.org_id, org_role = EXCLUDED.org_role",
-    )
-    .bind(user_id.as_str())
-    .bind(org_id)
-    .bind(org_role)
-    .execute(pool)
-    .await
-    .expect("insert organization member");
-}
-
-// Insert a department. `org_id` is NOT NULL from migration 022, so every
-// department must be anchored to an organization.
-pub async fn insert_department(pool: &PgPool, id: &str, name: &str, org_id: &str) {
-    sqlx::query("INSERT INTO departments (id, name, description, org_id) VALUES ($1, $2, $3, $4)")
-        .bind(id)
-        .bind(name)
-        .bind("fixture department")
-        .bind(org_id)
-        .execute(pool)
-        .await
-        .expect("insert department");
 }
 
 // Insert a `user_contexts` row.
@@ -407,19 +334,6 @@ pub async fn insert_decision(pool: &PgPool, spec: &DecisionSpec<'_>) {
     .expect("insert governance decision");
 }
 
-// A Skill tool call is only an invocation when a governance decision sits
-// beside it: every genuine tool call is governed before it runs, so
-// skill_invocation_events requires one and a Skill row without it did not come
-// from a client. Writing the event alone builds an invocation the product does
-// not recognise, which is a fixture that tests nothing.
-pub async fn insert_skill_event(pool: &PgPool, spec: &EventSpec<'_>) {
-    insert_event(pool, spec).await;
-    let mut governed = DecisionSpec::allow(&unique("dec"), spec.user_id, spec.session_id);
-    governed.tool_name = "Skill";
-    governed.created_at = spec.created_at;
-    insert_decision(pool, &governed).await;
-}
-
 pub struct EventSpec<'a> {
     pub id: String,
     pub user_id: &'a UserId,
@@ -444,43 +358,6 @@ impl<'a> EventSpec<'a> {
             created_at: Utc::now(),
         }
     }
-
-    // A `Skill` PostToolUse shaped exactly as the hook writes it: the skill
-    // name lives at metadata.tool_input.skill, which is what the demo queries
-    // read. `tool_use` is deliberately not reused — its `event_type` carries
-    // the legacy `claude_code_` prefix the demo queries do not match.
-    pub fn skill(id: &str, user_id: &'a UserId, session_id: &'a str, skill: &str) -> Self {
-        Self {
-            event_type: "PostToolUse",
-            tool_name: Some("Skill"),
-            metadata: serde_json::json!({
-                "tool_use_id": format!("toolu_{id}"),
-                "tool_input": { "skill": skill },
-            }),
-            ..Self::tool_use(id, user_id, session_id)
-        }
-    }
-
-    pub fn mcp_tool(id: &str, user_id: &'a UserId, session_id: &'a str, tool: &'a str) -> Self {
-        Self {
-            event_type: "PostToolUse",
-            tool_name: Some(tool),
-            metadata: serde_json::json!({ "tool_use_id": format!("toolu_{id}") }),
-            ..Self::tool_use(id, user_id, session_id)
-        }
-    }
-
-    #[must_use]
-    pub fn at(mut self, created_at: DateTime<Utc>) -> Self {
-        self.created_at = created_at;
-        self
-    }
-
-    #[must_use]
-    pub fn failed(mut self) -> Self {
-        self.event_type = "PostToolUseFailure";
-        self
-    }
 }
 
 pub async fn insert_event(pool: &PgPool, spec: &EventSpec<'_>) {
@@ -500,35 +377,6 @@ pub async fn insert_event(pool: &PgPool, spec: &EventSpec<'_>) {
     .execute(pool)
     .await
     .expect("insert plugin usage event");
-}
-
-pub struct ApprovalSpec<'a> {
-    pub call_id: String,
-    pub requested_by: &'a UserId,
-    pub session_id: Option<&'a str>,
-    pub server_name: &'a str,
-    pub tool_name: &'a str,
-    pub status: &'a str,
-}
-
-pub async fn insert_approval(pool: &PgPool, spec: &ApprovalSpec<'_>) {
-    sqlx::query(
-        "INSERT INTO approval_requests
-             (call_id, tool_name, server_name, arguments, args_digest, requested_by,
-              session_id, rule, status, expires_at)
-         VALUES ($1, $2, $3, '{}'::jsonb, $4, $5, $6, 'fixture-rule', $7,
-                 now() + interval '1 hour')",
-    )
-    .bind(&spec.call_id)
-    .bind(spec.tool_name)
-    .bind(spec.server_name)
-    .bind(&spec.call_id)
-    .bind(spec.requested_by.as_str())
-    .bind(spec.session_id)
-    .bind(spec.status)
-    .execute(pool)
-    .await
-    .expect("insert approval request");
 }
 
 pub async fn insert_activity(
@@ -610,11 +458,9 @@ pub async fn insert_federated_identity(
     .expect("insert federated identity");
 }
 
-
 pub fn new_context_id() -> String {
     ContextId::generate().to_string()
 }
-
 
 pub async fn set_project(pool: &PgPool, user_id: &UserId, project: Option<&str>) {
     sqlx::query("DELETE FROM project_members WHERE user_id = $1")
@@ -636,7 +482,6 @@ pub async fn set_project(pool: &PgPool, user_id: &UserId, project: Option<&str>)
     insert_group_member(pool, project, user_id, "manual").await;
 }
 
-
 pub async fn project_scope(pool: &PgPool, project: &str) -> SubjectScope {
     let ids: Vec<String> =
         sqlx::query_scalar("SELECT user_id FROM project_members WHERE project_id = $1")
@@ -647,26 +492,29 @@ pub async fn project_scope(pool: &PgPool, project: &str) -> SubjectScope {
     SubjectScope::Users(ids)
 }
 
-
-pub async fn insert_group(pool: &PgPool, id: &str, name: &str) {
+pub async fn insert_group(pool: &PgPool, id: impl AsRef<str>, name: &str) {
     sqlx::query(
         "INSERT INTO groups (id, name, source) VALUES ($1, $2, 'dashboard')
          ON CONFLICT (id) DO NOTHING",
     )
-    .bind(id)
+    .bind(id.as_ref())
     .bind(name)
     .execute(pool)
     .await
     .expect("insert group");
 }
 
-
-pub async fn insert_group_member(pool: &PgPool, group_id: &str, user_id: &UserId, source: &str) {
+pub async fn insert_group_member(
+    pool: &PgPool,
+    group_id: impl AsRef<str>,
+    user_id: &UserId,
+    source: &str,
+) {
     sqlx::query(
         "INSERT INTO group_members (group_id, user_id, source) VALUES ($1, $2, $3)
          ON CONFLICT DO NOTHING",
     )
-    .bind(group_id)
+    .bind(group_id.as_ref())
     .bind(user_id.as_str())
     .bind(source)
     .execute(pool)
@@ -674,23 +522,21 @@ pub async fn insert_group_member(pool: &PgPool, group_id: &str, user_id: &UserId
     .expect("insert group member");
 }
 
-
-pub async fn insert_project(pool: &PgPool, id: &str, name: &str) {
+pub async fn insert_project(pool: &PgPool, id: impl AsRef<str>, name: &str) {
     sqlx::query(
         "INSERT INTO projects (id, name, source) VALUES ($1, $2, 'dashboard')
          ON CONFLICT (id) DO NOTHING",
     )
-    .bind(id)
+    .bind(id.as_ref())
     .bind(name)
     .execute(pool)
     .await
     .expect("insert project");
 }
 
-
 pub async fn insert_project_member(
     pool: &PgPool,
-    project_id: &str,
+    project_id: impl AsRef<str>,
     user_id: &UserId,
     source: &str,
 ) {
@@ -698,10 +544,39 @@ pub async fn insert_project_member(
         "INSERT INTO project_members (project_id, user_id, source) VALUES ($1, $2, $3)
          ON CONFLICT DO NOTHING",
     )
-    .bind(project_id)
+    .bind(project_id.as_ref())
     .bind(user_id.as_str())
     .bind(source)
     .execute(pool)
     .await
     .expect("insert project member");
+}
+
+pub(crate) fn unique_group(prefix: &str) -> GroupId {
+    GroupId::new(unique(prefix))
+}
+
+pub(crate) fn unique_project(prefix: &str) -> ProjectId {
+    ProjectId::new(unique(prefix))
+}
+
+pub(crate) async fn insert_message(
+    pool: &PgPool,
+    request_id: &str,
+    seq: i32,
+    role: &str,
+    body: &str,
+) {
+    sqlx::query(
+        "INSERT INTO ai_request_messages (id, request_id, role, content, sequence_number)
+         VALUES ($1, $2, $3, $4, $5)",
+    )
+    .bind(unique("msg"))
+    .bind(request_id)
+    .bind(role)
+    .bind(body)
+    .bind(seq)
+    .execute(pool)
+    .await
+    .expect("insert ai request message");
 }
