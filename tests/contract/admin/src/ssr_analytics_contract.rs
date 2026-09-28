@@ -305,3 +305,116 @@ async fn the_history_page_and_its_search_endpoint_run_over_a_seeded_session() {
 
     db.cleanup().await;
 }
+
+// Every format the dialog offers answers as a file, and the preview answers
+// the counts the dialog shows — for the same dataset and query.
+#[tokio::test(flavor = "multi_thread")]
+async fn the_export_surface_serves_every_format_and_a_preview() {
+    if !globals::init() {
+        return;
+    }
+    let Some(db) = TempDb::create().await else {
+        return;
+    };
+
+    let credentials = principal::provision(&db.pool).await;
+    let app = App::new(&db.pool, credentials);
+    seed_person(&db.pool).await;
+
+    let mut failures = Vec::new();
+    for (path, starts_with) in [
+        ("/admin/export/requests?format=json&preset=30d", "["),
+        ("/admin/export/requests?format=jsonl&preset=30d", ""),
+        ("/admin/export/requests?format=markdown&preset=30d", "| "),
+    ] {
+        let (status, body) = app.call(Call::get(path, Principal::Admin)).await;
+        if status != StatusCode::OK {
+            failures.push(format!("  {path} -> {}", status.as_u16()));
+        } else if !body.starts_with(starts_with) {
+            failures.push(format!("  {path} does not start with {starts_with:?}"));
+        }
+    }
+    let (status, body) = app
+        .call(Call::get(
+            "/admin/export/requests/preview?preset=30d&columns=request_id,model",
+            Principal::Admin,
+        ))
+        .await;
+    if status != StatusCode::OK || !body.contains("\"columns\":2") {
+        failures.push(format!("  preview -> {} {body}", status.as_u16()));
+    }
+    for (path, principal, expected) in [
+        (
+            "/admin/export/nope?format=csv",
+            Principal::Admin,
+            StatusCode::NOT_FOUND,
+        ),
+        (
+            "/admin/export/requests?format=csv",
+            Principal::NonAdmin,
+            StatusCode::SEE_OTHER,
+        ),
+        (
+            "/admin/export/history?format=csv",
+            Principal::NonAdmin,
+            StatusCode::OK,
+        ),
+    ] {
+        let (status, _) = app.call(Call::get(path, principal)).await;
+        if status != expected {
+            failures.push(format!(
+                "  {path} -> {} (expected {})",
+                status.as_u16(),
+                expected.as_u16()
+            ));
+        }
+    }
+
+    assert!(failures.is_empty(), "\n{}", failures.join("\n"));
+
+    db.cleanup().await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn the_report_exports_answer_with_a_csv_body() {
+    if !globals::init() {
+        return;
+    }
+    let Some(db) = TempDb::create().await else {
+        return;
+    };
+
+    let credentials = principal::provision(&db.pool).await;
+    let app = App::new(&db.pool, credentials);
+    seed_person(&db.pool).await;
+
+    let mut failures = Vec::new();
+    for path in [
+        "/admin/export/report-customer-users?format=csv",
+        "/admin/export/report-customer-projects?format=csv",
+        "/admin/export/report-internal-providers?format=csv",
+        "/admin/export/analytics-cost-providers?format=csv&preset=30d",
+        "/admin/export/analytics-cost-containers?format=csv&axis=project&preset=30d",
+        "/admin/export/requests?format=csv&preset=30d",
+        "/admin/export/sessions?format=csv&preset=7d&columns=context_id,cost_usd",
+    ] {
+        let (status, body) = app.call(Call::get(path, Principal::Admin)).await;
+        if status != StatusCode::OK {
+            failures.push(format!("  {path} -> {}", status.as_u16()));
+            continue;
+        }
+        // A CSV is a header row and then rows: the first line has to carry
+        // separators, and the body must not be the HTML error page.
+        let first_line = body.lines().next().unwrap_or_default();
+        if !first_line.contains(',') {
+            failures.push(format!("  {path} has no header row: {first_line}"));
+        }
+        if body.starts_with("<!DOCTYPE html>") {
+            failures.push(format!("  {path} answered with a page, not a file"));
+        }
+    }
+
+    assert!(failures.is_empty(), "\n{}", failures.join("\n"));
+
+    db.cleanup().await;
+}

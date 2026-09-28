@@ -42,6 +42,8 @@ pub(super) const fn default_kpis() -> ContextKpis {
         trace_count: 0,
         error_count: 0,
         total_input_tokens: 0,
+        total_cache_read_tokens: 0,
+        total_cache_creation_tokens: 0,
         total_output_tokens: 0,
         total_cost_microdollars: 0,
         first_request_at: None,
@@ -92,6 +94,9 @@ pub(super) fn build_detail_data(
         .map_or_else(|| "Conversations".to_owned(), |_| "Session".to_owned());
     ContextDetailPageContext {
         page: "context-detail",
+        // Why: the whole record only; the per-turn ledger table joins it when
+        // the analysis suite registers `analysis-conversation-turns`.
+        export: crate::export::ExportView::conversation(&header.context_id, false),
         tabs: tab_links(header, active_tab, requests.len(), entity_link_views.len()),
         show_conversation: active_tab == TAB_CONVERSATION,
         show_requests: active_tab == TAB_REQUESTS,

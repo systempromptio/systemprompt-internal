@@ -49,6 +49,8 @@ pub(super) async fn load_conversations(
             scope_user_ids: Some(&scope),
             search: None,
             include_side_calls: false,
+            since: None,
+            until: None,
         },
         CONVERSATION_PAGE_SIZE,
         page * CONVERSATION_PAGE_SIZE,

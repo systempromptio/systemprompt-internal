@@ -4,6 +4,7 @@
 
     {{> components/breadcrumbs crumbs=breadcrumbs}}
     {{#> components/page-header title=title}}
+      {{#*inline "header_actions"}}{{> components/export-button export}}{{/inline}}
       {{#*inline "header_meta"}}
         <span class="sp-conversation__facts">
           {{#if header.user_url}}

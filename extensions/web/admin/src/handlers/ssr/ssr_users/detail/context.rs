@@ -37,6 +37,7 @@ pub(crate) struct UserDetailContext {
     pub devices: Option<DevicesTabView>,
     pub sessions: Option<UserSessionsTabView>,
     pub usage: Option<UsageTabView>,
+    pub export: Option<crate::export::ExportView>,
 }
 
 #[derive(Debug, Serialize)]

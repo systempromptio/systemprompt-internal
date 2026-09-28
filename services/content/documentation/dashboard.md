@@ -171,9 +171,13 @@ These commands output structured data suitable for scripting, reporting, and int
 
 Cost data visibility is governed by the same RBAC system that controls all platform resources. Analysts with department-scoped roles see only their own department's cost data. Organization-wide cost views require the `admin` or `finance` role. This ensures sensitive spend data is compartmentalized appropriately across enterprise-scale deployments.
 
-### Export to CSV
+### Export
 
-Finance teams can export cost and usage data to CSV for integration with existing accounting and budgeting systems. Exports include per-agent breakdowns, department rollups, model-level costs, and daily/weekly/monthly aggregations. Use the dashboard export button or the CLI to generate reports on demand.
+Every table page in the console carries an **Export** button — the analytics dashboard (per tab), requests, sessions, traces, conversations by person, governance decisions, findings and the secrets audit, the users roster, and your own conversation history. Without JavaScript the button downloads the page's default columns as CSV over the page's own window. With it, the button opens one dialog: pick the table (when a page offers more than one), the window, the columns, and the format — CSV, JSON, JSON Lines or Markdown — and the dialog shows how many rows and cells the file will hold before you download, and says when a file is capped. The file carries the same filters the page shows; each filter appears as a chip you can drop for that one download.
+
+Conversation pages add the **full transcript**: every message body, tool call with its input and result, governance decision, scanner finding and hook event, as JSON or Markdown. List pages of conversations (sessions, conversation history, a session's detail) offer the same record for every conversation they select, as JSON Lines.
+
+The same routes serve scripts: `GET /admin/export/{dataset}` (with `?format=` and `?columns=`), `/admin/export/{dataset}/preview` for the counts, and `/admin/export/transcripts` for conversation records. A personal access token (`Authorization: Bearer sp-live-…`) is accepted on these `GET` routes only, and reads exactly what its owner could export in the browser — a user's own history with any token, the console tables only with a console seat. Cost reports for finance are the `report-*` datasets, one calendar month per file (`?month=YYYY-MM`). The CLI remains available for scripted reports.
 
 ---
 

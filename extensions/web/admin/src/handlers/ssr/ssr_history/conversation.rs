@@ -46,6 +46,7 @@ struct ConversationPageContext {
     timeline: Option<String>,
     conversation: ConversationView,
     admin_url: Option<String>,
+    export: crate::export::ExportView,
 }
 
 fn not_found() -> AdminError {
@@ -119,6 +120,9 @@ pub(crate) async fn history_conversation_page(
         timeline: timeline_display(kpis.first_request_at, kpis.last_request_at),
         conversation,
         admin_url: user_ctx.is_admin.then(|| context_detail_url(&context_id)),
+        // Why: the whole record only, for owner and console alike, until the
+        // analysis suite registers the per-turn ledger table.
+        export: crate::export::ExportView::conversation(&context_id, false),
     };
 
     Ok(super::super::render_typed_page(

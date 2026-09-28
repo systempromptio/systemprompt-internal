@@ -123,6 +123,7 @@ pub(super) struct AnalyticsDashboardContext {
     pub tools: ToolsTabView,
     pub sessions: SessionsTabView,
     pub cost: CostTabView,
+    pub export: crate::export::ExportView,
 }
 
 #[derive(Debug, Serialize)]

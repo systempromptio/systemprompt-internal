@@ -14,6 +14,7 @@ pub(super) use crate::handlers::ssr::transcript_view::ConversationView;
 #[derive(Debug, Serialize)]
 pub(super) struct ContextDetailPageContext {
     pub(super) page: &'static str,
+    pub(super) export: crate::export::ExportView,
     pub(super) title: String,
     pub(super) header: HeaderView,
     pub(super) stats: ConversationStatsView,

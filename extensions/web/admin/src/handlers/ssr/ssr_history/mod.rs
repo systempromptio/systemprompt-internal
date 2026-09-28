@@ -19,11 +19,13 @@
 
 mod context;
 mod conversation;
+mod export;
 mod kind;
 mod view;
 
 pub(crate) use context::HistoryRowView;
 pub(crate) use conversation::history_conversation_page;
+pub(crate) use export::{ExportRequest, export_rows};
 pub(crate) use kind::HistoryView;
 pub use view::command_name;
 pub(crate) use view::row_view;
@@ -46,6 +48,7 @@ use crate::templates::AdminTemplateEngine;
 use crate::types::{MarketplaceContext, UserContext};
 
 use context::HistoryPageContext;
+use export::export_view;
 use view::{build_pagination, detail_url, scope_label, side_toggle_url};
 
 const PAGE_SIZE: i64 = 50;
@@ -131,6 +134,8 @@ async fn fetch_history_slice(
             scope_user_ids: scope_ids.as_deref(),
             search: query.q.as_deref(),
             include_side_calls: query.show_side(),
+            since: None,
+            until: None,
         },
         PAGE_SIZE,
         page * PAGE_SIZE,
@@ -251,6 +256,7 @@ async fn render_listing(
         base_url: base,
         pagination: build_pagination(query, window, base),
         breadcrumbs: view.breadcrumbs(),
+        export: export_view(query, view),
     };
     Ok(super::render_typed_page(
         engine,

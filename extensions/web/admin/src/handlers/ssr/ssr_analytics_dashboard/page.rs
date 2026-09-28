@@ -121,6 +121,10 @@ pub(super) fn page_context(input: PageInput<'_>) -> AnalyticsDashboardContext {
     let tabs = tab_views(fetched, query, page);
 
     AnalyticsDashboardContext {
+        export: crate::export::ExportView::new(
+            export_datasets(tab),
+            &urls::preserved_query_string(query, &["tab", "page"]),
+        ),
         page: "analytics-dashboard",
         title: "Analytics".to_owned(),
         time_range: view::time_range_view(query, &range),
@@ -200,5 +204,23 @@ const fn tab_label(tab: DashboardTab) -> &'static str {
         DashboardTab::Tools => "Tools",
         DashboardTab::Sessions => "Sessions",
         DashboardTab::Cost => "Cost",
+    }
+}
+
+// Why: the tab decides which tables the export offers, the active tab's
+// first, so the dialog opens on the table the reader is looking at.
+const fn export_datasets(tab: DashboardTab) -> &'static [&'static str] {
+    match tab {
+        DashboardTab::Overview | DashboardTab::Models => &["analytics-models"],
+        DashboardTab::Skills => &["analytics-skills"],
+        DashboardTab::Tools => &["analytics-tools", "analytics-tool-servers"],
+        DashboardTab::Sessions => &["analytics-sessions"],
+        DashboardTab::Cost => &[
+            "analytics-cost-providers",
+            "analytics-cost-days",
+            "analytics-cost-containers",
+            "report-internal-providers",
+            "report-internal-models",
+        ],
     }
 }

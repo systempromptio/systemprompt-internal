@@ -96,9 +96,13 @@ WITH classified AS MATERIALIZED (
             SELECT * FROM transcripts
             UNION ALL
             SELECT * FROM gateway
+        ), windowed AS (
+            SELECT * FROM unified
+            WHERE ($8::timestamptz IS NULL OR last_at >= $8)
+              AND ($9::timestamptz IS NULL OR last_at < $9)
         )
         , counted AS MATERIALIZED (
-            SELECT *, COUNT(*) OVER ()::bigint AS total_count FROM unified
+            SELECT *, COUNT(*) OVER ()::bigint AS total_count FROM windowed
         ), page AS MATERIALIZED (
             SELECT * FROM counted
             ORDER BY rank DESC NULLS LAST, last_at DESC, source, COALESCE(session_id, context_id)

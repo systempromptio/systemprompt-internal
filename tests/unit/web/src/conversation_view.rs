@@ -44,6 +44,8 @@ fn req(
         status: status.to_owned(),
         latency_ms: Some(10),
         input_tokens: Some(1),
+        cache_read_tokens: None,
+        cache_creation_tokens: None,
         output_tokens: Some(2),
         cost_microdollars: 5,
         created_at: at(secs),
@@ -63,6 +65,8 @@ fn history(id: &str, secs: i64, rows: &[(&str, &str)]) -> Vec<ContextMessageRow>
             role: (*role).to_owned(),
             sequence_number: seq as i32,
             content: (*content).to_owned(),
+            tool_call_id: None,
+            name: None,
             created_at: at(secs),
         })
         .collect()
@@ -73,8 +77,11 @@ fn tool(id: &str, seq: i32, name: &str, input: &str) -> ContextToolCallRow {
         request_id: AiRequestId::new(id),
         tool_name: name.to_owned(),
         sequence_number: seq,
+        ai_tool_call_id: None,
         tool_input: serde_json::from_str(input).expect("valid json"),
         tool_result_payload: None,
+        artifact_id: None,
+        artifact_structured: false,
         created_at: at(0),
     }
 }

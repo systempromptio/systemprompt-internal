@@ -35,6 +35,27 @@ Conventions (strict — hold every entry to them):
   and the requests and spend of the conversations that invoked each skill, read from
   `analysis_skill_version_events` (`repositories/analytics/site/skills.rs`). Rows overlap by
   construction and the tab says so; the strip above counts each conversation once.
+- **Admin export:** one export surface for the console's tables
+  (`extensions/web/admin/src/export/`). A page declares a dataset — typed columns and the
+  repository read behind them — and `GET /admin/export/{dataset}` serves it as CSV, JSON, JSON
+  Lines or Markdown with any column selection over the window the dataset's contract allows;
+  `/admin/export/{dataset}/preview` returns the row and cell counts the dialog shows before a
+  download, and says when the 50,000-row cap bites. Twenty-six datasets are registered:
+  requests, sessions, traces, conversations by person and by user, the users roster, groups,
+  projects, "My conversations" and the org-wide conversation list, the analytics tabs, the
+  Cost tab's three tables, governance decisions, safety findings and the secrets audit, and
+  the five month-end report tables. Pages carry `components/export-button` and the layout
+  renders `components/export-dialog` (`services/export*.js`, `07-dialog3-export*.css`).
+- **Admin export:** conversation records. `GET /admin/export/transcripts/{context_id}`
+  returns one conversation — every message body, tool call with input and result, governance
+  decision, scanner finding and hook event — as JSON or Markdown; `/admin/export/transcripts`
+  streams a selected or filtered set (sessions, a session, "My conversations", the org-wide
+  list) as JSON Lines, up to 500 per file. A context outside the caller's view answers 404,
+  and a viewer without a console seat gets the owner-facing rendering.
+- **Admin export:** a personal access token is accepted in place of a browser session on
+  `GET /admin/export/…` only (`middleware/pat.rs`, `find_api_key_user`). It resolves to its
+  owner and passes the same gates a session does; every other admin route, and every write,
+  refuses it with 401.
 
 ### Changed
 
@@ -45,6 +66,16 @@ Conventions (strict — hold every entry to them):
   empty until it does. The cost-by-day chart is the shared line-chart component in its
   `stacked` kind. Lists page at the console-wide `DEFAULT_PAGE_SIZE`
   (`handlers/ssr/list_view.rs`, with the shared `paginate` / `query_string_dropping` helpers).
+- **Admin export:** the per-page CSV routes are replaced by the export surface:
+  `/admin/analytics/cost.csv` → `analytics-cost-providers` / `analytics-cost-containers`,
+  `/admin/requests.csv` → `requests`,
+  `/admin/governance/warnings.csv` → `governance-decisions` and `governance-findings`,
+  `/admin/governance/secrets.csv` → `governance-secrets`. The month-end
+  `/admin/reports/*.csv` files are unchanged. `repositories::analytics::context_tool_calls` now
+  owns the transcript's tool-call read and joins each call to its stored artifact, and the
+  context reader carries the cache-token and tool-call-id columns the gateway records.
+  `/admin/history` rows can be bounded by a window (`HistoryFilter::since`/`until`), which the
+  export uses.
 
 ### Removed
 
@@ -52,6 +83,9 @@ Conventions (strict — hold every entry to them):
   table, the skill-by-model table, session ratings and the context-window tiles, and the
   permission-grant estimate. None of them could be measured soundly from what the gateway
   records. `components/svg-stacked-chart.hbs` and `SvgStackedChartView` are gone with them.
+- **Admin export:** `/admin/analytics/cost.csv`, `/admin/requests.csv`,
+  `/admin/governance/warnings.csv` and `/admin/governance/secrets.csv`. Fetch the same data from
+  `/admin/export/{dataset}?format=csv` (see Changed).
 
 ## [0.62.0] - 2026-09-28
 

@@ -124,6 +124,7 @@ pub(crate) async fn user_detail_page(
         devices: None,
         sessions: None,
         usage: None,
+        export: view::export(&user_id, &user_ctx),
     };
 
     let data = Box::pin(fill_tab(

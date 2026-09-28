@@ -20,6 +20,7 @@ pub(super) struct SessionDetailPageContext {
     pub(super) has_traces: bool,
     pub(super) has_requests: bool,
     pub(super) back_url: &'static str,
+    pub(super) export: crate::export::ExportView,
     // Why: absent until the hooks pipeline has summarised the run, which is
     // the normal state for a session still in flight — the page says so rather
     // than rendering an empty verdict panel.

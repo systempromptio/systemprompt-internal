@@ -35,6 +35,13 @@ impl HistoryView {
         }
     }
 
+    pub(super) const fn dataset(self) -> &'static str {
+        match self {
+            Self::Own => "history",
+            Self::Org => "conversations",
+        }
+    }
+
     pub(super) const fn title(self) -> &'static str {
         match self {
             Self::Own => "My Conversations",

@@ -23,10 +23,11 @@ use crate::repositories::traces::{
 };
 use crate::templates::AdminTemplateEngine;
 use crate::types::{MarketplaceContext, UserContext};
-use crate::util::time_range::{TimeRange, TimeRangePreset, TimeRangeQuery, parse_time_range};
+use crate::util::time_range::{TimeRange, TimeRangeQuery, parse_time_range};
 
 
 mod context;
+pub(crate) mod export;
 mod rows;
 mod summary;
 mod view;
@@ -215,6 +216,7 @@ async fn load_traces_data(
         error_only: filter.error_only,
         deny_only: filter.deny_only,
         scope_filter,
+        export: view::export_view(query, range, &preset),
     }
 }
 
@@ -249,15 +251,7 @@ fn preset_str(query: &TraceListQuery, range: TimeRange) -> String {
     if query.from.is_some() && query.to.is_some() {
         return "custom".to_owned();
     }
-    match range.preset {
-        TimeRangePreset::Min15 => "15m",
-        TimeRangePreset::Hour1 => "1h",
-        TimeRangePreset::Hours24 => "24h",
-        TimeRangePreset::Days7 => "7d",
-        TimeRangePreset::Days30 => "30d",
-        TimeRangePreset::Custom => "custom",
-    }
-    .to_owned()
+    range.preset.as_str().to_owned()
 }
 
 fn sort_from_query(query: &TraceListQuery) -> TraceSort {

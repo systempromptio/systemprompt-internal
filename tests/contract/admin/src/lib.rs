@@ -59,6 +59,8 @@ mod login_contract;
 #[cfg(test)]
 mod mcp_detail_contract;
 #[cfg(test)]
+mod pat_export_contract;
+#[cfg(test)]
 mod principal;
 #[cfg(test)]
 mod rejected_request_contract;

@@ -118,6 +118,14 @@ pub(crate) async fn session_detail_page(
         has_requests: !read.requests.is_empty(),
         requests: read.requests.iter().map(request_view).collect(),
         back_url: "/admin/sessions",
+        export: crate::export::ExportView::new(
+            &[],
+            &format!(
+                "session_id={}",
+                urlencoding::encode(header.session_id.as_str())
+            ),
+        )
+        .with_transcripts(crate::export::view::TranscriptSource::Sessions),
         analysis: read.analysis.as_ref().map(quality::analysis_view),
         has_ratings: !rating_views.is_empty(),
         rating_count: rating_views.len(),

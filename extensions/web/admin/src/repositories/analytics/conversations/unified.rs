@@ -72,12 +72,15 @@ pub struct HistoryItem<Id = ContextId> {
 }
 
 /// What narrows one history page: whose conversations, matching what text,
-/// and whether side calls count.
+/// whether side calls count, and the window their last activity falls in
+/// (`None` on either side leaves it open).
 #[derive(Debug, Clone, Copy)]
 pub struct HistoryFilter<'a> {
     pub scope_user_ids: Option<&'a [String]>,
     pub search: Option<&'a str>,
     pub include_side_calls: bool,
+    pub since: Option<DateTime<Utc>>,
+    pub until: Option<DateTime<Utc>>,
 }
 
 pub async fn list_history_items(
@@ -90,6 +93,8 @@ pub async fn list_history_items(
         scope_user_ids,
         search,
         include_side_calls,
+        since,
+        until,
     } = filter;
     let query = search.map(str::trim).filter(|q| !q.is_empty());
     let pattern = query.map(|q| format!("%{}%", q.replace('\\', "\\\\").replace('%', "\\%")));
@@ -105,6 +110,8 @@ pub async fn list_history_items(
         legacy.as_str(),
         pattern,
         include_side_calls,
+        since,
+        until,
     )
     .fetch_one(&mut *transaction)
     .await?;

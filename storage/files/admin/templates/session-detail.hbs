@@ -16,6 +16,7 @@
         {{#if header.ai_title}} · {{header.ai_title}}{{/if}}
       {{/inline}}
       {{#*inline "header_actions"}}
+        {{> components/export-button export}}
         <a class="sp-btn sp-btn--sm sp-btn--outline" href="{{back_url}}">All sessions</a>
       {{/inline}}
     {{/components/page-header}}

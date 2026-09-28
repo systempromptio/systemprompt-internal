@@ -136,11 +136,8 @@ fn people_routes() -> Router<Arc<PgPool>> {
 fn ai_activity_routes() -> Router<Arc<PgPool>> {
     Router::new()
         .route("/analytics", get(handlers::ssr::analytics_dashboard_page))
-        // Why: the Cost tab's export. Same handler contract as the tab, so the
-        // file always matches the view the operator was looking at.
-        .route("/analytics/cost.csv", get(handlers::ssr::cost_csv))
+        .merge(super::ssr_export::routes())
         .route("/requests", get(handlers::ssr::analytics_requests_page))
-        .route("/requests.csv", get(handlers::ssr::analytics_requests_csv))
         .route(
             "/requests/{request_id}",
             get(handlers::ssr::governance_audit_detail_page),
@@ -170,10 +167,6 @@ fn governance_routes() -> Router<Arc<PgPool>> {
     Router::new()
         .route("/governance", get(handlers::ssr::governance_page))
         .route(
-            "/governance/warnings.csv",
-            get(handlers::ssr::governance_csv),
-        )
-        .route(
             "/governance/decisions/{decision_id}",
             get(handlers::ssr::governance_audit_detail_page),
         )
@@ -181,10 +174,6 @@ fn governance_routes() -> Router<Arc<PgPool>> {
         .route(
             "/governance/secrets",
             get(handlers::ssr::secrets_audit_page),
-        )
-        .route(
-            "/governance/secrets.csv",
-            get(handlers::ssr::secrets_audit_csv),
         )
 }
 

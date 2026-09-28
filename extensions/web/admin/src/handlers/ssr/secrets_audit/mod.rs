@@ -17,12 +17,11 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
 use crate::error::{AdminError, AdminHtmlResult, AdminResult};
-use crate::handlers::ssr::csv::CsvBuilder;
 use crate::handlers::ssr::list_view::{PageWindow, Pagination, SelectOptionView, TimeRangeContext};
 use crate::handlers::ssr::types::BreadcrumbView;
 use crate::repositories::governance::secret_audit_log::{
-    SecretAuditFilter, SecretAuditStats, get_secret_audit_stats, list_secret_audit_actions,
-    list_secret_audit_paged,
+    SecretAuditFilter, SecretAuditRow, SecretAuditStats, get_secret_audit_stats,
+    list_secret_audit_actions, list_secret_audit_paged,
 };
 use crate::templates::AdminTemplateEngine;
 use crate::types::{MarketplaceContext, UserContext};
@@ -31,12 +30,10 @@ use crate::util::time_range::{TimeRange, TimeRangeQuery, parse_time_range};
 mod context;
 mod view;
 
+use crate::handlers::ssr::list_view::{DEFAULT_PAGE_SIZE, paginate};
 use context::{SecretAuditKpiView, action_options, kpis, url_for};
 
 const BASE_URL: &str = "/admin/governance/secrets";
-const PAGE_SIZE: i64 = 50;
-const CSV_LIMIT: i64 = 5_000;
-
 #[derive(Debug, Default, Deserialize)]
 pub(crate) struct SecretsQuery {
     pub from: Option<String>,
@@ -61,7 +58,7 @@ struct SecretsPageContext {
     pagination: Pagination,
     actions: Vec<SelectOptionView>,
     search: String,
-    csv_url: String,
+    export: crate::export::ExportView,
     clear_url: &'static str,
     has_filters: bool,
     base_url: &'static str,
@@ -108,25 +105,8 @@ fn time_range_context(query: &SecretsQuery, range: TimeRange) -> TimeRangeContex
     }
 }
 
-fn pagination(
-    query: &SecretsQuery,
-    action: Option<&str>,
-    page: i64,
-    window: PageWindow,
-) -> Pagination {
-    let (first_row, last_row) = window.bounds();
-    Pagination {
-        current_page: page + 1,
-        total_pages: window.total_pages,
-        first_row,
-        last_row,
-        total_rows: window.total_rows,
-        noun: "entries",
-        has_prev: page > 0,
-        has_next: page + 1 < window.total_pages,
-        prev_url: (page > 0).then(|| url_for(query, action, page - 1)),
-        next_url: (page + 1 < window.total_pages).then(|| url_for(query, action, page + 1)),
-    }
+fn pagination(query: &SecretsQuery, action: Option<&str>, window: PageWindow) -> Pagination {
+    paginate(window, |page| url_for(query, action, page))
 }
 
 pub(crate) async fn secrets_audit_page(
@@ -148,19 +128,25 @@ pub(crate) async fn secrets_audit_page(
             tracing::warn!(error = %e, "secret audit stats failed");
             SecretAuditStats::default()
         });
-    let (rows, total) = list_secret_audit_paged(&pool, range, &filter, PAGE_SIZE, page * PAGE_SIZE)
-        .await
-        .unwrap_or_else(|e| {
-            tracing::warn!(error = %e, "secret audit log failed");
-            (Vec::new(), 0)
-        });
+    let (rows, total) = list_secret_audit_paged(
+        &pool,
+        range,
+        &filter,
+        DEFAULT_PAGE_SIZE,
+        page * DEFAULT_PAGE_SIZE,
+    )
+    .await
+    .unwrap_or_else(|e| {
+        tracing::warn!(error = %e, "secret audit log failed");
+        (Vec::new(), 0)
+    });
     let actions = list_secret_audit_actions(&pool, range)
         .await
         .inspect_err(|e| tracing::warn!(error = %e, "secrets audit: action listing failed"))
         .unwrap_or_default();
 
     let shown = i64::try_from(rows.len()).unwrap_or(0);
-    let window = PageWindow::new(page, PAGE_SIZE, total, shown, "entries");
+    let window = PageWindow::new(page, DEFAULT_PAGE_SIZE, total, shown, "entries");
 
     let ctx = SecretsPageContext {
         page: "governance-secrets",
@@ -176,12 +162,18 @@ pub(crate) async fn secrets_audit_page(
         rows: view::rows(&rows),
         has_rows: !rows.is_empty(),
         row_count: format!("{total} entries"),
-        pagination: pagination(&query, filter.action.as_deref(), page, window),
+        pagination: pagination(&query, filter.action.as_deref(), window),
         actions: action_options(&actions, filter.action.as_deref()),
         search: query.q.clone().unwrap_or_default(),
-        csv_url: format!(
-            "{BASE_URL}.csv?preset={}",
-            query.preset.as_deref().unwrap_or("7d")
+        export: crate::export::ExportView::single(
+            "governance-secrets",
+            &crate::export::view::query_string(&[
+                ("preset", query.preset.as_deref()),
+                ("from", query.from.as_deref()),
+                ("to", query.to.as_deref()),
+                ("action", query.action.as_deref()),
+                ("q", query.q.as_deref()),
+            ]),
         ),
         clear_url: BASE_URL,
         has_filters: filter.action.is_some() || filter.search.is_some(),
@@ -197,45 +189,15 @@ pub(crate) async fn secrets_audit_page(
     ))
 }
 
-pub(crate) async fn secrets_audit_csv(
-    Extension(user_ctx): Extension<UserContext>,
-    State(pool): State<Arc<PgPool>>,
-    Query(query): Query<SecretsQuery>,
-) -> AdminResult<Response> {
-    require_console(&user_ctx)?;
-
-    let range = range_of(&query);
-    let (rows, _) = list_secret_audit_paged(&pool, range, &filter_of(&query), CSV_LIMIT, 0).await?;
-
-    let mut csv = CsvBuilder::new(&[
-        "at",
-        "action",
-        "variable",
-        "plugin",
-        "owner",
-        "actor",
-        "third_party",
-        "ip",
-    ]);
-    for row in &rows {
-        csv.row(&[
-            &row.created_at.to_rfc3339(),
-            &row.action,
-            &row.var_name,
-            row.plugin_id.as_str(),
-            row.user_id.as_str(),
-            row.actor_id.as_str(),
-            if row.actor_id == row.user_id {
-                "no"
-            } else {
-                "yes"
-            },
-            row.ip_address.as_deref().unwrap_or(""),
-        ]);
-    }
-
-    Ok(csv.into_response(&format!(
-        "secrets-audit-{}.csv",
-        range.from.format("%Y%m%d")
-    )))
+// Why: the export reads the same window and filter the page shows, through
+// the page's own query type.
+pub(crate) async fn export_rows(
+    pool: &PgPool,
+    user_ctx: &UserContext,
+    query: SecretsQuery,
+    range: TimeRange,
+    limit: i64,
+) -> AdminResult<(Vec<SecretAuditRow>, i64)> {
+    require_console(user_ctx)?;
+    Ok(list_secret_audit_paged(pool, range, &filter_of(&query), limit, 0).await?)
 }
