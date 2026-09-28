@@ -2,20 +2,20 @@
 
 Installs the Systemprompt Internal server — `systemprompt` and its
 `systemprompt-mcp-*` servers — from the signed release tarballs. The desktop
-bridge is a separate release series (`bridge-v0.61.0`); see
+bridge is a separate release series (`bridge-v0.62.0`); see
 [bridge-macos.md](bridge-macos.md).
 
-Each release `v0.61.0` publishes one tarball per platform, a `SHA256SUMS`, and
+Each release `v0.62.0` publishes one tarball per platform, a `SHA256SUMS`, and
 a cosign keyless signature (`.sig` + `.pem`) for every file.
 
 | OS | Arch | Asset |
 |---|---|---|
-| Linux | x86_64 | `systemprompt-internal-0.61.0-linux-amd64.tar.gz` |
-| Linux | arm64 | `systemprompt-internal-0.61.0-linux-arm64.tar.gz` |
-| macOS | Apple Silicon | `systemprompt-internal-0.61.0-darwin-arm64.tar.gz` |
+| Linux | x86_64 | `systemprompt-internal-0.62.0-linux-amd64.tar.gz` |
+| Linux | arm64 | `systemprompt-internal-0.62.0-linux-arm64.tar.gz` |
+| macOS | Apple Silicon | `systemprompt-internal-0.62.0-darwin-arm64.tar.gz` |
 
 There is no Intel macOS or Windows server build; use the container image
-(`ghcr.io/systempromptio/systemprompt-internal:0.61.0`, see [ghcr.md](ghcr.md))
+(`ghcr.io/systempromptio/systemprompt-internal:0.62.0`, see [ghcr.md](ghcr.md))
 there.
 
 ## From a checkout
@@ -26,7 +26,7 @@ version, checks it against `SHA256SUMS`, and installs every binary into
 
 ```bash
 just fetch-release          # the version in Cargo.toml
-just fetch-release 0.61.0   # a specific release
+just fetch-release 0.62.0   # a specific release
 ```
 
 ## Manual download
@@ -34,15 +34,15 @@ just fetch-release 0.61.0   # a specific release
 The repository is private, so download with an authenticated `gh`:
 
 ```bash
-gh release download v0.61.0 -R systempromptio/systemprompt-internal \
-  -p 'systemprompt-internal-0.61.0-linux-amd64.tar.gz' -p 'SHA256SUMS*'
+gh release download v0.62.0 -R systempromptio/systemprompt-internal \
+  -p 'systemprompt-internal-0.62.0-linux-amd64.tar.gz' -p 'SHA256SUMS*'
 
 # Verify SHA256
-grep systemprompt-internal-0.61.0-linux-amd64.tar.gz SHA256SUMS | sha256sum -c -
+grep systemprompt-internal-0.62.0-linux-amd64.tar.gz SHA256SUMS | sha256sum -c -
 
 # Extract
-tar -xzf systemprompt-internal-0.61.0-linux-amd64.tar.gz
-cd systemprompt-internal-0.61.0-linux-amd64
+tar -xzf systemprompt-internal-0.62.0-linux-amd64.tar.gz
+cd systemprompt-internal-0.62.0-linux-amd64
 ./bin/systemprompt --version
 ```
 

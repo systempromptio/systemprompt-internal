@@ -20,6 +20,18 @@ Conventions (strict — hold every entry to them):
 
 ## Unreleased
 
+## [0.62.0] - 2026-09-28
+
+### Breaking
+
+- **Breaking:** core 0.62.0. `secrets.json` must carry `encryption_master_key` (32 bytes as 64
+  hex characters): core refuses to boot without it, at secrets bootstrap before migrations run,
+  where 0.61 died later in extension init. `admin setup` mints it from 0.62.0 on, the Docker
+  entrypoint mints it once into a profile it generated, and `just setup-local` adds it to an
+  existing local profile. Add `openssl rand -hex 32` as `encryption_master_key` to every
+  operator-managed secrets file (Fly secrets, the air-gap profile) before upgrading; a supplied
+  `SYSTEMPROMPT_PROFILE_DIR` without it now fails at the entrypoint with that instruction.
+
 ### Added
 
 - **Admin console:** the sidebar is seven collapsible groups — AI activity, People & access,
@@ -94,6 +106,18 @@ Conventions (strict — hold every entry to them):
 
 ### Changed
 
+- **Core:** every core crate pin (both workspaces, `extensions/web`,
+  `tests/integration/web`) is 0.62.0, `bridge/CORE_REF` is `v0.62.0`, and the workspace, the
+  bridge, the helm chart's `appVersion` and the deploy image tags follow it (lockstep).
+- **Docker entrypoint:** migrations run as `infra db migrate --repair-drift` (repairs checksum
+  drift only, then retries once) instead of a blind `migrate-repair --apply` and retry;
+  `DATABASE_WRITE_URL` lands in the secrets as `database_write_url`; first boot requires
+  `SYSTEMPROMPT_ADMIN_EMAIL` (non-interactive `admin setup` needs it); every node runs
+  `publish_pipeline` before serving, because the scheduler's boot run takes a database-wide
+  lock and renders only one node's `web/dist`. A supplied `SYSTEMPROMPT_PROFILE_DIR` (the
+  air-gap profile, mounted read-only) takes `DATABASE_URL` from its secrets when unset and must
+  already carry `encryption_master_key` and either `signing_key_pem` or the key file its
+  profile names — nothing is minted into a shared profile.
 - **Build:** the coordinator no longer skips a recipe as "already green" — every run compiles
   the current tree; `BUILD_FORCE` is a no-op.
 - **Just:** `just test` runs every tier and reports every failure; tiers use
@@ -142,9 +166,16 @@ Conventions (strict — hold every entry to them):
 
 ### Fixed
 
+- A fresh install failed in the dependent phase on `marketplace_versions`: migration 006 was
+  made only of `DROP ... IF EXISTS`, which core runs as a retirement on a fresh install after
+  the structural DDL, so it dropped the new declarative table. 006 now drops the legacy table
+  only in its legacy shape, and declares `@supersedes-checksum` for databases that applied it.
 - Every hook `Stop` event failed an `UPDATE` of `plugin_session_summaries.apm`/`eapm`/
   `peak_concurrent`, columns migration 078 dropped; the stale offline query cache hid it at
   compile time. The APM writer and its concurrent-session count are removed.
+- Startup validation refused ten registered assets whose files had been deleted
+  (`header-theme-toggle.css`, `cta-buttons.css`, `webauthn-passkey.js` and seven admin page
+  scripts); they are no longer registered.
 - The access-control page logs a failed open-entity count instead of silently rendering zero.
 - Several stylesheet rules named tokens that were never defined (`--sp-radius-card`,
   `--sp-radius-card-brand`), so those cards rendered square; they use `--sp-corners-*`.
@@ -160,6 +191,30 @@ Conventions (strict — hold every entry to them):
   the disabled pre-push hook.
 - `email_outbox` and the four `comms_*` tables, left behind by the deleted email and comms MCP
   servers (migration 084). The dropped-schema gate's known-debt list is now empty.
+
+## [0.61.0] - never released (included in 0.62.0)
+
+The workspace moved from 0.50.0 to 0.61.0 on `next` (2026-09-25) without a tag or image; its
+changes ship in 0.62.0.
+
+### Changed
+
+- **Core:** core 0.61.0. The core-owned organization, evaluation and legacy marketplace
+  tables left the web extension's ownership; their migrations are tombstoned or retired so an
+  upgraded database and a fresh install converge on one schema (`tests/integration/schema-upgrade`).
+  The internal billing model (`082_restore_web_billing_model.sql`), the migration ledger and
+  every historical migration slot are kept.
+- **Evaluation:** the managed optimization pipeline is backported; production failure reviews
+  read managed revisions, and the retired evaluation scheduler job and session attribution
+  dependency are gone. Skill attribution is declarative and installed after the marketplace
+  migrations, so it survives a fresh install.
+- **Build:** crates declare their licenses and workspace metadata, obsolete dependencies are
+  pruned, rustls is pinned to its security repair, and the standalone bridge checks out core
+  beside it. `core-bump` is local-only and gates crate-version drift.
+
+### Removed
+
+- Pre-core-0.61 test modules and MCP contract modules that tested retired core surfaces.
 
 ## [0.50.0] - 2026-09-10
 

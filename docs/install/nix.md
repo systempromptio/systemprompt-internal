@@ -1,7 +1,7 @@
 # Install the server via Nix
 
 Builds the Systemprompt Internal server from the flake at the root of this
-repository. The package version is read from `Cargo.toml` (0.61.0 at this
+repository. The package version is read from `Cargo.toml` (0.62.0 at this
 release) and the build uses the checked-in `Cargo.lock` and `.sqlx/` offline
 cache, so it needs no database.
 
@@ -25,7 +25,7 @@ systemprompt --version
 ## Pin a version
 
 ```bash
-nix run github:systempromptio/systemprompt-internal/v0.61.0 -- --version
+nix run github:systempromptio/systemprompt-internal/v0.62.0 -- --version
 ```
 
 ## NixOS module (flake input)
@@ -36,7 +36,7 @@ In your `flake.nix`:
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    systemprompt.url = "github:systempromptio/systemprompt-internal/v0.61.0";
+    systemprompt.url = "github:systempromptio/systemprompt-internal/v0.62.0";
   };
 
   outputs = { self, nixpkgs, systemprompt, ... }: {
