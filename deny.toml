@@ -2,6 +2,9 @@
 targets = []
 
 [advisories]
+# Transitive unmaintained crates (GTK3 bindings, ttf-parser under the bridge
+# GUI stack) are upstream's to replace; only direct dependencies error.
+unmaintained = "workspace"
 ignore = [
     # rsa crate Marvin Attack - no patch available yet, used transitively by oauth2/webauthn-rs
     # Tracked at: https://rustsec.org/advisories/RUSTSEC-2023-0071
@@ -12,6 +15,9 @@ ignore = [
 ]
 
 [licenses]
+# Workspace members are unpublished (publish = false) code, not licensed
+# artifacts; only third-party licenses are checked.
+private = { ignore = true }
 allow = [
     "MIT",
     "Apache-2.0",
