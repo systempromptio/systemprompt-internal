@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT odoo_api_key_encrypted FROM odoo_identity WHERE user_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "odoo_api_key_encrypted",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "odoo_identity",
+            "name": "odoo_api_key_encrypted"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "cfcd0626bd3ef297fd170cc49b2ee45dc992bfa8f1fbdbec60a9b75768cb45fc"
+}
