@@ -23,8 +23,71 @@
 //! `DATABASE_URL`; the suite self-skips when no server is configured.
 
 #[cfg(test)]
+mod app;
+#[cfg(test)]
+mod approvals_contract;
+#[cfg(test)]
+mod baseline;
+#[cfg(test)]
+mod bridge_device_link_contract;
+#[cfg(test)]
+mod bridge_whoami_contract;
+#[cfg(test)]
+mod catalog_contract;
+#[cfg(test)]
+mod dev_login_contract;
+#[cfg(test)]
+mod devices_contract;
+#[cfg(test)]
 mod error_contract;
+#[cfg(test)]
+mod gateway_catalog_contract;
 #[cfg(test)]
 mod globals;
 #[cfg(test)]
+mod governance_ssr_scope_contract;
+#[cfg(test)]
+mod groups_contract;
+#[cfg(test)]
+mod handler_errors;
+#[cfg(test)]
+mod handler_variants;
+#[cfg(test)]
+mod hooks_track_contract;
+#[cfg(test)]
+mod login_contract;
+#[cfg(test)]
+mod mcp_detail_contract;
+#[cfg(test)]
+mod principal;
+#[cfg(test)]
+mod rejected_request_contract;
+#[cfg(test)]
+mod req_025_time_bound;
+#[cfg(test)]
+mod roles_contract;
+#[cfg(test)]
+mod route_source;
+#[cfg(test)]
+mod secrets_contract;
+#[cfg(test)]
+mod seed;
+#[cfg(test)]
+mod self_service_contract;
+#[cfg(test)]
+mod share_contract;
+#[cfg(test)]
+mod ssr_analytics_contract;
+#[cfg(test)]
+mod ssr_deep_contract;
+#[cfg(test)]
+mod status_contract;
+#[cfg(test)]
 mod tempdb;
+#[cfg(test)]
+mod user_management_contract;
+#[cfg(test)]
+mod webhook_contract;
+
+#[cfg(test)]
+mod dashboard_query_scaling;

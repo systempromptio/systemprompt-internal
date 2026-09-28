@@ -78,9 +78,9 @@ fn client_errors() -> Vec<(AdminError, StatusCode, &'static str)> {
             "slow down",
         ),
         (
-            AdminError::Unavailable("odoo is not configured".to_owned()),
+            AdminError::Unavailable("adfs is not configured".to_owned()),
             StatusCode::SERVICE_UNAVAILABLE,
-            "odoo is not configured",
+            "adfs is not configured",
         ),
     ]
 }
@@ -137,7 +137,7 @@ async fn server_side_causes_never_reach_the_caller() {
             "Unauthorized",
         ),
         (
-            AdminError::Upstream("odoo returned 503 for /jsonrpc".to_owned()),
+            AdminError::Upstream("adfs returned 503 for /oauth2/token/".to_owned()),
             StatusCode::BAD_GATEWAY,
             "Upstream service error",
         ),

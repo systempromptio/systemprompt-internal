@@ -34,8 +34,8 @@ server:
   trusted_proxies: []
 paths:
   system: __REPO__
-  services: __REPO__/services
-  bin: __REPO__/target/debug
+  services: __PROFILE_DIR__/services
+  bin: __PROFILE_DIR__/bin
   web_path: null
   storage: __REPO__/storage
   geoip_database: null
@@ -83,9 +83,9 @@ secrets:
   source: file
 extensions:
   disabled: []
-# `providers:` and `gateway:` are NOT here: core 0.44 moved them into the
-# services tree. They live in fixtures/services/, loaded by
-# ServicesBootstrap in globals.rs.
+# One provider, because a gateway route naming a provider outside this list is
+# refused at profile load. Nothing here is reachable: the suite issues no
+# inference, and `gateway.enabled` is false.
 governance:
   authz:
     hook:

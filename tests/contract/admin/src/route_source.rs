@@ -10,21 +10,24 @@
 
 use crate::app::{ADMIN_API_PREFIX, SSR_PREFIX};
 
-const ADMIN_API_SRC: &str = include_str!("../../../../extensions/web/admin/src/routes/admin.rs");
-const SSR_SRC: &str = include_str!("../../../../extensions/web/admin/src/routes/ssr.rs");
-
+const ADMIN_API_SRC: &str =
+    include_str!("../../../../extensions/web/admin/src/routes/admin/mod.rs");
+const ADMIN_API_READ_SRC: &str =
+    include_str!("../../../../extensions/web/admin/src/routes/admin/read.rs");
 const ADMIN_GROUPS_SRC: &str =
     include_str!("../../../../extensions/web/admin/src/routes/admin_groups.rs");
-const SSR_DASHBOARD_SRC: &str =
-    include_str!("../../../../extensions/web/admin/src/routes/ssr_dashboard.rs");
-const DASHBOARD_REDIRECTS_SRC: &str =
-    include_str!("../../../../extensions/web/admin/src/routes/dashboard_redirects.rs");
+const SSR_SRC: &str = include_str!("../../../../extensions/web/admin/src/routes/ssr.rs");
+// The legacy paths, which answer 308 rather than HTML. They are a route table
+// like any other and are exercised like one: a redirect that stops redirecting
+// is exactly as much a contract change as a page that stops rendering.
+const SSR_REDIRECT_SRC: &str =
+    include_str!("../../../../extensions/web/admin/src/routes/ssr_redirects.rs");
 
 const METHODS: [&str; 5] = ["get", "post", "put", "patch", "delete"];
 
 // A single method/path pair the router serves.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
-pub struct MountedRoute {
+pub(crate) struct MountedRoute {
     pub method: String,
     // The path as mounted, path parameters still in `{brace}` form.
     pub template: String,
@@ -37,7 +40,7 @@ impl MountedRoute {
     // table. That is the interesting case rather than a limitation: a route
     // asked for an id it cannot find owes the caller a 404, and one that
     // answers 500 instead is the exact defect this suite is here to catch.
-    pub fn request_path(&self) -> String {
+    pub(crate) fn request_path(&self) -> String {
         self.template
             .split('/')
             .map(|seg| {
@@ -51,7 +54,7 @@ impl MountedRoute {
             .join("/")
     }
 
-    pub fn key(&self) -> String {
+    pub(crate) fn key(&self) -> String {
         format!("{} {}", self.method.to_uppercase(), self.template)
     }
 }
@@ -59,14 +62,14 @@ impl MountedRoute {
 // Well-formed, and deliberately absent from every table.
 const UNKNOWN_ID: &str = "00000000-0000-4000-8000-000000000000";
 
-pub fn mounted_routes() -> Vec<MountedRoute> {
+pub(crate) fn mounted_routes() -> Vec<MountedRoute> {
     let mut routes = Vec::new();
     for (src, prefix) in [
         (ADMIN_API_SRC, ADMIN_API_PREFIX),
-        (SSR_SRC, SSR_PREFIX),
+        (ADMIN_API_READ_SRC, ADMIN_API_PREFIX),
         (ADMIN_GROUPS_SRC, ADMIN_API_PREFIX),
-        (SSR_DASHBOARD_SRC, SSR_PREFIX),
-        (DASHBOARD_REDIRECTS_SRC, SSR_PREFIX),
+        (SSR_SRC, SSR_PREFIX),
+        (SSR_REDIRECT_SRC, SSR_PREFIX),
     ] {
         parse(src, prefix, &mut routes);
     }

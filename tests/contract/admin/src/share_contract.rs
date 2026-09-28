@@ -1,11 +1,11 @@
 //! Share-token issuance and the public manifest it unlocks.
 //!
 //! These two halves are only meaningful together. `POST /admin/users/{id}/
-//! share-token` mints an HMAC over `user_id:version`; `GET /share/manifest/
-//! {token}` is the one route in the admin plane with **no** authentication
-//! middleware in front of it, so that HMAC and the version recheck behind it
-//! are the entire access control. The suite has never driven the second half
-//! at all — `share_manifest_router` is merged at the root by
+//! share-token` mints an HMAC over `user_id:version:expiry`; `GET
+//! /share/manifest/ {token}` is the one route in the admin plane with **no**
+//! authentication middleware in front of it, so that HMAC and the version
+//! recheck behind it are the entire access control. The suite has never driven
+//! the second half at all — `share_manifest_router` is merged at the root by
 //! `extensions/web/src/router/api.rs`, outside both route modules the contract
 //! table is derived from.
 //!
@@ -78,7 +78,8 @@ async fn issuing_a_share_token_is_admin_only() {
     assert_eq!(status, StatusCode::FORBIDDEN, "non-admin: {body}");
     assert_eq!(
         parse(&body)["error"],
-        "Role required: platform_admin, admin"
+        "Role required: platform_admin, admin",
+        "the manage tier names the roles it accepts"
     );
 
     let (status, _) = app
@@ -249,10 +250,11 @@ async fn a_tampered_token_is_refused() {
     // Flip one hex digit of the MAC, keeping the length identical so the
     // constant-time compare — not the length precheck — is what rejects it.
     let mac = parts[3];
-    let flipped = if let Some(rest) = mac.strip_prefix('0') {
+    let (first, rest) = mac.split_at(1);
+    let flipped = if first == "0" {
         format!("1{rest}")
     } else {
-        format!("0{}", &mac[1..])
+        format!("0{rest}")
     };
     let forged = format!("{}:{}:{}:{flipped}", parts[0], parts[1], parts[2]);
     let (status, body) = app
@@ -281,6 +283,18 @@ async fn a_tampered_token_is_refused() {
         .await;
     assert_eq!(status, StatusCode::UNAUTHORIZED, "swapped version");
 
+    // Same MAC, different expiry. A stretched clock must fail like any other
+    // tamper — the expiry is inside the signed payload, not advisory.
+    let stretched = b64.encode(b"9999999999");
+    let restretched = format!("{}:{}:{stretched}:{}", parts[0], parts[1], parts[3]);
+    let (status, _) = app
+        .call(Call::get(
+            &manifest_path(&restretched),
+            Principal::Anonymous,
+        ))
+        .await;
+    assert_eq!(status, StatusCode::UNAUTHORIZED, "stretched expiry");
+
     db.cleanup().await;
 }
 
@@ -304,16 +318,24 @@ async fn malformed_tokens_are_refused_the_same_way() {
     let cases = [
         ("no separators", "not-a-token".to_owned()),
         ("two parts", format!("{user}:{version}")),
-        ("four parts", format!("{user}:{version}:aa:bb")),
-        ("subject is not base64", format!("!!!:{version}:aa")),
-        ("version is not base64", format!("{user}:!!!:aa")),
+        (
+            "three parts (the pre-expiry shape)",
+            format!("{user}:{version}:aa"),
+        ),
+        ("five parts", format!("{user}:{version}:aa:bb:cc")),
+        ("subject is not base64", format!("!!!:{version}:aa:bb")),
+        ("version is not base64", format!("{user}:!!!:aa:bb")),
         (
             "version is not a number",
-            format!("{user}:{}:aa", b64.encode(b"one")),
+            format!("{user}:{}:aa:bb", b64.encode(b"one")),
+        ),
+        (
+            "expiry is not a number",
+            format!("{user}:{version}:{}:bb", b64.encode(b"never")),
         ),
         (
             "subject is not utf-8",
-            format!("{}:{version}:aa", b64.encode([0xff, 0xfe])),
+            format!("{}:{version}:aa:bb", b64.encode([0xff, 0xfe])),
         ),
     ];
 

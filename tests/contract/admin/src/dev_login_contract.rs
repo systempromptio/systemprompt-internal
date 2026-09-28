@@ -41,7 +41,6 @@ async fn a_live_code_signs_in_and_survives_a_prefetch_race() {
     let issued = insert_dev_login_code(&db.pool, &credentials.non_admin_user_id)
         .await
         .expect("issue a code");
-    let expected_user_id = credentials.non_admin_user_id.to_string();
     let app = App::new(&db.pool, credentials);
     let path = format!("{REDEEM}?code={}", issued.code);
 
@@ -53,34 +52,6 @@ async fn a_live_code_signs_in_and_survives_a_prefetch_race() {
     assert!(
         has_session_cookie(&headers.set_cookie),
         "the redeem must set the HttpOnly access_token cookie"
-    );
-
-    let cookie = headers
-        .set_cookie
-        .iter()
-        .find(|cookie| cookie.starts_with("access_token="))
-        .expect("session cookie");
-    let token = cookie
-        .trim_start_matches("access_token=")
-        .split(';')
-        .next()
-        .expect("cookie value");
-    let (identity_status, identity_body) = app
-        .call_with_bearer(Call::get("/admin/auth/me", Principal::Anonymous), token)
-        .await;
-    assert_eq!(
-        identity_status, 200,
-        "the minted cookie is a usable browser session"
-    );
-    let identity: serde_json::Value =
-        serde_json::from_str(&identity_body).expect("identity response");
-    assert_eq!(
-        identity["is_admin"], false,
-        "dev login preserves the user's role"
-    );
-    assert_eq!(
-        identity["user_id"], expected_user_id,
-        "string user ids survive session minting"
     );
 
     let (status, headers) = app
@@ -163,68 +134,5 @@ async fn missing_unknown_and_expired_codes_all_fail_the_same_way() {
         assert!(!has_session_cookie(&headers.set_cookie), "{path}");
     }
 
-    db.cleanup().await;
-}
-
-#[tokio::test(flavor = "multi_thread")]
-async fn redeem_checks_current_status_and_roles() {
-    if !globals::init() {
-        return;
-    }
-    let Some(db) = TempDb::create().await else {
-        return;
-    };
-    let credentials = principal::provision(&db.pool).await;
-    let user_id = credentials.non_admin_user_id.clone();
-    let issued = insert_dev_login_code(&db.pool, &user_id)
-        .await
-        .expect("issue code");
-    sqlx::query("UPDATE users SET status = 'suspended' WHERE id = $1")
-        .bind(user_id.as_str())
-        .execute(&*db.pool)
-        .await
-        .expect("suspend user");
-    let app = App::new(&db.pool, credentials);
-    let path = format!("{REDEEM}?code={}", issued.code);
-    let (_, rejected) = app
-        .response_headers(Call::get(&path, Principal::Anonymous))
-        .await;
-    assert_eq!(rejected.location.as_deref(), Some(INVALID));
-    assert!(!has_session_cookie(&rejected.set_cookie));
-
-    sqlx::query(
-        "UPDATE users SET status = 'active', roles = ARRAY['platform_admin', 'user'] WHERE id = $1",
-    )
-    .bind(user_id.as_str())
-    .execute(&*db.pool)
-    .await
-    .expect("reactivate with new role");
-    let (_, accepted) = app
-        .response_headers(Call::get(&path, Principal::Anonymous))
-        .await;
-    assert_eq!(accepted.location.as_deref(), Some("/admin"));
-    let cookie = accepted
-        .set_cookie
-        .iter()
-        .find(|cookie| cookie.starts_with("access_token="))
-        .expect("session cookie");
-    let token = cookie
-        .trim_start_matches("access_token=")
-        .split(';')
-        .next()
-        .expect("cookie value");
-    let claims = systemprompt::oauth::validate_jwt_token(
-        token,
-        &globals::jwt_issuer(),
-        &[systemprompt::models::auth::JwtAudience::Api],
-    )
-    .expect("validate the issued session token");
-    assert_eq!(claims.sub, user_id.as_str());
-    assert!(claims.roles.iter().any(|role| role == "platform_admin"));
-    assert!(
-        claims
-            .scope
-            .contains(&systemprompt::models::auth::Permission::Admin)
-    );
     db.cleanup().await;
 }

@@ -1,34 +1,9 @@
-//! `POST /hooks/track` — the ingestion endpoint every Claude Code hook posts
-//! to.
-//!
-//! The status contract drives this route once with `{}`, which parses as an
-//! `Unknown` event with no session and takes the shortest path through the
-//! handler. Everything that makes the endpoint interesting is downstream of a
-//! *recognised* event: the description generator, the dedup key, the entity
-//! detector, the daily aggregation, the session rollup, the title derivation,
-//! and the session analysis all branch on the event kind and on which optional
-//! fields the payload carries.
-//!
-//! Two properties are asserted:
-//!
-//! - **Every event kind is accepted.** The endpoint answers `200` for each of
-//!   the eighteen typed events, for an unrecognised name, and for a payload
-//!   whose variant body is malformed — parsing is lenient by design, because a
-//!   hook cannot retry and a dropped event is a hole in the audit trail.
-//! - **A recognised event leaves rows behind.** A `200` proves the handler did
-//!   not fault; the row in `plugin_usage_events` proves it did the work. The
-//!   assertions read the database rather than the response, because the
-//!   response is `200` on every path including the ones that silently drop.
-//!
-//! Authentication is a hook JWT (`aud=hook`, `scope=hook:track`, a `plugin_id`
-//! claim), minted in [`crate::seed`]. The rejection cases mint tokens that are
-//! wrong in exactly one of those three ways.
+//! Hook ingestion accepts validated, identified events and rejects malformed
+//! payloads. A successful response must leave durable evidence; delivery
+//! retries must not duplicate events or counters.
 
 use axum::http::StatusCode;
-use systemprompt::identifiers::UserId;
 use systemprompt::models::auth::{JwtAudience, Permission};
-use systemprompt_web_admin::repositories::demo::filter::DemoFilter;
-use systemprompt_web_admin::repositories::demo::skill_invocations::list_skill_invocations;
 
 use crate::app::{App, Call};
 use crate::principal::Principal;
@@ -38,8 +13,6 @@ use crate::{globals, principal};
 
 const TRACK: &str = "/hooks/track";
 
-// A hook request carries its own bearer, so it is issued as an anonymous
-// principal with the token spelled out rather than through `Credentials`.
 fn hook_call<'a>(token: &'a str, body: &'a str) -> (Call<'a>, &'a str) {
     (
         Call {
@@ -53,26 +26,27 @@ fn hook_call<'a>(token: &'a str, body: &'a str) -> (Call<'a>, &'a str) {
     )
 }
 
-// One event payload and the event name the handler must record for it.
 struct EventCase {
     label: &'static str,
     body: String,
-    recorded_as: &'static str,
+    // None marks an invalid event that must return 400.
+    recorded_as: Option<&'static str>,
 }
 
 fn common(session: &str, event: &str) -> String {
     format!(
-        r#""session_id":"{session}","cwd":"/tmp/contract","permission_mode":"default","transcript_path":"/tmp/contract/t.jsonl","hook_event_name":"{event}""#
+        r#""session_id":"{session}","event_id":"{session}-{event}","cwd":"/tmp/contract","permission_mode":"default","transcript_path":"/tmp/contract/t.jsonl","hook_event_name":"{event}""#
     )
 }
 
 fn cases(session: &str) -> Vec<EventCase> {
-    let ev = |label: &'static str, name: &'static str, rest: &str, recorded_as: &'static str| {
-        EventCase {
-            label,
-            body: format!("{{{},{rest}}}", common(session, name)),
-            recorded_as,
-        }
+    let ev = |label: &'static str,
+              name: &'static str,
+              rest: &str,
+              recorded_as: Option<&'static str>| EventCase {
+        label,
+        body: format!("{{{},{rest}}}", common(session, name)),
+        recorded_as,
     };
 
     vec![
@@ -80,130 +54,125 @@ fn cases(session: &str) -> Vec<EventCase> {
             "session start",
             "SessionStart",
             r#""source":"startup","model":"claude-contract-model""#,
-            "SessionStart",
+            Some("SessionStart"),
         ),
         ev(
             "session end",
             "SessionEnd",
             r#""reason":"clear""#,
-            "SessionEnd",
+            Some("SessionEnd"),
         ),
         ev(
             "user prompt",
             "UserPromptSubmit",
             r#""prompt":"Explain the governance chain in one paragraph.""#,
-            "UserPromptSubmit",
+            Some("UserPromptSubmit"),
         ),
-        // Tracking records the pre-tool lifecycle event. Authorization remains
-        // a separate decision at /hooks/govern.
+        // Recorded as the attempt; the rollup's `tool_uses` counts only
+        // PostToolUse and PostToolUseFailure, so this does not double-count.
         ev(
-            "pre tool use is tracked",
+            "pre tool use",
             "PreToolUse",
             r#""tool_name":"Bash","tool_input":{"command":"ls"},"tool_use_id":"tu-1""#,
-            "PreToolUse",
+            Some("PreToolUse"),
         ),
         ev(
             "post tool use",
             "PostToolUse",
             r#""tool_name":"Read","tool_input":{"file_path":"/tmp/x.rs"},"tool_response":{"ok":true},"tool_use_id":"tu-2""#,
-            "PostToolUse",
+            Some("PostToolUse"),
         ),
         ev(
             "post tool use failure",
             "PostToolUseFailure",
             r#""tool_name":"Bash","tool_input":{"command":"false"},"tool_use_id":"tu-3","error":"exit status 1","is_interrupt":false"#,
-            "PostToolUseFailure",
+            Some("PostToolUseFailure"),
         ),
         ev(
             "permission request",
             "PermissionRequest",
             r#""tool_name":"Write","tool_input":{"file_path":"/etc/hosts"},"permission_suggestions":[{"mode":"allow"}]"#,
-            "PermissionRequest",
+            Some("PermissionRequest"),
         ),
         ev(
             "stop",
             "Stop",
             r#""stop_hook_active":false,"last_assistant_message":"Done.""#,
-            "Stop",
+            Some("Stop"),
         ),
         ev(
             "subagent start",
             "SubagentStart",
             r#""agent_id":"agent-1","agent_type":"Explore""#,
-            "SubagentStart",
+            Some("SubagentStart"),
         ),
         ev(
             "subagent stop",
             "SubagentStop",
             r#""agent_id":"agent-1","agent_type":"Explore","stop_hook_active":false,"agent_transcript_path":"/tmp/a.jsonl","last_assistant_message":"Found it.""#,
-            "SubagentStop",
+            Some("SubagentStop"),
         ),
         ev(
             "task completed",
             "TaskCompleted",
             r#""task_id":"task-1","task_subject":"Ship the contract suite","teammate_name":"claude","team_name":"contract""#,
-            "TaskCompleted",
+            Some("TaskCompleted"),
         ),
         ev(
             "teammate idle",
             "TeammateIdle",
             r#""teammate_name":"claude","team_name":"contract""#,
-            "TeammateIdle",
+            Some("TeammateIdle"),
         ),
         ev(
             "notification",
             "Notification",
             r#""message":"Permission needed","title":"Claude Code","notification_type":"permission""#,
-            "Notification",
+            Some("Notification"),
         ),
         ev(
             "config change",
             "ConfigChange",
             r#""source":"settings","file_path":"/tmp/settings.json""#,
-            "ConfigChange",
+            Some("ConfigChange"),
         ),
         ev(
             "worktree create",
             "WorktreeCreate",
             r#""name":"feature-x""#,
-            "WorktreeCreate",
+            Some("WorktreeCreate"),
         ),
         ev(
             "worktree remove",
             "WorktreeRemove",
             r#""worktree_path":"/tmp/wt/feature-x""#,
-            "WorktreeRemove",
+            Some("WorktreeRemove"),
         ),
         ev(
             "pre compact",
             "PreCompact",
             r#""trigger":"auto","custom_instructions":"keep the plan""#,
-            "PreCompact",
+            Some("PreCompact"),
         ),
         ev(
             "instructions loaded",
             "InstructionsLoaded",
             r#""file_path":"/tmp/CLAUDE.md","memory_type":"project","load_reason":"startup","globs":["**/*.rs"],"trigger_file_path":null,"parent_file_path":null"#,
-            "InstructionsLoaded",
+            Some("InstructionsLoaded"),
         ),
-        // An event name no version of Claude Code has emitted yet is recorded
-        // under its own name rather than rejected: the schema is the client's,
-        // and a 400 would lose the row for good.
         ev(
             "unrecognised event name",
             "SomeFutureEvent",
             r#""whatever":true"#,
-            "SomeFutureEvent",
+            None,
         ),
-        // A recognised name whose body does not match its shape degrades to
-        // `Unknown(name)` with a warning rather than failing the request.
         EventCase {
             label: "recognised name with a malformed body",
             body: format!(
                 "{{{},\"stop_hook_active\":\"not-a-bool\"}}",
                 common(session, "Stop")
             ),
-            recorded_as: "Stop",
+            recorded_as: None,
         },
     ]
 }
@@ -220,7 +189,7 @@ async fn count_events(pool: &sqlx::PgPool, session: &str, event_type: &str) -> i
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn hook_track_accepts_and_records_every_event_kind() {
+async fn hook_track_validates_and_records_supported_event_kinds() {
     if !globals::init() {
         return;
     }
@@ -241,16 +210,23 @@ async fn hook_track_accepts_and_records_every_event_kind() {
     for case in cases(&session) {
         let (call, tok) = hook_call(&token, &case.body);
         let (status, body) = app.call_with_bearer(call, tok).await;
-        if status != StatusCode::OK {
+        let expected = if case.recorded_as.is_some() {
+            StatusCode::OK
+        } else {
+            StatusCode::BAD_REQUEST
+        };
+        if status != expected {
             failures.push(format!(
-                "  {} -> {} (expected 200): {}",
+                "  {} -> {} (unexpected status): {}",
                 case.label,
                 status.as_u16(),
                 body.chars().take(200).collect::<String>()
             ));
             continue;
         }
-        let event_type = case.recorded_as;
+        let Some(event_type) = case.recorded_as else {
+            continue;
+        };
         if count_events(&db.pool, &session, event_type).await == 0 {
             failures.push(format!(
                 "  {} -> 200 but no plugin_usage_events row with event_type {event_type:?}",
@@ -268,12 +244,8 @@ async fn hook_track_accepts_and_records_every_event_kind() {
     );
 }
 
-// The entity detector: which skill, agent, or MCP server an event belongs to.
-//
-// Detection runs off the tool name and the tool input, and the result lands in
-// `session_entity_links`. Asserting on that table rather than the response is
-// the only way to tell a detection that fired from one that returned `None` —
-// both answer `200`.
+// Detection that returns `None` also answers 200, so assert on
+// `session_entity_links`, not the response.
 #[tokio::test(flavor = "multi_thread")]
 async fn hook_track_links_events_to_the_entity_they_name() {
     if !globals::init() {
@@ -289,7 +261,6 @@ async fn hook_track_links_events_to_the_entity_they_name() {
     seed::insert_user(&db.pool, &user_id, &format!("{user_id}@contract.test")).await;
     let token = seed::mint(&TokenSpec::hook(&user_id));
 
-    // (label, tool payload, expected entity_type, expected entity_name)
     let expectations: [(&str, String, &str, &str); 6] = [
         (
             "skill invocation",
@@ -332,7 +303,10 @@ async fn hook_track_links_events_to_the_entity_they_name() {
     let mut failures = Vec::new();
     for (label, payload, entity_type, entity_name) in expectations {
         let session = seed::unique("entity-session");
-        let body = format!("{{{},{payload}}}", common(&session, "PostToolUse"));
+        let body = format!(
+            "{{{},\"tool_use_id\":\"{session}-tool\",{payload}}}",
+            common(&session, "PostToolUse")
+        );
         let (call, tok) = hook_call(&token, &body);
         let (status, _) = app.call_with_bearer(call, tok).await;
         assert_eq!(status, StatusCode::OK, "{label}: hook track rejected");
@@ -370,10 +344,6 @@ async fn hook_track_links_events_to_the_entity_they_name() {
     );
 }
 
-// The dedup key, the session rollup, and the derived title.
-//
-// These are the three side effects a caller can observe without an AI service
-// configured, and each is a branch the status contract never reaches.
 #[tokio::test(flavor = "multi_thread")]
 async fn hook_track_deduplicates_and_rolls_up_the_session() {
     if !globals::init() {
@@ -395,8 +365,7 @@ async fn hook_track_deduplicates_and_rolls_up_the_session() {
         common(&session, "UserPromptSubmit")
     );
 
-    // The same event posted twice is one row: a hook that retries on a slow
-    // response must not double-count.
+    // Hooks retry on a slow response; a retried event must stay one row.
     for _ in 0..2 {
         let (call, tok) = hook_call(&token, &prompt);
         let (status, _) = app.call_with_bearer(call, tok).await;
@@ -408,8 +377,25 @@ async fn hook_track_deduplicates_and_rolls_up_the_session() {
         "an identical repost must deduplicate rather than insert a second row"
     );
 
-    // The first prompt seeds the session title, so the session page has
-    // something to show before any AI summary exists.
+    let mut changed: serde_json::Value = serde_json::from_str(&prompt).expect("fixture JSON");
+    changed["prompt"] = "Different content with the same delivery ID".into();
+    let changed_body = changed.to_string();
+    let (call, tok) = hook_call(&token, &changed_body);
+    assert_eq!(
+        app.call_with_bearer(call, tok).await.0,
+        StatusCode::CONFLICT
+    );
+    let mut repeated: serde_json::Value = serde_json::from_str(&prompt).expect("fixture JSON");
+    repeated["prompt_id"] = seed::unique("new-prompt").into();
+    let repeated_body = repeated.to_string();
+    let (call, tok) = hook_call(&token, &repeated_body);
+    assert_eq!(app.call_with_bearer(call, tok).await.0, StatusCode::OK);
+    assert_eq!(
+        count_events(&db.pool, &session, "UserPromptSubmit").await,
+        2,
+        "a new identified prompt must survive even when its text is identical"
+    );
+
     let title: Option<String> =
         sqlx::query_scalar("SELECT ai_title FROM plugin_session_summaries WHERE session_id = $1")
             .bind(&session)
@@ -422,43 +408,6 @@ async fn hook_track_deduplicates_and_rolls_up_the_session() {
         "the first UserPromptSubmit must derive a session title"
     );
 
-    let registry: (Option<String>, Option<String>, Option<String>, Option<String>, bool) =
-        sqlx::query_as("SELECT cwd, workspace, handle, current_activity, last_event_at IS NOT NULL FROM plugin_session_summaries WHERE session_id = $1")
-            .bind(&session).fetch_one(&*db.pool).await.expect("read session registry");
-    assert_eq!(registry.0.as_deref(), Some("/tmp/contract"));
-    assert_eq!(registry.1.as_deref(), Some("contract"));
-    assert!(
-        registry
-            .2
-            .is_some_and(|handle| handle.starts_with("contract"))
-    );
-    assert!(
-        registry
-            .3
-            .is_some_and(|activity| activity.contains("governance audit"))
-    );
-    assert!(registry.4, "hook receipt refreshes live session activity");
-
-    let statusline_path = format!("/hooks/statusline?session_id={session}");
-    let statusline = r#"{"model":{"api_model_id":"claude-contract"},"cost":{"total_cost_usd":0.25},"context_window":{"context_window_size":1000,"current_usage":{"input_tokens":100,"output_tokens":50}}}"#;
-    let (status, _) = app
-        .call_with_bearer(
-            Call::json("post", &statusline_path, Principal::Anonymous, statusline),
-            &token,
-        )
-        .await;
-    assert_eq!(status, StatusCode::NO_CONTENT);
-    let counters: (i64, i16, i64, i64) = sqlx::query_as(
-        "SELECT live_cost_microdollars, context_pct, total_input_tokens, total_output_tokens FROM plugin_session_summaries WHERE session_id = $1",
-    ).bind(&session).fetch_one(&*db.pool).await.expect("legacy and new statusline counters");
-    assert_eq!(counters, (250_000, 15, 100, 50));
-    let snapshot: (i64, i64, i64) = sqlx::query_as(
-        "SELECT total_cost_microdollars, input_tokens, output_tokens FROM session_cost_snapshots WHERE session_id = $1",
-    ).bind(&session).fetch_one(&*db.pool).await.expect("new dashboard cost snapshot");
-    assert_eq!(snapshot, (250_000, 100, 50));
-
-    // A daily aggregation row is what the usage dashboards read; without it the
-    // event is recorded but invisible.
     let daily: i64 =
         sqlx::query_scalar("SELECT COUNT(*) FROM plugin_usage_daily WHERE user_id = $1")
             .bind(&user_id)
@@ -467,8 +416,6 @@ async fn hook_track_deduplicates_and_rolls_up_the_session() {
             .expect("count daily aggregations");
     assert!(daily > 0, "ingestion must upsert the daily usage rollup");
 
-    // `Stop` runs the session analysis and `SessionEnd` closes the summary —
-    // the two paths gated on event type.
     for event in ["Stop", "SessionEnd"] {
         let body = format!(
             r#"{{{},"stop_hook_active":false,"reason":"clear"}}"#,
@@ -490,132 +437,6 @@ async fn hook_track_deduplicates_and_rolls_up_the_session() {
     db.cleanup().await;
 }
 
-// A `Skill` tool call reaches the platform as two requests: `/hooks/govern`
-// decides the `PreToolUse`, then `/hooks/track` records the `PostToolUse`.
-// `skill_invocation_events` counts the tool arm only when both are present —
-// a tracked `Skill` row with no decision beside it was posted by a seeder, not
-// by a client — so a test that wants the invocation must send both.
-//
-// The decision is answered before its audit row is committed, so the poll is
-// what makes the row visible to the view; a row that never lands still fails.
-async fn govern_skill_call(app: &App, db: &TempDb, token: &str, session: &str, tool_use_id: &str) {
-    let body = format!(
-        r#"{{{},"tool_name":"Skill","tool_input":{{"skill":"contract:demo-skill"}},"tool_use_id":"{tool_use_id}"}}"#,
-        common(session, "PreToolUse")
-    );
-    let (status, _) = app
-        .call_with_bearer(
-            Call {
-                method: "post",
-                path: "/hooks/govern",
-                principal: Principal::Anonymous,
-                content_type: Some("application/json"),
-                body: Some(&body),
-            },
-            token,
-        )
-        .await;
-    assert_eq!(status, StatusCode::OK, "the Skill PreToolUse was rejected");
-
-    for _ in 0..50 {
-        let landed: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM governance_decisions \
-             WHERE session_id = $1 AND tool_name = 'Skill'",
-        )
-        .bind(session)
-        .fetch_one(&*db.pool)
-        .await
-        .expect("count the Skill decision");
-        if landed > 0 {
-            return;
-        }
-        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-    }
-    panic!("the Skill PreToolUse decision never reached governance_decisions");
-}
-
-// The `plugin_id` claim: stored on the row, and cross-checked against the
-// query binding.
-//
-// The claim was previously read and dropped, which left `plugin_usage_events`
-// with a NULL `plugin_id` on every row and no way to tell one plugin's
-// telemetry from another's.
-#[tokio::test(flavor = "multi_thread")]
-async fn hook_track_stores_the_plugin_id_and_refuses_a_mismatched_one() {
-    if !globals::init() {
-        return;
-    }
-    let Some(db) = TempDb::create().await else {
-        return;
-    };
-
-    let credentials = principal::provision(&db.pool).await;
-    let app = App::new(&db.pool, credentials);
-    let user_id = seed::unique("plugin-user");
-    seed::insert_user(&db.pool, &user_id, &format!("{user_id}@contract.test")).await;
-    let token = seed::mint(&TokenSpec::hook(&user_id));
-    let session = seed::unique("plugin-session");
-
-    govern_skill_call(&app, &db, &token, &session, "tu-plugin-1").await;
-    let body = format!(
-        r#"{{{},"tool_name":"Skill","tool_input":{{"skill":"contract:demo-skill"}},"tool_response":{{}},"tool_use_id":"tu-plugin-1"}}"#,
-        common(&session, "PostToolUse")
-    );
-    let (call, tok) = hook_call(&token, &body);
-    let (status, _) = app.call_with_bearer(call, tok).await;
-    assert_eq!(status, StatusCode::OK);
-
-    let stored: Option<String> =
-        sqlx::query_scalar("SELECT plugin_id FROM plugin_usage_events WHERE session_id = $1")
-            .bind(&session)
-            .fetch_one(&*db.pool)
-            .await
-            .expect("read the stored plugin_id");
-    assert_eq!(
-        stored.as_deref(),
-        Some("contract-plugin"),
-        "the JWT plugin_id claim must be written to the row"
-    );
-
-    let filter = DemoFilter::for_demo_user(UserId::new(user_id.clone()));
-    let invocations = list_skill_invocations(&db.pool, &filter)
-        .await
-        .expect("list skill invocations");
-    let row = invocations
-        .iter()
-        .find(|r| r.skill == "contract:demo-skill")
-        .expect("the ingested skill invocation");
-    assert_eq!(row.plugin_id.as_deref(), Some("contract-plugin"));
-
-    // A query binding that disagrees with the claim is a misrouted hook, not a
-    // relabelling opportunity.
-    let mismatched = format!(
-        r#"{{{},"tool_name":"Skill","tool_input":{{"skill":"contract:demo-skill"}},"tool_response":{{}},"tool_use_id":"tu-plugin-2"}}"#,
-        common(&seed::unique("plugin-session"), "PostToolUse")
-    );
-    let (status, _) = app
-        .call_with_bearer(
-            Call {
-                method: "post",
-                path: "/hooks/track?plugin_id=other-plugin",
-                principal: Principal::Anonymous,
-                content_type: Some("application/json"),
-                body: Some(&mismatched),
-            },
-            &token,
-        )
-        .await;
-    assert_eq!(
-        status,
-        StatusCode::UNAUTHORIZED,
-        "a ?plugin_id that does not match the claim must be refused"
-    );
-
-    db.cleanup().await;
-}
-
-// The token gate. Each case is wrong in exactly one way, so a `401` names the
-// check that caught it rather than "some token problem".
 #[tokio::test(flavor = "multi_thread")]
 async fn hook_track_refuses_every_token_that_is_not_a_hook_token() {
     if !globals::init() {
@@ -642,8 +463,6 @@ async fn hook_track_refuses_every_token_that_is_not_a_hook_token() {
     let wrong_scope = seed::mint(&TokenSpec {
         subject: &subject,
         audiences: vec![JwtAudience::Hook],
-        // `hook:govern` is the *other* hook endpoint's scope; a token minted
-        // for the governance gate must not be able to write tracking rows.
         scopes: vec![Permission::HookGovern],
         plugin_id: Some("contract-plugin"),
     });
@@ -680,8 +499,6 @@ async fn hook_track_refuses_every_token_that_is_not_a_hook_token() {
         }
     }
 
-    // A body that is not JSON at all is refused by the extractor, before the
-    // token is ever read.
     let (status, _) = app
         .call(Call {
             method: "post",

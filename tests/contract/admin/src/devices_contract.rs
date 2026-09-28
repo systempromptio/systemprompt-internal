@@ -321,3 +321,92 @@ async fn revoking_a_certificate_that_is_not_yours_is_a_404() {
 
     db.cleanup().await;
 }
+
+// The admin-plane revoker. It is a different endpoint from the self-service
+// one above and a different rule: there is no `user_id` in its predicate, so
+// the tests that matter are that it does reach a stranger's credential, that
+// it is refused to everyone below the admin roles, and that a second attempt
+// is a 404 rather than a silent success.
+const ADMIN_PATS: &str = "/api/public/admin/devices/pats";
+
+async fn insert_stranger_key(pool: &PgPool, label: &str) -> (String, String) {
+    let name = seed::unique(label);
+    let user = seed::insert_user(pool, &name, &format!("{name}@contract.test")).await;
+    let key = seed::unique("key");
+    sqlx::query(
+        "INSERT INTO user_api_keys (id, user_id, name, key_prefix, key_hash)
+         VALUES ($1, $2, 'their-laptop', $3, 'not-a-real-hash')",
+    )
+    .bind(&key)
+    .bind(user.as_str())
+    .bind(&key[..24])
+    .execute(pool)
+    .await
+    .expect("insert the stranger's key");
+    (user.as_str().to_owned(), key)
+}
+
+#[tokio::test]
+async fn the_admin_plane_revokes_a_credential_it_does_not_own() {
+    if !globals::init() {
+        return;
+    }
+    let Some(db) = TempDb::create().await else {
+        return;
+    };
+    let credentials = principal::provision(&db.pool).await;
+    let app = App::new(&db.pool, credentials);
+
+    let (_, key) = insert_stranger_key(&db.pool, "fleet-owner").await;
+    let path = format!("{ADMIN_PATS}/{key}");
+
+    // The console roles below `admin` read the fleet page; none of them may
+    // disable what it lists.
+    for principal in [Principal::NonAdmin, Principal::ProjectManager] {
+        let (status, body) = app.call(Call::json("delete", &path, principal, "{}")).await;
+        assert_eq!(status, StatusCode::FORBIDDEN, "{principal:?}: {body}");
+    }
+    assert_eq!(active_keys_for(&db.pool, &key).await, 1, "still active");
+
+    let (status, body) = app
+        .call(Call::json("delete", &path, Principal::Admin, "{}"))
+        .await;
+    assert_eq!(status, StatusCode::NO_CONTENT, "admin revoke: {body}");
+    assert_eq!(active_keys_for(&db.pool, &key).await, 0);
+
+    // Nothing left to revoke is a 404, so a stale console cannot report a
+    // second success over a credential that was already gone.
+    let (status, _) = app
+        .call(Call::json("delete", &path, Principal::Admin, "{}"))
+        .await;
+    assert_eq!(status, StatusCode::NOT_FOUND, "double revoke");
+
+    db.cleanup().await;
+}
+
+#[tokio::test]
+async fn an_unknown_credential_kind_is_a_404_rather_than_a_500() {
+    if !globals::init() {
+        return;
+    }
+    let Some(db) = TempDb::create().await else {
+        return;
+    };
+    let credentials = principal::provision(&db.pool).await;
+    let app = App::new(&db.pool, credentials);
+
+    // `{kind}` is matched in the handler, not by the router, so an unknown
+    // value has to be turned into a refusal rather than falling through to a
+    // query against a table that does not exist.
+    let (status, body) = app
+        .call(Call::json(
+            "delete",
+            "/api/public/admin/devices/passports/anything",
+            Principal::Admin,
+            "{}",
+        ))
+        .await;
+    assert_eq!(status, StatusCode::NOT_FOUND, "unknown kind: {body}");
+
+    db.cleanup().await;
+}

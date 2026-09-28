@@ -83,6 +83,13 @@ Conventions (strict — hold every entry to them):
   Dockerfile paths, dropped schema, docs version, core ref, schema ladder, coverage badge,
   template fields; `check-migration-numbers` is wired in). Known debt is listed explicitly and
   fails when stale.
+- **Tests:** the admin HTTP contract suite runs again. Its harness is astound's, pointed at this
+  repo's route modules (`routes/admin/{mod,read}.rs`, `routes/admin_groups.rs`,
+  `routes/ssr.rs`, `routes/ssr_redirects.rs`) and router signatures; 102 cases cover every route
+  under seven principals plus the page variants and error paths. Cases for pages this tree
+  does not have yet (analysis, export, sync, managed resources, tools, access review, ADFS
+  with a customer IdP) are left to the phases that bring those pages, and a project manager is
+  a console reader here, as `types/constants.rs` says.
 - **Tests:** every test file under `tests/` is declared again. The core-0.61 migration had
   undeclared about ninety modules rather than fix them; those that test a surface this tree
   still has are updated to it (astound's current versions where the code is shared) and run,

@@ -1,26 +1,9 @@
 //! Query-parameter coverage for the server-rendered admin pages.
 //!
-//! [`crate::status_contract`] drives every route once, with no query string,
-//! and asserts the properties that hold for all of them. That leaves the
-//! branching *inside* a page untested: a list page is a tab selector, a filter
-//! set, a sort order, and a pager, and each of those is a separate query the
-//! handler builds and a separate block the template renders. A page can answer
-//! 200 on its default view for years while its `?tab=providers` arm has been
-//! broken since a refactor.
-//!
-//! Each case therefore asserts two things: the status, and a marker string that
-//! only the intended branch emits. The marker is what makes the case a test
-//! rather than a smoke check — `200` proves the handler did not panic, the
-//! marker proves it rendered the thing the query asked for.
-//!
-//! Markers are drawn from the templates in `storage/files/admin/templates/`
-//! and their partials, so a template edit that drops a branch fails here
-//! rather than shipping a page that silently renders nothing.
-//!
-//! The database is the throwaway one, seeded only with the two principals, so
-//! every list is empty. That is deliberate: the empty state is a rendered
-//! branch like any other, and asserting its message proves the query ran and
-//! returned nothing rather than erroring into an `unwrap_or_default()`.
+//! Each case asserts the status and a marker string from
+//! `storage/files/admin/templates/` that only the intended branch emits. The
+//! database holds almost nothing, so most markers are empty-state messages:
+//! they prove the query ran rather than erroring into `unwrap_or_default()`.
 
 use axum::http::StatusCode;
 
@@ -29,7 +12,6 @@ use crate::principal::Principal;
 use crate::tempdb::TempDb;
 use crate::{globals, principal, seed};
 
-// A path (query string included) and the substring its response must contain.
 struct Variant {
     path: &'static str,
     marker: &'static str,
@@ -39,28 +21,21 @@ const fn v(path: &'static str, marker: &'static str) -> Variant {
     Variant { path, marker }
 }
 
-// Markers used by more than one case, named so a template edit has one place
-// to be reflected.
 const REQUESTS_TITLE: &str = "Inference Requests";
 const REQUESTS_OVERVIEW: &str = "Latency distribution";
 const REQUESTS_EMPTY: &str = "No inference requests match.";
-// The seeded fixture puts requests inside the default window, so an unfiltered
-// log page renders rows. Match the row markup rather than a count, which moves
-// whenever the seed does.
-const REQUESTS_LOG_ROWS: &str = r#"data-request-row"#;
+// Match the data attribute the page's JS relies on, not a stylesheet class.
+const REQUESTS_LOG_ROWS: &str = "data-request-row";
 const TRACES_TITLE: &str = "Trace Explorer";
 const TRACES_EMPTY: &str = "No traces in this window";
-const CONTEXTS_TITLE: &str = "Every conversation on this instance, newest first.";
-const CONTEXTS_EMPTY: &str =
-    "No conversation matches the selected scope and filters. Widen the scope";
+const CONTEXTS_TITLE: &str = "Conversation KPIs";
+const CONTEXTS_EMPTY: &str = "No conversation matches the selected scope and filters.";
 const CONTEXTS_USERS_EMPTY: &str =
     "Nobody under the selected group, project and time range has a conversation.";
-const CUSTOMER_REPORT: &str = "— usage report";
 
-// The requests page: five tabs, a time window, four filter chips, a sort, and
-// a pager — the densest branching in the admin plane.
-const REQUESTS: [Variant; 22] = [
+const REQUESTS: [Variant; 28] = [
     v("/admin/requests", REQUESTS_LOG_ROWS),
+    v("/admin/requests?tab=log", REQUESTS_LOG_ROWS),
     v("/admin/requests?tab=overview", REQUESTS_OVERVIEW),
     v("/admin/requests?tab=overview", "pre-flight denies"),
     v(
@@ -72,14 +47,10 @@ const REQUESTS: [Variant; 22] = [
         "rolled up to the upstream provider.",
     ),
     v("/admin/requests?tab=status", "Outcome mix for the window."),
-    // An unrecognised tab falls back to the overview rather than rendering a
-    // page with every section switched off.
     v("/admin/requests?tab=nonsense", REQUESTS_LOG_ROWS),
-    v("/admin/requests?tab=log", REQUESTS_LOG_ROWS),
     v("/admin/requests?tab=log&page=2", REQUESTS_EMPTY),
     v("/admin/requests?tab=log&page=100000", REQUESTS_EMPTY),
-    // A negative page is clamped to the first, not turned into a negative
-    // OFFSET the database would reject.
+    // Postgres rejects a negative OFFSET; the page must clamp.
     v("/admin/requests?tab=log&page=-5", REQUESTS_LOG_ROWS),
     v(
         "/admin/requests?tab=log&model=claude-opus-5",
@@ -113,18 +84,24 @@ const REQUESTS: [Variant; 22] = [
         "/admin/requests?tab=log&sort=nonsense&dir=nonsense",
         REQUESTS_LOG_ROWS,
     ),
+    v("/admin/requests?tab=log&tool=no-such-tool", REQUESTS_EMPTY),
+    // `unrouted` is the drill-down sentinel for "no model", not a model name.
+    v("/admin/requests?model=unrouted", REQUESTS_EMPTY),
+    v("/admin/requests?provider=unrouted", REQUESTS_EMPTY),
+    v("/admin/requests?range=7d", r#"data-window="7d""#),
+    v(
+        "/admin/requests?scope=project:no-such-project",
+        REQUESTS_EMPTY,
+    ),
+    v("/admin/requests?scope=nonsense", REQUESTS_LOG_ROWS),
 ];
 
-// The trace explorer: the same window and pager, plus the two stat tiles that
-// double as filters.
 const TRACES: [Variant; 11] = [
     v("/admin/traces", TRACES_EMPTY),
-    v("/admin/traces?preset=7d", r#"data-window="7d""#),
+    v("/admin/traces?preset=7d", r#"name="preset" value="7d""#),
     v("/admin/traces?page=3", TRACES_EMPTY),
     v("/admin/traces?page=99999", TRACES_EMPTY),
     v("/admin/traces?page=-2", TRACES_EMPTY),
-    // `deny_only` / `error_only` mark their tile as the applied filter; the
-    // tile is the only thing on the page that says so.
     v("/admin/traces?deny_only=true", "is-active"),
     v("/admin/traces?error_only=true", "is-active"),
     v("/admin/traces?sort=cost&dir=asc", TRACES_EMPTY),
@@ -133,50 +110,44 @@ const TRACES: [Variant; 11] = [
         "/admin/traces?agent_scope=global&agent_id=no-such-agent",
         TRACES_EMPTY,
     ),
-    // An unparseable custom window falls back to the default one and still
-    // renders the page rather than refusing it.
     v("/admin/traces?from=not-a-date&to=not-a-date", TRACES_TITLE),
 ];
 
-// The contexts page: a two-way view switch, a search box, a since-window pill
-// group, and a row limit.
 const CONTEXTS: [Variant; 9] = [
     v("/admin/contexts", CONTEXTS_USERS_EMPTY),
     v("/admin/contexts?view=all", CONTEXTS_EMPTY),
     v("/admin/contexts?view=users", CONTEXTS_USERS_EMPTY),
     v("/admin/contexts?q=needle-xyz", r#"value="needle-xyz""#),
-    v("/admin/contexts?since=7d", r#"value="7d" selected"#),
-    v("/admin/contexts?since=30d", r#"value="30d" selected"#),
+    v("/admin/contexts?since=7d", r#"name="since" value="7d""#),
+    v("/admin/contexts?since=30d", r#"name="since" value="30d""#),
     v("/admin/contexts?since=nonsense", CONTEXTS_TITLE),
-    v("/admin/contexts?view=all&page=1", CONTEXTS_EMPTY),
-    v("/admin/contexts?view=all&page=100000", CONTEXTS_EMPTY),
+    v("/admin/contexts?limit=1", CONTEXTS_USERS_EMPTY),
+    v("/admin/contexts?limit=100000", CONTEXTS_USERS_EMPTY),
 ];
 
-// The roster, the per-user page, the customer report, and the catalog.
-//
-// The roster is the one list with rows: the suite seeds two principals, so it
-// renders the table rather than the empty state, and the seeded address is the
-// marker that proves a row reached the template.
-const PAGES: [Variant; 9] = [
+const OVERVIEW: [Variant; 5] = [
+    v("/admin", "p50 latency"),
+    v("/admin", "Most used models"),
+    v("/admin", "Waiting on a person"),
+    // Handlebars escapes `=` inside attribute values, so match aria-current,
+    // not the pill's href.
+    v("/admin?preset=7d", r#"aria-current="page">7d</a>"#),
+    v("/admin?preset=30d", "vs previous 30d"),
+];
+
+const PAGES: [Variant; 6] = [
     v("/admin/users", "contract-admin@contract.test"),
     v("/admin/users?unknown_param=1&page=99", "No users match"),
-    v("/admin/reports/customer", CUSTOMER_REPORT),
-    v("/admin/reports/customer?month=2023-03", "March 2023"),
-    v("/admin/reports/customer?month=2024-07", "July 2024"),
-    // An unparseable month falls back to the last complete one.
-    v("/admin/reports/customer?month=nonsense", CUSTOMER_REPORT),
     v(
-        "/admin/catalog/plugins",
+        "/admin/users?filter=unassigned&sort=name&dir=asc",
+        "Unassigned",
+    ),
+    v(
+        "/admin/plugins",
         "A plugin bundles skills, MCP servers, agents and hooks",
     ),
-    v(
-        "/admin/catalog/skills",
-        "The instruction sets people invoke",
-    ),
-    v(
-        "/admin/catalog/mcp",
-        "Every tool server this instance declares",
-    ),
+    v("/admin/skills", "The instruction sets people invoke"),
+    v("/admin/mcp", "what it is serving right now"),
 ];
 
 #[tokio::test(flavor = "multi_thread")]
@@ -190,32 +161,19 @@ async fn admin_pages_render_the_branch_their_query_selects() {
     };
 
     let credentials = principal::provision(&db.pool).await;
-    let org_id = seed::unique("variant-org");
-    sqlx::query("INSERT INTO organizations (id, slug, name) VALUES ($1, $1, 'Contract customer')")
-        .bind(&org_id)
-        .execute(&*db.pool)
-        .await
-        .expect("seed report organization");
-    sqlx::query("INSERT INTO organization_members (user_id, org_id, org_role) SELECT id, $1, 'admin' FROM users WHERE email = 'contract-admin@contract.test'")
-        .bind(&org_id).execute(&*db.pool).await.expect("attach report administrator");
-    let app = App::new(&db.pool, credentials);
 
-    // The log tab's row variants used to lean on the demo requests that
-    // migration 025 seeded; core 0.32 stamps fresh installs (migrations are
-    // recorded, not executed), so the suite seeds its own request now.
-    let user = seed::insert_user(
+    // Exactly one request: page 1 of the log has rows, page 2 is empty.
+    let request_user = seed::insert_user(
         &db.pool,
         &seed::unique("variant-user"),
         "variant-user@contract.test",
     )
     .await;
-    // No session or trace: the traces variants assert the empty state, so the
-    // seeded request must be visible to the log tab only.
     seed::insert_request(
         &db.pool,
         &seed::RequestSpec {
             id: seed::unique("variant-request"),
-            user_id: &user,
+            user_id: &request_user,
             session_id: None,
             trace_id: None,
             context_id: None,
@@ -224,9 +182,12 @@ async fn admin_pages_render_the_branch_their_query_selects() {
     )
     .await;
 
+    let app = App::new(&db.pool, credentials);
+
     let mut failures = Vec::new();
-    for variant in REQUESTS
+    for variant in OVERVIEW
         .iter()
+        .chain(REQUESTS.iter())
         .chain(TRACES.iter())
         .chain(CONTEXTS.iter())
         .chain(PAGES.iter())
@@ -263,8 +224,6 @@ async fn admin_pages_render_the_branch_their_query_selects() {
     );
 }
 
-// Enough of the body to tell which page came back, without pasting a whole
-// rendered document into the failure.
 fn snippet(body: &str) -> String {
     let head: String = body.chars().take(300).collect();
     format!("\n      body: {head}")

@@ -15,12 +15,12 @@ use crate::route_source::{MountedRoute, mounted_routes};
 use crate::tempdb::TempDb;
 use crate::{baseline, globals, principal};
 
-// Routes known to answer 5xx today, each with the defect that causes it.
+// Routes known to answer 5xx today, each with the reason.
 //
 // This list exists so the no-5xx invariant can be enforced for everything
 // else while the error model is still being adopted. It is checked in both
 // directions — an entry whose route stops failing must be deleted — so it can
-// only ever shrink.
+// only ever shrink. It is empty on this instance.
 const KNOWN_5XX: [(&str, &str); 0] = [];
 
 fn known_5xx(key: &str) -> bool {
@@ -30,21 +30,7 @@ fn known_5xx(key: &str) -> bool {
 // Routes served before authentication, by design. Everything else must
 // refuse an anonymous caller.
 fn is_public(template: &str) -> bool {
-    const PUBLIC: [&str; 10] = [
-        "/admin/login",
-        // The operator passkey door and the Odoo sign-in endpoint are both
-        // pre-authentication by definition: they are how a caller stops being
-        // anonymous.
-        "/admin/login/operator",
-        "/admin/auth/odoo/login",
-        "/admin/auth/passkey/register",
-        "/admin/register",
-        "/admin/add-passkey",
-        "/admin/verify-pending",
-        "/admin/api/magic-link/request",
-        "/admin/api/magic-link/validate",
-        "/admin/api/register",
-    ];
+    const PUBLIC: [&str; 1] = ["/admin/login"];
     PUBLIC.contains(&template)
 }
 
@@ -142,20 +128,26 @@ fn check(
         fail("anonymous callers must not be served a success response");
     }
 
-    // Company-wide organization and business reports require platform authority.
-    let platform_only = route.template == "/admin/reports/internal"
-        || route.template == "/admin/reports/internal.csv"
-        || route.template == "/admin/enterprises"
-        || route.template.starts_with("/admin/enterprises/");
-    if principal == Principal::Admin && platform_only && status != StatusCode::FORBIDDEN {
-        fail("an ordinary admin must not reach the platform-only business surface");
-    }
-
-    // Ordinary admin routes remain reachable to admins.
+    // An authenticated admin must never be turned away by the auth layers,
+    // except on the platform tier: directory mappings are platform_admin-only
+    // by design, so a plain admin is refused there and only there.
     if principal == Principal::Admin
-        && !platform_only
+        && !is_platform_only(&route.template)
         && matches!(status, StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN)
     {
         fail("an admin must not be rejected by authentication or authorisation");
     }
+
+    // The platform admin holds every tier, so nothing may refuse them.
+    if principal == Principal::PlatformAdmin
+        && matches!(status, StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN)
+    {
+        fail("a platform admin must not be rejected by authentication or authorisation");
+    }
+}
+
+// The routes mounted on the platform tier (routes/admin_groups.rs): the
+// AD-group mappings that feed groups and projects from the directory.
+fn is_platform_only(template: &str) -> bool {
+    template.contains("/ad-mappings")
 }

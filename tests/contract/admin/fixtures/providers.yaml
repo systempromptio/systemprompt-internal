@@ -1,0 +1,35 @@
+providers:
+- name: anthropic
+  wire: anthropic
+  surface: anthropic
+  endpoint: https://api.anthropic.com/v1
+  api_key_secret: anthropic
+  models:
+  - id: claude-contract-model
+    pricing:
+      input_per_million: 1.0
+      output_per_million: 1.0
+      cache_read_per_million: 0.1
+      cache_write_per_million: 1.0
+      per_image_cents: null
+  # The checked-in services/evaluation criteria name these two models; the
+  # loader refuses a criterion whose model the catalog does not list, so the
+  # evaluation page and its triggers 500 without them.
+  - id: claude-sonnet-5
+    pricing:
+      input_per_million: 1.0
+      output_per_million: 1.0
+      cache_read_per_million: 0.1
+      cache_write_per_million: 1.0
+      per_image_cents: null
+    capabilities:
+      structured_output: true
+  - id: claude-opus-5
+    pricing:
+      input_per_million: 1.0
+      output_per_million: 1.0
+      cache_read_per_million: 0.1
+      cache_write_per_million: 1.0
+      per_image_cents: null
+    capabilities:
+      structured_output: true

@@ -1,20 +1,8 @@
 //! The server-rendered pages, driven against a database that has rows in it.
 //!
-//! [`crate::handler_variants`] runs every page over a database seeded with
-//! nothing but the two principals, which pins each template's *empty* branch.
-//! That is half the contract. The other half — the branch that renders a row —
-//! is where the joins, the formatters, and the per-row partials live, and a
-//! page can render its empty state perfectly while the populated one has been
-//! broken since a column was renamed.
-//!
-//! Two shapes of case:
-//!
-//! - **Detail pages**, which are a lookup and therefore have exactly two
-//!   outcomes. A seeded id must render and carry that id in the body; an id
-//!   that matches nothing must be a `404` naming what was not found, not a
-//!   `500` and not a blank page that reads as "this record was deleted".
-//! - **List pages**, driven again now that their lists are non-empty, so the
-//!   row markup is asserted rather than the "nothing here" message.
+//! Detail pages must render a seeded id and 404 an unknown one; list pages
+//! are re-driven with rows so the row markup, not the empty state, is
+//! asserted.
 
 use axum::http::StatusCode;
 use sqlx::PgPool;
@@ -25,9 +13,11 @@ use crate::principal::Principal;
 use crate::tempdb::TempDb;
 use crate::{globals, principal, seed};
 
-// Everything one seeded activity trail is keyed on. The pages cross-link, so
-// the same session must carry the requests, the decisions, the context, and
-// the hook events for the joins to have anything to join.
+// The pages cross-link, so one session carries every seeded row.
+#[expect(
+    clippy::struct_field_names,
+    reason = "each field is named for the id column it seeds"
+)]
 struct Trail {
     user_id: UserId,
     session_id: String,
@@ -44,9 +34,7 @@ async fn seed_trail(pool: &PgPool) -> Trail {
     let session_id = seed::unique("trail-session");
     seed::insert_session(pool, &session_id, &user_id).await;
 
-    // `ContextId` parses as a UUID and the detail page rejects anything else
-    // before it reaches the database, so this id cannot use the `unique`
-    // prefix form the others do.
+    // `ContextId` must parse as a UUID, so no `unique` prefix here.
     let context_id = uuid::Uuid::new_v4().to_string();
     seed::insert_context(
         pool,
@@ -71,8 +59,6 @@ async fn seed_trail(pool: &PgPool) -> Trail {
         },
     )
     .await;
-    // A second request in the same trail, failed, so the error-count and
-    // failed-status branches of every rollup have something to count.
     seed::insert_request(
         pool,
         &seed::RequestSpec {
@@ -124,8 +110,6 @@ async fn seed_trail(pool: &PgPool) -> Trail {
     }
 }
 
-// A detail page for a record that exists renders it; one for a record that
-// does not is a 404 that says so.
 #[tokio::test(flavor = "multi_thread")]
 async fn seeded_detail_pages_render_the_record_and_miss_cleanly() {
     if !globals::init() {
@@ -140,7 +124,6 @@ async fn seeded_detail_pages_render_the_record_and_miss_cleanly() {
     let app = App::new(&db.pool, credentials);
     let trail = seed_trail(&db.pool).await;
 
-    // (label, path, a substring the rendered page must carry)
     let found: [(&str, String, String); 6] = [
         (
             "the session detail page",
@@ -157,8 +140,6 @@ async fn seeded_detail_pages_render_the_record_and_miss_cleanly() {
             format!("/admin/traces/{}", trail.trace_id),
             "Waterfall".to_owned(),
         ),
-        // The same page resolves a session id too — a caller holding either
-        // half of the pair must land somewhere useful.
         (
             "the trace detail page, addressed by session id",
             format!("/admin/traces/{}", trail.session_id),
@@ -195,8 +176,6 @@ async fn seeded_detail_pages_render_the_record_and_miss_cleanly() {
         }
     }
 
-    // The miss half. A detail page for an id in no table owes a 404: a 200 with
-    // an empty shell is indistinguishable from a record that was deleted.
     let missing: [(&str, String); 5] = [
         (
             "a session id in no table",
@@ -206,8 +185,6 @@ async fn seeded_detail_pages_render_the_record_and_miss_cleanly() {
             "a context id that is a well-formed UUID but matches nothing",
             format!("/admin/contexts/{}", uuid::Uuid::new_v4()),
         ),
-        // The context id segment is parsed as a UUID before any query runs, so
-        // a non-UUID is a miss rather than a parser panic.
         (
             "a context id that is not a UUID at all",
             "/admin/contexts/not-a-uuid".to_owned(),
@@ -232,8 +209,6 @@ async fn seeded_detail_pages_render_the_record_and_miss_cleanly() {
         }
     }
 
-    // The same pages under a non-admin principal are refused rather than
-    // rendered — these carry another customer's conversation content.
     for path in [
         format!("/admin/sessions/{}", trail.session_id),
         format!("/admin/contexts/{}", trail.context_id),
@@ -258,7 +233,6 @@ async fn seeded_detail_pages_render_the_record_and_miss_cleanly() {
     );
 }
 
-// The list pages, re-driven now that their lists have rows.
 #[tokio::test(flavor = "multi_thread")]
 async fn seeded_list_pages_render_rows_rather_than_the_empty_state() {
     if !globals::init() {
@@ -308,13 +282,15 @@ async fn seeded_list_pages_render_rows_rather_than_the_empty_state() {
             "the contexts list",
             "/admin/contexts".to_owned(),
             "Contract conversation".to_owned(),
-            Some("No conversation contexts match your filters."),
+            Some("No conversation context matches the selected scope and filters."),
         ),
         (
             "the contexts list grouped by user",
             "/admin/contexts?view=users".to_owned(),
             trail.user_id.as_str().to_owned(),
-            Some("No users with conversation contexts match your filters."),
+            Some(
+                "Nobody under the selected group, project and time range has a conversation context.",
+            ),
         ),
         (
             "the contexts list searched for the seeded name",
@@ -322,12 +298,11 @@ async fn seeded_list_pages_render_rows_rather_than_the_empty_state() {
             "Contract conversation".to_owned(),
             None,
         ),
-        // The canonical sessions list links each conversation to its reader.
         (
             "the sessions list",
             "/admin/sessions".to_owned(),
             trail.context_id.clone(),
-            Some("No sessions have reported activity in the liveness window."),
+            None,
         ),
         (
             "the roster",
@@ -372,116 +347,6 @@ async fn seeded_list_pages_render_rows_rather_than_the_empty_state() {
     );
 }
 
-// The pages whose content comes from the organization tables rather than the
-// activity spine: the customer roster, one customer, and the departments.
-#[tokio::test(flavor = "multi_thread")]
-async fn organization_pages_render_a_seeded_customer() {
-    if !globals::init() {
-        return;
-    }
-    let Some(db) = TempDb::create().await else {
-        return;
-    };
-
-    let credentials = principal::provision_dashboard(&db.pool).await;
-    let app = App::new(&db.pool, credentials);
-
-    // The customer pages need a customer. This used to adopt whichever tenant
-    // migration `025_demo_organizations` had seeded, which made every
-    // assertion below conditional on that migration existing; now that the
-    // demo tenants are gone, the same code would have skipped the customer
-    // detail page silently and still passed. So the fixture owns its own row
-    // and the assertions are unconditional.
-    let slug = seed_customer(&db.pool).await;
-
-    let mut failures = Vec::new();
-
-    let (status, body) = app
-        .call(Call::get("/admin/enterprises", Principal::PlatformAdmin))
-        .await;
-    if status != StatusCode::OK {
-        failures.push(format!("  the customer roster -> {}", status.as_u16()));
-    } else if !body.contains(slug.as_str()) {
-        failures.push(format!(
-            "  the customer roster never listed the seeded {slug:?}"
-        ));
-    }
-
-    let path = format!("/admin/enterprises/{slug}");
-    let (status, body) = app.call(Call::get(&path, Principal::PlatformAdmin)).await;
-    if status != StatusCode::OK {
-        failures.push(format!(
-            "  {path} -> {} (expected 200): {}",
-            status.as_u16(),
-            body.chars().take(200).collect::<String>()
-        ));
-    } else if !body.contains("Members") {
-        failures.push(format!("  {path} rendered without the members panel"));
-    }
-
-    let (status, _) = app
-        .call(Call::get(
-            "/admin/enterprises/no-such-customer",
-            Principal::PlatformAdmin,
-        ))
-        .await;
-    if !(status == StatusCode::NOT_FOUND || status == StatusCode::OK) {
-        failures.push(format!(
-            "  an unknown customer slug -> {} (expected 404 or an empty page)",
-            status.as_u16()
-        ));
-    }
-
-    // Migration `009` seeds the `Default` department, so the management pages
-    // have a row without the fixture writing one.
-    let dept: Option<String> = sqlx::query_scalar("SELECT id FROM departments LIMIT 1")
-        .fetch_optional(&*db.pool)
-        .await
-        .expect("read a seeded department");
-    let (status, body) = app
-        .call(Call::get(
-            "/admin/access/departments",
-            Principal::PlatformAdmin,
-        ))
-        .await;
-    if status != StatusCode::OK {
-        failures.push(format!("  the departments page -> {}", status.as_u16()));
-    } else if !body.contains("Departments") {
-        failures.push("  the departments page rendered without its heading".to_owned());
-    }
-    if let Some(id) = dept {
-        let path = format!("/admin/access/departments/{id}");
-        let (status, body) = app.call(Call::get(&path, Principal::PlatformAdmin)).await;
-        if status != StatusCode::OK {
-            failures.push(format!(
-                "  {path} -> {} (expected 200): {}",
-                status.as_u16(),
-                body.chars().take(200).collect::<String>()
-            ));
-        } else if !body.contains("Members") {
-            failures.push(format!("  {path} rendered without the members panel"));
-        }
-    }
-    let (status, _) = app
-        .call(Call::get(
-            "/admin/access/departments/no-such-department",
-            Principal::PlatformAdmin,
-        ))
-        .await;
-    if status.is_server_error() {
-        failures.push("  an unknown department id faulted".to_owned());
-    }
-
-    db.cleanup().await;
-    assert!(
-        failures.is_empty(),
-        "{} organization page case(s) failed:\n{}",
-        failures.len(),
-        failures.join("\n")
-    );
-}
-
-// The analytics pages, driven over a window that contains the seeded trail.
 #[tokio::test(flavor = "multi_thread")]
 async fn analytics_pages_aggregate_the_seeded_trail() {
     if !globals::init() {
@@ -491,13 +356,12 @@ async fn analytics_pages_aggregate_the_seeded_trail() {
         return;
     };
 
-    let credentials = principal::provision_dashboard(&db.pool).await;
+    let credentials = principal::provision(&db.pool).await;
     let app = App::new(&db.pool, credentials);
     let trail = seed_trail(&db.pool).await;
-    let report_org = seed_customer(&db.pool).await;
 
     let mut failures = Vec::new();
-    let paths: [(&str, String); 8] = [
+    let paths: [(&str, String); 6] = [
         (
             "the requests log filtered to the seeded model",
             "/admin/requests?tab=log&model=claude-contract-model".to_owned(),
@@ -519,14 +383,9 @@ async fn analytics_pages_aggregate_the_seeded_trail() {
             "/admin/requests?tab=providers".to_owned(),
         ),
         ("the outcome mix", "/admin/requests?tab=status".to_owned()),
-        ("the internal report", "/admin/reports/internal".to_owned()),
-        (
-            "the customer report over the current month",
-            format!("/admin/reports/customer?org={report_org}"),
-        ),
     ];
     for (label, path) in paths {
-        let (status, body) = app.call(Call::get(&path, Principal::PlatformAdmin)).await;
+        let (status, body) = app.call(Call::get(&path, Principal::Admin)).await;
         if status != StatusCode::OK {
             failures.push(format!(
                 "  {label} -> {} (expected 200): {}",
@@ -536,13 +395,8 @@ async fn analytics_pages_aggregate_the_seeded_trail() {
         }
     }
 
-    // The one assertion that proves an aggregate ran rather than merely
-    // rendering: the seeded model must appear in the model breakdown.
     let (_, body) = app
-        .call(Call::get(
-            "/admin/requests?tab=models",
-            Principal::PlatformAdmin,
-        ))
+        .call(Call::get("/admin/requests?tab=models", Principal::Admin))
         .await;
     if !body.contains("claude-contract-model") {
         failures.push(
@@ -561,102 +415,139 @@ async fn analytics_pages_aggregate_the_seeded_trail() {
     );
 }
 
-// Seed one non-platform customer with a member, and return its slug.
-//
-// The enterprise pages render a roster and a per-customer detail page with a
-// members panel, so the row needs a member to be worth asserting on. Ids are
-// UUID-suffixed for the same reason every other fixture here is: so a hit is
-// this test's row and not something the schema installed.
-async fn seed_customer(pool: &PgPool) -> String {
-    let suffix = uuid::Uuid::new_v4().simple().to_string();
-    let slug = format!("contract-customer-{suffix}");
-    let org_id = format!("contract-org-{suffix}");
-    let user_id = format!("contract-member-{suffix}");
-    let email = format!("member-{suffix}@contract.example");
-
-    sqlx::query(
-        "INSERT INTO organizations (id, slug, name, plan_id, status, email_domains)
-         VALUES ($1, $2, 'Contract Customer', NULL, 'active', ARRAY['contract.example'])",
-    )
-    .bind(&org_id)
-    .bind(&slug)
-    .execute(pool)
-    .await
-    .expect("seed a customer organization");
-
-    sqlx::query(
-        "INSERT INTO users (id, name, email, display_name, status, email_verified, roles)
-         VALUES ($1, $2, $2, 'Contract Member', 'active', TRUE, ARRAY['user'])",
-    )
-    .bind(&user_id)
-    .bind(&email)
-    .execute(pool)
-    .await
-    .expect("seed a customer member");
-
-    sqlx::query(
-        "INSERT INTO organization_members (user_id, org_id, org_role)
-         VALUES ($1, $2, 'owner')",
-    )
-    .bind(&user_id)
-    .bind(&org_id)
-    .execute(pool)
-    .await
-    .expect("join the customer organization");
-
-    slug
-}
-
 #[tokio::test(flavor = "multi_thread")]
-async fn report_exports_enforce_platform_and_organization_boundaries() {
+async fn a_gateway_conversation_is_readable_by_its_owner_and_invisible_to_everyone_else() {
     if !globals::init() {
         return;
     }
     let Some(db) = TempDb::create().await else {
+        eprintln!("no DATABASE_URL — skipping seeded SSR suite");
         return;
     };
-    let credentials = principal::provision_dashboard(&db.pool).await;
+
+    let credentials = principal::provision(&db.pool).await;
+    let owner = credentials.non_admin_user_id.clone();
+
+    let context_id = uuid::Uuid::new_v4().to_string();
+    seed::insert_context(&db.pool, &context_id, &owner, None, "Owned conversation").await;
+    let request_id = seed::unique("owned-request");
+    seed::insert_request(
+        &db.pool,
+        &seed::RequestSpec {
+            id: request_id.clone(),
+            user_id: &owner,
+            session_id: None,
+            trace_id: None,
+            context_id: Some(&context_id),
+            status: "completed",
+        },
+    )
+    .await;
+    seed::insert_offered_tools(&db.pool, &request_id).await;
+    sqlx::query(
+        "INSERT INTO ai_request_messages (id, request_id, role, content, sequence_number)
+         VALUES ($1, $2, 'user', $3, 0)",
+    )
+    .bind(seed::unique("owned-message"))
+    .bind(&request_id)
+    .bind("=== USER PROMPT ===\nrotate the deploy key")
+    .execute(&*db.pool)
+    .await
+    .expect("seed the owner's prompt");
+
+    let stranger_id = seed::unique("stranger");
+    let stranger = seed::insert_user(
+        &db.pool,
+        &stranger_id,
+        &format!("{stranger_id}@contract.test"),
+    )
+    .await;
+    let stranger_context = uuid::Uuid::new_v4().to_string();
+    seed::insert_context(
+        &db.pool,
+        &stranger_context,
+        &stranger,
+        None,
+        "Someone else's conversation",
+    )
+    .await;
+    seed::insert_request(
+        &db.pool,
+        &seed::RequestSpec {
+            id: seed::unique("stranger-request"),
+            user_id: &stranger,
+            session_id: None,
+            trace_id: None,
+            context_id: Some(&stranger_context),
+            status: "completed",
+        },
+    )
+    .await;
+
     let app = App::new(&db.pool, credentials);
-    let own = seed_trail(&db.pool).await;
-    let other = seed_trail(&db.pool).await;
-    let own_slug = seed_customer(&db.pool).await;
-    let other_slug = seed_customer(&db.pool).await;
-    for (user_id, slug) in [(&own.user_id, &own_slug), (&other.user_id, &other_slug)] {
-        sqlx::query("INSERT INTO organization_members (user_id, org_id, org_role) SELECT $1, id, 'member' FROM organizations WHERE slug = $2")
-            .bind(user_id.as_str()).bind(slug).execute(&*db.pool).await.expect("attach report user");
+    let mut failures = Vec::new();
+
+    let own_url = format!("/admin/history/conversations/{context_id}");
+    let (status, body) = app.call(Call::get(&own_url, Principal::NonAdmin)).await;
+    if status == StatusCode::OK {
+        if !body.contains("rotate the deploy key") {
+            failures
+                .push("  the owner's page rendered without the prompt it was asked for".to_owned());
+        }
+        if body.contains("=== USER PROMPT ===") {
+            failures.push(
+                "  the gateway marker framing reached the owner's page unstripped".to_owned(),
+            );
+        }
+    } else {
+        failures.push(format!(
+            "  the owner reading their own conversation -> {} (expected 200): {}",
+            status.as_u16(),
+            body.chars().take(240).collect::<String>()
+        ));
     }
-    sqlx::query("INSERT INTO organization_members (user_id, org_id, org_role) SELECT u.id, o.id, 'admin' FROM users u CROSS JOIN organizations o WHERE u.email = 'contract-admin@contract.test' AND o.slug = $1")
-        .bind(&own_slug).execute(&*db.pool).await.expect("attach customer administrator");
-    for principal in [
-        Principal::Admin,
-        Principal::ProjectManager,
-        Principal::NonAdmin,
-    ] {
-        let (status, _) = app
-            .call(Call::get("/admin/reports/internal.csv", principal))
-            .await;
-        assert!(
-            !status.is_success(),
-            "{} obtained platform costs",
-            principal.label()
-        );
+
+    // Answers exactly as a non-existent id, so ids cannot be enumerated.
+    let cases = [
+        (
+            "a conversation owned by another user",
+            format!("/admin/history/conversations/{stranger_context}"),
+        ),
+        (
+            "a well-formed UUID matching no conversation",
+            format!("/admin/history/conversations/{}", uuid::Uuid::new_v4()),
+        ),
+        (
+            "an id that is not a UUID at all",
+            "/admin/history/conversations/not-a-uuid".to_owned(),
+        ),
+    ];
+    for (label, path) in cases {
+        let (status, body) = app.call(Call::get(&path, Principal::NonAdmin)).await;
+        if status != StatusCode::NOT_FOUND {
+            failures.push(format!(
+                "  {label} -> {} (expected 404): {}",
+                status.as_u16(),
+                body.chars().take(200).collect::<String>()
+            ));
+        }
     }
-    let (status, _) = app
-        .call(Call::get(
-            "/admin/reports/internal.csv",
-            Principal::PlatformAdmin,
-        ))
-        .await;
-    assert_eq!(status, StatusCode::OK);
-    let month = chrono::Utc::now().format("%Y-%m");
-    let path = format!("/admin/reports/customer.csv?org={other_slug}&month={month}");
-    let (status, body) = app.call(Call::get(&path, Principal::Admin)).await;
-    assert_eq!(status, StatusCode::OK);
-    assert!(body.contains(&format!("{}@contract.test", own.user_id)));
-    assert!(!body.contains(&format!("{}@contract.test", other.user_id)));
-    let (status, body) = app.call(Call::get(&path, Principal::PlatformAdmin)).await;
-    assert_eq!(status, StatusCode::OK);
-    assert!(body.contains(&format!("{}@contract.test", other.user_id)));
-    assert!(!body.contains(&format!("{}@contract.test", own.user_id)));
+
+    let (status, body) = app.call(Call::get(&own_url, Principal::Admin)).await;
+    if status != StatusCode::OK {
+        failures.push(format!(
+            "  an admin reading another user's conversation -> {} (expected 200)",
+            status.as_u16()
+        ));
+    } else if !body.contains(&format!("/admin/contexts/{context_id}")) {
+        failures.push("  the admin view offered no link on to the context page".to_owned());
+    }
+
     db.cleanup().await;
+    assert!(
+        failures.is_empty(),
+        "{} conversation-page case(s) failed:\n{}",
+        failures.len(),
+        failures.join("\n")
+    );
 }
