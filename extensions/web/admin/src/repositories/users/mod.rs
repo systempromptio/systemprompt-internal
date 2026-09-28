@@ -8,6 +8,7 @@ pub mod enrolment;
 pub mod federated;
 mod federated_provision;
 pub mod mutations;
+pub mod odoo_identity;
 pub mod queries;
 pub mod revocation;
 pub mod roles;

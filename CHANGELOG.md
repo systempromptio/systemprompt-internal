@@ -215,6 +215,10 @@ Conventions (strict — hold every entry to them):
   `--sp-radius-card-brand`), so those cards rendered square; they use `--sp-corners-*`.
 - The group detail page's allow/deny badge rendered the class `sp-badge-is-success`, which
   matched nothing; it is `sp-badge--ok` / `sp-badge--err`.
+- `repositories/users/odoo_identity.rs` (seal, open, find, list, delete, upsert) is restored,
+  so the admin plane can read and write the per-user Odoo credential the odoo MCP server uses;
+  the profile link and Odoo sign-in handlers that called it (removed in 2f9efe57) are not
+  restored yet.
 - `odoo_identity` is declared again (`schema/15_odoo_identity.sql`, migration 083): its
   schema file was deleted in 2f9efe57 while the Odoo MCP server still read and wrote the
   table, so a database installed since had nowhere to keep per-user Odoo credentials.
