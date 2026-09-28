@@ -142,6 +142,9 @@ Conventions (strict — hold every entry to them):
 
 ### Fixed
 
+- Every hook `Stop` event failed an `UPDATE` of `plugin_session_summaries.apm`/`eapm`/
+  `peak_concurrent`, columns migration 078 dropped; the stale offline query cache hid it at
+  compile time. The APM writer and its concurrent-session count are removed.
 - The access-control page logs a failed open-entity count instead of silently rendering zero.
 - Several stylesheet rules named tokens that were never defined (`--sp-radius-card`,
   `--sp-radius-card-brand`), so those cards rendered square; they use `--sp-corners-*`.
