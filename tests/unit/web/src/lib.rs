@@ -175,3 +175,5 @@ mod sync_sources_hash;
 mod sync_staging;
 #[cfg(test)]
 mod time_bound_access;
+#[cfg(test)]
+mod authz_quota_subjects;

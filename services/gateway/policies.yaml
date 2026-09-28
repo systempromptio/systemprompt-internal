@@ -73,16 +73,13 @@ policies:
           window_seconds: 3600
           max_requests: 600
           max_cost_microdollars: 20000000
-        # Installation-wide, daily ($200/day) is NOT declared yet: core
-        # resolves a non-`user` subject through a registered subject provider,
-        # this instance registers none for `organization`, and
-        # `quota_fault_mode: closed` (services/ai/gateway.yaml) refuses every
-        # request whose window subject cannot be resolved. Add it once
-        # extensions/web/admin/src/authz registers the dimension:
-        #
-        # - subject: organization
-        #   window_seconds: 86400
-        #   max_cost_microdollars: 200000000
+        # Installation-wide, daily: a $200/day warning threshold. The
+        # `organization` subject is the whole installation
+        # (extensions/web/admin/src/authz/organization.rs); a day that passes
+        # it shows up in the warnings report and nothing is refused.
+        - subject: organization
+          window_seconds: 86400
+          max_cost_microdollars: 200000000
       safety:
         mode: warn
         scanners: [heuristic, secrets, pii_extended]

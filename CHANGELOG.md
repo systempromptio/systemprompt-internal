@@ -117,6 +117,10 @@ Conventions (strict — hold every entry to them):
   `just services-pin <kit> <digest|channel>` (`scripts/services-pin.py`) and
   `just kit-export <marketplace> <dir>` backed by the new `extensions/cli/kit-export` crate.
   `docs/kits-on-another-instance.md` and the generic parts of `docs/CONFIGURED-CONNECTORS.md`.
+- **Quotas:** an `organization` subject provider (`authz/organization.rs`, precedence 300,
+  every user holds `default`) so `services/gateway/policies.yaml` declares the installation-wide
+  daily window ($200/day, warn) under `quota_fault_mode: closed`, which refuses a window whose
+  subject nothing resolves.
 - **Scheduler:** core jobs `managed_inventory_refresh` (also run at boot), `oauth_cleanup`,
   `user_rate_limit_prune`, `thought_signature_cleanup` and `otlp_export`.
 - **Providers:** `claude-opus-5-5`; `max_thinking_budget` on Cerebras `gpt-oss-120b`, so its
