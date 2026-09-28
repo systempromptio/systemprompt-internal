@@ -3,3 +3,9 @@
 # Embedded into MCP report HTML at compile time.
 storage/files/js/admin-report-bridge.js
 storage/files/js/admin-report-shell.js
+
+# The sidebar's attention badge (`.sp-nav-attention`). Ported with the console
+# chrome (Stage 3 phase 1); its first consumer is the Access control link's
+# `access_attention` count, a Rust field that lands with the sync and access
+# review phases (4 and 5). Delete this line then.
+storage/files/css/admin/03-shell-nav-attention.css

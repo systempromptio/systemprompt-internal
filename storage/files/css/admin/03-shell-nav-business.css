@@ -1,0 +1,10 @@
+/* The Business & demo group is this instance's own: enterprises, the demo
+   logbook and the per-person usage view. It borrows the third hue, which no
+   other group on this console uses yet, so it reads as its own zone. */
+@layer components {
+
+.sp-nav-group--business .sp-nav-group__title {
+    color: var(--sp-nav-label-3);
+}
+
+}

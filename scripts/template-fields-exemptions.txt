@@ -43,3 +43,12 @@ storage/files/admin/templates/report-internal.hbs: generated_at
 storage/files/admin/templates/report-internal.hbs: month_label
 storage/files/admin/templates/skill-usage.hbs: attributed_cost_usd
 storage/files/admin/templates/users-sessions.hbs: window_minutes
+# Stage 3 phase 1 (console chrome) ports these partials ahead of the Rust view
+# types that fill them. Each line names the phase whose compile pass defines the
+# fields; delete it then.
+# HelpView (`handlers/ssr/analysis/help.rs`) — phase 7, analysis suite.
+storage/files/admin/partials/components/help-dialog.hbs: guide_href
+storage/files/admin/partials/components/help-dialog.hbs: intro
+# SparklineView (`handlers/ssr/types/sparkline.rs`) — phase 2, live chart layer.
+storage/files/admin/partials/components/sparkline.hbs: last_x
+storage/files/admin/partials/components/sparkline.hbs: last_y

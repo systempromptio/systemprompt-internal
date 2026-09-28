@@ -22,6 +22,17 @@ Conventions (strict — hold every entry to them):
 
 ### Added
 
+- **Admin console:** the sidebar is seven collapsible groups — AI activity, People & access,
+  Governance, Platform, Business & demo, Account, Developer — each with its own hue; the group
+  holding the current page is always open and `services/nav-groups.js` remembers the others.
+  Requests, Sessions and Traces moved under Developer; the release version shows at the foot.
+  The header ID search offers prefix matches in a listbox (`services/header-search-list.js`),
+  and the header actions and install menus open again (their scripts looked up ids the
+  layout never wrote). New shared partials: `badge-stack`, `icon`, `help-dialog` (opened by
+  `components/sp-help.js` from a `?` in `page-header`), `table-select`, `bulk-bar`,
+  `sparkline` and `filter-ribbon`; `kpi` takes an optional icon and sparkline.
+  `services/table-expand.js` drives `data-action="row-toggle"` detail rows.
+
 - **Release:** frozen promotion. `just release X.Y.Z` (`scripts/release.sh`) promotes the
   exact `next` commit whose push-triggered Gates run is green: it pushes
   `promote/X.Y.Z/<main>/<next>`, opens the PR, and on a second run merges only after the PR's

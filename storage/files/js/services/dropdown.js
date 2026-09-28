@@ -53,12 +53,12 @@ export const closeAllMenus = () => {
   for (const m of document.querySelectorAll('.sp-actions-menu.is-open')) {
     m.classList.remove('is-open');
   }
-  const installMenu = document.getElementById('sp-install-menu');
+  const installMenu = document.getElementById('install-menu');
   if (installMenu?.classList.contains('is-open')) {
     installMenu.classList.remove('is-open');
     installMenu.querySelector('.sp-install-trigger')?.setAttribute('aria-expanded', 'false');
   }
-  const headerActions = document.getElementById('sp-topbar__actions');
+  const headerActions = document.getElementById('header-actions');
   if (headerActions?.classList.contains('is-open')) {
     headerActions.classList.remove('is-open');
     headerActions.querySelector('.sp-topbar__actions-toggle')?.setAttribute('aria-expanded', 'false');
