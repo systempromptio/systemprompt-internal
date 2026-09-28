@@ -1,0 +1,327 @@
+name: Gates
+
+# The one gate workflow (it replaces ci.yml and quality.yml). Full matrix on
+# every push to next and on ordinary PRs; a frozen promotion PR onto main
+# (promote/<version>/<main>/<next>, opened by `just release`) reuses the exact
+# next-push proof and validates the base, head and merge tree instead of
+# re-running it. See docs/BRANCHING.md and docs/RELEASING.md.
+#
+# The tiers do not `needs` each other: each reports on its own, so a red
+# static tier cannot hide clippy or a test failure for a whole round.
+# `Gates passed` is the single context the `main` ruleset requires.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Commit SHA or branch to gate. Defaults to the triggering ref."
+        type: string
+        required: false
+  pull_request:
+    branches: [main, next]
+  push:
+    branches: [next]
+
+concurrency:
+  group: gates-${{ inputs.ref || github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Why: transient TLS resets from static.rust-lang.org and crates.io fail a run
+  # on infrastructure rather than on the code. rustup and cargo both retry when
+  # told to; they do not by default.
+  RUSTUP_MAX_RETRIES: "10"
+  CARGO_NET_RETRY: "10"
+  CARGO_TERM_COLOR: always
+  SQLX_OFFLINE: "true"
+  # aws-lc-sys refuses to build with GCC <10 and the release profile's LTO
+  # trips it; mirror the justfile's CC/CXX toggle.
+  CC: clang
+  CXX: clang++
+  # scripts/build-coordinator.sh serialises builds across agents sharing one
+  # clone (and guards the host's free disk); a runner is single-tenant, so
+  # bypass it.
+  BUILD_NO_COORD: "1"
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
+jobs:
+  promotion:
+    name: Verify frozen promotion
+    if: github.event_name == 'pull_request' && github.base_ref == 'main' && startsWith(github.head_ref, 'promote/') && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            let pr;
+            for (let attempt = 0; attempt < 6; attempt++) {
+              pr = (await github.rest.pulls.get({owner, repo, pull_number: context.payload.pull_request.number})).data;
+              if (pr.mergeable !== null) break;
+              await new Promise(resolve => setTimeout(resolve, 5000));
+            }
+            const match = /^promote\/(\d+\.\d+\.\d+)\/([0-9a-f]{40})\/([0-9a-f]{40})$/.exec(pr.head.ref);
+            if (!match || pr.head.repo.full_name !== context.payload.repository.full_name || pr.base.ref !== 'main' || pr.base.sha !== match[2] || pr.head.sha !== match[3]) {
+              throw new Error('Promotion identity differs from frozen head/base');
+            }
+            const currentMain = (await github.rest.git.getRef({owner, repo, ref: 'heads/main'})).data.object.sha;
+            const currentNext = (await github.rest.git.getRef({owner, repo, ref: 'heads/next'})).data.object.sha;
+            if (currentMain !== pr.base.sha || currentNext !== pr.head.sha) throw new Error('main or next moved');
+            const comparison = (await github.rest.repos.compareCommitsWithBasehead({owner, repo, basehead: `${pr.base.sha}...${pr.head.sha}`})).data;
+            if (comparison.status !== 'ahead' || comparison.behind_by !== 0) throw new Error('main is not an ancestor of candidate');
+            const runs = (await github.rest.actions.listWorkflowRuns({owner, repo, workflow_id: 'gates.yml', event: 'push', branch: 'next', head_sha: pr.head.sha, per_page: 1})).data.workflow_runs;
+            const run = runs[0];
+            if (!run || run.head_sha !== pr.head.sha || run.head_branch !== 'next' || run.event !== 'push' || run.status !== 'completed' || run.conclusion !== 'success') throw new Error('Latest exact next-push Gates run did not succeed');
+            const jobs = await github.paginate('GET /repos/{owner}/{repo}/actions/runs/{run_id}/attempts/{attempt_number}/jobs', {owner, repo, run_id: run.id, attempt_number: run.run_attempt, per_page: 100});
+            const proof = jobs.filter(job => job.name === 'Gates passed');
+            if (proof.length !== 1 || proof[0].status !== 'completed' || proof[0].conclusion !== 'success') throw new Error('Gates passed aggregate did not succeed');
+            const head = (await github.rest.git.getCommit({owner, repo, commit_sha: pr.head.sha})).data;
+            if (pr.mergeable !== true || !pr.merge_commit_sha) throw new Error('GitHub merge result is not ready or conflicts');
+            const merge = (await github.rest.git.getCommit({owner, repo, commit_sha: pr.merge_commit_sha})).data;
+            if (merge.tree.sha !== head.tree.sha || merge.parents.length !== 2 || merge.parents[0].sha !== pr.base.sha || merge.parents[1].sha !== pr.head.sha) throw new Error('Merge result differs from proven candidate');
+            const latest = (await github.rest.actions.listWorkflowRuns({owner, repo, workflow_id: 'gates.yml', event: 'push', branch: 'next', head_sha: pr.head.sha, per_page: 1})).data.workflow_runs[0];
+            if (!latest || latest.id !== run.id || latest.run_attempt !== run.run_attempt || latest.status !== 'completed' || latest.conclusion !== 'success') throw new Error('Push proof changed during verification');
+            core.info(`Verified next-push run ${run.id} attempt ${run.run_attempt}, candidate ${pr.head.sha}, base ${pr.base.sha}`);
+
+  static:
+    if: github.event_name != 'pull_request' || github.base_ref != 'main' || !startsWith(github.head_ref, 'promote/') || github.event.pull_request.head.repo.full_name != github.repository
+    name: Static (fmt, sqlx cache, source gates)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # Full history: check-dropped-schema reads every deleted schema file and
+      # check-schema-baseline every release tag; a shallow clone would pass
+      # both vacuously.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          fetch-depth: 0
+      # check-bridge-overlay-drift, check-discarded-results, check-fail-open
+      # and check-template-fields read the pinned core beside this repo.
+      - uses: ./.github/actions/core-checkout
+      - uses: extractions/setup-just@v4
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ripgrep jq python3
+      - run: rustup show
+      - run: bash scripts/check-core-crate-versions.sh
+      - run: bash tests/scripts/release-proof.sh && bash tests/scripts/release-merge.sh && bash tests/scripts/release-helper.sh && bash tests/scripts/deploy-observation.sh
+        if: ${{ !cancelled() }}
+      # check-fork-drift skips: SIBLING_REPO is empty on a runner.
+      - run: just preflight-static
+        if: ${{ !cancelled() }}
+
+  lint:
+    if: github.event_name != 'pull_request' || github.base_ref != 'main' || !startsWith(github.head_ref, 'promote/') || github.event.pull_request.head.repo.full_name != github.repository
+    name: Lint (clippy ×3, rustdoc, MSRV)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+      - uses: ./.github/actions/core-checkout
+      - uses: extractions/setup-just@v4
+      # libdbus: keyring → dbus-secret-service in the bridge crate.
+      # gcc-mingw-w64: `just clippy` cross-lints the bridge GUI for
+      # x86_64-pc-windows-gnu, and ring's build script needs a C compiler
+      # with Windows headers (clang alone has no assert.h for that target).
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ripgrep jq python3 clang mold libpq-dev libssl-dev pkg-config libdbus-1-dev gcc-mingw-w64-x86-64
+      # Why: three clippy workspaces plus the Windows cross-lint's second
+      # dependency tree overflow the runner's ~14 GB. Everything removed is a
+      # preinstalled SDK nothing here uses; the hosted toolcache stays, since
+      # setup-just installed `just` there.
+      - name: Free runner disk
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc \
+            /usr/local/.ghcup /usr/local/share/boost /usr/local/share/powershell \
+            /usr/local/lib/node_modules
+          sudo docker image prune --all --force >/dev/null 2>&1 || true
+          df -h /
+      - run: rustup show
+      # Why read, not written here: Cargo.toml's rust-version is the MSRV, and
+      # scripts/check-msrv.sh reads the same field, so local and CI cannot
+      # disagree about which toolchain it is.
+      - name: Install the MSRV toolchain
+        run: |
+          v=$(grep -m1 '^rust-version = ' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')
+          [ -n "$v" ] || { echo "::error::no rust-version in Cargo.toml"; exit 1; }
+          rustup toolchain install "$v.0" --profile minimal
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            .
+            tests
+            bridge
+      # The lockfiles must be current: this was ci.yml's `cargo build --locked`.
+      - name: Lockfiles are up to date
+        run: |
+          cargo fetch --locked
+          cargo fetch --locked --manifest-path tests/Cargo.toml
+          cargo fetch --locked --manifest-path bridge/Cargo.toml
+      - run: just preflight-lint
+
+  test:
+    if: github.event_name != 'pull_request' || github.base_ref != 'main' || !startsWith(github.head_ref, 'promote/') || github.event.pull_request.head.repo.full_name != github.repository
+    name: Test (unit, integration, admin contract, e2e)
+    runs-on: ubuntu-latest
+    # Integration is dominated by CREATE/DROP DATABASE round-trips and a cold
+    # cache (every core re-pin) adds the full compile on top; leave headroom
+    # so a growing suite never turns into a meaningless red X.
+    timeout-minutes: 90
+    env:
+      # The test workspace verifies behaviour; linting it is the lint tier's
+      # job, so it does not deny warnings.
+      RUSTFLAGS: ""
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      # The harness accepts a maintenance DB named test, postgres, or *_test.
+      SYSTEMPROMPT_TEST_DATABASE_URL: postgres://test:test@localhost:5432/postgres
+    services:
+      postgres:
+        # Plain postgres 18: no schema needs an extension beyond uuid-ossp and
+        # pgcrypto, which the stock image ships.
+        image: postgres:18
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U test -d test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      # Why: the runner ships ~13 GB free, and the cargo target trees exhaust
+      # it — a full disk fails the link step with an error that reads as a
+      # compile failure. Everything removed here is a preinstalled SDK or
+      # language runtime nothing in this repo uses. `|| true` throughout
+      # because the image's contents drift between runner releases.
+      - name: Reclaim runner disk
+        run: |
+          echo "before:"; df -h / | tail -1
+          sudo rm -rf \
+            /usr/local/lib/android \
+            /opt/hostedtoolcache \
+            /usr/share/dotnet \
+            /opt/ghc /usr/local/.ghcup \
+            /usr/share/swift \
+            /usr/local/share/powershell \
+            /usr/share/miniconda \
+            /usr/local/lib/node_modules \
+            /usr/lib/google-cloud-sdk \
+            /opt/microsoft /opt/az /usr/share/az_* \
+            /usr/local/graalvm /usr/share/kotlinc \
+            /usr/local/share/boost /usr/local/julia* \
+            /opt/pipx /usr/local/aws-cli /usr/local/lib/heroku \
+            "${AGENT_TOOLSDIRECTORY:-}" 2>/dev/null || true
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/*
+          echo "after:"; df -h / | tail -1
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+      - uses: ./.github/actions/core-checkout
+      - uses: extractions/setup-just@v4
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends clang mold libpq-dev libssl-dev pkg-config libdbus-1-dev python3 python3-yaml
+      - run: rustup show
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            .
+            tests
+      # The contract suite's fixture profile validates paths.bin points at an
+      # existing directory.
+      - run: mkdir -p target/debug
+      # The e2e tier spawns the real odoo and agent MCP binaries; in CI it
+      # asserts instead of skipping, so they are built here from the lockfile.
+      - name: Build the MCP binaries the e2e tier spawns
+        run: cargo build -p systemprompt-mcp-odoo -p systemprompt-mcp-agent --locked
+      - run: just test
+
+  bridge:
+    if: github.event_name != 'pull_request' || github.base_ref != 'main' || !startsWith(github.head_ref, 'promote/') || github.event.pull_request.head.repo.full_name != github.repository
+    name: Bridge (standalone workspace)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          path: systemprompt-internal
+      # The bridge depends on systemprompt-core/bin/bridge by sibling path
+      # (not on crates.io), pinned to the ref in bridge/CORE_REF — the same
+      # layout release.yml's bridge jobs use.
+      - name: Read pinned core ref
+        id: core
+        run: echo "ref=$(tr -d '[:space:]' < systemprompt-internal/bridge/CORE_REF)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v7
+        with:
+          repository: systempromptio/systemprompt-core
+          ref: ${{ steps.core.outputs.ref }}
+          path: systemprompt-core
+      # keyring → dbus-secret-service → libdbus-sys builds from pkg-config.
+      - run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config
+      - run: rustup show
+        working-directory: systemprompt-internal
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: systemprompt-internal/bridge
+      - run: cargo check --manifest-path systemprompt-internal/bridge/Cargo.toml --locked
+
+  # The network-touching supply-chain checks quality.yml ran on every PR:
+  # licences/bans/advisories/sources, RustSec advisories, unused deps.
+  supply-chain:
+    if: github.event_name != 'pull_request' || github.base_ref != 'main' || !startsWith(github.head_ref, 'promote/') || github.event.pull_request.head.repo.full_name != github.repository
+    name: Supply chain (cargo-deny, cargo-audit, machete)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+      # Plain runner invocation, not cargo-deny-action: the action runs in a
+      # container that mounts only the workspace, so the sibling link would not
+      # exist inside it and a patched graph could not resolve.
+      - uses: ./.github/actions/core-checkout
+      - run: rustup show
+      # Why prebuilt binaries: rustsec/audit-check builds cargo-audit from
+      # source every run, so a broken release anywhere in *its* dependency tree
+      # fails the job with nothing wrong in ours.
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny,cargo-audit,cargo-machete
+      - name: cargo deny check
+        run: cargo deny check
+        if: ${{ !cancelled() }}
+      - name: cargo audit
+        run: cargo audit
+        if: ${{ !cancelled() }}
+      - name: cargo machete
+        run: cargo machete
+        if: ${{ !cancelled() }}
+
+  # One stable context for the `main` ruleset: it fails unless every gate
+  # above succeeded, so a skipped or cancelled job can never pass as "not
+  # failed". The ruleset names this job, never the tiers.
+  gates-passed:
+    name: Gates passed
+    runs-on: ubuntu-latest
+    needs: [promotion, static, lint, test, bridge, supply-chain]
+    if: always()
+    steps:
+      - env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          IS_PROMOTION: ${{ github.event_name == 'pull_request' && github.base_ref == 'main' && startsWith(github.head_ref, 'promote/') && github.event.pull_request.head.repo.full_name == github.repository }}
+        run: |
+          if [ "$IS_PROMOTION" = true ]; then
+            jq -e '.promotion.result == "success" and ([.static, .lint, .test, .bridge, ."supply-chain"] | all(.result == "skipped"))' <<<"$NEEDS_JSON" >/dev/null
+          else
+            jq -e '.promotion.result == "skipped" and ([.static, .lint, .test, .bridge, ."supply-chain"] | all(.result == "success"))' <<<"$NEEDS_JSON" >/dev/null
+          fi

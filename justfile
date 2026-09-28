@@ -235,7 +235,7 @@ _clippy-uncoordinated *FLAGS: lint-no-synthesis lint-no-untyped-admin lint-gates
         SQLX_OFFLINE=false cargo clippy --workspace {{FLAGS}} -- -D warnings
     fi
     # tests/ is a standalone workspace and is not covered by --workspace. Its
-    # warnings are not denied yet (quality.yml never denied them either);
+    # warnings are not denied yet (the retired quality.yml never denied them);
     # tightening it to -D warnings is its own change.
     SQLX_OFFLINE=true cargo clippy --manifest-path tests/Cargo.toml --workspace {{FLAGS}}
     # bridge/ is a standalone workspace and is not covered by --workspace
@@ -573,7 +573,7 @@ preflight-lint:
 preflight-full: preflight deny audit machete hack
 
 # Rustdoc with warnings denied, across all three workspaces (root, tests/,
-# bridge/) — mirrors core's quality.yml docs job. Single-flight coordinated.
+# bridge/) — the gates.yml lint tier runs it. Single-flight coordinated.
 doc-check:
     @scripts/build-coordinator.sh run doc-check "" -- {{just_executable()}} _doc-check-uncoordinated
 
