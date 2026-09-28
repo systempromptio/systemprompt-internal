@@ -61,6 +61,13 @@ Conventions (strict — hold every entry to them):
   Dockerfile paths, dropped schema, docs version, core ref, schema ladder, coverage badge,
   template fields; `check-migration-numbers` is wired in). Known debt is listed explicitly and
   fails when stale.
+- **Tests:** the admin front-end gates live in `tests/unit/web/src/` —
+  `admin_css_classes.rs` (every template class has a rule, every admin CSS class is
+  `sp-`/`is-` namespaced and has a consumer; `scripts/admin-css-orphan-exemptions.txt` lists
+  the documented component API and the classes a later port phase consumes) and
+  `frontend_standards.rs` (banned JS constructs, CSS hygiene, 200-line admin CSS files,
+  colour literals and pixel spacing only in the token layer). They replace the in-crate
+  copies deleted in 2f9efe57.
 - **Just:** `core-pin`, `core-guard` (deploy refuses a dirty or unpinned core while patched),
   `schema-baseline`, `stop`, `hack`, `lint-silent-skips`, `lint-no-untyped-admin`,
   `coverage-badge`, `test-e2e`.

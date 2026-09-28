@@ -23,6 +23,9 @@
 //! - the jobs crate's pure halves: robots.txt / llms.txt byte format, CSS
 //!   bundle ordering, asset copy's required-vs-optional split, the boot-time
 //!   governance config refusal, and the job error/tally plumbing
+//! - the admin front end's textual standards: every template class has a CSS
+//!   rule, every admin CSS class is namespaced and consumed, and the JS/CSS
+//!   sources meet the banned-construct and design-token rules
 
 #[cfg(test)]
 mod campaign_link_full_url;
@@ -125,6 +128,12 @@ mod hooks_track_commits_pure;
 #[cfg(test)]
 mod dashboard_people;
 
+
+#[cfg(test)]
+mod admin_css_classes;
+
+#[cfg(test)]
+mod frontend_standards;
 
 #[cfg(test)]
 mod support;
