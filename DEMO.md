@@ -38,7 +38,7 @@ demo plugin whose five skills merely re-narrated the admin ones was deleted; its
 The demo plugin is granted to `[user]` on purpose: `require_approval` and `tool_blocklist` both exempt
 admin callers, so the beats only show for a non-admin. Steps 1, 2 and the readbacks are admin-only
 because `show_activity`, `update_leads`, `demonstrate_governance` and `governance_readback` ship in
-`systemprompt-admin`, which `services/access-control/roles.yaml` grants to `[admin]`. The enforcement
+`systemprompt-admin`, which `services/access-control/rules.yaml` grants to `[admin]`. The enforcement
 is that one plugin rule per plugin — the skills carry no rule of their own, and an allow-type skill
 rule is forbidden.
 

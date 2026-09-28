@@ -76,3 +76,5 @@ mod usage_conversation_summary;
 
 #[cfg(test)]
 mod usage_conversation_summary_schema;
+#[cfg(test)]
+mod access_expiry;

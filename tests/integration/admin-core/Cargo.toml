@@ -25,3 +25,4 @@ sqlx = { workspace = true }
 serde_json = { workspace = true }
 uuid = { workspace = true }
 url = { workspace = true }
+systemprompt-web-shared = { workspace = true }

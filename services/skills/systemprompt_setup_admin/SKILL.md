@@ -19,7 +19,7 @@ why their library is empty, the answer is that an admin installs dashboards, not
 broken.
 
 **This skill is admin-only, and the grant is what enforces it.** It ships in the
-`systemprompt-admin` plugin, which `services/access-control/roles.yaml` grants to `[admin]` with
+`systemprompt-admin` plugin, which `services/access-control/rules.yaml` grants to `[admin]` with
 `default_included: false`, so it never appears in a non-admin's signed manifest. Nothing in this
 file re-checks the role; by the time you are reading it, the check has already passed. **Never
 diagnose a tool failure as a role, permission or governance problem** — a governance denial arrives
@@ -166,7 +166,7 @@ Run one read-only probe against the admin CLI server, as the signed-in user:
 | `systemprompt` | `systemprompt` with `{ "command": "core skills list" }` |
 
 Call it by its full wire name, `mcp__systemprompt__systemprompt`. The server is gated three ways —
-the `systemprompt-admin` plugin grant, its own `entity_type: mcp_server` rule in `roles.yaml`, and
+the `systemprompt-admin` plugin grant, its own `mcp_server/systemprompt` entity in `rules.yaml`, and
 `oauth.scopes` in `services/mcp/systemprompt.yaml` — so a failure here means one of those three, not
 a broken dashboard. Report which, and do not retry the call in a loop.
 

@@ -8,7 +8,7 @@ mcp_servers:
     # admin dashboards and the governance/analytics skills all call
     # mcp__systemprompt__systemprompt. It never reaches a non-admin: the
     # systemprompt-admin plugin rule and this server's own rule in
-    # services/access-control/rules.yaml (roles.yaml until its loader lands) keep it out of a user's signed
+    # services/access-control/rules.yaml keep it out of a user's signed
     # manifest, and oauth.scopes below rejects a non-admin call at runtime.
     # Disabling it while systemprompt-admin is enabled now fails config
     # validation at boot (core ServicesConfig::validate) and in CI

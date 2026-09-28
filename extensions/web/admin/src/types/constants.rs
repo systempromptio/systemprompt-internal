@@ -28,7 +28,7 @@ pub const ROLE_USER: &str = "user";
 // Why: the semi-admin role. It reaches every read-only admin dashboard
 // (`UserContext::is_console`) but is deliberately absent from the admin MCP
 // server, the systemprompt-admin plugin, and the admin_console agent in
-// `services/access-control/roles.yaml`, so a project manager can see the
+// `services/access-control/rules.yaml`, so a project manager can see the
 // estate without being able to drive it.
 pub const ROLE_PROJECT_MANAGER: &str = "project_manager";
 // Why: the Cowork entitlement role. It opens the systemprompt-cowork

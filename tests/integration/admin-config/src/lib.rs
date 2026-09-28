@@ -32,3 +32,7 @@ mod reports_suppliers;
 mod secrets_migration;
 #[cfg(test)]
 mod tempdb;
+#[cfg(test)]
+mod config_acl_review;
+#[cfg(test)]
+mod config_acl_sync;

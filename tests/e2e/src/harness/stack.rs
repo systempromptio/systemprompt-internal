@@ -287,21 +287,10 @@ impl Stack {
         reapply_seeds(&db.pool).await;
 
         // Why: the manifest filter resolves grants from access_control_rules,
-        // which the governance bootstrap job ingests from roles.yaml on every
-        // server start. No job scheduler runs here, so ingest directly — the
-        // same loader, the same shipped YAML.
-        systemprompt_web_admin::repositories::config::acl_yaml_loader::load_from_yaml(
-            &db.pool,
-            &repo_root().join("services"),
-            // Why: `RegisteredEntities` names the ids a `gateway_route` grant is
-            // allowed to reference, and only the caller knows where that truth
-            // lives. The real loader fills it from the live gateway catalog; no
-            // gateway is bootstrapped here, and an empty set is documented to
-            // enforce nothing rather than to reject every route.
-            &systemprompt::security::authz::RegisteredEntities::default(),
-        )
-        .await
-        .expect("ingest services/access-control into the throwaway database");
+        // which the governance bootstrap seeds from rules.yaml when the table
+        // is empty. No job scheduler runs here, so seed directly — the same
+        // projection, the same shipped YAML, the live route catalog.
+        seed_access_control(&db.pool).await;
 
         let admin_token = mint_token(&db.pool, &admin_id, ADMIN_EMAIL).await;
         let user_token = mint_user_token(&db.pool, &user_id, USER_EMAIL).await;
@@ -443,4 +432,25 @@ impl Stack {
         let json = serde_json::from_str(&body).unwrap_or(serde_json::Value::Null);
         (status, json)
     }
+}
+
+async fn seed_access_control(pool: &PgPool) {
+    use systemprompt_web_admin::repositories::access_control::declared_load::{
+        load_declared_set, marketplace_ids_from_services,
+    };
+    use systemprompt_web_admin::repositories::access_control::sync::{SyncMode, apply_sync};
+    use systemprompt_web_admin::repositories::config::gateway::{
+        dispatchable_route_ids, registered_routes,
+    };
+
+    let services =
+        systemprompt::loader::ConfigLoader::load().expect("compose the shipped services tree");
+    let registered = registered_routes(&dispatchable_route_ids(&services));
+    let marketplace_ids = marketplace_ids_from_services().expect("list the marketplace ids");
+    let declared = load_declared_set(&repo_root().join("services"), &marketplace_ids, &registered)
+        .await
+        .expect("project services/access-control/rules.yaml");
+    apply_sync(pool, &declared, SyncMode::Overwrite)
+        .await
+        .expect("seed access control into the throwaway database");
 }

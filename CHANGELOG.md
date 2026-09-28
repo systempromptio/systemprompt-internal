@@ -101,6 +101,18 @@ Conventions (strict — hold every entry to them):
   `allow`/`deny` bands), converted entry for entry from `roles.yaml`. `slack_channel` joins
   `gateway_route` and `hook` as a glob-only kind. `/documentation/access-control` and
   `/documentation/services-sync` describe the model.
+- **Access control is read from `rules.yaml`:** the governance bootstrap seeds an empty
+  projection from it and otherwise logs the drift and writes nothing
+  (`repositories/config/rules_yaml_{loader,types}`, `repositories/access_control/*`). The
+  Code ↔ Instance data layer (`repositories/sync/*`: sources, the `access_control`, `groups`,
+  `gateway_policies`, `gateway_routes` and `governance` planes, `sync_state`, the boot contract
+  and the configuration archive) and the `gateway_policies`, `gateway_routes` and
+  `governance_chain` repositories arrive with it; the `/admin/sync` pages come later. A
+  `connector` band (160, the MCP servers a person holds a ready connection to) joins
+  `project` and `group`. Group and project memberships and manual roles carry a validity
+  window (`valid_from`/`valid_until`/`revoked_at`, migration 090), and the hourly
+  `access_expiry` job revokes what has lapsed; `quota_month_window` rolls calendar-month quota
+  windows nightly.
 - **Kits:** `deploy/kit/` (the kit repository template, rebranded; `known-kits.json` empty),
   `just services-pin <kit> <digest|channel>` (`scripts/services-pin.py`) and
   `just kit-export <marketplace> <dir>` backed by the new `extensions/cli/kit-export` crate.
@@ -149,8 +161,7 @@ Conventions (strict — hold every entry to them):
   `default_model: "claude-sonnet-5[1m]"` and `quota_fault_mode: closed`.
 - **MCP:** every server declares `tool_policy: allow`.
 - **Services:** the enterprise-demo marketplace config carries no `access:` block;
-  `scripts/validate-services.sh` validates `rules.yaml` and requires it to agree with
-  `roles.yaml`, which the server still reads until the `rules.yaml` loader lands.
+  `scripts/validate-services.sh` validates `rules.yaml`.
 - **Docs:** `docs/profile.schema.json` matches core 0.61's profile (`services`, `judge`,
   `observability`, `retention`, `storage`; no `gateway`/`providers`). `docs/install/binary.md`
   and `nix.md` describe this repository's own release instead of template v0.2.2, and
@@ -193,6 +204,12 @@ Conventions (strict — hold every entry to them):
 
 ### Removed
 
+- `services/access-control/roles.yaml` and `departments.yaml`, the loaders that read them
+  (`acl_yaml_*`, `member_grants_yaml_*`, `linked_yaml_*`, `yaml_declared`) and the
+  validator's transition block: `rules.yaml` is the only declaration. `plans.yaml` and
+  `odoo-roles.yaml` stay.
+- The `salesforce` subject band (170) and its attribute provider: this instance declares no
+  rule at it.
 - `.github/workflows/ci.yml`, `.github/workflows/quality.yml`, the `gate`/`promote` recipes and
   the disabled pre-push hook.
 - `email_outbox` and the four `comms_*` tables, left behind by the deleted email and comms MCP

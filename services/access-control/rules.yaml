@@ -10,14 +10,8 @@
 # only · Overwrite from code · Export from dashboard). Full explanation:
 # /documentation/access-control.
 #
-# TRANSITION. The loader that reads this file (rules_yaml_loader) has not
-# landed on this instance yet; until it does, the running server still reads
-# services/access-control/roles.yaml (and departments.yaml). This file is the
-# declaration the loader will seed from, converted entry for entry from those
-# two, and scripts/validate-services.sh fails if the two disagree. Change
-# both until roles.yaml is retired. plans.yaml (organization band) and
-# odoo-roles.yaml (Odoo group → platform role) are separate inputs and stay
-# their own files.
+# plans.yaml (organization band) and odoo-roles.yaml (Odoo group → platform
+# role) are separate inputs and stay their own files.
 #
 # How a decision is made (core resolver, narrowest band wins):
 #   person (0) → project (140) → group (150) → connected server (160)

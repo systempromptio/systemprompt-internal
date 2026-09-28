@@ -15,7 +15,6 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use systemprompt::identifiers::UserId;
 
-use crate::authz;
 use crate::error::{AdminError, AdminResult};
 use crate::repositories::users::salesforce_identity;
 use crate::services::connector_oauth::Provider;
@@ -98,7 +97,6 @@ pub(crate) async fn link_salesforce_identity_handler(
     let provider = validated_provider(body.provider)?;
 
     salesforce_identity::upsert_identity(&pool, &user_id, provider.slug(), sf_username).await?;
-    authz::salesforce::invalidate(&user_id).await;
     tracing::info!(
         actor = %user_ctx.user_id, user_id = %user_id, provider = provider.slug(),
         "Salesforce identity linked"
@@ -130,7 +128,6 @@ pub(crate) async fn unlink_salesforce_identity_handler(
     }
 
     salesforce_identity::delete_identity(&pool, &user_id, provider.slug()).await?;
-    authz::salesforce::invalidate(&user_id).await;
     tracing::info!(
         actor = %user_ctx.user_id, user_id = %user_id, provider = provider.slug(),
         "Salesforce identity unlinked"

@@ -9,9 +9,7 @@
 # services/mcp/ and the extension manifest.
 #
 # Entitlement is declared in services/access-control/rules.yaml (checked
-# below). While the server still reads the legacy roles.yaml, both files are
-# validated and must agree entry for entry, so the transition cannot fork the
-# grant.
+# below), the one file the server seeds access control from.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
@@ -203,67 +201,6 @@ for p in root.glob("services/marketplaces/*/config.yaml"):
 def role_set(decl, verb):
     return set(band_values((decl.get(verb) or {}).get("role"))[0])
 
-
-# ---------------------------------------------------------------------------
-# Legacy roles.yaml — still what the running server reads until the
-# rules.yaml loader lands. Validated as before, and every rule must have its
-# twin in rules.yaml (and every role-only rules.yaml entity its twin here).
-# Delete this section with roles.yaml.
-# ---------------------------------------------------------------------------
-ROLES = root / "services/access-control/roles.yaml"
-roles = load(ROLES) if ROLES.exists() else {}
-legacy_refs = set()
-for rule in roles.get("rules") or []:
-    etype = rule.get("entity_type")
-    eid = rule.get("entity_id")
-    match = rule.get("entity_match")
-    if eid is None:
-        ref = f"{etype}/{match}"
-    else:
-        ref = f"{etype}/{eid}"
-        # A literal gateway_route id cannot be validated here (profiles are
-        # gitignored, so CI has no route list) and cannot be correct either:
-        # route ids are generated as synthesize_route_id(model_pattern,
-        # provider), so no hand-written id matches a real route.
-        if etype in glob_only:
-            errors.append(
-                f"roles.yaml: {etype} rules must use entity_match, not a literal "
-                f"entity_id ('{eid}') — no catalog registers a written-out {etype} id, "
-                f"so it would be minted, not checked"
-            )
-            continue
-        pool = known.get(etype)
-        if pool is None:
-            errors.append(f"roles.yaml: unknown entity_type '{etype}' on '{eid}'")
-            continue
-        if eid not in pool:
-            errors.append(
-                f"roles.yaml: entity_id '{eid}' (type {etype}) matches no defined resource"
-            )
-    legacy_refs.add(ref)
-    twin = declared_entities.get(ref)
-    if twin is None:
-        errors.append(f"roles.yaml: {ref} has no twin in rules.yaml — declare it there too")
-        continue
-    verb = "allow" if rule.get("access", "allow") == "allow" else "deny"
-    if role_set(twin, verb) != set(rule.get("roles") or []):
-        errors.append(
-            f"roles.yaml: {ref}: {verb} roles {sorted(rule.get('roles') or [])} disagree "
-            f"with rules.yaml {verb}.role {sorted(role_set(twin, verb))}"
-        )
-    if bool(rule.get("default_included", False)) != (twin.get("default", "closed") == "open"):
-        errors.append(
-            f"roles.yaml: {ref}: default_included {rule.get('default_included', False)} "
-            f"disagrees with rules.yaml default '{twin.get('default', 'closed')}'"
-        )
-if ROLES.exists():
-    for ref, decl in declared_entities.items():
-        role_only = set((decl.get("allow") or {})) | set((decl.get("deny") or {})) <= {"role"}
-        if role_only and ref not in legacy_refs:
-            errors.append(
-                f"rules.yaml: {ref} has no twin in roles.yaml, which the server still "
-                f"reads — declare it there too until the rules.yaml loader lands"
-            )
 
 for svc_path in root.glob("services/mcp/*.yaml"):
     for name, cfg in (load(svc_path).get("mcp_servers") or {}).items():

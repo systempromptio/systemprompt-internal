@@ -95,6 +95,7 @@ inventory = "0.3"
 walkdir = "2.0"
 tempfile = "3.0"
 url = "2.5"
+zip = { version = "8", default-features = false, features = ["deflate-flate2"] }
 urlencoding = "2.1"
 jsonwebtoken = "10"
 saml = { version = "0.0.1-alpha.2", default-features = false, features = ["rsa-sha", "xmlenc"] }
@@ -102,6 +103,7 @@ saml = { version = "0.0.1-alpha.2", default-features = false, features = ["rsa-s
 # Security
 rand = "0.9"
 sha2 = "0.10"
+serde_jcs = "0.1"
 hex = "0.4"
 base64 = "0.22"
 

@@ -63,7 +63,7 @@ plans:
     name: House
     description: systemprompt.io-internal. Unlimited seats, no spend cap, everything on.
     # The admin control plane is not a marketplace: the systemprompt-admin
-    # plugin is admin-role-gated in roles.yaml, so no marketplace grant exists
+    # plugin is admin-role-gated in rules.yaml, so no marketplace grant exists
     # for it and the loader rejects one as a typo'd entity id.
     grants:
       - entity_type: marketplace

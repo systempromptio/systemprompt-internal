@@ -3,7 +3,7 @@ plugin:
   name: "Systemprompt Demo — Governance, Live"
   description: "Trip the governance pipeline on purpose and watch it answer: a call held for a second human, a secret refused before it costs anything, a destructive tool blocked by name — then read back the audited decision trail for exactly what happened. Every beat is a real tool call; every outcome is an audit row."
   version: "4.0.0"
-  # User-scoped: roles.yaml grants this plugin to [user]. This is the only
+  # User-scoped: rules.yaml grants this plugin to [user]. This is the only
   # scope in which the beats work at all — `require_approval` and
   # `tool_blocklist` both exempt admin callers, so a demo plugin granted to
   # [admin] would show no hold and no block. Admins hold the user role too,

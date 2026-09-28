@@ -137,3 +137,41 @@ mod frontend_standards;
 
 #[cfg(test)]
 mod support;
+
+// The declarative access-control model (`rules.yaml`) and the Code ↔ Instance
+// sync data layer: projection, drift, review, export, the boot contract, the
+// configuration archive, and each plane's pure halves.
+#[cfg(test)]
+mod access_control_drift;
+#[cfg(test)]
+mod access_control_export;
+#[cfg(test)]
+mod access_control_review;
+#[cfg(test)]
+mod access_control_rules_yaml;
+#[cfg(test)]
+mod gateway_policies_drift;
+#[cfg(test)]
+mod gateway_policies_month_window;
+#[cfg(test)]
+mod gateway_routes_drift;
+#[cfg(test)]
+mod governance_chain_drift;
+#[cfg(test)]
+mod groups_sync_drift;
+#[cfg(test)]
+mod sync_archive;
+#[cfg(test)]
+mod sync_boot_contract;
+#[cfg(test)]
+mod sync_declaration_text;
+#[cfg(test)]
+mod sync_drift_kpis;
+#[cfg(test)]
+mod sync_inventory;
+#[cfg(test)]
+mod sync_sources_hash;
+#[cfg(test)]
+mod sync_staging;
+#[cfg(test)]
+mod time_bound_access;

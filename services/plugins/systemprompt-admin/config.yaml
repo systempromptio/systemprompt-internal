@@ -3,7 +3,7 @@ plugin:
   name: "Systemprompt Admin — Control Plane"
   description: "Admin-only: first-run setup, the only skill that installs dashboards. Ships the systemprompt CLI and knowledge-bank servers and the two control-plane dashboards — recent request activity, and spend by model."
   version: "7.0.0"
-  # Admin-scoped: roles.yaml grants this plugin to [admin] with
+  # Admin-scoped: rules.yaml grants this plugin to [admin] with
   # default_included: false. That single rule closes every skill and artifact
   # below to every other role — they carry no rule of their own, and the
   # nearest declared level of the cascade decides (core resolver). A user-role
@@ -38,13 +38,13 @@ plugin:
     include:
       # The admin CLI-passthrough server. Gated to the admin role three times
       # over: this plugin's rule and the server's own entity rule in
-      # services/access-control/roles.yaml keep it out of a non-admin's signed
+      # services/access-control/rules.yaml keep it out of a non-admin's signed
       # manifest, and oauth.scopes in services/mcp/systemprompt.yaml rejects
       # the call at runtime if it gets there anyway.
       - systemprompt
       # The brain@ pipeline: proposal_list and proposal_decide, the only route
       # from a captured email into Odoo. Admin-scoped by its own rule in
-      # roles.yaml as well as by this plugin. It keeps its place here now that
+      # rules.yaml as well as by this plugin. It keeps its place here now that
       # its two dashboards are gone: the pipeline still runs, and an admin
       # still decides its proposals — in chat, or at
       # /admin/governance/approvals. No `odoo` here:

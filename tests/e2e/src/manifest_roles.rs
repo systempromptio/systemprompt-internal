@@ -1,7 +1,7 @@
 //! Per-role bridge manifest content — the plugin-scope proof.
 //!
 //! The admin/salesperson demo depends on one property: the same gateway, the
-//! same marketplace, but a different manifest per role. roles.yaml declares
+//! same marketplace, but a different manifest per role. rules.yaml declares
 //! one `entity_type: plugin` rule per plugin — business/demo to `[user]`,
 //! admin to `[admin]` with `default_included: false` — and NO per-skill
 //! rules: every skill and artifact inherits its plugin. These tests pin that
@@ -84,7 +84,7 @@ async fn an_admin_manifest_carries_the_admin_surface_and_a_users_does_not() {
     for plugin in ADMIN_PLUGINS {
         assert!(
             admin_plugins.contains(*plugin),
-            "roles.yaml grants {plugin} to [admin]; admin plugins: {admin_plugins:?}"
+            "rules.yaml grants {plugin} to [admin]; admin plugins: {admin_plugins:?}"
         );
         assert!(
             !user_plugins.contains(*plugin),

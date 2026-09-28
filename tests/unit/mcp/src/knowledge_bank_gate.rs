@@ -2,7 +2,7 @@
 //!
 //! The registry grant that lets a role reach the knowledge bank at all is not
 //! enough to write to it: `require_admin` re-checks the authenticated user, so
-//! a roles.yaml edit that widened read access cannot silently widen write
+//! a rules.yaml edit that widened read access cannot silently widen write
 //! access with it. This is the second half of the double-gate the server's
 //! yaml describes, and it is asserted here rather than through dispatch
 //! because it is a pure function of the request context.
