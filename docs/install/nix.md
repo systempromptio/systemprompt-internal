@@ -1,26 +1,31 @@
-# Install the gateway via Nix
+# Install the server via Nix
 
-Builds the `systemprompt-gateway` server from the flake at the root of this repo.
+Builds the Systemprompt Internal server from the flake at the root of this
+repository. The package version is read from `Cargo.toml` (0.61.0 at this
+release) and the build uses the checked-in `Cargo.lock` and `.sqlx/` offline
+cache, so it needs no database.
 
-The repo ships a flake at the root, so no external registry: you consume it straight from GitHub.
+The repository is private: Nix fetches `github:` flake references with the
+token in `access-tokens` (`nix.conf`: `access-tokens = github.com=<PAT>`), or
+build from a local clone.
 
 ## Run once (no install)
 
 ```bash
-nix run github:systempromptio/systemprompt-template -- --help
+nix run github:systempromptio/systemprompt-internal -- --version
 ```
 
 ## Install into your profile
 
 ```bash
-nix profile install github:systempromptio/systemprompt-template
+nix profile install github:systempromptio/systemprompt-internal
 systemprompt --version
 ```
 
 ## Pin a version
 
 ```bash
-nix run github:systempromptio/systemprompt-template/v0.2.2 -- --version
+nix run github:systempromptio/systemprompt-internal/v0.61.0 -- --version
 ```
 
 ## NixOS module (flake input)
@@ -31,7 +36,7 @@ In your `flake.nix`:
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    systemprompt.url = "github:systempromptio/systemprompt-template";
+    systemprompt.url = "github:systempromptio/systemprompt-internal/v0.61.0";
   };
 
   outputs = { self, nixpkgs, systemprompt, ... }: {
@@ -54,7 +59,7 @@ In your `flake.nix`:
 The flake also exposes a dev shell with the full toolchain:
 
 ```bash
-nix develop github:systempromptio/systemprompt-template
+nix develop github:systempromptio/systemprompt-internal
 ```
 
 Gives you `cargo`, `rustc`, `pkg-config`, `openssl`, `postgresql`, `just`, and `sqlx-cli` on `$PATH`.
@@ -62,10 +67,14 @@ Gives you `cargo`, `rustc`, `pkg-config`, `openssl`, `postgresql`, `just`, and `
 ## Build locally
 
 ```bash
-git clone https://github.com/systempromptio/systemprompt-template
-cd systemprompt-template
+git clone https://github.com/systempromptio/systemprompt-internal
+cd systemprompt-internal
 nix build
 ./result/bin/systemprompt --version
 ```
+
+A tree with the `[patch.crates-io]` block active (the `next` branch while it
+builds against unreleased core) needs the sibling `../systemprompt-core`
+checkout and cannot build from a `github:` reference; build a release tag.
 
 Docs: https://systemprompt.io/documentation/?utm_source=nix&utm_medium=install_doc

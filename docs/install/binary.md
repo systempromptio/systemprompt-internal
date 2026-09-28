@@ -1,81 +1,84 @@
-# Install the gateway binary (from GitHub Releases)
+# Install the server binary (from GitHub Releases)
 
-Installs the `systemprompt-gateway` server binary.
+Installs the Systemprompt Internal server — `systemprompt` and its
+`systemprompt-mcp-*` servers — from the signed release tarballs. The desktop
+bridge is a separate release series (`bridge-v0.61.0`); see
+[bridge-macos.md](bridge-macos.md).
 
-Single-shell installer:
+Each release `v0.61.0` publishes one tarball per platform, a `SHA256SUMS`, and
+a cosign keyless signature (`.sig` + `.pem`) for every file.
+
+| OS | Arch | Asset |
+|---|---|---|
+| Linux | x86_64 | `systemprompt-internal-0.61.0-linux-amd64.tar.gz` |
+| Linux | arm64 | `systemprompt-internal-0.61.0-linux-arm64.tar.gz` |
+| macOS | Apple Silicon | `systemprompt-internal-0.61.0-darwin-arm64.tar.gz` |
+
+There is no Intel macOS or Windows server build; use the container image
+(`ghcr.io/systempromptio/systemprompt-internal:0.61.0`, see [ghcr.md](ghcr.md))
+there.
+
+## From a checkout
+
+`just fetch-release` downloads the tarball for this host and the workspace
+version, checks it against `SHA256SUMS`, and installs every binary into
+`target/release/` — no toolchain needed:
 
 ```bash
-curl -sSL https://get.systemprompt.io | sh
-```
-
-This detects your OS + arch, downloads the signed tarball, verifies SHA256, and installs to `/usr/local/bin` (root) or `~/.local/bin` (user).
-
-## Flags
-
-```bash
-# Pin a specific version
-curl -sSL https://get.systemprompt.io | sh -s -- --version v0.2.2
-
-# Install to a custom prefix
-curl -sSL https://get.systemprompt.io | sh -s -- --prefix /opt/systemprompt
-
-# Additionally verify the cosign signature (requires `cosign` in PATH)
-curl -sSL https://get.systemprompt.io | sh -s -- --verify
+just fetch-release          # the version in Cargo.toml
+just fetch-release 0.61.0   # a specific release
 ```
 
 ## Manual download
 
-Pick your tarball from [Releases](https://github.com/systempromptio/systemprompt-template/releases/latest):
-
-| OS | Arch | Asset |
-|---|---|---|
-| Linux | x86_64 | `systemprompt-<version>-linux-amd64.tar.gz` |
-| Linux | arm64 | `systemprompt-<version>-linux-arm64.tar.gz` |
-| macOS | Intel | `systemprompt-<version>-darwin-amd64.tar.gz` |
-| macOS | Apple Silicon | `systemprompt-<version>-darwin-arm64.tar.gz` |
-| Windows | x86_64 | `systemprompt-<version>-windows-amd64.zip` |
+The repository is private, so download with an authenticated `gh`:
 
 ```bash
+gh release download v0.61.0 -R systempromptio/systemprompt-internal \
+  -p 'systemprompt-internal-0.61.0-linux-amd64.tar.gz' -p 'SHA256SUMS*'
+
 # Verify SHA256
-curl -LO https://github.com/systempromptio/systemprompt-template/releases/download/v0.2.2/SHA256SUMS.gateway
-grep systemprompt-0.2.2-linux-amd64.tar.gz SHA256SUMS.gateway | sha256sum -c -
+grep systemprompt-internal-0.61.0-linux-amd64.tar.gz SHA256SUMS | sha256sum -c -
 
 # Extract
-tar -xzf systemprompt-0.2.2-linux-amd64.tar.gz
-cd systemprompt-0.2.2-linux-amd64
-./systemprompt --version
+tar -xzf systemprompt-internal-0.61.0-linux-amd64.tar.gz
+cd systemprompt-internal-0.61.0-linux-amd64
+./bin/systemprompt --version
 ```
 
 ## Verify signature
 
 ```bash
 cosign verify-blob \
-  --certificate-identity-regexp='https://github.com/systempromptio/systemprompt-template/' \
+  --certificate-identity-regexp='https://github.com/systempromptio/systemprompt-internal/' \
   --certificate-oidc-issuer='https://token.actions.githubusercontent.com' \
-  --signature SHA256SUMS.gateway.sig \
-  --certificate SHA256SUMS.gateway.pem \
-  SHA256SUMS.gateway
+  --signature SHA256SUMS.sig \
+  --certificate SHA256SUMS.pem \
+  SHA256SUMS
 ```
 
 ## What's in the tarball
 
 | Path | Purpose |
 |---|---|
-| `systemprompt` | Gateway binary |
-| `systemprompt-mcp-agent` | MCP agent server |
-| `systemprompt-mcp-marketplace` | MCP marketplace server |
+| `bin/systemprompt` | Server and CLI |
+| `bin/systemprompt-mcp-*` | The MCP servers (`systemprompt-mcp-agent`, `systemprompt-mcp-odoo`, `systemprompt-mcp-knowledge-bank`) |
 | `services/` | YAML configuration tree |
-| `migrations/` | Database migrations |
-| `web/` | Bundled web assets |
+| `extensions/mcp/*/manifest.yaml` | MCP extension manifests |
+| `scripts/` | Operator scripts |
+
+Migrations and web templates are compiled into the binary; `web/dist` is
+generated at boot by the `publish_pipeline` job.
 
 ## Run
 
-You need a Postgres database and at least one AI provider key.
+You need Postgres 18 and a profile (`.systemprompt/profiles/<name>/profile.yaml`
+with its `secrets.json`, including at least one AI provider key). From a
+checkout, `just setup-local` writes both and starts a local database. Then:
 
 ```bash
-export DATABASE_URL=postgres://user:pw@host:5432/systemprompt
-export ANTHROPIC_API_KEY=sk-ant-...
-systemprompt
+systemprompt infra db migrate --profile local
+systemprompt infra services start --profile local
 ```
 
 Docs: https://systemprompt.io/documentation/?utm_source=binary&utm_medium=install_doc

@@ -11,8 +11,9 @@
 # Here the image-tag pins an operator pulls (helm/gateway/Chart.yaml, the
 # CasaOS and DigitalOcean compose files, the Packer default) are owned by
 # scripts/sync-release-version.sh --check, run by the check-release-version
-# gate; this gate owns prose. No prose operator doc in this repository pins a
-# release yet — list one in OPERATOR_DOCS the day it does.
+# gate; this gate owns prose. The prose operator docs that pin a release are
+# listed in OPERATOR_DOCS, and sync-release-version.sh rewrites them on every
+# bump — add a doc to both lists the day it names a version.
 #
 # One exemption: a sentence about a specific past release (for example "the
 # 0.44.0 assets are unsigned") is a historical fact, and substituting the
@@ -34,7 +35,7 @@ if [ -n "$hosted" ]; then
     fail=1
 fi
 
-OPERATOR_DOCS=()
+OPERATOR_DOCS=(docs/install/binary.md docs/install/nix.md)
 for doc in "${OPERATOR_DOCS[@]+"${OPERATOR_DOCS[@]}"}"; do
     [ -f "$doc" ] || { echo "check-docs-version: OPERATOR_DOCS names $doc, which does not exist"; fail=1; continue; }
     other=$(grep -nE '(^|[^0-9.])0\.[0-9]+\.[0-9]+([^0-9.]|$)' "$doc" | grep -v "$version" \

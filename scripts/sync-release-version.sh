@@ -24,6 +24,8 @@
 #   deploy/casaos/docker-compose.yml                exact image tag
 #   deploy/digitalocean/files/opt/systemprompt/docker-compose.yml  exact image tag
 #   deploy/digitalocean/marketplace-image.pkr.hcl   image_version default
+#   docs/install/{binary,nix}.md  every X.Y.Z in the prose (check-docs-version
+#                                 fails if any other version survives)
 #
 # macOS + Linux compatible (no GNU-only sed flags).
 set -eu
@@ -106,6 +108,16 @@ check_or_apply deploy/digitalocean/marketplace-image.pkr.hcl \
     "s|default = \"[0-9.]*\"|default = \"$VERSION\"|" \
     "default = \"$VERSION\"" \
     "Packer image_version default"
+
+# Operator install docs — prose pins. Each names only the release version,
+# so every X.Y.Z in them is rewritten; scripts/check-docs-version.sh refuses
+# a stray one.
+for doc in docs/install/binary.md docs/install/nix.md; do
+    check_or_apply "$doc" \
+        "s|[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*|$VERSION|g" \
+        "$VERSION" \
+        "install doc version"
+done
 
 if [ "$MODE" = "--check" ]; then
     [ "$fail" -eq 0 ] && echo "version sync OK: everything pinned to $VERSION" || exit 1
