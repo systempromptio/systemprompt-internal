@@ -11,13 +11,11 @@ use crate::handlers::ssr::list_view::{PageWindow, Pagination};
 
 use super::context::{BucketLinkView, DashboardTab, DashboardTabLink, ScopeChipView, SloOption};
 
-pub(super) use super::urls_controls::{
-    attribution_links, audience_links, axis_links, cost_csv_url, drill_url,
-};
+pub(super) use super::urls_controls::{attribution_links, audience_links, axis_links, drill_url};
 use super::{AnalyticsDashboardQuery, BASE_URL};
+use crate::handlers::ssr::list_view::{paginate_prefixed, query_string_dropping};
 
 pub(super) fn preserved_query_string(query: &AnalyticsDashboardQuery, drop: &[&str]) -> String {
-    let mut parts: Vec<String> = Vec::new();
     let pairs: [(&str, Option<&str>); 12] = [
         ("tab", query.tab.as_deref()),
         ("preset", query.preset.as_deref()),
@@ -38,26 +36,11 @@ pub(super) fn preserved_query_string(query: &AnalyticsDashboardQuery, drop: &[&s
         ("audience", query.audience.as_deref()),
         ("axis", query.axis.as_deref()),
     ];
-    for (name, value) in pairs {
-        if drop.contains(&name) {
-            continue;
-        }
-        let Some(v) = value.filter(|s| !s.is_empty()) else {
-            continue;
-        };
-        parts.push(format!("{}={}", name, urlencode(v)));
-    }
-    if !drop.contains(&"page")
-        && let Some(p) = query.page.filter(|p| *p > 0)
-    {
-        parts.push(format!("page={p}"));
-    }
-    if !drop.contains(&"slo_ms")
-        && let Some(ms) = query.slo_ms
-    {
-        parts.push(format!("slo_ms={ms}"));
-    }
-    parts.join("&")
+    let extra = [
+        ("page", query.page.filter(|p| *p > 0)),
+        ("slo_ms", query.slo_ms.map(i64::from)),
+    ];
+    query_string_dropping(&pairs, &extra, drop)
 }
 
 pub(super) fn with_qs(base: String, qs: &str) -> String {
@@ -74,9 +57,10 @@ pub(super) fn tab_links(
     active: DashboardTab,
     query: &AnalyticsDashboardQuery,
 ) -> Vec<DashboardTabLink> {
-    const TABS: [(DashboardTab, &str); 5] = [
+    const TABS: [(DashboardTab, &str); 6] = [
         (DashboardTab::Overview, "Overview"),
         (DashboardTab::Models, "Models"),
+        (DashboardTab::Skills, "Skills"),
         (DashboardTab::Tools, "Tools"),
         (DashboardTab::Sessions, "Sessions"),
         (DashboardTab::Cost, "Cost"),
@@ -162,28 +146,13 @@ pub(super) fn sort_url(query: &AnalyticsDashboardQuery, sort: &str) -> String {
 }
 
 pub(super) fn build_pagination(query: &AnalyticsDashboardQuery, window: PageWindow) -> Pagination {
-    let page = window.index;
     let qs = preserved_query_string(query, &["page"]);
     let prefix = if qs.is_empty() {
         format!("{BASE_URL}?")
     } else {
         format!("{BASE_URL}?{qs}&")
     };
-    let prev_url = (page > 0).then(|| format!("{prefix}page={}", page - 1));
-    let next_url = (page + 1 < window.total_pages).then(|| format!("{prefix}page={}", page + 1));
-    let (first_row, last_row) = window.bounds();
-    Pagination {
-        current_page: page + 1,
-        total_pages: window.total_pages,
-        first_row,
-        last_row,
-        total_rows: window.total_rows,
-        noun: window.noun,
-        has_prev: prev_url.is_some(),
-        has_next: next_url.is_some(),
-        prev_url,
-        next_url,
-    }
+    paginate_prefixed(window, &prefix)
 }
 
 // Why: same link-not-select shape as the inactivity window below, for the

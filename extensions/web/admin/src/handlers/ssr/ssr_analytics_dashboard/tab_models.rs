@@ -2,42 +2,25 @@
 //!
 //! One row per model the gateway actually served, plus the `unrouted` bucket
 //! for requests rejected before a route was chosen. The redirect column
-//! counts requests whose `requested_model` differed from what served them,
-//! and the table below names the pairs — a count alone cannot say what the
-//! route did.
+//! counts requests whose `requested_model` differed from what served them.
 
 use crate::handlers::ssr::format::format_cost;
 use crate::handlers::ssr::types::bar_pct;
-use crate::repositories::analytics::site::models::{ModelRedirectRow, ModelStatsRow};
+use crate::repositories::analytics::site::models::ModelStatsRow;
 
-use super::context::{KpiTile, ModelUsageRowView, ModelsTabView, RedirectRowView};
+use super::context::{KpiTile, ModelUsageRowView, ModelsTabView};
 use super::view::compact;
 use super::{AnalyticsDashboardQuery, urls};
 
-pub(super) fn models_tab(
-    rows: &[ModelStatsRow],
-    redirects: &[ModelRedirectRow],
-    query: &AnalyticsDashboardQuery,
-) -> ModelsTabView {
+pub(super) fn models_tab(rows: &[ModelStatsRow], query: &AnalyticsDashboardQuery) -> ModelsTabView {
     let max = rows.iter().map(|r| r.requests).max().unwrap_or(0);
     let total: i64 = rows.iter().map(|r| r.requests).sum();
     let views: Vec<ModelUsageRowView> = rows.iter().map(|r| model_row(r, max, query)).collect();
     ModelsTabView {
         kpis: kpis(rows, total),
         model_count: rows.len(),
-        redirect_count: redirects.len(),
         has_rows: !views.is_empty(),
         rows: views,
-        has_redirects: !redirects.is_empty(),
-        redirects: redirects
-            .iter()
-            .map(|r| RedirectRowView {
-                requested_model: r.requested_model.clone(),
-                served_model: r.served_model.clone(),
-                requests: r.requests,
-                drill_url: urls::drill_url(query, "model", &r.served_model),
-            })
-            .collect(),
         total_display: format!("{total} requests across {} models", rows.len()),
     }
 }
@@ -77,7 +60,6 @@ fn kpis(rows: &[ModelStatsRow], total: i64) -> Vec<KpiTile> {
         .filter(|r| r.is_unrouted)
         .map(|r| r.requests)
         .sum();
-    let redirected: i64 = rows.iter().map(|r| r.redirected).sum();
     let errors: i64 = rows.iter().map(|r| r.errors).sum();
     let cost: i64 = rows.iter().map(|r| r.cost_microdollars).sum();
     let served = rows.iter().filter(|r| !r.is_unrouted).count();
@@ -85,31 +67,25 @@ fn kpis(rows: &[ModelStatsRow], total: i64) -> Vec<KpiTile> {
         KpiTile {
             label: "Models served".to_owned(),
             value: served.to_string(),
-            sub: format!("{total} requests in window"),
+            note: format!("{total} requests in window"),
             tone: "accent",
         },
         KpiTile {
             label: "Spend".to_owned(),
             value: format_cost(cost),
-            sub: format!("{} per request", format_cost(per(cost, total))),
+            note: format!("{} per request", format_cost(per(cost, total))),
             tone: "ok",
-        },
-        KpiTile {
-            label: "Route redirects".to_owned(),
-            value: redirected.to_string(),
-            sub: "requested model differed from the one served".to_owned(),
-            tone: if redirected > 0 { "warn" } else { "ok" },
         },
         KpiTile {
             label: "Unrouted".to_owned(),
             value: unrouted.to_string(),
-            sub: "rejected before a route was chosen".to_owned(),
+            note: "rejected before a route was chosen".to_owned(),
             tone: if unrouted > 0 { "err" } else { "ok" },
         },
         KpiTile {
             label: "Error rate".to_owned(),
             value: format!("{:.1}%", pct(errors, total)),
-            sub: format!("{errors} failed or rejected"),
+            note: format!("{errors} failed or rejected"),
             tone: tone(pct(errors, total)),
         },
     ]
@@ -128,7 +104,7 @@ pub(super) fn share(value: i64, max: i64) -> i64 {
 }
 
 // Why: model and skill ids carry a namespace prefix — `deepseek-ai/` on a
-// model, `systemprompt-cowork-deliverables:` on a skill — that repeats down the
+// model, `astound-cowork-deliverables:` on a skill — that repeats down the
 // whole column and pushes the distinguishing half out of view. The name cell
 // shows what differs; the prefix goes to the muted line under it.
 pub(crate) fn short_name(id: &str, sep: char) -> String {

@@ -22,6 +22,7 @@ mod gateway;
 mod governance;
 pub(crate) mod list_view;
 mod overview;
+pub(crate) mod page;
 pub(crate) mod people_chart;
 pub(crate) mod people_view;
 mod roles;

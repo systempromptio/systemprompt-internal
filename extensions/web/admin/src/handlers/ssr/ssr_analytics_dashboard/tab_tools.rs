@@ -11,7 +11,8 @@ use crate::repositories::analytics::site::tools::{ToolServerRow, ToolStatsRow};
 use super::context::{KpiTile, ToolRowView, ToolServerRowView, ToolsTabView};
 use super::tab_models::{ms, pct, share};
 use super::view::compact;
-use super::{AnalyticsDashboardQuery, PAGE_SIZE, urls};
+use super::{AnalyticsDashboardQuery, urls};
+use crate::handlers::ssr::list_view::DEFAULT_PAGE_SIZE;
 
 pub(super) fn tools_tab(
     servers: &[ToolServerRow],
@@ -38,14 +39,14 @@ pub(super) fn tools_tab(
 
     let tool_views: Vec<ToolRowView> = rows.iter().map(|r| tool_row(r, tool_max, query)).collect();
 
-    let pagination = (total_rows > PAGE_SIZE).then(|| {
+    let pagination = (total_rows > DEFAULT_PAGE_SIZE).then(|| {
         urls::build_pagination(
             query,
             PageWindow::new(
                 page,
-                PAGE_SIZE,
+                DEFAULT_PAGE_SIZE,
                 total_rows,
-                i64::try_from(rows.len()).unwrap_or(PAGE_SIZE),
+                i64::try_from(rows.len()).unwrap_or(DEFAULT_PAGE_SIZE),
                 "tools",
             ),
         )
@@ -114,13 +115,13 @@ fn kpis(servers: &[ToolServerRow], rows: &[ToolStatsRow]) -> Vec<KpiTile> {
         KpiTile {
             label: "Tool calls".to_owned(),
             value: compact(executions),
-            sub: format!("{} tools across {} servers", rows.len(), servers.len()),
+            note: format!("{} tools across {} servers", rows.len(), servers.len()),
             tone: "accent",
         },
         KpiTile {
             label: "Success rate".to_owned(),
             value: format!("{rate:.0}%"),
-            sub: format!("{succeeded} of {executions} settled successfully"),
+            note: format!("{succeeded} of {executions} settled successfully"),
             tone: if rate >= 95.0 {
                 "ok"
             } else if rate >= 80.0 {
@@ -134,13 +135,13 @@ fn kpis(servers: &[ToolServerRow], rows: &[ToolStatsRow]) -> Vec<KpiTile> {
             value: slowest
                 .as_ref()
                 .map_or_else(|| "—".to_owned(), |(_, v)| ms(Some(*v))),
-            sub: slowest.map_or_else(|| "no timed calls".to_owned(), |(name, _)| name),
+            note: slowest.map_or_else(|| "no timed calls".to_owned(), |(name, _)| name),
             tone: "warn",
         },
         KpiTile {
             label: "Callers".to_owned(),
             value: users.to_string(),
-            sub: "distinct users on the busiest server".to_owned(),
+            note: "distinct users on the busiest server".to_owned(),
             tone: "ok",
         },
     ]

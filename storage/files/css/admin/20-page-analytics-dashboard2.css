@@ -18,6 +18,13 @@
 .sp-pie-chart__swatch--5 { background: var(--sp-chart-red); }
 .sp-pie-chart__swatch--6 { background: var(--sp-chart-cyan); }
 .sp-pie-chart__swatch--7 { background: var(--sp-chart-indigo); }
+.sp-pie-chart__bar--1 { --bar-color: var(--sp-chart-purple); }
+.sp-pie-chart__bar--2 { --bar-color: var(--sp-chart-blue); }
+.sp-pie-chart__bar--3 { --bar-color: var(--sp-chart-green); }
+.sp-pie-chart__bar--4 { --bar-color: var(--sp-chart-amber); }
+.sp-pie-chart__bar--5 { --bar-color: var(--sp-chart-red); }
+.sp-pie-chart__bar--6 { --bar-color: var(--sp-chart-cyan); }
+.sp-pie-chart__bar--7 { --bar-color: var(--sp-chart-indigo); }
 
 .sp-svgchart__legend {
     flex: 0 0 auto;
@@ -29,41 +36,5 @@
 
 @media (max-width: 64rem) {
     .sp-analytics-grid { grid-template-columns: minmax(0, 1fr); }
-}
-
-.sp-code-frames {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: var(--sp-space-4);
-    margin-block: var(--sp-space-4);
-}
-
-.sp-code-frame {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-space-2);
-    background: var(--sp-bg-surface);
-    border: 1px solid var(--sp-border-subtle);
-    border-radius: var(--sp-corners-md);
-    padding: var(--sp-space-5);
-}
-
-.sp-code-frame__title {
-    font-size: var(--sp-text-sm);
-    font-weight: 600;
-    color: var(--sp-text-primary);
-}
-
-.sp-code-frame__value {
-    font-size: var(--sp-text-xl);
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-    color: var(--sp-text-primary);
-}
-
-.sp-code-frame__caption {
-    margin: 0;
-    font-size: var(--sp-text-xs);
-    color: var(--sp-text-tertiary);
 }
 }

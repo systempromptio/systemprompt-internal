@@ -28,6 +28,8 @@ mod analytics_session_children;
 #[cfg(test)]
 mod analytics_session_detail;
 #[cfg(test)]
+mod analytics_site;
+#[cfg(test)]
 #[cfg(test)]
 mod dashboard_counters;
 #[cfg(test)]

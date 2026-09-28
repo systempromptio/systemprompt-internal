@@ -35,7 +35,7 @@
         <section class="sp-analytics-grid__panel">{{> components/svg-line-chart volume_chart}}</section>
         <section class="sp-analytics-grid__panel">{{> components/svg-line-chart cost_chart}}</section>
         <section class="sp-analytics-grid__panel">{{> components/pie-chart model_pie}}</section>
-        <section class="sp-analytics-grid__panel">{{> components/svg-stacked-chart model_cost_chart}}</section>
+        <section class="sp-analytics-grid__panel">{{> components/svg-line-chart model_cost_chart}}</section>
     </div>
 
     {{#> components/section title="Top users" count=leaderboard.pagination.total_rows
@@ -85,57 +85,4 @@
     {{> components/empty-state title="No activity"
         message="Nobody used the gateway in this window. Widen the time range or clear the scope."}}
     {{/if}}
-
-    {{#> components/section title="Client-reported signals" note="Statusline data from Claude Code clients — it complements the gateway's own counts and never replaces them."}}{{/components/section}}
-    <div class="sp-kpi-grid">
-        {{> components/kpi label="Permission grant rate" value=permissions.rate_display
-            note="permission requests followed by the tool running" tone="ok"}}
-        {{> components/kpi label="Prompt cache hit rate" value=session_costs.cache_hit_display
-            note=session_costs.cache_read_display tone="ok"}}
-        {{> components/kpi label="Thinking share" value=thinking.share_display
-            note=thinking.reasoning_display tone="accent"}}
-        {{> components/kpi label="Context window" value=session_costs.avg_context_display
-            note=session_costs.max_context_display tone="warn"}}
-    </div>
-
-    {{#> components/section title="Usage anomalies"
-        note="Hours where requests, cost or errors spiked past the trailing-week hourly baseline."}}{{/components/section}}
-    {{#if has_anomalies}}
-    {{#> components/table caption="Detected usage anomalies"}}
-        <thead><tr>
-            <th scope="col">Metric</th>
-            <th scope="col" class="sp-table__cell--date">Hour</th>
-            <th scope="col" class="sp-table__cell--num">Observed</th>
-            <th scope="col" class="sp-table__cell--num">Baseline</th>
-        </tr></thead>
-        <tbody>
-        {{#each anomalies}}
-        <tr>
-            <td>{{this.metric}}</td>
-            <td class="sp-table__cell--date">{{this.window_display}}</td>
-            <td class="sp-table__cell--num sp-u-num">{{this.observed_display}}</td>
-            <td class="sp-table__cell--num sp-u-num">{{this.baseline_display}}</td>
-        </tr>
-        {{/each}}
-        </tbody>
-    {{/components/table}}
-    {{else}}
-    {{> components/empty-state message="No usage anomalies detected in this window."}}
-    {{/if}}
-
-    {{#> components/section title="Code impact"
-        note="AI lines and committed lines are different measurement frames — hook-observed tool edits versus git diff totals — shown side by side, never subtracted."}}{{/components/section}}
-    <div class="sp-analytics-grid">
-        <section class="sp-analytics-grid__panel">{{> components/svg-line-chart commit_chart}}</section>
-        <section class="sp-analytics-grid__panel">{{> components/svg-line-chart loc_chart}}</section>
-    </div>
-    <div class="sp-code-frames">
-        {{#each code_frames}}
-        <div class="sp-code-frame">
-            <span class="sp-code-frame__title">{{this.frame_title}}</span>
-            <span class="sp-code-frame__value">{{this.value_display}}</span>
-            <p class="sp-code-frame__caption">{{this.caption}}</p>
-        </div>
-        {{/each}}
-    </div>
 </section>

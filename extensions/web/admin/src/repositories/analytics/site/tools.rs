@@ -47,6 +47,7 @@ pub async fn list_tool_stats(
             COUNT(*) OVER ()::BIGINT AS "total!"
         FROM mcp_tool_executions e
         WHERE e.started_at >= $1 AND e.started_at < $2
+          AND e.server_name <> e.source
           AND ($3::TEXT[] IS NULL OR e.user_id = ANY($3))
           AND ($4::TEXT IS NULL OR e.user_id = $4)
         GROUP BY e.server_name, e.tool_name
@@ -108,6 +109,7 @@ pub async fn list_tool_servers(
             COUNT(DISTINCT e.user_id)::BIGINT AS "distinct_users!"
         FROM mcp_tool_executions e
         WHERE e.started_at >= $1 AND e.started_at < $2
+          AND e.server_name <> e.source
           AND ($3::TEXT[] IS NULL OR e.user_id = ANY($3))
           AND ($4::TEXT IS NULL OR e.user_id = $4)
         GROUP BY e.server_name

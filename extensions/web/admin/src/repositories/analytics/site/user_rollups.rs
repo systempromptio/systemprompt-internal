@@ -17,17 +17,12 @@ pub struct UserDailyRollupRow {
     pub prompts: i64,
     pub tool_uses: i64,
     pub errors: i64,
-    pub loc_added_ai: i64,
-    pub loc_removed_ai: i64,
-    pub commits_count: i32,
-    pub commit_insertions: i64,
-    pub commit_deletions: i64,
     pub ai_requests_count: i64,
     pub input_tokens: i64,
     pub output_tokens: i64,
     pub cost_microdollars: i64,
 }
-// Why: downstream API. lint-ok: unused-pub
+
 pub async fn list_user_daily_rollups(
     pool: &PgPool,
     user_id: &UserId,
@@ -38,10 +33,6 @@ pub async fn list_user_daily_rollups(
         SELECT date AS "date!", sessions_count AS "sessions_count!",
                prompts AS "prompts!", tool_uses AS "tool_uses!",
                errors AS "errors!",
-               loc_added_ai AS "loc_added_ai!", loc_removed_ai AS "loc_removed_ai!",
-               commits_count AS "commits_count!",
-               commit_insertions AS "commit_insertions!",
-               commit_deletions AS "commit_deletions!",
                ai_requests_count AS "ai_requests_count!",
                input_tokens AS "input_tokens!", output_tokens AS "output_tokens!",
                cost_microdollars AS "cost_microdollars!"
@@ -64,11 +55,6 @@ pub async fn list_user_daily_rollups(
             prompts: r.prompts,
             tool_uses: r.tool_uses,
             errors: r.errors,
-            loc_added_ai: r.loc_added_ai,
-            loc_removed_ai: r.loc_removed_ai,
-            commits_count: r.commits_count,
-            commit_insertions: r.commit_insertions,
-            commit_deletions: r.commit_deletions,
             ai_requests_count: r.ai_requests_count,
             input_tokens: r.input_tokens,
             output_tokens: r.output_tokens,

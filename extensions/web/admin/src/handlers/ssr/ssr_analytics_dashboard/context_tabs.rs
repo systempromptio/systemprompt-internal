@@ -6,10 +6,10 @@
 //! strings, and derives no scale, percentage or currency of its own.
 
 use serde::Serialize;
-use systemprompt::identifiers::{SessionId, UserId};
+use systemprompt::identifiers::{ContextId, UserId};
 
 use crate::handlers::ssr::list_view::Pagination;
-use crate::handlers::ssr::types::SvgStackedChartView;
+use crate::handlers::ssr::types::SvgLineChartView;
 
 use super::context::{AttributionLink, KpiTile};
 
@@ -17,11 +17,8 @@ use super::context::{AttributionLink, KpiTile};
 pub(super) struct ModelsTabView {
     pub kpis: Vec<KpiTile>,
     pub model_count: usize,
-    pub redirect_count: usize,
     pub rows: Vec<ModelUsageRowView>,
     pub has_rows: bool,
-    pub redirects: Vec<RedirectRowView>,
-    pub has_redirects: bool,
     pub total_display: String,
 }
 
@@ -49,12 +46,35 @@ pub(super) struct ModelUsageRowView {
     pub drill_url: String,
 }
 
+#[derive(Debug, Default, Serialize)]
+pub(super) struct SkillsTabView {
+    pub kpis: Vec<KpiTile>,
+    pub skill_count: i64,
+    pub rows: Vec<SkillRowView>,
+    pub has_rows: bool,
+    pub pagination: Option<Pagination>,
+    pub measurement_note: String,
+}
+
 #[derive(Debug, Serialize)]
-pub(super) struct RedirectRowView {
-    pub requested_model: String,
-    pub served_model: String,
+pub(super) struct SkillRowView {
+    pub skill: String,
+    // Why: no qualifier field. The full `plugin:skill` is already on the
+    // title, so a separate plugin string would be the same text twice.
+    pub name_display: String,
+    pub invocations: i64,
+    pub share_pct: i64,
+    pub slash_display: String,
+    pub tool_display: String,
+    pub users: i64,
+    pub conversations: i64,
     pub requests: i64,
-    pub drill_url: String,
+    // Why: the spend of the conversations that invoked the skill — not a
+    // cost of the skill, which has none.
+    pub cost_display: String,
+    pub attributed_display: String,
+    pub analysis_url: Option<String>,
+    pub catalog_url: String,
 }
 
 #[derive(Debug, Default, Serialize)]
@@ -108,24 +128,24 @@ pub(super) struct SessionsTabView {
 }
 
 #[derive(Debug, Serialize)]
-// Why: named for the snapshot it renders, not for "a session row". The
-// sessions list page has its own row type and the two are different things —
-// this one is one client-reported cost snapshot, that one is a session.
+// Why: named for the conversation cost it renders, not for "a session row".
+// The sessions list page has its own row type and the two are different
+// things — this one is one gateway-metered conversation, that one is a
+// client session.
 pub(super) struct SessionCostRowView {
-    pub session_id: SessionId,
-    pub session_short: String,
+    pub context_id: ContextId,
+    pub context_short: String,
     pub user_id: UserId,
     pub model_display: String,
     pub cost_display: String,
     pub share_pct: i64,
-    pub context_display: String,
+    pub requests_display: String,
     pub input_display: String,
     pub output_display: String,
     pub cache_display: String,
-    pub rating_display: String,
-    pub outcome_display: String,
     pub updated_display: String,
     pub detail_url: String,
+    pub session_url: Option<String>,
     pub user_url: String,
 }
 
@@ -137,8 +157,7 @@ pub(super) struct CostTabView {
     pub container_count: usize,
     pub audience_links: Vec<AttributionLink>,
     pub is_internal: bool,
-    pub csv_url: String,
-    pub day_chart: Option<SvgStackedChartView>,
+    pub day_chart: Option<SvgLineChartView>,
     pub providers: Vec<SupplierRowView>,
     pub has_providers: bool,
     pub models: Vec<SupplierRowView>,

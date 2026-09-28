@@ -177,6 +177,8 @@ mod sync_staging;
 mod time_bound_access;
 
 #[cfg(test)]
+mod analytics;
+#[cfg(test)]
 mod analytics_conversations_redact;
 #[cfg(test)]
 mod builders;
@@ -210,3 +212,5 @@ mod shared_ids;
 mod site_org_url_extender;
 #[cfg(test)]
 mod traces_analytics_pure;
+#[cfg(test)]
+mod util_svg_pure;

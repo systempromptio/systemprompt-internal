@@ -5,27 +5,20 @@
 //! The Overview tab is the exception and loads every site aggregate at once,
 //! because its job is to put the whole instance on one screen — the five
 //! entity tabs then each pay for their own queries alone.
-//!
-//! The code figures read rollups the `usage_daily_rollup` job maintains, so
-//! they render zeros (not errors) until the first job run after deploy.
 
 use std::sync::Arc;
 
 use sqlx::PgPool;
 
-use crate::repositories::analytics::site::anomalies::UsageAnomalyRow;
-use crate::repositories::analytics::site::code::{CodeDayBucket, CodeTotals};
-use crate::repositories::analytics::site::kpis::{PermissionGrantStats, SiteKpis};
+use crate::repositories::analytics::site::kpis::SiteKpis;
 use crate::repositories::analytics::site::latency::LatencySplit;
 use crate::repositories::analytics::site::leaderboards::{
     LeaderboardPage, LeaderboardSort, UserUsageRow,
 };
 use crate::repositories::analytics::site::model_series::ModelCostBucket;
 use crate::repositories::analytics::site::series::{SeriesBucket, UsageBucket};
-use crate::repositories::analytics::site::session_costs::SessionCostStats;
 use crate::repositories::analytics::site::{
-    SiteScope, anomalies, code, distribution, kpis, latency, leaderboards, model_series, series,
-    session_costs,
+    SiteScope, distribution, kpis, latency, leaderboards, model_series, series,
 };
 use crate::util::time_range::TimeRange;
 
@@ -39,13 +32,8 @@ pub(super) struct AnalyticsDashboardData {
     pub models: Vec<distribution::ModelDistributionRow>,
     pub leaderboard: Vec<UserUsageRow>,
     pub leaderboard_total: i64,
-    pub permissions: PermissionGrantStats,
-    pub code_series: Vec<CodeDayBucket>,
-    pub code_totals: CodeTotals,
     pub model_cost: Vec<ModelCostBucket>,
-    pub session_costs: SessionCostStats,
     pub latency: LatencySplit,
-    pub anomalies: Vec<UsageAnomalyRow>,
     pub tabs: TabData,
 }
 
@@ -88,6 +76,7 @@ pub(super) async fn load_dashboard_data(
     match plan.tab {
         DashboardTab::Overview => load_overview(pool, &plan, &mut data).await,
         DashboardTab::Models => data.tabs = data_tabs::load_models(pool, &tab_plan).await,
+        DashboardTab::Skills => data.tabs = data_tabs::load_skills(pool, &tab_plan).await,
         DashboardTab::Tools => data.tabs = data_tabs::load_tools(pool, &tab_plan).await,
         DashboardTab::Sessions => data.tabs = data_tabs::load_sessions(pool, &tab_plan).await,
         DashboardTab::Cost => data.tabs = data_tabs::load_cost(pool, &tab_plan).await,
@@ -115,16 +104,6 @@ async fn load_overview(
 
     load_usage_tab(pool, plan, data).await;
     load_spend_tab(pool, plan, data).await;
-
-    let (code_series_res, code_totals_res) = tokio::join!(
-        code::list_daily_code_series(pool, plan.range, plan.scope),
-        code::get_code_totals(pool, plan.range, plan.scope),
-    );
-    data.code_series = unwrap_or_empty(code_series_res, "list_daily_code_series");
-    data.code_totals = code_totals_res.unwrap_or_else(|e| {
-        tracing::warn!(error = %e, "get_code_totals failed");
-        CodeTotals::default()
-    });
 }
 
 async fn load_spend_tab(
@@ -132,15 +111,12 @@ async fn load_spend_tab(
     plan: &DashboardQueryPlan<'_>,
     data: &mut AnalyticsDashboardData,
 ) {
-    let (latency_res, anomalies_res) = tokio::join!(
-        latency::get_latency_split(pool, plan.range, plan.scope, plan.slo_ms),
-        anomalies::list_recent_anomalies(pool, plan.range, 10),
-    );
-    data.latency = latency_res.unwrap_or_else(|e| {
-        tracing::warn!(error = %e, "get_latency_split failed");
-        LatencySplit::default()
-    });
-    data.anomalies = unwrap_or_empty(anomalies_res, "list_recent_anomalies");
+    data.latency = latency::get_latency_split(pool, plan.range, plan.scope, plan.slo_ms)
+        .await
+        .unwrap_or_else(|e| {
+            tracing::warn!(error = %e, "get_latency_split failed");
+            LatencySplit::default()
+        });
 }
 
 async fn load_usage_tab(
@@ -148,20 +124,17 @@ async fn load_usage_tab(
     plan: &DashboardQueryPlan<'_>,
     data: &mut AnalyticsDashboardData,
 ) {
-    let (leaders_res, perms_res, session_costs_res) = tokio::join!(
-        leaderboards::list_top_users_by_requests(
-            pool,
-            plan.range,
-            plan.scope,
-            LeaderboardPage {
-                sort: plan.sort,
-                limit: plan.page_size,
-                offset: plan.offset,
-            },
-        ),
-        kpis::get_permission_grant_stats(pool, plan.range, plan.scope),
-        session_costs::get_session_cost_stats(pool, plan.range, plan.scope),
-    );
+    let leaders_res = leaderboards::list_top_users_by_requests(
+        pool,
+        plan.range,
+        plan.scope,
+        LeaderboardPage {
+            sort: plan.sort,
+            limit: plan.page_size,
+            offset: plan.offset,
+        },
+    )
+    .await;
     match leaders_res {
         Ok((rows, total)) => {
             data.leaderboard = rows;
@@ -169,14 +142,6 @@ async fn load_usage_tab(
         },
         Err(e) => tracing::warn!(error = %e, "list_top_users_by_requests failed"),
     }
-    data.permissions = perms_res.unwrap_or_else(|e| {
-        tracing::warn!(error = %e, "get_permission_grant_stats failed");
-        PermissionGrantStats::default()
-    });
-    data.session_costs = session_costs_res.unwrap_or_else(|e| {
-        tracing::warn!(error = %e, "get_session_cost_stats failed");
-        SessionCostStats::default()
-    });
 }
 
 pub(super) fn unwrap_or_empty<T>(res: Result<Vec<T>, sqlx::Error>, what: &'static str) -> Vec<T> {

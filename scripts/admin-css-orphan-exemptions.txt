@@ -110,12 +110,6 @@ sp-col-thumbnail
 #    line names the phase; delete it when that phase's template or script lands.
 # Analysis nav group (phase 7, analysis suite)
 sp-nav-group--analysis
-# Live chart layer drawn by components/sp-chart.js (phase 2)
-sp-svgchart--live
-sp-svgchart__cursor
-sp-svgchart__dot
-sp-svgchart__legend-item
-sp-svgchart__series
 # Expandable table detail rows rendered by the access-review, devices and
 # sessions rewrites that services/table-expand.js drives (phases 5 and 9)
 sp-table__detail-inner

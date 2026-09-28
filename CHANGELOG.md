@@ -20,6 +20,39 @@ Conventions (strict — hold every entry to them):
 
 ## Unreleased
 
+### Added
+
+- **Admin analytics:** the live chart layer. `components/sp-chart.js` (with
+  `sp-chart-scale.js`, `sp-chart-draw.js` and `sp-chart-tooltip.js`) redraws every
+  server-rendered `svg-line-chart` at pixel size from the per-series `data-values` the partial
+  now carries: real axes and gridlines, lines, dots or stacked columns per `data-kind`, a
+  crosshair tooltip, legend toggles and a table view. Without JavaScript the SVG still renders.
+  The model mix is a server-rendered donut (`handlers/ssr/types/pie.rs`, SVG arcs with a centre
+  total and per-row share bars) instead of a CSS conic gradient, and `SparklineView` lives in
+  `handlers/ssr/types/sparkline.rs` and marks its last point. Styles: `08-chart-live*.css`,
+  `20-page-analytics-pie.css`.
+- **Admin analytics:** a Skills tab on `/admin/analytics` — invocations, people, conversations,
+  and the requests and spend of the conversations that invoked each skill, read from
+  `analysis_skill_version_events` (`repositories/analytics/site/skills.rs`). Rows overlap by
+  construction and the tab says so; the strip above counts each conversation once.
+
+### Changed
+
+- **Admin analytics:** the dashboard is astound's current build. The Sessions tab lists
+  gateway-metered conversations from `conversation_facts` (cost, requests, tokens, the client
+  session it ran in) instead of client-reported `session_cost_snapshots`; that table is filled
+  by the `conversation_rollup` job, which this repository does not schedule yet, so the tab is
+  empty until it does. The cost-by-day chart is the shared line-chart component in its
+  `stacked` kind. Lists page at the console-wide `DEFAULT_PAGE_SIZE`
+  (`handlers/ssr/list_view.rs`, with the shared `paginate` / `query_string_dropping` helpers).
+
+### Removed
+
+- **Admin analytics:** the code-impact frames (AI lines of code, commits), the route-redirect
+  table, the skill-by-model table, session ratings and the context-window tiles, and the
+  permission-grant estimate. None of them could be measured soundly from what the gateway
+  records. `components/svg-stacked-chart.hbs` and `SvgStackedChartView` are gone with them.
+
 ## [0.62.0] - 2026-09-28
 
 ### Breaking

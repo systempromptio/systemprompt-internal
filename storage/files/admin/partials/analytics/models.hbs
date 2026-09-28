@@ -47,27 +47,4 @@
     {{> components/empty-state title="No model traffic"
         message="No gateway requests in this window. Widen the time range or clear the scope."}}
     {{/if}}
-
-    {{#> components/section title="Route redirects" count=models.redirect_count
-        note="Requests whose requested model differed from the model that served them."}}{{/components/section}}
-    {{#if models.has_redirects}}
-    {{#> components/table caption="Requested model versus served model"}}
-        <thead><tr>
-            <th scope="col">Requested</th>
-            <th scope="col">Served</th>
-            <th scope="col" class="sp-table__cell--num" aria-sort="descending">Requests</th>
-        </tr></thead>
-        <tbody>
-        {{#each models.redirects}}
-        <tr>
-            <td class="sp-table__cell--mono sp-table__cell--primary">{{this.requested_model}}</td>
-            <td class="sp-table__cell--mono"><a href="{{this.drill_url}}">{{this.served_model}}</a></td>
-            <td class="sp-table__cell--num sp-u-num">{{this.requests}}</td>
-        </tr>
-        {{/each}}
-        </tbody>
-    {{/components/table}}
-    {{else}}
-    {{> components/empty-state message="No route rewrote a model in this window."}}
-    {{/if}}
 </section>

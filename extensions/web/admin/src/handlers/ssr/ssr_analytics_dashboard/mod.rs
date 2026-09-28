@@ -2,9 +2,9 @@
 //!
 //! Six URL-driven tabs over one scope and one window. **Overview** puts the
 //! whole instance on one screen: KPIs, request and cost trends, the model mix,
-//! the top-user leaderboard, the latency split, anomalies and code impact.
-//! **Models** is per-model gateway behaviour including route redirects and the
-//! unrouted bucket. **Skills** links to Analysis (Beta). **Tools** is MCP
+//! the top-user leaderboard and the latency split.
+//! **Models** is per-model gateway behaviour including the unrouted bucket.
+//! **Skills** is adoption and the conversations it reached. **Tools** is MCP
 //! execution health. **Sessions** is client-reported session cost and rating.
 //! **Cost** is the supplier bill, with a customer view that carries no
 //! supplier figure at all.
@@ -22,7 +22,7 @@
 use std::sync::Arc;
 use systemprompt_web_shared::{GroupId, ProjectId};
 
-use axum::extract::{Extension, Query, State};
+use axum::extract::{Query, State};
 use axum::response::Response;
 use serde::Deserialize;
 use sqlx::PgPool;
@@ -33,8 +33,6 @@ use crate::repositories::analytics::site::leaderboards::LeaderboardSort;
 use crate::repositories::analytics::site::resolve_site_scope;
 use crate::repositories::analytics::site::series::SeriesBucket;
 use crate::repositories::scope::{Attribution, Scope, ScopeRequest};
-use crate::templates::AdminTemplateEngine;
-use crate::types::{MarketplaceContext, UserContext};
 use crate::util::time_range::{
     TimeRange, TimeRangePreset, TimeRangeQuery, parse_time_range, preset_to_range,
 };
@@ -53,21 +51,21 @@ mod tab_models;
 // so a prefix shortened here is shortened the same one click deeper.
 pub(crate) use tab_models::{ms, qualifier, short_name};
 mod tab_sessions;
+mod tab_skills;
 mod tab_tools;
 mod urls;
 mod urls_controls;
 mod view;
-mod view_code;
 mod view_models;
 mod view_spend;
 mod view_tables;
 
+use crate::handlers::ssr::list_view::DEFAULT_PAGE_SIZE;
+use crate::handlers::ssr::page::Page;
 use context::DashboardTab;
 use page::{PageInput, page_context};
 
 const BASE_URL: &str = "/admin/analytics";
-const PAGE_SIZE: i64 = 50;
-
 #[derive(Debug, Deserialize)]
 pub(crate) struct AnalyticsDashboardQuery {
     pub tab: Option<String>,
@@ -129,13 +127,11 @@ impl AnalyticsDashboardQuery {
 }
 
 pub(crate) async fn analytics_dashboard_page(
-    Extension(user_ctx): Extension<UserContext>,
-    Extension(mkt_ctx): Extension<MarketplaceContext>,
-    Extension(engine): Extension<AdminTemplateEngine>,
+    shell: Page,
     State(pool): State<Arc<PgPool>>,
     Query(query): Query<AnalyticsDashboardQuery>,
 ) -> AdminHtmlResult<Response> {
-    if !user_ctx.is_console {
+    if !shell.user.is_console {
         return Err(AdminError::Forbidden("Admin access required.".to_owned()).into());
     }
 
@@ -145,8 +141,11 @@ pub(crate) async fn analytics_dashboard_page(
     let range = resolve_range(&query);
     let page = query.page.unwrap_or(0).max(0);
 
-    let request =
-        ScopeRequest::from_query(&user_ctx, query.group.as_deref(), query.project.as_deref());
+    let request = ScopeRequest::from_query(
+        &shell.user,
+        query.group.as_deref(),
+        query.project.as_deref(),
+    );
     let scope = resolve_site_scope(&pool, &query.scope(), query.attribution()).await?;
     let slo_ms = crate::repositories::analytics::site::latency::resolve_slo_ms(query.slo_ms);
 
@@ -158,15 +157,14 @@ pub(crate) async fn analytics_dashboard_page(
             range,
             bucket,
             sort,
-            page_size: PAGE_SIZE,
-            offset: page * PAGE_SIZE,
+            page_size: DEFAULT_PAGE_SIZE,
+            offset: page * DEFAULT_PAGE_SIZE,
             slo_ms,
             axis: query.container_axis(),
         },
     )
     .await;
-
-    let filters = filters::build_filters(&pool, &user_ctx, &query, &request, bucket).await;
+    let filters = filters::build_filters(&pool, &shell.user, &query, &request, bucket).await;
     let ctx = page_context(PageInput {
         query: &query,
         tab,
@@ -178,12 +176,12 @@ pub(crate) async fn analytics_dashboard_page(
         slo_ms,
     });
 
-    Ok(super::render_typed_page(
-        &engine,
+    Ok(crate::handlers::ssr::render_typed_page(
+        &shell.engine,
         "analytics-dashboard",
         &ctx,
-        &user_ctx,
-        &mkt_ctx,
+        &shell.user,
+        &shell.marketplace,
     ))
 }
 

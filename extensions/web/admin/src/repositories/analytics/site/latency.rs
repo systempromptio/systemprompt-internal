@@ -16,18 +16,13 @@ use super::SiteScope;
 
 // Why: Default boundary between "fast" and "slow", in milliseconds. Matches
 // the 5s bin edge in `analytics::request_stats::LATENCY_BIN_EDGES_MS`.
-pub const FAST_THRESHOLD_MS: i64 = 5_000;
+pub const FAST_THRESHOLD_MS: i32 = 5_000;
 
 // Why: a caller-supplied SLO is clamped rather than rejected — an edited URL
 // shows the nearest sane threshold, not an error page. The floor keeps the
 // split from declaring every request slow; the ceiling keeps it meaningful.
 pub fn resolve_slo_ms(requested: Option<i32>) -> i32 {
-    #[expect(
-        clippy::cast_possible_truncation,
-        reason = "FAST_THRESHOLD_MS is a 5_000 literal, well inside i32"
-    )]
-    const DEFAULT: i32 = FAST_THRESHOLD_MS as i32;
-    requested.map_or(DEFAULT, |ms| ms.clamp(500, 60_000))
+    requested.map_or(FAST_THRESHOLD_MS, |ms| ms.clamp(500, 60_000))
 }
 
 #[derive(Debug, Default, Clone, Copy)]

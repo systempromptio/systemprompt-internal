@@ -12,7 +12,6 @@ use systemprompt::identifiers::UserId;
 use crate::repositories::scope::{Attribution, Scope, SubjectScope};
 
 pub mod anomalies;
-pub mod code;
 pub mod cost;
 pub mod distribution;
 pub mod kpis;
@@ -21,8 +20,8 @@ pub mod leaderboards;
 pub mod model_series;
 pub mod models;
 pub mod series;
-pub mod session_costs;
 pub mod sessions;
+pub mod skills;
 pub mod tools;
 pub mod user_rollups;
 

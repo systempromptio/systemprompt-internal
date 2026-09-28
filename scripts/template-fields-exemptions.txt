@@ -44,6 +44,3 @@ storage/files/admin/templates/users-sessions.hbs: window_minutes
 # HelpView (`handlers/ssr/analysis/help.rs`) — phase 7, analysis suite.
 storage/files/admin/partials/components/help-dialog.hbs: guide_href
 storage/files/admin/partials/components/help-dialog.hbs: intro
-# SparklineView (`handlers/ssr/types/sparkline.rs`) — phase 2, live chart layer.
-storage/files/admin/partials/components/sparkline.hbs: last_x
-storage/files/admin/partials/components/sparkline.hbs: last_y

@@ -1,6 +1,6 @@
 //! Typed view models for the Overview tab and the page chrome it shares —
-//! the KPI strip, the top-user leaderboard, the latency split, the anomaly
-//! list, the code frames, the tab bar, the filter bar and the time range.
+//! the KPI strip, the top-user leaderboard, the latency split, the tab bar, the
+//! filter bar and the time range.
 //!
 //! Split from `context.rs` at the 300-line ceiling.
 
@@ -10,14 +10,6 @@ use systemprompt::identifiers::UserId;
 
 use crate::handlers::ssr::list_view::{Pagination, ScopeFilterView};
 use crate::handlers::ssr::types::{DeltaView, SparklineView};
-
-#[derive(Debug, Serialize)]
-pub(super) struct AnomalyRowView {
-    pub metric: String,
-    pub window_display: String,
-    pub observed_display: String,
-    pub baseline_display: String,
-}
 
 #[derive(Debug, Serialize)]
 pub(super) struct FastSlowView {
@@ -40,29 +32,6 @@ pub(super) struct SloOption {
     pub label: String,
     pub href: String,
     pub selected: bool,
-}
-
-// Why: every figure here is client-reported statusline data, and the template
-// labels it so — it complements the gateway's own token counts, never
-// replaces them.
-// Why: the thinking card sits beside the cache card because both answer the
-// same question about a token total -- what share of it was not the answer.
-#[derive(Debug, Serialize)]
-pub(super) struct ThinkingView {
-    pub has_data: bool,
-    pub reasoning_display: String,
-    pub output_display: String,
-    pub share_display: String,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct SessionCostsView {
-    pub has_data: bool,
-    pub sessions: i64,
-    pub cache_hit_display: String,
-    pub cache_read_display: String,
-    pub avg_context_display: String,
-    pub max_context_display: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -162,22 +131,4 @@ pub(super) struct LeaderRowView {
     pub log_url: String,
     pub detail_url: String,
     pub analytics_url: String,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct PermissionStatsView {
-    pub requests: i64,
-    pub granted: i64,
-    pub rate_display: String,
-    pub has_data: bool,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct CodeFrameView {
-    // Why: serialized as frame_title — the layout partial's `title=` hash
-    // param shadows `title` even via `this.title` in nested each-blocks.
-    #[serde(rename = "frame_title")]
-    pub title: &'static str,
-    pub value_display: String,
-    pub caption: &'static str,
 }

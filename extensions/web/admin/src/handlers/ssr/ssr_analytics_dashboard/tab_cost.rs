@@ -7,15 +7,14 @@
 //! this file has none to render even by accident.
 
 use crate::handlers::ssr::format::format_cost;
-use crate::handlers::ssr::types::{StackSeriesInput, StackedChartSpec, stacked_chart};
+use crate::handlers::ssr::types::{Plot, SvgLineChartView, SvgSeriesInput, chart_on_axis};
 use crate::repositories::analytics::site::cost::{
     ContainerAxis, ContainerUsageRow, CostDayRow, SupplierCostRow,
 };
-use crate::util::time_range::TimeRange;
 
 use super::context::{ContainerRowView, CostTabView, KpiTile, SupplierRowView};
 use super::tab_models::{per, share};
-use super::view::{compact, date_label, midpoint};
+use super::view::compact;
 use super::{AnalyticsDashboardQuery, urls};
 
 pub(super) struct CostInput<'a> {
@@ -27,11 +26,7 @@ pub(super) struct CostInput<'a> {
     pub is_internal: bool,
 }
 
-pub(super) fn cost_tab(
-    input: &CostInput<'_>,
-    range: &TimeRange,
-    query: &AnalyticsDashboardQuery,
-) -> CostTabView {
+pub(super) fn cost_tab(input: &CostInput<'_>, query: &AnalyticsDashboardQuery) -> CostTabView {
     let provider_max = input
         .providers
         .iter()
@@ -58,8 +53,7 @@ pub(super) fn cost_tab(
         container_count: input.containers.len(),
         audience_links: urls::audience_links(query, input.is_internal),
         is_internal: input.is_internal,
-        csv_url: urls::cost_csv_url(query, input.is_internal),
-        day_chart: input.is_internal.then(|| day_chart(input.days, range)),
+        day_chart: input.is_internal.then(|| day_chart(input.days)),
         has_providers: !input.providers.is_empty(),
         providers: input
             .providers
@@ -131,10 +125,7 @@ fn container_row(row: &ContainerUsageRow, max: i64, axis: ContainerAxis) -> Cont
     }
 }
 
-fn day_chart(
-    days: &[CostDayRow],
-    range: &TimeRange,
-) -> crate::handlers::ssr::types::SvgStackedChartView {
+fn day_chart(days: &[CostDayRow]) -> SvgLineChartView {
     let mut labels: Vec<chrono::NaiveDate> = days.iter().map(|d| d.day).collect();
     labels.sort_unstable();
     labels.dedup();
@@ -142,7 +133,7 @@ fn day_chart(
     providers.sort();
     providers.dedup();
 
-    let mut series: Vec<StackSeriesInput> = providers
+    let mut series: Vec<SvgSeriesInput> = providers
         .iter()
         .map(|p| {
             let values: Vec<i64> = labels
@@ -155,7 +146,7 @@ fn day_chart(
                 })
                 .collect();
             let total: i64 = values.iter().sum();
-            StackSeriesInput {
+            SvgSeriesInput {
                 label: p.clone(),
                 values,
                 value_display: format_cost(total),
@@ -165,24 +156,28 @@ fn day_chart(
     series.sort_by_key(|s| std::cmp::Reverse(s.values.iter().sum::<i64>()));
 
     let grand: i64 = days.iter().map(|d| d.cost_microdollars).sum();
-    stacked_chart(StackedChartSpec {
-        title: "Provider cost by day",
-        subtitle: format!(
-            "{} across {} providers",
-            format_cost(grand),
-            providers.len()
-        ),
-        empty_message: "No billed requests in this window.",
-        series,
-        bucket_labels: labels
-            .iter()
-            .map(|d| d.format("%b %d").to_string())
-            .collect(),
-        value_display: format_cost,
-        x_start_display: date_label(range.from),
-        x_mid_display: date_label(midpoint(range)),
-        x_end_display: date_label(range.to),
-    })
+    let labels: Vec<String> = labels
+        .iter()
+        .map(|d| d.format("%b %d").to_string())
+        .collect();
+    chart_on_axis(
+        &labels,
+        "No billed requests in this window.",
+        Plot {
+            y_unit: "µ$",
+            y_display: format_cost,
+            ..Plot::new(
+                "Provider cost by day",
+                format!(
+                    "{} across {} providers",
+                    format_cost(grand),
+                    providers.len()
+                ),
+                series,
+            )
+        },
+    )
+    .into_columns()
 }
 
 fn kpis(input: &CostInput<'_>) -> Vec<KpiTile> {
@@ -202,25 +197,25 @@ fn kpis(input: &CostInput<'_>) -> Vec<KpiTile> {
             KpiTile {
                 label: "Provider cost".to_owned(),
                 value: format_cost(cost),
-                sub: format!("{requests} billable requests"),
+                note: format!("{requests} billable requests"),
                 tone: "accent",
             },
             KpiTile {
                 label: "Cost per request".to_owned(),
                 value: format_cost(per(cost, requests)),
-                sub: "supplier price, this window".to_owned(),
+                note: "supplier price, this window".to_owned(),
                 tone: "ok",
             },
             KpiTile {
                 label: "Tokens".to_owned(),
                 value: compact(tokens),
-                sub: "input plus output".to_owned(),
+                note: "input plus output".to_owned(),
                 tone: "ok",
             },
             KpiTile {
                 label: "Providers".to_owned(),
                 value: input.providers.len().to_string(),
-                sub: format!("{} models served", input.models.len()),
+                note: format!("{} models served", input.models.len()),
                 tone: "accent",
             },
         ];
@@ -229,25 +224,25 @@ fn kpis(input: &CostInput<'_>) -> Vec<KpiTile> {
         KpiTile {
             label: "Containers".to_owned(),
             value: containers.to_string(),
-            sub: "with consumption in this window".to_owned(),
+            note: "with consumption in this window".to_owned(),
             tone: "accent",
         },
         KpiTile {
             label: "Requests".to_owned(),
             value: compact(input.containers.iter().map(|c| c.requests).sum()),
-            sub: "from the daily rollups".to_owned(),
+            note: "from the daily rollups".to_owned(),
             tone: "ok",
         },
         KpiTile {
             label: "Unattributed".to_owned(),
             value: compact(unattributed),
-            sub: "requests by people with no primary container".to_owned(),
+            note: "requests by people with no primary container".to_owned(),
             tone: if unattributed > 0 { "warn" } else { "ok" },
         },
         KpiTile {
             label: "Cost shown".to_owned(),
             value: "none".to_owned(),
-            sub: "the customer view carries no supplier figure".to_owned(),
+            note: "the customer view carries no supplier figure".to_owned(),
             tone: "ok",
         },
     ]
