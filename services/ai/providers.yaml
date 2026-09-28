@@ -6,6 +6,20 @@
 # duplicated in each profile and had drifted — production carried an `openai`
 # block local lacked, local carried Anthropic models production lacked. This
 # file is the union of both; no model was dropped and none conflicted.
+#
+# Twins. A model id is unique across the whole catalog
+# (ProviderRegistry::validate), so when a second provider serves the same
+# model — the failover target of a route's `fallback_provider` — its entry
+# takes a prefixed id, `hidden: true` and `upstream_model: <real name>`:
+# hidden keeps it out of every client model list, and the route finds it by
+# `upstream_model` (ProviderEntry::find_served_model ignores `hidden`) and
+# prices the served request from it. No model here has a second provider
+# today, so there are no twins and no route declares a fallback.
+#
+# `max_thinking_budget` on an openai-chat model marks it as a reasoning
+# model: the wire then sends the model's own output cap instead of the
+# caller's `max_tokens`, so hidden reasoning cannot starve the visible answer
+# (gpt-oss burns 50-100 tokens of reasoning on a one-word reply).
 
 providers:
 - name: anthropic
@@ -14,6 +28,27 @@ providers:
   endpoint: https://api.anthropic.com/v1
   api_key_secret: anthropic
   models:
+  - id: claude-opus-5-5
+    pricing:
+      input_per_million: 4.0
+      output_per_million: 20.0
+      cache_read_per_million: 0.2
+      cache_write_per_million: 5.0
+      per_image_cents: null
+    capabilities:
+      vision: true
+      audio_input: false
+      video_input: false
+      image_generation: false
+      audio_generation: false
+      streaming: true
+      tools: true
+      structured_output: true
+      system_prompts: true
+      image_resolution_config: false
+    limits:
+      context_window: 1000000
+      max_output_tokens: 128000
   - id: claude-opus-5
     pricing:
       input_per_million: 5.0
@@ -688,3 +723,4 @@ providers:
     limits:
       context_window: 128000
       max_output_tokens: 65536
+      max_thinking_budget: 16384

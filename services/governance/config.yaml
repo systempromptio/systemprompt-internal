@@ -1,22 +1,177 @@
-# Governance policy chain. All four original stages are ENABLED (settled on 2026-08-27
-# for local and production alike — the enterprise demo, DEMO.md, depends on
-# them firing). To disable a stage, flip its `enabled` flag to false — never
-# by deleting this file or emptying `policies`: a missing or malformed file
-# falls back to GovernanceConfig::defaults(), which is all four stages
-# ENABLED. Explicit `enabled: false` is the only reliable off.
+# Governance policy chain — ENABLED in this installation. All five stages run
+# synchronously before every tool dispatch, first-deny-wins, every decision
+# audited to governance_decisions.
 #
-# `require_approval` is the fifth stage and the exception to that rule: it is
-# NOT in defaults(), because a stage that blocks waiting on a human is the one
-# kind of enforcement you must never inherit by accident. It holds nothing
-# until `patterns` names something.
+# A missing or malformed file falls back to core's vendor-neutral warn-only
+# chain, whose secret scanner has no patterns at all. This file is therefore
+# the complete installation policy: all stages, signatures, tunables, and
+# modes are explicit here. To disable a stage, flip its `enabled` flag to
+# false — never by deleting this file or emptying `policies`.
 #
 # The gateway safety scanners are a second, independent plane — see
-# services/gateway/policies.yaml. They remain switched off there.
+# services/gateway/policies.yaml. They are switched on there too, and in the
+# same warn mode.
+#
+# WARN MODE. Every stage below runs and audits, and — apart from
+# require_approval, which names its own mode — none of them refuses.
+# Confirmed policy matches are warnings. Entropy-only matches remain
+# observations inside the chain evidence and cannot become denials by
+# changing the mode alone. The refused-path demo (DEMO.md,
+# demo/governance/02-refused-path.sh, 06-secret-breach.sh) shows the warning
+# row, not a refusal, until a stage is put back to `mode: enforce`.
+#
+# So this is a measurement window, not a posture. Read it back with
+#   systemprompt infra logs governance report --since 7d --group-by policy
+# and once the warnings show which tunables are wrong, fix those and put the
+# stages that no longer misfire back to `mode: enforce`, one at a time.
+#
+# `mode` is inherited: the top-level value below applies to every policy that
+# does not name its own, and a policy may override it. An unrecognised value is
+# a boot error, not a silent default — reading `warnn` as either `enforce` or
+# `warn` would change what is enforced without saying so.
+#
+# Warn mode is NOT the same as `enabled: false`. A disabled stage does not run
+# and writes nothing. An enabled stage always contributes evidence; a confirmed
+# match writes `decision = 'warn'`, while an entropy-only observation passes.
+#
+# The secret_scan pattern list is explicit and complete (35 signatures): the
+# values here ARE the live behaviour, never a silent core default. Pattern
+# absence means disabled.
+#
+# `require_approval` is NOT in core's defaults, because a stage that blocks
+# waiting on a human is the one kind of enforcement you must never inherit by
+# accident. It holds nothing until `patterns` names something.
 
 governance:
+  mode: warn
   policies:
   - id: secret_scan
     enabled: true
+    patterns:
+      - id: aws-access-key
+        name: AWS Access Key
+        regex: '\b(?:AKIA|ASIA)[0-9A-Z]{16}\b'
+      - id: aws-secret-key
+        name: AWS Secret Key
+        regex: '^[A-Za-z0-9/+=]{40}$'
+        field: aws_secret_access_key
+        redact_whole_value: true
+      - id: github-token-classic
+        name: GitHub Token (classic)
+        regex: '\bghp_[A-Za-z0-9]{36,}'
+      - id: github-token-fine-grained
+        name: GitHub Token (fine-grained)
+        regex: '\bgithub_pat_[A-Za-z0-9_]{22,}'
+      - id: github-oauth
+        name: GitHub OAuth Token
+        regex: '\bgho_[A-Za-z0-9]{36,}'
+      - id: github-app-user-to-server
+        name: GitHub App User-to-Server Token
+        regex: '\bghu_[A-Za-z0-9]{36,}'
+      - id: github-app-server-to-server
+        name: GitHub App Server-to-Server Token
+        regex: '\bghs_[A-Za-z0-9]{36,}'
+      - id: github-app-refresh
+        name: GitHub App Refresh Token
+        regex: '\bghr_[A-Za-z0-9]{36,}'
+      - id: gitlab-token
+        name: GitLab Token
+        regex: '\bglpat-[A-Za-z0-9_-]{20,}'
+      - id: slack-bot-token
+        name: Slack Bot Token
+        regex: '\bxoxb-[0-9A-Za-z-]{10,}'
+      - id: slack-user-token
+        name: Slack User Token
+        regex: '\bxoxp-[0-9A-Za-z-]{10,}'
+      - id: slack-webhook
+        name: Slack Webhook
+        regex: 'hooks\.slack\.com/services/T[0-9A-Za-z_]+/B[0-9A-Za-z_]+/[0-9A-Za-z_]+'
+      - id: stripe-secret-key
+        name: Stripe Secret Key
+        regex: '\bsk_live_[A-Za-z0-9]{16,}'
+      - id: stripe-restricted-key
+        name: Stripe Restricted Key
+        regex: '\brk_live_[A-Za-z0-9]{16,}'
+      - id: google-api-key
+        name: Google API Key
+        regex: '\bAIza[0-9A-Za-z_-]{35}'
+      - id: anthropic-api-key
+        name: Anthropic API Key
+        regex: '\bsk-ant-[A-Za-z0-9_-]{20,}'
+      - id: openai-api-key
+        name: OpenAI API Key
+        regex: '\bsk-proj-[A-Za-z0-9_-]{20,}'
+      - id: twilio-auth-token
+        name: Twilio Auth Token
+        field: twilio_auth_token
+        regex: '.+'
+        redact_whole_value: true
+      - id: sendgrid-api-key
+        name: SendGrid API Key
+        regex: '\bSG\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}'
+      - id: mailgun-api-key
+        name: Mailgun API Key
+        regex: '\bkey-[a-f0-9]{32}\b'
+      - id: heroku-api-key
+        name: Heroku API Key
+        field: heroku_api_key
+        regex: '.+'
+        redact_whole_value: true
+      - id: pem-private-key-rsa
+        name: RSA Private Key
+        regex: '-----BEGIN RSA PRIVATE KEY-----'
+        redact_whole_value: true
+      - id: pem-private-key-ec
+        name: EC Private Key
+        regex: '-----BEGIN EC PRIVATE KEY-----'
+        redact_whole_value: true
+      - id: pem-private-key
+        name: PEM Private Key
+        regex: '-----BEGIN PRIVATE KEY-----'
+        redact_whole_value: true
+      - id: generic-password-field
+        name: Generic password assignment
+        regex: '(?i)\bpassword=[^\s&"'']+'
+      - id: generic-secret-field
+        name: Generic secret assignment
+        regex: '(?i)\bsecret=[^\s&"'']+'
+      - id: bearer-token-jwt
+        name: Bearer Token (JWT)
+        regex: 'Bearer eyJ[A-Za-z0-9_-]+'
+        redact_whole_value: true
+      - id: jwt-raw
+        name: JWT Token (raw)
+        regex: '\beyJhbGciOi[A-Za-z0-9_-]+'
+        redact_whole_value: true
+      - id: postgres-url-with-password
+        name: Postgres URL with password
+        regex: '\bpostgres(?:ql)?://[^\s:@/]+:[^\s@/]+@'
+      - id: mysql-url-with-password
+        name: MySQL URL with password
+        regex: '\bmysql://[^\s:@/]+:[^\s@/]+@'
+      - id: mongodb-srv-url
+        name: MongoDB connection string
+        regex: '\bmongodb\+srv://[^\s:@/]+:[^\s@/]+@'
+      - id: redis-url-with-auth
+        name: Redis URL with auth
+        regex: '\bredis://[^\s:@/]+:[^\s@/]+@'
+      - id: structured-password
+        name: Structured password field
+        field: password
+        regex: '.+'
+        redact_whole_value: true
+      - id: structured-secret
+        name: Structured secret field
+        field: secret
+        regex: '.+'
+        redact_whole_value: true
+      - id: structured-client-secret
+        name: Structured client secret field
+        field: client_secret
+        regex: '.+'
+        redact_whole_value: true
+    # Entropy is observation-only, including when this policy later enforces.
+    # Confirmed configured patterns remain eligible for safe prompt repair.
     entropy:
       enabled: true      # false keeps the vendor patterns, drops the backstop
       min_len: 32
@@ -29,25 +184,15 @@ governance:
       # trailing /T/), carries digits, and scores 0.833 against the 0.80
       # ceiling. Claude Code and OpenCode both put one in the system prompt,
       # so every request from an affected Mac was denied while tool-less
-      # calls passed. core `next` carries the real fix (is_filesystem_path,
-      # which re-scores each segment so key material cannot hide inside a
-      # path); it is in no released core, and this repo pins 0.45.0. Drop
-      # these entries when the pin reaches a release that has it.
+      # calls passed (2026-09-04, "stop the entropy backstop denying every
+      # request from a Mac"). Core 0.61 carries the structural fix
+      # (is_filesystem_path, which re-scores each segment so key material
+      # cannot hide inside a path); these two entries stay as a guard for a
+      # path shape that fix does not recognise, and cost nothing — a token
+      # under $TMPDIR is never a credential.
       allowlist:
       - '^/(private/)?var/folders/'
       - '^/private/tmp/'
-    # The 32 vendor patterns (AWS, GitHub, Stripe, sk-ant-, PEM, DB URLs) are
-    # fixed. The high-entropy backstop that catches prefixless keys is tunable
-    # here, so one false positive no longer forces the whole stage off:
-    #
-    #   entropy:
-    #     enabled: true    # false keeps the vendor patterns, drops the backstop
-    #     min_len: 32
-    #     threshold: 0.80  # Shannon entropy / the token length's ceiling
-    #     allowlist:       # regexes; a matching token is never reported
-    #     - '^CAIS'
-    #
-    # Omit the block for the built-in defaults shown above.
   - id: scope_check
     enabled: true
     admin_only_prefixes:
@@ -64,6 +209,10 @@ governance:
     window_secs: 60
   - id: require_approval
     enabled: true
+    # Enforce, overriding the chain's warn: a hold is the control itself, and
+    # a warn-mode hold would log the call and run it, which is no approval at
+    # all. Admins are exempt below, so this never slows the operators down.
+    mode: enforce
     # The outbound-facing writes on the odoo server. Everything else on that
     # server — including the other writes in the same demo step — still runs
     # unattended, so the contrast on stage is between an allowed write and a

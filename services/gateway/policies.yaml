@@ -1,39 +1,105 @@
-# Gateway policy baseline. Ingested into `ai_gateway_policies` at boot by
-# run_gateway_policy_load. Carries quota_windows and safety config. Model
-# exposure lives in the profile's provider registry (profile.providers in
-# .systemprompt/profiles/<name>/profile.yaml), not here.
+# Gateway policy baseline. Ingested into `ai_gateway_policies` at boot by the
+# governance_bootstrap job (core's load_gateway_policies_from_yaml, which
+# upserts every policy here by name and deletes any row this file does not
+# declare). Carries quota windows and safety config. Model exposure lives in
+# the provider catalog (services/ai/providers.yaml) and the routes in
+# services/ai/gateway.yaml, not here.
+#
+# This file is the DECLARATION; the table is what the gateway enforces, and
+# core re-reads it on every request (sixty-second cache).
 #
 # Spec fields (systemprompt_ai::GatewayPolicySpec):
-#   quota_windows, safety { scanners, block_categories,
-#                           block_response_categories, history }
+#   quota_mode, quota_windows, safety { mode, scanners, heuristic,
+#                                       block_categories,
+#                                       block_response_categories, history }
 #
 # safety.scanners names resolve against the gateway's SafetyScannerRegistry:
 # the built-in `heuristic` scanner plus any extension-registered scanner. The
-# admin extension registers `secrets` (extensions/web/admin/src/gateway_safety.rs).
-# A request whose content yields a finding in `block_categories` is denied
-# before the upstream call, with an `ai_safety_findings` audit row.
+# admin extension registers `secrets` and `pii_extended`
+# (extensions/web/admin/src/gateway_safety.rs). A request whose content yields
+# a finding in `block_categories` is denied before the upstream call, with an
+# `ai_safety_findings` audit row.
 #
 # `block_response_categories` does the same for the reply, and applies to
 # buffered replies only — a streamed reply is already on the wire when the scan
-# runs, so its findings are recorded and never block. Leave the list empty to
-# keep every response scan audit-only.
+# runs, so its findings are recorded and never block.
 #
 # `secrets` is egress-only: it returns nothing for requests, because the
 # `secret_scan` governance policy already covers ingress and runs first. Listing
 # it under `block_categories` therefore does nothing — it belongs in
-# `block_response_categories`.
-
-# SAFETY SCANNING IS INTENTIONALLY OFF in this installation. The paragraphs
-# above describe the mechanism, not current behaviour: with `scanners` empty no
-# scan runs, so nothing is blocked and no `ai_safety_findings` rows are written.
-# The policy chain is disabled to match — see services/governance/config.yaml.
-# To restore: scanners: [heuristic, secrets] with block_categories: [secret]
-# for the heuristic plane and block_response_categories: [secret] for `secrets`.
+# `block_response_categories`. `pii_extended` scans both directions.
+#
+# SAFETY SCANNING IS ON AND IN WARN MODE. Every listed scanner runs and every
+# finding is written to `ai_safety_findings` — `persist_findings` does not
+# consult `block_categories`, so the block lists narrow nothing about what is
+# audited. Under `safety.mode: warn` nothing on this plane refuses; the
+# `blocked` column stays false, so the report can say exactly how many calls
+# each category WOULD have refused. The block lists carry the enforcement set
+# on purpose — under enforce they are the behaviour, under warn they are the
+# hypothesis being measured. `jailbreak` and `pii_credit_card` are
+# deliberately absent: both denied ordinary developer traffic when they were
+# enforced elsewhere.
+#
+# The quota windows are the third plane on an inference request and have their
+# own switch, `quota_mode: warn`. Every window is still reserved against and
+# every ceiling still evaluated; a breach is written to `governance_decisions`
+# as a `warn` under policy `quota` instead of answering 429. A window here is a
+# warning threshold, never a ceiling. The per-user hourly window flags a
+# runaway agent. Costs are attributed one request late by design (a request's
+# cost is known after its response), so a warning lands on the request after
+# the breach.
+#
+# This pairs with `governance.mode: warn` in services/governance/config.yaml.
+# Read all three back together:
+#   systemprompt infra logs governance report --since 7d
+# A category with many findings and zero blocks is one warn mode is absorbing;
+# a category with no findings at all is a scanner earning nothing. Restore
+# `mode: enforce` per plane once the numbers say which is which.
+#
+# The `heuristic` block pins the phrase list explicitly rather than inheriting
+# core's builtin. As with services/governance/config.yaml, the values here ARE
+# the live behaviour, never a silent core default.
 
 policies:
   - name: default-quotas
     enabled: true
     spec:
+      # Warn, never enforce — see the header. Nothing on this plane refuses.
+      quota_mode: warn
+      quota_windows:
+        # Per user, hourly: a runaway agent is flagged within the hour without
+        # any normal session ever tripping the threshold.
+        - subject: user
+          window_seconds: 3600
+          max_requests: 600
+          max_cost_microdollars: 20000000
+        # Installation-wide, daily ($200/day) is NOT declared yet: core
+        # resolves a non-`user` subject through a registered subject provider,
+        # this instance registers none for `organization`, and
+        # `quota_fault_mode: closed` (services/ai/gateway.yaml) refuses every
+        # request whose window subject cannot be resolved. Add it once
+        # extensions/web/admin/src/authz registers the dimension:
+        #
+        # - subject: organization
+        #   window_seconds: 86400
+        #   max_cost_microdollars: 200000000
       safety:
-        scanners: []
-        block_categories: []
+        mode: warn
+        scanners: [heuristic, secrets, pii_extended]
+        # Under `mode: warn` these lists never deny; they mark which findings
+        # the warnings report counts as would-have-blocked.
+        block_categories: [pii_ssn]
+        block_response_categories: [secret, pii_ssn]
+        # Off: PII and phrase history is not rescanned. Credential scanning
+        # still covers the complete provider-bound body. Entropy observations
+        # never block. Every prior turn received its own PII/phrase scan.
+        history: off
+        heuristic:
+          phrases:
+            - "ignore previous instructions"
+            - "ignore all previous"
+            - "disregard prior instructions"
+            - "forget your instructions"
+            - "act as dan"
+            - "developer mode enabled"
+            - "pretend you have no restrictions"

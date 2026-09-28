@@ -7,22 +7,53 @@
 gateway:
   enabled: true
   routes:
+  # `name` and `description` are what the console and the model picker show
+  # in place of the generated id. The ids are kept so existing audit rows and
+  # access rules keep their label. No route declares a `fallback_provider`:
+  # every model here is served by exactly one provider (see the twin note in
+  # providers.yaml).
   - id: claude-star-4203d1
+    name: Claude (Anthropic API)
+    description: >-
+      Every claude-* request goes to Anthropic's own API under the anthropic key.
     model_pattern: claude-*
     provider: anthropic
   - id: pi-gpt-oss-120b
+    name: GPT-OSS 120B (Cerebras)
+    description: >-
+      The open-weight gpt-oss-120b on Cerebras, by its own id.
     model_pattern: gpt-oss-120b
     provider: cerebras
   - id: gpt-star-d0e2e6
+    name: GPT (served by GPT-OSS on Cerebras)
+    description: >-
+      Every other gpt-* id is answered by gpt-oss-120b on Cerebras; OpenAI's own API is not dispatched to.
     model_pattern: gpt-*
     provider: cerebras
     upstream_model: gpt-oss-120b
   - id: gemini-star-5db635
+    name: Gemini (served by GPT-OSS on Cerebras)
+    description: >-
+      Every gemini-* id is answered by gpt-oss-120b on Cerebras; Google is not dispatched to.
     model_pattern: gemini-*
     provider: cerebras
     upstream_model: gpt-oss-120b
   default_provider: anthropic
+  # `[1m]` is Claude Code's 1M-context marker: without it Claude Code budgets
+  # 200k for every gateway model. claude-sonnet-5 has a 1,000,000-token window
+  # (providers.yaml). The bridge seeds it into Claude Code, hands other
+  # clients the bare catalog id, and the gateway strips it before matching and
+  # forwarding.
+  default_model: "claude-sonnet-5[1m]"
   allow_unlisted_models: false
+  # Closed: a quota window whose subject cannot be resolved — no provider,
+  # provider error, or a user with no value — refuses the request instead of
+  # passing it uncounted. policies.yaml names only the `user` subject, which
+  # core resolves itself, so a fault here is a bug to surface, not traffic to
+  # wave through. Do NOT add a window on another subject (organization,
+  # group, project) until a subject provider for it is registered in
+  # extensions/web/admin/src/authz — under `closed` every request would fault.
+  quota_fault_mode: closed
   auth_scheme: bearer
   inference_path_prefix: /v1
   bridge_releases:

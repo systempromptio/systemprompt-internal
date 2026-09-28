@@ -52,6 +52,48 @@ scheduler:
       schedule: "0 0 4 * * *"
       enabled: true
 
+    # Refreshes the managed marketplace/plugin/skill inventory from the
+    # composed services tree (every minute), so a skill edit or a kit import
+    # reaches clients without a restart.
+    - name: managed_inventory_refresh
+      extension: core
+      owner: admin
+      schedule: "0 * * * * *"
+      enabled: true
+
+    # Deletes expired OAuth refresh tokens, authorization codes, state
+    # bindings, JTI revocations and ID-JAG replay markers (daily).
+    - name: oauth_cleanup
+      extension: core
+      owner: admin
+      schedule: "0 5 3 * * *"
+      enabled: true
+
+    # Prunes the per-user rate-limit counters past their window (hourly).
+    - name: user_rate_limit_prune
+      extension: core
+      owner: admin
+      schedule: "0 0 * * * *"
+      enabled: true
+      enforce: true
+
+    # Drops expired Gemini thought signatures (hourly, its own schedule).
+    - name: thought_signature_cleanup
+      extension: core
+      owner: admin
+      enabled: true
+
+    # Ships the audit trail to the OTLP collector the profile names under
+    # `observability.otlp` (core job, every 15 s by its own schedule). Tails
+    # ai_requests / tool_call_ledger / governance_decisions as spans and the
+    # logs table as log records, by watermark in otlp_export_state; a batch
+    # is acknowledged before its cursor moves. No-op on a profile without
+    # the block.
+    - name: otlp_export
+      extension: core
+      owner: admin
+      enabled: true
+
     # Web extension jobs (publishing pipeline)
     - name: publish_pipeline
       extension: web
@@ -217,6 +259,7 @@ scheduler:
   # so authorization is correct at app start.
   bootstrap_jobs:
     - governance_bootstrap
+    - managed_inventory_refresh
     - database_cleanup
     - cleanup_inactive_sessions
     # Publish web assets before the cron loop: web/dist is generated, not

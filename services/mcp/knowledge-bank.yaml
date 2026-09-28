@@ -27,9 +27,10 @@
 # ODOO_URL / ODOO_DB are passed through: the server is spawned with a cleared
 # environment (core's process::spawner allowlist), exactly as odoo.yaml does.
 #
-# RBAC: the server is granted to the user role (roles.yaml), because what that
-# grant opens is the reads — `search_project_context` and `list_documents` —
-# and a non-admin's reads are filtered in-process to `status = 'reference'`,
+# RBAC: the server is granted to the admin role only (mcp_server/knowledge-bank
+# in rules.yaml, not default-included). Behind that grant, what it opens is
+# the reads — `search_project_context` and `list_documents` — and a
+# non-admin's reads are filtered in-process to `status = 'reference'`,
 # the curated documents. Captured mail is never `reference`, so it never
 # reaches a user, and the filter is default-deny: a status a future pipeline
 # introduces stays invisible until someone deliberately curates a document
@@ -46,6 +47,10 @@ mcp_servers:
     package: knowledge-bank
     port: 5030
     enabled: true
+    # tool_policy is required on every managed server: `allow` (no per-call
+    # prompt in Claude Code / Claude Desktop), `prompt` or `deny`. Governance
+    # still runs on every call; this only decides whether the client asks.
+    tool_policy: allow
     env_vars:
       - ODOO_URL
       - ODOO_DB

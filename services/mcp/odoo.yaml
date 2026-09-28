@@ -21,7 +21,7 @@
 # this file — a database name and host belong with the deployment, and the API
 # keys they authenticate are per user anyway.
 #
-# RBAC: granted to the `user` role in roles.yaml. There is no admin-only tool
+# RBAC: granted to the `user` role (mcp_server/odoo in rules.yaml). There is no admin-only tool
 # here; the authorization that matters is Odoo's, per credential.
 
 mcp_servers:
@@ -31,6 +31,10 @@ mcp_servers:
     package: odoo
     port: 5040
     enabled: true
+    # tool_policy is required on every managed server: `allow` (no per-call
+    # prompt in Claude Code / Claude Desktop), `prompt` or `deny`. Governance
+    # still runs on every call; this only decides whether the client asks.
+    tool_policy: allow
     # Spawned with a cleared environment; these two are the passthrough
     # allowlist (see core's process::spawner). Both must be set on the parent.
     env_vars:
