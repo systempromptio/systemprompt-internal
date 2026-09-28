@@ -49,7 +49,7 @@ pub struct BundleFiles {
 }
 
 // Why: lint-ok: unused-pub — the configuration page reads per-kind provenance;
-// it lands with the Stage-3 admin port.
+// it lands with Stage 3 phase 9.
 pub fn active_bundle_files() -> AdminResult<Vec<BundleFiles>> {
     let profile = ProfileBootstrap::get()?;
     let cache = BundleCache::new(cache_root(profile));
@@ -84,7 +84,7 @@ fn under(path: &str, rel: &str, is_dir: bool) -> bool {
 // Why: `base_has` is whether the baked tree holds the path; a kind only a
 // bundle ships is that bundle's, one both ship is mixed.
 // Why: lint-ok: unused-pub — the configuration page reads per-kind provenance;
-// it lands with the Stage-3 admin port.
+// it lands with Stage 3 phase 9.
 #[must_use]
 pub fn source_for_path(
     bundles: &[BundleFiles],
@@ -122,8 +122,8 @@ pub enum OwnedKind {
     Skill,
 }
 
-// Why: lint-ok: unused-pub — the per-row provenance the /admin/sync pages
-// (Stage 3 phase 4) render; the data layer landed ahead of them.
+// Why: lint-ok: unused-pub — the catalog list pages' provenance column reads
+// it; astound's catalog delta lands in the Stage 4 parity sweep.
 #[must_use]
 pub fn owned_by(sources: &SourcesView, kind: OwnedKind, id: &str) -> Provenance {
     sources

@@ -120,8 +120,9 @@
         </div>
         </section>
 
-        {{!-- PLATFORM — the installable units declared in services/*.yaml, and
-             the gateway that routes to them. --}}
+        {{!-- PLATFORM — the installable units declared in services/*.yaml, the
+             gateway that routes to them, and Code sync, which moves their
+             declarations between the repository and this instance. --}}
         <section class="sp-nav-group sp-nav-group--platform" data-nav-group="platform">
         <h2 class="sp-nav-label">
             <button class="sp-nav-group__toggle" type="button" data-action="nav-group-toggle" aria-expanded="false" aria-controls="sp-nav-group-platform">
@@ -132,6 +133,10 @@
         </h2>
         <div class="sp-nav-group__items" id="sp-nav-group-platform">
         <div class="sp-nav-group__inner">
+        <a href="/admin/sync"{{navActive page "sync"}}>
+            <svg class="sp-icon" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 6.5A5.5 5.5 0 003.6 4.6M3 9.5a5.5 5.5 0 009.4 1.9" stroke-linecap="round"/><path d="M2.5 2.5v3h3M13.5 13.5v-3h-3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Code sync
+        </a>
         {{#> nav-item href="/admin/marketplaces" text="Marketplaces" leaf="marketplaces" child="marketplace-detail" page=page}}
             {{#*inline "nav_icon"}}<svg class="sp-icon" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5.5h12L13 13H3z" stroke-linejoin="round"/><path d="M5.5 5.5V4a2.5 2.5 0 015 0v1.5" stroke-linecap="round"/></svg>{{/inline}}
         {{/nav-item}}

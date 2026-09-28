@@ -3,6 +3,7 @@
 
 mod constructors;
 mod constructors_entity;
+pub use constructors_entity::PlaneApply;
 mod constructors_session;
 pub mod enums;
 pub mod types;

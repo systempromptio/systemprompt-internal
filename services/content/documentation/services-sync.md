@@ -25,7 +25,6 @@ related_docs:
 
 **TL;DR:** Everything this instance serves is *declared* somewhere in code and *enforced* from what the process loaded and what the database holds. A **source** is where declarations come from — `base` is this repository's `services/` tree, `bundle:<name>` is each external kit the profile pins by digest — and every source has a content hash. A **plane** is what a source's declarations project into the database — access control, groups and projects, gateway policies, gateway routes, the governance chain — and every plane records the declared hash it last applied, when, by whom and in which mode. Nothing writes on its own after the first seed: the console shows the difference and offers a direction.
 
-> **Status on this instance.** The tables behind this page (`sync_state`, `service_sources`, `service_owned_ids`, `marketplace_versions`, `gateway_routes`, `governance_chain`) are in the schema. The planes, the `/admin/sync` console and the kit tooling that fill them arrive with the next console release; until then the services tree is read at boot exactly as before.
 
 ## The model
 

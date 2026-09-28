@@ -27,7 +27,6 @@ related_docs:
 
 **TL;DR:** Every workspace, plugin, skill, MCP server and model route a signed-in person can reach is decided by rules on that entity. The rules are **declared once**, in `services/access-control/rules.yaml`, each with a stated reason, and **enforced from the database**. A decision walks the bands from narrowest to widest — *person → project → group → role → organization* — and the first band that names the person decides, with a deny beating an allow inside it. Code and database are compared on every boot and **never silently merged**.
 
-> **Status on this instance.** `rules.yaml` is read at boot: an empty database is seeded from it, and otherwise the drift is computed and logged. The `/admin/sync` page that applies a direction arrives with the next console release.
 
 ## What access control decides — and what it does not
 

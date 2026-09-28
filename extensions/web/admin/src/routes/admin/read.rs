@@ -36,6 +36,16 @@ pub(super) fn build_admin_read_routes_inner(read_pool: &Arc<PgPool>) -> Router {
             "/access-control/users/{user_id}/matrix",
             get(handlers::access_control::user_matrix_handler),
         )
+        .route("/sync/status", get(handlers::sync::status_handler))
+        .route(
+            "/sync/planes/{plane}/drift",
+            get(handlers::sync::drift_handler),
+        )
+        .route(
+            "/sync/planes/{plane}/export",
+            get(handlers::sync::export_handler),
+        )
+        .route("/sync/export.zip", get(handlers::sync::export_zip_handler))
         .route(
             "/access-control/yaml-snapshot",
             get(handlers::access_control::yaml_snapshot_handler),

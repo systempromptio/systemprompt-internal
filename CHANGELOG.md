@@ -56,6 +56,20 @@ Conventions (strict — hold every entry to them):
   `GET /admin/export/…` only (`middleware/pat.rs`, `find_api_key_user`). It resolves to its
   owner and passes the same gates a session does; every other admin route, and every write,
   refuses it with 401.
+- **Code sync console:** `/admin/sync` (Platform → Code sync). *Sources* lists the base tree
+  and every pinned bundle with the hash each declares and what it owns, and **Import sources**
+  runs core's in-process refresh (`ServicesRefresh`) — fetch, verify, recompose and reconcile —
+  with no restart. *Access review* settles the access-control drift one entity at a time:
+  apply code, keep the database (recorded as a decision that holds until either side moves),
+  or export — each with a stated reason — above the whole-plane card. *Export & import*
+  downloads every projected plane as one zip laid out as `services/`, and stages an uploaded
+  archive for a preview at `/admin/sync/import/{stage}` where each plane is applied (Insert
+  only or Overwrite) or discarded; nothing is written on upload. The JSON API behind it lives
+  under `/api/public/admin/sync/*` (`handlers/sync/`): status, a plane's drift and export and
+  the zip are console reads; every apply, keep, refresh and import is an administrator write
+  that leaves an activity row. The sidebar's Access control badge counts the entities the
+  review is waiting on. The `/admin/sync` pages are console-only: this instance carries no
+  marketplace participation model, so the scoped participant layout is not ported.
 
 ### Changed
 
