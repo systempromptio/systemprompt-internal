@@ -3,6 +3,8 @@
 # ghcr.io/systempromptio/systemprompt-internal by .github/workflows/docker.yml).
 # Stage 1 compiles the Rust workspace against the repo's .sqlx/ offline cache.
 # Stage 2 ships a slim Debian runtime with the binaries + services/ YAML tree.
+# The `artifacts` stage exports just the binaries:
+#   docker build --target artifacts --output type=local,dest=out .
 
 FROM rust:1-bookworm AS builder
 
@@ -16,6 +18,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /src
+
+# rust-toolchain.toml pins a nightly; rustup installs it on first use. Copy the
+# pin alone first so the toolchain download is its own cached layer and does
+# not repeat on every source change.
+COPY rust-toolchain.toml /src/rust-toolchain.toml
+RUN rustup show
+
 COPY . /src
 # The workspace may patch systemprompt-* to ../systemprompt-core (the core
 # checkout bridge/CORE_REF names). CI materialises it as .core-sibling inside
@@ -32,6 +41,10 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     && mkdir -p /out/bin \
     && cp target/release/systemprompt /out/bin/ \
     && find target/release -maxdepth 1 -type f -perm -u+x -name 'systemprompt-mcp-*' -exec cp {} /out/bin/ \;
+
+# Binaries only, from the same compile as the image.
+FROM scratch AS artifacts
+COPY --from=builder /out/bin /bin
 
 # hey powers the demo/performance load tests; its upstream S3 binary host is
 # dead (403), so build it from source and ship it on PATH — demo/_common.sh's
@@ -64,7 +77,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN useradd -m -u 1000 app
 WORKDIR /app
 
-RUN mkdir -p /app/bin /app/logs /app/storage /app/web /app/services/profiles/docker
+# /app/storage/data is runtime state (the gateway journal lives there) and is
+# not in the build context, so it must be created here: a named volume
+# mounted at a path the image lacks comes up root-owned, and the server,
+# running as uid 1000, cannot write it. release.yml's upgrade-boot mounts one.
+RUN mkdir -p /app/bin /app/logs /app/storage/data /app/web /app/services/profiles/docker
 
 COPY --from=builder /out/bin/ /app/bin/
 COPY --from=heybuilder /go/bin/hey /app/bin/hey

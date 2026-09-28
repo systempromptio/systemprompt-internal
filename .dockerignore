@@ -26,3 +26,14 @@ logs/
 .env.*
 !.env.example
 Screenshot*.png
+
+# Never ship a key into an image, even from a local build that has one on disk.
+*.pem
+**/*.pem
+# Build residue outside target/, and trees the image never COPYs.
+dist/
+.build/
+coverage-report/
+tests/target/
+bridge/target/
+**/node_modules/

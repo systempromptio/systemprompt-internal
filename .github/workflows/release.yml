@@ -8,8 +8,12 @@ name: Release — bridge binaries + container image
 #   * the gateway server binaries (linux amd64/arm64, darwin arm64 tarballs
 #     with services/, extension manifests and scripts) as GitHub Release
 #     `v<version>`
-#   * the container image ghcr.io/systempromptio/systemprompt-internal
-#     (:X.Y.Z, :X.Y, :X, :latest, :sha-<sha>) via docker.yml
+#   * the container image ghcr.io/systempromptio/systemprompt-internal:
+#     docker.yml builds and signs :sha-<short>; `smoke` and `upgrade-boot`
+#     prove that exact digest (runs, reports the release, ships every MCP
+#     binary, both arches, verified signature, boots over every seeded release
+#     schema without losing rows); only then does `promote-tags` point
+#     :X.Y.Z, :X.Y, :X and :latest at it
 #
 # The version is bridge/Cargo.toml's, which scripts/sync-release-version.sh
 # keeps equal to the workspace version and the core pin — one number for
@@ -17,11 +21,13 @@ name: Release — bridge binaries + container image
 # release) is a no-op: the `version` job sees the release already exists and
 # every downstream job is skipped.
 #
-# Nothing publishes unless the full CI and Quality workflows pass on this
-# exact commit, and unless main is honest about what it builds against:
-# every pin on one version, and bridge/CORE_REF naming a core commit whose
-# own version is that number (the tag v<version>, or a SHA on its line).
-# Every job here builds against that core checkout, exactly as CI does.
+# Nothing publishes unless this push is the merge of a frozen promotion PR
+# (`just release`; scripts/check-release-merge.sh): the candidate's exact
+# next-push Gates run and the PR's own run are both green, the merge tree is
+# the candidate's, and main is honest about what it builds against — the
+# patch dormant, Cargo.lock on crates.io, every pin on one version, and
+# bridge/CORE_REF naming the core of that version. The gates are not re-run
+# here; the proof is the run that already gated this exact tree.
 #
 # Asset names are load-bearing and version-less. Keep them in lockstep with:
 # extensions/web/admin/src/services/bridge_downloads.rs, the HOSTED_ARTIFACTS
@@ -52,13 +58,15 @@ concurrency:
 
 # Why every grant a called workflow's job asks for is listed here: a reusable
 # workflow can only receive permissions its caller holds, and GitHub refuses
-# the whole run at startup otherwise. `checks: write` is quality.yml's audit
-# job; `packages`/`id-token` are docker.yml's.
+# the whole run at startup otherwise. `packages`/`id-token` are docker.yml's;
+# `actions`/`pull-requests: read` let scripts/check-release-merge.sh read the
+# promotion PR and its Gates runs.
 permissions:
+  actions: read
+  pull-requests: read
   contents: write
   id-token: write
   packages: write
-  checks: write
 
 env:
   # Why: transient TLS resets from static.rust-lang.org and crates.io fail a run
@@ -67,6 +75,7 @@ env:
   RUSTUP_MAX_RETRIES: "10"
   CARGO_NET_RETRY: "10"
   CARGO_TERM_COLOR: always
+  IMAGE: ghcr.io/systempromptio/systemprompt-internal
 
 jobs:
   version:
@@ -77,12 +86,35 @@ jobs:
       tag: ${{ steps.v.outputs.tag }}
       publish: ${{ steps.v.outputs.publish }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+      # A push to main is a release only as the merge of a frozen promotion
+      # PR whose proofs are green (tag pushes and dispatches re-publish an
+      # existing version and are checked against bridge/Cargo.toml below).
+      - name: Verify merged promotion and exact release proofs
+        if: github.event_name == 'push' && github.ref_type == 'branch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/check-release-merge.sh "$GITHUB_SHA"
+      - name: Assert main builds against the published core
+        run: |
+          if grep -q '^\[patch\.crates-io\]' Cargo.toml || grep -q '^\[patch\.crates-io\]' tests/Cargo.toml; then
+            echo "::error::[patch.crates-io] is active — main must build against the published core crates (docs/BRANCHING.md)."
+            exit 1
+          fi
+          if grep -A2 '^name = "systemprompt"$' Cargo.lock | grep -q '^source = "registry'; then
+            echo "Cargo.lock resolves systemprompt from crates.io"
+          else
+            echo "::error::Cargo.lock does not resolve systemprompt from crates.io — a path dependency leaked onto main."
+            exit 1
+          fi
+          bash scripts/check-core-ref.sh
       - name: Read pinned core ref
         id: core
         shell: bash
         run: echo "ref=$(tr -d '[:space:]' < bridge/CORE_REF)" >> "$GITHUB_OUTPUT"
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           repository: systempromptio/systemprompt-core
           ref: ${{ steps.core.outputs.ref }}
@@ -108,6 +140,7 @@ jobs:
         run: |
           version=$(sed -n 's/^version = "\([0-9.]*\)"/\1/p' bridge/Cargo.toml | head -1)
           scripts/sync-release-version.sh "$version" --check
+          bash scripts/check-release-version.sh
           tag="bridge-v$version"
           if [ "$EVENT" != "push" ] || [ "$GITHUB_REF_TYPE" = "tag" ]; then
             if [ "$REQUESTED" != "$tag" ]; then
@@ -126,24 +159,24 @@ jobs:
             echo "publish=$publish"
           } >> "$GITHUB_OUTPUT"
 
-  # CI and Quality are not re-run here. The `main` ruleset requires
-  # `CI passed` and `Quality passed` on the release PR, and the PR head is the
-  # frozen `promote` ref, so the merge commit is exactly the tree those runs
-  # gated; re-running them added 25-40 min to every release for no new
-  # information.
+  # Gates are not re-run here. `just release` merges only a frozen candidate
+  # whose exact next-push Gates run is green (scripts/check-gates-green.sh),
+  # and the version job re-verifies that proof from the merge commit, so this
+  # is exactly the tree the gates proved; re-running them added 25-40 min to
+  # every release for no new information.
   checks:
     name: Bridge quality gate
     needs: version
     if: needs.version.outputs.publish == 'true'
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           path: systemprompt-internal
       - name: Read pinned core ref
         id: core
         run: echo "ref=$(tr -d '[:space:]' < systemprompt-internal/bridge/CORE_REF)" >> "$GITHUB_OUTPUT"
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           repository: systempromptio/systemprompt-core
           ref: ${{ steps.core.outputs.ref }}
@@ -189,14 +222,14 @@ jobs:
           - runner: windows-latest
             asset: systemprompt-internal-bridge-windows.exe
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           path: systemprompt-internal
       - name: Read pinned core ref
         id: core
         shell: bash
         run: echo "ref=$(tr -d '[:space:]' < systemprompt-internal/bridge/CORE_REF)" >> "$GITHUB_OUTPUT"
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           repository: systempromptio/systemprompt-core
           ref: ${{ steps.core.outputs.ref }}
@@ -415,7 +448,7 @@ jobs:
     env:
       TAG: ${{ needs.version.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           path: systemprompt-internal
 
@@ -567,12 +600,12 @@ jobs:
       CC: clang
       CXX: clang++
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Read pinned core ref
         id: core
         shell: bash
         run: echo "ref=$(tr -d '[:space:]' < bridge/CORE_REF)" >> "$GITHUB_OUTPUT"
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           repository: systempromptio/systemprompt-core
           ref: ${{ steps.core.outputs.ref }}
@@ -615,8 +648,10 @@ jobs:
 
   release-gateway:
     name: Sign & publish gateway
-    needs: [version, gateway]
-    if: needs.version.outputs.publish == 'true'
+    # Why after promote-tags: the release notes name the :X.Y.Z image, which
+    # exists only once smoke and upgrade-boot have proved its digest.
+    needs: [version, gateway, promote-tags]
+    if: needs.version.outputs.publish == 'true' && needs.promote-tags.result == 'success'
     runs-on: ubuntu-latest
     env:
       TAG: v${{ needs.version.outputs.version }}
@@ -683,3 +718,165 @@ jobs:
     uses: ./.github/workflows/docker.yml
     with:
       version: ${{ needs.version.outputs.version }}
+
+  smoke:
+    name: Smoke (pull, run, verify)
+    needs: [version, publish-image]
+    if: needs.publish-image.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: sigstore/cosign-installer@v3
+      - name: Pull, version, MCP binaries, arches, signature
+        env:
+          DIGEST: ${{ needs.publish-image.outputs.digest }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          ref="$IMAGE@$DIGEST"
+          docker pull "$ref"
+          out=$(docker run --rm --entrypoint /app/bin/systemprompt "$ref" --version)
+          echo "$out"
+          # --version reports the core crate version; lockstep makes it the release's.
+          echo "$out" | grep -q "$VERSION" || { echo "::error::--version does not report $VERSION"; exit 1; }
+          for bin in systemprompt-mcp-agent systemprompt-mcp-odoo systemprompt-mcp-knowledge-bank; do
+            docker run --rm --entrypoint ls "$ref" "/app/bin/$bin"
+          done
+          docker buildx imagetools inspect "$ref" | tee inspect.txt
+          grep -q 'linux/amd64' inspect.txt && grep -q 'linux/arm64' inspect.txt
+          cosign verify \
+            --certificate-identity-regexp="https://github.com/${GITHUB_REPOSITORY}/" \
+            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+            "$ref" > /dev/null
+          echo "signature verified"
+
+  upgrade-boot:
+    name: Boot the image over every seeded release
+    needs: [version, publish-image]
+    if: needs.publish-image.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    # Why: an upgrade can fail in ways no gate sees (stale triggers, a
+    # retirement split across extensions, a blind retry, a root-owned
+    # /app/storage/data). Only this path — the published image, its
+    # entrypoint, an old release's database with rows in it, a fresh named
+    # volume — exercises all of them together.
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U test" --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upgrade and boot from every rung
+        env:
+          PGPASSWORD: test
+          DIGEST: ${{ needs.publish-image.outputs.digest }}
+        run: |
+          set -euo pipefail
+          ref="$IMAGE@$DIGEST"
+          docker pull "$ref"
+          shopt -s nullglob
+          rungs=(tests/fixtures/schema/release-baseline-*.sql)
+          # TODO(stage-2 backport): the ladder's first rungs are recorded in
+          # the schema-tooling stage. Until then the single legacy fixture
+          # (release-baseline.sql, 0.60.0) is the rung, so a release is still
+          # proved over one real prior schema rather than none.
+          [ "${#rungs[@]}" -gt 0 ] || rungs=(tests/fixtures/schema/release-baseline.sql)
+          [ -f "${rungs[0]}" ] || { echo "::error::no release-baseline fixture to upgrade from"; exit 1; }
+          for fixture in "${rungs[@]}"; do
+            rung=$(basename "$fixture" .sql); rung=${rung#release-baseline}; rung=${rung#-}; rung=${rung:-legacy}
+            db="upgrade_${rung//./_}"
+            echo "::group::$rung"
+            psql -h localhost -U test -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE $db"
+            grep -v '^\\' "$fixture" | grep -v "set_config('search_path'" \
+              | psql -q -h localhost -U test -d "$db" -v ON_ERROR_STOP=1 > /dev/null
+            psql -q -h localhost -U test -d "$db" -v ON_ERROR_STOP=1 \
+              -f tests/integration/schema-upgrade/src/seed_hot_tables.sql
+            vol="storage_data_${db}"
+            docker volume create "$vol" > /dev/null
+            docker run -d --name "boot_$db" --network host \
+              -e ANTHROPIC_API_KEY=sk-ant-release-gate \
+              -e SYSTEMPROMPT_ADMIN_EMAIL=release-gate@systemprompt.io \
+              -e DATABASE_URL="postgres://test:test@localhost:5432/$db" \
+              -v "$vol:/app/storage/data" "$ref" > /dev/null
+            healthy=""
+            for _ in $(seq 1 60); do
+              # The early-bind listener answers /health 200 {"status":"starting"}
+              # during bootstrap, so a bare 200 proves nothing: require the
+              # finished-boot body, or /readyz (503 until boot completes).
+              if curl -fsS http://localhost:8080/health 2>/dev/null | jq -e '.status == "healthy"' > /dev/null 2>&1 \
+                || curl -fsS http://localhost:8080/readyz > /dev/null 2>&1; then healthy=1; break; fi
+              if [ "$(docker inspect -f '{{.State.Running}}' "boot_$db")" != "true" ]; then break; fi
+              sleep 5
+            done
+            last=$(curl -sS --max-time 5 http://localhost:8080/health 2>&1 || true)
+            docker logs "boot_$db" 2>&1 | tail -40
+            docker rm -f "boot_$db" > /dev/null
+            if [ -z "$healthy" ]; then
+              echo "last /health body: $last"
+              echo "::error::image did not finish booting over release $rung (see container log above)"
+              exit 1
+            fi
+            rows=$(psql -At -h localhost -U test -d "$db" -c "SELECT count(*) FROM ai_requests")
+            [ "$rows" = "2000" ] || { echo "::error::release $rung lost ai_requests rows ($rows)"; exit 1; }
+            echo "::endgroup::"
+          done
+
+  # Why: an operator pulls :X.Y.Z or :latest, so those may only ever point at
+  # a digest that already passed smoke and upgrade-boot. A failed run leaves
+  # nothing but its own :sha-<short>. :X.Y.Z is create-once: a second merge at
+  # the same version moves the floating tags only.
+  promote-tags:
+    name: Tag the proven image
+    needs: [version, publish-image, smoke, upgrade-boot]
+    if: needs.publish-image.result == 'success' && needs.smoke.result == 'success' && needs.upgrade-boot.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Point :X.Y.Z, :X.Y, :X and :latest at the proven digest
+        env:
+          DIGEST: ${{ needs.publish-image.outputs.digest }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          published=(latest "${VERSION%.*}" "${VERSION%%.*}")
+          if docker buildx imagetools inspect "$IMAGE:$VERSION" >/dev/null 2>&1; then
+            echo "::notice::$IMAGE:$VERSION already exists — left untouched; floating tags move."
+          else
+            published+=("$VERSION")
+          fi
+          args=()
+          for t in "${published[@]}"; do args+=(-t "$IMAGE:$t"); done
+          docker buildx imagetools create "${args[@]}" "$IMAGE@$DIGEST"
+          for t in "${published[@]}"; do
+            got=$(docker buildx imagetools inspect "$IMAGE:$t" --format '{{json .Manifest.Digest}}' | tr -d '"')
+            [ "$got" = "$DIGEST" ] || { echo "::error::$IMAGE:$t is $got, expected $DIGEST"; exit 1; }
+          done

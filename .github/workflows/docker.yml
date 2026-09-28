@@ -1,13 +1,17 @@
 name: Docker
 
-# Publishes ghcr.io/systempromptio/systemprompt-internal — the gateway image
-# Docker deployments pull. Called from release.yml on every merge to main
-# (one run per release: bridge binaries + image), or dispatched by hand to
-# rebuild a version from the current ref.
+# Builds ghcr.io/systempromptio/systemprompt-internal — the gateway image
+# Docker deployments pull — and publishes it ONLY as :sha-<short>, signed,
+# returning its digest. Called from release.yml on every merge to main, or
+# dispatched by hand to rebuild the current ref.
 #
-#   :X.Y.Z, :X.Y, :X   immutable release + floating aliases
-#   :latest            newest release (main is the only publisher)
-#   :sha-<sha>         the commit the image was built from
+#   :sha-<short>        written here, for every build
+#   :X.Y.Z :X.Y :X      written by release.yml's promote-tags, and only after
+#   :latest             smoke and upgrade-boot passed on this exact digest
+#
+# Why: a versioned tag is what operators pull, so it may only ever point at a
+# digest that already booted over every seeded release schema. Tagging here,
+# before any proof, published a :latest that nothing had run.
 #
 # Multi-arch is built natively per-arch (amd64 + arm64 runners), pushed by
 # digest, then merged into one manifest list — QEMU cross-building the Rust
@@ -20,13 +24,20 @@ on:
   workflow_call:
     inputs:
       version:
-        description: "Semver (X.Y.Z) to tag this build with — set by release.yml"
+        description: "Semver (X.Y.Z) this build is for — set by release.yml; checked, not tagged"
         required: true
         type: string
+    outputs:
+      digest:
+        description: "Manifest-list digest (sha256:…) of the signed :sha-<short> image"
+        value: ${{ jobs.merge.outputs.digest }}
+      short:
+        description: "The <short> in :sha-<short>"
+        value: ${{ jobs.merge.outputs.short }}
   workflow_dispatch:
     inputs:
       version:
-        description: "Semver (X.Y.Z) to tag this build with"
+        description: "Semver (X.Y.Z) this build is for (checked, not tagged)"
         required: true
 
 concurrency:
@@ -57,11 +68,11 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Read pinned core ref
         id: core
         run: echo "ref=$(tr -d '[:space:]' < bridge/CORE_REF)" >> "$GITHUB_OUTPUT"
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           repository: systempromptio/systemprompt-core
           ref: ${{ steps.core.outputs.ref }}
@@ -104,9 +115,12 @@ jobs:
           retention-days: 1
 
   merge:
-    name: Merge manifest, tag, sign
+    name: Merge manifest, tag :sha, sign
     needs: build
     runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ steps.digest.outputs.digest }}
+      short: ${{ steps.ver.outputs.short }}
     permissions:
       contents: read
       packages: write
@@ -137,8 +151,7 @@ jobs:
           esac
           {
             echo "full=$v"
-            echo "majmin=${v%.*}"
-            echo "maj=${v%%.*}"
+            echo "short=${GITHUB_SHA:0:7}"
           } >> "$GITHUB_OUTPUT"
 
       - uses: docker/metadata-action@v5
@@ -146,11 +159,7 @@ jobs:
         with:
           images: ${{ env.IMAGE }}
           tags: |
-            type=sha
-            type=raw,value=${{ steps.ver.outputs.full }}
-            type=raw,value=${{ steps.ver.outputs.majmin }}
-            type=raw,value=${{ steps.ver.outputs.maj }}
-            type=raw,value=latest
+            type=raw,value=sha-${{ steps.ver.outputs.short }}
 
       - name: Create and push manifest list
         working-directory: /tmp/digests
@@ -162,7 +171,7 @@ jobs:
       - name: Resolve manifest digest
         id: digest
         run: |
-          digest=$(docker buildx imagetools inspect "$IMAGE:${{ steps.ver.outputs.full }}" --format '{{json .Manifest.Digest}}' | tr -d '"')
+          digest=$(docker buildx imagetools inspect "$IMAGE:sha-${{ steps.ver.outputs.short }}" --format '{{json .Manifest.Digest}}' | tr -d '"')
           echo "digest=${digest}" >> "$GITHUB_OUTPUT"
 
       - uses: sigstore/cosign-installer@v3
@@ -172,8 +181,10 @@ jobs:
 
       # Why --entrypoint: the image's entrypoint refuses to start without an
       # API key and DATABASE_URL, which is right for a deployment and wrong
-      # for proving the binary inside the manifest runs.
-      - name: Smoke the published image
+      # for proving the binary inside the manifest runs. The full proof
+      # (arches, signature, MCP binaries, boot over every release schema) is
+      # release.yml's smoke and upgrade-boot, before any version tag moves.
+      - name: Smoke the built image
         run: |
           docker run --rm --platform linux/amd64 --entrypoint /app/bin/systemprompt \
-            "$IMAGE:${{ steps.ver.outputs.full }}" --version
+            "$IMAGE@${{ steps.digest.outputs.digest }}" --version
