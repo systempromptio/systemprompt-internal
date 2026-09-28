@@ -39,6 +39,10 @@ Conventions (strict — hold every entry to them):
   holding the current page is always open and `services/nav-groups.js` remembers the others.
   Requests, Sessions and Traces moved under Developer; the release version shows at the foot.
   The header ID search offers prefix matches in a listbox (`services/header-search-list.js`),
+  backed by `repositories/governance/suggest.rs` (a pasted `short_id` prefix of four or more
+  characters matches requests, traces, sessions and contexts, newest first). Avatars take a
+  stable per-name tone (`avatar_tone` helper), and the Access control link carries a badge
+  counting the entities where `rules.yaml` and the database disagree.
   and the header actions and install menus open again (their scripts looked up ids the
   layout never wrote). New shared partials: `badge-stack`, `icon`, `help-dialog` (opened by
   `components/sp-help.js` from a `?` in `page-header`), `table-select`, `bulk-bar`,

@@ -46,7 +46,7 @@
                 <tr>
                     <td>
                         <a href="/admin/user/?id={{user_id}}" class="sp-user-cell">
-                            <span class="sp-avatar sp-avatar--sm">{{initials (default display_name email)}}</span>
+                            <span class="sp-avatar sp-avatar--sm sp-avatar--tone-{{avatar_tone (default display_name email)}}">{{initials (default display_name email)}}</span>
                             <span class="sp-user-cell-text">
                                 <span class="sp-user-cell-name">{{default display_name email}}</span>
                                 <span class="sp-user-cell-email">{{email}}</span>

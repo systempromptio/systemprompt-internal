@@ -83,6 +83,7 @@
         <a href="/admin/access-control"{{navActive page "access-control"}}>
             <svg class="sp-icon" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="10" height="7" rx="1"/><path d="M5.5 7V4.5a2.5 2.5 0 015 0V7" stroke-linecap="round"/></svg>
             Access control
+            {{#if access_attention}}<span class="sp-nav-attention" title="{{access_attention}} entities where code and this database disagree">{{access_attention}}<span class="sp-u-sr-only"> entities need review</span></span>{{/if}}
         </a>
         {{#> nav-item href="/admin/devices" text="Devices & enrolments" leaf="devices" child="device-detail" page=page}}
             {{#*inline "nav_text"}}Devices &amp; enrolments{{/inline}}

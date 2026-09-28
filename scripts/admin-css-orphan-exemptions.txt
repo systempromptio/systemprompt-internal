@@ -121,17 +121,3 @@ sp-svgchart__series
 sp-table__detail-inner
 sp-table__detail-panel
 #
-# 5. Emitted through the `avatar_tone` Handlebars helper (`sp-avatar--tone-{{avatar_tone name}}`),
-#    which is Rust and joins with the first compile pass of this port.
-sp-avatar--tone-0
-sp-avatar--tone-1
-sp-avatar--tone-2
-sp-avatar--tone-3
-sp-avatar--tone-4
-sp-avatar--tone-5
-sp-avatar--tone-6
-sp-avatar--tone-7
-sp-avatar--tone-8
-sp-avatar--tone-9
-sp-avatar--tone-10
-sp-avatar--tone-11

@@ -56,7 +56,7 @@
         <tr class="sp-table__row--expand">
           <td class="sp-col-user">
             <a class="sp-user-cell" href="{{this.user_url}}">
-              <span class="sp-avatar sp-avatar--sm">{{initials this.user_name}}</span>
+              <span class="sp-avatar sp-avatar--sm sp-avatar--tone-{{avatar_tone this.user_name}}" aria-hidden="true">{{initials this.user_name}}</span>
               <span>{{this.user_name}}</span>
             </a>
           </td>

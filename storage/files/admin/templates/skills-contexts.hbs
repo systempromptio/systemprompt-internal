@@ -89,7 +89,7 @@
             <tr class="sp-table__row--expand" data-user-id="{{this.user_id}}">
                 <td class="sp-col-identity">
                     <a href="{{this.user_url}}" class="sp-user-cell" title="{{this.user_id}}">
-                        <span class="sp-avatar sp-avatar--sm" aria-hidden="true">{{initials this.user_label}}</span>
+                        <span class="sp-avatar sp-avatar--sm sp-avatar--tone-{{avatar_tone this.user_label}}" aria-hidden="true">{{initials this.user_label}}</span>
                         <span>{{this.user_label}}</span>
                     </a>
                 </td>
