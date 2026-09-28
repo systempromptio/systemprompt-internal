@@ -8,17 +8,28 @@
 # N-1 full builds it did not need: every one of them compiles the same source
 # tree and produces the same answer.
 #
-# This wrapper collapses that into one run, and records the answer where the
-# other agents can read it:
+# This wrapper collapses that into one run of the LATEST source, and records
+# the answer where the other agents can read it. There is exactly one rule:
+# one build in flight at a time, and every run compiles the tree as it is
+# when the run starts.
 #
-#   leader   - first caller for a given (recipe, flags, source fingerprint)
-#              takes the lock and runs the real command, teeing to a log.
-#   follower - a later caller with the SAME fingerprint attaches to the
-#              leader's log and exits with the leader's status. No second run.
-#   waiter   - a later caller with a DIFFERENT fingerprint (someone edited a
-#              file mid-flight) waits for the lock, then becomes leader.
-#   hit      - the fingerprint already has a recorded success, so there is
-#              nothing to do. Returns immediately.
+#   leader   - first caller takes the lock and runs the real command, teeing
+#              to a log.
+#   follower - a later caller whose source is IDENTICAL to the leader's is
+#              told a build is already in progress, attaches to its log and
+#              exits with its status. No second run of the same code.
+#   waiter   - a later caller whose source DIFFERS (someone edited a file
+#              mid-flight) is told a build is in progress, waits for the lock,
+#              then becomes leader over the newer tree.
+#
+# There is deliberately NO "already built, skip" cache. `cargo` is incremental,
+# so re-running over an unchanged tree costs seconds — and a skip cache can be
+# wrong about what is on disk: on 2026-09-18 a bare `cargo build` from another
+# tree overwrote `target/debug/systemprompt` after a coordinated build had
+# passed, and every later `just build` returned "already green" while the
+# binary on disk was stale. The ledger records outcomes and binary provenance
+# for `just build-status` / `just server-status`; it never stands in for a
+# compile.
 #
 # The ledger lives in ./.build (gitignored, not inside target/, so it survives
 # `cargo clean` and is safe to read while a build is writing target/):
@@ -33,8 +44,20 @@
 # Usage: build-coordinator.sh run <recipe> <flags> -- <command...>
 #        build-coordinator.sh status [recipe]
 #
-# Env: BUILD_FORCE=1     ignore the success cache (still single-flight)
-#      BUILD_NO_COORD=1  bypass entirely and exec the command
+# Env: BUILD_NO_COORD=1  bypass entirely and exec the command
+#      BUILD_FORCE=1     accepted for old habits; every run already compiles
+#      BUILD_MIN_FREE_GB free space (GB, default 25) the volume holding the
+#                        cargo target dir must have before a run may start;
+#                        0 disables the guard
+#
+# Free-disk guard: before leading any run except the read-only lint-gates,
+# the coordinator refuses to start when the volume holding the target dir
+# ($CARGO_TARGET_DIR, else ./target) has less than BUILD_MIN_FREE_GB free.
+# Why: on 2026-09-28 a build from another session filled the shared disk to
+# its last gigabyte; cargo does not stop at "disk full", it dies mid-link with
+# errors that read as compile failures, and every other process on the host
+# (Postgres, the server, the other agents' builds) fails with it. A refusal
+# with the number in it costs one message; a full disk costs the machine.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -214,6 +237,9 @@ cmd_run() {
     [ "${1:-}" = "--" ] && shift
 
     if [ -n "${BUILD_NO_COORD:-}" ]; then exec "$@"; fi
+    if [ -z "${BUILD_COORD_ACTIVE:-}" ] && [ "$recipe" != lint-gates ]; then
+        require_free_disk "$recipe"
+    fi
 
     mkdir -p "$STATE_DIR/logs" "$STATE_DIR/latest"
     # One tree hash for the whole run, so the record, the lock, and the success
@@ -228,18 +254,9 @@ cmd_run() {
         local nested_started; nested_started="$(now)"
         set +e; "$@"; local nrc=$?; set -e
         record_run "$recipe" "$flags" "$key" "$nrc" "$nested_started" "" nested
-        [ "$nrc" -eq 0 ] && { rm -f "$STATE_DIR/success-$recipe-"*; : > "$STATE_DIR/success-$recipe-$key"; }
         return "$nrc"
     fi
-    local success_file="$STATE_DIR/success-$recipe-$key"
     local log="$STATE_DIR/logs/$recipe-$(cut -c1-12 <<<"$key").log"
-
-    if [ -z "${BUILD_FORCE:-}" ] && [ -f "$success_file" ]; then
-        echo "[coord] $recipe $flags: already green for this source tree ($(cut -c1-12 <<<"$key"))."
-        echo "[coord] log: $log   details: just build-status   recompile anyway: BUILD_FORCE=1"
-        record_run "$recipe" "$flags" "$key" 0 "$(now)" "$log" cache-hit
-        return 0
-    fi
 
     while :; do
         if mkdir "$LOCK" 2>/dev/null; then break; fi
@@ -257,13 +274,13 @@ cmd_run() {
         owner_key="$(cat "$LOCK/key" 2>/dev/null || echo)"
         owner_recipe="$(cat "$LOCK/recipe" 2>/dev/null || echo run)"
         if [ "$owner_key" = "$key" ] && [ "$owner_recipe" = "$recipe $flags" ]; then
-            echo "[coord] identical '$recipe $flags' already running (pid $(cat "$LOCK/pid")); attaching to its output instead of starting a second one."
+            echo "[coord] a '$recipe $flags' of this exact source is already in progress (pid $(cat "$LOCK/pid")); attaching to its output instead of starting a second one."
             follow_log "$LOCK/log" "$LOCK/status"
             echo "[coord] leader finished with status $FOLLOW_STATUS"
             record_run "$recipe" "$flags" "$key" "$FOLLOW_STATUS" "$(now)" "$log" attached
             return "$FOLLOW_STATUS"
         fi
-        echo "[coord] '$owner_recipe' holds the lock (pid $(cat "$LOCK/pid" 2>/dev/null || echo '?')); waiting..."
+        echo "[coord] a build is already in progress ('$owner_recipe', pid $(cat "$LOCK/pid" 2>/dev/null || echo '?')); waiting for it, then running over the latest source..."
         while [ -d "$LOCK" ] && lock_alive "$LOCK"; do sleep 1; done
     done
 
@@ -285,15 +302,32 @@ cmd_run() {
     echo "$rc" > "$LOCK/status"
     cp "$LOCK/log" "$log" 2>/dev/null || true
 
-    if [ "$rc" -eq 0 ]; then
-        rm -f "$STATE_DIR/success-$recipe-"*
-        : > "$success_file"
-        [ "$recipe" = build ] && record_binaries
+    if [ "$rc" -eq 0 ] && [ "$recipe" = build ]; then
+        record_binaries
     fi
     record_run "$recipe" "$flags" "$key" "$rc" "$started" "$log" leader
     # Give attached followers a beat to drain the log before the lock vanishes.
     sleep 1
     return "$rc"
+}
+
+# Refuse to start a compile on a nearly-full volume (see the header).
+# `df -Pk` is POSIX output on both macOS and Linux: column 4 is available KiB.
+require_free_disk() {
+    local recipe="$1" min="${BUILD_MIN_FREE_GB:-25}"
+    [[ "$min" =~ ^[0-9]+$ ]] || { echo "[coord] BUILD_MIN_FREE_GB='$min' is not a whole number of GB" >&2; exit 1; }
+    [ "$min" -gt 0 ] || return 0
+    local dir="${CARGO_TARGET_DIR:-$ROOT/target}"
+    [ -e "$dir" ] || dir="$ROOT"
+    local avail_kb
+    avail_kb="$(df -Pk "$dir" 2>/dev/null | awk 'NR==2 {print $4}')"
+    [[ "$avail_kb" =~ ^[0-9]+$ ]] || { echo "[coord] could not read free space for $dir; refusing '$recipe' (BUILD_MIN_FREE_GB=0 skips the check)" >&2; exit 1; }
+    local avail_gb=$((avail_kb / 1024 / 1024))
+    if [ "$avail_gb" -lt "$min" ]; then
+        echo "[coord] refusing '$recipe': ${avail_gb} GB free on the volume holding $dir, below BUILD_MIN_FREE_GB=${min}." >&2
+        echo "[coord] free space first (cargo clean in a stale tree, coverage-report/, old worktrees), or lower the floor deliberately: BUILD_MIN_FREE_GB=<n> just $recipe" >&2
+        exit 1
+    fi
 }
 
 case "${1:-}" in
