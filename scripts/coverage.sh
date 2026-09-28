@@ -29,6 +29,16 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# Peak memory is several instrumented binaries linking at once, and a GitHub
+# runner dies there — the job is SIGTERMed with no diagnostic, which reads as
+# a mystery rather than as "out of memory". Lower it where the machine is
+# small; the default suits a workstation.
+BUILD_JOBS="${COVERAGE_BUILD_JOBS:-4}"
+
+# Counts phases that failed to build or ran a red test; reported at the end so
+# the exit status says whether the number rests on every workspace.
+PHASE_FAILURES=0
 cd "$ROOT"
 PROFDIR="$ROOT/coverage-report/profraw"
 TBASE="${COVERAGE_TARGET_DIR:-$ROOT/coverage-report/target}"
@@ -52,14 +62,50 @@ fi
 # later package out of the denominator.
 run_instrumented() {
     local tdir="$1"; shift
-    CARGO_BUILD_RUSTC_WRAPPER="" \
-    RUSTC_WRAPPER="" \
-    CARGO_TARGET_DIR="$tdir" \
-    LLVM_PROFILE_FILE="$PROFDIR/%m%c.profraw" \
-    RUSTFLAGS="-C instrument-coverage -C llvm-args=--runtime-counter-relocation" \
-    SQLX_OFFLINE=true \
-    cargo nextest run --no-fail-fast --build-jobs 4 "$@" \
-        || echo "warning: test failures above — continuing to coverage report"
+    # Why: the export below picks the newest binary per crate basename, so a
+    # test executable left behind by a crate that no longer exists (or was
+    # renamed) is never superseded and keeps feeding stale coverage mappings —
+    # files that were deleted count as 0% and functions whose hashes changed
+    # count as uncovered. Dropping every executable first costs one relink per
+    # test binary; the rlibs stay cached.
+    find "$tdir/debug/deps" -maxdepth 1 -type f -executable \
+        ! -name '*.d' ! -name '*.so' ! -name '*.rlib' -delete 2>/dev/null || true
+    # Why `if` rather than a bare call: this script runs under `set -e`, and
+    # the phases below deliberately survive a red workspace. The construct
+    # this replaces was `|| echo "warning: ..."`, which suppressed the abort
+    # but also discarded the status, so a failed phase and a clean one were
+    # indistinguishable to the caller.
+    local status=0
+    if CARGO_BUILD_RUSTC_WRAPPER="" \
+        RUSTC_WRAPPER="" \
+        CARGO_TARGET_DIR="$tdir" \
+        LLVM_PROFILE_FILE="$PROFDIR/%m%c.profraw" \
+        RUSTFLAGS="-C instrument-coverage -C llvm-args=--runtime-counter-relocation" \
+        SQLX_OFFLINE=true \
+        cargo nextest run --no-fail-fast --build-jobs "$BUILD_JOBS" "$@"
+    then
+        status=0
+    else
+        status=$?
+    fi
+    # nextest exit codes, treated by consequence rather than lumped together:
+    #   0  everything ran
+    #   4  the workspace defines no tests. True of the root and bridge
+    #      workspaces here — they are instrumented for their objects, not for
+    #      tests — so it is the expected answer, not a failure.
+    #   *  a build failure or a red test. The report is still produced, since a
+    #      partial number beats none while iterating, but the run is marked so
+    #      the caller can tell. A CI job that reported a healthy percentage
+    #      while a whole workspace failed to compile is what this exists to
+    #      prevent: it happened, with libdbus missing and the bridge workspace
+    #      contributing nothing.
+    case "$status" in
+        0|4) ;;
+        *)
+            echo "warning: workspace failed (nextest exit $status) — continuing to coverage report" >&2
+            PHASE_FAILURES=$((PHASE_FAILURES + 1))
+            ;;
+    esac
 }
 
 echo "==> [1/3] Instrumented tests: root workspace"
@@ -87,15 +133,32 @@ find "$PROFDIR" -name '*.profraw' > "$ROOT/coverage-report/profraw-list.txt"
 "$LLVM_PROFDATA" merge -sparse -f "$ROOT/coverage-report/profraw-list.txt" \
     -o "$ROOT/coverage-report/tests.profdata"
 
-# Test binaries land in <target>/debug/deps; dedupe by crate basename keeping
-# the newest build of each (same awk as core).
-collect_bins() {
+# Test binaries land in <target>/debug/deps. Emit candidates from every
+# workspace, then dedupe the combined stream by crate basename. Prefer the
+# tests workspace because that is where the 1,800+ executed tests live; root
+# and bridge supply only crates absent from it. Within a workspace, keep the
+# newest build. Dedupe must be global: doing it once per target directory
+# feeds llvm-cov multiple feature/build variants of the same crate. Their
+# function names overlap but their mapping hashes differ, so llvm-cov discards
+# profile records with "functions have mismatched data" and under-reports the
+# very tests this job is meant to measure.
+collect_bin_candidates() {
     find "$1/debug/deps" -maxdepth 1 -executable -type f ! -name '*.d' ! -name '*.so' \
-        -printf '%T@ %p\n' 2>/dev/null \
-        | sort -rn \
-        | awk '{ base=$2; sub(".*/", "", base); sub(/-[0-9a-f]+$/, "", base); if (!seen[base]++) print $2 }'
+        -printf '%T@ %p\n' 2>/dev/null | sort -rn
 }
-BINS="$(collect_bins "$TBASE-root"; collect_bins "$TBASE-tests"; collect_bins "$TBASE-bridge")"
+BINS="$(
+    {
+        collect_bin_candidates "$TBASE-tests"
+        collect_bin_candidates "$TBASE-root"
+        collect_bin_candidates "$TBASE-bridge"
+    } | awk '{ base=$2; sub(".*/", "", base); sub(/-[0-9a-f]+$/, "", base); if (!seen[base]++) print $2 }'
+)"
+BIN_COUNT=$(printf '%s\n' "$BINS" | sed '/^$/d' | wc -l)
+if [ "$BIN_COUNT" -eq 0 ]; then
+    echo "error: no instrumented test objects found" >&2
+    exit 1
+fi
+echo "==> Reporting over $BIN_COUNT globally deduplicated test objects"
 OBJ_ARGS=()
 for b in $BINS; do OBJ_ARGS+=(--object "$b"); done
 
@@ -111,14 +174,28 @@ for b in $BINS; do OBJ_ARGS+=(--object "$b"); done
 # bridge/src/main.rs is a process supervisor (brand consts + run_with_brand
 # delegation); on Linux it is the crate's only compiled file, mirroring core's
 # explicit process-entry exclusions.
-IGNORE_RE="(\.cargo|/rustc/|/registry/|/debug/build/|/tests/|/target/|systemprompt-core/|systemprompt-internal/src/(main|lib)\.rs|bridge/src/main\.rs|extensions/.*/extension\.rs|build\.rs)"
+# extensions/mcp/*/src/main.rs are `tokio::main` shells that build a server and
+# serve it over stdio — the same kind of process entry as the CLI mains beside
+# them. They are excluded for a second reason too: whether their object is
+# picked up depends on which binaries a run happened to build, so leaving them
+# in made a crate's number move by several points when an unrelated test crate
+# took a new dependency.
+IGNORE_RE="(\.cargo|/rustc/|/registry/|/debug/build/|/tests/|/target/|systemprompt-core/|systemprompt-internal/src/(main|lib)\.rs|bridge/src/main\.rs|extensions/(cli|mcp)/[^/]+/src/main\.rs|extensions/cli/[^/]+/src/commands/|extensions/.*/extension\.rs|build\.rs)"
 
 echo "==> Coverage report"
+WARNINGS="$ROOT/coverage-report/llvm-cov-warnings.txt"
 "$LLVM_COV" report \
     --instr-profile="$ROOT/coverage-report/tests.profdata" \
     "${OBJ_ARGS[@]}" \
     --ignore-filename-regex="$IGNORE_RE" \
+    2> >(tee "$WARNINGS" >&2) \
     | tee "$ROOT/coverage-report/report.txt"
+
+if grep -q 'mismatched data' "$WARNINGS"; then
+    echo "error: llvm-cov rejected profile data; duplicate or incompatible instrumented objects remain" >&2
+    echo "       inspect coverage-report/llvm-cov-warnings.txt" >&2
+    exit 1
+fi
 
 "$LLVM_COV" export \
     --instr-profile="$ROOT/coverage-report/tests.profdata" \
@@ -138,3 +215,9 @@ TOTAL=$(jq -r '.data[0].totals.lines.percent' "$ROOT/coverage-report/summary.jso
 printf '==> Total line coverage: %.2f%%\n' "$TOTAL"
 echo "Reports: coverage-report/{report.txt,summary.json,lcov.info}"
 echo "For HTML: just coverage-html"
+
+if [ "$PHASE_FAILURES" -gt 0 ]; then
+    echo "error: $PHASE_FAILURES workspace(s) did not run cleanly — the figure above is measured over a partial build" >&2
+    exit 1
+fi
+exit 0

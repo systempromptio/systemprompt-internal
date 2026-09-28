@@ -69,7 +69,27 @@ if update:
     baseline = {"floor": 0.0, "total": round(total, 2), "per_crate": per_crate}
     if os.path.exists(baseline_path):
         with open(baseline_path) as f:
-            baseline["floor"] = json.load(f).get("floor", 0.0)
+            previous = json.load(f)
+        baseline["floor"] = previous.get("floor", 0.0)
+        # Why: a coverage run that produced no usable objects reports 0.00%,
+        # and recording that silently lowers the bar for everyone afterwards.
+        # It has happened: two concurrent runs deleted each other's
+        # instrumented binaries, every object was lost, and the "measurement"
+        # was written straight into the baseline. A run that lost most of its
+        # data is a broken run, never a real regression, so refuse it here and
+        # let a genuine drop be recorded by hand.
+        floor = previous.get("total", 0.0) / 2.0
+        if total < floor:
+            print(
+                f"refusing to record {total:.2f}% as the baseline: that is less than half "
+                f"the recorded {previous.get('total', 0.0):.2f}%, which means the run lost "
+                f"its coverage data rather than the code losing its tests.\n"
+                f"Re-run `just coverage`, "
+                f"check nothing else is running coverage at the same time, and if the drop "
+                f"is genuine edit {os.path.relpath(baseline_path, root)} by hand.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
     os.makedirs(os.path.dirname(baseline_path), exist_ok=True)
     with open(baseline_path, "w") as f:
         json.dump(baseline, f, indent=2)
@@ -79,9 +99,26 @@ if update:
     sys.exit(0)
 
 if not os.path.exists(baseline_path):
-    print(f"error: {baseline_path} missing — record it with 'just coverage-baseline'",
-          file=sys.stderr)
-    sys.exit(1)
+    # The baseline is tracked, so "missing" almost always means it was deleted
+    # from the working tree rather than never recorded — a stray `rm -rf
+    # coverage*` catches it alongside the gitignored coverage-report/, and the
+    # gate then fails for a reason that has nothing to do with the code under
+    # test. Restore it from HEAD and say so loudly; only give up if git cannot
+    # produce it either, which is the genuinely-never-recorded case.
+    import subprocess
+    rel = os.path.relpath(baseline_path, root)
+    restored = subprocess.run(
+        ["git", "-C", root, "checkout", "--", rel],
+        capture_output=True, text=True).returncode == 0
+    if restored and os.path.exists(baseline_path):
+        print(f"warning: {rel} was missing from the working tree and has been "
+              f"restored from HEAD. Something deleted it — check for a cleanup "
+              f"that globs 'coverage*' rather than the gitignored "
+              f"'coverage-report/'.", file=sys.stderr)
+    else:
+        print(f"error: {baseline_path} missing and not recoverable from git — "
+              f"record it with 'just coverage-baseline'", file=sys.stderr)
+        sys.exit(1)
 
 with open(baseline_path) as f:
     baseline = json.load(f)
