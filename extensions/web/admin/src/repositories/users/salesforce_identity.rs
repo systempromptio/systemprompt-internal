@@ -98,17 +98,3 @@ pub async fn list_identities(
     .fetch_all(pool)
     .await
 }
-
-// Why: the authz dimension's only question. Separate from `list_identities`
-// so the gate never pulls usernames it has no use for.
-pub async fn list_linked_providers(
-    pool: &PgPool,
-    user_id: &UserId,
-) -> Result<Vec<String>, sqlx::Error> {
-    sqlx::query_scalar!(
-        "SELECT provider FROM salesforce_user_identities WHERE user_id = $1 ORDER BY provider",
-        user_id.as_str()
-    )
-    .fetch_all(pool)
-    .await
-}

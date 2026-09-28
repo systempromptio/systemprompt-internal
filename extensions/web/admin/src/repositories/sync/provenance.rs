@@ -122,6 +122,8 @@ pub enum OwnedKind {
     Skill,
 }
 
+// Why: lint-ok: unused-pub — the per-row provenance the /admin/sync pages
+// (Stage 3 phase 4) render; the data layer landed ahead of them.
 #[must_use]
 pub fn owned_by(sources: &SourcesView, kind: OwnedKind, id: &str) -> Provenance {
     sources

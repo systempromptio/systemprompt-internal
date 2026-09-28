@@ -80,9 +80,9 @@ fn seal(api_key: &str) -> Result<String, OdooIdentityError> {
     seal_with(&load_master_key()?, api_key)
 }
 
-// lint-ok: unused-pub — the write half of the Odoo link. Its callers, the
-// profile link and Odoo sign-in handlers, were removed in 2f9efe57 and are
-// restored separately; the odoo MCP server reads what this writes.
+// Why: lint-ok: unused-pub — the write half of the Odoo link. Its callers,
+// the profile link and Odoo sign-in handlers, were removed in 2f9efe57 and
+// are restored separately; the odoo MCP server reads what this writes.
 //
 // Why: this overwrites any existing row rather than yielding to it. Both call
 // sites reach here only after Odoo itself has accepted the credential — the
@@ -132,8 +132,8 @@ pub async fn find(pool: &PgPool, user_id: &UserId) -> Result<Option<OdooIdentity
     }))
 }
 
-// lint-ok: unused-pub — the profile page's liveness probe, removed with the
-// Odoo handlers in 2f9efe57 and restored with them.
+// Why: lint-ok: unused-pub — the profile page's liveness probe, removed with
+// the Odoo handlers in 2f9efe57 and restored with them.
 //
 // Why: The stored credential in plaintext, for a liveness probe only.
 //
