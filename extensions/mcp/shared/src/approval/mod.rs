@@ -64,6 +64,8 @@ pub enum GateOutcome {
 // Why: carries the arguments and the derived call id forward so neither is
 // recomputed once the verdict is known — recomputing either is how the two
 // halves of a hold drift apart.
+// JSON: MCP tool-call arguments are an arbitrary JSON object defined by each
+// tool's input schema.
 pub(super) struct Held<'a> {
     pub(super) call_id: CallId,
     pub(super) rule: String,
@@ -128,6 +130,7 @@ fn held_call<'a>(
     request: &CallToolRequestParams,
     ctx: &'a SysRequestContext,
 ) -> Option<Held<'a>> {
+    // JSON: MCP tool-call arguments arrive as an untyped JSON object.
     let arguments = request
         .arguments
         .clone()
@@ -206,6 +209,7 @@ async fn open_hold(
 // rounds before reaching this gate, and those change `input_responses` every
 // retry. Feeding them into the digest would move the id between rounds, so
 // each retry would open a fresh approval and the hold could never converge.
+// JSON: the digest covers the tool's raw MCP arguments, whatever their shape.
 #[must_use]
 pub fn derive_call_id(
     user_id: &UserId,

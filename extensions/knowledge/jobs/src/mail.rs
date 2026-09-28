@@ -80,6 +80,8 @@ pub fn render_document(email: &CapturedEmail) -> String {
     content
 }
 
+// JSON: free-form document metadata persisted as JSONB beside the captured
+// email.
 #[must_use]
 pub fn metadata_json(email: &CapturedEmail) -> serde_json::Value {
     serde_json::json!({

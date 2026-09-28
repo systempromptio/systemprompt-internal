@@ -35,6 +35,7 @@ impl NewActivity {
             action: ActivityAction::Submitted,
             entity: None,
             description,
+            // Why: discard-ok: serialising a struct of borrowed strings cannot fail.
             metadata: serde_json::to_value(SessionMeta {
                 session_id: session_id.as_str(),
             })

@@ -172,6 +172,7 @@ impl ProposalDocument {
     }
 }
 
+// JSON: decodes an optional JSONB column into its typed row field.
 fn typed<T: serde::de::DeserializeOwned>(
     column: &str,
     value: Option<serde_json::Value>,

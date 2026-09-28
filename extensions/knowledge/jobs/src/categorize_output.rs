@@ -123,6 +123,8 @@ pub fn correction_prompt(error: &str) -> String {
     )
 }
 
+// JSON: the JSON Schema handed to the model's structured-output mode; its shape
+// is the schema language, not a Rust type.
 #[must_use]
 pub fn response_schema() -> serde_json::Value {
     strict_schema::<Categorization>()
@@ -161,6 +163,8 @@ pub fn parse_output(raw: &str) -> Result<Categorization, String> {
         .map_err(|e| format!("validated response did not deserialize: {e}"))
 }
 
+// JSON: the structured column is stored as JSONB and read back by the knowledge
+// bank, which owns its schema.
 #[must_use]
 pub fn structured_json(c: &Categorization) -> serde_json::Value {
     let summary = StructuredSummary {

@@ -213,6 +213,7 @@ fn fixtures() -> HashMap<&'static str, &'static str> {
 #[tokio::test]
 #[ignore = "live provider call; set SYSTEMPROMPT_LIVE_SECRETS"]
 async fn anthropic_wire_yields_a_schema_valid_categorization() {
+    // skip-ok: #[ignore]d live provider call; runs only with SYSTEMPROMPT_LIVE_SECRETS set
     let Some(secrets) = live_secrets() else {
         return;
     };
@@ -229,6 +230,7 @@ async fn anthropic_wire_yields_a_schema_valid_categorization() {
 #[tokio::test]
 #[ignore = "live provider call; set SYSTEMPROMPT_LIVE_SECRETS"]
 async fn openai_wire_yields_a_schema_valid_categorization() {
+    // skip-ok: #[ignore]d live provider call; runs only with SYSTEMPROMPT_LIVE_SECRETS set
     let Some(secrets) = live_secrets() else {
         return;
     };
@@ -245,6 +247,7 @@ async fn openai_wire_yields_a_schema_valid_categorization() {
 #[tokio::test]
 #[ignore = "live provider call; set SYSTEMPROMPT_LIVE_SECRETS"]
 async fn gemini_wire_yields_a_schema_valid_categorization() {
+    // skip-ok: #[ignore]d live provider call; runs only with SYSTEMPROMPT_LIVE_SECRETS set
     let Some(secrets) = live_secrets() else {
         return;
     };

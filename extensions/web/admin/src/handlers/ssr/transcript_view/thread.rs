@@ -151,6 +151,7 @@ impl<'a, 'c> ThreadBuilder<'a, 'c> {
         for r in reqs {
             let rows = self.messages.get(r.id.as_str());
             let len = rows.map_or_else(
+                // Why: discard-ok: a negative stored count means no messages to attribute.
                 || usize::try_from(r.message_count).unwrap_or_default(),
                 Vec::len,
             );

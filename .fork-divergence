@@ -125,3 +125,15 @@ src/main.rs	# brand: binary entry names the product
 
 # Preserved business reporting and policy editor APIs.
 extensions/web/admin/src/repositories/reports/customer.rs	# internal calculates customer organization licences and seats; template exports scoped project usage without commercial data
+
+# check-discarded-results adoption (astound backport, stage 1): each carries a
+# `// Why: discard-ok:` line on an infallible or deliberately defaulted
+# Result that the sibling has not annotated yet. Re-converges when the admin
+# port brings astound's versions of these files to both repos.
+extensions/web/admin/src/activity/constructors_entity/session_events.rs	# discard-ok on an infallible SessionMeta serialisation
+extensions/web/admin/src/activity/constructors_session.rs	# discard-ok on an infallible SessionMeta serialisation
+extensions/web/admin/src/audit_event_bus.rs	# discard-ok on a broadcast send with no subscribers
+extensions/web/admin/src/handlers/gateway_catalog.rs	# discard-ok on an infallible AclDetectAudit serialisation
+extensions/web/admin/src/handlers/ssr/transcript_view/thread.rs	# discard-ok on a negative stored message count
+extensions/web/admin/src/repositories/traces/spans.rs	# discard-ok on infallible span raw serialisations
+extensions/web/admin/src/types/webhook/event_types.rs	# discard-ok on a tool input without summarised fields

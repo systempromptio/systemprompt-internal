@@ -138,6 +138,8 @@ const DROPPED_KEYWORDS: &[&str] = &[
     "definitions",
 ];
 
+// JSON: JSON Schema documents are generated, rewritten and returned as values;
+// the schema language is the type.
 #[must_use]
 pub fn crm_intent_schema() -> serde_json::Value {
     strict_schema::<CrmIntent>()
@@ -156,6 +158,7 @@ pub fn strict_schema<T: JsonSchema>() -> serde_json::Value {
     schema
 }
 
+// JSON: walks and rewrites a generated JSON Schema document in place.
 fn strictify(schema: &mut serde_json::Value) {
     let Some(object) = schema.as_object_mut() else {
         return;
@@ -188,6 +191,7 @@ fn strictify(schema: &mut serde_json::Value) {
     }
 }
 
+// JSON: folds a JSON Schema `anyOf`/`oneOf` null union into a type list.
 fn collapse_nullable(
     object: &mut serde_json::Map<String, serde_json::Value>,
     variants: &serde_json::Value,
@@ -210,6 +214,7 @@ fn collapse_nullable(
         for (k, v) in inner {
             object.insert(k.clone(), v.clone());
         }
+        // JSON: a JSON Schema `type` is a string or a list of strings.
     }
     if nullable && let Some(t) = object.get("type").cloned() {
         let mut types = match t {

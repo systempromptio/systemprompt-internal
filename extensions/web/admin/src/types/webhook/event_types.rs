@@ -64,6 +64,7 @@ impl ToolInputSummary {
     // JSON: protocol boundary — reads the untyped tool_input carried above.
     #[must_use]
     pub fn of(input: &serde_json::Value) -> Self {
+        // Why: discard-ok: an input without these fields is an empty summary.
         serde_json::from_value(input.clone()).unwrap_or_default()
     }
 }
