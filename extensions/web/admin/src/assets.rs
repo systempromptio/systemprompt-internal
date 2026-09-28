@@ -39,10 +39,6 @@ pub fn admin_assets(paths: &dyn AssetPaths) -> Vec<AssetDefinition> {
             "js/services/webauthn-passkey-helpers.js",
         ),
         AssetDefinition::js(
-            storage_js.join("services/webauthn-passkey.js"),
-            "js/services/webauthn-passkey.js",
-        ),
-        AssetDefinition::js(
             storage_js.join("services/webauthn-utils.js"),
             "js/services/webauthn-utils.js",
         ),
@@ -74,13 +70,6 @@ fn page_js_assets(storage_js: &Path) -> Vec<AssetDefinition> {
     let pages = storage_js.join("pages");
     vec![
         page_js!(&pages, "admin-access-control.js"),
-        page_js!(&pages, "admin-verify-pending.js"),
-        page_js!(&pages, "admin-register.js"),
-        page_js!(&pages, "admin-register-ui.js"),
-        page_js!(&pages, "admin-models.js"),
-        page_js!(&pages, "admin-demo-trace.js"),
-        page_js!(&pages, "admin-demo-register.js"),
-        page_js!(&pages, "admin-access-tokens.js"),
         page_js!(&pages, "admin-approvals.js"),
         page_js!(&pages, "admin-bridge-setup.js"),
         page_js!(&pages, "admin-contexts.js"),
