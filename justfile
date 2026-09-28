@@ -2560,6 +2560,28 @@ dev-login USER:
     export SYSTEMPROMPT_PROFILE="${SYSTEMPROMPT_PROFILE:-{{justfile_directory()}}/.systemprompt/profiles/local/profile.yaml}"
     exec {{CLI}} plugins run dev-login "{{USER}}"
 
+# Pin a kit's services bundle in a profile (default: the production profile)
+# to a GHCR digest, or to the kit's channel tag (e.g. `stable`) so every
+# release the kit's CI publishes is one Import on /admin/sync away. The kit's
+# image, public key and pull mode come from deploy/kit/known-kits.json; the
+# entry is rewritten in place or inserted (with the `sources:` block) when
+# absent. The digest is printed by the kit's publish workflow.
+services-pin KIT REF PROFILE=".systemprompt/profiles/production/profile.yaml":
+    python3 scripts/services-pin.py "{{KIT}}" "{{REF}}" "{{PROFILE}}"
+
+# Export a marketplace from services/ into a kit repository tree (Anthropic
+# marketplace format + systemprompt sidecars, no access block) and prove it
+# re-imports identically. Runbook: deploy/kit/README-INTEGRATION.md.
+kit-export MARKETPLACE DIR:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    BIN="$(dirname "{{CLI}}")/systemprompt-kit-export"
+    if [ ! -x "$BIN" ]; then
+        echo "ERROR: $BIN not found. Run: just build" >&2
+        exit 1
+    fi
+    exec "$BIN" "{{MARKETPLACE}}" "{{DIR}}" --services "{{justfile_directory()}}/services"
+
 # Focused functional regression checks for shared dashboard changes.
 test-dashboard stage="all":
     @scripts/build-coordinator.sh run test-dashboard "{{stage}}" -- bash scripts/test-dashboard.sh "{{stage}}"

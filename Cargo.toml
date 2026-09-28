@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "extensions/cli/dev-login",
+    "extensions/cli/kit-export",
     "extensions/brand",
     "extensions/web",
     "extensions/web/shared",
@@ -92,6 +93,7 @@ chacha20poly1305 = "0.10"
 schemars = { version = "1.2", features = ["derive"] }
 inventory = "0.3"
 walkdir = "2.0"
+tempfile = "3.0"
 url = "2.5"
 urlencoding = "2.1"
 jsonwebtoken = "10"

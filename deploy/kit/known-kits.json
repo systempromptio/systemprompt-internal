@@ -1,0 +1,11 @@
+{
+  "_comment": [
+    "The external kits this instance composes, one entry per remote source. None yet.",
+    "This is the single list both sides read: `just services-pin <kit> <digest>` takes the image and public key from here to write the profile's services.sources[] entry. Nothing is hand-typed twice.",
+    "A kit's marketplace, plugins and skills live in the kit's repository; who reaches them is declared in services/access-control/rules.yaml with `owner: bundle:<name>`.",
+    "Entry shape: {name, status: pinned|planned, repo, image, pull: public|private, channel, public_key, marketplaces: {<id>: {plugins: [...], mcp_servers: [...]}}, plugins: {<id>: {skills: [...], mcp_servers: [...]}}}.",
+    "status: pinned — the profile pins this kit (or is expected to). planned — the kit repository is being seeded (`just kit-export`); its ids still live in services/ until it is pinned.",
+    "pull: public — the GHCR package is public, so the profile entry carries no auth_secret; private — `services-pin` writes auth_secret: ghcr_pull_token. channel — the tag the kit's CI moves on every release; `just services-pin <kit> <channel>` follows it, `just services-pin <kit> sha256:<digest>` pins one upload."
+  ],
+  "kits": []
+}

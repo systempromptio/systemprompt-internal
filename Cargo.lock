@@ -5534,6 +5534,19 @@ name = "systemprompt-internal-brand"
 version = "0.61.0"
 
 [[package]]
+name = "systemprompt-kit-export"
+version = "0.61.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "serde",
+ "serde_json",
+ "serde_yaml_ng",
+ "systemprompt",
+ "tempfile",
+]
+
+[[package]]
 name = "systemprompt-knowledge-jobs"
 version = "0.61.0"
 dependencies = [
