@@ -1,6 +1,7 @@
 [package]
 name = "systemprompt-kit-export"
 version.workspace = true
+license.workspace = true
 edition.workspace = true
 authors.workspace = true
 description = "Developer CLI extension for the Systemprompt instance: exports a marketplace from services/ into a kit repository tree in Anthropic marketplace format."

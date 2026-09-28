@@ -24,6 +24,8 @@ struct SkillConfigFields {
     category: Option<String>,
     #[serde(default)]
     display_category: Option<String>,
+    #[serde(default)]
+    hosts: Vec<String>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -75,7 +77,11 @@ pub(crate) fn render(skill_dir: &Path, kebab: &str) -> Result<String> {
         tags: &config.tags,
         category: config.category.as_deref(),
         display_category: config.display_category.as_deref(),
-        hosts: &existing.hosts,
+        hosts: if config.hosts.is_empty() {
+            &existing.hosts
+        } else {
+            &config.hosts
+        },
     })?;
     Ok(format!("---\n{front}---\n{body}"))
 }

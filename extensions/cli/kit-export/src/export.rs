@@ -69,7 +69,10 @@ impl From<&PluginComponentRef> for ComponentRefOut {
 // `marketplace.json` already carries — core's import refuses `id`, `name`,
 // `description`, `version`, `author`, `keywords`, `license`, `plugins` and
 // `skills` in a sidecar. No `access`: who reaches a kit is declared in this
-// repository's rules.yaml, never in the kit.
+// repository's rules.yaml, never in the kit. Agents and artifacts are carried
+// by id (core's sidecar accepts both), because this instance's marketplace
+// and plugin reference them and the round trip would otherwise report them
+// lost.
 #[derive(Debug, Serialize)]
 struct MarketplaceSidecarOut {
     schema: u32,
@@ -82,6 +85,8 @@ struct MarketplaceSidecarBody {
     visibility: systemprompt::models::services::MarketplaceVisibility,
     enabled: bool,
     mcp_servers: ComponentRefOut,
+    agents: ComponentRefOut,
+    artifacts: ComponentRefOut,
 }
 
 #[derive(Debug, Serialize)]
@@ -96,6 +101,9 @@ struct PluginSidecarBody {
     category: String,
     enabled: bool,
     mcp_servers: ComponentRefOut,
+    agents: ComponentRefOut,
+    artifacts: ComponentRefOut,
+    content_sources: ComponentRefOut,
     hooks: PluginHooksRef,
 }
 
@@ -162,6 +170,9 @@ pub fn export_kit(
                     category: config.category.clone(),
                     enabled: config.enabled,
                     mcp_servers: (&config.mcp_servers).into(),
+                    agents: (&config.agents).into(),
+                    artifacts: (&config.artifacts).into(),
+                    content_sources: (&config.content_sources).into(),
                     hooks: config.hooks.clone(),
                 },
             })?
@@ -197,6 +208,8 @@ fn write_marketplace_files(
                 visibility: marketplace.visibility,
                 enabled: marketplace.enabled,
                 mcp_servers: (&marketplace.mcp_servers).into(),
+                agents: (&marketplace.agents).into(),
+                artifacts: (&marketplace.artifacts).into(),
             },
         })?
         .as_bytes(),

@@ -120,6 +120,8 @@ Conventions (strict — hold every entry to them):
 - **Kits:** `deploy/kit/` (the kit repository template, rebranded; `known-kits.json` empty),
   `just services-pin <kit> <digest|channel>` (`scripts/services-pin.py`) and
   `just kit-export <marketplace> <dir>` backed by the new `extensions/cli/kit-export` crate.
+  The sidecars carry agents, artifacts and content sources as well as skills, and a skill's
+  `hosts` from its `config.yaml`, so `enterprise-demo` round-trips losslessly.
   `docs/kits-on-another-instance.md` and the generic parts of `docs/CONFIGURED-CONNECTORS.md`.
 - **Quotas:** an `organization` subject provider (`authz/organization.rs`, precedence 300,
   every user holds `default`) so `services/gateway/policies.yaml` declares the installation-wide

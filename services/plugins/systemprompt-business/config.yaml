@@ -20,6 +20,9 @@ plugin:
     include:
       # Read-only: business-wide brief, personal "my day" brief. Never writes.
       - activity_report
+      # The other end of the pipeline: close a deal won or lost through Odoo's
+      # own actions, and raise the draft quotation a win produces.
+      - close_deal
       # Act: create a lead, walk & update leads (a single named change or a
       # short walk of your own open leads).
       - manage_leads
@@ -27,9 +30,6 @@ plugin:
       # overdue/due activities, open tasks, stale leads — that writes back
       # the moment you answer for each one.
       - pending_task
-      # The other end of the pipeline: close a deal won or lost through Odoo's
-      # own actions, and raise the draft quotation a win produces.
-      - close_deal
   agents:
     source: explicit
     include: []
