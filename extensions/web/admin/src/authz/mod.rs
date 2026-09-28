@@ -9,12 +9,12 @@
 //! We declare four: [`project`], [`group`], [`connector`] and
 //! [`organization`]. They form a ladder with core's — user (0), `project`
 //! (140), `group` (150), `connector` (160), role (200), `organization` (300)
-//! — where a lower number is the narrower, higher-priority scope. Groups carry people and marketplace entitlement;
-//! projects are work attribution. Both are DB rows an operator edits, and the
-//! directory's AD groups map into them rather than being a dimension of their
-//! own. `connector` is the MCP servers a person holds a ready connection to;
-//! `organization` is the whole installation, the subject a quota window
-//! counts against.
+//! — where a lower number is the narrower, higher-priority scope. Groups carry
+//! people and marketplace entitlement; projects are work attribution. Both are
+//! DB rows an operator edits, and the directory's AD groups map into them
+//! rather than being a dimension of their own. `connector` is the MCP servers a
+//! person holds a ready connection to; `organization` is the whole
+//! installation, the subject a quota window counts against.
 //! Adding another — cost centre, clearance, jurisdiction — means writing a
 //! provider beside them and one
 //! `register_subject_attribute_provider!` call; no core change, and no edit to
