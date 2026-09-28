@@ -53,6 +53,26 @@ Conventions (strict — hold every entry to them):
 - **Just:** `core-pin`, `core-guard` (deploy refuses a dirty or unpinned core while patched),
   `schema-baseline`, `stop`, `hack`, `lint-silent-skips`, `lint-no-untyped-admin`,
   `coverage-badge`, `test-e2e`.
+- **Schema:** declarative web schemas for the sync state, service sources, marketplace
+  versions, conversation analyses and facts, request scopes (a statement trigger on
+  `ai_requests` stamps each request's group and project at insert), time-bound access,
+  gateway routes and the staged governance chain, tool artifacts, user last-seen, raw-evidence
+  expiry and the retention ledger (`extensions/web/schema/32`–`48`), each table with one twin
+  migration at slots 085–094. Migration 089 backfills `ai_request_scopes` for every existing
+  request. The console, jobs and rollups that fill these tables land in the next stage.
+- **Access control:** `services/access-control/rules.yaml`, the entity-centric declaration
+  of every entitlement (`entity`, required `why`, `default`, `owner`, `valid_until`,
+  `allow`/`deny` bands), converted entry for entry from `roles.yaml`. `slack_channel` joins
+  `gateway_route` and `hook` as a glob-only kind. `/documentation/access-control` and
+  `/documentation/services-sync` describe the model.
+- **Kits:** `deploy/kit/` (the kit repository template, rebranded; `known-kits.json` empty),
+  `just services-pin <kit> <digest|channel>` (`scripts/services-pin.py`) and
+  `just kit-export <marketplace> <dir>` backed by the new `extensions/cli/kit-export` crate.
+  `docs/kits-on-another-instance.md` and the generic parts of `docs/CONFIGURED-CONNECTORS.md`.
+- **Scheduler:** core jobs `managed_inventory_refresh` (also run at boot), `oauth_cleanup`,
+  `user_rate_limit_prune`, `thought_signature_cleanup` and `otlp_export`.
+- **Providers:** `claude-opus-5-5`; `max_thinking_budget` on Cerebras `gpt-oss-120b`, so its
+  reasoning cannot starve a short answer.
 
 ### Changed
 
@@ -70,15 +90,39 @@ Conventions (strict — hold every entry to them):
 - **Image:** the Dockerfile caches the toolchain in its own layer, gains an `artifacts`
   stage, and creates `/app/storage/data` so a fresh named volume is writable by the app user.
   `.dockerignore` keeps `*.pem` and build residue out of the context.
+- **Governance:** the policy chain runs in warn mode (`governance.mode: warn`): every stage
+  still runs and audits, a confirmed match is recorded as `decision=warn`, and nothing refuses
+  — except `require_approval`, which names `mode: enforce`. The refused-path demo shows warning
+  rows until a stage is put back to enforce. `secret_scan.patterns` is an explicit
+  35-signature catalogue; a signature not listed is not scanned for.
+- **Gateway:** safety scanning is on in warn mode (`[heuristic, secrets, pii_extended]`,
+  pinned heuristic phrases, `history: off`) with a warn-mode per-user hourly quota;
+  `services/ai/gateway.yaml` gains route names and descriptions,
+  `default_model: "claude-sonnet-5[1m]"` and `quota_fault_mode: closed`.
+- **MCP:** every server declares `tool_policy: allow`.
+- **Services:** the enterprise-demo marketplace config carries no `access:` block;
+  `scripts/validate-services.sh` validates `rules.yaml` and requires it to agree with
+  `roles.yaml`, which the server still reads until the `rules.yaml` loader lands.
+- **Docs:** `docs/profile.schema.json` matches core 0.61's profile (`services`, `judge`,
+  `observability`, `retention`, `storage`; no `gateway`/`providers`). `docs/install/binary.md`
+  and `nix.md` describe this repository's own release instead of template v0.2.2, and
+  `check-docs-version` now enforces their version.
+- **Gates:** `lint-schema.sh` ignores dollar-quoted function bodies and exempts
+  `schema/retire/`.
 
 ### Fixed
 
 - The access-control page logs a failed open-entity count instead of silently rendering zero.
+- `odoo_identity` is declared again (`schema/15_odoo_identity.sql`, migration 083): its
+  schema file was deleted in 2f9efe57 while the Odoo MCP server still read and wrote the
+  table, so a database installed since had nowhere to keep per-user Odoo credentials.
 
 ### Removed
 
 - `.github/workflows/ci.yml`, `.github/workflows/quality.yml`, the `gate`/`promote` recipes and
   the disabled pre-push hook.
+- `email_outbox` and the four `comms_*` tables, left behind by the deleted email and comms MCP
+  servers (migration 084). The dropped-schema gate's known-debt list is now empty.
 
 ## [0.50.0] - 2026-09-10
 
