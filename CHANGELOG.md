@@ -1,7 +1,84 @@
 # Changelog
 
-All notable changes to this repository are documented here. The format follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+All notable changes to this repository are recorded here, newest first.
+
+Conventions (strict — hold every entry to them):
+
+- Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/): an `## Unreleased`
+  section at the top, then one `## [X.Y.Z] - YYYY-MM-DD` section per release, each with only
+  the categories it needs, in this order: `### Breaking`, `### Added`, `### Changed`,
+  `### Fixed`, `### Removed` (plus `### Migration` where an operator must act).
+- Entries are written for the reader who did not make the change: full sentences, what changed
+  and **why**, named files/commands/flags where the reader will need them. No bare "updated X".
+- Every user-visible or operator-visible change lands in `Unreleased` **in the same commit** as
+  the change itself; internal-only refactors are recorded when they alter an API another crate,
+  config, workflow or dashboard consumes.
+- A release moves the `Unreleased` content under its version heading; `Unreleased` is never
+  deleted, only emptied.
+- Versions are lockstep with core: `X.Y.Z` is the workspace `version`, the core it builds
+  against, the `vX.Y.Z` gateway release and the `bridge-vX.Y.Z` desktop release.
+
+## Unreleased
+
+### Added
+
+- **Release:** frozen promotion. `just release X.Y.Z` (`scripts/release.sh`) promotes the
+  exact `next` commit whose push-triggered Gates run is green: it pushes
+  `promote/X.Y.Z/<main>/<next>`, opens the PR, and on a second run merges only after the PR's
+  own proof and the merge tree are verified. `release.yml` re-verifies the merge
+  (`scripts/check-release-merge.sh`) before publishing. Replaces `just gate` / `just promote`
+  and the mutable `promote` ref. Mocked self-tests live in `tests/scripts/`.
+- **CI:** `.github/workflows/gates.yml` replaces `ci.yml` and `quality.yml` and runs on every
+  push to `next` (previously nothing ran on a push). Independent tiers — static, lint, test
+  (now including the e2e suite), bridge, supply chain — and one `Gates passed` aggregate for
+  the `main` ruleset.
+- **Release:** the image is proved before it is tagged. `docker.yml` publishes only a signed
+  `:sha-<short>`; `release.yml`'s `smoke` (version, MCP binaries, arches, signature) and
+  `upgrade-boot` (the image's entrypoint over every seeded release schema, rows must survive)
+  gate `promote-tags`, which alone moves `:X.Y.Z`, `:X.Y`, `:X` and `:latest`.
+- **Coverage:** `.github/workflows/coverage.yml` measures the floor and ratchet on `main`,
+  nightly and on demand; `scripts/coverage-badge.sh` renders and checks the README badge.
+- **Deploy:** `just deploy-release X.Y.Z` (`scripts/deploy-release.sh`) ships a published
+  release from a clean `origin/main` worktree with its own tarball binaries and watches Fly and
+  `/health` for five minutes. `just fetch-release` installs release binaries without a
+  toolchain (Linux, macOS arm64).
+- **Build:** the coordinator refuses to start a run when the target volume has less than
+  `BUILD_MIN_FREE_GB` (default 25) GB free — a full disk from another session's build is how
+  the host went down on 2026-09-28.
+- **Gates:** fifteen source gates ported from astound (discarded results, fail-open guards,
+  crate layering, repository construction, JSON values, silent test skips, field copies,
+  Dockerfile paths, dropped schema, docs version, core ref, schema ladder, coverage badge,
+  template fields; `check-migration-numbers` is wired in). Known debt is listed explicitly and
+  fails when stale.
+- **Just:** `core-pin`, `core-guard` (deploy refuses a dirty or unpinned core while patched),
+  `schema-baseline`, `stop`, `hack`, `lint-silent-skips`, `lint-no-untyped-admin`,
+  `coverage-badge`, `test-e2e`.
+
+### Changed
+
+- **Build:** the coordinator no longer skips a recipe as "already green" — every run compiles
+  the current tree; `BUILD_FORCE` is a no-op.
+- **Just:** `just test` runs every tier and reports every failure; tiers use
+  `--no-fail-fast`, DB tiers fail without a database URL, and the contract tier sets
+  `SYSTEMPROMPT_REQUIRE_DB=1`. `preflight-static`/`preflight-lint` collect failures;
+  `preflight` adds tests and coverage. `core-checkout` never moves the core checkout and fails
+  (or warns, `MISMATCH=warn`) when it differs from `bridge/CORE_REF`. `machete`, `deny` and
+  `audit` scan all three workspaces. `just clippy` also lints the tests workspace and the
+  bridge's Windows cfg set on Linux.
+- **Versions:** `scripts/sync-core-version.sh` owns the core pins and `bridge/CORE_REF`;
+  `scripts/sync-release-version.sh` calls it at the same (lockstep) version.
+- **Image:** the Dockerfile caches the toolchain in its own layer, gains an `artifacts`
+  stage, and creates `/app/storage/data` so a fresh named volume is writable by the app user.
+  `.dockerignore` keeps `*.pem` and build residue out of the context.
+
+### Fixed
+
+- The access-control page logs a failed open-entity count instead of silently rendering zero.
+
+### Removed
+
+- `.github/workflows/ci.yml`, `.github/workflows/quality.yml`, the `gate`/`promote` recipes and
+  the disabled pre-push hook.
 
 ## [0.50.0] - 2026-09-10
 

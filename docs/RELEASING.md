@@ -1,60 +1,65 @@
 # Releasing
 
-The process for shipping a new gateway release when a new `systemprompt` core
-version lands on crates.io.
+How a new `systemprompt` core version becomes a release of this repo: the
+desktop bridge for macOS, Windows and Linux (GitHub Release
+`bridge-vX.Y.Z`), the gateway server tarballs (GitHub Release `vX.Y.Z`) and
+the container image `ghcr.io/systempromptio/systemprompt-internal:X.Y.Z` —
+all produced by CI when a frozen promotion PR merges to `main`.
 
-**What is automatic and what is not.** Nothing gates a push to `next`. The
-release pull request onto `main` (`just gate` → `just promote`) runs CI and
-Quality, and the `main` ruleset requires their `CI passed` and `Quality
-passed` checks. Merging it is the release act: `.github/workflows/release.yml`
-fires on the push to `main` and — without re-running CI or Quality, since the
-PR head is the frozen `promote` ref and the merge commit is the tree they
-gated — publishes the desktop bridge for macOS, Windows and Linux as
-GitHub Release `bridge-v<version>` and the container image
-`ghcr.io/systempromptio/systemprompt-internal:<version>` (also `:latest`).
-Deploying the instance (`just deploy`) is still a hand step.
+**What is automatic and what is not.** `.github/workflows/gates.yml` runs the
+full gate on every push to `next` and on ordinary PRs.
+`just release X.Y.Z` promotes the exact green `next` commit through a frozen PR;
+merging it is the release act, and `.github/workflows/release.yml` publishes
+everything from the merge commit without re-running the gates.
+`.github/workflows/coverage.yml` measures coverage on `main` and nightly; it is
+not a release check. Deploying production (`just deploy-release X.Y.Z`) is a
+hand step. The branch contract that makes this safe is in
+[BRANCHING.md](BRANCHING.md); read it first.
 
 ## Versioning policy
 
-The fork tracks core in lockstep: core `X.Y.Z` on crates.io → workspace
-`version = X.Y.Z` → git tag `vX.Y.Z` → Helm `appVersion: X.Y.Z` (the chart's
-own `version:` gets a minor bump per release, handled by the sync script)
-→ bridge `bridge/Cargo.toml` `version = X.Y.Z` and `bridge/CORE_REF` =
-`vX.Y.Z` → GitHub Release `bridge-vX.Y.Z` → image tag `:X.Y.Z`. One number
-everywhere; `scripts/sync-release-version.sh` writes it and
+The fork tracks core in **lockstep**: core `X.Y.Z` on crates.io → workspace
+`version = X.Y.Z` → git tags `vX.Y.Z` and `bridge-vX.Y.Z` → Helm
+`appVersion: X.Y.Z` (the chart's own `version:` gets a minor bump per release,
+handled by the sync script) → `bridge/Cargo.toml` `version = X.Y.Z` and
+`bridge/CORE_REF` = `vX.Y.Z` → image `:X.Y.Z`. One number everywhere;
+`scripts/sync-release-version.sh X.Y.Z` writes it (calling
+`scripts/sync-core-version.sh X.Y.Z` for every core pin and `CORE_REF`), and
 `scripts/check-release-version.sh` (a lint gate) refuses drift. The release
-workflow will not publish a `main` whose pins disagree, or whose
-`bridge/CORE_REF` names a core commit whose own version is not that number
-(`CORE_REF` is `vX.Y.Z` after `just core-bump`; on `next` it is a SHA on core
-`next`). Every release job builds against that core checkout, exactly as CI
-does — with the patch active it is the sibling, without it crates.io.
+workflow will not publish a `main` whose pins disagree, whose patch is active,
+or whose `bridge/CORE_REF` names a core commit whose own version is not that
+number.
+
+Because the version is core's, a merge that does not bump it has nothing new
+to publish: `release.yml`'s `version` job sees `bridge-vX.Y.Z` already exists
+and every later job is skipped with a notice.
 
 ## Step A0 — adopting an *unpublished* core (the patched path)
 
 Most core versions are adopted here before they are on crates.io: the sibling
-`../systemprompt-core` checkout is bumped, this repo is patched onto it via
-`[patch.crates-io]`, and the two are proven together *before* core publishes.
-`just core-bump` deliberately refuses to run in this state — it is the
-published-crates path — so this step is by hand and nothing reminds you.
+`../systemprompt-core` checkout is bumped, this repo is patched onto it, and
+the two are proven together *before* core publishes. `just core-bump`
+deliberately refuses to run in this state — it is the published-crates path —
+so this step is by hand and nothing reminds you.
+
+**Activate the patch in both manifests.** Rename the dormant
+`[workspace.metadata.unreleased-core-patch]` table to `[patch.crates-io]` in
+`Cargo.toml` and `tests/Cargo.toml` (`[patch]` applies per workspace) and add
+the `# ACTIVE: core X.Y.Z is unreleased` marker above it — the pre-commit hook
+refuses an active patch without it.
 
 **Bump the pins first, and bump all of them.** A version requirement that no
 longer matches the patched crate does not error: cargo silently drops the
 patch and resolves the old version from crates.io, so the build "works" while
-proving nothing about the new core. The pins live in **two** manifests, because
-`tests/` is a separate workspace with its own copy:
+proving nothing about the new core.
 
 ```bash
-grep -rnE '^systemprompt[a-z-]* = (\{ version = )?"' --include=Cargo.toml . | grep -v target
-sed -i 's/OLD/NEW/g' Cargo.toml tests/Cargo.toml     # or let the script do it
-scripts/sync-release-version.sh NEW --check          # core-pin lines must be silent
+scripts/sync-core-version.sh NEW              # every core pin, both workspaces
+bash scripts/check-release-version.sh         # sibling version == pins?
 ```
 
-`sync-release-version.sh` covers every core pin in both manifests plus a
-residual sweep that fails on any core pin it does not itself move — so a pin
-added to a new crate cannot sit stale. Its remaining `DRIFT:` lines on this
-path are the *product* version (workspace version, Chart.yaml, deploy files);
-those belong to Step A, not here. Do **not** bump them for a core that has not
-shipped.
+Do **not** move this repo's own version (workspace, bridge, Helm, deploy
+files) for a core that has not shipped; that belongs to Step A.
 
 Then prove it, in this order — each step catches a class the previous one
 cannot:
@@ -63,13 +68,16 @@ cannot:
 just build                                    # patch resolved? log must read the new version
 just clippy
 grep -n 'Breaking' ../systemprompt-core/CHANGELOG.md   # then grep this repo for each item
-./target/debug/systemprompt infra db migrate  # new core migrations, against the local DB
+./target/debug/systemprompt infra db migrate --profile local
 ./target/debug/systemprompt --version         # must print the new core version
 just start && curl -s localhost:8080/health   # must reach {"status":"healthy"}, not "starting"
 ```
 
-Confirm the build log names `systemprompt-* vNEW (/var/www/html/systemprompt-core/...)`.
+Confirm the build log names `systemprompt-* vNEW (.../systemprompt-core/...)`.
 A build that compiles registry crates instead is a dropped patch, not a pass.
+Then `just core-pin` so `bridge/CORE_REF` names the core commit you built
+against (push core first — CI checks that ref out of GitHub), and push `next`:
+`gates.yml` runs the same tiers as `just verify` against that core.
 
 Three things no gate catches on this path:
 
@@ -77,185 +85,185 @@ Three things no gate catches on this path:
   Core's `define_id!(…, validated, …)` types panic in `new()` on a value they
   used to accept, so a construction site that stops being legal still compiles
   and still passes clippy — it fails only when that code path executes. 0.29.0
-  did exactly this to `ContextId` (now UUID-v4 only), and
-  `hooks_track::build_request_context` had been passing `ContextId::new("")`,
-  which would have panicked on every `/hooks/track` AI summary. Sweep for it
-  whenever the core diff touches `crates/shared/identifiers`:
+  did exactly this to `ContextId` (now UUID-v4 only). Sweep for it whenever the
+  core diff touches `crates/shared/identifiers`:
   `grep -rn '::new("' --include='*.rs' extensions/ src/` — and prefer
   `try_new` or `generate()` over a literal at any site that cannot prove the
   value's shape.
-
 - **Migrations run silently and are not reversible.** Run them and then check
   the tables the core changelog describes actually exist, rather than trusting
-  the success line.
+  the success line. What proves an upgrade from a *deployed* database is the
+  schema ladder: every rung is restored and migrated forward by the current
+  installer (`tests/integration/schema-upgrade`), and `release.yml`'s
+  `upgrade-boot` boots the published image over every rung with rows in the
+  hot tables.
 - **A new core job is inert until this repo schedules it.** Core discovers jobs
   by inventory; whether one *runs* comes from `services/scheduler/config.yaml`.
   Boot warns `job is available in this build but has no scheduler.jobs entry`
-  once per job and then carries on. Decide per job — scheduling it and
-  deliberately leaving it off are both fine, silently missing it is not.
-
-Only once core is published on crates.io do you comment the two
-`[patch.crates-io]` blocks (root and `tests/`, in lockstep) and continue with
-Step A.
+  once per job. Decide per job — scheduling it and deliberately leaving it off
+  are both fine, silently missing it is not.
 
 ### `bridge/CORE_REF` gates the whole remote proof
 
-Every job in `ci.yml` and `quality.yml` materialises the sibling core checkout
-at the ref in `bridge/CORE_REF` — core is not on crates.io, so this is how the
-runner gets it. It is therefore not only the bridge's pin: **it decides which
-core the release PR compiles against.**
+Every Gates tier materialises the sibling core checkout at the ref in
+`bridge/CORE_REF` (`.github/actions/core-checkout`). It is therefore not only
+the bridge's pin: **it decides which core CI compiles against** while the
+patch is active.
 
-- On `next` it is a 40-char SHA on core's `next`. Advance it whenever core
-  `next` moves, or the PR gates against an older core.
-- On `main` it is `v<version>`. `sync-release-version.sh --check` accepts both
-  forms, so nothing catches the switch being missed — the promotion commit has
-  to carry it.
+- During a core cycle it is a 40-char SHA on core's `next` (`just core-pin`).
+  Advance it whenever core `next` moves, or the gates run against an older
+  core.
+- With the patch dormant it is `vX.Y.Z`; `scripts/check-core-ref.sh` (a lint
+  gate) enforces that it matches the pins.
 
 `bridge/Cargo.toml` is a third manifest but not a third patch block: it takes
-core by a bare path dep (`systemprompt-bridge = { path = "../../systemprompt-core/bin/bridge" }`,
-no version), so it is sibling-coupled on every branch and never resolves from
-the registry. There is nothing to comment out there, and a `grep` for
-`patch.crates-io` in it matches only the comment saying so.
+core by a bare path dep (`systemprompt-bridge = { path = "../../systemprompt-core/bin/bridge" }`),
+so it is sibling-coupled on every branch. There are three lockfiles —
+`Cargo.lock`, `tests/Cargo.lock`, `bridge/Cargo.lock` — and `cargo update -w`
+re-resolves the root workspace only; re-resolve each explicitly after toggling
+the patch.
 
-There are three lockfiles — `Cargo.lock`, `tests/Cargo.lock`,
-`bridge/Cargo.lock` — and `cargo update -w` re-resolves the root workspace
-only. Re-resolve each explicitly after toggling the patch; a manifest
-`--check` reads manifests and cannot see a lockfile still pointing at a path.
+## Step A — adopt the published core (on `next`)
 
-## Step A — bump and validate locally
+Make both patch blocks dormant again, then:
 
 ```bash
 just core-bump X.Y.Z
 ```
 
-This refuses to run with an active `[patch.crates-io]` override, then runs
-`scripts/sync-release-version.sh X.Y.Z` (bumps the workspace version, the
-`systemprompt` + `systemprompt-security` pins, Chart.yaml appVersion +
-chart version + artifacthub annotation/changelog, and the exact-pin deploy
-files: CasaOS compose, DigitalOcean compose + Packer default), re-resolves
-all three lockfiles (`cargo update -w` for the root, `tests/` and `bridge/`),
-runs `infra db migrate --profile local`, `just build`, and `just clippy`.
+This refuses to run with an active `[patch.crates-io]`, then runs
+`scripts/sync-release-version.sh X.Y.Z` (the workspace and bridge versions,
+every core pin and `bridge/CORE_REF` via `sync-core-version.sh`, Chart.yaml
+appVersion + chart version + artifacthub annotation/changelog, and the
+exact-pin deploy files: CasaOS compose, DigitalOcean compose + Packer
+default), re-resolves all three lockfiles, runs
+`infra db migrate --profile local`, `just build` and `just clippy`.
 
-**`core-bump` is local-only.** The migrate step names `--profile local` and
-is not `|| true`-swallowed: the 0.51.0 bump ran a bare `infra db migrate`
-after `just deploy-check` (which pins `--profile production`) had flipped the
-CLI's active session to production, and the migration was pointed at the
-live database. Two things now hold that line:
+**`core-bump` is local-only.** The migrate step names `--profile local` and is
+not `|| true`-swallowed: the 0.51.0 bump ran a bare `infra db migrate` after
+`just deploy-check` had flipped the CLI's active session to production, and
+the migration was pointed at the live database. Core's CLI now refuses
+`infra db migrate` and `infra jobs run` on an implicitly selected cloud
+profile, and an explicit `--profile` never rewrites the saved session.
 
-- Core's CLI refuses `infra db migrate` and `infra jobs run` on a cloud
-  profile that was selected implicitly (the saved session or profile
-  discovery). To run either against a cloud profile you must pass
-  `--profile <name>` on that command.
-- An explicit `--profile` never rewrites the saved session, so `deploy-check`
-  and `deploy` no longer leave the CLI pointed at production for whatever runs
-  next. `build-all` also passes `--profile local` to `publish_pipeline`.
+Then:
 
-### Secrets that left the environment (core 0.52.0)
+1. **Record the schema rung.** `just schema-baseline` writes
+   `tests/fixtures/schema/release-baseline-X.Y.Z.sql` from a fresh local
+   install. The ladder is append-only, one rung per release from the floor
+   (0.61.0); `scripts/check-schema-baseline.sh` fails without the rung for the
+   workspace version. A rung for an already-published release is recorded from
+   its tarball with `just schema-baseline X.Y.Z` (Linux hosts).
+2. `just prepare` if query or schema inputs changed.
+3. Move the CHANGELOG's `## Unreleased` entries under `## X.Y.Z`.
+4. `just verify` (optional; the push runs it), commit, `git push origin next`.
 
-Core 0.52.0 no longer reads `gateway.bridge_releases.token_env` (renamed
-`token_secret`: a key in the secrets document, not a process variable),
-`MCP_CREDENTIAL_BROKER_SECRET` (now `secrets.custom["MCP_CREDENTIAL_BROKER_SECRET"]`)
-or `PGCA_CERT_PATH` (name a private CA with `?sslrootcert=` in the database
-URL). When the bump lands on 0.52.0: rename the key in
-`services/ai/gateway.yaml` and `docs/gateway-routes.md` (the old key is a
-parse error, loud not silent), and — because production's secrets source is
-`env` — list `SYSTEMPROMPT_BRIDGE_RELEASES_TOKEN` in the Fly app's
-`SYSTEMPROMPT_CUSTOM_SECRETS` as well as setting it. Check
-`flyctl secrets list` before that deploy.
+**Lockfile agreement.** `scripts/check-core-crate-versions.sh`
+(`preflight-static` and the `static` tier) fails when the three lockfiles
+resolve any `systemprompt*` crate at more than one version — a stale lockfile
+compiles against a different core than the one being released and surfaces as
+an unrelated compile error deep in a test or bridge build (0.51.0).
 
-### Lockfile agreement
+**Docker.** `cloud deploy` shells out to `docker build`. `deploy` and
+`deploy-next` run `_docker-preflight` first: when `/usr/bin/docker` exists,
+`/usr/bin` is pinned to the front of `PATH`, and if `docker` still resolves
+elsewhere a warning names the path. A wrapper shim ahead of the real binary
+(0.51.0) fails the image build with an error that mentions neither.
 
-`scripts/check-core-crate-versions.sh` (in `preflight-static` and the
-`source-gates` job of `quality.yml`) fails when `Cargo.lock`,
-`tests/Cargo.lock` and `bridge/Cargo.lock` resolve any `systemprompt*` crate
-at more than one version. They drift easily: `cargo update -w` re-resolves
-the root workspace only, `tests/` is its own workspace with its own copy of
-every core pin (and its own commented `[patch.crates-io]` block pointing at
-`../../systemprompt-core/...`), and `bridge/` takes `systemprompt-bridge` by
-path from the sibling core checkout. A stale lockfile compiles against a
-different core than the one being released and surfaces as an unrelated
-compile error deep in a test or bridge build — 0.51.0 lost time to exactly
-that. A path copy and a registry copy of the same crate may coexist, but only
-at the same version.
-
-### Docker
-
-`cloud deploy` shells out to `docker build`. `deploy` and `deploy-next` run
-`_docker-preflight` first: when `/usr/bin/docker` exists, `/usr/bin` is pinned
-to the front of `PATH` for the deploy step, and if `docker` still resolves
-outside `/usr/bin` a warning names the path. A wrapper shim ahead of the real
-binary (0.51.0 hit one) fails the image build with an error that mentions
-neither docker nor the shim, so the warning is the only pointer you get.
-
-Then exercise anything the core changelog touches and review the diff.
-
-**Every check runs in exactly one place.** The exhaustive matrix — fmt, the
-offline sqlx cache, the 24 source gates, clippy at `-D warnings` on all three
-manifests, rustdoc, MSRV, the unit / integration / contract / e2e suites and
-supply chain — runs once, on the promotion PR, pinned to the frozen commit.
-Do not run `just verify` or dispatch `just gate` as part of a release, and do
-not re-verify after the PR is green.
-
-Local is a confidence pass covering only what a runner cannot tell you sooner:
-
-```bash
-SIBLING_REPO=../systemprompt-template bash scripts/check-fork-drift.sh
-bash scripts/check-release-version.sh
-```
-
-`check-fork-drift` skips itself in CI (no sibling checkout), so it is local-only
-by construction. `check-release-version` guards the silently-dropped patch above,
-which no build log can surface.
-
-**`ci.yml` and `quality.yml` trigger only on `pull_request` to `main`/`next`
-and `workflow_dispatch` — there is no `push` trigger.** A push
-to `next` runs nothing, so `next` accumulates gate debt in silence and the
-promotion PR is this repo's only remote proof. Anything the PR would catch has
-to be fixed on `next` before it opens; commit there, never to `main`.
-
-## Step B — tag
+## Step B — promote the proven `next` commit
 
 ```bash
 just release X.Y.Z
 ```
 
-Checks the tree is clean, HEAD == origin/main, every pin matches
-(`sync-release-version.sh --check`), and prints the `vX.Y.Z` and
-`bridge-vX.Y.Z` releases the merge published (Step C). Nothing is tagged by
-hand any more — both tags are created by the workflow at the merge commit.
+Run from a clean `next` (or a detached worktree whose HEAD is `origin/next`).
+`scripts/release.sh` checks the patch is dormant, every pin agrees
+(`sync-release-version.sh X.Y.Z --check`, `check-release-version.sh`,
+`check-core-ref.sh`, `check-schema-baseline.sh`), HEAD is `origin/next`,
+`main` is an ancestor, and the latest `gates.yml` run for a push to `next` on
+that exact SHA completed green with its `Gates passed` aggregate
+(`scripts/check-gates-green.sh`). It then pushes
+`promote/X.Y.Z/<main-sha>/<next-sha>` and opens the PR.
+
+The PR's Gates run skips the matrix and runs only `Verify frozen promotion`:
+the push proof, unchanged head and base, ancestry, and a GitHub merge tree
+identical to the candidate. Record the PR and run IDs, and once that run
+finishes, repeat `just release X.Y.Z`: it re-verifies both proofs
+(`scripts/check-promotion-green.sh`) and the proposed merge tree, merges with
+`--match-head-commit`, and checks the merged parents and tree. It never pushes
+to `main`. Missing, pending, cancelled or red proof all block promotion.
+
+The self-tests in `tests/scripts/` (run by the `static` tier) exercise these
+scripts against mocked `git`/`gh` state, including every refusal.
 
 ## Step C — the merge publishes the artifacts
 
-When the release PR merges, `release.yml` on `main`:
+On the push to `main`, `release.yml`:
 
-1. `version` — reads `bridge/Cargo.toml`, runs the sync check, checks out
-   core at `CORE_REF` and asserts its version is `X.Y.Z`. If `bridge-vX.Y.Z`
-   already exists (a merge with no bump) every later job is skipped with a
-   notice.
+1. `version` — `scripts/check-release-merge.sh` proves the commit is the
+   two-parent merge of a frozen promotion PR whose tree is the candidate's,
+   at the version the ref names, with both proofs green; it asserts the patch
+   is dormant, `Cargo.lock` resolves `systemprompt` from crates.io and
+   `check-core-ref.sh` passes; reads `bridge/Cargo.toml`, runs the sync and
+   lockstep checks, checks out core at `CORE_REF` and asserts its version is
+   `X.Y.Z`. If `bridge-vX.Y.Z` already exists every later job is skipped.
 2. `checks` → `build` → `release` — bridge fmt/clippy, the four platform
-   builds (macOS signed + notarized), cosign-signed assets, GitHub Release
-   `bridge-vX.Y.Z` at the merge commit.
-3. `gateway` → `release-gateway` — `cargo build --release --workspace` for
+   builds (macOS universal, signed + notarized), cosign-signed assets, GitHub
+   Release `bridge-vX.Y.Z` at the merge commit, then a probe that every
+   published download link resolves (versioned and `releases/latest`).
+3. `publish-image` — `docker.yml`: multi-arch image pushed by digest, merged
+   and cosign-signed as **`:sha-<short>` only**.
+4. `smoke` and `upgrade-boot` prove that digest: `--version` reports `X.Y.Z`,
+   all three MCP binaries are present, both arches, signature verified; and
+   the image's own entrypoint boots over every schema rung seeded with 2000
+   rows per hot table (`seed_hot_tables.sql`) — `/health` healthy or `/readyz`
+   — without losing an `ai_requests` row.
+5. `promote-tags` — only then point `:X.Y.Z` (create-once), `:X.Y`, `:X` and
+   `:latest` at the proven digest. A failed run leaves nothing but its own
+   `:sha-<short>`.
+6. `gateway` → `release-gateway` — `cargo build --release --workspace` for
    `linux-amd64`, `linux-arm64`, `darwin-arm64`; tarballs with `bin/`
    (gateway + MCP servers), `services/`, extension manifests, `scripts/`;
-   cosign-signed `SHA256SUMS`; GitHub Release `vX.Y.Z` at the merge commit.
-4. `publish-image` — `docker.yml`: multi-arch image, `:X.Y.Z`, `:X.Y`, `:X`,
-   `:latest`, `:sha-…`, cosign-signed, smoke-run.
+   cosign-signed `SHA256SUMS`; GitHub Release `vX.Y.Z` at the merge commit,
+   published after `promote-tags` because its notes name the image.
 
 Re-publish a release without re-merging with
 `gh workflow run release.yml -f bridge_tag=bridge-vX.Y.Z` (the tag must equal
-the manifest version). Deploy the instance with `just deploy`; the admin
-Bridge Setup page links `releases/download/bridge-vX.Y.Z/…` by the running
-binary's version, so the links are right the moment the deploy lands.
+the manifest version). Nothing is tagged by hand.
 
+The admin Bridge Setup page links `releases/download/bridge-vX.Y.Z/…` by the
+running binary's version, so the links are right the moment the deploy lands.
 The desktop bridge's self-updater reads `gateway.bridge_releases` from the
 production profile (repo, `tag_prefix: bridge-v`, the four `assets:`, no
 `pinned_version`): `main` is the only publisher, so "newest release" is the
-build shipped with the deployed core. `SYSTEMPROMPT_BRIDGE_RELEASES_TOKEN`
-(fine-grained PAT, contents:read) keeps the gateway off GitHub's anonymous
-rate limit.
+build shipped with the deployed core. Two release series share this repo and
+GitHub hands `releases/latest` to the newest release, so the bridge release
+claims `latest` and the gateway release declines it.
+`SYSTEMPROMPT_BRIDGE_RELEASES_TOKEN` (fine-grained PAT, contents:read) keeps
+the gateway off GitHub's anonymous rate limit.
 
-### Retention
+## Step D — deploy production (Fly)
+
+```bash
+just deploy-release X.Y.Z
+```
+
+`scripts/deploy-release.sh` works from a clean detached worktree of
+`origin/main` (the `vX.Y.Z` tag must *be* `origin/main`, and `bridge-vX.Y.Z`
+and the `:X.Y.Z` image must exist), installs the release's own server
+binaries with `just fetch-release` (verified against the release
+`SHA256SUMS`), renders `web/dist` there, runs `cloud doctor`, deploys, then
+requires the Fly machine's image digest **and** update timestamp to move,
+waits for `/health` to report healthy on core `X.Y.Z`, and watches it for five
+minutes. `DEPLOY_DRY_RUN=1` stops before `cloud deploy`. Linux x86_64 hosts
+only (the tarball's binaries are baked into the linux/amd64 image and run
+there). The worktree is kept for inspection on failure.
+
+`just deploy` remains the preview path: it builds and ships whatever this
+working tree holds (`core-guard` first). `just deploy-next` does the same from
+a dedicated worktree of `origin/next`.
+
+## Retention
 
 `ghcr-prune.yml` runs weekly and after every successful release: it keeps the
 3 newest `X.Y.Z` images (alias tags follow), drops `sha-*` tags and untagged
@@ -268,17 +276,20 @@ needs `GHCR_PRUNE_TOKEN` — a classic PAT with `read:packages` +
 
 ## Rollback
 
-1. Redeploy the previous good build (`just deploy` from the previous tag).
+1. Redeploy the previous good release: `just deploy-release <previous>` (or
+   `just deploy` from the previous tag's worktree).
 2. Mark any GitHub Release as pre-release or delete it.
-3. Never reuse a tag — fix forward and cut the next patch version.
-4. Chart: publish the previous chart again or a new patch chart pinning the
+3. Never reuse or move a released tag — fix forward and cut the next version.
+4. Core migrations are forward-only; roll back only to a version whose
+   migrations match the database.
+5. Chart: publish the previous chart again or a new patch chart pinning the
    good image via `image.tag`.
 
 ## Post-release checklist
 
-- [ ] `just verify` green on the tagged commit
-- [ ] `gh run list --workflow=release.yml --limit 1` green: release
-      `bridge-vX.Y.Z` and image `:X.Y.Z` exist
+- [ ] `gh run list --workflow=release.yml --limit 1` green: `bridge-vX.Y.Z`,
+      `vX.Y.Z` and image `:X.Y.Z` exist, `promote-tags` succeeded
+- [ ] `just deploy-release X.Y.Z` finished its five-minute watch
 - [ ] the deployed instance serves the new version (`just server-status`)
       and `/admin/bridge/setup` links `bridge-vX.Y.Z`
 - [ ] Helm chart packaged only if that release is actually being distributed
