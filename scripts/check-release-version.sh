@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Gate: the bridge carries the same version as the workspace, and a release
+# Gate (lockstep versioning): this repository's version IS the core version it
+# builds against. The bridge carries the same version as the workspace, and a release
 # state of the tree (no active [patch.crates-io]) is fully pinned to one core
 # version — bridge/Cargo.toml, bridge/CORE_REF, every core pin.
 #
@@ -9,7 +10,7 @@
 # instead, so a workspace trailing core builds green having proved nothing about
 # the code it ships. On `main` (patch commented out) the same check runs against
 # the workspace version, which is what the release workflow re-asserts before it
-# publishes anything.
+# publishes anything. scripts/release.sh runs it before freezing a candidate.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

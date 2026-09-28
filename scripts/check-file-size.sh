@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# No extension source file (excluding tests) may exceed 300 lines. Shared by
+# No production source file (excluding tests) may exceed 300 lines. Shared by
 # `just file-size` and the quality.yml file-size CI job.
 #
 # `//!` module-head lines are excluded from the count, matching the core
@@ -57,7 +57,8 @@ self_check() {
 
 self_check
 
-violations=$(scan extensions)
+# Production roots: the extensions, the facade and the bridge client.
+violations=$(for root in extensions src bridge/src; do if [ -d "$root" ]; then scan "$root"; fi; done)
 if [ -n "$violations" ]; then
     echo "error: extension source file(s) exceed the 300-line ceiling:"
     echo "$violations"

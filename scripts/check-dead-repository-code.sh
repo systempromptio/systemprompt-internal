@@ -92,7 +92,8 @@ while IFS= read -r fn; do
         [ -d "$base" ] || continue
         while IFS= read -r root; do
             for n in $names; do
-                c=$(grep -rnE "\b${n}\s*\(" "$root" --include='*.rs' 2>/dev/null \
+                c=$(grep -rnE "\b${n}\s*\(" "$root" --include='*.rs' \
+                        --exclude-dir=target --exclude-dir=.vendor 2>/dev/null \
                     | grep -vE 'pub (async )?fn |^\s*//' | grep -vc '^$' || true)
                 hits=$((hits + c))
             done

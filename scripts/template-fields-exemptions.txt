@@ -1,0 +1,45 @@
+# Handlebars references that resolved to nothing when check-template-fields
+# was adopted (Stage 1 of the astound backport). Known debt, suppressed so the
+# gate guards every OTHER template today; the admin UI port (Stage 3) deletes
+# these one by one. An entry that stops reproducing fails the gate as stale.
+# Never add a line here for new code: define the field or fix the template.
+storage/files/admin/partials/components/month-selector.hbs: org_slug
+storage/files/admin/templates/approvals.hbs: ingestion_count
+storage/files/admin/templates/bridge-device-code.hbs: account_email
+storage/files/admin/templates/bridge-device-link-blocked.hbs: blocked_reason
+storage/files/admin/templates/bridge-device-link-blocked.hbs: switch_account_href
+storage/files/admin/templates/bridge-device-link.hbs: account_email
+storage/files/admin/templates/bridge-device-link.hbs: session_email
+storage/files/admin/templates/bridge-device-link.hbs: signed_in_via
+storage/files/admin/templates/bridge-device-link.hbs: switch_account_href
+storage/files/admin/templates/demo-logbook.hbs: attribution_note
+storage/files/admin/templates/demo-logbook.hbs: heading
+storage/files/admin/templates/demo-me.hbs: attribution_note
+storage/files/admin/templates/demo-skills.hbs: attribution_note
+storage/files/admin/templates/demo-tools.hbs: attribution_note
+storage/files/admin/templates/demo-tools.hbs: failure_rate_display
+storage/files/admin/templates/enterprise-detail.hbs: enterprise
+storage/files/admin/templates/enterprise-detail.hbs: org_role
+storage/files/admin/templates/enterprises.hbs: budget_pct
+storage/files/admin/templates/enterprises.hbs: budget_state
+storage/files/admin/templates/enterprises.hbs: departments
+storage/files/admin/templates/enterprises.hbs: seat_limit
+storage/files/admin/templates/enterprises.hbs: seats_pct
+storage/files/admin/templates/enterprises.hbs: seats_used
+storage/files/admin/templates/governance.hbs: config_path
+storage/files/admin/templates/governance.hbs: decisions_url
+storage/files/admin/templates/governance.hbs: deny_decisions_url
+storage/files/admin/templates/governance.hbs: deny_rate
+storage/files/admin/templates/governance.hbs: window_allowed
+storage/files/admin/templates/governance.hbs: window_denied
+storage/files/admin/templates/governance.hbs: window_evaluations
+storage/files/admin/templates/login.hbs: passkey_authorize_url
+storage/files/admin/templates/profile.hbs: odoo
+storage/files/admin/templates/report-customer.hbs: generated_at
+storage/files/admin/templates/report-customer.hbs: month_key
+storage/files/admin/templates/report-customer.hbs: month_label
+storage/files/admin/templates/report-customer.hbs: org_name
+storage/files/admin/templates/report-internal.hbs: generated_at
+storage/files/admin/templates/report-internal.hbs: month_label
+storage/files/admin/templates/skill-usage.hbs: attributed_cost_usd
+storage/files/admin/templates/users-sessions.hbs: window_minutes
