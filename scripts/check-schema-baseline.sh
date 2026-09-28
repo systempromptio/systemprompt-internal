@@ -27,13 +27,6 @@
 # with the ladder (earlier releases carried one release-baseline.sql, which
 # recorded 0.60.0). A database older than the floor upgrades through 0.61.0
 # first.
-#
-# TODO(stage-2 backport): the ladder's first rungs (0.61.0, 0.62.0) are
-# recorded in the schema-tooling stage, together with the rewrite of
-# tests/integration/schema-upgrade from the single legacy fixture
-# (tests/fixtures/schema/release-baseline.sql) to a loop over the rungs. Until
-# a rung exists this gate SKIPS loudly instead of failing; the skip is the
-# only tolerance, and the first recorded rung switches every rule below on.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -47,10 +40,7 @@ version="$(awk '/^\[workspace\.package\]/{p=1;next}/^\[/{p=0}p&&/^version[[:spac
 shopt -s nullglob
 rungs=("$DIR"/release-baseline-*.sql)
 shopt -u nullglob
-if [ "${#rungs[@]}" -eq 0 ]; then
-    echo "check-schema-baseline: SKIPPED — no release-baseline-<version>.sql rung yet (TODO stage-2: record 0.61.0 and 0.62.0 with 'just schema-baseline')"
-    exit 0
-fi
+[ "${#rungs[@]}" -gt 0 ] || { echo "check-schema-baseline: no release-baseline-<version>.sql under $DIR" >&2; exit 1; }
 
 top="$DIR/release-baseline-$version.sql"
 [ -f "$top" ] || {

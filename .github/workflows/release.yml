@@ -797,14 +797,9 @@ jobs:
           docker pull "$ref"
           shopt -s nullglob
           rungs=(tests/fixtures/schema/release-baseline-*.sql)
-          # TODO(stage-2 backport): the ladder's first rungs are recorded in
-          # the schema-tooling stage. Until then the single legacy fixture
-          # (release-baseline.sql, 0.60.0) is the rung, so a release is still
-          # proved over one real prior schema rather than none.
-          [ "${#rungs[@]}" -gt 0 ] || rungs=(tests/fixtures/schema/release-baseline.sql)
           [ -f "${rungs[0]}" ] || { echo "::error::no release-baseline fixture to upgrade from"; exit 1; }
           for fixture in "${rungs[@]}"; do
-            rung=$(basename "$fixture" .sql); rung=${rung#release-baseline}; rung=${rung#-}; rung=${rung:-legacy}
+            rung=$(basename "$fixture" .sql); rung=${rung#release-baseline-}
             db="upgrade_${rung//./_}"
             echo "::group::$rung"
             psql -h localhost -U test -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE $db"

@@ -209,9 +209,10 @@ tarball. The gate requires a rung for every release tag from the floor and one
 named for the workspace version, so `just core-bump` turns it red until the
 new rung is recorded. Never edit a rung by hand. `release.yml`'s
 `upgrade-boot` boots the image over every rung, seeded by
-`tests/integration/schema-upgrade/src/seed_hot_tables.sql`. Until the first
-rung lands, the legacy single fixture `tests/fixtures/schema/release-baseline.sql`
-(0.60.0) is what the upgrade test and `upgrade-boot` use.
+`tests/integration/schema-upgrade/src/seed_hot_tables.sql`, and
+`tests/integration/schema-upgrade` restores each rung, seeds it the same way,
+runs the current installer over it (2000 rows per hot table must survive) and
+diffs the result against a fresh install.
 
 Tests live in the `tests/` workspace (`unit/`, `integration/`, `contract/`,
 `e2e/`) or in-crate `tests/` dirs — inline `#[cfg(test)]` modules are banned.

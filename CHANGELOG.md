@@ -59,6 +59,12 @@ Conventions (strict — hold every entry to them):
   `:sha-<short>`; `release.yml`'s `smoke` (version, MCP binaries, arches, signature) and
   `upgrade-boot` (the image's entrypoint over every seeded release schema, rows must survive)
   gate `promote-tags`, which alone moves `:X.Y.Z`, `:X.Y`, `:X` and `:latest`.
+- **Schema ladder:** `tests/fixtures/schema/release-baseline-<X.Y.Z>.sql` holds one recorded
+  schema per release from the floor (0.61.0; rungs 0.61.0 and 0.62.0).
+  `tests/integration/schema-upgrade` restores every rung, seeds 2000 rows per hot table
+  (`seed_hot_tables.sql`), upgrades it and requires the rows to survive and the shape to equal a
+  fresh install; `check-schema-baseline` no longer skips, and the single `release-baseline.sql`
+  (0.60.0) is retired from the test and from `release.yml`'s `upgrade-boot`.
 - **Coverage:** `.github/workflows/coverage.yml` measures the floor and ratchet on `main`,
   nightly and on demand; `scripts/coverage-badge.sh` renders and checks the README badge.
 - **Deploy:** `just deploy-release X.Y.Z` (`scripts/deploy-release.sh`) ships a published
