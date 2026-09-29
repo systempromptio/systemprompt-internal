@@ -105,3 +105,6 @@ mod users_access_matrix_dimensions;
 mod users_federated_sso;
 #[cfg(test)]
 mod users_identity;
+
+#[cfg(test)]
+mod users_manual_roles;

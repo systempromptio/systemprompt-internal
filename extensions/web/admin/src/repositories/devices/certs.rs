@@ -112,6 +112,48 @@ pub async fn revoke_any_device_cert(pool: &PgPool, id: &str) -> Result<bool, sql
     Ok(result.rows_affected() > 0)
 }
 
+// Why: the window is a side row because `user_device_certs` is core's table.
+// It binds through the hourly sweep (`revoke_expired_device_certs`), which
+// stamps `revoked_at` — the column core's device gate actually reads. Only a
+// live certificate takes a window; a revoked one has nothing left to bound.
+pub async fn set_device_cert_validity(
+    pool: &PgPool,
+    id: &str,
+    valid_until: Option<DateTime<Utc>>,
+) -> Result<bool, sqlx::Error> {
+    let live = sqlx::query_scalar!(
+        r#"SELECT EXISTS(SELECT 1 FROM user_device_certs WHERE id = $1 AND revoked_at IS NULL) AS "live!""#,
+        id
+    )
+    .fetch_one(pool)
+    .await?;
+    if !live {
+        return Ok(false);
+    }
+    match valid_until {
+        Some(until) => {
+            sqlx::query!(
+                "INSERT INTO user_device_cert_validity (device_id, valid_until) VALUES ($1, $2)
+                 ON CONFLICT (device_id) DO UPDATE
+                    SET valid_until = EXCLUDED.valid_until, updated_at = NOW()",
+                id,
+                until
+            )
+            .execute(pool)
+            .await?;
+        },
+        None => {
+            sqlx::query!(
+                "DELETE FROM user_device_cert_validity WHERE device_id = $1",
+                id
+            )
+            .execute(pool)
+            .await?;
+        },
+    }
+    Ok(true)
+}
+
 // Why: the sweep's half of a certificate's window. `user_device_certs` is
 // core's table, so the window is a side row (`user_device_cert_validity`)
 // and binds by stamping `revoked_at` — the column core's device gate reads.

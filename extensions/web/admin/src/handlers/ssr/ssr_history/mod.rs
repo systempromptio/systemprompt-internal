@@ -22,6 +22,7 @@ mod conversation;
 mod export;
 mod kind;
 mod view;
+mod window;
 
 pub(crate) use context::HistoryRowView;
 pub(crate) use conversation::history_conversation_page;
@@ -47,9 +48,10 @@ use crate::repositories::analytics::conversations::{
 use crate::templates::AdminTemplateEngine;
 use crate::types::{MarketplaceContext, UserContext};
 
-use context::HistoryPageContext;
+use context::{HiddenInputView, HistoryPageContext};
 use export::export_view;
-use view::{build_pagination, detail_url, scope_label, side_toggle_url};
+use view::{build_pagination, detail_url, scope_label, side_toggle_url, window_links};
+use window::HistoryWindow;
 
 const PAGE_SIZE: i64 = 50;
 
@@ -59,6 +61,11 @@ pub(crate) struct HistoryQuery {
     user_id: Option<UserId>,
     page: Option<i64>,
     side: Option<String>,
+    // Why: the window — a preset `days`, or a custom `start`/`end` — bounds a
+    // conversation's last activity; none of them means all time.
+    days: Option<u32>,
+    start: Option<String>,
+    end: Option<String>,
 }
 
 impl HistoryQuery {
@@ -128,14 +135,15 @@ async fn fetch_history_slice(
     };
 
     let page = query.page.unwrap_or(0).max(0);
+    let (since, until) = HistoryWindow::of(query).bounds();
     let (items, total) = list_history_items(
         pool,
         HistoryFilter {
             scope_user_ids: scope_ids.as_deref(),
             search: query.q.as_deref(),
             include_side_calls: query.show_side(),
-            since: None,
-            until: None,
+            since,
+            until,
         },
         PAGE_SIZE,
         page * PAGE_SIZE,
@@ -243,6 +251,7 @@ async fn render_listing(
         "conversations",
     );
     let base = view.base_url();
+    let history_window = HistoryWindow::of(query);
     let data = HistoryPageContext {
         page: view.page_id(),
         title: view.title(),
@@ -255,8 +264,15 @@ async fn render_listing(
         side_toggle_url: side_toggle_url(query, base),
         base_url: base,
         pagination: build_pagination(query, window, base),
+        window_links: window_links(query, base),
+        window_label: history_window.label(),
+        window_inputs: history_window
+            .pairs()
+            .into_iter()
+            .map(|(name, value)| HiddenInputView { name, value })
+            .collect(),
         breadcrumbs: view.breadcrumbs(),
-        export: export_view(query, view),
+        export: export_view(query, view, &history_window),
     };
     Ok(super::render_typed_page(
         engine,

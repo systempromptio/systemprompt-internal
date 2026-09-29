@@ -74,6 +74,10 @@ pub(crate) struct DetailKpiView {
     pub devices: i64,
     pub groups: usize,
     pub projects: usize,
+    // Why: the two scope tiles open the Membership tab. The count alone told
+    // an operator a fresh account was in no group and nothing else — where to
+    // put it in one is the tab they were not on.
+    pub membership_url: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -83,6 +87,9 @@ pub(crate) struct IdentityTabView {
     pub is_active: bool,
     pub created_at: String,
     pub role_choices: Vec<RoleChoiceView>,
+    // Why: the calendar day the manual grants expire (`YYYY-MM-DD`, for the
+    // date picker), empty for open-ended.
+    pub roles_valid_until_day: String,
     pub adfs_groups: Vec<String>,
     pub has_adfs_groups: bool,
     pub idp_issuer: String,
@@ -173,6 +180,7 @@ pub(crate) struct DeviceRowView {
     pub last_seen: String,
     pub status_label: &'static str,
     pub status_tone: &'static str,
+    pub is_active: bool,
     pub revocable: bool,
 }
 

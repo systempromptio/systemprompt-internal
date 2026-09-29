@@ -29,6 +29,7 @@ pub fn public_js_assets(storage_js: &Path) -> Vec<AssetDefinition> {
         site_js!(&site, "analytics-state.js"),
         site_js!(&site, "analytics-transport.js"),
         site_js!(&site, "copy-buttons.js"),
+        site_js!(&site, "docs-evidence-gallery.js"),
         site_js!(&site, "docs-export.js"),
         site_js!(&site, "docs-nav.js"),
         site_js!(&site, "docs-pagination.js"),

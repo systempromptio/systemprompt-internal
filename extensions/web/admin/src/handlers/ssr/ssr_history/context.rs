@@ -4,7 +4,7 @@ use serde::Serialize;
 use systemprompt::identifiers::{SessionId, UserId};
 
 use crate::handlers::ssr::list_view::Pagination;
-use crate::handlers::ssr::types::BreadcrumbView;
+use crate::handlers::ssr::types::{BreadcrumbView, TabLinkView};
 
 #[derive(Debug, Serialize)]
 pub(super) struct HistoryPageContext {
@@ -19,8 +19,19 @@ pub(super) struct HistoryPageContext {
     pub side_toggle_url: String,
     pub base_url: &'static str,
     pub pagination: Pagination,
+    pub window_links: Vec<TabLinkView>,
+    pub window_label: String,
+    // Why: the search forms submit with GET, so the window rides along as
+    // hidden inputs or a search would silently widen to all time.
+    pub window_inputs: Vec<HiddenInputView>,
     pub breadcrumbs: Vec<BreadcrumbView>,
     pub export: crate::export::ExportView,
+}
+
+#[derive(Debug, Serialize)]
+pub(super) struct HiddenInputView {
+    pub name: &'static str,
+    pub value: String,
 }
 
 #[derive(Debug, Serialize)]

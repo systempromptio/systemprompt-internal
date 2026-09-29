@@ -61,3 +61,5 @@ pub(crate) use users::{
 };
 
 pub(crate) mod connector_auth;
+
+pub(crate) mod managed_resources;

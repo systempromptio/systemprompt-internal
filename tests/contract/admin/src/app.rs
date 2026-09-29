@@ -67,7 +67,13 @@ impl App {
         let api = Router::new()
             .nest(
                 "/admin",
-                admin::admin_router(Arc::clone(pool), pool, credentials.admin_user_id.clone()),
+                admin::admin_router(
+                    &database,
+                    Arc::clone(pool),
+                    pool,
+                    credentials.admin_user_id.clone(),
+                )
+                .expect("build the admin API router"),
             )
             .merge(admin::connector_api_router(Arc::clone(pool)))
             .merge(admin::bridge_identity_router(Arc::clone(pool)))

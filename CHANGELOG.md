@@ -155,6 +155,32 @@ Conventions (strict — hold every entry to them):
 - **Connect:** `/admin/connect` (Account → Connect) is the connect-code wizard for Claude Code,
   Claude Desktop/Cowork and OpenCode — client, one-time code, install command — with the bridge
   downloads (under the setup page's download base) and the client guides.
+- **Managed resources API:** owner-authenticated source, snapshot, revision, candidate,
+  publication, reconciliation, withdrawal, distribution and installation routes under
+  `/api/public/admin/managed/*` (`handlers/managed_resources/`,
+  `routes/managed_resources.rs`), reads on the console tier and writes on the manage tier
+  behind the same-origin check, all through core's `ManagedRepository`. Authoring never
+  activates anything; publication is its own reviewed step.
+- **Signed identity for external MCP servers:** `GET /api/public/identity/{server}/token`
+  signs a five-minute JWT for the calling user (issuer, the server's endpoint as audience,
+  user id, email, name) with the instance authority key, for the gateway's credential broker
+  only, only for a server whose `external_auth.token_endpoint` names this route, and only
+  when access control admits the caller. Contract: `docs/EXTERNAL-MCP-IDENTITY.md`.
+- **Devices:** `PUT /api/public/admin/devices/certs/{id}/expiry` sets or clears a live device
+  certificate's window (`user_device_cert_validity`); the hourly `access_expiry` sweep revokes
+  it when it passes.
+- **Roles:** manual role grants carry an expiry. The user page's Roles form has a "Manual
+  grants expire" date; `GET/PUT …/users/{id}/roles` read and write `valid_until`; the reads
+  that decide what a person holds see only rows inside their window, and the hourly sweep
+  removes expired grants.
+- **History:** `/admin/history` has a window — 7, 30, 90 days, a year, or all time, or a
+  custom `start`/`end` — carried through search, paging and the export dialog.
+- **Request audit page:** `/admin/requests/{id}` compares the client's and the provider's tool
+  schemas side by side (with the Gemini rule hits recomputed from the client schema), lists
+  the session's stored artifacts, links every request row to its own audit page and the user
+  to their page, and shows each tool call's ledger state and artifact.
+- **Sign-in:** `admin-login.js` names why a single-sign-on round trip failed
+  (`/admin/login?sso=<code>`).
 
 ### Changed
 
@@ -193,6 +219,16 @@ Conventions (strict — hold every entry to them):
   gained a generic OIDC `userinfo` identity, issuer comparison per RFC 8414, a short outage
   hold after a provider failure, and token-endpoint 4xx answers retire the grant; GitHub and
   Atlassian keep their adapters and personal-token path.
+- **Admin API routing:** `admin_router` takes the shared `DbPool` and returns
+  `Result<Router, StateError>`, like `admin_ssr_router`, because both now carry
+  `ManagedState`.
+- **User page:** the Groups and Projects tiles open the Membership tab and name the primary
+  every new request is stamped with (`unattributed` when there is none); a bridge row's
+  status is its presence (online, idle, stale) and the Sessions tab's live count excludes
+  expired sessions. `repositories/users/queries/{identity,role}.rs` read the windowed
+  `user_projects` view, so an expired project membership no longer counts.
+- **Docs pages:** screenshots under `/files/images/evidence/` open in a gallery lightbox
+  (`site/docs-evidence-gallery.js`, `docs-evidence-gallery.css`).
 
 ### Removed
 

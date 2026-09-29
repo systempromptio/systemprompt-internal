@@ -12,12 +12,12 @@ use crate::repositories::analytics::conversations::{
 };
 use crate::types::UserContext;
 
+use super::window::HistoryWindow;
 use super::{HistoryQuery, HistoryView};
 
 // Why: the export is the listing the reader sees — their own scope, the same
 // search — through the page's own query type. The dialog's resolved window
-// bounds the rows; this page has no window of its own, so without one the
-// export is all time.
+// wins; without one the rows follow the page's own window.
 // What an export asks of the history listing, as opposed to who is asking.
 pub(crate) struct ExportRequest {
     pub query: HistoryQuery,
@@ -51,14 +51,18 @@ pub(crate) async fn export_rows(
         },
         None => scope.user_ids(),
     };
+    let (since, until) = window.map_or_else(
+        || HistoryWindow::of(&query).bounds(),
+        |w| (Some(w.from), Some(w.to)),
+    );
     Ok(list_history_items(
         pool,
         HistoryFilter {
             scope_user_ids: scope_ids.as_deref(),
             search: query.q.as_deref(),
             include_side_calls: query.show_side(),
-            since: window.map(|w| w.from),
-            until: window.map(|w| w.to),
+            since,
+            until,
         },
         limit,
         0,
@@ -67,16 +71,20 @@ pub(crate) async fn export_rows(
 }
 
 // Why: the export opens on the listing the reader is looking at — the same
-// search, user and side calls — and offers the full record of every
-// conversation it selects. The dialog's retained contract tops out at a year,
-// and this page is all time, so the dialog opens on its widest window.
-pub(super) fn export_view(query: &HistoryQuery, view: HistoryView) -> crate::export::ExportView {
-    let pairs = [
+// search, user, side calls and window — and offers the full record of every
+// conversation it selects.
+pub(super) fn export_view(
+    query: &HistoryQuery,
+    view: HistoryView,
+    window: &HistoryWindow,
+) -> crate::export::ExportView {
+    let window_pairs = window.export_pairs();
+    let mut pairs = vec![
         ("q", query.q.as_deref()),
         ("user_id", query.user_id.as_ref().map(UserId::as_str)),
         ("side", query.side.as_deref()),
-        ("days", Some("365")),
     ];
+    pairs.extend(window_pairs.iter().map(|(k, v)| (*k, Some(v.as_str()))));
     let source = match view {
         HistoryView::Org => TranscriptSource::Conversations,
         HistoryView::Own => TranscriptSource::History,

@@ -74,6 +74,7 @@ pub(super) struct IdentityData {
     pub identities: Vec<repositories::users::federated::LinkedIdentityRow>,
     pub salesforce_identities: Vec<repositories::users::salesforce_identity::SalesforceIdentity>,
     pub share_token_version: i32,
+    pub manual_roles_valid_until: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 pub(super) async fn load_identity(
@@ -81,11 +82,12 @@ pub(super) async fn load_identity(
     user_id: &UserId,
     roles: &[String],
 ) -> IdentityData {
-    let (adfs, identities, salesforce, share) = tokio::join!(
+    let (adfs, identities, salesforce, share, until) = tokio::join!(
         repositories::groups::members::list_source_ad_groups(pool, user_id),
         repositories::users::federated::list_linked_identities(pool, user_id),
         repositories::users::salesforce_identity::list_identities(pool, user_id),
         repositories::users::share_token::find_share_token_version(pool, user_id),
+        repositories::users::roles::find_manual_roles_valid_until(pool, user_id),
     );
     IdentityData {
         roles: roles.to_vec(),
@@ -93,6 +95,9 @@ pub(super) async fn load_identity(
         identities: warn_empty(identities, "federated identities"),
         salesforce_identities: warn_empty(salesforce, "Salesforce identities"),
         share_token_version: share.unwrap_or_default().unwrap_or(0),
+        manual_roles_valid_until: until
+            .inspect_err(|e| tracing::warn!(error = %e, "user detail: role expiry unavailable"))
+            .unwrap_or_default(),
     }
 }
 
