@@ -123,6 +123,8 @@ docs_sidebar:
         href: "/documentation/dashboard"
       - label: "Gateway API"
         href: "/documentation/gateway-api"
+      - label: "Expose Your Instance Remotely"
+        href: "/documentation/remote-access"
       - label: "All Skills"
         href: "/skills/"
 
