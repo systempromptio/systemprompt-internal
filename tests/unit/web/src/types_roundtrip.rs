@@ -429,4 +429,3 @@ fn gateway_route_view_omits_an_absent_upstream_model() {
     assert_eq!(back.model_pattern, "claude-*");
     assert_eq!(back.upstream_model, None);
 }
-

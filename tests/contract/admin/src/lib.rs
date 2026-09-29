@@ -114,8 +114,8 @@ mod judge_all_scope_contract;
 #[cfg(test)]
 mod marketplace_versions_contract;
 #[cfg(test)]
+mod roles_entitlements_contract;
+#[cfg(test)]
 mod ssr_analysis_coverage;
 #[cfg(test)]
 mod ssr_tools_artifacts_coverage;
-#[cfg(test)]
-mod roles_entitlements_contract;

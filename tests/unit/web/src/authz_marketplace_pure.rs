@@ -19,9 +19,9 @@ use systemprompt::models::bridge::manifest::{
 };
 use systemprompt::models::services::MarketplaceAccess;
 use systemprompt_security::authz::{EntityKind, EntityRef};
+use systemprompt_web_admin::authz::connector::connector_dimension;
 use systemprompt_web_admin::authz::group::{group_dimension, group_rule_type};
 use systemprompt_web_admin::authz::project::{project_dimension, project_rule_type};
-use systemprompt_web_admin::authz::connector::connector_dimension;
 
 #[test]
 fn the_membership_dimensions_sit_between_user_and_role() {

@@ -238,19 +238,9 @@ mod traces_analytics_pure;
 mod util_svg_pure;
 
 #[cfg(test)]
-mod connector_cards;
+mod activity_constructors;
 #[cfg(test)]
-mod connector_oauth;
-#[cfg(test)]
-mod observability_view;
-#[cfg(test)]
-mod release_version_substitution;
-#[cfg(test)]
-mod site_release_version_extender;
-#[cfg(test)]
-mod tool_schema_diff;
-#[cfg(test)]
-mod mcp_tool_name;
+mod adfs_claims;
 #[cfg(test)]
 mod adfs_session_pure;
 #[cfg(test)]
@@ -258,7 +248,19 @@ mod adfs_state_cookie;
 #[cfg(test)]
 mod agents_ingestion;
 #[cfg(test)]
+mod asset_manifest;
+#[cfg(test)]
+mod authorization_failures;
+#[cfg(test)]
+mod authz_marketplace_pure;
+#[cfg(test)]
 mod catalog_sorting;
+#[cfg(test)]
+mod connector_cards;
+#[cfg(test)]
+mod connector_oauth;
+#[cfg(test)]
+mod console_role;
 #[cfg(test)]
 mod devices_page;
 #[cfg(test)]
@@ -266,9 +268,13 @@ mod doc_links;
 #[cfg(test)]
 mod gateway_text_markers;
 #[cfg(test)]
+mod governance_calibration;
+#[cfg(test)]
 mod governance_decision_view;
 #[cfg(test)]
 mod groups_yaml_types;
+#[cfg(test)]
+mod history_scope;
 #[cfg(test)]
 mod ingestion_identity;
 #[cfg(test)]
@@ -276,9 +282,19 @@ mod marketplace_catalog_pure;
 #[cfg(test)]
 mod marketplace_hooks_pure;
 #[cfg(test)]
+mod mcp_tool_name;
+#[cfg(test)]
+mod observability_view;
+#[cfg(test)]
 mod overview;
 #[cfg(test)]
+mod pii_scanner;
+#[cfg(test)]
 mod plugins_env_unauth;
+#[cfg(test)]
+mod release_version_substitution;
+#[cfg(test)]
+mod role;
 #[cfg(test)]
 mod route_labels_pure;
 #[cfg(test)]
@@ -286,34 +302,18 @@ mod scope_attribution;
 #[cfg(test)]
 mod secrets_crypto_pure;
 #[cfg(test)]
+mod site_release_version_extender;
+#[cfg(test)]
 mod template_engine;
 #[cfg(test)]
+mod template_helpers;
+#[cfg(test)]
 mod template_parse;
+#[cfg(test)]
+mod tool_schema_diff;
+#[cfg(test)]
+mod types_roundtrip;
 #[cfg(test)]
 mod users_page;
 #[cfg(test)]
 mod util_ranges;
-#[cfg(test)]
-mod activity_constructors;
-#[cfg(test)]
-mod pii_scanner;
-#[cfg(test)]
-mod governance_calibration;
-#[cfg(test)]
-mod adfs_claims;
-#[cfg(test)]
-mod asset_manifest;
-#[cfg(test)]
-mod authorization_failures;
-#[cfg(test)]
-mod authz_marketplace_pure;
-#[cfg(test)]
-mod console_role;
-#[cfg(test)]
-mod history_scope;
-#[cfg(test)]
-mod role;
-#[cfg(test)]
-mod template_helpers;
-#[cfg(test)]
-mod types_roundtrip;
