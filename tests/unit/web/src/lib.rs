@@ -249,3 +249,5 @@ mod release_version_substitution;
 mod site_release_version_extender;
 #[cfg(test)]
 mod tool_schema_diff;
+#[cfg(test)]
+mod mcp_tool_name;

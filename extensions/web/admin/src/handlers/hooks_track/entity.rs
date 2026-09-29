@@ -39,14 +39,7 @@ fn detect_skill_entity(payload: &HookEventPayload) -> Option<(&'static str, Stri
 }
 
 fn detect_mcp_server(tool_name: &str) -> Option<String> {
-    let server = tool_name
-        .strip_prefix("mcp__")
-        .and_then(|rest| rest.split("__").next())?;
-    if server.is_empty() {
-        None
-    } else {
-        Some(server.to_owned())
-    }
+    crate::util::mcp_tool_name::parse_mcp_tool_name(tool_name).map(|name| name.server)
 }
 
 fn detect_agent_entity(payload: &HookEventPayload) -> Option<(&'static str, String)> {
