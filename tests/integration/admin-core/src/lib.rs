@@ -114,4 +114,54 @@ mod users_identity;
 mod users_manual_roles;
 
 #[cfg(test)]
+mod approvals;
+#[cfg(test)]
+mod authz_group_provider;
+#[cfg(test)]
+mod authz_project_provider;
+#[cfg(test)]
+mod dashboard_query_scaling;
+#[cfg(test)]
+mod gateway_accounting_recovery;
+#[cfg(test)]
+mod gateway_owner_isolation;
+#[cfg(test)]
+mod governance_decision_calls;
+#[cfg(test)]
+mod groups_crud;
+#[cfg(test)]
+mod groups_mappings;
+#[cfg(test)]
+mod groups_marketplaces;
+#[cfg(test)]
+mod groups_members;
+#[cfg(test)]
+mod groups_usage;
+#[cfg(test)]
+mod history_unified;
+#[cfg(test)]
+mod projects_crud;
+#[cfg(test)]
+mod projects_members;
+#[cfg(test)]
+mod req_026_audit_completeness;
+#[cfg(test)]
+mod req_044_access_matrix;
+#[cfg(test)]
+mod request_scopes;
+#[cfg(test)]
+mod scope_attribution;
+#[cfg(test)]
 mod tool_activity_intent_rows;
+#[cfg(test)]
+mod usage_metrics;
+#[cfg(test)]
+mod usage_reconciliation;
+#[cfg(test)]
+mod users_ai_request_summary;
+#[cfg(test)]
+mod users_identity_envelope;
+#[cfg(test)]
+mod users_revocation;
+#[cfg(test)]
+mod users_scope;

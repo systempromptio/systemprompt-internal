@@ -110,6 +110,8 @@ mod connector_accounts_contract;
 #[cfg(test)]
 mod dashboard_query_scaling;
 #[cfg(test)]
+mod devices_credentials_contract;
+#[cfg(test)]
 mod judge_all_scope_contract;
 #[cfg(test)]
 mod marketplace_versions_contract;

@@ -62,3 +62,5 @@ mod connector_credentials;
 mod connector_readiness;
 #[cfg(test)]
 mod connector_reprovision;
+#[cfg(test)]
+mod reports_customer_lists;

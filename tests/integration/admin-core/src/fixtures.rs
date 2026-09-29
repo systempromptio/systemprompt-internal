@@ -215,6 +215,9 @@ pub struct RequestSpec<'a> {
     pub id: String,
     pub user_id: &'a UserId,
     pub session_id: Option<&'a str>,
+    // The client's own session id (Claude Code's uuid) that a gateway row
+    // carries beside the bridge session; the trace queries fold on it.
+    pub client_session_id: Option<&'a str>,
     pub trace_id: Option<&'a str>,
     pub context_id: Option<&'a str>,
     pub provider: &'a str,
@@ -222,6 +225,16 @@ pub struct RequestSpec<'a> {
     pub status: &'a str,
     pub input_tokens: i32,
     pub output_tokens: i32,
+    // The provider's own total. Settable because it is not always
+    // `input + output`: it counts cache reads too. `None` keeps the derived
+    // `input + output` every existing caller relies on.
+    pub tokens_used: Option<i32>,
+    // Reasoning is billed inside `output_tokens`, and the cache counts are
+    // disjoint from `input_tokens`. A fixture that cannot set them cannot
+    // prove a reader reports them beside the total rather than into it.
+    pub reasoning_tokens: Option<i32>,
+    pub cache_read_tokens: Option<i32>,
+    pub cache_creation_tokens: Option<i32>,
     pub cost_microdollars: i64,
     pub latency_ms: i32,
     pub created_at: DateTime<Utc>,
@@ -233,6 +246,7 @@ impl<'a> RequestSpec<'a> {
             id: id.to_owned(),
             user_id,
             session_id: None,
+            client_session_id: None,
             trace_id: None,
             // ai_requests.context_id is NOT NULL; this is core's own sentinel
             // for a row that belongs to no known context.
@@ -242,6 +256,10 @@ impl<'a> RequestSpec<'a> {
             status: "completed",
             input_tokens: 100,
             output_tokens: 20,
+            tokens_used: None,
+            reasoning_tokens: None,
+            cache_read_tokens: None,
+            cache_creation_tokens: None,
             cost_microdollars: 5_000,
             latency_ms: 250,
             created_at: Utc::now(),
@@ -249,15 +267,46 @@ impl<'a> RequestSpec<'a> {
     }
 }
 
+// A payload row offering tools: the conversation view classifies a lone
+// request with no tools as a side call, so a test that wants a real turn
+// (opening prompt, search) inserts this beside the request.
+//
+// Core 0.59.0 stores a tool list once in `ai_tool_catalogs` and has the
+// payload reference its digest, so the catalogue row comes first and the
+// payload names it.
+pub async fn insert_offered_tools(pool: &PgPool, request_id: &str) {
+    let tools = serde_json::json!([{"name": "bash"}]);
+    let sha256 = format!("{:064x}", 0xba5eba11u64);
+    sqlx::query(
+        "INSERT INTO ai_tool_catalogs (sha256, tools) VALUES ($1, $2) \
+         ON CONFLICT (sha256) DO NOTHING",
+    )
+    .bind(&sha256)
+    .bind(&tools)
+    .execute(pool)
+    .await
+    .expect("insert tool catalogue");
+
+    sqlx::query(
+        "INSERT INTO ai_request_payloads (ai_request_id, offered_tools_sha256) VALUES ($1, $2)",
+    )
+    .bind(request_id)
+    .bind(&sha256)
+    .execute(pool)
+    .await
+    .expect("insert ai request payload");
+}
+
 pub async fn insert_request(pool: &PgPool, spec: &RequestSpec<'_>) {
     sqlx::query(
         "INSERT INTO ai_requests (
              id, request_id, user_id, session_id, trace_id, context_id,
              provider, model, input_tokens, output_tokens, tokens_used,
+             reasoning_tokens, cache_read_tokens, cache_creation_tokens,
              cost_microdollars, latency_ms, status, actor_kind, actor_id,
-             created_at, updated_at)
+             created_at, updated_at, client_session_id)
          VALUES ($1, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
-                 'user', $2, $14, $14)",
+                 $14, $15, $16, 'user', $2, $17, $17, $18)",
     )
     .bind(&spec.id)
     .bind(spec.user_id.as_str())
@@ -268,11 +317,18 @@ pub async fn insert_request(pool: &PgPool, spec: &RequestSpec<'_>) {
     .bind(spec.model)
     .bind(spec.input_tokens)
     .bind(spec.output_tokens)
-    .bind(spec.input_tokens + spec.output_tokens)
+    .bind(
+        spec.tokens_used
+            .unwrap_or(spec.input_tokens + spec.output_tokens),
+    )
+    .bind(spec.reasoning_tokens)
+    .bind(spec.cache_read_tokens)
+    .bind(spec.cache_creation_tokens)
     .bind(spec.cost_microdollars)
     .bind(spec.latency_ms)
     .bind(spec.status)
     .bind(spec.created_at)
+    .bind(spec.client_session_id)
     .execute(pool)
     .await
     .expect("insert ai_request");
@@ -289,6 +345,8 @@ pub struct DecisionSpec<'a> {
     pub policy: &'a str,
     pub reason: &'a str,
     pub plugin_id: Option<&'a str>,
+    pub trace_id: Option<&'a str>,
+    pub entity_type: Option<&'a str>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -305,6 +363,8 @@ impl<'a> DecisionSpec<'a> {
             policy: "scope_check",
             reason: "within scope",
             plugin_id: None,
+            trace_id: None,
+            entity_type: None,
             created_at: Utc::now(),
         }
     }
@@ -314,8 +374,12 @@ pub async fn insert_decision(pool: &PgPool, spec: &DecisionSpec<'_>) {
     sqlx::query(
         "INSERT INTO governance_decisions (
              id, user_id, session_id, context_id, tool_name, agent_id, agent_scope,
-             decision, policy, reason, plugin_id, actor_kind, actor_id, created_at)
-         VALUES ($1, $2, $3, $11, $4, $5, $6, $7, $8, $9, $12, 'user', $2, $10)",
+             decision, policy, reason, plugin_id, actor_kind, actor_id, created_at,
+             trace_id, evaluated_rules)
+         VALUES ($1, $2, $3, $11, $4, $5, $6, $7, $8, $9, $12, 'user', $2, $10,
+                 $13,
+                 CASE WHEN $14::TEXT IS NULL THEN '[]'::JSONB
+                      ELSE jsonb_build_object('entity_type', $14::TEXT) END)",
     )
     .bind(&spec.id)
     .bind(spec.user_id.as_str())
@@ -329,6 +393,8 @@ pub async fn insert_decision(pool: &PgPool, spec: &DecisionSpec<'_>) {
     .bind(spec.created_at)
     .bind(LEGACY_CONTEXT_ID)
     .bind(spec.plugin_id)
+    .bind(spec.trace_id)
+    .bind(spec.entity_type)
     .execute(pool)
     .await
     .expect("insert governance decision");

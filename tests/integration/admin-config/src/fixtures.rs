@@ -9,6 +9,7 @@
 use chrono::{DateTime, TimeZone, Utc};
 use sqlx::PgPool;
 use systemprompt::identifiers::UserId;
+use systemprompt_web_admin::repositories::scope::SubjectScope;
 
 // A window far enough in the past that no migration-seeded row falls in it.
 #[must_use]
@@ -215,4 +216,46 @@ pub fn write_services_file(dir: &std::path::Path, rel: &str, contents: &str) {
         std::fs::create_dir_all(parent).expect("create services subdirectory");
     }
     std::fs::write(path, contents).expect("write services file");
+}
+
+// Put `user` in `project` (creating the project), or, with `None`, take them
+// out of every project. The customer report scopes by resolved user id now,
+// so membership is what the fixture has to establish.
+pub async fn set_project(pool: &PgPool, user: &str, project: Option<&str>) {
+    sqlx::query("DELETE FROM project_members WHERE user_id = $1")
+        .bind(user)
+        .execute(pool)
+        .await
+        .expect("clear project members");
+    let Some(project) = project else {
+        return;
+    };
+    sqlx::query(
+        "INSERT INTO projects (id, name, source) VALUES ($1, $1, 'dashboard')
+         ON CONFLICT (id) DO NOTHING",
+    )
+    .bind(project)
+    .execute(pool)
+    .await
+    .expect("insert project");
+    sqlx::query(
+        "INSERT INTO project_members (project_id, user_id, source) VALUES ($1, $2, 'manual')
+         ON CONFLICT DO NOTHING",
+    )
+    .bind(project)
+    .bind(user)
+    .execute(pool)
+    .await
+    .expect("insert project member");
+}
+
+// The users in one project, as a bound scope.
+pub async fn project_scope(pool: &PgPool, project: &str) -> SubjectScope {
+    let ids: Vec<String> =
+        sqlx::query_scalar("SELECT user_id FROM project_members WHERE project_id = $1")
+            .bind(project)
+            .fetch_all(pool)
+            .await
+            .expect("project scope");
+    SubjectScope::Users(ids)
 }
