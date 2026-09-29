@@ -101,6 +101,35 @@ Conventions (strict — hold every entry to them):
   workspaces and their content, connections needing attention, device activity — with the
   per-entity overrides (reason and expiry) behind "Permission details".
 
+- **MCP (`systemprompt` server):** six typed admin tools beside the CLI passthrough and
+  `admin_report`: `user_activity` (per person: conversations, active days, turns per day,
+  skills, titles, spend, errors and denials), `conversation_list`, `usage_by_user`,
+  `request_log` (cursor-paged), `conversation_audit` (one request's transcript, paged and
+  bounded) and `users`. Each carries its flags in its schema, clamps `limit` to 200 and never
+  returns more than a model can read. `user_activity` and `conversation_list` read
+  `conversation_facts`, which stays empty until the `conversation_rollup` job runs.
+- **MCP:** an oversize CLI passthrough result is stored whole as an artifact and the model gets
+  a pointer to it (`server/overflow.rs`, `bounds.rs`); trimming is only the fallback when the
+  store fails. A CLI call that runs past 120 s fails with "narrow the query" instead of hanging.
+- **Skills:** `who_am_i` on `systemprompt-business` (every signed-in user): the caller's identity,
+  workspaces, skills and connectors, and where to read their own usage.
+  `systemprompt_cli`, `admin_ai_usage` and `admin_person_activity` on the admin-scoped
+  `systemprompt-admin`, over the typed tools. They inherit their plugin's grant in
+  `rules.yaml`.
+- **Bridge releases:** `scripts/check-bridge-windows-exe.sh` (static WebView2 loader, `.rsrc`
+  present) runs in `package-bridge-windows.sh` and the release workflow's Windows leg; a signed
+  macOS release build runs `tests/release/macos-smoke.sh` (via `scripts/verify-bridge-macos.sh`)
+  on the DMG and `tests/release/macos-updater-zip.sh` on the updater zip.
+  `just downloads-fetch` (`scripts/fetch-remote-downloads.sh`) stages
+  `storage/files/downloads/` from the `bridge-v<version>` release, verified against its
+  `SHA256SUMS`; `DOWNLOADS_STRICT=1` takes every asset from the release.
+  `just bridge-verify-macos [DMG]` checks a downloaded DMG by hand.
+- **Docs:** the enterprise capability pages (analytics, audit, conversation history, cost,
+  model routing, safety, tool governance, user access, roadmap), the analysis and
+  skill-lifecycle guides, and the bridge-install, Cowork and OpenCode connect guides under
+  `/documentation`. `docs/tech-debt.md`, `docs/integrations/centralized-mcp.md`,
+  `docs/install/docker.md` and `docs/install/required-secrets.md`.
+
 ### Changed
 
 - **Admin analytics:** the dashboard is astound's current build. The Sessions tab lists
@@ -120,6 +149,13 @@ Conventions (strict — hold every entry to them):
   context reader carries the cache-token and tool-call-id columns the gateway records.
   `/admin/history` rows can be bounded by a window (`HistoryFilter::since`/`until`), which the
   export uses.
+- **MCP:** `admin_report`'s `days` is a plain integer with a default of 7, not an optional one,
+  and its artifact type is `report`: Gemini/Vertex refused the whole tool list over the
+  `["integer","null"]` type, and the `dashboard` type wrapped the report in an envelope that
+  failed its own output schema. The passthrough strips `--export` with its path (it writes a
+  file on the server no client can read), and its description points at the typed tools.
+- **Docs:** `docs/gateway-routes.md` documents `bridge_releases.token_secret`, the key core
+  0.62 accepts (`token_env` fails to load).
 
 ### Removed
 
