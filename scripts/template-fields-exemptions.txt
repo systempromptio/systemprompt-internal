@@ -17,6 +17,7 @@ storage/files/admin/templates/enterprise-detail.hbs: org_role
 storage/files/admin/templates/enterprises.hbs: budget_pct
 storage/files/admin/templates/enterprises.hbs: budget_state
 storage/files/admin/templates/enterprises.hbs: departments
+storage/files/admin/templates/enterprises.hbs: entitlements
 storage/files/admin/templates/enterprises.hbs: seat_limit
 storage/files/admin/templates/enterprises.hbs: seats_pct
 storage/files/admin/templates/enterprises.hbs: seats_used
