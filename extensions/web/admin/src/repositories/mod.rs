@@ -32,3 +32,6 @@ pub mod secrets;
 pub mod sync;
 pub mod traces;
 pub mod users;
+
+pub mod lifecycle;
+pub mod observability;

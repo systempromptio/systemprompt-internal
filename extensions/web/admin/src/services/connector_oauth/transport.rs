@@ -8,9 +8,9 @@ use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use std::time::Duration;
 use systemprompt::identifiers::ClientId;
-type HttpClient = reqwest::Client; // Why: external OAuth boundary. lint-ok: web-transport
 
-pub(super) fn client() -> AdminResult<HttpClient> {
+// Why: external OAuth boundary. lint-ok: web-transport
+pub(super) fn client() -> AdminResult<reqwest::Client> {
     reqwest::Client::builder() // Why: external OAuth boundary. lint-ok: web-transport
         .timeout(Duration::from_secs(15))
         .redirect(reqwest::redirect::Policy::none())
@@ -64,14 +64,6 @@ async fn registration(
         Provider::Generic(_) => Err(AdminError::Unavailable(
             "Use generic OAuth registration".into(),
         )),
-        Provider::Github => Ok((
-            Registration {
-                client_id: ClientId::new(config::secret("github_mcp_client_id")?),
-                client_secret: config::secret("github_mcp_client_secret")?,
-            },
-            "https://github.com/login/oauth/authorize".into(),
-            "https://github.com/login/oauth/access_token".into(),
-        )),
         Provider::Salesforce(_) => {
             let org = provider.salesforce_org()?;
             let base = org.domain()?;
@@ -84,6 +76,14 @@ async fn registration(
                 format!("{base}/services/oauth2/token"),
             ))
         },
+        Provider::Github => Ok((
+            Registration {
+                client_id: ClientId::new(config::secret("github_mcp_client_id")?),
+                client_secret: config::secret("github_mcp_client_secret")?,
+            },
+            "https://github.com/login/oauth/authorize".into(),
+            "https://github.com/login/oauth/access_token".into(),
+        )),
         Provider::Atlassian => {
             let metadata = super::discovery::atlassian_metadata().await?;
             atlassian_endpoint(&metadata.authorization)?;

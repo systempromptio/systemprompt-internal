@@ -54,3 +54,6 @@ mod mcp_report_handler;
 mod mcp_server;
 #[cfg(test)]
 mod web_router;
+
+#[cfg(test)]
+mod jobs_usage;

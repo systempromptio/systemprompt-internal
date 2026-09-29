@@ -28,6 +28,7 @@ pub fn admin_ssr_router(
         .merge(super::ssr_analysis::routes())
         .merge(super::ssr_governance::routes())
         .merge(platform_routes())
+        .merge(super::ssr_platform::routes())
         .merge(account_routes())
         .merge(api_routes())
         .merge(ssr_redirects::legacy_routes())

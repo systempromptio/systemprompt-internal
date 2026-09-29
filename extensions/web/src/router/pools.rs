@@ -2,19 +2,18 @@
 
 use std::sync::Arc;
 
-
 use systemprompt::database::{Database, DbPool, PgPool};
 use systemprompt::extension::prelude::ExtensionContext;
 use systemprompt::oauth::SessionCreationService;
-use systemprompt::users::UserService;
+use systemprompt::users::{SessionRepository, UserService};
 
 pub(crate) struct DbHandles {
-    // Why: core repositories open their own handles from the shared database,
-    // so the routers receive it alongside the raw pools the handlers still use.
-    pub db: DbPool,
     pub owner: systemprompt::identifiers::UserId,
     pub read: Arc<PgPool>,
     pub write: Arc<PgPool>,
+    // Why: core repositories open their own handles from the shared database,
+    // so the routers receive it alongside the raw pools the handlers still use.
+    pub db: DbPool,
 }
 
 impl DbHandles {
@@ -31,9 +30,9 @@ impl DbHandles {
             Some(Arc::clone(&write)),
         ));
         Some(Self {
-            db,
             read,
             write,
+            db,
             owner: ctx.system_owner_id(),
         })
     }
@@ -45,7 +44,7 @@ pub(crate) fn build_session_service(db: &DbHandles) -> Option<Arc<SessionCreatio
         .map_err(|e| tracing::error!(error = %e, "Failed to build user repository"))
         .ok()?;
     let user = UserService::new(Arc::new(user_repo));
-    let sessions = systemprompt::users::SessionRepository::new(&dbpool)
+    let sessions = SessionRepository::new(&dbpool)
         .map_err(|e| tracing::error!(error = %e, "Failed to build session repository"))
         .ok()?;
     Some(Arc::new(SessionCreationService::new(

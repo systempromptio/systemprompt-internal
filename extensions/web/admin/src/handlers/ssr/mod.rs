@@ -10,7 +10,6 @@ use axum::Extension;
 use axum::extract::Query;
 use axum::response::{Html, IntoResponse, Redirect, Response};
 
-
 pub(crate) mod analysis;
 pub(crate) mod analysis_urls;
 mod approvals;
@@ -161,3 +160,25 @@ fn sanitize_login_redirect(raw: Option<&str>) -> Option<String> {
     let raw = raw?.trim();
     (raw.starts_with('/') && !raw.starts_with("//")).then(|| raw.to_owned())
 }
+
+// Why: the Platform, Developer and Account pages ported after the analysis
+// suite — data lifecycle, configuration, observability, tools and artifacts,
+// connect and connectors.
+mod configuration;
+pub(crate) mod ssr_artifacts;
+mod ssr_connect;
+mod ssr_connectors;
+pub(crate) mod ssr_connectors_cards;
+mod ssr_lifecycle;
+mod ssr_observability;
+
+pub(crate) use configuration::configuration_page;
+pub(crate) use ssr_artifacts::{artifact_detail_page, artifact_preview, artifacts_page};
+pub(crate) use ssr_connect::connect_page;
+pub(crate) use ssr_connectors::connectors_page;
+pub(crate) use ssr_lifecycle::{lifecycle_archive_download, lifecycle_page};
+pub(crate) use ssr_observability::{
+    export_now as observability_export_now, observability_page,
+    test_connection as observability_test_connection,
+};
+pub(crate) use ssr_tools::tools_page;

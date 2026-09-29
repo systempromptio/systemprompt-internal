@@ -234,7 +234,7 @@ fn load_from_file_reports_a_file_that_cannot_be_read() {
         .to_string();
 
     assert!(
-        rendered.contains("Failed to read config file"),
+        rendered.contains("config file could not be read"),
         "an unreadable file is distinguished from an unparseable one: {rendered}"
     );
 }
@@ -250,7 +250,7 @@ fn load_from_file_reports_yaml_that_does_not_parse() {
         .to_string();
 
     assert!(
-        rendered.contains("Failed to parse config YAML"),
+        rendered.contains("config YAML does not parse"),
         "the parse failure is named as such: {rendered}"
     );
 }

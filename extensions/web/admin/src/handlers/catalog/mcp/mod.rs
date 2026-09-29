@@ -5,14 +5,22 @@
 //! the only place an operator can see that a declared server has never
 //! connected, or that traffic is arriving under a name nothing declares. Both
 //! states are silent everywhere else.
+//!
+//! Every figure is for one window (`?preset=` / `?from=&to=`, 24 hours by
+//! default), and the export of either page carries the same window, so the
+//! file answers the question the page was asked.
 
 mod columns;
 mod detail;
+mod fleet;
 mod rows;
 mod sections;
 mod view;
+mod window;
 
+pub(crate) use fleet::fleet_rows;
 pub use rows::status_of;
+pub(crate) use view::McpServerRow;
 
 use std::sync::Arc;
 use systemprompt::identifiers::McpServerId;
@@ -23,19 +31,22 @@ use serde::Deserialize;
 use sqlx::PgPool;
 
 use crate::error::{AdminError, AdminHtmlResult};
+use crate::export::ExportView;
 use crate::handlers::shared;
+use crate::handlers::ssr::list_view::TimeRangeContext;
 use crate::handlers::ssr::types::BreadcrumbView;
-use crate::repositories::mcp::runtime;
-use crate::repositories::overview::liveness;
 use crate::templates::AdminTemplateEngine;
 use crate::types::{ENTITY_MCP_SERVER, MarketplaceContext, UserContext};
+use crate::util::time_range::TimeRange;
 
 use super::super::ssr::ssr_helpers::render_typed_page;
-use super::sorting::{direction, matches, preserved_search, sort_headers};
+use super::sorting::{direction, matches, sort_headers};
 use super::view::assignment_counts_by_type;
-use rows::{BASE_URL, RowInputs, Runtime, WINDOW_HOURS};
+use crate::handlers::ssr::page::Page;
+use fleet::load_runtime;
+use rows::{BASE_URL, RowInputs};
 use view::{McpDetailData, McpPageData};
-
+use window::{pairs_to_query, time_range_context, window_label, window_of, window_pairs};
 
 #[derive(Debug, Default, Deserialize)]
 pub(crate) struct McpListQuery {
@@ -45,12 +56,18 @@ pub(crate) struct McpListQuery {
     // the toolbar, the empty state and the URL then cannot disagree with the
     // rows on screen.
     pub q: Option<String>,
+    pub preset: Option<String>,
+    pub from: Option<String>,
+    pub to: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize)]
 pub(crate) struct McpDetailQuery {
     pub page: Option<i64>,
-    // Why: the "Why?" explainer's person on the "Who gets this" panel.
+    pub preset: Option<String>,
+    pub from: Option<String>,
+    pub to: Option<String>,
+    // Why: the "Who gets this" panel's "Why?" person.
     pub why: Option<String>,
 }
 
@@ -61,26 +78,6 @@ fn console_only(user_ctx: &UserContext) -> AdminHtmlResult<()> {
     Err(AdminError::Forbidden("Admin access required.".to_owned()).into())
 }
 
-// Why: all three reads are best-effort. A runtime table that will not answer
-// must not take the page down with it — the declaration alone is still worth
-// rendering, and the status column then says "never connected" rather than
-// inventing a liveness it could not read.
-async fn load_runtime(pool: &PgPool) -> Runtime {
-    let heartbeat = liveness::list_mcp_server_liveness(pool)
-        .await
-        .inspect_err(|e| tracing::warn!(error = %e, "mcp: heartbeat read failed"))
-        .unwrap_or_default();
-    let identities = runtime::list_mcp_proxy_identity_counts(pool)
-        .await
-        .inspect_err(|e| tracing::warn!(error = %e, "mcp: identity read failed"))
-        .unwrap_or_default();
-    let activity = runtime::list_mcp_server_activity(pool, WINDOW_HOURS)
-        .await
-        .inspect_err(|e| tracing::warn!(error = %e, "mcp: activity read failed"))
-        .unwrap_or_default();
-    Runtime::new(heartbeat, identities, activity)
-}
-
 pub(crate) async fn mcp_servers_page(
     Extension(user_ctx): Extension<UserContext>,
     Extension(mkt_ctx): Extension<MarketplaceContext>,
@@ -89,43 +86,23 @@ pub(crate) async fn mcp_servers_page(
     Query(query): Query<McpListQuery>,
 ) -> AdminHtmlResult<Response> {
     console_only(&user_ctx)?;
-    let path = shared::get_services_path()?;
-
-    let catalog = super::data::load_catalog(&path, &user_ctx.roles);
-    let counts = assignment_counts_by_type(&pool, ENTITY_MCP_SERVER).await;
-    let rt = load_runtime(&pool).await;
-
-    let mut ids: Vec<String> = catalog
-        .mcp
-        .iter()
-        .map(|s| s.id.as_str().to_owned())
-        .collect();
-    for name in rt.names() {
-        if !ids.contains(&name) {
-            ids.push(name);
-        }
-    }
-
-    let mut servers: Vec<view::McpServerRow> = ids
-        .iter()
-        .map(|id| {
-            let server = catalog.mcp.iter().find(|s| s.id.as_str() == id);
-            rows::build_row(&RowInputs {
-                id,
-                server,
-                runtime: &rt,
-                plugin_count: catalog.plugins_by_mcp.get(id).map_or(0, Vec::len),
-                assignment_count: counts.get(id).copied().unwrap_or(0),
-            })
-        })
-        .collect();
+    let range = window_of(query.preset, query.from, query.to);
+    let fleet = fleet_rows(&pool, &user_ctx.roles, range).await?;
+    let mut servers = fleet.rows;
 
     let search = query.q.unwrap_or_default();
+    // Why: the tiles count the fleet, not the filtered view. A filter that
+    // moved "alive now" would make the number mean two different things
+    // depending on what was typed in the box above it.
     let kpis = columns::kpis(&servers);
     servers.retain(|s| matches(&[&s.id, &s.description, &s.server_type], &search));
     let sort_key = query.sort.unwrap_or_else(|| "calls".to_owned());
     let sort_dir = direction(query.dir.as_deref());
     rows::sort_rows(&mut servers, &sort_key, sort_dir);
+
+    let mut pairs = vec![("q", Some(search.clone()))];
+    pairs.extend(window_pairs(&range));
+    let preserved_query = pairs_to_query(&pairs);
 
     let unconfigured_count = servers.iter().filter(|s| !s.configured).count();
     let page = McpPageData {
@@ -133,29 +110,32 @@ pub(crate) async fn mcp_servers_page(
         title: "MCP servers",
         subtitle: "Every tool server this instance declares, what it is serving right now, and who may reach it.",
         breadcrumbs: vec![BreadcrumbView::current("MCP servers")],
-        window_label: "last 24 hours",
+        window_label: window_label(&range),
         heartbeat_label: format!(
-            "alive = a session spoke within {} minutes",
-            liveness::HEARTBEAT_INTERVAL_SECS * 2 / 60
+            "alive = spoke within {} minutes",
+            crate::repositories::overview::liveness::HEARTBEAT_INTERVAL_SECS * 2 / 60
         ),
-        // Why: the tiles count the fleet, not the filtered view. A filter that
-        // moved "alive now" would make the number mean two different things
-        // depending on what was typed in the box above it.
+        time_range: time_range_context(&range, BASE_URL),
+        window_from: range.from.to_rfc3339(),
+        window_to: range.to.to_rfc3339(),
+        export: ExportView::new(&["mcp-servers", "mcp-calls", "mcp-tools"], &preserved_query),
         kpis,
         sort_headers: sort_headers(
             BASE_URL,
             &columns::columns(),
             &sort_key,
             sort_dir,
-            &preserved_search(&search),
+            &preserved_query,
         ),
         servers_count: servers.len(),
         unconfigured_count,
+        builtin_calls: fleet.builtin_calls,
         servers,
-        access_control_url: "/admin/access-control?entity_kind=mcp_server",
+        access_control_url: "/admin/access-control?entity_type=mcp_server",
         sort_key,
         sort_dir: sort_dir.to_owned(),
         search,
+        preserved_query,
     };
     Ok(render_typed_page(
         &engine,
@@ -166,57 +146,101 @@ pub(crate) async fn mcp_servers_page(
     ))
 }
 
-#[expect(
-    clippy::too_many_arguments,
-    reason = "axum extractor list; the router decides the arity, not this signature"
-)]
 pub(crate) async fn mcp_detail_page(
-    Extension(user_ctx): Extension<UserContext>,
-    Extension(mkt_ctx): Extension<MarketplaceContext>,
-    Extension(engine): Extension<AdminTemplateEngine>,
+    shell: Page,
     State(pool): State<Arc<PgPool>>,
     Path(mcp_id): Path<McpServerId>,
     Query(query): Query<McpDetailQuery>,
 ) -> AdminHtmlResult<Response> {
-    console_only(&user_ctx)?;
+    console_only(&shell.user)?;
     let path = shared::get_services_path()?;
+    let range = window_of(query.preset, query.from, query.to);
 
-    let catalog = super::data::load_catalog(&path, &user_ctx.roles);
+    let catalog = super::data::load_catalog(&path, &shell.user.roles);
     let server = catalog.mcp.iter().find(|s| s.id == mcp_id);
-    let rt = load_runtime(&pool).await;
-    let known_at_runtime = rt.heartbeat.contains_key(mcp_id.as_str())
-        || rt.identities.contains_key(mcp_id.as_str())
-        || rt.activity.contains_key(mcp_id.as_str());
+    let rt = load_runtime(&pool, range).await;
 
     // Why: a server the catalog does not declare but the runtime has served is
     // a real page, because the list links to it. Only a name neither half knows
     // is a 404.
-    if server.is_none() && !known_at_runtime {
+    if server.is_none() && !rt.knows(mcp_id.as_str()) {
         return Err(AdminError::NotFound("No such MCP server.".to_owned()).into());
     }
 
     let counts = assignment_counts_by_type(&pool, ENTITY_MCP_SERVER).await;
+    let included_by = catalog
+        .plugins_by_mcp
+        .get(mcp_id.as_str())
+        .cloned()
+        .unwrap_or_default();
     let row = rows::build_row(&RowInputs {
         id: mcp_id.as_str(),
         server,
         runtime: &rt,
-        plugin_count: catalog
-            .plugins_by_mcp
-            .get(mcp_id.as_str())
-            .map_or(0, Vec::len),
+        plugin_count: included_by.len(),
         assignment_count: counts.get(mcp_id.as_str()).copied().unwrap_or(0),
     });
 
-    let sections = sections::detail_sections(&pool, &mcp_id, query.page.unwrap_or(0).max(0)).await;
     let access = super::access::panel(
         &pool,
-        &user_ctx,
+        &shell.user,
         (ENTITY_MCP_SERVER, mcp_id.as_str()),
         query.why.as_deref(),
     )
     .await;
+    let window_query = pairs_to_query(&window_pairs(&range));
+    let sections = sections::detail_sections(
+        &pool,
+        &mcp_id,
+        range,
+        query.page.unwrap_or(0).max(0),
+        &window_query,
+    )
+    .await;
 
-    let page = McpDetailData {
+    let page = detail_page_data(DetailInputs {
+        id: mcp_id,
+        range,
+        row,
+        sections,
+        server,
+        included_by,
+        access,
+    });
+    Ok(render_typed_page(
+        &shell.engine,
+        "catalog-mcp-detail",
+        &page,
+        &shell.user,
+        &shell.marketplace,
+    ))
+}
+
+struct DetailInputs<'a> {
+    id: McpServerId,
+    range: TimeRange,
+    row: McpServerRow,
+    sections: sections::DetailSections,
+    server: Option<&'a crate::types::McpServerDetail>,
+    included_by: Vec<super::view::LinkedEntity>,
+    access: crate::handlers::ssr::entity_panel::EntityAccessView,
+}
+
+fn detail_page_data(input: DetailInputs<'_>) -> McpDetailData {
+    let DetailInputs {
+        id: mcp_id,
+        range,
+        row,
+        sections,
+        server,
+        included_by,
+        access,
+    } = input;
+    let mut export_pairs = vec![("server", Some(mcp_id.as_str().to_owned()))];
+    export_pairs.extend(window_pairs(&range));
+    let connected_count = sections.connections.iter().filter(|c| c.connected).count();
+
+    McpDetailData {
         page: "mcp",
         title: mcp_id.as_str().to_owned(),
         subtitle: row.description.clone(),
@@ -228,39 +252,31 @@ pub(crate) async fn mcp_detail_page(
         enabled: row.enabled,
         status_label: row.status_label,
         status_tone: row.status_tone,
-        window_label: "last 24 hours",
+        window_label: window_label(&range),
+        // Why: an empty base keeps the picker's links relative, so they stay
+        // on this server's page rather than naming a path the id must escape.
+        time_range: TimeRangeContext {
+            base_url: "",
+            ..time_range_context(&range, BASE_URL)
+        },
+        export: ExportView::new(&["mcp-calls", "mcp-tools"], &pairs_to_query(&export_pairs)),
         kpis: columns::kpis(std::slice::from_ref(&row)),
         tools_count: sections.tools.len(),
         tools: sections.tools,
+        callers_count: sections.callers.len(),
+        callers: sections.callers,
         executions_count: sections.executions_total,
         pagination: sections.pagination,
         executions: sections.executions,
-        sessions_count: sections.sessions.len(),
-        sessions: sections.sessions,
-        grants_count: sections.grants.len(),
-        grants: sections.grants,
-        default_included: sections.default_included,
+        connections_count: sections.connections.len(),
+        connected_count,
+        connections: sections.connections,
+        access,
         config_facts: detail::config_facts(server),
         oauth_scopes: server.map(|s| s.oauth_scopes.clone()).unwrap_or_default(),
-        included_by_count: catalog
-            .plugins_by_mcp
-            .get(mcp_id.as_str())
-            .map_or(0, Vec::len),
-        included_by: catalog
-            .plugins_by_mcp
-            .get(mcp_id.as_str())
-            .cloned()
-            .unwrap_or_default(),
+        included_by_count: included_by.len(),
+        included_by,
         access_url: row.access_url.clone(),
-        access_control_url: "/admin/access-control?entity_kind=mcp_server",
-        access,
         id: mcp_id,
-    };
-    Ok(render_typed_page(
-        &engine,
-        "catalog-mcp-detail",
-        &page,
-        &user_ctx,
-        &mkt_ctx,
-    ))
+    }
 }

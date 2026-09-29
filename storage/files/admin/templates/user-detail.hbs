@@ -23,8 +23,8 @@
         {{> components/kpi label="Requests" value=kpis.requests_display note="all time"}}
         {{> components/kpi label="Cost" value=kpis.cost_display note="all time"}}
         {{> components/kpi label="Tokens" value=kpis.tokens_display note="all time"}}
-        {{> components/kpi label="Groups" value=kpis.groups note=header.primary_group hint="Primary group decides exclusive attribution"}}
-        {{> components/kpi label="Projects" value=kpis.projects note=header.primary_project hint="Primary project decides exclusive attribution"}}
+        {{> components/kpi label="Groups" value=kpis.groups note=header.primary_group href=kpis.membership_url hint="The group every new request is stamped with. Open the Membership tab to change it."}}
+        {{> components/kpi label="Projects" value=kpis.projects note=header.primary_project href=kpis.membership_url hint="The project every new request is stamped with. Open the Membership tab to change it."}}
     </div>
 
     {{> components/tabs tabs=tabs nav_label="User detail views"}}
@@ -80,6 +80,11 @@
                     {{/if}}
                     {{/each}}
                 </div>
+                <label class="sp-form-field" for="roles-valid-until">
+                    <span>Manual grants expire</span>
+                    <input type="date" id="roles-valid-until" name="valid_until" class="sp-search-input" value="{{identity.roles_valid_until_day}}"{{#unless can_write}} disabled{{/unless}}>
+                    <span class="sp-u-text-tertiary sp-u-text-xs">Applies to every role granted here, not to roles the directory projects. Blank is open-ended; the hourly sweep removes expired grants and revokes live credentials when a manage role lapses.</span>
+                </label>
             </div>
             {{#if can_write}}
             <footer class="sp-form-section__foot">
@@ -94,7 +99,7 @@
             {{#if identity.has_adfs_groups}}
             <p class="sp-p-user-detail__chips">{{#each identity.adfs_groups}}{{> components/badge tone="muted" text=this}} {{/each}}</p>
             {{else}}
-            <div class="sp-empty sp-empty--inline" role="status"><p>This account has never signed in through the directory.</p></div>
+            <div class="sp-empty sp-empty--inline" role="status"><p>This account has never signed in through the directory. Until it does, its groups and projects are whatever is assigned on the <a href="{{kpis.membership_url}}">Membership tab</a>.</p></div>
             {{/if}}
         </div>
 
@@ -124,7 +129,7 @@
     {{#if membership}}
     <section class="sp-p-user-detail__pane" data-membership data-user-id="{{header.user_id}}">
         <form class="sp-form-section" data-form="scope-defaults" data-user-id="{{header.user_id}}" novalidate>
-            {{> components/section title="Attribution" note="Every cost total on the group and project pages counts this person exactly once, under these two ids. Changing them moves their spend."}}
+            {{> components/section title="Attribution" note="Every request this person makes is stamped with these two ids the moment it lands, and counted there on the group and project pages. Changing them decides the next request onward; what is already recorded keeps its stamp."}}
             <div class="sp-form-section__body">
                 <div class="sp-form-grid">
                     <label class="sp-form-field">

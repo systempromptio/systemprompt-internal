@@ -142,7 +142,6 @@ Conventions (strict — hold every entry to them):
   conversation ledger, marketplaces and versions, and plugin evaluation (with its tool
   table); conversation bundles accept `source=analysis`, and the context-detail and
   conversation pages offer the per-turn ledger beside the whole record.
-
 - **MCP (`systemprompt` server):** six typed admin tools beside the CLI passthrough and
   `admin_report`: `user_activity` (per person: conversations, active days, turns per day,
   skills, titles, spend, errors and denials), `conversation_list`, `usage_by_user`,
@@ -171,6 +170,86 @@ Conventions (strict — hold every entry to them):
   skill-lifecycle guides, and the bridge-install, Cowork and OpenCode connect guides under
   `/documentation`. `docs/tech-debt.md`, `docs/integrations/centralized-mcp.md`,
   `docs/install/docker.md` and `docs/install/required-secrets.md`.
+- **Data lifecycle:** `/admin/lifecycle` (Platform → Data lifecycle) shows what the retention
+  jobs measured, archived and found: the windows `database_cleanup` enforces with the profile
+  key behind each and what its last run deleted, the latest size, dead tuples, oldest row and
+  week-on-week growth of every managed table, every weekly and monthly archive with its
+  SHA-256 and a download link (`/admin/lifecycle/archive/{tier}/{period}/{file}`, path
+  segments validated against the shapes the jobs write), and the last health check's ranked
+  findings. Three web-extension jobs write it (`extensions/web/jobs/src/retention/`):
+  `retention_daily_report` (04:30 daily, into `retention_runs`), `retention_export_weekly`
+  (Sunday 02:00, the previous ISO week of the raw request tables to
+  `storage/exports/weekly/<yyyy>-W<ww>/` as gzipped JSON Lines plus a manifest) and
+  `retention_export_monthly` (1st at 02:30, the rollups to `storage/exports/monthly/`, then
+  `VACUUM (ANALYZE)` and the health check into `retention_health_reports`). Runbook:
+  `docs/ops/retention-and-backups.md`.
+- **Tools & artifacts:** `/admin/tools` lists every tool call the platform saw as the ledger
+  records it — tool and server, what it was about, whether it ran and how long it took, what
+  governance decided, who made it, the conversation and session it belongs to, and the
+  artifact it produced — with breakdown tiles, a filter ribbon, a trend chart and an export
+  (`tools`, `tools-breakdown`). `/admin/artifacts` is the same page through the artifact lens
+  (schema 46's one artifact rule), and `/admin/artifacts/{id}` shows one artifact with its
+  stored body, execution, ledger row, governance decision and scanner findings, with a
+  sandboxed rendering at `/admin/artifacts/{id}/preview`. Sidebar: Developer → Tools &
+  artifacts. Styles `82-tools*.css`, `20-page-artifact-detail.css`.
+- **Configuration:** `/admin/configuration` (Platform → Configuration) is one row per kind of
+  configuration under `services/` — a projected kind shows its sync plane's state (in step,
+  drifting, never applied) and links to its Sync tab; a kind served from code shows the
+  source that ships it (base or a pinned bundle) and the hash it declares — beside the
+  retention windows `database_cleanup` enforces. The Code sync page links to it and to
+  Observability from its header, and its breadcrumb reads Admin › Platform › Code sync.
+- **Observability:** `/admin/system/observability` shows the profile's
+  `observability.otlp` block beside core's `otlp_export` ledger (`otlp_export_state`: cursor,
+  lag, last success and error per signal). **Export now** runs the job's batch out of turn;
+  **Test connection** posts an empty envelope to the collector. Both are administrator writes
+  behind the same-origin check. The ledger is read through the SSR router's
+  `ManagedState`, which carries core's `OtlpExportStateRepository`.
+- **MCP servers:** the `/admin/mcp` pages are astound's current build: every figure is for one
+  window (`?preset=` / `?from=&to=`, 24 hours by default), connections come from
+  `mcp_external_sessions` and `mcp_sessions`, the call log carries which side observed each
+  call and its conversation, the detail page lists callers, and both pages export
+  (`mcp-servers`, `mcp-calls`, `mcp-tools`).
+- **Connectors:** `/admin/connectors` (Account → Connectors) replaces the connector list on the
+  profile page: a health strip (connected, needing attention, not connected, and the next
+  step), then one card per connector grouped by what to do next — what it is, what it unlocks,
+  which plugins carry it, the account behind it and its actions. **Test connection** now
+  answers with a stage-by-stage `VerificationReport` (credential, MCP session, tools,
+  identity) the page draws as a checklist. A server that requires the platform's own OAuth and
+  declares no `connector:` block is *session-attested*: the signed-in session checked against
+  its `oauth.scopes` is the connection, and its test is a live MCP handshake
+  (`services/connector_readiness.rs`). `Connection::readiness` is the one predicate the
+  marketplace filter and the `connector` authorization band share; a server access control
+  admitted but whose connection is not ready is dropped from the manifest with a logged,
+  diagnosable reason. Consent returns to `/admin/connectors#connector-<server>`.
+- **Connect:** `/admin/connect` (Account → Connect) is the connect-code wizard for Claude Code,
+  Claude Desktop/Cowork and OpenCode — client, one-time code, install command — with the bridge
+  downloads (under the setup page's download base) and the client guides.
+- **Managed resources API:** owner-authenticated source, snapshot, revision, candidate,
+  publication, reconciliation, withdrawal, distribution and installation routes under
+  `/api/public/admin/managed/*` (`handlers/managed_resources/`,
+  `routes/managed_resources.rs`), reads on the console tier and writes on the manage tier
+  behind the same-origin check, all through core's `ManagedRepository`. Authoring never
+  activates anything; publication is its own reviewed step.
+- **Signed identity for external MCP servers:** `GET /api/public/identity/{server}/token`
+  signs a five-minute JWT for the calling user (issuer, the server's endpoint as audience,
+  user id, email, name) with the instance authority key, for the gateway's credential broker
+  only, only for a server whose `external_auth.token_endpoint` names this route, and only
+  when access control admits the caller. Contract: `docs/EXTERNAL-MCP-IDENTITY.md`.
+- **Devices:** `PUT /api/public/admin/devices/certs/{id}/expiry` sets or clears a live device
+  certificate's window (`user_device_cert_validity`); the hourly `access_expiry` sweep revokes
+  it when it passes.
+- **Roles:** manual role grants carry an expiry. The user page's Roles form has a "Manual
+  grants expire" date; `GET/PUT …/users/{id}/roles` read and write `valid_until`; the reads
+  that decide what a person holds see only rows inside their window, and the hourly sweep
+  removes expired grants.
+- **History:** `/admin/history` has a window — 7, 30, 90 days, a year, or all time, or a
+  custom `start`/`end` — carried through search, paging and the export dialog.
+- **Request audit page:** `/admin/requests/{id}` compares the client's and the provider's tool
+  schemas side by side (with the Gemini rule hits recomputed from the client schema), lists
+  the session's stored artifacts, links every request row to its own audit page and the user
+  to their page, and shows each tool call's ledger state and artifact.
+- **Sign-in:** `admin-login.js` names why a single-sign-on round trip failed
+  (`/admin/login?sso=<code>`).
 
 ### Changed
 
@@ -183,9 +262,6 @@ Conventions (strict — hold every entry to them):
   conversation under the group and project stamped on its latest request. Migration
   `096_conversation_request_kind_by_harness` drops the old function signatures so the
   declarative schema can re-create them.
-- **Admin router:** `admin_ssr_router` takes the shared `DbPool` and returns
-  `Result<Router, StateError>`; it builds the managed-resource repository once
-  (`routes/managed_state.rs`) for the analysis inventory, revision and publication pages.
 - **Gateway console:** `/admin/gateway` is astound's five-view page — Overview (dispatch order
   and provider health), Providers, Routes (ordered, with the resolved-only set below it),
   Settings and a link to Policies — and routes carry a `name` and `description`. The route
@@ -217,6 +293,35 @@ Conventions (strict — hold every entry to them):
   file on the server no client can read), and its description points at the typed tools.
 - **Docs:** `docs/gateway-routes.md` documents `bridge_releases.token_secret`, the key core
   0.62 accepts (`token_env` fails to load).
+- **Retention:** `plugin_usage_retention` now calls `expire_raw_evidence` (schema
+  `32_raw_retention.sql`) and is scheduled: hook events, gateway requests (`ai_requests`) and
+  what hangs off them expire after 90 days in one transaction, where it used to delete only
+  `plugin_usage_events`. The weekly archive keeps a copy of every expired week;
+  `conversation_facts`, the daily rollups and this instance's `session_transcripts`,
+  `session_analyses` and `session_cost_snapshots` are kept. `database_cleanup` now runs with
+  `enforce: true`, so the profile's `retention:` windows actually delete.
+- **Admin routing:** `admin_ssr_router` takes the shared `DbPool` first and returns
+  `Result<Router, StateError>`; it builds one `ManagedState` (`routes/managed_state.rs`) that
+  serves the analysis inventory, revision and publication pages and the observability page,
+  and the console's operating pages mount from `routes/ssr_platform.rs`. `ExtensionConfigErrors` carries the underlying error as a source
+  (`push_with_source`), so a content config that cannot be read or parsed says why.
+- **Profile:** the connect wizard and the connector list moved off `/admin/profile` to
+  `/admin/connect` and `/admin/connectors`; the profile header links to both. The Odoo account
+  card stays on the profile. `profile-connect-code.js` and `profile-connections.js` became
+  `connect-code.js` and `connectors.js` (with `services/connector-labels.js`). Connector OAuth
+  gained a generic OIDC `userinfo` identity, issuer comparison per RFC 8414, a short outage
+  hold after a provider failure, and token-endpoint 4xx answers retire the grant; GitHub and
+  Atlassian keep their adapters and personal-token path.
+- **Admin API routing:** `admin_router` takes the shared `DbPool` and returns
+  `Result<Router, StateError>`, like `admin_ssr_router`, because both now carry
+  `ManagedState`.
+- **User page:** the Groups and Projects tiles open the Membership tab and name the primary
+  every new request is stamped with (`unattributed` when there is none); a bridge row's
+  status is its presence (online, idle, stale) and the Sessions tab's live count excludes
+  expired sessions. `repositories/users/queries/{identity,role}.rs` read the windowed
+  `user_projects` view, so an expired project membership no longer counts.
+- **Docs pages:** screenshots under `/files/images/evidence/` open in a gallery lightbox
+  (`site/docs-evidence-gallery.js`, `docs-evidence-gallery.css`).
 
 ### Removed
 

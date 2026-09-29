@@ -105,16 +105,3 @@ sp-col-currency
 sp-col-tags
 sp-col-text
 sp-col-thumbnail
-#
-# 4. Classes whose consumer lands with a later Stage 3 phase of this port. Each
-#    line names the phase; delete it when that phase's template or script lands.
-# Expandable table detail rows rendered by the access-review, devices and
-# sessions rewrites that services/table-expand.js drives (phases 5 and 9)
-sp-table__detail-inner
-sp-table__detail-panel
-# Tools page table rules in 79-analysis-conversations2.css, consumed by
-# tools.hbs (phase 9, tools and artifacts)
-sp-tools-breakdown
-sp-tools-col-share
-sp-tools-table
-#

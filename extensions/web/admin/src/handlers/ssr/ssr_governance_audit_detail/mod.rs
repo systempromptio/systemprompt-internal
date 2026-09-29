@@ -4,7 +4,8 @@
 //! `id` may be an `ai_requests.id`, `request_id`, or `governance_decisions.id`.
 //! Renders the full chain (identity, policy evaluations, prompt/response
 //! preview, cost, latency, linked trace) using the existing
-//! `find_decision_chain` envelope.
+//! `find_decision_chain` envelope, the client and provider tool schemas the
+//! request carried, and the session's stored artifacts.
 
 use crate::error::AdminError;
 use std::sync::Arc;
@@ -26,7 +27,8 @@ use crate::templates::AdminTemplateEngine;
 use crate::types::{MarketplaceContext, UserContext};
 
 mod evidence;
-
+mod rows;
+mod schemas;
 
 #[derive(Debug, Serialize)]
 struct AuditDetailContext<'a> {
@@ -34,11 +36,13 @@ struct AuditDetailContext<'a> {
     title: String,
     breadcrumbs: Vec<BreadcrumbView>,
     evidence: evidence::EvidenceView,
+    schemas: schemas::SchemaView,
+    artifacts: schemas::ArtifactsView,
     summary: Summary,
     primary: Option<PrimaryRequest>,
     banner: Option<Banner>,
     decisions: &'a [DecisionStage],
-    requests: &'a [AiRequestSummary],
+    requests: Vec<rows::RequestRowView>,
     events: &'a [crate::repositories::governance::chain::ChainUsageEvent],
     transcript: &'a Option<TranscriptEnvelope>,
     session_summary: &'a Option<crate::repositories::governance::chain::SessionSummary>,
@@ -53,6 +57,7 @@ struct Summary {
     trace_url: Option<String>,
     session_url: String,
     user_id: UserId,
+    user_url: String,
     agent_id: Option<AgentId>,
     agent_scope: Option<String>,
     decision_count: i64,
@@ -123,7 +128,15 @@ pub(crate) async fn governance_audit_detail_page(
     );
 
     let request_ids: Vec<String> = envelope.requests.iter().map(|r| r.id.clone()).collect();
-    let evidence = evidence::load(&pool, &request_ids).await;
+    let primary_id = primary.map(|r| r.id.as_str());
+    let primary_provider = primary
+        .and_then(|r| r.provider.as_deref())
+        .unwrap_or_default();
+    let (evidence, schemas, artifacts) = tokio::join!(
+        evidence::load(&pool, &request_ids),
+        schemas::load_schemas(&pool, primary_id.unwrap_or_default(), primary_provider),
+        schemas::load_artifacts(&pool, &envelope.session_id, primary_id),
+    );
 
     let summary = build_summary(&envelope);
     let primary_json = primary.map(build_primary_json);
@@ -137,11 +150,17 @@ pub(crate) async fn governance_audit_detail_page(
         ],
         title,
         evidence,
+        schemas,
+        artifacts,
         summary,
         primary: primary_json,
         banner,
         decisions: &envelope.decisions,
-        requests: &envelope.requests,
+        requests: envelope
+            .requests
+            .iter()
+            .map(|r| rows::build_request_row(r, primary.is_some_and(|p| p.id == r.id)))
+            .collect(),
         events: &envelope.events,
         transcript: &envelope.transcript,
         session_summary: &envelope.summary,
@@ -182,6 +201,10 @@ fn build_summary(env: &ChainEnvelope) -> Summary {
         trace_url: env.trace_id.as_ref().map(trace_detail_url),
         session_url: session_detail_url(&env.session_id),
         user_id: env.identity.user_id.clone(),
+        user_url: format!(
+            "/admin/users/{}",
+            urlencoding::encode(env.identity.user_id.as_str())
+        ),
         agent_id: env.identity.agent_id.clone(),
         agent_scope: env.identity.agent_scope.clone(),
         decision_count: env.totals.decision_count,

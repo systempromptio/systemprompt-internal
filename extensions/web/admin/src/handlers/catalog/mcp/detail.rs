@@ -1,40 +1,28 @@
-//! Assembling `/admin/mcp/{id}`: the tools, the call log, the attached
-//! sessions, the grants, and the declaration.
+//! Assembling `/admin/mcp/{id}`: the tools, the callers, the call log, the
+//! attached connections and the declaration. Who may reach it is the shared
+//! "Who gets this" panel.
 //!
-//! The page answers four questions in that order — what it serves, what it did,
-//! who is on it, and who may reach it — because that is the order an operator
-//! asks them when a server misbehaves. The declaration comes last: it is the
-//! thing they will go and edit once the first four have told them what is
-//! wrong.
+//! The page answers four questions in that order — what it serves, what it did
+//! and for whom, who is on it, and who may reach it — because that is the
+//! order an operator asks them when a server misbehaves. The declaration comes
+//! last: it is the thing they will go and edit once the first four have told
+//! them what is wrong.
 
+use crate::handlers::ssr::entity_urls::{context_detail_url, session_detail_url};
 use crate::handlers::ssr::format::{format_duration_ms, local_time, short_id};
-use crate::repositories::mcp::runtime::{McpExecutionRow, McpSessionRow, McpToolStat};
+use crate::handlers::ssr::ssr_tools::rows::format_bytes;
+use crate::numeric::{percentage, round_to_i64};
+use crate::repositories::mcp::runtime::{
+    McpCallerRow, McpConnectionRow, McpExecutionRow, McpToolStat,
+};
 use crate::repositories::overview::liveness::{HEARTBEAT_INTERVAL_SECS, liveness_state};
 use crate::types::McpServerDetail;
-use crate::types::access_control::AccessControlRule;
+use systemprompt::identifiers::McpExecutionId;
+use systemprompt::models::mcp::ExecutionSource;
 
 use super::view::{
-    ConfigFactView, McpExecutionRowView, McpGrantRow, McpSessionRowView, McpToolRow,
+    ConfigFactView, McpCallerRowView, McpConnectionRowView, McpExecutionRowView, McpToolRow,
 };
-
-#[expect(
-    clippy::cast_precision_loss,
-    reason = "call counts are far below the f64 mantissa; this value is only displayed"
-)]
-fn percentage(part: i64, whole: i64) -> f64 {
-    if whole == 0 {
-        return 0.0;
-    }
-    (part as f64 / whole as f64) * 100.0
-}
-
-#[expect(
-    clippy::cast_possible_truncation,
-    reason = "an averaged millisecond figure is rendered to whole milliseconds"
-)]
-const fn whole_ms(value: f64) -> i64 {
-    value.round() as i64
-}
 
 fn error_rate(calls: i64, failures: i64) -> (String, &'static str) {
     if calls == 0 {
@@ -54,7 +42,7 @@ fn error_rate(calls: i64, failures: i64) -> (String, &'static str) {
 fn ms(value: Option<f64>) -> String {
     value.map_or_else(
         || "\u{2014}".to_owned(),
-        |v| format_duration_ms(whole_ms(v)),
+        |v| format_duration_ms(round_to_i64(v)),
     )
 }
 
@@ -69,18 +57,51 @@ pub(super) fn tool_rows(stats: Vec<McpToolStat>) -> Vec<McpToolRow> {
                 failures: s.failures,
                 error_rate_display,
                 error_tone,
+                attested: s.attested,
                 distinct_users: s.distinct_users,
                 avg_display: ms(s.avg_ms),
+                p95_display: ms(s.p95_ms),
                 max_display: s.max_ms.map_or_else(
                     || "\u{2014}".to_owned(),
                     |v| format_duration_ms(i64::from(v)),
                 ),
+                payload_display: format_bytes(s.payload_bytes),
                 last_call_display: s
                     .last_call_at
                     .map_or_else(|| "\u{2014}".to_owned(), local_time),
             }
         })
         .collect()
+}
+
+pub(super) fn caller_rows(rows: Vec<McpCallerRow>) -> Vec<McpCallerRowView> {
+    rows.into_iter()
+        .map(|r| McpCallerRowView {
+            user_url: format!("/admin/users/{}", r.user_id),
+            caller: r.user_label,
+            calls: r.calls,
+            failures: r.failures,
+            distinct_tools: r.distinct_tools,
+            last_call_display: r
+                .last_call_at
+                .map_or_else(|| "\u{2014}".to_owned(), local_time),
+        })
+        .collect()
+}
+
+// Why: the badge says which vantage point recorded the call. A hook-only
+// row is a call the client attested and no server observed (an in-process
+// tool a hook alone reported), which is its own finding.
+fn source_badge(source: &str) -> (&'static str, &'static str) {
+    match ExecutionSource::parse(source) {
+        Some(ExecutionSource::InProcess) => ("server", "ok"),
+        Some(ExecutionSource::Proxy) => ("proxy", "ok"),
+        Some(ExecutionSource::Gateway) => ("gateway", "info"),
+        Some(ExecutionSource::HookClaudeCode | ExecutionSource::HookOpenCode) => {
+            ("hook only", "muted")
+        },
+        None => ("unknown", "muted"),
+    }
 }
 
 fn execution_tone(status: &str) -> &'static str {
@@ -92,6 +113,16 @@ fn execution_tone(status: &str) -> &'static str {
     }
 }
 
+// Why: the trace page resolves an execution by its trace id or by its own
+// id, so a call with no gateway trace still links — by execution id — rather
+// than emitting a trace link that answers 404 or none at all.
+fn execution_trace_url(trace_id: Option<&str>, execution: &McpExecutionId) -> String {
+    format!(
+        "/admin/traces/{}",
+        urlencoding::encode(trace_id.unwrap_or(execution.as_str()))
+    )
+}
+
 pub(super) fn execution_rows(rows: Vec<McpExecutionRow>) -> Vec<McpExecutionRowView> {
     rows.into_iter()
         .map(|r| {
@@ -100,8 +131,11 @@ pub(super) fn execution_rows(rows: Vec<McpExecutionRow>) -> Vec<McpExecutionRowV
                 .as_ref()
                 .map(|s| s.as_str().to_owned())
                 .unwrap_or_default();
+            let (source_label, source_tone) = source_badge(&r.source);
             McpExecutionRowView {
                 short_id: short_id(r.execution_id.as_str()),
+                source_label,
+                source_tone,
                 status_tone: execution_tone(&r.status),
                 started_display: local_time(r.started_at),
                 duration_display: r.execution_time_ms.map_or_else(
@@ -109,76 +143,60 @@ pub(super) fn execution_rows(rows: Vec<McpExecutionRow>) -> Vec<McpExecutionRowV
                     |v| format_duration_ms(i64::from(v)),
                 ),
                 user_url: format!("/admin/users/{}", r.user_id),
-                session_url: (!session.is_empty()).then(|| format!("/admin/sessions/{session}")),
-                trace_url: r.trace_id.as_ref().map(|t| format!("/admin/traces/{t}")),
+                session_url: r.session_id.as_ref().map(session_detail_url),
+                context_url: r.context_id.as_ref().map(context_detail_url),
+                trace_url: Some(execution_trace_url(r.trace_id.as_deref(), &r.execution_id)),
+                payload_display: format_bytes(r.payload_bytes.unwrap_or(0)),
                 session,
-                caller: r.user_id.as_str().to_owned(),
+                caller: r.user_label,
                 error_message: r.error_message.unwrap_or_default(),
                 execution_id: r.execution_id,
                 tool_name: r.tool_name,
+                source: r.source,
                 status: r.status,
             }
         })
         .collect()
 }
 
-pub(super) fn session_rows(rows: Vec<McpSessionRow>) -> Vec<McpSessionRowView> {
+pub(super) fn connection_rows(rows: Vec<McpConnectionRow>) -> Vec<McpConnectionRowView> {
     let now = chrono::Utc::now();
     rows.into_iter()
         .map(|r| {
-            // Why: a closed session is never alive however recently it spoke —
-            // the heartbeat rule answers "has this beaten lately", and only a
-            // session still open can beat again.
-            let alive = r.status == "active"
-                && liveness_state(now, Some(r.last_activity_at), HEARTBEAT_INTERVAL_SECS)
-                    .is_alive();
+            // Why: an expired attachment is gone however recently it spoke; a
+            // live one that has not spoken lately is still attached but idle.
+            let (status_label, status_tone) = if !r.connected {
+                ("Expired", "muted")
+            } else if liveness_state(now, r.last_seen, HEARTBEAT_INTERVAL_SECS).is_alive() {
+                ("Active", "ok")
+            } else {
+                ("Connected", "info")
+            };
             let caller = r
-                .user_id
-                .as_ref()
-                .map(|u| u.as_str().to_owned())
-                .unwrap_or_default();
-            McpSessionRowView {
+                .user_label
+                .or_else(|| r.user_id.as_ref().map(|u| u.as_str().to_owned()))
+                .unwrap_or_else(|| "\u{2014}".to_owned());
+            McpConnectionRowView {
                 short_id: short_id(r.session_id.as_str()),
-                status_tone: if alive {
-                    "ok"
-                } else if r.status == "active" {
-                    "warn"
-                } else {
-                    "muted"
-                },
-                alive,
-                started_display: local_time(r.created_at),
-                last_activity_display: local_time(r.last_activity_at),
-                expires_display: local_time(r.expires_at),
-                identity_label: if r.has_proxy_identity {
-                    r.proxy_user_type.unwrap_or_else(|| "proxy".to_owned())
-                } else {
-                    "\u{2014}".to_owned()
-                },
-                user_url: if caller.is_empty() {
-                    String::new()
-                } else {
-                    format!("/admin/users/{caller}")
-                },
+                user_url: r
+                    .user_id
+                    .as_ref()
+                    .map_or_else(String::new, |u| format!("/admin/users/{u}")),
                 caller,
+                kind: if r.kind == "external" {
+                    "upstream".to_owned()
+                } else {
+                    "in-process".to_owned()
+                },
+                client_name: r.client_name.unwrap_or_else(|| "\u{2014}".to_owned()),
+                connected: r.connected,
+                status_label,
+                status_tone,
+                last_seen_display: r
+                    .last_seen
+                    .map_or_else(|| "\u{2014}".to_owned(), local_time),
+                expires_display: local_time(r.expires_at),
                 session: r.session_id.as_str().to_owned(),
-                status: r.status,
-            }
-        })
-        .collect()
-}
-
-pub(super) fn grant_rows(rules: Vec<AccessControlRule>) -> Vec<McpGrantRow> {
-    rules
-        .into_iter()
-        .map(|r| {
-            let access = r.access.to_string();
-            McpGrantRow {
-                subject_kind: r.rule_type.as_str().to_owned(),
-                subject: r.rule_value,
-                is_allow: access == "allow",
-                access,
-                updated_display: local_time(r.updated_at),
             }
         })
         .collect()

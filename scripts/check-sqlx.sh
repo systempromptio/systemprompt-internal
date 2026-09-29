@@ -10,6 +10,9 @@ allowlist=(
     # Test crates run live against a freshly-migrated DB with no `.sqlx`
     # offline cache, so the compile-time macros are unavailable there.
     '^tests/'
+    # COPY … TO STDOUT, VACUUM and pg_catalog lookups over a static table
+    # registry — statements the macros cannot express, and none takes input.
+    extensions/web/jobs/src/retention/
 )
 
 allowlist_re=$(IFS='|'; echo "${allowlist[*]}")

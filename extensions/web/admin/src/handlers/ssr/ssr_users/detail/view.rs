@@ -9,17 +9,17 @@ pub(super) use super::access_view::access_tab;
 use crate::handlers::ssr::list_view::{PageWindow, Pagination};
 use crate::handlers::ssr::ssr_history::{HistoryRowView, HistoryView, row_view};
 use crate::repositories::scope::defaults::ScopeDefaults;
-use crate::repositories::users::enrolment::UserDeviceRow;
 use crate::repositories::users::sessions::SigninSessionRow;
 
 use super::context::{
-    DeviceRowView, DevicesTabView, IdentityTabView, MembershipTabView, SalesforceIdentityView,
-    ScopeDefaultOptionView, UserConversationsTabView, UserSessionRowView, UserSessionsTabView,
+    IdentityTabView, MembershipTabView, SalesforceIdentityView, ScopeDefaultOptionView,
+    UserConversationsTabView, UserSessionRowView, UserSessionsTabView,
 };
 use super::load::{IdentityData, MembershipData, UserConversationsData};
 use crate::services::connector_oauth::Provider;
 use crate::types::UserContext;
 
+pub(super) use super::devices::devices_tab;
 pub(super) use super::usage::usage_tab;
 
 const SLACK_ISSUER: &str = "https://slack.com";
@@ -50,6 +50,10 @@ pub(super) fn identity_tab(
         is_active: detail.is_active,
         created_at: stamp(Some(detail.created_at)),
         role_choices,
+        roles_valid_until_day: data
+            .manual_roles_valid_until
+            .map(|t| t.format("%Y-%m-%d").to_string())
+            .unwrap_or_default(),
         has_adfs_groups: !data.adfs_groups.is_empty(),
         adfs_groups: data.adfs_groups.clone(),
         idp_issuer: primary.map(|i| i.issuer.clone()).unwrap_or_default(),
@@ -125,43 +129,19 @@ fn scope_options(
     out
 }
 
-pub(super) fn devices_tab(rows: Vec<UserDeviceRow>) -> DevicesTabView {
-    let active_count = rows.iter().filter(|r| r.revoked_at.is_none()).count();
-    DevicesTabView {
-        count: rows.len(),
-        active_count,
-        has_rows: !rows.is_empty(),
-        rows: rows.into_iter().map(device_row).collect(),
-    }
-}
-
-fn device_row(row: UserDeviceRow) -> DeviceRowView {
-    let revoked = row.revoked_at.is_some();
-    DeviceRowView {
-        kind_label: match row.kind.as_str() {
-            "bridge" => "Bridge",
-            "cert" => "Certificate",
-            _ => "Token",
-        },
-        label: row.label,
-        detail: row.detail.unwrap_or_default(),
-        created_at: stamp(row.created_at),
-        last_seen: stamp(row.last_seen_at),
-        status_label: if revoked { "Revoked" } else { "Active" },
-        status_tone: if revoked { "muted" } else { "ok" },
-        revocable: row.revocable && !revoked,
-        kind: row.kind,
-        id: row.id,
-    }
-}
-
 pub(super) fn sessions_tab(
     rows: &[SigninSessionRow],
     user_id: &UserId,
     page: i64,
     page_size: i64,
 ) -> UserSessionsTabView {
-    let live_count = rows.iter().filter(|r| r.revoked_at.is_none()).count();
+    // Why: the row badge says Live only when the session is neither revoked
+    // nor past its expiry; the count must agree with the badges beneath it.
+    let now = Utc::now();
+    let live_count = rows
+        .iter()
+        .filter(|r| r.revoked_at.is_none() && r.expires_at.is_none_or(|e| e >= now))
+        .count();
     let total = i64::try_from(rows.len()).unwrap_or(i64::MAX);
     let offset = usize::try_from(page * page_size).unwrap_or(0);
     let take = usize::try_from(page_size).unwrap_or(50);

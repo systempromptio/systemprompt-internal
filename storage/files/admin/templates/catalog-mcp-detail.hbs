@@ -8,15 +8,18 @@
             {{#unless configured}}<span class="sp-u-text-warning">No declaration under services/mcp</span>{{/unless}}
         {{/inline}}
         {{#*inline "header_actions"}}
+            {{> components/export-button export}}
             <a class="sp-btn sp-btn--sm sp-btn--outline" href="{{access_url}}">Access</a>
             <a class="sp-btn sp-btn--sm sp-btn--outline" href="/admin/traces">Traces</a>
-            <a class="sp-btn sp-btn--sm sp-btn--outline" href="/admin/mcp">All servers</a>
+            <a class="sp-btn sp-btn--sm sp-btn--outline" href="/admin/mcp?preset={{time_range.preset}}">All servers</a>
         {{/inline}}
     {{/components/page-header}}
 
+    {{> components/time-range time_range}}
+
     <section class="sp-kpi-grid" aria-label="Server totals">
         {{#each kpis}}
-        {{> components/kpi label=this.label value=this.value note=this.sub tone=this.tone unit=this.unit}}
+        {{> components/kpi label=this.label value=this.value note=this.note tone=this.tone unit=this.unit}}
         {{/each}}
     </section>
 
@@ -29,9 +32,12 @@
             <th class="sp-table__cell--num" aria-sort="none">Calls</th>
             <th class="sp-table__cell--num" aria-sort="none">Errors</th>
             <th class="sp-table__cell--num" aria-sort="none">Error rate</th>
+            <th class="sp-table__cell--num" aria-sort="none">Attested</th>
             <th class="sp-table__cell--num" aria-sort="none">Users</th>
             <th class="sp-table__cell--num" aria-sort="none">Avg</th>
+            <th class="sp-table__cell--num" aria-sort="none">p95</th>
             <th class="sp-table__cell--num" aria-sort="none">Max</th>
+            <th class="sp-table__cell--num" aria-sort="none">Returned</th>
             <th class="sp-table__cell--date" aria-sort="none">Last call</th>
         </tr></thead>
         <tbody>
@@ -41,9 +47,12 @@
             <td class="sp-table__cell--num sp-u-num">{{formatNumber calls}}</td>
             <td class="sp-table__cell--num sp-u-num">{{failures}}</td>
             <td class="sp-table__cell--num sp-u-num"><span class="sp-p-mcp__rate sp-p-mcp__rate--{{error_tone}}">{{error_rate_display}}</span></td>
+            <td class="sp-table__cell--num sp-u-num" title="calls the client's completion hook also confirmed">{{attested}}</td>
             <td class="sp-table__cell--num sp-u-num">{{distinct_users}}</td>
             <td class="sp-table__cell--num sp-u-num">{{avg_display}}</td>
+            <td class="sp-table__cell--num sp-u-num">{{p95_display}}</td>
             <td class="sp-table__cell--num sp-u-num">{{max_display}}</td>
+            <td class="sp-table__cell--num sp-u-num">{{payload_display}}</td>
             <td class="sp-table__cell--date">{{last_call_display}}</td>
         </tr>
         {{/each}}
@@ -54,16 +63,47 @@
     {{/if}}
     </section>
 
+    <section aria-label="Callers">
+    {{> components/section title="Callers" count=callers_count note="Who used this server in the window, heaviest first."}}
+    {{#if callers_count}}
+    {{#> components/table caption="People who called this server in the window"}}
+        <thead><tr>
+            <th aria-sort="none">User</th>
+            <th class="sp-table__cell--num" aria-sort="none">Calls</th>
+            <th class="sp-table__cell--num" aria-sort="none">Errors</th>
+            <th class="sp-table__cell--num" aria-sort="none">Tools</th>
+            <th class="sp-table__cell--date" aria-sort="none">Last call</th>
+        </tr></thead>
+        <tbody>
+        {{#each callers}}
+        <tr>
+            <td><a class="sp-table__link" href="{{user_url}}">{{caller}}</a></td>
+            <td class="sp-table__cell--num sp-u-num">{{formatNumber calls}}</td>
+            <td class="sp-table__cell--num sp-u-num">{{failures}}</td>
+            <td class="sp-table__cell--num sp-u-num">{{distinct_tools}}</td>
+            <td class="sp-table__cell--date">{{last_call_display}}</td>
+        </tr>
+        {{/each}}
+        </tbody>
+    {{/components/table}}
+    {{else}}
+    {{> components/empty-state title="No callers" message="Nobody called this server in the window."}}
+    {{/if}}
+    </section>
+
     <section aria-label="Call log">
-    {{> components/section title="Call log" count=executions_count note="Every execution recorded against this server, newest first."}}
+    {{> components/section title="Call log" count=executions_count note="Every record of a call in the window, newest first. A server-side row and the client's attestation of the same call are separate rows."}}
     {{#if executions}}
     {{#> components/table caption="Recent tool executions on this server" pagination=pagination}}
         <thead><tr>
             <th aria-sort="none">When</th>
             <th aria-sort="none">Tool</th>
+            <th aria-sort="none">Seen by</th>
             <th aria-sort="none">Status</th>
             <th class="sp-table__cell--num" aria-sort="none">Duration</th>
+            <th class="sp-table__cell--num" aria-sort="none">Returned</th>
             <th aria-sort="none">User</th>
+            <th aria-sort="none">Conversation</th>
             <th aria-sort="none">Session</th>
             <th aria-sort="none">Trace</th>
         </tr></thead>
@@ -72,9 +112,12 @@
         <tr data-execution-id="{{execution_id}}">
             <td class="sp-table__cell--date">{{started_display}}</td>
             <td class="sp-table__cell--mono">{{tool_name}}</td>
+            <td title="{{source}}">{{> components/badge tone=source_tone text=source_label}}</td>
             <td title="{{error_message}}">{{> components/badge tone=status_tone text=status}}</td>
             <td class="sp-table__cell--num sp-u-num">{{duration_display}}</td>
+            <td class="sp-table__cell--num sp-u-num">{{payload_display}}</td>
             <td><a class="sp-table__link" href="{{user_url}}">{{caller}}</a></td>
+            <td class="sp-table__cell--mono">{{#if context_url}}<a class="sp-table__link" href="{{context_url}}">open</a>{{else}}—{{/if}}</td>
             <td class="sp-table__cell--mono">{{#if session_url}}<a class="sp-table__link" href="{{session_url}}">{{short_id}}</a>{{else}}—{{/if}}</td>
             <td class="sp-table__cell--mono">{{#if trace_url}}<a class="sp-table__link" href="{{trace_url}}">trace</a>{{else}}—{{/if}}</td>
         </tr>
@@ -82,37 +125,39 @@
         </tbody>
     {{/components/table}}
     {{else}}
-    {{> components/empty-state title="No calls recorded" message="Nothing has executed against this server."}}
+    {{> components/empty-state title="No calls recorded" message="Nothing was recorded against this server in the window."}}
     {{/if}}
     </section>
 
-    <section aria-label="Sessions">
-    {{> components/section title="Sessions" count=sessions_count note="Clients attached to this server, most recently active first."}}
-    {{#if sessions_count}}
-    {{#> components/table caption="MCP sessions attached to this server"}}
+    <section aria-label="Connections">
+    {{> components/section title="Connections" count=connected_count note="Clients attached right now, then the ones that recently expired."}}
+    {{#if connections_count}}
+    {{#> components/table caption="Client connections to this server"}}
         <thead><tr>
             <th aria-sort="none">Session</th>
             <th aria-sort="none">User</th>
             <th aria-sort="none">State</th>
-            <th aria-sort="none">Identity</th>
-            <th class="sp-table__cell--date" aria-sort="none">Last beat</th>
+            <th aria-sort="none">Kind</th>
+            <th aria-sort="none">Client</th>
+            <th class="sp-table__cell--date" aria-sort="none">Last seen</th>
             <th class="sp-table__cell--date" aria-sort="none">Expires</th>
         </tr></thead>
         <tbody>
-        {{#each sessions}}
+        {{#each connections}}
         <tr data-session-id="{{session}}">
             <td class="sp-table__cell--mono">{{short_id}}</td>
-            <td>{{#if user_url}}<a class="sp-table__link" href="{{user_url}}">{{caller}}</a>{{else}}—{{/if}}</td>
-            <td>{{> components/badge tone=status_tone text=status}}</td>
-            <td class="sp-table__cell--mono">{{identity_label}}</td>
-            <td class="sp-table__cell--date">{{last_activity_display}}</td>
+            <td>{{#if user_url}}<a class="sp-table__link" href="{{user_url}}">{{caller}}</a>{{else}}{{caller}}{{/if}}</td>
+            <td>{{> components/badge tone=status_tone text=status_label}}</td>
+            <td>{{kind}}</td>
+            <td class="sp-table__cell--mono">{{client_name}}</td>
+            <td class="sp-table__cell--date">{{last_seen_display}}</td>
             <td class="sp-table__cell--date">{{expires_display}}</td>
         </tr>
         {{/each}}
         </tbody>
     {{/components/table}}
     {{else}}
-    {{> components/empty-state title="No sessions" message="No client has ever attached to this server."}}
+    {{> components/empty-state title="Nothing attached" message="No client holds a connection to this server right now, and none has expired recently."}}
     {{/if}}
     </section>
 

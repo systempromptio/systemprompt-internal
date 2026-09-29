@@ -20,4 +20,8 @@
     color: var(--sp-text-tertiary);
 }
 
+.sp-p-mcp__footnote {
+    margin-block-start: var(--sp-space-3);
+}
+
 }

@@ -56,7 +56,7 @@ pub use handlers::salesforce_auth::{SalesforceConfig, SalesforceDeps, Salesforce
 pub use routes::managed_state::StateError;
 pub use routes::{admin_ssr_router, bridge_auth_ssr_router};
 pub use services::salesforce_orgs::salesforce_orgs_boot_check;
-pub use services::{connector_oauth, salesforce_orgs};
+pub use services::{connector_oauth, identity_token, salesforce_orgs};
 pub use types::{
     CreateUserRequest, MarketplaceContext, UserContext, UserSummary, UserUsageEvent,
     roles_grant_console,
@@ -85,6 +85,9 @@ pub mod test_support {
         parse as parse_window_bound, render as render_window_bound,
     };
     pub use crate::handlers::ssr::analysis::{SkillRef, parse_skill_key};
+    pub use crate::handlers::ssr::ssr_connectors_cards::{
+        ConnectorCardView, card as connector_card,
+    };
     pub use crate::handlers::ssr::ssr_history::command_name as history_command_name;
     pub use crate::handlers::ssr::transcript_view::{
         ConversationView, EmptyReason, ParsedAssistant, SideCallRowView, SideCallsView, StepView,
@@ -93,6 +96,10 @@ pub mod test_support {
         short_id, strip_system_reminders, tidy_lines, transcript_request_ids,
     };
     pub use crate::repositories::analysis::inventory_index::MarketplaceAudience;
+    pub use crate::services::connector_accounts::{
+        Connection, ConnectionSnapshot, get_connections,
+    };
+    pub use crate::services::connector_readiness::NotReady;
 }
 
 pub fn hooks_webhook_router(
@@ -170,15 +177,16 @@ pub fn secrets_router(pool: Arc<PgPool>) -> Router {
 }
 
 pub fn admin_router(
+    db: &systemprompt::database::DbPool,
     read_pool: Arc<PgPool>,
     write_pool: &Arc<PgPool>,
     owner: systemprompt::identifiers::UserId,
-) -> Router {
-    let admin_only = routes::build_admin_only_routes(&read_pool, write_pool, owner);
+) -> Result<Router, StateError> {
+    let admin_only = routes::build_admin_only_routes(db, &read_pool, write_pool, owner)?;
     let auth_reads = routes::build_auth_read_routes(&read_pool);
     let self_service = routes::build_self_service_routes(write_pool);
 
-    admin_only
+    Ok(admin_only
         .merge(auth_reads)
         .merge(self_service)
         .layer(axum_middleware::from_fn(
@@ -187,5 +195,5 @@ pub fn admin_router(
         .layer(axum_middleware::from_fn_with_state(
             read_pool,
             middleware::user_context_middleware,
-        ))
+        )))
 }

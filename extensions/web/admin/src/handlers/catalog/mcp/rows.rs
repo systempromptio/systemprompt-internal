@@ -6,61 +6,68 @@
 //! nothing declares it — the second case is an operator problem (a binary
 //! serving under a name the catalog does not know) and hiding it would be the
 //! one failure this page must not have.
+//!
+//! The one exception is a name that is not a server at all. The client's hook
+//! and the gateway record builtin tool calls under their own source name, so
+//! `hook_claude_code` and `gateway` turn up in the executions table as if they
+//! were servers. Those are counted once as a footnote and never listed.
 
 use std::collections::HashMap;
 
+use chrono::{DateTime, Utc};
+use systemprompt::models::mcp::ExecutionSource;
+
 use crate::handlers::catalog::sorting::apply_direction;
 use crate::handlers::ssr::format::format_duration_ms;
-use crate::repositories::mcp::runtime::{McpProxyIdentityCount, McpServerActivity};
-use crate::repositories::overview::liveness::{
-    HEARTBEAT_INTERVAL_SECS, McpHeartbeatRow, liveness_state,
-};
+use crate::handlers::ssr::ssr_tools::rows::format_bytes;
+use crate::repositories::mcp::runtime::{McpConnectionCount, McpServerActivity};
+use crate::repositories::overview::liveness::{HEARTBEAT_INTERVAL_SECS, liveness_state};
 use crate::types::McpServerDetail;
 
 use super::view::McpServerRow;
+use crate::numeric::{percentage, round_to_i64};
 
 pub(super) const BASE_URL: &str = "/admin/mcp";
-pub(super) const WINDOW_HOURS: i64 = 24;
 
 // Why: the runtime facts for one server, keyed by the name the runtime used.
-// Three sources, deliberately separate: the heartbeat comes from the overview
-// repository the dashboard also reads, the identities from the MCP repository,
-// and the traffic from the executions table.
-pub(super) struct Runtime {
-    pub heartbeat: HashMap<String, McpHeartbeatRow>,
-    pub identities: HashMap<String, McpProxyIdentityCount>,
+// Two sources, deliberately separate: who is attached comes from the session
+// tables, what happened from the executions table.
+pub(crate) struct Runtime {
+    pub connections: HashMap<String, McpConnectionCount>,
     pub activity: HashMap<String, McpServerActivity>,
+    // Why: calls recorded under a source name rather than a server name —
+    // builtin tools the client or gateway executed. Set aside so the fleet
+    // rows, tiles and error rate describe servers only.
+    pub builtin_calls: i64,
 }
 
 impl Runtime {
-    pub(super) fn new(
-        heartbeat: Vec<McpHeartbeatRow>,
-        identities: Vec<McpProxyIdentityCount>,
+    pub(crate) fn new(
+        connections: Vec<McpConnectionCount>,
         activity: Vec<McpServerActivity>,
     ) -> Self {
+        let (builtin, servers): (Vec<_>, Vec<_>) = activity
+            .into_iter()
+            .partition(|a| ExecutionSource::parse(&a.server_name).is_some());
         Self {
-            heartbeat: heartbeat
+            connections: connections
                 .into_iter()
-                .map(|h| (h.server_id.as_str().to_owned(), h))
+                .map(|c| (c.server_name.clone(), c))
                 .collect(),
-            identities: identities
-                .into_iter()
-                .map(|i| (i.server_id.as_str().to_owned(), i))
-                .collect(),
-            activity: activity
+            activity: servers
                 .into_iter()
                 .map(|a| (a.server_name.clone(), a))
                 .collect(),
+            builtin_calls: builtin.iter().map(|a| a.calls).sum(),
         }
     }
 
     // Why: every name any runtime table knows, so a server serving under a
     // name the catalog never declared is still listed rather than dropped.
-    pub(super) fn names(&self) -> Vec<String> {
+    pub(crate) fn names(&self) -> Vec<String> {
         let mut out: Vec<String> = self
-            .heartbeat
+            .connections
             .keys()
-            .chain(self.identities.keys())
             .chain(self.activity.keys())
             .cloned()
             .collect();
@@ -68,19 +75,23 @@ impl Runtime {
         out.dedup();
         out
     }
+
+    pub(crate) fn knows(&self, name: &str) -> bool {
+        self.connections.contains_key(name) || self.activity.contains_key(name)
+    }
 }
 
-// Why: the declaration decides the first two answers and the heartbeat decides
+// Why: the declaration decides the first two answers and the traffic decides
 // the rest. A server nothing declares, or one declared and switched off, is not
 // a liveness question at all — asking the heartbeat about it would report
-// "No sessions" for a server that is off on purpose.
+// "Idle" for a server that is off on purpose.
 //
 // The liveness third is `overview::liveness`'s rule verbatim, interval and all,
 // so the dashboard strip and this table cannot disagree about the same server.
 pub fn status_of(
     configured: bool,
     enabled: bool,
-    heartbeat: Option<chrono::DateTime<chrono::Utc>>,
+    heartbeat: Option<DateTime<Utc>>,
 ) -> (&'static str, &'static str) {
     if !configured {
         return ("Unconfigured", "warn");
@@ -88,21 +99,8 @@ pub fn status_of(
     if !enabled {
         return ("Disabled", "muted");
     }
-    let state = liveness_state(chrono::Utc::now(), heartbeat, HEARTBEAT_INTERVAL_SECS);
+    let state = liveness_state(Utc::now(), heartbeat, HEARTBEAT_INTERVAL_SECS);
     (state.label(), state.tone())
-}
-
-// Why: one place turns two counts into a percentage, so the display rounding
-// and the precision-loss reasoning are stated once rather than at each site.
-#[expect(
-    clippy::cast_precision_loss,
-    reason = "call counts are far below the f64 mantissa; this value is only displayed"
-)]
-fn percentage(part: i64, whole: i64) -> f64 {
-    if whole == 0 {
-        return 0.0;
-    }
-    (part as f64 / whole as f64) * 100.0
 }
 
 pub(super) fn error_rate(calls: i64, errors: i64) -> (String, &'static str) {
@@ -120,7 +118,7 @@ pub(super) fn error_rate(calls: i64, errors: i64) -> (String, &'static str) {
     (format!("{pct:.1}%"), tone)
 }
 
-fn delta(calls: i64, prior: i64) -> (String, &'static str) {
+pub(super) fn delta(calls: i64, prior: i64) -> (String, &'static str) {
     if prior == 0 {
         return (String::new(), "");
     }
@@ -132,26 +130,27 @@ fn delta(calls: i64, prior: i64) -> (String, &'static str) {
     (format!("{pct:+.0}%"), dir)
 }
 
-#[expect(
-    clippy::cast_possible_truncation,
-    reason = "an averaged millisecond figure is rendered to whole milliseconds"
-)]
-const fn whole_ms(value: f64) -> i64 {
-    value.round() as i64
-}
-
-fn ms_display(ms: Option<f64>) -> String {
+pub(super) fn ms_display(ms: Option<f64>) -> String {
     ms.map_or_else(
         || "\u{2014}".to_owned(),
-        |v| format_duration_ms(whole_ms(v)),
+        |v| format_duration_ms(round_to_i64(v)),
     )
 }
 
-fn when_display(t: Option<chrono::DateTime<chrono::Utc>>) -> String {
+pub(super) fn when_display(t: Option<DateTime<Utc>>) -> String {
     t.map_or_else(
         || "\u{2014}".to_owned(),
         crate::handlers::ssr::format::local_time,
     )
+}
+
+// Why: "12/13" reads as the share of calls the client's hook also
+// confirmed; attested is a subset of calls, so no calls means no figure.
+pub(super) fn attested_display(attested: i64, calls: i64) -> String {
+    if calls == 0 {
+        return "\u{2014}".to_owned();
+    }
+    format!("{attested}/{calls}")
 }
 
 fn auth_label(server: Option<&McpServerDetail>) -> String {
@@ -180,7 +179,7 @@ fn transport_of(server: Option<&McpServerDetail>) -> String {
     }
 }
 
-pub(super) struct RowInputs<'a> {
+pub(crate) struct RowInputs<'a> {
     pub id: &'a str,
     pub server: Option<&'a McpServerDetail>,
     pub runtime: &'a Runtime,
@@ -188,19 +187,28 @@ pub(super) struct RowInputs<'a> {
     pub assignment_count: i64,
 }
 
-pub(super) fn build_row(input: &RowInputs<'_>) -> McpServerRow {
-    let heartbeat = input.runtime.heartbeat.get(input.id);
-    let identities = input.runtime.identities.get(input.id);
+pub(crate) fn build_row(input: &RowInputs<'_>) -> McpServerRow {
+    let connection = input.runtime.connections.get(input.id);
     let activity = input.runtime.activity.get(input.id);
     let configured = input.server.is_some();
     let enabled = input.server.is_some_and(|s| s.enabled);
-    let last_heartbeat = heartbeat.and_then(|h| h.last_heartbeat);
-    let (status_label, status_tone) = status_of(configured, enabled, last_heartbeat);
+
+    // Why: the last time anything got through — a connection touch or an
+    // observed call, whichever is later. Either one proves the server answered.
+    let last_seen = connection.and_then(|c| c.last_seen);
+    let last_call_at = activity.and_then(|a| a.last_call_at);
+    let last_spoke = last_seen.max(last_call_at);
+    let (status_label, status_tone) = status_of(configured, enabled, last_spoke);
 
     let calls = activity.map_or(0, |a| a.calls);
-    let errors = activity.map_or(0, |a| a.failures + a.timeouts);
+    let failures = activity.map_or(0, |a| a.failures);
+    let timeouts = activity.map_or(0, |a| a.timeouts);
+    let errors = failures + timeouts;
+    let attested = activity.map_or(0, |a| a.attested);
+    let prior_calls = activity.map_or(0, |a| a.prior_calls);
+    let payload_bytes = activity.map_or(0, |a| a.payload_bytes);
     let (error_rate_display, error_tone) = error_rate(calls, errors);
-    let (delta_display, delta_dir) = delta(calls, activity.map_or(0, |a| a.prior_calls));
+    let (delta_display, delta_dir) = delta(calls, prior_calls);
 
     McpServerRow {
         id: input.id.to_owned(),
@@ -225,20 +233,34 @@ pub(super) fn build_row(input: &RowInputs<'_>) -> McpServerRow {
         transport: transport_of(input.server),
         auth_label: auth_label(input.server),
         oauth_required: input.server.is_some_and(|s| s.oauth_required),
-        sessions_open: heartbeat.map_or(0, |h| h.active_sessions),
-        alive: liveness_state(chrono::Utc::now(), last_heartbeat, HEARTBEAT_INTERVAL_SECS)
-            .is_alive(),
-        last_heartbeat_display: when_display(last_heartbeat),
-        proxy_identities: identities.map_or(0, |i| i.identities),
+        alive: liveness_state(Utc::now(), last_spoke, HEARTBEAT_INTERVAL_SECS).is_alive(),
+        connections: connection.map_or(0, |c| c.connections),
+        connected_users: connection.map_or(0, |c| c.distinct_users),
+        last_seen_display: when_display(last_seen),
         calls,
+        prior_calls,
+        succeeded: activity.map_or(0, |a| a.succeeded),
+        failures,
+        timeouts,
         errors,
         error_rate_display,
         error_tone,
+        attested,
+        attested_display: attested_display(attested, calls),
+        avg_ms: activity.and_then(|a| a.avg_ms),
+        p95_ms: activity.and_then(|a| a.p95_ms),
+        avg_display: ms_display(activity.and_then(|a| a.avg_ms)),
         p95_display: ms_display(activity.and_then(|a| a.p95_ms)),
         distinct_users: activity.map_or(0, |a| a.distinct_users),
+        distinct_sessions: activity.map_or(0, |a| a.distinct_sessions),
+        distinct_tools: activity.map_or(0, |a| a.distinct_tools),
+        payload_bytes,
+        payload_display: format_bytes(payload_bytes),
+        secret_redactions: activity.map_or(0, |a| a.secret_redactions),
         delta_display,
         delta_dir,
-        last_call_display: when_display(activity.and_then(|a| a.last_call_at)),
+        last_call_at,
+        last_call_display: when_display(last_call_at),
         plugin_count: input.plugin_count,
         assignment_count: input.assignment_count,
     }
@@ -250,16 +272,17 @@ pub(super) fn sort_rows(rows: &mut [McpServerRow], key: &str, dir: &str) {
         "status" => apply_direction(rows, dir, |a, b| {
             a.alive.cmp(&b.alive).then_with(|| a.id.cmp(&b.id))
         }),
-        "sessions" => apply_direction(rows, dir, |a, b| a.sessions_open.cmp(&b.sessions_open)),
-        "identities" => {
-            apply_direction(rows, dir, |a, b| {
-                a.proxy_identities.cmp(&b.proxy_identities)
-            });
-        },
+        "connected" => apply_direction(rows, dir, |a, b| a.connections.cmp(&b.connections)),
+        "tools" => apply_direction(rows, dir, |a, b| a.distinct_tools.cmp(&b.distinct_tools)),
+        "users" => apply_direction(rows, dir, |a, b| a.distinct_users.cmp(&b.distinct_users)),
         "errors" => apply_direction(rows, dir, |a, b| a.errors.cmp(&b.errors)),
-        "last" => apply_direction(rows, dir, |a, b| {
-            a.last_call_display.cmp(&b.last_call_display)
+        "p95" => apply_direction(rows, dir, |a, b| {
+            a.p95_ms
+                .unwrap_or(-1.0)
+                .total_cmp(&b.p95_ms.unwrap_or(-1.0))
         }),
+        "attested" => apply_direction(rows, dir, |a, b| a.attested.cmp(&b.attested)),
+        "last" => apply_direction(rows, dir, |a, b| a.last_call_at.cmp(&b.last_call_at)),
         "grants" => apply_direction(rows, dir, |a, b| {
             a.assignment_count.cmp(&b.assignment_count)
         }),

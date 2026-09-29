@@ -5,16 +5,20 @@
         {{#*inline "header_meta"}}
             <span>{{window_label}}</span>
             <span>{{heartbeat_label}}</span>
+            <span>calls are counted once, from the server's side</span>
         {{/inline}}
         {{#*inline "header_actions"}}
+            {{> components/export-button export}}
             <a class="sp-btn sp-btn--sm sp-btn--outline" href="{{access_control_url}}">Who can reach these</a>
             <a class="sp-btn sp-btn--sm sp-btn--outline" href="/admin/plugins">Plugins</a>
         {{/inline}}
     {{/components/page-header}}
 
+    {{> components/time-range time_range}}
+
     <section class="sp-kpi-grid" aria-label="MCP fleet totals">
         {{#each kpis}}
-        {{> components/kpi label=this.label value=this.value note=this.sub tone=this.tone unit=this.unit}}
+        {{> components/kpi label=this.label value=this.value note=this.note tone=this.tone unit=this.unit}}
         {{/each}}
     </section>
 
@@ -33,15 +37,20 @@
                    value="{{search}}" placeholder="Filter servers…">
             <input type="hidden" name="sort" value="{{sort_key}}">
             <input type="hidden" name="dir" value="{{sort_dir}}">
+            <input type="hidden" name="preset" value="{{time_range.preset}}">
+            {{#if (eq time_range.preset "custom")}}
+            <input type="hidden" name="from" value="{{window_from}}">
+            <input type="hidden" name="to" value="{{window_to}}">
+            {{/if}}
         </form>
         {{/inline}}
         {{#*inline "toolbar_actions"}}
-        {{#if search}}<a class="sp-btn sp-btn--xs sp-btn--ghost" href="/admin/mcp">Clear filter</a>{{/if}}
+        {{#if search}}<a class="sp-btn sp-btn--xs sp-btn--ghost" href="/admin/mcp?preset={{time_range.preset}}">Clear filter</a>{{/if}}
         {{/inline}}
     {{/components/toolbar}}
 
     {{#if servers}}
-    {{#> components/table caption="MCP servers with liveness, traffic and grants" modifier="sp-p-catalog__table"}}
+    {{#> components/table caption="MCP servers with connections, traffic and grants" modifier="sp-p-catalog__table"}}
         <thead><tr>
             {{#each sort_headers}}{{> components/sort-header this}}{{/each}}
             <th class="sp-table__cell--actions"><span class="sp-u-sr-only">Actions</span></th>
@@ -51,24 +60,27 @@
         <tr data-mcp-id="{{id}}">
             <td class="sp-table__cell--primary"><a class="sp-table__link" href="{{detail_url}}" title="{{description}}">{{id}}</a></td>
             <td title="{{server_type}} · {{auth_label}}">{{> components/badge tone=status_tone text=status_label}}</td>
-            <td class="sp-table__cell--num sp-u-num" title="{{sessions_open}} open, {{last_heartbeat_display}} last beat">{{sessions_open}}</td>
-            <td class="sp-table__cell--num sp-u-num">{{proxy_identities}}</td>
-            <td class="sp-table__cell--num sp-u-num" title="{{delta_display}} against the previous 24 hours">{{formatNumber calls}}</td>
-            <td class="sp-table__cell--num sp-u-num" title="{{errors}} of {{calls}} · p95 {{p95_display}} · {{distinct_users}} callers"><span class="sp-p-mcp__rate sp-p-mcp__rate--{{error_tone}}">{{error_rate_display}}</span></td>
+            <td class="sp-table__cell--num sp-u-num" title="{{connected_users}} people attached · last seen {{last_seen_display}}">{{#if connections}}{{connections}}{{else}}<span class="sp-u-text-tertiary">0</span>{{/if}}</td>
+            <td class="sp-table__cell--num sp-u-num" title="{{#if delta_display}}{{delta_display}} against the window before{{else}}no calls in the window before{{/if}} · {{distinct_sessions}} sessions · {{payload_display}} returned">{{formatNumber calls}}</td>
+            <td class="sp-table__cell--num sp-u-num">{{distinct_tools}}</td>
+            <td class="sp-table__cell--num sp-u-num">{{distinct_users}}</td>
+            <td class="sp-table__cell--num sp-u-num" title="{{failures}} failed · {{timeouts}} timed out · {{succeeded}} succeeded"><span class="sp-p-mcp__rate sp-p-mcp__rate--{{error_tone}}">{{error_rate_display}}</span></td>
+            <td class="sp-table__cell--num sp-u-num" title="average {{avg_display}}">{{p95_display}}</td>
+            <td class="sp-table__cell--num sp-u-num" title="{{attested}} calls confirmed by the client's completion hook">{{attested_display}}</td>
             <td class="sp-table__cell--date">{{last_call_display}}</td>
             <td class="sp-table__cell--num sp-u-num">{{#if assignment_count}}<a class="sp-table__link" href="{{access_url}}">{{assignment_count}}</a>{{else}}<span class="sp-u-text-tertiary">0</span>{{/if}}</td>
-            <td class="sp-table__cell--actions"><a class="sp-btn sp-btn--xs sp-btn--outline" href="{{detail_url}}">Open</a></td>
+            <td class="sp-table__cell--actions"><a class="sp-btn sp-btn--xs sp-btn--outline" href="{{detail_url}}{{#if preserved_query}}?{{preserved_query}}{{/if}}">Open</a></td>
         </tr>
         {{/each}}
         </tbody>
     {{/components/table}}
     {{else}}
-    {{#> components/table caption="MCP servers with liveness, traffic and grants" modifier="sp-p-catalog__table"}}
+    {{#> components/table caption="MCP servers with connections, traffic and grants" modifier="sp-p-catalog__table"}}
         <thead><tr>
             {{#each sort_headers}}{{> components/sort-header this}}{{/each}}
             <th class="sp-table__cell--actions"><span class="sp-u-sr-only">Actions</span></th>
         </tr></thead>
-        <tbody><tr class="sp-table__empty"><td colspan="9">
+        <tbody><tr class="sp-table__empty"><td colspan="12">
             {{#if search}}
             {{> components/empty-state title="Nothing matches" message="No MCP server matches that filter."}}
             {{else}}
@@ -76,6 +88,12 @@
             {{/if}}
         </td></tr></tbody>
     {{/components/table}}
+    {{/if}}
+    {{#if builtin_calls}}
+    <p class="sp-p-mcp__footnote sp-u-text-sm sp-u-text-secondary">
+        {{formatNumber builtin_calls}} builtin tool calls in the window (Claude Code and gateway tools such as Bash or AskUserQuestion) are not MCP servers and are not counted above.
+        <a class="sp-table__link" href="/admin/tools">See all tool calls</a>
+    </p>
     {{/if}}
     </section>
     {{/inline}}

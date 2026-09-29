@@ -14,6 +14,16 @@ pub const fn to_f64(v: i64) -> f64 {
     v as f64
 }
 
+// Why: `part` of `whole` as a display percentage; zero of nothing is 0.
+#[must_use]
+#[inline]
+pub fn percentage(part: i64, whole: i64) -> f64 {
+    if whole == 0 {
+        return 0.0;
+    }
+    (to_f64(part) / to_f64(whole)) * 100.0
+}
+
 #[must_use]
 #[inline]
 #[expect(

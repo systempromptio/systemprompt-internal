@@ -111,6 +111,8 @@ base64 = "0.22"
 handlebars = "6"
 
 # Archive
+flate2 = "1.1"
+futures-util = "0.3"
 
 # MCP Protocol
 # `elicitation` and `request-state` arrive today only through feature
