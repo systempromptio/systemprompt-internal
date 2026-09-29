@@ -1,7 +1,9 @@
 //! Server-rendered routes for the console's operating pages: what the
 //! instance keeps and archives (Data lifecycle), what it is configured with
-//! (Configuration), where its telemetry goes (Observability), and every tool
-//! call and artifact it saw (Tools & artifacts).
+//! (Configuration), where its telemetry goes (Observability), every tool call
+//! and artifact it saw (Tools & artifacts), and the two account pages a person
+//! uses to connect a client (Connect) and the accounts their tools act as
+//! (Connectors).
 //!
 //! Merged into the SSR router beside the sidebar-group modules in `ssr.rs`,
 //! so each group's table stays short enough to read in one screen.
@@ -56,4 +58,9 @@ pub(super) fn routes() -> Router<Arc<PgPool>> {
             "/system/observability/test",
             post(handlers::ssr::observability_test_connection),
         )
+        // Why: identity-scoped account pages, open to every signed-in person
+        // (`middleware::gates` lists them): the connect-code wizard and the
+        // connectors the person's tools act as.
+        .route("/connect", get(handlers::ssr::connect_page))
+        .route("/connectors", get(handlers::ssr::connectors_page))
 }

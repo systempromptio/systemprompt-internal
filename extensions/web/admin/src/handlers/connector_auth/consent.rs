@@ -89,7 +89,7 @@ pub(super) async fn callback(
         .ok_or_else(|| {
             AdminError::Unauthorized("Connector consent expired or already consumed".into())
         })?;
-    let mut grant = oauth::open(&row, &user.user_id, provider.clone())?;
+    let mut grant = oauth::open(&row, &user.user_id, &provider)?;
     if grant.session != user.session_id.as_ref().map(ToString::to_string) {
         return Err(AdminError::Unauthorized(
             "Login changed during connector consent".into(),
@@ -116,7 +116,7 @@ pub(super) async fn callback(
     tracing::info!(user_id = %user.user_id, provider = provider.slug(), "connector_connected");
     Ok((
         [(CACHE_CONTROL, "no-store")],
-        Redirect::to("/admin/profile#connected-accounts"),
+        Redirect::to(&format!("/admin/connectors#connector-{}", provider.slug())),
     )
         .into_response())
 }
@@ -126,17 +126,7 @@ pub(super) async fn token(
     Path(provider): Path<Provider>,
     headers: HeaderMap,
 ) -> AdminResult<Response> {
-    use sha2::{Digest, Sha256};
-    let expected = oauth::config::secret("mcp_credential_broker_secret")?;
-    let presented = headers
-        .get("x-systemprompt-credential-broker")
-        .and_then(|v| v.to_str().ok())
-        .ok_or_else(|| AdminError::Forbidden("Backend credential access required".into()))?;
-    if Sha256::digest(expected.as_bytes()) != Sha256::digest(presented.as_bytes()) {
-        return Err(AdminError::Forbidden(
-            "Backend credential access rejected".into(),
-        ));
-    }
+    super::require_broker(&headers)?;
     let user = live_user(&pool, &headers, false).await?;
     service::require_entitlement(&pool, &user.user_id, provider.clone()).await?;
     let access_token = oauth::verified_token(&pool, &user.user_id, provider.clone(), false).await?;

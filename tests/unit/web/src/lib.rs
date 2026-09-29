@@ -220,6 +220,10 @@ mod traces_analytics_pure;
 mod util_svg_pure;
 
 #[cfg(test)]
+mod connector_cards;
+#[cfg(test)]
+mod connector_oauth;
+#[cfg(test)]
 mod observability_view;
 #[cfg(test)]
 mod tool_schema_diff;

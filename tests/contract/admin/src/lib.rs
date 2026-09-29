@@ -98,6 +98,8 @@ mod user_management_contract;
 mod webhook_contract;
 
 #[cfg(test)]
+mod connector_accounts_contract;
+#[cfg(test)]
 mod dashboard_query_scaling;
 #[cfg(test)]
 mod ssr_tools_artifacts_coverage;

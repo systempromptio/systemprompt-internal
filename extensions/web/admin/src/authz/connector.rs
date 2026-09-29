@@ -1,10 +1,12 @@
 //! Current database-backed connector attributes for authorization.
 //!
 //! The dimension's values are the MCP server ids whose connection is ready
-//! for the user — configured, entitled, connected and verified, or a server
-//! that needs no sign-in at all — so a rule written at
-//! `rule_value = <server id>` opens an entity only to the people whose calls
-//! to that server will actually work.
+//! for the user — the same [`Connection::readiness`] the bridge manifest
+//! gates on — so a rule written at `rule_value = <server id>` opens an entity
+//! only to the people whose calls to that server will actually work, and the
+//! manifest never carries a server the rule would refuse.
+//!
+//! [`Connection::readiness`]: crate::services::connector_accounts::Connection::readiness
 
 use async_trait::async_trait;
 use sqlx::PgPool;
@@ -39,23 +41,6 @@ pub fn connector_dimension() -> SubjectDimension {
     }
 }
 
-// Why: the one answer to "will this person's calls to the server work",
-// read off the same connection snapshot the Connections page renders.
-fn is_ready(connection: &Connection) -> bool {
-    if !connection.configured {
-        return false;
-    }
-    if !connection.requires_auth {
-        return true;
-    }
-    connection.entitled
-        && matches!(
-            connection.status.as_str(),
-            "connected" | "temporarily_unavailable"
-        )
-        && connection.verified_at.is_some()
-}
-
 #[derive(Debug)]
 pub struct ConnectorAttributeProvider {
     pool: Arc<PgPool>,
@@ -81,7 +66,7 @@ impl SubjectAttributeProvider for ConnectorAttributeProvider {
         Ok(snapshot
             .connections
             .into_iter()
-            .filter(is_ready)
+            .filter(Connection::is_ready)
             .map(|c| c.provider)
             .collect())
     }

@@ -6,6 +6,8 @@ use crate::services::salesforce_orgs::{
 };
 use serde::{Deserialize, Serialize};
 use systemprompt::identifiers::McpServerId;
+use systemprompt::models::auth::Permission;
+use systemprompt::models::mcp::Deployment;
 
 /// A configured MCP connector.
 ///
@@ -104,15 +106,30 @@ impl Provider {
         }
     }
     pub fn requires_auth(&self) -> bool {
-        !matches!(self, Self::Generic(_)) || self.settings().is_some()
+        !matches!(self, Self::Generic(_)) || self.settings().is_some() || self.is_session_attested()
     }
-    pub fn settings(&self) -> Option<systemprompt::models::mcp::deployment::ConnectorConfig> {
+    fn server(&self) -> Option<&'static Deployment> {
         systemprompt::loader::ServicesBootstrap::get()
             .ok()?
             .mcp_servers
-            .get(self.slug())?
-            .connector
-            .clone()
+            .get(self.slug())
+    }
+    pub fn settings(&self) -> Option<systemprompt::models::mcp::deployment::ConnectorConfig> {
+        self.server()?.connector.clone()
+    }
+    // Why: a server that requires the platform's own OAuth and declares no
+    // `connector:` block is authenticated by the caller's signed-in session,
+    // not by a grant they consent to. Its `oauth.scopes` are the entitlement,
+    // so `systemprompt` (scope `admin`) is a connector only an admin holds.
+    pub fn session_scopes(&self) -> Option<&'static [Permission]> {
+        if !matches!(self, Self::Generic(_)) || self.settings().is_some() {
+            return None;
+        }
+        let oauth = &self.server()?.oauth;
+        (oauth.required && !oauth.scopes.is_empty()).then_some(oauth.scopes.as_slice())
+    }
+    pub fn is_session_attested(&self) -> bool {
+        self.session_scopes().is_some()
     }
     pub fn display_name(&self) -> String {
         match self {
@@ -121,7 +138,10 @@ impl Provider {
             Self::Salesforce(id) => self
                 .salesforce_org()
                 .map_or_else(|_| id.as_str().to_owned(), |org| org.label.clone()),
-            Self::Generic(id) => id.clone(),
+            Self::Generic(id) => self
+                .settings()
+                .and_then(|settings| settings.display_name)
+                .unwrap_or_else(|| id.clone()),
         }
     }
 }

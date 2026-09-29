@@ -140,6 +140,21 @@ Conventions (strict — hold every entry to them):
   `mcp_external_sessions` and `mcp_sessions`, the call log carries which side observed each
   call and its conversation, the detail page lists callers, and both pages export
   (`mcp-servers`, `mcp-calls`, `mcp-tools`).
+- **Connectors:** `/admin/connectors` (Account → Connectors) replaces the connector list on the
+  profile page: a health strip (connected, needing attention, not connected, and the next
+  step), then one card per connector grouped by what to do next — what it is, what it unlocks,
+  which plugins carry it, the account behind it and its actions. **Test connection** now
+  answers with a stage-by-stage `VerificationReport` (credential, MCP session, tools,
+  identity) the page draws as a checklist. A server that requires the platform's own OAuth and
+  declares no `connector:` block is *session-attested*: the signed-in session checked against
+  its `oauth.scopes` is the connection, and its test is a live MCP handshake
+  (`services/connector_readiness.rs`). `Connection::readiness` is the one predicate the
+  marketplace filter and the `connector` authorization band share; a server access control
+  admitted but whose connection is not ready is dropped from the manifest with a logged,
+  diagnosable reason. Consent returns to `/admin/connectors#connector-<server>`.
+- **Connect:** `/admin/connect` (Account → Connect) is the connect-code wizard for Claude Code,
+  Claude Desktop/Cowork and OpenCode — client, one-time code, install command — with the bridge
+  downloads (under the setup page's download base) and the client guides.
 
 ### Changed
 
@@ -171,6 +186,13 @@ Conventions (strict — hold every entry to them):
   `Result<Router, StateError>`; the console's operating pages mount from
   `routes/ssr_platform.rs`. `ExtensionConfigErrors` carries the underlying error as a source
   (`push_with_source`), so a content config that cannot be read or parsed says why.
+- **Profile:** the connect wizard and the connector list moved off `/admin/profile` to
+  `/admin/connect` and `/admin/connectors`; the profile header links to both. The Odoo account
+  card stays on the profile. `profile-connect-code.js` and `profile-connections.js` became
+  `connect-code.js` and `connectors.js` (with `services/connector-labels.js`). Connector OAuth
+  gained a generic OIDC `userinfo` identity, issuer comparison per RFC 8414, a short outage
+  hold after a provider failure, and token-endpoint 4xx answers retire the grant; GitHub and
+  Atlassian keep their adapters and personal-token path.
 
 ### Removed
 

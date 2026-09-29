@@ -51,3 +51,10 @@ mod marketplace_usage;
 mod secrets_keys;
 #[cfg(test)]
 mod secrets_resolve;
+
+#[cfg(test)]
+mod connector_credentials;
+#[cfg(test)]
+mod connector_readiness;
+#[cfg(test)]
+mod connector_reprovision;

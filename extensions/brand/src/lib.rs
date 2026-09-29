@@ -8,3 +8,8 @@
 // Why: this is the `[[bin]]` name in bridge/Cargo.toml, and what install and
 // login commands print; the two must agree or the printed command fails.
 pub const BRIDGE_BINARY_NAME: &str = "systemprompt-internal-bridge";
+
+// Why: the product name the console prints where a sentence names this
+// instance (the control-plane connector card, for one); kept beside the
+// binary name so the two cannot drift apart.
+pub const PRODUCT_NAME: &str = "Systemprompt Internal";

@@ -71,6 +71,45 @@ Issuer identifiers are compared as URLs, with a single trailing slash ignored,
 so an issuer advertised as `https://idp.example/` in protected-resource metadata
 matches `https://idp.example` in its own metadata.
 
+## The Connectors and Connect pages
+
+`/admin/connectors` (Account → Connectors) is where a person manages the
+accounts their tools act as. A health strip counts the configured connectors
+that are connected, need attention or are not connected yet, and names the next
+step; the cards below are grouped by what to do next — *Needs your attention*
+(reconnect required, verification required, temporarily unavailable), *Ready to
+connect*, *Connected*, and *Nothing to do* (built in, not provisioned, or not
+open to the account). Each card names the plugins that carry the server and the
+account and resource behind the grant. `connectors.js` polls
+`/api/public/account/connections` and re-renders the groups in place; the
+consent callback returns to `/admin/connectors#connector-<server>`.
+
+**Test connection** runs the same verification a first connection runs and
+reports it stage by stage — credential (refresh when due), MCP session, tools
+listed, identity confirmed — as `verification` on the response, so a failing
+connector says which stage failed rather than only that it failed.
+
+A server that requires the platform's own OAuth and declares no `connector:`
+block is *session-attested*: the caller's signed-in session, checked against the
+server's `oauth.scopes`, is the connection. Its card shows it as connected for
+everyone the scopes admit, and Test runs a live MCP handshake with that session
+instead of an OAuth probe (`services/connector_readiness.rs`).
+
+`/admin/connect` (Account → Connect) is the connect-code wizard for Claude Code,
+Claude Desktop/Cowork and OpenCode, with the bridge downloads and guides. Both
+pages are identity-scoped and open to every signed-in person.
+
+## Readiness
+
+One predicate decides whether a person's calls to a server will work
+(`Connection::readiness`): the server is configured, and — when it requires
+authorization — the person is entitled, the account is `connected` (or
+`temporarily_unavailable`, which retries) and a verification has succeeded. The
+marketplace filter applies it after access control: a server access control
+admitted is still withheld from the manifest until the connection is ready, and
+the drop is logged and added to the candidate's diagnostics with the failing
+sub-condition, so a server missing from a bridge is traceable.
+
 ## Failures
 
 Apply migrations with the new binary before adding another provider. Older

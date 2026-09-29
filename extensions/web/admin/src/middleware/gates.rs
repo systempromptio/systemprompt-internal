@@ -128,6 +128,8 @@ fn is_non_admin_allowed_path(path: &str) -> bool {
         || path.starts_with("/admin/export/history")
         || path.starts_with("/admin/export/transcripts")
         || path.starts_with("/admin/settings")
+        || path == "/admin/connect"
+        || path == "/admin/connectors"
         || path.starts_with("/admin/requirements/")
         || path.starts_with("/admin/auth/")
         || path.starts_with("/admin/api/")
