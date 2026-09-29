@@ -16,6 +16,8 @@ fn all_jobs_registered() {
         "bundle_admin_css",
         "content_analytics_aggregation",
         "content_prerender",
+        "conversation_judge",
+        "conversation_rollup",
         "copy_extension_assets",
         "governance_bootstrap",
         "llms_txt_generation",

@@ -45,7 +45,8 @@ pub(super) fn legacy_routes() -> Router<Arc<PgPool>> {
     people_redirects().merge(catalog_redirects()).merge(
         entity_redirects()
             .merge(demo_and_report_redirects())
-            .merge(governance_redirects()),
+            .merge(governance_redirects())
+            .merge(analysis_redirects()),
     )
 }
 
@@ -102,6 +103,20 @@ fn demo_and_report_redirects() -> Router<Arc<PgPool>> {
         .route("/reports/internal", get(reports))
         .route("/reports/customer", get(reports))
         .route("/analytics/users/{user_id}", get(analytics_user))
+}
+
+// Why: Impact and Publication folded into Versions — per-version figures
+// replaced revision cohorts, and delivery evidence became a marketplace's
+// Distribution view. Their filters do not exist there, so the query is
+// dropped.
+fn analysis_redirects() -> Router<Arc<PgPool>> {
+    Router::new()
+        .route("/analysis/impact", get(analysis_versions))
+        .route("/analysis/publications", get(analysis_versions))
+}
+
+async fn analysis_versions() -> Redirect {
+    moved("/admin/analysis/versions")
 }
 
 fn governance_redirects() -> Router<Arc<PgPool>> {

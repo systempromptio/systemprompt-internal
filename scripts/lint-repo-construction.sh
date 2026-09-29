@@ -38,6 +38,9 @@ ALLOWED_FILES=(
   # A knowledge-bank proposal opens its approval hold the same way, from the
   # pool its tool call carries.
   extensions/mcp/knowledge-bank/src/proposal/approval.rs
+  # The admin SSR router constructs this owned managed-resource service once
+  # and injects it (the analysis inventory, revision and publication pages).
+  extensions/web/admin/src/routes/managed_state.rs
   # content services construct-and-store their own repository once at service
   # build; the content crate has no shared context object to inject from.
   extensions/web/content/src/services/content.rs

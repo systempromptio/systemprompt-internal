@@ -100,4 +100,16 @@ mod user_management_contract;
 mod webhook_contract;
 
 #[cfg(test)]
+mod analysis_lifecycle_distribution_contract;
+#[cfg(test)]
+mod analysis_report_generation_contract;
+#[cfg(test)]
+mod analysis_reports_contract;
+#[cfg(test)]
 mod dashboard_query_scaling;
+#[cfg(test)]
+mod judge_all_scope_contract;
+#[cfg(test)]
+mod marketplace_versions_contract;
+#[cfg(test)]
+mod ssr_analysis_coverage;

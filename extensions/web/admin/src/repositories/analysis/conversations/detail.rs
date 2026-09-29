@@ -1,7 +1,8 @@
-//! One conversation's fact row, read by the conversation export
-//! (`export::document`) and, with the analysis suite, by
-//! `/admin/analysis/conversations/{id}`. The other planes (turns, tools,
-//! decisions, skills, safety) are in `planes`.
+//! One conversation's fact row, read by `/admin/analysis/conversations/{id}`.
+//!
+//! The page refreshes the row first so what it shows is exact, not up to a
+//! rollup tick old. The other planes (turns, tools, decisions, skills,
+//! safety) are in `planes`. The manual judge request lives here too.
 
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
@@ -9,6 +10,21 @@ use systemprompt::identifiers::{ContextId, SessionId, UserId};
 use systemprompt_web_shared::{GroupId, ProjectId};
 
 use super::{ContinuationLink, ConversationFactRow};
+
+// Why: re-derives the fact row for one context; `false` when the context has
+// no conversation requests (nothing to show).
+pub async fn refresh_conversation_facts(
+    pool: &PgPool,
+    context_id: &ContextId,
+) -> Result<bool, sqlx::Error> {
+    let written = sqlx::query_scalar!(
+        r#"SELECT refresh_conversation_facts(ARRAY[$1::text]) AS "written!""#,
+        context_id.as_str()
+    )
+    .fetch_one(pool)
+    .await?;
+    Ok(written > 0)
+}
 
 // Why: the fact row's columns, named so the mapping below is a plain `From`
 // and the query stays one statement.
@@ -218,4 +234,66 @@ pub async fn find_conversation_facts(
     .fetch_optional(pool)
     .await?;
     Ok(row.map(ConversationFactRow::from))
+}
+
+// Why: queues one conversation for the judge as a manual request; `false`
+// when the context has no conversation requests to judge.
+pub async fn insert_manual_judgement(
+    pool: &PgPool,
+    context_id: &ContextId,
+    requested_by: &UserId,
+) -> Result<bool, sqlx::Error> {
+    let user_id = sqlx::query_scalar!(
+        r#"SELECT f.user_id AS "user_id!" FROM conversation_facts f WHERE f.context_id = $1"#,
+        context_id.as_str()
+    )
+    .fetch_optional(pool)
+    .await?;
+    let Some(user_id) = user_id else {
+        return Ok(false);
+    };
+    sqlx::query!(
+        r#"INSERT INTO conversation_analyses (context_id, user_id, status, trigger, requested_by)
+           VALUES ($1, $2, 'pending', 'manual', $3)
+           ON CONFLICT (context_id) DO UPDATE
+               SET status = 'pending', attempts = 0, next_attempt = clock_timestamp(),
+                   lease_token = NULL, lease_until = NULL, trigger = 'manual',
+                   requested_by = EXCLUDED.requested_by, updated_at = clock_timestamp()"#,
+        context_id.as_str(),
+        user_id,
+        requested_by.as_str()
+    )
+    .execute(pool)
+    .await?;
+    Ok(true)
+}
+
+// Why: queues many conversations at once for the judge — the bulk bar's
+// "Judge selected" and the toolbar's "Judge all unjudged in view". Returns
+// how many rows were queued; contexts without a fact row are skipped.
+pub async fn insert_manual_judgements(
+    pool: &PgPool,
+    context_ids: &[String],
+    requested_by: &UserId,
+) -> Result<i64, sqlx::Error> {
+    if context_ids.is_empty() {
+        return Ok(0);
+    }
+    let queued = sqlx::query_scalar!(
+        r#"WITH queued AS (
+               INSERT INTO conversation_analyses (context_id, user_id, status, trigger, requested_by)
+               SELECT f.context_id, f.user_id, 'pending', 'manual', $2
+               FROM conversation_facts f WHERE f.context_id = ANY($1)
+               ON CONFLICT (context_id) DO UPDATE
+                   SET status = 'pending', attempts = 0, next_attempt = clock_timestamp(),
+                       lease_token = NULL, lease_until = NULL, trigger = 'manual',
+                       requested_by = EXCLUDED.requested_by, updated_at = clock_timestamp()
+               RETURNING 1)
+           SELECT COUNT(*)::bigint AS "queued!" FROM queued"#,
+        context_ids,
+        requested_by.as_str()
+    )
+    .fetch_one(pool)
+    .await?;
+    Ok(queued)
 }

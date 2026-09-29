@@ -46,6 +46,7 @@ impl Selection {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum TranscriptSource {
     Sessions,
+    Analysis,
     Conversations,
     History,
 }
@@ -54,6 +55,7 @@ impl TranscriptSource {
     pub(crate) const fn as_str(self) -> &'static str {
         match self {
             Self::Sessions => "sessions",
+            Self::Analysis => "analysis",
             Self::Conversations => "conversations",
             Self::History => "history",
         }
@@ -61,15 +63,20 @@ impl TranscriptSource {
 
     pub(crate) const fn window(self) -> Window {
         match self {
-            Self::Sessions => Window::Live,
+            Self::Sessions | Self::Analysis => Window::Live,
             Self::Conversations | Self::History => Window::Retained,
         }
     }
 
     fn parse(value: &str) -> Option<Self> {
-        [Self::Sessions, Self::Conversations, Self::History]
-            .into_iter()
-            .find(|s| s.as_str() == value)
+        [
+            Self::Sessions,
+            Self::Analysis,
+            Self::Conversations,
+            Self::History,
+        ]
+        .into_iter()
+        .find(|s| s.as_str() == value)
     }
 }
 
@@ -78,7 +85,7 @@ pub(crate) fn source_of(ctx: &ExportContext<'_>) -> AdminResult<TranscriptSource
     let raw = query.source.as_deref().unwrap_or("sessions");
     TranscriptSource::parse(raw).ok_or_else(|| {
         AdminError::BadRequest(format!(
-            "Unknown conversation source `{raw}`; use sessions, conversations or history"
+            "Unknown conversation source `{raw}`; use sessions, analysis, conversations or history"
         ))
     })
 }
@@ -100,6 +107,7 @@ pub(crate) async fn resolve_selection(
         .ok_or_else(|| AdminError::BadRequest("This export needs a window".to_owned()))?;
     let mut selection = match source {
         TranscriptSource::Sessions => sessions_set(pool, user, ctx, range_of(w)).await?,
+        TranscriptSource::Analysis => analysis_set(pool, user, ctx, range_of(w)).await?,
         TranscriptSource::Conversations => {
             history_set(pool, user, ctx, w, HistoryView::Org).await?
         },
@@ -196,6 +204,27 @@ async fn sessions_set(
     Ok(Selection {
         context_ids: rows.into_iter().map(|r| r.context_id).collect(),
         total,
+        window: None,
+    })
+}
+
+async fn analysis_set(
+    pool: &PgPool,
+    user: &UserContext,
+    ctx: &ExportContext<'_>,
+    range: TimeRange,
+) -> AdminResult<Selection> {
+    let result = crate::handlers::ssr::analysis::conversations::export::export_rows(
+        pool,
+        user,
+        ctx.query()?,
+        range,
+        MAX_CONVERSATIONS,
+    )
+    .await?;
+    Ok(Selection {
+        total: result.totals.conversations,
+        context_ids: result.rows.into_iter().map(|r| r.context_id).collect(),
         window: None,
     })
 }

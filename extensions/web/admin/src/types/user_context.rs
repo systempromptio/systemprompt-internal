@@ -28,6 +28,17 @@ pub struct UserContext {
     pub session_id: Option<SessionId>,
 }
 
+impl UserContext {
+    // Why: whether the caller may open the scoped console — the Analysis
+    // pages ask this rather than `is_console` because a marketplace
+    // participant reaches them on an instance with a participation tier.
+    // This instance has none, so the scoped console is the console.
+    #[must_use]
+    pub const fn has_scoped_console(&self) -> bool {
+        self.is_console
+    }
+}
+
 // Why: whether a role set reaches the admin dashboard. Kept beside
 // `UserContext` so the middleware and every test fixture derive the flag from
 // one rule instead of each restating it.

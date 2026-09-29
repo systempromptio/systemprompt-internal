@@ -1,8 +1,8 @@
 //! The conversation row shared by the Analysis pages.
 //!
 //! It is the `conversation_facts` record plus the judge's columns. The JSON
-//! wire form keeps the context id as text; the default `Id` is the typed
-//! `ContextId` a single-row read decodes directly.
+//! wire form keeps the context id as text; `decode_row` resolves it to the
+//! id `SQLx` decoded in the same statement.
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -104,4 +104,84 @@ pub struct ContinuationLink {
     pub prev_context_id: Option<String>,
     #[serde(default)]
     pub prev_title: Option<String>,
+}
+
+pub(super) fn decode_row(
+    r: ConversationFactRow<String>,
+    ids: &[ContextId],
+) -> Result<ConversationFactRow, sqlx::Error> {
+    let context_id = crate::repositories::dashboard_read::context_id(&r.context_id, ids)?;
+    Ok(ConversationFactRow {
+        context_id,
+        title: r.title,
+        user_id: r.user_id,
+        display_name: r.display_name,
+        session_id: r.session_id,
+        client_session_id: r.client_session_id,
+        group_id: r.group_id,
+        project_id: r.project_id,
+        group_name: r.group_name,
+        project_name: r.project_name,
+        client_kind: r.client_kind,
+        client_attestation: r.client_attestation,
+        wire_protocol: r.wire_protocol,
+        model: r.model,
+        provider: r.provider,
+        models: r.models,
+        providers: r.providers,
+        request_count: r.request_count,
+        turn_count: r.turn_count,
+        side_call_count: r.side_call_count,
+        side_call_cost_microdollars: r.side_call_cost_microdollars,
+        error_count: r.error_count,
+        rejected_count: r.rejected_count,
+        streaming_count: r.streaming_count,
+        input_tokens: r.input_tokens,
+        output_tokens: r.output_tokens,
+        cache_read_tokens: r.cache_read_tokens,
+        cache_creation_tokens: r.cache_creation_tokens,
+        reasoning_tokens: r.reasoning_tokens,
+        total_tokens: r.total_tokens,
+        cost_microdollars: r.cost_microdollars,
+        p50_latency_ms: r.p50_latency_ms,
+        p95_latency_ms: r.p95_latency_ms,
+        max_latency_ms: r.max_latency_ms,
+        tool_calls_intended: r.tool_calls_intended,
+        tool_calls_executed: r.tool_calls_executed,
+        tool_calls_failed: r.tool_calls_failed,
+        artifact_count: r.artifact_count,
+        artifact_files: r.artifact_files,
+        artifact_cards: r.artifact_cards,
+        safety_findings: r.safety_findings,
+        safety_blocked: r.safety_blocked,
+        gov_allow: r.gov_allow,
+        gov_warn: r.gov_warn,
+        gov_deny: r.gov_deny,
+        prompt_count: r.prompt_count,
+        hook_event_count: r.hook_event_count,
+        hook_status: r.hook_status,
+        skill_invocations: r.skill_invocations,
+        skills: r.skills,
+        first_at: r.first_at,
+        last_at: r.last_at,
+        duration_seconds: r.duration_seconds,
+        active_ms: r.active_ms,
+        judge_status: r.judge_status,
+        judge_title: r.judge_title,
+        category: r.category,
+        summary: r.summary,
+        tags: r.tags,
+        skills_used: r.skills_used,
+        outcome: r.outcome,
+        completion: r.completion,
+        completion_rationale: r.completion_rationale,
+        confidence: r.confidence,
+        classified_at: r.classified_at,
+        judge_model: r.judge_model,
+        judge_cost_microdollars: r.judge_cost_microdollars,
+        judge_tokens: r.judge_tokens,
+        judge_trigger: r.judge_trigger,
+        turn_tokens: r.turn_tokens,
+        continuation: r.continuation,
+    })
 }

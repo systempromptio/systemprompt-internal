@@ -5,6 +5,10 @@ ai:
     enable_smart_routing: false
     fallback_enabled: true
   providers:
+    # Why: the conversation_judge job and the analysis reports call the
+    # process's AiService, which registers only the providers enabled here —
+    # the gateway catalog alone is not enough. Both run on this provider
+    # (services/scheduler/config.yaml, `conversation_judge` parameters).
     anthropic:
       enabled: true
       google_search_enabled: false

@@ -46,6 +46,50 @@ scheduler:
       owner: admin
       enabled: true
 
+    # The conversation judge (web extension): the one AI label on top of the
+    # deterministic conversation record. Every five minutes: queue every
+    # conversation with at least one turn that is quiet for `quiet_minutes`
+    # or whose harness session ended, lease `batch_size`, read each
+    # transcript and ask the model below — in one structured call — for a
+    # title, a summary, the intent category, an outcome and a single 0–100
+    # completion score (did the assistant deliver what was originally asked).
+    # Feeds every /admin/analysis page. Judge calls are audited as this job's
+    # actor and excluded from every conversation view;
+    # `daily_cost_cap_microdollars` stops a run once the day's judge spend
+    # reaches it. Re-judge one:
+    # `systemprompt infra jobs run conversation_judge -p context_id=<id>`.
+    # Gated by `hooks.judge` on the governance-owning plugin
+    # (systemprompt-business) and by the profile's `judge.automatic`; the
+    # manual `context_id` run bypasses the latter.
+    #
+    # Provider: this instance enables Anthropic only (services/ai/config.yaml),
+    # and the judge calls the process's AiService, which registers only enabled
+    # providers — so the judge runs on Anthropic's small model. The analysis
+    # reports (/admin/analysis/reports) are written by the same model.
+    - name: conversation_judge
+      extension: web
+      owner: admin
+      schedule: "0 */5 * * * *"
+      enabled: true
+      parameters:
+        provider: anthropic
+        model: claude-haiku-4-5
+        batch_size: "20"
+        daily_cost_cap_microdollars: "2000000"
+        quiet_minutes: "30"
+
+    # The conversation rollup (web extension): keeps `conversation_facts` —
+    # the per-conversation deterministic record every Analysis page reads —
+    # current, with its per-skill rows (`conversation_skill_facts`, which the
+    # Versions pages read). Every minute it re-derives the rows of each
+    # conversation touched on any plane (gateway, hooks, governance, tools,
+    # artifacts) since a stored watermark, so each change is folded in once.
+    # `-p all=true` rebuilds every row (the backfill after an upgrade).
+    - name: conversation_rollup
+      extension: web
+      owner: admin
+      enabled: true
+
     # Core jobs (defined in systemprompt-core)
     - name: cleanup_anonymous_users
       extension: core

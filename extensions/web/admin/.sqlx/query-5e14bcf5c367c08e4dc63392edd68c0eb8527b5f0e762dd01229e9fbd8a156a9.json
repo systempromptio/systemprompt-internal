@@ -1,0 +1,33 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH in_groups AS (\n               SELECT u.id\n               FROM users u\n               WHERE $1::TEXT[] IS NOT NULL AND (\n                     EXISTS (SELECT 1 FROM user_groups ug\n                             WHERE ug.user_id = u.id AND ug.group_id = ANY($1))\n                  OR ($3::BOOLEAN AND EXISTS (\n                             SELECT 1 FROM ai_request_scopes s\n                             WHERE s.user_id = u.id AND s.group_id = ANY($1))))\n           ),\n           in_projects AS (\n               SELECT u.id\n               FROM users u\n               WHERE $2::TEXT[] IS NOT NULL AND (\n                     EXISTS (SELECT 1 FROM user_projects pm\n                             WHERE pm.user_id = u.id AND pm.project_id = ANY($2))\n                  OR ($4::BOOLEAN AND EXISTS (\n                             SELECT 1 FROM ai_request_scopes s\n                             WHERE s.user_id = u.id AND s.project_id = ANY($2))))\n           )\n           SELECT u.id AS \"id!\"\n           FROM users u\n           WHERE u.id = $6::TEXT\n              OR CASE\n                   WHEN $5::BOOLEAN THEN\n                        u.id IN (SELECT id FROM in_groups)\n                     OR u.id IN (SELECT id FROM in_projects)\n                   ELSE\n                        ($1::TEXT[] IS NULL OR u.id IN (SELECT id FROM in_groups))\n                    AND ($2::TEXT[] IS NULL OR u.id IN (SELECT id FROM in_projects))\n                 END",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray",
+        "TextArray",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "5e14bcf5c367c08e4dc63392edd68c0eb8527b5f0e762dd01229e9fbd8a156a9"
+}

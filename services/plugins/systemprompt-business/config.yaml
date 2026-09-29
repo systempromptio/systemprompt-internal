@@ -64,8 +64,14 @@ plugin:
   # plugin may set this — each extra owner is another govern call per tool,
   # and core refuses two enabled owners at load. This plugin owns it because
   # it replaces systemprompt-commons, the previous owner.
+  # `judge` is the conversation judge's switch (core's key). It installs
+  # nothing on the client: the judge reads the sessions this plugin's track
+  # hook already reports, so it rides on the governance owner and only that
+  # plugin may set it. The profile's `judge.automatic` decides whether it runs
+  # on its own or only when a person asks.
   hooks:
     governance: true
+    judge: true
     # No `comms: true`: the bridge's announcement-drain hooks (UserPromptSubmit
     # and Stop running `comms-drain`) stay uninstalled. This instance publishes
     # no announcements, so there is nothing for them to drain.

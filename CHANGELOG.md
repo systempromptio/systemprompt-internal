@@ -116,9 +116,47 @@ Conventions (strict — hold every entry to them):
   gateway pages link to it instead of the unfiltered access ledger.
 - **Governance findings search:** the Safety findings tab takes a `q` that matches category,
   scanner, excerpt, user and model.
+- **Analysis section:** a new sidebar group with astound's analysis suite at
+  `/admin/analysis/*`. *Conversations* — every gateway conversation in the window with KPI
+  tiles, three charts on one axis, a breakdown (intent, model, client, group, project, person,
+  skill, outcome), a turnless filter, badge stacks and the judge's 0–100 completion score, plus
+  **Judge N unjudged** and bulk **Judge selected**; *Conversation* — one conversation on every
+  plane (turn ledger, tool calls, governance decisions, safety findings, skills with the
+  marketplace version served, active time, **Judge now**); *Skills* and *Skill* — invocations,
+  people over entitled, installs, adoption by marketplace, cost, errors and the judge's mean
+  completion; *Reports* — on-demand AI reports over a SQL digest of the record, with a
+  self-refreshing pending page (`components/sp-report-poll.js`); *Versions* — every
+  marketplace by content hash with History, Compare, Distribution (publication review and
+  withdrawals) and Evaluation tabs, and `/admin/analysis/revisions/{id}`. `/admin/analysis/impact`
+  and `/admin/analysis/publications` redirect to Versions. Every page is console-only here
+  (no marketplace participation tier). Guide: `/documentation/analysis`.
+- **Conversation jobs:** `conversation_rollup` (every minute) keeps `conversation_facts` and
+  `conversation_skill_facts` current from every plane since a watermark (`-p all=true`
+  rebuilds); `conversation_judge` (every five minutes) labels quiet or closed conversations in
+  one structured call — title, summary, intent, outcome, completion — capped by
+  `daily_cost_cap_microdollars`. The judge runs on Anthropic (`claude-haiku-4-5`), the one
+  provider `services/ai/config.yaml` enables; `systemprompt-business` sets `hooks.judge: true`,
+  and the profile's `judge.automatic` decides whether it runs unasked.
+- **Analysis exports:** eleven datasets — the analysis skills, skill conversations, skill runs
+  and kit-release impact, classified conversations and their breakdown, the per-turn
+  conversation ledger, marketplaces and versions, and plugin evaluation (with its tool
+  table); conversation bundles accept `source=analysis`, and the context-detail and
+  conversation pages offer the per-turn ledger beside the whole record.
 
 ### Changed
 
+- **Conversation classification:** `conversation_request_kind` takes a fourth argument,
+  `harness_bound`: a single-request, tool-less thread is a side call only inside a context keyed
+  on a client session, so an SDK or OpenCode one-prompt thread counts as a conversation.
+  `conversation_requests` gains `client_kind`/`client_attestation` (which
+  `refresh_conversation_facts` reads) and excludes job-made requests (`actor_kind = 'job'`, the
+  judge's own calls); `conversation_metrics_for` returns the two client columns and files a
+  conversation under the group and project stamped on its latest request. Migration
+  `096_conversation_request_kind_by_harness` drops the old function signatures so the
+  declarative schema can re-create them.
+- **Admin router:** `admin_ssr_router` takes the shared `DbPool` and returns
+  `Result<Router, StateError>`; it builds the managed-resource repository once
+  (`routes/managed_state.rs`) for the analysis inventory, revision and publication pages.
 - **Gateway console:** `/admin/gateway` is astound's five-view page — Overview (dispatch order
   and provider health), Providers, Routes (ordered, with the resolved-only set below it),
   Settings and a link to Policies — and routes carry a `name` and `description`. The route
@@ -130,8 +168,7 @@ Conventions (strict — hold every entry to them):
 - **Admin analytics:** the dashboard is astound's current build. The Sessions tab lists
   gateway-metered conversations from `conversation_facts` (cost, requests, tokens, the client
   session it ran in) instead of client-reported `session_cost_snapshots`; that table is filled
-  by the `conversation_rollup` job, which this repository does not schedule yet, so the tab is
-  empty until it does. The cost-by-day chart is the shared line-chart component in its
+  by the `conversation_rollup` job (scheduled every minute, see Added). The cost-by-day chart is the shared line-chart component in its
   `stacked` kind. Lists page at the console-wide `DEFAULT_PAGE_SIZE`
   (`handlers/ssr/list_view.rs`, with the shared `paginate` / `query_string_dropping` helpers).
 - **Admin export:** the per-page CSV routes are replaced by the export surface:
@@ -159,6 +196,14 @@ Conventions (strict — hold every entry to them):
 - **Admin export:** `/admin/analytics/cost.csv`, `/admin/requests.csv`,
   `/admin/governance/warnings.csv` and `/admin/governance/secrets.csv`. Fetch the same data from
   `/admin/export/{dataset}?format=csv` (see Changed).
+
+### Migration
+
+- After upgrading, backfill the conversation record once:
+  `systemprompt infra jobs run conversation_rollup -p all=true`. Until then the Analysis pages
+  and the analytics Sessions tab show only conversations touched since the upgrade.
+- To have conversations judged without anyone asking, set `judge: { automatic: true }` in the
+  profile; otherwise only **Judge now** / **Judge selected** queue work for the judge.
 
 ## [0.62.0] - 2026-09-28
 

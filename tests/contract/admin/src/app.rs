@@ -83,12 +83,13 @@ impl App {
         // Core layers `Option<Arc<AiService>>` onto every extension router;
         // `None` is an instance without inference configured.
         let ssr = admin::admin_ssr_router(
+            &database,
             Arc::clone(pool),
-            pool,
             engine.clone(),
             sso_deps,
             credentials.admin_user_id.clone(),
         )
+        .expect("build the admin SSR router")
         .layer(axum::Extension(None::<Arc<systemprompt::ai::AiService>>));
         let bridge_auth = admin::bridge_auth_ssr_router(Arc::clone(pool), engine);
 

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO user_scope_defaults\n              (user_id, primary_group_id, primary_project_id, source, updated_at)\n          SELECT u.id,\n                 (SELECT ug.group_id\n                    FROM user_groups ug\n                   WHERE ug.user_id = u.id\n                   ORDER BY EXISTS (\n                                SELECT 1 FROM group_members gm\n                                WHERE gm.group_id = ug.group_id\n                                  AND gm.user_id = ug.user_id\n                                  AND gm.source = 'adfs'\n                                  AND gm.revoked_at IS NULL) DESC,\n                            (SELECT COUNT(DISTINCT x.user_id)\n                               FROM user_groups x\n                              WHERE x.group_id = ug.group_id) DESC,\n                            ug.group_id\n                   LIMIT 1),\n                 (SELECT pm.project_id\n                    FROM project_members pm\n                   WHERE pm.user_id = u.id\n                     AND pm.revoked_at IS NULL AND pm.valid_from <= CURRENT_TIMESTAMP\n                     AND (pm.valid_until IS NULL OR pm.valid_until > CURRENT_TIMESTAMP)\n                   ORDER BY (pm.source = 'adfs') DESC,\n                            (SELECT COUNT(*)\n                               FROM user_projects y\n                              WHERE y.project_id = pm.project_id) DESC,\n                            pm.project_id\n                   LIMIT 1),\n                 'auto', NOW()\n          FROM users u\n          WHERE NOT ('anonymous' = ANY(u.roles))\n            AND ($1::TEXT IS NULL OR u.id = $1)\n          ON CONFLICT (user_id) DO UPDATE SET\n              primary_group_id = EXCLUDED.primary_group_id,\n              primary_project_id = EXCLUDED.primary_project_id,\n              updated_at = NOW()\n          WHERE user_scope_defaults.source = 'auto'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "84a25d93054aca6498e11782bb68bf408ee1dd59ce296c09191928fe368539b1"
+}

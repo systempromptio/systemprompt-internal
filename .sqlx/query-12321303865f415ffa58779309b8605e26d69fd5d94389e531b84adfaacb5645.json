@@ -1,0 +1,148 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            f.context_id AS \"context_id!: ContextId\",\n            f.client_session_id AS \"session_id?: SessionId\",\n            f.user_id AS \"user_id!: UserId\",\n            f.model,\n            f.cost_microdollars AS \"cost!\",\n            f.request_count AS \"request_count!\",\n            f.input_tokens AS \"input_tokens!\",\n            f.output_tokens AS \"output_tokens!\",\n            f.cache_read_tokens AS \"cache_read!\",\n            f.last_at AS \"updated_at!\",\n            COUNT(*) OVER ()::BIGINT AS \"total!\"\n        FROM conversation_facts f\n        WHERE f.last_at >= $1 AND f.last_at < $2\n          AND ($3::TEXT[] IS NULL OR f.user_id = ANY($3))\n          AND ($4::TEXT IS NULL OR f.user_id = $4)\n        ORDER BY f.cost_microdollars DESC, f.last_at DESC\n        LIMIT $5 OFFSET $6\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "context_id!: ContextId",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "conversation_facts",
+            "name": "context_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "session_id?: SessionId",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "conversation_facts",
+            "name": "client_session_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "user_id!: UserId",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "conversation_facts",
+            "name": "user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "model",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "conversation_facts",
+            "name": "model"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "cost!",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "conversation_facts",
+            "name": "cost_microdollars"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "request_count!",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "conversation_facts",
+            "name": "request_count"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "input_tokens!",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "conversation_facts",
+            "name": "input_tokens"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "output_tokens!",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "conversation_facts",
+            "name": "output_tokens"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "cache_read!",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "conversation_facts",
+            "name": "cache_read_tokens"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "updated_at!",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "conversation_facts",
+            "name": "last_at"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Timestamptz",
+        "TextArray",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "12321303865f415ffa58779309b8605e26d69fd5d94389e531b84adfaacb5645"
+}

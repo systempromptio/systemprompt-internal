@@ -120,9 +120,9 @@ pub(crate) async fn history_conversation_page(
         timeline: timeline_display(kpis.first_request_at, kpis.last_request_at),
         conversation,
         admin_url: user_ctx.is_admin.then(|| context_detail_url(&context_id)),
-        // Why: the whole record only, for owner and console alike, until the
-        // analysis suite registers the per-turn ledger table.
-        export: crate::export::ExportView::conversation(&context_id, false),
+        // Why: the per-turn ledger table is a console dataset; the owner
+        // exports the whole record only.
+        export: crate::export::ExportView::conversation(&context_id, user_ctx.has_scoped_console()),
     };
 
     Ok(super::super::render_typed_page(

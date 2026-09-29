@@ -44,6 +44,15 @@ pub enum JobError {
     #[error("Pipeline failed: {failed} sub-job(s) reported errors")]
     Pipeline { failed: u64 },
 
+    #[error("AI service error: {0}")]
+    Ai(#[from] systemprompt::ai::error::AiError),
+
+    #[error("Provider error: {0}")]
+    Provider(#[from] ProviderError),
+
+    #[error("Identifier error: {0}")]
+    Identifier(#[from] systemprompt::identifiers::error::IdValidationError),
+
     #[error("{0}")]
     Other(String),
 }

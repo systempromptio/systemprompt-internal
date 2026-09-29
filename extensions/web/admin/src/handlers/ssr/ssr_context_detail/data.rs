@@ -94,9 +94,7 @@ pub(super) fn build_detail_data(
         .map_or_else(|| "Conversations".to_owned(), |_| "Session".to_owned());
     ContextDetailPageContext {
         page: "context-detail",
-        // Why: the whole record only; the per-turn ledger table joins it when
-        // the analysis suite registers `analysis-conversation-turns`.
-        export: crate::export::ExportView::conversation(&header.context_id, false),
+        export: crate::export::ExportView::conversation(&header.context_id, true),
         tabs: tab_links(header, active_tab, requests.len(), entity_link_views.len()),
         show_conversation: active_tab == TAB_CONVERSATION,
         show_requests: active_tab == TAB_REQUESTS,

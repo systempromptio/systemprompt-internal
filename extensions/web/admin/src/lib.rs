@@ -53,6 +53,7 @@ pub use handlers::dev_login::{
     DEV_LOGIN_PATH, dev_login_allowed, dev_login_enabled, dev_login_url,
 };
 pub use handlers::salesforce_auth::{SalesforceConfig, SalesforceDeps, SalesforceError};
+pub use routes::managed_state::StateError;
 pub use routes::{admin_ssr_router, bridge_auth_ssr_router};
 pub use services::salesforce_orgs::salesforce_orgs_boot_check;
 pub use services::{connector_oauth, salesforce_orgs};
@@ -77,6 +78,13 @@ pub mod test_support {
     pub use crate::handlers::hooks_track::loc::{LocDelta, compute_loc_delta};
     pub use crate::handlers::hooks_track::session_summary::GeneratedSessionSummary;
     pub use crate::handlers::resolve_principal;
+    pub use crate::handlers::ssr::analysis::marketplace_versions::diff::{
+        Change, ManifestDiff, SkillChange, diff as manifest_diff,
+    };
+    pub use crate::handlers::ssr::analysis::time::{
+        parse as parse_window_bound, render as render_window_bound,
+    };
+    pub use crate::handlers::ssr::analysis::{SkillRef, parse_skill_key};
     pub use crate::handlers::ssr::ssr_history::command_name as history_command_name;
     pub use crate::handlers::ssr::transcript_view::{
         ConversationView, EmptyReason, ParsedAssistant, SideCallRowView, SideCallsView, StepView,
@@ -84,6 +92,7 @@ pub mod test_support {
         TranscriptRequestIds, TurnView, build_conversation, meta_view, parse_assistant, preview,
         short_id, strip_system_reminders, tidy_lines, transcript_request_ids,
     };
+    pub use crate::repositories::analysis::inventory_index::MarketplaceAudience;
 }
 
 pub fn hooks_webhook_router(

@@ -3,8 +3,8 @@
 //! `/admin/history` is "My conversations" and shows the viewer's own, whoever
 //! is looking. [`HistoryView::Org`] is the org-wide scope, with the User
 //! column; the user detail page renders its rows, and its own page
-//! (`/admin/conversations`) is not mounted until its template lands with the
-//! analysis port.
+//! (`/admin/conversations`) is not mounted until the history window and
+//! search it reads land (Stage 3 phase 11).
 //!
 //! The one analytics surface a non-admin may reach: every viewer sees their
 //! own conversations, and admin/auditor keep the unrestricted view. Both ways

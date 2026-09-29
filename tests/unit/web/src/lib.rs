@@ -187,6 +187,8 @@ mod sync_staging;
 mod time_bound_access;
 
 #[cfg(test)]
+mod analysis_skills;
+#[cfg(test)]
 mod analytics;
 #[cfg(test)]
 mod analytics_conversations_redact;
@@ -201,11 +203,19 @@ mod hooks_track_ai_pure;
 #[cfg(test)]
 mod hooks_track_loc_pure;
 #[cfg(test)]
+mod jobs_conversation_judge;
+#[cfg(test)]
+mod judge_params;
+#[cfg(test)]
 mod kit_export;
 #[cfg(test)]
 mod managed_assets;
 #[cfg(test)]
 mod managed_bundle;
+#[cfg(test)]
+mod marketplace_hash;
+#[cfg(test)]
+mod marketplace_version_diff;
 #[cfg(test)]
 mod migration_cost;
 #[cfg(test)]

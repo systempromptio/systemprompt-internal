@@ -16,6 +16,8 @@ const ADMIN_API_READ_SRC: &str =
     include_str!("../../../../extensions/web/admin/src/routes/admin/read.rs");
 const ADMIN_GROUPS_SRC: &str =
     include_str!("../../../../extensions/web/admin/src/routes/admin_groups.rs");
+const ANALYSIS_SRC: &str =
+    include_str!("../../../../extensions/web/admin/src/routes/ssr_analysis.rs");
 const SSR_SRC: &str = include_str!("../../../../extensions/web/admin/src/routes/ssr.rs");
 // Merged into the SSR router from its own module, so it is read on its own:
 // without it every export route — the PAT surface included — drops out of the
@@ -74,6 +76,7 @@ pub(crate) fn mounted_routes() -> Vec<MountedRoute> {
         (ADMIN_API_SRC, ADMIN_API_PREFIX),
         (ADMIN_API_READ_SRC, ADMIN_API_PREFIX),
         (ADMIN_GROUPS_SRC, ADMIN_API_PREFIX),
+        (ANALYSIS_SRC, SSR_PREFIX),
         (SSR_SRC, SSR_PREFIX),
         (EXPORT_SRC, SSR_PREFIX),
         (GOVERNANCE_SRC, SSR_PREFIX),

@@ -96,8 +96,9 @@ pub async fn record_marketplace_versions(
     })
 }
 
-// Why: lint-ok: unused-pub — the marketplace-version pages read it; they land
-// with the Stage-3 admin port.
+// Why: lint-ok: unused-pub — the marketplace catalog cards read it
+// (`handlers/catalog/marketplaces/cards.rs`, astound's catalog delta, Stage 4
+// parity sweep); the version pages read the metrics query instead.
 pub async fn list_current_marketplace_versions(
     pool: &PgPool,
 ) -> Result<Vec<MarketplaceVersionRow>, sqlx::Error> {

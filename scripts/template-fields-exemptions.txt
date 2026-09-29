@@ -8,7 +8,6 @@ storage/files/admin/templates/approvals.hbs: ingestion_count
 storage/files/admin/templates/bridge-device-link-blocked.hbs: blocked_reason
 storage/files/admin/templates/bridge-device-link-blocked.hbs: switch_account_href
 storage/files/admin/templates/demo-logbook.hbs: attribution_note
-storage/files/admin/templates/demo-logbook.hbs: heading
 storage/files/admin/templates/demo-me.hbs: attribution_note
 storage/files/admin/templates/demo-skills.hbs: attribution_note
 storage/files/admin/templates/demo-tools.hbs: attribution_note
@@ -36,9 +35,3 @@ storage/files/admin/templates/report-customer.hbs: org_name
 storage/files/admin/templates/report-internal.hbs: month_label
 storage/files/admin/templates/skill-usage.hbs: attributed_cost_usd
 storage/files/admin/templates/users-sessions.hbs: window_minutes
-# Stage 3 phase 1 (console chrome) ports these partials ahead of the Rust view
-# types that fill them. Each line names the phase whose compile pass defines the
-# fields; delete it then.
-# HelpView (`handlers/ssr/analysis/help.rs`) — phase 7, analysis suite.
-storage/files/admin/partials/components/help-dialog.hbs: guide_href
-storage/files/admin/partials/components/help-dialog.hbs: intro

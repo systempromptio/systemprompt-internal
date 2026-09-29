@@ -326,6 +326,10 @@ async fn the_export_surface_serves_every_format_and_a_preview() {
         ("/admin/export/requests?format=json&preset=30d", "["),
         ("/admin/export/requests?format=jsonl&preset=30d", ""),
         ("/admin/export/requests?format=markdown&preset=30d", "| "),
+        (
+            "/admin/export/analysis-skills?format=markdown&days=30",
+            "| ",
+        ),
     ] {
         let (status, body) = app.call(Call::get(path, Principal::Admin)).await;
         if status != StatusCode::OK {

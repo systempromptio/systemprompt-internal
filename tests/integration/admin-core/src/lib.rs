@@ -84,11 +84,15 @@ mod usage_conversation_summary_schema;
 mod users_odoo_identity;
 
 #[cfg(test)]
+mod analysis_report_digest;
+#[cfg(test)]
 mod analytics_context_detail;
 #[cfg(test)]
 mod analytics_context_messages;
 #[cfg(test)]
 mod analytics_contexts;
+#[cfg(test)]
+mod conversation_facts_detail;
 #[cfg(test)]
 mod dashboard_session_summary;
 #[cfg(test)]

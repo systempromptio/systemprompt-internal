@@ -35,6 +35,8 @@ mod tempdb;
 #[cfg(test)]
 mod content_api;
 #[cfg(test)]
+mod conversation_judge;
+#[cfg(test)]
 mod jobs_context;
 #[cfg(test)]
 mod knowledge_bank_edges;

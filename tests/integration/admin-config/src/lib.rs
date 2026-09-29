@@ -40,6 +40,8 @@ mod secrets_migration;
 mod tempdb;
 
 #[cfg(test)]
+mod analysis_ingestion;
+#[cfg(test)]
 mod bridge_api_keys;
 #[cfg(test)]
 mod config_gateway_acl;

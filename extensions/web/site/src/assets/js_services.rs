@@ -119,6 +119,10 @@ fn service_utils_js(storage_js: &Path) -> Vec<AssetDefinition> {
             "js/components/sp-access-review.js",
         ),
         AssetDefinition::js(
+            storage_js.join("components/sp-report-poll.js"),
+            "js/components/sp-report-poll.js",
+        ),
+        AssetDefinition::js(
             storage_js.join("components/sp-chart-scale.js"),
             "js/components/sp-chart-scale.js",
         ),
