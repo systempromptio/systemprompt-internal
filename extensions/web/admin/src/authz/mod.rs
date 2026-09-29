@@ -14,7 +14,11 @@
 //! DB rows an operator edits, and the directory's AD groups map into them
 //! rather than being a dimension of their own. `connector` is the MCP servers a
 //! person holds a ready connection to; `organization` is the whole
-//! installation, the subject a quota window counts against.
+//! installation, the subject a quota window counts against. A fifth provider,
+//! [`role`], re-exposes core's own `role` dimension: the resolver ignores it,
+//! but the gateway's quota resolver finds subjects only through this registry,
+//! so without it a `subject: role` window has nothing to key on. The same
+//! goes for `organization`, which is why it exists as a dimension at all.
 //! Adding another — cost centre, clearance, jurisdiction — means writing a
 //! provider beside them and one
 //! `register_subject_attribute_provider!` call; no core change, and no edit to
@@ -29,7 +33,9 @@ pub(crate) mod catalog;
 pub mod connector;
 pub mod group;
 pub mod organization;
+pub mod primary;
 pub mod project;
+pub mod role;
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, OnceLock};
@@ -45,6 +51,7 @@ use crate::authz::connector::ConnectorAttributeProvider;
 use crate::authz::group::GroupAttributeProvider;
 use crate::authz::organization::OrganizationAttributeProvider;
 use crate::authz::project::ProjectAttributeProvider;
+use crate::authz::role::RoleAttributeProvider;
 
 systemprompt_security::register_subject_attribute_provider!(|ctx| {
     let provider: SharedSubjectAttributeProvider =
@@ -61,6 +68,12 @@ systemprompt_security::register_subject_attribute_provider!(|ctx| {
 systemprompt_security::register_subject_attribute_provider!(|ctx| {
     let provider: SharedSubjectAttributeProvider =
         Arc::new(ConnectorAttributeProvider::new(Arc::clone(&ctx.pool)));
+    provider
+});
+
+systemprompt_security::register_subject_attribute_provider!(|ctx| {
+    let provider: SharedSubjectAttributeProvider =
+        Arc::new(RoleAttributeProvider::new(Arc::clone(&ctx.pool)));
     provider
 });
 
