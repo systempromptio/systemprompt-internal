@@ -152,13 +152,21 @@ mod access_explain;
 #[cfg(test)]
 mod authz_quota_subjects;
 #[cfg(test)]
+mod config_gateway_pure;
+#[cfg(test)]
+mod gateway_catalog_pure;
+#[cfg(test)]
 mod gateway_policies_drift;
+#[cfg(test)]
+mod gateway_policies_form;
 #[cfg(test)]
 mod gateway_policies_month_window;
 #[cfg(test)]
 mod gateway_routes_drift;
 #[cfg(test)]
 mod governance_chain_drift;
+#[cfg(test)]
+mod governance_gateway;
 #[cfg(test)]
 mod groups_sync_drift;
 #[cfg(test)]

@@ -1,0 +1,15 @@
+@layer components {
+/* The line that says which marketplace you are looking at. It reads as a
+   sentence, so it is one line and never a row of controls. */
+.sp-inventory-summary {
+    margin: 0 0 var(--sp-space-2);
+    color: var(--sp-text-secondary);
+    font-size: var(--sp-text-xs);
+}
+
+/* Compact tiles: a band of context above dense rows, not a card each. */
+.sp-kpi-grid--compact .sp-kpi {
+    min-height: 0;
+    padding: var(--sp-space-2) var(--sp-space-3);
+}
+}

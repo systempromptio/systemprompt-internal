@@ -43,6 +43,8 @@ mod error_contract;
 #[cfg(test)]
 mod gateway_catalog_contract;
 #[cfg(test)]
+mod gateway_page_contract;
+#[cfg(test)]
 mod globals;
 #[cfg(test)]
 mod governance_ssr_scope_contract;

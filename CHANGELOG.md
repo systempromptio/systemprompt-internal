@@ -100,9 +100,33 @@ Conventions (strict — hold every entry to them):
 - **User detail:** the Access tab is the `components/user-access` overview — allowed
   workspaces and their content, connections needing attention, device activity — with the
   per-entity overrides (reason and expiry) behind "Permission details".
+- **Gateway policy editor:** `/admin/gateway/policies` edits `ai_gateway_policies` in place —
+  quota windows (subject, period, request/token/cost ceilings, the calendar-month sentinel),
+  quota and safety modes, scanners and block lists — with a *Sync* tab for the
+  `gateway_policies` plane. Core re-reads the table per request, so a save is live without a
+  restart; the form is parsed by `repositories/gateway_policies/form.rs` and every refusal is
+  worded for the operator. Quota subjects offered: `user`, `group`, `project`, `role`,
+  `connector` and `organization` (the whole installation, `authz/organization.rs`).
+- **Quotas page:** `/admin/governance/quotas` (Governance → Quotas) shows usage against ceiling
+  per subject for every window the gateway enforces now, including the installation-wide
+  `organization` window `services/gateway/policies.yaml` declares. Under `quota_mode: warn` a
+  subject past 100% is labelled a warning, not a refusal. The governance page links to it.
+- **Gateway route detail:** `/admin/gateway/routes/{route_id}` — where a route dispatches and
+  the shared "Who gets this" panel for the `gateway_route` entity. The access-control and
+  gateway pages link to it instead of the unfiltered access ledger.
+- **Governance findings search:** the Safety findings tab takes a `q` that matches category,
+  scanner, excerpt, user and model.
 
 ### Changed
 
+- **Gateway console:** `/admin/gateway` is astound's five-view page — Overview (dispatch order
+  and provider health), Providers, Routes (ordered, with the resolved-only set below it),
+  Settings and a link to Policies — and routes carry a `name` and `description`. The route
+  write API (`POST|PATCH|DELETE /api/public/admin/gateway/routes`, `…/reorder`) now writes the
+  `gateway_routes` table (`repositories/gateway_routes/editor.rs`) and regenerates the file's
+  `routes:` sequence from it, so `name`/`description` survive a save and the table and file
+  cannot drift; core still dispatches from the file, so a saved route is live at the next
+  restart and the page says so.
 - **Admin analytics:** the dashboard is astound's current build. The Sessions tab lists
   gateway-metered conversations from `conversation_facts` (cost, requests, tokens, the client
   session it ran in) instead of client-reported `session_cost_snapshots`; that table is filled

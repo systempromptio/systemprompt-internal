@@ -21,6 +21,8 @@ const SSR_SRC: &str = include_str!("../../../../extensions/web/admin/src/routes/
 // without it every export route — the PAT surface included — drops out of the
 // table and out of the contract.
 const EXPORT_SRC: &str = include_str!("../../../../extensions/web/admin/src/routes/ssr_export.rs");
+const GOVERNANCE_SRC: &str =
+    include_str!("../../../../extensions/web/admin/src/routes/ssr_governance.rs");
 // The legacy paths, which answer 308 rather than HTML. They are a route table
 // like any other and are exercised like one: a redirect that stops redirecting
 // is exactly as much a contract change as a page that stops rendering.
@@ -74,6 +76,7 @@ pub(crate) fn mounted_routes() -> Vec<MountedRoute> {
         (ADMIN_GROUPS_SRC, ADMIN_API_PREFIX),
         (SSR_SRC, SSR_PREFIX),
         (EXPORT_SRC, SSR_PREFIX),
+        (GOVERNANCE_SRC, SSR_PREFIX),
         (SSR_REDIRECT_SRC, SSR_PREFIX),
     ] {
         parse(src, prefix, &mut routes);

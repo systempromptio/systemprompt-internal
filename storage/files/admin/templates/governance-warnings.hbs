@@ -6,6 +6,7 @@
       {{#*inline "header_actions"}}
         <a class="sp-btn sp-btn--sm sp-btn--outline" href="/admin/governance/approvals">Approvals</a>
         <a class="sp-btn sp-btn--sm sp-btn--outline" href="/admin/governance/secrets">Secrets audit</a>
+        <a class="sp-btn sp-btn--sm sp-btn--outline" href="/admin/governance/quotas">Quotas</a>
         {{> components/export-button export}}
       {{/inline}}
     {{/components/page-header}}
@@ -84,6 +85,11 @@
         <select class="sp-filter-select" name="blocked">
           {{#each outcomes}}<option value="{{this.value}}"{{#if this.selected}} selected{{/if}}>{{this.label}}</option>{{/each}}
         </select>
+      </label>
+      <label class="sp-toolbar__search">
+        <span class="sp-u-sr-only">Search the findings</span>
+        <input class="sp-search-input" type="search" name="q" value="{{search}}"
+               placeholder="Category, scanner, excerpt, user, model…">
       </label>
       {{/if}}
       {{#if is_hooks}}

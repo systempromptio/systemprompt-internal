@@ -116,6 +116,10 @@
             <svg class="sp-icon" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="6" r="3"/><path d="M8 9v4M6.5 11.5h3" stroke-linecap="round"/></svg>
             Secrets audit
         </a>
+        <a href="/admin/governance/quotas"{{navActive page "governance-quotas"}}>
+            <svg class="sp-icon" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="6" width="12" height="4" rx="2"/><path d="M2 8h7" stroke-width="3" stroke-linecap="round"/></svg>
+            Quotas
+        </a>
         </div>
         </div>
         </section>
@@ -149,10 +153,9 @@
         {{#> nav-item href="/admin/mcp" text="MCP servers" leaf="mcp" child="mcp-detail" page=page}}
             {{#*inline "nav_icon"}}<svg class="sp-icon" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="4" rx="1"/><rect x="2" y="9" width="12" height="4" rx="1"/><path d="M5 5h.01M5 11h.01" stroke-linecap="round"/></svg>{{/inline}}
         {{/nav-item}}
-        <a href="/admin/gateway"{{navActive page "gateway"}}>
-            <svg class="sp-icon" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8h12" stroke-linecap="round"/><circle cx="5" cy="8" r="2"/><circle cx="11" cy="8" r="2"/></svg>
-            Gateway
-        </a>
+        {{#> nav-item href="/admin/gateway" text="Gateway" leaf="gateway" child="gateway-policies" page=page}}
+            {{#*inline "nav_icon"}}<svg class="sp-icon" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8h12" stroke-linecap="round"/><circle cx="5" cy="8" r="2"/><circle cx="11" cy="8" r="2"/></svg>{{/inline}}
+        {{/nav-item}}
         </div>
         </div>
         </section>

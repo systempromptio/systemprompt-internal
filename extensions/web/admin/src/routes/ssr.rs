@@ -22,7 +22,7 @@ pub fn admin_ssr_router(
     let inner = overview_routes()
         .merge(people_routes())
         .merge(ai_activity_routes())
-        .merge(governance_routes())
+        .merge(super::ssr_governance::routes())
         .merge(platform_routes())
         .merge(account_routes())
         .merge(api_routes())
@@ -163,24 +163,6 @@ fn ai_activity_routes() -> Router<Arc<PgPool>> {
         )
 }
 
-// Why: sidebar group 4. These read a posture rather than listing an entity.
-// The three are one group because they are the three things a policy can do to
-// a call — decide it, hold it for a person, or record a credential it touched —
-// and an operator tuning one reads the other two.
-fn governance_routes() -> Router<Arc<PgPool>> {
-    Router::new()
-        .route("/governance", get(handlers::ssr::governance_page))
-        .route(
-            "/governance/decisions/{decision_id}",
-            get(handlers::ssr::governance_audit_detail_page),
-        )
-        .route("/governance/approvals", get(handlers::ssr::approvals_page))
-        .route(
-            "/governance/secrets",
-            get(handlers::ssr::secrets_audit_page),
-        )
-}
-
 // Why: sidebar group 5 — the installable units declared in `services/*.yaml`,
 // flattened out of the old `/catalog/` prefix, plus the gateway that routes
 // model traffic to the providers behind them.
@@ -210,6 +192,20 @@ fn platform_routes() -> Router<Arc<PgPool>> {
             get(handlers::catalog::skill_detail_page),
         )
         .route("/gateway", get(handlers::ssr::gateway_page))
+        .route(
+            "/gateway/routes/{route_id}",
+            get(handlers::ssr::gateway_route_page),
+        )
+        // Why: the policy editor writes `ai_gateway_policies` directly; core
+        // re-reads it per request, so these are live edits, not file edits.
+        .route(
+            "/gateway/policies",
+            get(handlers::ssr::gateway_policies_page).post(handlers::ssr::save_gateway_policy),
+        )
+        .route(
+            "/gateway/policies/delete",
+            post(handlers::ssr::delete_gateway_policy),
+        )
         // Why: Code sync — the sources, the access review and the archive
         // that move declarations between the repository and this instance.
         .route("/sync", get(handlers::ssr::sync_page))

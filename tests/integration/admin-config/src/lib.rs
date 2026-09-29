@@ -44,6 +44,8 @@ mod bridge_api_keys;
 #[cfg(test)]
 mod config_gateway_acl;
 #[cfg(test)]
+mod gateway_routes_editor;
+#[cfg(test)]
 mod marketplace_env;
 #[cfg(test)]
 mod marketplace_usage;

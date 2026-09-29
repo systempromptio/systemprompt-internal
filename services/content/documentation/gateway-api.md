@@ -3,16 +3,17 @@ title: "Gateway API (/v1/messages)"
 description: "The governed inference gateway: the /v1/messages contract, the required x-session-id header, model allow-listing, and the three profile API URLs."
 author: "systemprompt.io"
 slug: "gateway-api"
-keywords: "gateway, /v1/messages, x-session-id, inference, model allow-list, api url, governance"
+keywords: "gateway, /v1/messages, x-session-id, inference, model allow-list, routes, quota, api url, governance"
 kind: "guide"
 public: true
 tags: ["gateway", "api", "governance"]
 published_at: "2026-05-19"
-updated_at: "2026-05-19"
+updated_at: "2026-09-28"
 after_reading_this:
   - "Call the governed inference gateway at POST /v1/messages"
   - "Supply the required x-session-id header so a request is not rejected with HTTP 400"
   - "Understand how the gateway model allow-list rejects un-listed models with HTTP 403"
+  - "Edit model routes, quota windows and safety settings from the console"
   - "Pick the right profile api_*_url for in-container vs host callers"
 related_docs:
   - title: "Authentication"
@@ -62,6 +63,29 @@ Gateway-route RBAC additionally keys on the route `id`. If the caller's role or
 department is not assigned to the route (and the route is not `default_included`), the
 gateway returns `403` with a message that names the route id, the model, and the
 remedy.
+
+## Routes, policies and quotas in the console
+
+**Routes.** `/admin/gateway` shows which requested model goes to which provider, in the
+order the dispatcher tries them (first match wins). The Routes tab edits that order and
+each route's pattern, provider, upstream model, `name` and `description`. A save writes
+the `gateway_routes` table and regenerates the `routes:` sequence of
+`services/ai/gateway.yaml` from it; core dispatches from the file, so a saved route is
+live at the next restart. `/admin/gateway/routes/{route_id}` shows one route and who may
+use it.
+
+**Policies.** `/admin/gateway/policies` edits `ai_gateway_policies`, the database
+projection of `services/gateway/policies.yaml`: quota windows, quota and safety modes,
+scanners and the categories that block. Core re-reads the table per request, so a saved
+policy is live within a minute. The file stays the declaration; `/admin/sync` reports
+when the two differ and offers either direction.
+
+**Quotas.** A quota window names a subject — `user`, `group`, `project`, `role`,
+`connector`, or `organization` (the whole installation, subject id `default`) — a period
+and ceilings on requests, tokens and cost. `/admin/governance/quotas` shows each
+subject's usage in the current period against those ceilings. Under `quota_mode: warn`
+(this instance's setting) a subject past a ceiling is recorded as a warning and the
+request still runs; under `enforce` it is answered `429` until the window turns over.
 
 ## Profile API URLs
 
