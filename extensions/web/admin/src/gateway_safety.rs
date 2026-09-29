@@ -19,7 +19,33 @@
 use systemprompt::ai::{Finding, SafetyScanner, Severity, register_safety_scanner};
 use systemprompt::models::wire::canonical::{CanonicalRequest, CanonicalResponse};
 
-use systemprompt_security::policy::{GovernanceEngine, GovernedInput, SecretScanner};
+use std::sync::LazyLock;
+
+use systemprompt_security::policy::{GovernanceConfig, GovernedInput, SecretScanner};
+
+// Why: the governance engine is injected into routers, not reachable from an
+// inventory-built scanner, and this plane must not own a second engine (its
+// rate limiter would double every budget). The secret catalog is stateless,
+// so it is compiled once here from the same `secret_scan` block the chain
+// reads — one configuration, two consumers, no second budget.
+static CONFIGURED_SCANNER: LazyLock<Option<SecretScanner>> = LazyLock::new(|| {
+    let profile = systemprompt::config::ProfileBootstrap::get()
+        .inspect_err(|error| tracing::error!(%error, "response secret scanner: no profile"))
+        .ok()?;
+    let path = std::path::Path::new(&profile.paths.services).join("governance/config.yaml");
+    let config = GovernanceConfig::load(&path)
+        .inspect_err(
+            |error| tracing::error!(%error, "response secret scanner configuration rejected"),
+        )
+        .ok()?;
+    let policy = config
+        .policies
+        .into_iter()
+        .find(|policy| policy.id == "secret_scan" && policy.enabled)?;
+    SecretScanner::from_policy_yaml(&policy.params)
+        .inspect_err(|error| tracing::error!(%error, "response secret scanner patterns rejected"))
+        .ok()
+});
 
 #[derive(Debug, Clone, Default)]
 pub struct SecretsScanner {
@@ -61,44 +87,30 @@ impl SafetyScanner for SecretsScanner {
 
 impl SecretsScanner {
     fn scan(&self, text: &str) -> Vec<Finding> {
+        let configured = self.scanner.as_ref();
+        let scanner = configured.or_else(|| CONFIGURED_SCANNER.as_ref());
         let input = GovernedInput::prompt_text(text.to_owned());
-        let finding = self.scanner.as_ref().map_or_else(
-            || {
-                systemprompt::config::ProfileBootstrap::get()
-                    .ok()
-                    .and_then(|profile| {
-                        GovernanceEngine::from_services_root(std::path::Path::new(
-                            &profile.paths.services,
-                        ))
-                        .ok()
-                    })
-                    .and_then(|engine| {
-                        engine
-                            .secret_scanner()
-                            .and_then(|scanner| scanner.detect(&input))
-                    })
-            },
-            |scanner| scanner.detect(&input),
-        );
-        finding.map_or_else(Vec::new, |hit| {
-            let observation = hit.observation;
-            vec![Finding {
-                phase: "response",
-                severity: if observation {
-                    Severity::Low
-                } else {
-                    Severity::High
-                },
-                category: if observation {
-                    "secret_observation"
-                } else {
-                    "secret"
-                }
-                .to_owned(),
-                excerpt: Some(format!("{}: {}", hit.pattern.id, hit.redacted)),
-                scanner: "secrets",
-            }]
-        })
+        scanner
+            .and_then(|scanner| scanner.detect(&input))
+            .map_or_else(Vec::new, |hit| {
+                let observation = hit.observation;
+                vec![Finding {
+                    phase: "response",
+                    severity: if observation {
+                        Severity::Low
+                    } else {
+                        Severity::High
+                    },
+                    category: if observation {
+                        "secret_observation"
+                    } else {
+                        "secret"
+                    }
+                    .to_owned(),
+                    excerpt: Some(format!("{}: {}", hit.pattern.id, hit.redacted)),
+                    scanner: "secrets",
+                }]
+            })
     }
 }
 
