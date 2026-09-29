@@ -47,10 +47,6 @@ pub(super) fn build_admin_read_routes_inner(read_pool: &Arc<PgPool>) -> Router {
         )
         .route("/sync/export.zip", get(handlers::sync::export_zip_handler))
         .route(
-            "/access-control/yaml-snapshot",
-            get(handlers::access_control::yaml_snapshot_handler),
-        )
-        .route(
             "/users/roles",
             get(handlers::gateway_access::list_distinct_roles_handler),
         )

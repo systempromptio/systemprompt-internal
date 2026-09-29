@@ -22,7 +22,7 @@ pub(super) struct McpServerRow {
     pub id: String,
     pub description: String,
     pub detail_url: String,
-    pub matrix_url: String,
+    pub access_url: String,
     pub source_path: String,
     pub configured: bool,
     pub enabled: bool,
@@ -170,6 +170,7 @@ pub(super) struct McpDetailData {
     pub oauth_scopes: Vec<String>,
     pub included_by: Vec<LinkedEntity>,
     pub included_by_count: usize,
-    pub matrix_url: String,
+    pub access_url: String,
     pub access_control_url: &'static str,
+    pub access: crate::handlers::ssr::entity_panel::EntityAccessView,
 }

@@ -148,6 +148,8 @@ mod access_control_review;
 #[cfg(test)]
 mod access_control_rules_yaml;
 #[cfg(test)]
+mod access_explain;
+#[cfg(test)]
 mod authz_quota_subjects;
 #[cfg(test)]
 mod gateway_policies_drift;
@@ -200,6 +202,8 @@ mod managed_bundle;
 mod migration_cost;
 #[cfg(test)]
 mod profile_schema;
+#[cfg(test)]
+mod projects_page;
 #[cfg(test)]
 mod report_pnl;
 #[cfg(test)]

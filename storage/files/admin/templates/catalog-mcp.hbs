@@ -56,7 +56,7 @@
             <td class="sp-table__cell--num sp-u-num" title="{{delta_display}} against the previous 24 hours">{{formatNumber calls}}</td>
             <td class="sp-table__cell--num sp-u-num" title="{{errors}} of {{calls}} · p95 {{p95_display}} · {{distinct_users}} callers"><span class="sp-p-mcp__rate sp-p-mcp__rate--{{error_tone}}">{{error_rate_display}}</span></td>
             <td class="sp-table__cell--date">{{last_call_display}}</td>
-            <td class="sp-table__cell--num sp-u-num">{{#if assignment_count}}<a class="sp-table__link" href="{{matrix_url}}">{{assignment_count}}</a>{{else}}<span class="sp-u-text-tertiary">0</span>{{/if}}</td>
+            <td class="sp-table__cell--num sp-u-num">{{#if assignment_count}}<a class="sp-table__link" href="{{access_url}}">{{assignment_count}}</a>{{else}}<span class="sp-u-text-tertiary">0</span>{{/if}}</td>
             <td class="sp-table__cell--actions"><a class="sp-btn sp-btn--xs sp-btn--outline" href="{{detail_url}}">Open</a></td>
         </tr>
         {{/each}}

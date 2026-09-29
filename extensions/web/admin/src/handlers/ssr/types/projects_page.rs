@@ -8,13 +8,15 @@
 //! its own label saying so.
 
 use serde::Serialize;
+
+use super::table::SortHeaderView;
 use systemprompt::identifiers::{SessionId, UserId};
 use systemprompt_web_shared::ProjectId;
 
 use super::super::list_view::Pagination;
 use super::{
-    AccessRowView, BreadcrumbView, MappingRowView, MemberRowView, MemberSetChipView,
-    ModelMixRowView, SvgLineChartView, TabLinkView, UserOptionView,
+    AccessRowView, AttributionSourceRowView, BreadcrumbView, MappingRowView, MemberRowView,
+    MemberSetChipView, ModelMixRowView, SvgLineChartView, TabLinkView, UserOptionView,
 };
 
 // Why: one KPI tile: a number, its unit, and the sentence under it.
@@ -30,18 +32,6 @@ pub(crate) struct ProjectKpiView {
     pub href: Option<String>,
 }
 
-// Why: one sortable column header, as `components/sort-header` reads it.
-#[derive(Debug, Clone, Serialize)]
-pub(crate) struct ProjectSortHeaderView {
-    pub label: &'static str,
-    pub class: &'static str,
-    pub hint: &'static str,
-    pub url: String,
-    pub active: bool,
-    pub aria_sort: &'static str,
-    pub indicator: &'static str,
-}
-
 // Why: one project on the listing.
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct ProjectListRowView {
@@ -53,11 +43,22 @@ pub(crate) struct ProjectListRowView {
     pub active_members: i64,
     pub group_count: i64,
     pub requests: i64,
+    pub tokens: i64,
+    pub tokens_display: String,
     pub cost_display: String,
+    pub models_used: i64,
+    // Why: the vendor prefix repeats on every row of a single-vendor estate,
+    // so the cell shows the tail and keeps the full id on its title.
+    pub top_model: Option<String>,
+    pub top_model_short: Option<String>,
+    pub clients_used: i64,
+    pub top_client: Option<String>,
     pub tool_calls: i64,
     pub tool_success_pct: i64,
     pub tool_tone: &'static str,
     pub skills_used: i64,
+    pub artifacts: i64,
+    pub report_href: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -75,19 +76,24 @@ pub(crate) struct ProjectsPageData {
     pub query: String,
     pub truncated: bool,
     pub can_manage: bool,
+    pub export: crate::export::ExportView,
 }
 
 // Why: named fields rather than a Vec so the template addresses each header by
 // name and the column set is checked when the page compiles.
 #[derive(Debug, Serialize)]
 pub(crate) struct ProjectSortHeaders {
-    pub name: ProjectSortHeaderView,
-    pub members: ProjectSortHeaderView,
-    pub groups: ProjectSortHeaderView,
-    pub requests: ProjectSortHeaderView,
-    pub cost: ProjectSortHeaderView,
-    pub tools: ProjectSortHeaderView,
-    pub skills: ProjectSortHeaderView,
+    pub name: SortHeaderView,
+    pub members: SortHeaderView,
+    pub groups: SortHeaderView,
+    pub requests: SortHeaderView,
+    pub tokens: SortHeaderView,
+    pub cost: SortHeaderView,
+    pub models: SortHeaderView,
+    pub clients: SortHeaderView,
+    pub tools: SortHeaderView,
+    pub skills: SortHeaderView,
+    pub artifacts: SortHeaderView,
 }
 
 // Why: one tool the project ran, with the share that did not succeed.
@@ -103,14 +109,12 @@ pub(crate) struct ProjectToolRowView {
     pub p95_display: String,
 }
 
-// Why: one skill the project leant on, with what its users rated it.
+// Why: one skill the project leant on and how many of its people used it.
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct ProjectSkillRowView {
     pub skill: String,
     pub invocations: i64,
     pub users: i64,
-    pub rating_display: String,
-    pub rating_count: i64,
 }
 
 // Why: one session the project's people ran.
@@ -120,43 +124,29 @@ pub(crate) struct ProjectSessionRowView {
     pub session_short: String,
     pub href: String,
     pub user_id: UserId,
+    // Why: the name a reader knows the person by; the id when no member row
+    // carries one, so a printed report never shows an empty cell.
+    pub person: String,
     pub requests: i64,
     pub models: i64,
     pub cost_display: String,
     pub last_activity: String,
 }
 
-// Why: one commit a project member landed in the window.
-#[derive(Debug, Clone, Serialize)]
-pub(crate) struct ProjectCommitRowView {
-    pub commit_short: String,
-    pub user_id: UserId,
-    pub branch: String,
-    pub message: String,
-    pub files_changed: i32,
-    pub insertions: i32,
-    pub deletions: i32,
-    pub committed_at: String,
-}
-
 // Why: the Usage tab's body.
 #[derive(Debug, Serialize)]
 pub(crate) struct ProjectUsageTabView {
+    pub attribution: Vec<AttributionSourceRowView>,
     pub daily: SvgLineChartView,
     pub daily_cost: SvgLineChartView,
     pub model_count: i64,
     pub skill_count: i64,
     pub tool_count: i64,
     pub session_count: i64,
-    pub commit_count: i64,
     pub models: Vec<ModelMixRowView>,
     pub skills: Vec<ProjectSkillRowView>,
     pub tools: Vec<ProjectToolRowView>,
     pub sessions: Vec<ProjectSessionRowView>,
-    pub commits: Vec<ProjectCommitRowView>,
-    pub commit_files: i64,
-    pub commit_insertions: i64,
-    pub commit_deletions: i64,
 }
 
 // Why: the Members tab's body.
@@ -202,4 +192,5 @@ pub(crate) struct ProjectDetailPageData {
     pub usage: Option<ProjectUsageTabView>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub settings: Option<ProjectSettingsTabView>,
+    pub export: crate::export::ExportView,
 }

@@ -24,6 +24,7 @@ fn allow_user(user_id: &str) -> AccessControlRuleInput {
         rule_type: RuleType::USER,
         rule_value: user_id.to_owned(),
         access: AccessDecision::Allow,
+        justification: None,
     }
 }
 
@@ -32,6 +33,7 @@ fn deny_role(role: &str) -> AccessControlRuleInput {
         rule_type: RuleType::ROLE,
         rule_value: role.to_owned(),
         access: AccessDecision::Deny,
+        justification: Some("test: role denied".to_owned()),
     }
 }
 
@@ -244,6 +246,7 @@ async fn set_entity_rules_accepts_an_extension_rule_type() {
         rule_type: RuleType::from("department"),
         rule_value: "Platform".to_owned(),
         access: AccessDecision::Allow,
+        justification: Some("test: department allowed".to_owned()),
     };
 
     set_entity_rules(&db.pool, EntityKind::Skill, &entity, &[input])

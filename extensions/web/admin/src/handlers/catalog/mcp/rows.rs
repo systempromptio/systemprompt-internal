@@ -210,7 +210,7 @@ pub(super) fn build_row(input: &RowInputs<'_>) -> McpServerRow {
             .filter(|d| !d.is_empty())
             .unwrap_or_else(|| "Not declared in services/mcp.".to_owned()),
         detail_url: format!("{BASE_URL}/{}", input.id),
-        matrix_url: super::super::view::matrix_url(crate::types::ENTITY_MCP_SERVER, input.id),
+        access_url: super::super::view::access_url(&super::super::view::mcp_url(input.id)),
         source_path: input
             .server
             .map(|s| s.source_path.clone())

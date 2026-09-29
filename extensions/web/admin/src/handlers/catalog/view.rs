@@ -13,6 +13,8 @@ use systemprompt::identifiers::PluginId;
 use serde::Serialize;
 use sqlx::PgPool;
 
+use crate::handlers::ssr::entity_panel::EntityAccessView;
+
 #[derive(Debug, Clone, Serialize)]
 pub(super) struct LinkedEntity {
     pub(super) id: String,
@@ -43,7 +45,7 @@ pub(super) struct PluginListRow {
     pub(super) assignment_count: i64,
     pub(super) source_path: String,
     pub(super) detail_url: String,
-    pub(super) matrix_url: String,
+    pub(super) access_url: String,
     pub(super) visibility: super::visibility::VisibilityView,
 }
 
@@ -80,7 +82,7 @@ pub(super) struct SkillListRow {
     pub(super) assignment_count: i64,
     pub(super) source_path: String,
     pub(super) detail_url: String,
-    pub(super) matrix_url: String,
+    pub(super) access_url: String,
     pub(super) visibility: super::visibility::VisibilityView,
 }
 
@@ -113,7 +115,7 @@ pub(super) struct PluginDetailData {
     pub(super) keywords: Vec<String>,
     pub(super) roles: Vec<String>,
     pub(super) source_path: String,
-    pub(super) matrix_url: String,
+    pub(super) access_url: String,
     pub(super) assignment_count: i64,
     pub(super) skills: Vec<LinkedEntity>,
     pub(super) mcp_servers: Vec<LinkedEntity>,
@@ -123,6 +125,7 @@ pub(super) struct PluginDetailData {
     pub(super) mcp_count: usize,
     pub(super) agents_count: usize,
     pub(super) hooks_count: usize,
+    pub(super) access: Option<EntityAccessView>,
 }
 
 #[derive(Debug, Serialize)]
@@ -136,14 +139,23 @@ pub(super) struct SkillDetailData {
     pub(super) description: String,
     pub(super) enabled: bool,
     pub(super) source_path: String,
-    pub(super) matrix_url: String,
+    pub(super) access_url: String,
     pub(super) assignment_count: i64,
     pub(super) included_by: Vec<LinkedEntity>,
     pub(super) included_by_count: usize,
+    pub(super) access: Option<EntityAccessView>,
 }
 
-pub(super) fn matrix_url(entity_type: &str, entity_id: &str) -> String {
-    format!("/admin/access-control?entity_type={entity_type}&entity_id={entity_id}")
+// Why: every "access" link lands on the entity's own "Who gets this"
+// panel, where the rules are read and edited, never on a ledger elsewhere.
+pub(super) fn access_url(detail_url: &str) -> String {
+    format!("{detail_url}#access")
+}
+
+#[derive(Debug, Default, serde::Deserialize)]
+pub(crate) struct PanelQuery {
+    // Why: the "Why?" explainer's person — an account id or an email.
+    pub why: Option<String>,
 }
 
 pub(super) fn plugin_url(id: &str) -> String {

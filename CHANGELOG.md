@@ -70,6 +70,36 @@ Conventions (strict — hold every entry to them):
   that leaves an activity row. The sidebar's Access control badge counts the entities the
   review is waiting on. The `/admin/sync` pages are console-only: this instance carries no
   marketplace participation model, so the scoped participant layout is not ported.
+- **Access control, rebuilt:** `/admin/access-control` has three tabs and a link. *Rules* is
+  the ladder a decision walks and one row per governed entity — default, who reaches it, who
+  is refused, each rule's reason and expiry, and whether code agrees — filtered by kind, band,
+  drift state, `expiring=7d` and text. *Audience grid* resolves every role, group and project
+  against every entity through the real resolver, focuses one subject (`subject=`), drills one
+  entity (`entity=`) and filters by decision. *Find a person* links to that person's Access
+  tab. *Sync* opens Code sync's Access review with its pending count; an old `?tab=sync` or
+  `?user=` link redirects there.
+- **"Who gets this" on every catalog detail page:** marketplace, plugin, skill and MCP server
+  pages carry one panel (`handlers/ssr/entity_panel/`, `components/entity-access`,
+  `pages/admin-entity-access.js`) — the default, who reaches the entity and by which band,
+  the rules grouped by band with add/remove (a reason is required on every band but person,
+  and a rule may carry an expiry), whether code and database agree about it with the same
+  apply/keep/export row the review uses, and a "Why does this person (not) get it?" explainer
+  that asks the resolver band by band (`repositories/users/access_control/explain.rs`). Every
+  rule change leaves an activity row. The marketplace detail page is the panel plus its
+  members; its group toggles and the per-group/per-role audience tables are gone, and every
+  catalog "access" link lands on the panel (`#access`).
+- **Groups and projects:** astound's listing and detail pages. Groups gain a *Sync* tab (the
+  `groups` plane), the Access tab lists the group's marketplaces with rules settable per
+  entity (`/groups/{id}/marketplaces`), the old `?tab=marketplaces` redirects there, and a
+  manual membership may carry an expiry the hourly `access_expiry` sweep honours. Projects
+  gain agent (client) and artifact mix, tokens and a printable report at
+  `/admin/projects/{id}/report`. Spend on both is read through the request-time stamp
+  (`ai_request_scopes`, the `request_scope` CTE in `scoped_query!`), so moving a person never
+  rewrites history, and each detail page says how its window was attributed. Both carry
+  export buttons; the `projects` dataset regains tokens, model and agent mix and artifacts.
+- **User detail:** the Access tab is the `components/user-access` overview — allowed
+  workspaces and their content, connections needing attention, device activity — with the
+  per-entity overrides (reason and expiry) behind "Permission details".
 
 ### Changed
 
@@ -93,6 +123,11 @@ Conventions (strict — hold every entry to them):
 
 ### Removed
 
+- `GET /api/public/admin/access-control/yaml-snapshot`: the access-control plane's export,
+  `GET /api/public/admin/sync/planes/access_control/export`, renders the same `rules.yaml`.
+- `pages/admin-group-marketplaces.js` and `pages/admin-marketplace-groups.js`: the group
+  Marketplaces tab and the marketplace group toggles are replaced by the Access tab and the
+  "Who gets this" panel.
 - **Admin analytics:** the code-impact frames (AI lines of code, commits), the route-redirect
   table, the skill-by-model table, session ratings and the context-window tiles, and the
   permission-grant estimate. None of them could be measured soundly from what the gateway

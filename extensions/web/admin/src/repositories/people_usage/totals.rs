@@ -1,12 +1,12 @@
 //! Every container's totals in one pass, with the traffic that belongs to no
 //! container reported rather than dropped.
 //!
-//! Under exclusive attribution these rows partition the instance: each person
-//! counts in one container, and the `unattributed` row carries what is left —
-//! a request whose user matches no account, a non-user actor such as a service
-//! token, and anyone no primary container covers. Summing the rows therefore
-//! reproduces the instance total, which is the property that makes the split
-//! worth reading.
+//! Under exclusive attribution these rows partition the instance: each
+//! request counts in the one container stamped on it when it landed, and the
+//! `unattributed` row carries what is left — a request whose user matches no
+//! account, a non-user actor such as a service token, and anyone no primary
+//! container covered at the time. Summing the rows therefore reproduces the
+//! instance total, which is the property that makes the split worth reading.
 
 use serde::Serialize;
 use sqlx::PgPool;
@@ -30,13 +30,12 @@ pub async fn list_scope_totals(
     window_days: i32,
 ) -> Result<Vec<ScopeTotalRow>, sqlx::Error> {
     let rows = crate::scoped_query!(
-        r#"SELECT COALESCE(m.scope_id, $3) AS "scope_id!",
+        r#"SELECT COALESCE(rs.scope_id, $3) AS "scope_id!",
                   COUNT(*)::BIGINT AS "requests!",
                   COALESCE(SUM(COALESCE(r.input_tokens, 0) + COALESCE(r.output_tokens, 0)), 0)::BIGINT AS "tokens!",
                   COALESCE(SUM(r.cost_microdollars), 0)::BIGINT AS "cost_microdollars!"
            FROM ai_requests r
-           LEFT JOIN membership m
-             ON m.user_id = r.user_id AND r.actor_kind = 'user'
+           LEFT JOIN request_scope rs ON rs.request_id = r.id
            WHERE r.created_at >= NOW() - make_interval(days => $4)
            GROUP BY 1
            ORDER BY 2 DESC, 1"#,

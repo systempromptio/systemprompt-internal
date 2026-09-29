@@ -309,3 +309,186 @@ fn extract_json_string(body: &str, key: &str) -> Option<String> {
     let end = rest.find('"')?;
     Some(rest[..end].to_owned())
 }
+
+// The older, entity-type-specific access-control surface: whole-set rule
+// replacement, the bulk assign, the per-user matrix, and the YAML snapshot.
+#[tokio::test(flavor = "multi_thread")]
+async fn access_control_api_replaces_rules_and_projects_a_matrix() {
+    if !globals::init() {
+        return;
+    }
+    let Some(db) = TempDb::create().await else {
+        return;
+    };
+
+    let credentials = principal::provision(&db.pool).await;
+    let app = App::new(&db.pool, credentials);
+    let user_id = seed::unique("matrix-user");
+    seed::insert_user(&db.pool, &user_id, &format!("{user_id}@contract.test")).await;
+    let plugin = seed::unique("matrix-plugin");
+
+    let mut failures = Vec::new();
+
+    // Replace the rule set on one entity. This endpoint is a whole-set write:
+    // the rules sent become the rules stored, so the read-back is the assertion.
+    let put_path = api(&format!("/access-control/entity/plugin/{plugin}"));
+    let body = format!(
+        r#"{{"rules":[{{"rule_type":"user","rule_value":"{user_id}","access":"allow"}},{{"rule_type":"role","rule_value":"user","access":"deny","justification":"contract fixture"}}]}}"#
+    );
+    let (status, response) = app
+        .call(Call::json("put", &put_path, Principal::Admin, &body))
+        .await;
+    if status != StatusCode::OK {
+        failures.push(format!(
+            "  replacing a plugin's rules -> {} : {}",
+            status.as_u16(),
+            response.chars().take(200).collect::<String>()
+        ));
+    } else if !response.contains(&user_id) {
+        failures.push("  the replaced rule set did not include the rule just written".to_owned());
+    }
+
+    // Replacing with an empty set clears them, which is the branch a UI hits
+    // when the last grant is removed.
+    let (status, _) = app
+        .call(Call::json(
+            "put",
+            &put_path,
+            Principal::Admin,
+            r#"{"rules":[]}"#,
+        ))
+        .await;
+    if status != StatusCode::OK {
+        failures.push(format!(
+            "  clearing a plugin's rules -> {} (expected 200)",
+            status.as_u16()
+        ));
+    }
+
+    // The entity-type allowlist on this endpoint is narrower than the generic
+    // one; a kind outside it is refused rather than written.
+    let (status, _) = app
+        .call(Call::json(
+            "put",
+            &api("/access-control/entity/hook/anything"),
+            Principal::Admin,
+            r#"{"rules":[]}"#,
+        ))
+        .await;
+    if status != StatusCode::BAD_REQUEST {
+        failures.push(format!(
+            "  replacing rules on an unsupported entity type -> {} (expected 400)",
+            status.as_u16()
+        ));
+    }
+
+    // The bulk assign writes the same rule set across several entities at once.
+    let bulk = format!(
+        r#"{{"entities":[{{"entity_type":"plugin","entity_id":"{plugin}"}},{{"entity_type":"agent","entity_id":"{}"}}],"rules":[{{"rule_type":"role","rule_value":"admin","access":"allow","justification":"contract fixture"}}]}}"#,
+        seed::unique("bulk-agent")
+    );
+    let (status, response) = app
+        .call(Call::json(
+            "put",
+            &api("/access-control/bulk"),
+            Principal::Admin,
+            &bulk,
+        ))
+        .await;
+    if status != StatusCode::OK || !response.contains("updated_count") {
+        failures.push(format!(
+            "  bulk assign -> {} : {}",
+            status.as_u16(),
+            response.chars().take(200).collect::<String>()
+        ));
+    }
+
+    // Reads: the whole rule table, one entity's slice of it, the per-user
+    // matrix, the project projection, and the YAML snapshot.
+    // The matrix is projected per user, so a user id in no table is a miss
+    // rather than an empty matrix that reads as "this person has no access".
+    let (status, _) = app
+        .call(Call::get(
+            &api("/access-control/users/no-such-user/matrix"),
+            Principal::Admin,
+        ))
+        .await;
+    if status != StatusCode::NOT_FOUND {
+        failures.push(format!(
+            "  the matrix for a user that does not exist -> {} (expected 404)",
+            status.as_u16()
+        ));
+    }
+
+    let reads: [(&str, String); 5] = [
+        ("every rule", api("/access-control")),
+        (
+            "one entity's rules",
+            api(&format!(
+                "/access-control?entity_type=plugin&entity_id={plugin}"
+            )),
+        ),
+        (
+            "the rules of an entity with none",
+            api("/access-control?entity_type=plugin&entity_id=no-such-plugin"),
+        ),
+        (
+            "the per-user matrix",
+            api(&format!("/access-control/users/{user_id}/matrix")),
+        ),
+        ("the group projection", api("/groups")),
+    ];
+    for (label, path) in reads {
+        let (status, body) = app.call(Call::get(&path, Principal::Admin)).await;
+        if status != StatusCode::OK {
+            failures.push(format!(
+                "  {label} -> {} : {}",
+                status.as_u16(),
+                body.chars().take(200).collect::<String>()
+            ));
+        }
+    }
+
+    // The export serialises the whole access plane as rules.yaml; it is the
+    // one read that can fault on a row the serialiser has no shape for.
+    let (status, body) = app
+        .call(Call::get(
+            &api("/sync/planes/access_control/export"),
+            Principal::Admin,
+        ))
+        .await;
+    if status.is_server_error() {
+        failures.push(format!(
+            "  the rules.yaml export faulted: {}",
+            body.chars().take(200).collect::<String>()
+        ));
+    }
+
+    // Every one of these is admin-only; a non-admin session must be refused
+    // rather than served another customer's access matrix.
+    for path in [
+        api("/access-control"),
+        api(&format!("/access-control/users/{user_id}/matrix")),
+        api("/sync/planes/access_control/export"),
+        api("/sync/planes/access_control/drift"),
+    ] {
+        let (status, _) = app.call(Call::get(&path, Principal::NonAdmin)).await;
+        if !(status == StatusCode::FORBIDDEN
+            || status == StatusCode::UNAUTHORIZED
+            || status.is_redirection())
+        {
+            failures.push(format!(
+                "  {path} as a non-admin -> {} (expected a refusal)",
+                status.as_u16()
+            ));
+        }
+    }
+
+    db.cleanup().await;
+    assert!(
+        failures.is_empty(),
+        "{} access-control API case(s) failed:\n{}",
+        failures.len(),
+        failures.join("\n")
+    );
+}

@@ -12,7 +12,7 @@
         </div>
         <div class="sp-page-header__actions">
             <a class="sp-btn sp-btn--sm sp-btn--outline" href="{{activity_url}}">Who runs this</a>
-            <a class="sp-btn sp-btn--sm sp-btn--outline" href="{{matrix_url}}">Access matrix</a>
+            <a class="sp-btn sp-btn--sm sp-btn--outline" href="{{access_url}}">Access</a>
         </div>
     </header>
 
@@ -30,7 +30,13 @@
             <li><a class="sp-rel-link" href="{{url}}"><span class="sp-rel-link__name">{{name}}</span><code class="sp-code-inline">{{id}}</code></a></li>
             {{/each}}
         </ul>
-        {{else}}<p class="sp-u-text-tertiary">Not bundled in any plugin. Assign directly through the access matrix.</p>{{/if}}
+        {{else}}<p class="sp-u-text-tertiary">Not bundled in any plugin. Grant it directly under Who gets this.</p>{{/if}}
     </section>
+    {{#if access}}{{> components/entity-access panel=access}}{{/if}}
+
+    {{/inline}}
+    {{#*inline "scripts"}}
+    {{> components/access-reason-dialog}}
+    <script type="module" src="/js/pages/admin-entity-access.js?v={{css_version}}"></script>
     {{/inline}}
 {{/layout}}

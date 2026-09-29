@@ -11,6 +11,9 @@ use sqlx::PgPool;
 use systemprompt::identifiers::UserId;
 
 use crate::repositories;
+use crate::repositories::people_usage::attribution::{
+    AttributionSourceRow, list_scope_attribution_sources,
+};
 use crate::repositories::people_usage::breakdown::{
     LinkedScopeRow, ModelUsageRow, list_linked_scopes, list_scope_top_models,
 };
@@ -19,9 +22,8 @@ use crate::repositories::people_usage::{
     get_scope_usage, list_daily_requests, list_member_usage,
 };
 use crate::repositories::projects::activity::{
-    ProjectCommitRow, ProjectSessionRow, SkillEffectivenessRow, ToolHealthRow,
-    list_project_commits, list_project_sessions, list_project_skill_effectiveness,
-    list_project_tool_health,
+    ProjectSessionRow, SkillEffectivenessRow, ToolHealthRow, list_project_sessions,
+    list_project_skill_effectiveness, list_project_tool_health,
 };
 use crate::repositories::scope::{Attribution, ScopeQuery, ScopeTarget};
 use crate::types::UserContext;
@@ -32,7 +34,8 @@ use super::super::people_view::{
     MemberContext, MemberInput, chips, mapping_rows, member_rows, or_default,
 };
 use super::super::types::{
-    ProjectDetailPageData, ProjectMembersTabView, ProjectSettingsTabView, UserOptionView,
+    MemberRowView, ProjectDetailPageData, ProjectMembersTabView, ProjectSettingsTabView,
+    UserOptionView,
 };
 use super::WINDOW_LABEL;
 use super::detail_view::{gated_rows, kpis, tabs, usage_tab};
@@ -56,11 +59,11 @@ pub(super) struct DetailData {
 
 // Why: the Usage tab's reads, taken only when that tab is the one being drawn.
 pub(super) struct ProjectUsageData {
+    pub(super) attribution: Vec<AttributionSourceRow>,
     pub(super) daily: Vec<DailyRequests>,
     pub(super) models: Vec<ModelUsageRow>,
     pub(super) tools: Vec<ToolHealthRow>,
     pub(super) sessions: Vec<ProjectSessionRow>,
-    pub(super) commits: Vec<ProjectCommitRow>,
 }
 
 const fn exclusive(project_id: &ProjectId) -> ScopeQuery<'_> {
@@ -119,19 +122,19 @@ pub(super) async fn load(
 
 pub(super) async fn load_usage(pool: &PgPool, project_id: &ProjectId) -> ProjectUsageData {
     let q = exclusive(project_id);
-    let (daily, models, tools, sessions, commits) = tokio::join!(
+    let (attribution, daily, models, tools, sessions) = tokio::join!(
+        list_scope_attribution_sources(pool, &q),
         list_daily_requests(pool, &q),
         list_scope_top_models(pool, &q, LEADERBOARD_LIMIT),
         list_project_tool_health(pool, &q, SECTION_LIMIT),
         list_project_sessions(pool, &q, SECTION_LIMIT),
-        list_project_commits(pool, &q, SECTION_LIMIT),
     );
     ProjectUsageData {
+        attribution: or_default("project attribution", attribution),
         daily: or_default("project daily requests", daily),
         models: or_default("project model mix", models),
         tools: or_default("project tool health", tools),
         sessions: or_default("project sessions", sessions),
-        commits: or_default("project commits", commits),
     }
 }
 
@@ -156,15 +159,7 @@ pub(super) fn page_data(
         mappings,
         rules,
     } = reads;
-    let inputs: Vec<MemberInput<'_>> = data.members.iter().map(as_member_input).collect();
-    let rows = member_rows(
-        &inputs,
-        &MemberContext {
-            usage: &data.member_usage,
-            active: &data.active,
-            can_manage: user_ctx.is_admin,
-        },
-    );
+    let rows = member_views(data, user_ctx);
 
     ProjectDetailPageData {
         page: "project-detail",
@@ -200,7 +195,20 @@ pub(super) fn page_data(
         project_name: project.name.clone(),
         description: project.description.clone(),
         can_manage: user_ctx.is_admin,
+        export: super::export_view(&project.id),
     }
+}
+
+pub(super) fn member_views(data: &DetailData, user_ctx: &UserContext) -> Vec<MemberRowView> {
+    let inputs: Vec<MemberInput<'_>> = data.members.iter().map(as_member_input).collect();
+    member_rows(
+        &inputs,
+        &MemberContext {
+            usage: &data.member_usage,
+            active: &data.active,
+            can_manage: user_ctx.is_admin,
+        },
+    )
 }
 
 fn as_member_input(row: &ProjectMemberRow) -> MemberInput<'_> {
@@ -210,6 +218,7 @@ fn as_member_input(row: &ProjectMemberRow) -> MemberInput<'_> {
         email: row.email.as_deref(),
         sources: &row.sources,
         source_ad_groups: &row.source_ad_groups,
+        valid_until: row.valid_until,
     }
 }
 

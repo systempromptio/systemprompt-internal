@@ -101,7 +101,7 @@ pub async fn list_groups_with_usage(
 // `member_count` and `project_count` read `user_groups`, which is full
 // membership — a person in two groups is in both, because that is what "who is
 // in this group" means. `active_members` and the busiest model read the
-// exclusive membership instead, so that they describe the same traffic as the
+// request-stamped scope instead, so that they describe the same traffic as the
 // spend columns beside them; counting a two-group person as active in both
 // would put a number next to a cost that excludes them.
 async fn list_group_metadata(
@@ -110,13 +110,14 @@ async fn list_group_metadata(
 ) -> Result<Vec<GroupUsageRow>, sqlx::Error> {
     let rows = crate::scoped_query!(
         r#", win AS (
-               SELECT w.user_id, w.model
-               FROM ai_requests w
+               SELECT rs.scope_id, w.user_id, w.model
+               FROM request_scope rs
+               JOIN ai_requests w ON w.id = rs.request_id
                WHERE w.created_at >= NOW() - make_interval(days => $3)
-                 AND w.actor_kind = 'user'
+                 AND rs.scope_id IS NOT NULL
            ), act AS (
-               SELECT m.scope_id, COUNT(DISTINCT w.user_id) AS active_members
-               FROM membership m JOIN win w ON w.user_id = m.user_id
+               SELECT w.scope_id, COUNT(DISTINCT w.user_id) AS active_members
+               FROM win w
                GROUP BY 1
            ), model_rank AS (
                SELECT t.scope_id, t.model, t.requests,
@@ -124,8 +125,8 @@ async fn list_group_metadata(
                           PARTITION BY t.scope_id ORDER BY t.requests DESC, t.model
                       ) AS rn
                FROM (
-                   SELECT m.scope_id, w.model, COUNT(*) AS requests
-                   FROM membership m JOIN win w ON w.user_id = m.user_id
+                   SELECT w.scope_id, w.model, COUNT(*) AS requests
+                   FROM win w
                    WHERE w.model IS NOT NULL
                    GROUP BY 1, 2
                ) t

@@ -8,7 +8,7 @@
             {{#unless configured}}<span class="sp-u-text-warning">No declaration under services/mcp</span>{{/unless}}
         {{/inline}}
         {{#*inline "header_actions"}}
-            <a class="sp-btn sp-btn--sm sp-btn--outline" href="{{matrix_url}}">Edit access</a>
+            <a class="sp-btn sp-btn--sm sp-btn--outline" href="{{access_url}}">Access</a>
             <a class="sp-btn sp-btn--sm sp-btn--outline" href="/admin/traces">Traces</a>
             <a class="sp-btn sp-btn--sm sp-btn--outline" href="/admin/mcp">All servers</a>
         {{/inline}}
@@ -86,7 +86,6 @@
     {{/if}}
     </section>
 
-    <div class="sp-p-mcp__split">
     <section aria-label="Sessions">
     {{> components/section title="Sessions" count=sessions_count note="Clients attached to this server, most recently active first."}}
     {{#if sessions_count}}
@@ -117,40 +116,8 @@
     {{/if}}
     </section>
 
-    <section aria-label="Access">
-    {{#> components/section title="Who can reach it" count=grants_count note="Access-control rules naming this server."}}
-        {{#*inline "section_actions"}}
-            <a class="sp-btn sp-btn--xs sp-btn--outline" href="{{matrix_url}}">Edit</a>
-        {{/inline}}
-    {{/components/section}}
-    <p class="sp-u-text-sm sp-u-text-secondary">
-        Default for everyone else:
-        {{#if default_included}}{{> components/badge tone="warn" text="included"}}{{else}}{{> components/badge tone="muted" text="excluded"}}{{/if}}
-    </p>
-    {{#if grants_count}}
-    {{#> components/table caption="Access-control rules on this MCP server"}}
-        <thead><tr>
-            <th aria-sort="none">Subject kind</th>
-            <th aria-sort="none">Subject</th>
-            <th aria-sort="none">Access</th>
-            <th class="sp-table__cell--date" aria-sort="none">Updated</th>
-        </tr></thead>
-        <tbody>
-        {{#each grants}}
-        <tr>
-            <td>{{subject_kind}}</td>
-            <td class="sp-table__cell--mono">{{subject}}</td>
-            <td>{{#if is_allow}}{{> components/badge tone="ok" text="allow"}}{{else}}{{> components/badge tone="err" text="deny"}}{{/if}}</td>
-            <td class="sp-table__cell--date">{{updated_display}}</td>
-        </tr>
-        {{/each}}
-        </tbody>
-    {{/components/table}}
-    {{else}}
-    {{> components/empty-state title="No rules" message="Nothing names this server directly. Reach is whatever the default above says."}}
-    {{/if}}
-    </section>
-    </div>
+
+    {{> components/entity-access panel=access}}
 
     <div class="sp-catalog-detail-grid">
         <section class="sp-catalog-rel-section" aria-label="Configuration">
@@ -180,5 +147,9 @@
             {{/if}}
         </section>
     </div>
+    {{/inline}}
+    {{#*inline "scripts"}}
+    {{> components/access-reason-dialog}}
+    <script type="module" src="/js/pages/admin-entity-access.js?v={{css_version}}"></script>
     {{/inline}}
 {{/layout}}

@@ -22,7 +22,8 @@ use crate::repositories;
 use crate::templates::AdminTemplateEngine;
 use crate::types::{MarketplaceContext, UserContext};
 
-use super::types::{BreadcrumbView, GroupsPageData, MemberSetChipView};
+use super::sync_plane::{is_sync_tab, plane_card_by_id, sync_tab};
+use super::types::{BreadcrumbView, GroupsPageData, MemberSetChipView, TabLinkView};
 
 mod data;
 mod sorting;
@@ -37,6 +38,21 @@ pub(crate) struct GroupsQuery {
     dir: Option<String>,
     page: Option<i64>,
     source: Option<String>,
+    // Why: `tab=sync` renders the groups plane instead of the listing.
+    tab: Option<String>,
+}
+
+fn tabs(on_sync: bool) -> Vec<TabLinkView> {
+    vec![
+        TabLinkView {
+            slug: "groups",
+            label: "Groups",
+            href: sorting::BASE_URL.to_owned(),
+            is_active: !on_sync,
+            count: None,
+        },
+        sync_tab(sorting::BASE_URL, on_sync),
+    ]
 }
 
 pub(crate) async fn groups_page(
@@ -54,6 +70,13 @@ pub(crate) async fn groups_page(
     let range = query.range.as_deref().unwrap_or("30d").to_owned();
     let sort = sorting::sort_key(query.sort.as_deref());
     let dir = sorting::direction(query.dir.as_deref());
+
+    let on_sync = is_sync_tab(query.tab.as_deref());
+    let sync = if on_sync {
+        plane_card_by_id(&pool, repositories::sync::groups::PLANE_ID, "").await?
+    } else {
+        None
+    };
 
     let source = sorting::source_filter(query.source.as_deref());
     let mut listing = data::load_listing(&pool, window_days).await;
@@ -87,9 +110,15 @@ pub(crate) async fn groups_page(
     );
 
     let data = GroupsPageData {
+        export: crate::export::ExportView::single(
+            "groups",
+            &crate::export::view::query_string(&[("days", Some(&window_days.to_string()))]),
+        ),
         page: "groups",
         title: "Groups",
         breadcrumbs: vec![BreadcrumbView::current("Groups")],
+        tabs: tabs(on_sync),
+        sync,
         kpis,
         sort_headers: sorting::sort_headers(sort, dir, &range, &source),
         ranges: sorting::range_links(window_days, &source),

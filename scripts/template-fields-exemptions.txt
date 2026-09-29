@@ -30,11 +30,9 @@ storage/files/admin/templates/governance.hbs: window_denied
 storage/files/admin/templates/governance.hbs: window_evaluations
 storage/files/admin/templates/login.hbs: passkey_authorize_url
 storage/files/admin/templates/profile.hbs: odoo
-storage/files/admin/templates/report-customer.hbs: generated_at
 storage/files/admin/templates/report-customer.hbs: month_key
 storage/files/admin/templates/report-customer.hbs: month_label
 storage/files/admin/templates/report-customer.hbs: org_name
-storage/files/admin/templates/report-internal.hbs: generated_at
 storage/files/admin/templates/report-internal.hbs: month_label
 storage/files/admin/templates/skill-usage.hbs: attributed_cost_usd
 storage/files/admin/templates/users-sessions.hbs: window_minutes

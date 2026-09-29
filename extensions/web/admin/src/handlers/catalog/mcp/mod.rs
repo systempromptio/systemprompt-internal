@@ -50,6 +50,8 @@ pub(crate) struct McpListQuery {
 #[derive(Debug, Default, Deserialize)]
 pub(crate) struct McpDetailQuery {
     pub page: Option<i64>,
+    // Why: the "Why?" explainer's person on the "Who gets this" panel.
+    pub why: Option<String>,
 }
 
 fn console_only(user_ctx: &UserContext) -> AdminHtmlResult<()> {
@@ -150,7 +152,7 @@ pub(crate) async fn mcp_servers_page(
         servers_count: servers.len(),
         unconfigured_count,
         servers,
-        access_control_url: "/admin/access-control?entity_type=mcp_server",
+        access_control_url: "/admin/access-control?entity_kind=mcp_server",
         sort_key,
         sort_dir: sort_dir.to_owned(),
         search,
@@ -206,6 +208,13 @@ pub(crate) async fn mcp_detail_page(
     });
 
     let sections = sections::detail_sections(&pool, &mcp_id, query.page.unwrap_or(0).max(0)).await;
+    let access = super::access::panel(
+        &pool,
+        &user_ctx,
+        (ENTITY_MCP_SERVER, mcp_id.as_str()),
+        query.why.as_deref(),
+    )
+    .await;
 
     let page = McpDetailData {
         page: "mcp",
@@ -242,8 +251,9 @@ pub(crate) async fn mcp_detail_page(
             .get(mcp_id.as_str())
             .cloned()
             .unwrap_or_default(),
-        matrix_url: row.matrix_url.clone(),
-        access_control_url: "/admin/access-control",
+        access_url: row.access_url.clone(),
+        access_control_url: "/admin/access-control?entity_kind=mcp_server",
+        access,
         id: mcp_id,
     };
     Ok(render_typed_page(

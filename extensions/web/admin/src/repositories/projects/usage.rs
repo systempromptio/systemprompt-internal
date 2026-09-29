@@ -1,11 +1,21 @@
 //! The projects listing's rollup: one row per project, read in one pass.
 //!
-//! Every statement here is built on the shared membership CTE, so a project's
+//! Every statement here is built on the shared scope CTEs, so a project's
 //! numbers are attributed by the same rule the rest of the console counts by
-//! and the page never restates what membership means. Totals are read under
-//! [`Attribution::Exclusive`](crate::repositories::scope::Attribution) so the
-//! projects partition the instance; the per-member breakdown is the one place
-//! the pages ask for member attribution, and it says so on the screen.
+//! and the page never restates what membership means. Spend joins
+//! `request_scope` — the project stamped on each request when it landed —
+//! under [`Attribution::Exclusive`](crate::repositories::scope::Attribution)
+//! so the projects partition the instance; tool calls and skills are
+//! hook-plane events with no request to stamp and still read membership. The
+//! per-member breakdown is the one place the pages ask for member
+//! attribution, and it says so on the screen. Artifacts, like tool calls,
+//! are hook-plane rows keyed on the person and read membership too.
+//!
+//! "Clients" is the coding agent that made the request (`client_kind`) —
+//! this instance ships no A2A agents, so the agents a project uses are its
+//! Claude Code, Codex and desktop sessions, and the rollup names the busiest.
+
+use std::collections::HashMap;
 
 use serde::Serialize;
 use sqlx::PgPool;
@@ -30,13 +40,55 @@ pub struct ProjectRollup {
     pub group_count: i64,
     pub active_members: i64,
     pub requests: i64,
+    pub tokens: i64,
     pub cost_microdollars: i64,
+    pub models_used: i64,
+    pub top_model: Option<String>,
+    pub clients_used: i64,
+    pub top_client: Option<String>,
     pub tool_calls: i64,
     pub tool_success: i64,
     pub skills_used: i64,
+    pub artifacts: i64,
 }
 
 pub async fn list_project_rollups(
+    pool: &PgPool,
+    window_days: i32,
+    limit: i64,
+) -> Result<Vec<ProjectRollup>, sqlx::Error> {
+    let (requests, hooks) = tokio::try_join!(
+        list_request_plane(pool, window_days, limit),
+        list_hook_plane(pool, window_days),
+    )?;
+    let hooks: HashMap<String, HookPlaneRow> =
+        hooks.into_iter().map(|h| (h.scope_id.clone(), h)).collect();
+    Ok(requests
+        .into_iter()
+        .map(|mut row| {
+            if let Some(h) = hooks.get(row.id.as_str()) {
+                row.tool_calls = h.tool_calls;
+                row.tool_success = h.tool_success;
+                row.skills_used = h.skills_used;
+                row.artifacts = h.artifacts;
+            }
+            row
+        })
+        .collect())
+}
+
+// Why: the hook plane has no request to stamp, so tool calls, skills and
+// artifacts read membership; they are one statement keyed on the project so
+// the request-plane statement stays a plain listing.
+struct HookPlaneRow {
+    scope_id: String,
+    tool_calls: i64,
+    tool_success: i64,
+    skills_used: i64,
+    artifacts: i64,
+}
+
+async fn list_request_plane(
     pool: &PgPool,
     window_days: i32,
     limit: i64,
@@ -55,35 +107,27 @@ pub async fn list_project_rollups(
                     WHERE m.scope_id = p.id)::BIGINT AS "attributed_members!",
                   COALESCE(r.requests, 0)::BIGINT AS "requests!",
                   COALESCE(r.active_members, 0)::BIGINT AS "active_members!",
+                  COALESCE(r.tokens, 0)::BIGINT AS "tokens!",
                   COALESCE(r.cost_microdollars, 0)::BIGINT AS "cost_microdollars!",
-                  COALESCE(t.calls, 0)::BIGINT AS "tool_calls!",
-                  COALESCE(t.ok, 0)::BIGINT AS "tool_success!",
-                  COALESCE(s.skills, 0)::BIGINT AS "skills_used!"
+                  COALESCE(r.models_used, 0)::BIGINT AS "models_used!",
+                  r.top_model AS "top_model?",
+                  COALESCE(r.clients_used, 0)::BIGINT AS "clients_used!",
+                  r.top_client AS "top_client?"
            FROM projects p
            LEFT JOIN (
-               SELECT m.scope_id, COUNT(x.id) AS requests,
+               SELECT rs.scope_id, COUNT(x.id) AS requests,
                       COUNT(DISTINCT x.user_id) AS active_members,
-                      COALESCE(SUM(x.cost_microdollars), 0) AS cost_microdollars
-               FROM membership m
-               JOIN ai_requests x ON x.user_id = m.user_id
+                      COALESCE(SUM(COALESCE(x.tokens_used, COALESCE(x.input_tokens, 0) + COALESCE(x.output_tokens, 0) + COALESCE(x.cache_read_tokens, 0) + COALESCE(x.cache_creation_tokens, 0))), 0) AS tokens,
+                      COALESCE(SUM(x.cost_microdollars), 0) AS cost_microdollars,
+                      COUNT(DISTINCT x.model) AS models_used,
+                      MODE() WITHIN GROUP (ORDER BY x.model) AS top_model,
+                      COUNT(DISTINCT x.client_kind) FILTER (WHERE x.client_kind NOT IN ('unknown', 'internal')) AS clients_used,
+                      MODE() WITHIN GROUP (ORDER BY x.client_kind) FILTER (WHERE x.client_kind NOT IN ('unknown', 'internal')) AS top_client
+               FROM request_scope rs
+               JOIN ai_requests x ON x.id = rs.request_id
                 AND x.created_at >= NOW() - make_interval(days => $3)
-               GROUP BY m.scope_id
+               GROUP BY rs.scope_id
            ) r ON r.scope_id = p.id
-           LEFT JOIN (
-               SELECT m.scope_id, COUNT(*) AS calls,
-                      COUNT(*) FILTER (WHERE x.status = 'success') AS ok
-               FROM membership m
-               JOIN mcp_tool_executions x ON x.user_id = m.user_id
-                AND x.started_at >= NOW() - make_interval(days => $3)
-               GROUP BY m.scope_id
-           ) t ON t.scope_id = p.id
-           LEFT JOIN (
-               SELECT m.scope_id, COUNT(DISTINCT e.skill) AS skills
-               FROM membership m
-               JOIN skill_invocation_events e ON e.user_id = m.user_id
-                AND e.invoked_at >= NOW() - make_interval(days => $3)
-               WHERE e.skill IS NOT NULL GROUP BY m.scope_id
-           ) s ON s.scope_id = p.id
            ORDER BY p.name
            LIMIT $4"#,
         ScopeKind::Project.as_str(),
@@ -104,10 +148,69 @@ pub async fn list_project_rollups(
             group_count: row.group_count,
             active_members: row.active_members,
             requests: row.requests,
+            tokens: row.tokens,
             cost_microdollars: row.cost_microdollars,
+            models_used: row.models_used,
+            top_model: row.top_model,
+            clients_used: row.clients_used,
+            top_client: row.top_client,
+            tool_calls: 0,
+            tool_success: 0,
+            skills_used: 0,
+            artifacts: 0,
+        })
+        .collect())
+}
+
+async fn list_hook_plane(
+    pool: &PgPool,
+    window_days: i32,
+) -> Result<Vec<HookPlaneRow>, sqlx::Error> {
+    let rows = crate::scoped_query!(
+        r#"SELECT p.id AS "scope_id!",
+                  COALESCE(t.calls, 0)::BIGINT AS "tool_calls!",
+                  COALESCE(t.ok, 0)::BIGINT AS "tool_success!",
+                  COALESCE(s.skills, 0)::BIGINT AS "skills_used!",
+                  COALESCE(a.artifacts, 0)::BIGINT AS "artifacts!"
+           FROM projects p
+           LEFT JOIN (
+               SELECT m.scope_id, COUNT(*) AS calls,
+                      COUNT(*) FILTER (WHERE x.status = 'success') AS ok
+               FROM membership m
+               JOIN mcp_tool_executions x ON x.user_id = m.user_id
+                AND x.started_at >= NOW() - make_interval(days => $3)
+                AND x.server_name <> x.source
+               GROUP BY m.scope_id
+           ) t ON t.scope_id = p.id
+           LEFT JOIN (
+               SELECT m.scope_id, COUNT(DISTINCT e.skill) AS skills
+               FROM membership m
+               JOIN skill_invocation_events e ON e.user_id = m.user_id
+                AND e.invoked_at >= NOW() - make_interval(days => $3)
+               WHERE e.skill IS NOT NULL GROUP BY m.scope_id
+           ) s ON s.scope_id = p.id
+           LEFT JOIN (
+               SELECT m.scope_id, COUNT(*) AS artifacts
+               FROM membership m
+               JOIN mcp_artifacts x ON x.user_id = m.user_id
+                AND x.created_at >= NOW() - make_interval(days => $3)
+               GROUP BY m.scope_id
+           ) a ON a.scope_id = p.id
+           WHERE t.calls IS NOT NULL OR s.skills IS NOT NULL OR a.artifacts IS NOT NULL"#,
+        ScopeKind::Project.as_str(),
+        Attribution::Exclusive.is_exclusive(),
+        window_days
+    )
+    .fetch_all(pool)
+    .await?;
+    Ok(rows
+        .into_iter()
+        .map(|row| HookPlaneRow {
+            scope_id: row.scope_id,
             tool_calls: row.tool_calls,
             tool_success: row.tool_success,
             skills_used: row.skills_used,
+            artifacts: row.artifacts,
         })
         .collect())
 }

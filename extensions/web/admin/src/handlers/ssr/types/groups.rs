@@ -51,6 +51,17 @@ pub(crate) struct ModelMixRowView {
     pub share_pct: i64,
 }
 
+// Why: One row of the attribution table: who decided where a request was
+// filed, and how much of the window that source accounts for.
+#[derive(Debug, Clone, Serialize)]
+pub(crate) struct AttributionSourceRowView {
+    pub source: String,
+    pub label: &'static str,
+    pub requests: i64,
+    pub cost_microdollars: i64,
+    pub share_pct: i64,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct NameCountRowView {
     pub name: String,
@@ -73,22 +84,12 @@ pub(crate) struct UsageLeaderRowView {
 
 #[derive(Debug, Serialize)]
 pub(crate) struct GroupOverviewView {
+    pub attribution: Vec<AttributionSourceRowView>,
     pub models: Vec<ModelMixRowView>,
     pub daily_requests: SvgLineChartView,
     pub skills: Vec<NameCountRowView>,
     pub tools: Vec<NameCountRowView>,
     pub leaderboard: Vec<UsageLeaderRowView>,
-}
-
-// Why: One marketplace, and whether this group reaches it. Entitlement is an
-// ordinary access-control rule on the marketplace entity keyed by the group
-// dimension, so the checkbox writes a rule rather than a membership.
-#[derive(Debug, Clone, Serialize)]
-pub(crate) struct MarketplaceAssignmentView {
-    pub id: String,
-    pub name: String,
-    pub description: String,
-    pub assigned: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -111,6 +112,10 @@ pub(crate) struct MemberRowView {
     // Why: a member the directory put here cannot be removed by hand — the
     // next sign-in would write the row straight back.
     pub can_remove: bool,
+    // Why: the manual membership's expiry, RFC 3339, or None for open-ended;
+    // `expires_soon` is the one-week warning the row badges.
+    pub expires_at: Option<String>,
+    pub expires_soon: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -168,13 +173,13 @@ pub(crate) struct GroupDetailPageData {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub members: Option<MembersTabView>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub marketplaces: Option<Vec<MarketplaceAssignmentView>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub access: Option<Vec<AccessSectionView>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub projects: Option<Vec<ProjectRowView>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mappings: Option<Vec<MappingRowView>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub export: Option<crate::export::ExportView>,
 }
 
 // Why: One entity's effective grant for a group subject, plus the toggle state

@@ -18,7 +18,7 @@
     padding: var(--sp-space-2) var(--sp-space-3);
     border: 1px solid var(--sp-border-subtle);
     border-radius: var(--sp-corners-sm);
-    background: var(--sp-bg-sunken);
+    background: var(--sp-bg-surface-alt);
     font-family: var(--sp-font-mono);
     font-size: var(--sp-text-xs);
     white-space: pre-wrap;

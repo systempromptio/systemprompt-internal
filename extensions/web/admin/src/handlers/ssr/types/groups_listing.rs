@@ -9,7 +9,8 @@
 use serde::Serialize;
 
 use super::super::list_view::Pagination;
-use super::{BreadcrumbView, MemberSetChipView, SortHeaderView};
+use super::{BreadcrumbView, MemberSetChipView, SortHeaderView, TabLinkView};
+use crate::handlers::ssr::sync_plane::PlaneCardView;
 
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct GroupRowView {
@@ -35,7 +36,10 @@ pub(crate) struct GroupRowView {
     pub top_model_short: Option<String>,
     pub top_model_requests: i64,
     pub source: String,
+    // Why: `source_label` is the filter value the URL carries, `source_display`
+    // the words in the cell, and `source_abbrev` the sentence on its title.
     pub source_label: &'static str,
+    pub source_display: &'static str,
     pub source_abbrev: &'static str,
     pub is_unassigned: bool,
 }
@@ -59,9 +63,9 @@ pub(crate) struct UnattributedRowView {
 pub(crate) struct GroupKpiView {
     pub label: &'static str,
     pub value: String,
-    // Why: `note`, not `sub`. `sub` is a registered Handlebars helper, so
-    // `this.sub` in the template resolves to the helper rather than the field
-    // and the supporting line renders as nothing at all.
+    // Why: `note`, not `sub`. `sub` is a registered Handlebars helper, so a
+    // bare `{{sub}}` mustache calls it with no arguments and prints 0 instead
+    // of the field. No view struct here is allowed to be named `sub`.
     pub note: String,
     pub tone: &'static str,
 }
@@ -104,6 +108,9 @@ pub(crate) struct GroupsPageData {
     pub page: &'static str,
     pub title: &'static str,
     pub breadcrumbs: Vec<BreadcrumbView>,
+    pub tabs: Vec<TabLinkView>,
+    // Why: set on the Sync tab — `groups.yaml` against this database.
+    pub sync: Option<PlaneCardView>,
     pub kpis: Vec<GroupKpiView>,
     pub sort_headers: GroupSortHeaders,
     pub ranges: Vec<FilterLinkView>,
@@ -126,4 +133,5 @@ pub(crate) struct GroupsPageData {
     // nowhere to file their spend, so the page says how many there are and
     // offers the recompute rather than quietly reporting a smaller instance.
     pub unkeyed_people: i64,
+    pub export: crate::export::ExportView,
 }

@@ -11,7 +11,7 @@
             {{#if description}}<p class="sp-page-header__subtitle">{{description}}</p>{{/if}}
         </div>
         <div class="sp-page-header__actions">
-            <a class="sp-btn sp-btn--sm sp-btn--outline" href="{{matrix_url}}">Access matrix →</a>
+            <a class="sp-btn sp-btn--sm sp-btn--outline" href="{{access_url}}">Access</a>
         </div>
     </header>
 
@@ -74,6 +74,8 @@
         </section>
     </div>
 
+    {{#if access}}{{> components/entity-access panel=access}}{{/if}}
+
     {{#if roles}}
     <div class="sp-catalog-meta-bar">
         <span class="sp-u-text-muted sp-u-text-xs">Roles:</span>
@@ -86,5 +88,9 @@
         {{#each keywords}}<span class="sp-chip sp-chip--tag">{{this}}</span>{{/each}}
     </div>
     {{/if}}
+    {{/inline}}
+    {{#*inline "scripts"}}
+    {{> components/access-reason-dialog}}
+    <script type="module" src="/js/pages/admin-entity-access.js?v={{css_version}}"></script>
     {{/inline}}
 {{/layout}}

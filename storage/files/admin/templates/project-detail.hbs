@@ -7,10 +7,12 @@
         <span>{{window_label}}</span>
         {{/inline}}
         {{#*inline "header_actions"}}
+        <a class="sp-btn sp-btn--sm sp-btn--outline" href="/admin/projects/{{project_id}}/report" title="One printable page: members, spend, models, agents, tools, skills and artifacts">{{> components/icon name="report" class="sp-icon--sm"}} Report</a>
         {{#if can_manage}}
         {{#if members}}<button type="button" class="sp-btn sp-btn--sm sp-btn--primary" data-action="add-member">Add member</button>{{/if}}
         <a class="sp-btn sp-btn--sm sp-btn--outline" href="/admin/projects/{{project_id}}?tab=settings">Settings</a>
         {{/if}}
+        {{> components/export-button export}}
         {{/inline}}
     {{/components/page-header}}
 
@@ -39,6 +41,7 @@
                 <th class="sp-table__cell--num" aria-sort="none">Tokens</th>
                 <th class="sp-table__cell--num" aria-sort="none">Cost</th>
                 <th class="sp-table__cell--date">Last active</th>
+                <th class="sp-table__cell--date">Expires</th>
                 <th class="sp-table__cell--actions"><span class="sp-u-sr-only">Actions</span></th>
             </tr></thead>
             <tbody>
@@ -51,6 +54,7 @@
                 <td class="sp-table__cell--num sp-u-num">{{formatNumber tokens_30d}}</td>
                 <td class="sp-table__cell--num sp-u-num sp-u-mono">{{formatUsd cost_30d_microdollars}}</td>
                 <td class="sp-table__cell--date">{{#if last_active}}<span title="{{formatDate last_active}}">{{relativeTime last_active}}</span>{{else}}Never{{/if}}</td>
+                <td class="sp-table__cell--date">{{#if expires_at}}<span title="{{formatDate expires_at}}">{{relativeTime expires_at}}</span>{{#if expires_soon}} {{> components/badge tone="warn" text="soon"}}{{/if}}{{else}}<span class="sp-u-text-tertiary">Never</span>{{/if}}</td>
                 <td class="sp-table__cell--actions">
                     {{#if can_remove}}
                     <button type="button" class="sp-btn sp-btn--outline sp-btn--sm" data-action="remove-member" data-user-id="{{user_id}}">Remove</button>
@@ -58,7 +62,7 @@
                 </td>
             </tr>
             {{else}}
-            <tr class="sp-table__empty"><td colspan="8">
+            <tr class="sp-table__empty"><td colspan="9">
                 {{> components/empty-state title="No members" message="Add someone, or map a directory group to this project on the Settings tab."}}
             </td></tr>
             {{/each}}
@@ -69,6 +73,30 @@
 
     {{#if usage}}
     <section class="sp-p-project__usage" aria-label="Usage">
+        {{> components/section title="Spend attributed at request time" note="Each request is filed under the project stamped on it when it was made. Moving a person changes where their next request goes and nothing else."}}
+        {{#> components/table caption="How the window's requests were attributed"}}
+            <thead><tr>
+                <th>Source</th>
+                <th>Meaning</th>
+                <th>Share</th>
+                <th class="sp-table__cell--num">Requests</th>
+                <th class="sp-table__cell--num">Cost</th>
+            </tr></thead>
+            <tbody>
+            {{#each usage.attribution}}
+            <tr>
+                <td><span class="sp-badge sp-badge--muted">{{source}}</span></td>
+                <td>{{label}}</td>
+                <td>{{> components/share-bar share_pct=share_pct label=(concat share_pct "% of requests")}}</td>
+                <td class="sp-table__cell--num sp-u-num">{{formatNumber requests}}</td>
+                <td class="sp-table__cell--num sp-u-num sp-u-mono">{{formatUsd cost_microdollars}}</td>
+            </tr>
+            {{else}}
+            <tr class="sp-table__empty"><td colspan="5">{{> components/empty-state message="No request was attributed to this project in the window."}}</td></tr>
+            {{/each}}
+            </tbody>
+        {{/components/table}}
+
         <div class="sp-p-project__split">
             {{> components/svg-line-chart usage.daily}}
             {{> components/svg-line-chart usage.daily_cost}}
@@ -92,17 +120,16 @@
                 {{/components/table}}
             </div>
             <div>
-                {{> components/section title="Skills" count=usage.skill_count note="Invocations, and what the people using them rated them."}}
-                {{#> components/table caption="Skills used, with their ratings"}}
-                    <thead><tr><th>Skill</th><th class="sp-table__cell--num">Calls</th><th class="sp-table__cell--num">People</th><th class="sp-table__cell--num">Rating</th></tr></thead>
+                {{> components/section title="Skills" count=usage.skill_count note="Invocations, and how many of the project's people used each."}}
+                {{#> components/table caption="Skills used"}}
+                    <thead><tr><th>Skill</th><th class="sp-table__cell--num">Calls</th><th class="sp-table__cell--num">People</th></tr></thead>
                     <tbody>
                     {{#each usage.skills}}
                     <tr><td>{{skill}}</td>
                         <td class="sp-table__cell--num sp-u-num">{{formatNumber invocations}}</td>
-                        <td class="sp-table__cell--num sp-u-num">{{users}}</td>
-                        <td class="sp-table__cell--num sp-u-num" title="{{rating_count}} ratings">{{rating_display}}</td></tr>
+                        <td class="sp-table__cell--num sp-u-num">{{users}}</td></tr>
                     {{else}}
-                    <tr class="sp-table__empty"><td colspan="4">{{> components/empty-state message="No skill invocations in the window."}}</td></tr>
+                    <tr class="sp-table__empty"><td colspan="3">{{> components/empty-state message="No skill invocations in the window."}}</td></tr>
                     {{/each}}
                     </tbody>
                 {{/components/table}}
@@ -141,25 +168,6 @@
                 <td class="sp-table__cell--date"><span title="{{formatDate last_activity}}">{{relativeTime last_activity}}</span></td></tr>
             {{else}}
             <tr class="sp-table__empty"><td colspan="6">{{> components/empty-state message="No sessions started in the window."}}</td></tr>
-            {{/each}}
-            </tbody>
-        {{/components/table}}
-
-        {{> components/section title="Commits" count=usage.commit_count note=(concat usage.commit_files " files, +" usage.commit_insertions " / -" usage.commit_deletions " lines in the window")}}
-        {{#> components/table caption="Commits landed by project members"}}
-            <thead><tr><th>Commit</th><th>Person</th><th>Branch</th><th>Message</th><th class="sp-table__cell--num">Files</th><th class="sp-table__cell--num">+/-</th><th class="sp-table__cell--date">Committed</th></tr></thead>
-            <tbody>
-            {{#each usage.commits}}
-            <tr>
-                <td class="sp-u-mono">{{commit_short}}</td>
-                <td><a href="/admin/users/{{user_id}}">{{user_id}}</a></td>
-                <td class="sp-u-mono">{{branch}}</td>
-                <td>{{truncate message 70}}</td>
-                <td class="sp-table__cell--num sp-u-num">{{files_changed}}</td>
-                <td class="sp-table__cell--num sp-u-num">+{{insertions}} / -{{deletions}}</td>
-                <td class="sp-table__cell--date"><span title="{{formatDate committed_at}}">{{relativeTime committed_at}}</span></td></tr>
-            {{else}}
-            <tr class="sp-table__empty"><td colspan="7">{{> components/empty-state message="No commits reported by this project's people in the window."}}</td></tr>
             {{/each}}
             </tbody>
         {{/components/table}}
@@ -241,6 +249,9 @@
                 <option value="{{user_id}}">{{label}}</option>
                 {{/each}}
             </select>
+            <label for="add-member-until">Expires</label>
+            <input type="date" id="add-member-until" class="sp-search-input" data-field="add-member-until" aria-describedby="add-member-until-note">
+            <p id="add-member-until-note" class="sp-u-text-tertiary sp-u-text-xs">Leave blank for an open-ended membership. An expired membership is revoked by the hourly sweep.</p>
             <menu>
                 <button type="button" class="sp-btn sp-btn--outline" data-action="close-add-member">Cancel</button>
                 <button type="button" class="sp-btn sp-btn--primary" data-action="confirm-add-member">Add</button>

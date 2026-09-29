@@ -7,6 +7,7 @@
         <span>Spend is attributed exclusively, so the rows and the unattributed total add up to the instance.</span>
         {{/inline}}
         {{#*inline "header_actions"}}
+        {{> components/export-button export}}
         {{#if can_manage}}
         <button type="button" class="sp-btn sp-btn--sm sp-btn--primary" data-action="create-group">New group</button>
         {{/if}}
@@ -19,6 +20,12 @@
         {{/inline}}
     {{/components/page-header}}
 
+    {{> components/tabs tabs=tabs nav_label="Group views"}}
+
+    {{#if sync}}
+    {{> components/sync-plane plane=sync can_write=can_manage}}
+    {{> components/sync-plane-dialogs}}
+    {{else}}
     <section class="sp-kpi-grid" aria-label="Group totals">
         {{#each kpis}}
         {{> components/kpi label=this.label value=this.value note=this.note tone=this.tone}}
@@ -30,7 +37,7 @@
     {{/if}}
 
     <section aria-label="Groups">
-    {{> components/section title="Groups" count=total_groups note="One row per group. Unfiltered, the last row is the traffic no group accounts for, and the rows sum to the instance."}}
+    {{> components/section title="Groups" count=total_groups note="One row per group. Active Directory groups take their members from the mapped AD group at each sign-in; groups created here have members assigned on this dashboard; Built-in is the Unassigned bucket. Unfiltered, the last row is the traffic no group accounts for, and the rows sum to the instance."}}
 
     {{#> components/toolbar toolbar_count=toolbar_count}}
         {{#*inline "toolbar_filters"}}
@@ -74,7 +81,7 @@
                     {{#if is_unassigned}}{{> components/badge tone="warn" text="Needs assignment"}}{{/if}}
                 </a>
             </td>
-            <td><span class="sp-badge sp-badge--muted" title="{{source_label}}">{{source_abbrev}}</span></td>
+            <td><span class="sp-badge sp-badge--muted" title="{{source_abbrev}}" data-source="{{source_label}}">{{source_display}}</span></td>
             <td class="sp-table__cell--num sp-u-num"><span class="sp-group-member-count">{{member_count}}</span></td>
             <td class="sp-table__cell--num sp-u-num">{{active_members_30d}}</td>
             <td class="sp-table__cell--num sp-u-num">{{project_count}}</td>
@@ -122,7 +129,7 @@
             <label for="new-group-id">Identifier</label>
             <input type="text" id="new-group-id" class="sp-search-input" data-field="new-group-id" placeholder="commerce-devs" autocomplete="off">
             <label for="new-group-name">Name</label>
-            <input type="text" id="new-group-name" class="sp-search-input" data-field="new-group-name" placeholder="Engineering" autocomplete="off">
+            <input type="text" id="new-group-name" class="sp-search-input" data-field="new-group-name" placeholder="Commerce devs" autocomplete="off">
             <label for="new-group-description">Description</label>
             <input type="text" id="new-group-description" class="sp-search-input" data-field="new-group-description" autocomplete="off">
             <menu>
@@ -139,7 +146,7 @@
             <h2 class="sp-section__title">Map a directory group</h2>
             <p class="sp-p-groups__note">Membership written by the directory is replaced at every sign-in, so a mapping is what places people and removing it is what removes them.</p>
             <label for="map-ad-group">Directory group</label>
-            <input type="text" id="map-ad-group" class="sp-search-input" data-field="map-ad-group" placeholder="Example-Team" autocomplete="off">
+            <input type="text" id="map-ad-group" class="sp-search-input" data-field="map-ad-group" placeholder="Systemprompt-Commerce" autocomplete="off">
             <label for="map-target-group">Places members into</label>
             <select id="map-target-group" class="sp-filter-select" data-field="map-target-group">
                 {{#each group_options}}
@@ -152,6 +159,7 @@
             </menu>
         </form>
     </dialog>
+    {{/if}}
     {{/if}}
     {{/inline}}
     {{#*inline "scripts"}}

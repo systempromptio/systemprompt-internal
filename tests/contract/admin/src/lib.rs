@@ -79,9 +79,15 @@ mod self_service_contract;
 #[cfg(test)]
 mod share_contract;
 #[cfg(test)]
+mod ssr_access_control_audience_contract;
+#[cfg(test)]
+mod ssr_access_control_entities_contract;
+#[cfg(test)]
 mod ssr_analytics_contract;
 #[cfg(test)]
 mod ssr_deep_contract;
+#[cfg(test)]
+mod ssr_people_containers_contract;
 #[cfg(test)]
 mod status_contract;
 #[cfg(test)]

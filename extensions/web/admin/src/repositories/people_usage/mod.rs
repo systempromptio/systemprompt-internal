@@ -1,9 +1,11 @@
 //! Gateway usage rolled up per people container — a group or a project.
 //!
-//! Every statement here is built on the one membership CTE in
+//! Every statement here is built on the shared CTEs in
 //! `repositories::scope::membership`, so which relation names the people in a
-//! container, and whether a person counts once or in every container they
-//! belong to, are bound parameters rather than interpolated text.
+//! container, and whether a request counts once or in every container its
+//! person belongs to, are bound parameters rather than interpolated text.
+//! Spend joins `request_scope`, the container stamped on each request when it
+//! landed; membership is only what puts a person with no traffic on the list.
 //!
 //! Group membership reads the `user_groups` view, so the derived `unassigned`
 //! bucket rolls up exactly like a real group.
@@ -11,6 +13,7 @@
 //! `tokens` is the provider's own count when it reported one; the four
 //! component columns are the fallback for rows written before it existed.
 
+pub mod attribution;
 pub mod breakdown;
 pub mod totals;
 
@@ -71,11 +74,11 @@ pub async fn get_scope_usage(
                   COALESCE(SUM(r.input_tokens), 0)::BIGINT AS "tokens_in!",
                   COALESCE(SUM(r.output_tokens), 0)::BIGINT AS "tokens_out!",
                   COALESCE(SUM(r.cost_microdollars), 0)::BIGINT AS "cost_microdollars!"
-           FROM membership m
-           LEFT JOIN ai_requests r
-             ON r.user_id = m.user_id
+           FROM request_scope rs
+           JOIN ai_requests r
+             ON r.id = rs.request_id
             AND r.created_at >= NOW() - make_interval(days => $4)
-           WHERE m.scope_id = $3"#,
+           WHERE rs.scope_id = $3"#,
         q.kind().as_str(),
         q.attribution.is_exclusive(),
         q.id(),
@@ -98,18 +101,30 @@ pub async fn list_member_usage(
     pool: &PgPool,
     q: &ScopeQuery<'_>,
 ) -> Result<HashMap<String, MemberUsageRow>, sqlx::Error> {
+    // Why: the people are the current members plus anyone whose requests were
+    // stamped to this container, so a person who has since moved still
+    // accounts for the spend they left behind and the rows sum to the total.
     let rows = crate::scoped_query!(
-        r#"SELECT m.user_id AS "user_id!: UserId",
+        r#", spent AS (
+               SELECT r.id, r.user_id, r.input_tokens, r.output_tokens,
+                      r.cost_microdollars, r.created_at
+               FROM request_scope rs
+               JOIN ai_requests r ON r.id = rs.request_id
+               WHERE rs.scope_id = $3
+                 AND r.created_at >= NOW() - make_interval(days => $4)
+           ), people AS (
+               SELECT m.user_id FROM membership m WHERE m.scope_id = $3
+               UNION
+               SELECT sp.user_id FROM spent sp
+           )
+           SELECT pe.user_id AS "user_id!: UserId",
                   COUNT(r.id)::BIGINT AS "requests!",
                   COALESCE(SUM(COALESCE(r.input_tokens, 0) + COALESCE(r.output_tokens, 0)), 0)::BIGINT AS "tokens!",
                   COALESCE(SUM(r.cost_microdollars), 0)::BIGINT AS "cost_microdollars!",
                   MAX(r.created_at) AS "last_active?"
-           FROM membership m
-           LEFT JOIN ai_requests r
-             ON r.user_id = m.user_id
-            AND r.created_at >= NOW() - make_interval(days => $4)
-           WHERE m.scope_id = $3
-           GROUP BY m.user_id"#,
+           FROM people pe
+           LEFT JOIN spent r ON r.user_id = pe.user_id
+           GROUP BY pe.user_id"#,
         q.kind().as_str(),
         q.attribution.is_exclusive(),
         q.id(),
@@ -149,9 +164,9 @@ pub async fn list_daily_requests(
                SELECT r.created_at::date AS day,
                       COUNT(*)::BIGINT AS requests,
                       COALESCE(SUM(r.cost_microdollars), 0)::BIGINT AS cost_microdollars
-               FROM membership m
-               JOIN ai_requests r ON r.user_id = m.user_id
-               WHERE m.scope_id = $3
+               FROM request_scope rs
+               JOIN ai_requests r ON r.id = rs.request_id
+               WHERE rs.scope_id = $3
                  AND r.created_at >= NOW() - make_interval(days => $4)
                GROUP BY 1
            )

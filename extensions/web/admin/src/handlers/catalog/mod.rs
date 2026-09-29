@@ -8,10 +8,14 @@
 //!   [`mcp`] because they also read the runtime tables.
 //!
 //! Each family has a list page and a detail page. Detail pages surface the
-//! plugin ↔ member relationship in both directions. The plugin and skill pages
-//! are strictly read-only: operators edit `services/*.yaml` and restart.
+//! plugin ↔ member relationship in both directions, and every detail page
+//! carries the shared "Who gets this" panel — the one place an entity's
+//! access is read and edited. The catalog itself is read-only: operators
+//! edit `services/*.yaml` and restart.
 
+mod access;
 mod data;
+mod detail;
 mod entries;
 pub(crate) mod marketplaces;
 pub(crate) mod mcp;
@@ -20,10 +24,11 @@ mod view;
 mod view_models;
 mod visibility;
 
-use std::sync::Arc;
-use systemprompt::identifiers::PluginId;
+pub(crate) use detail::{plugin_detail_page, skill_detail_page};
 
-use axum::extract::{Extension, Path, State};
+use std::sync::Arc;
+
+use axum::extract::{Extension, State};
 use axum::response::Response;
 use sqlx::PgPool;
 
@@ -137,36 +142,12 @@ pub(crate) async fn plugins_page(
         ),
         plugins_count: plugins.len(),
         plugins,
-        access_control_url: "/admin/access-control?entity_type=plugin",
+        access_control_url: "/admin/access-control?entity_kind=plugin",
         search,
     };
     Ok(render_typed_page(
         &engine,
         "catalog-plugins",
-        &page,
-        &user_ctx,
-        &mkt_ctx,
-    ))
-}
-
-pub(crate) async fn plugin_detail_page(
-    Extension(user_ctx): Extension<UserContext>,
-    Extension(mkt_ctx): Extension<MarketplaceContext>,
-    Extension(engine): Extension<AdminTemplateEngine>,
-    State(pool): State<Arc<PgPool>>,
-    Path(plugin_id): Path<PluginId>,
-) -> AdminHtmlResult<Response> {
-    admin_only(&user_ctx)?;
-    let path = shared::get_services_path()?;
-
-    let catalog = data::load_catalog(&path, &user_ctx.roles);
-    let counts = assignment_counts_by_type(&pool, ENTITY_PLUGIN).await;
-    let assignment_count = counts.get(plugin_id.as_str()).copied().unwrap_or(0);
-    let page = view_models::plugin_detail(&catalog, &plugin_id, assignment_count)
-        .ok_or_else(|| AdminError::NotFound("No such plugin.".to_owned()))?;
-    Ok(render_typed_page(
-        &engine,
-        "catalog-plugin-detail",
         &page,
         &user_ctx,
         &mkt_ctx,
@@ -225,37 +206,12 @@ pub(crate) async fn skills_page(
         ),
         skills_count: skills.len(),
         skills,
-        access_control_url: "/admin/access-control?entity_type=skill",
+        access_control_url: "/admin/access-control?entity_kind=skill",
         search,
     };
     Ok(render_typed_page(
         &engine,
         "catalog-skills",
-        &page,
-        &user_ctx,
-        &mkt_ctx,
-    ))
-}
-
-pub(crate) async fn skill_detail_page(
-    Extension(user_ctx): Extension<UserContext>,
-    Extension(mkt_ctx): Extension<MarketplaceContext>,
-    Extension(engine): Extension<AdminTemplateEngine>,
-    State(pool): State<Arc<PgPool>>,
-    Path(skill_id): Path<String>,
-) -> AdminHtmlResult<Response> {
-    admin_only(&user_ctx)?;
-    let path = shared::get_services_path()?;
-
-    let catalog = data::load_catalog(&path, &user_ctx.roles);
-    let counts = assignment_counts_by_type(&pool, ENTITY_SKILL).await;
-    let assignment_count = counts.get(&skill_id).copied().unwrap_or(0);
-    let skill = systemprompt::identifiers::SkillId::new(&skill_id);
-    let page = view_models::skill_detail(&catalog, &skill, assignment_count)
-        .ok_or_else(|| AdminError::NotFound("No such skill.".to_owned()))?;
-    Ok(render_typed_page(
-        &engine,
-        "catalog-skill-detail",
         &page,
         &user_ctx,
         &mkt_ctx,

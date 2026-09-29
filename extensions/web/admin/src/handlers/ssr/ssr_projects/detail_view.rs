@@ -6,17 +6,17 @@
 
 use crate::repositories::people_usage::DailyRequests;
 use crate::repositories::projects::activity::{
-    ProjectCommitRow, ProjectSessionRow, SkillEffectivenessRow, ToolHealthRow,
+    ProjectSessionRow, SkillEffectivenessRow, ToolHealthRow,
 };
 use crate::types::access_control::{AccessControlRule, AccessDecision};
 use systemprompt_web_shared::ProjectId;
 
 use super::super::format::short_num;
-use super::super::people_view::{format_usd, model_rows};
+use super::super::people_view::{attribution_rows, format_usd, model_rows};
 use super::super::types::{
-    AccessRowView, LineChartSpec, ProjectCommitRowView, ProjectKpiView, ProjectSessionRowView,
-    ProjectSkillRowView, ProjectToolRowView, ProjectUsageTabView, SvgLineChartView, SvgSeriesInput,
-    TabLinkView, line_chart,
+    AccessRowView, LineChartSpec, ProjectKpiView, ProjectSessionRowView, ProjectSkillRowView,
+    ProjectToolRowView, ProjectUsageTabView, SvgLineChartView, SvgSeriesInput, TabLinkView,
+    line_chart,
 };
 use super::detail::{DetailData, ProjectUsageData};
 use super::pct;
@@ -56,7 +56,7 @@ pub(super) fn kpis(data: &DetailData, member_count: i64) -> Vec<ProjectKpiView> 
         tile(
             "Requests",
             short_num(usage.requests),
-            "attributed to this project alone",
+            "attributed at request time",
             "accent",
         ),
         tile(
@@ -112,35 +112,24 @@ pub(super) fn usage_tab(
     u: &ProjectUsageData,
     skills: &[SkillEffectivenessRow],
 ) -> ProjectUsageTabView {
+    let (daily, daily_cost) = daily_charts(&u.daily);
     ProjectUsageTabView {
-        daily: daily_chart(&u.daily),
-        daily_cost: daily_cost_chart(&u.daily),
+        attribution: attribution_rows(&u.attribution),
+        daily,
+        daily_cost,
         model_count: u.models.len() as i64,
         skill_count: skills.len() as i64,
         tool_count: u.tools.len() as i64,
         session_count: u.sessions.len() as i64,
-        commit_count: u.commits.len() as i64,
         models: model_rows(&u.models),
         skills: skill_rows(skills),
         tools: tool_rows(&u.tools),
         sessions: u.sessions.iter().map(session_row).collect(),
-        commits: u.commits.iter().map(commit_row).collect(),
-        commit_files: u
-            .commits
-            .iter()
-            .map(|c| i64::from(c.files_changed.unwrap_or(0)))
-            .sum(),
-        commit_insertions: u
-            .commits
-            .iter()
-            .map(|c| i64::from(c.insertions.unwrap_or(0)))
-            .sum(),
-        commit_deletions: u
-            .commits
-            .iter()
-            .map(|c| i64::from(c.deletions.unwrap_or(0)))
-            .sum(),
     }
+}
+
+pub(super) fn daily_charts(daily: &[DailyRequests]) -> (SvgLineChartView, SvgLineChartView) {
+    (daily_chart(daily), daily_cost_chart(daily))
 }
 
 fn daily_chart(daily: &[DailyRequests]) -> SvgLineChartView {
@@ -203,10 +192,6 @@ pub(super) fn skill_rows(rows: &[SkillEffectivenessRow]) -> Vec<ProjectSkillRowV
             skill: r.skill.clone(),
             invocations: r.invocations,
             users: r.users,
-            rating_display: r
-                .rating_avg
-                .map_or_else(|| "—".to_owned(), |avg| format!("{avg:.1} / 5")),
-            rating_count: r.rating_count,
         })
         .collect()
 }
@@ -240,24 +225,12 @@ pub(super) fn session_row(s: &ProjectSessionRow) -> ProjectSessionRowView {
         session_short: short(s.session_id.as_str()),
         href: format!("/admin/sessions/{}", s.session_id.as_str()),
         session_id: s.session_id.clone(),
+        person: s.user_id.to_string(),
         user_id: s.user_id.clone(),
         requests: s.requests,
         models: s.models,
         cost_display: format_usd(s.cost_microdollars),
         last_activity: s.last_activity_at.to_rfc3339(),
-    }
-}
-
-pub(super) fn commit_row(c: &ProjectCommitRow) -> ProjectCommitRowView {
-    ProjectCommitRowView {
-        commit_short: short(&c.commit_hash),
-        user_id: c.user_id.clone(),
-        branch: c.branch.clone().unwrap_or_else(|| "—".to_owned()),
-        message: c.message.clone(),
-        files_changed: c.files_changed.unwrap_or(0),
-        insertions: c.insertions.unwrap_or(0),
-        deletions: c.deletions.unwrap_or(0),
-        committed_at: c.committed_at.to_rfc3339(),
     }
 }
 

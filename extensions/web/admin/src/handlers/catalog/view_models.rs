@@ -34,7 +34,7 @@ impl VisibilityInput<'_> {
 }
 use super::view::{
     HookRef, LinkedEntity, PluginDetailData, PluginListRow, SkillDetailData, SkillListRow,
-    matrix_url, mcp_url, plugin_url, skill_url,
+    access_url, mcp_url, plugin_url, skill_url,
 };
 
 // Why: the two-crumb trail every catalog detail page carries — the listing it
@@ -61,7 +61,7 @@ pub(super) fn plugin_rows(
         .map(|p| PluginListRow {
             visibility: visibility.plugin(&p.id),
             detail_url: plugin_url(p.id.as_str()),
-            matrix_url: matrix_url(ENTITY_PLUGIN, p.id.as_str()),
+            access_url: access_url(&plugin_url(p.id.as_str())),
             skills_count: p.skills.len(),
             mcp_count: p.mcp_servers.len(),
             agents_count: p.agents.len(),
@@ -145,12 +145,13 @@ pub(super) fn plugin_detail(
         breadcrumbs: trail("Plugins", "/admin/plugins", &plugin.name),
         page: "plugin-detail",
         title: plugin.name.clone(),
-        matrix_url: matrix_url(ENTITY_PLUGIN, plugin.id.as_str()),
+        access_url: access_url(&plugin_url(plugin.id.as_str())),
         assignment_count,
         skills_count: skills.len(),
         mcp_count: mcp_servers.len(),
         agents_count: agents.len(),
         hooks_count: hooks.len(),
+        access: None,
         skills,
         mcp_servers,
         agents,
@@ -196,7 +197,7 @@ pub(super) fn skill_rows(
             SkillListRow {
                 visibility: visibility.skill(&s.id, &plugin_ids),
                 detail_url: skill_url(&id),
-                matrix_url: matrix_url(ENTITY_SKILL, &id),
+                access_url: access_url(&skill_url(&id)),
                 assignment_count: counts.get(&id).copied().unwrap_or(0),
                 plugin_count: catalog.plugins_by_skill.get(&id).map_or(0, Vec::len),
                 id,
@@ -228,9 +229,10 @@ pub(super) fn skill_detail(
         activity_url: "/admin/skills".to_owned(),
         page: "skill-detail",
         title: entry.name.clone(),
-        matrix_url: matrix_url(ENTITY_SKILL, id),
+        access_url: access_url(&skill_url(id)),
         assignment_count,
         included_by_count: included_by.len(),
+        access: None,
         included_by,
         id: id.to_owned(),
         name: entry.name.clone(),

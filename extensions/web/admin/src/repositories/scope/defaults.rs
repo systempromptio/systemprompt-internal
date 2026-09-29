@@ -95,7 +95,8 @@ async fn recompute(pool: &PgPool, user_id: Option<&UserId>) -> Result<u64, sqlx:
                                 SELECT 1 FROM group_members gm
                                 WHERE gm.group_id = ug.group_id
                                   AND gm.user_id = ug.user_id
-                                  AND gm.source = 'adfs') DESC,
+                                  AND gm.source = 'adfs'
+                                  AND gm.revoked_at IS NULL) DESC,
                             (SELECT COUNT(DISTINCT x.user_id)
                                FROM user_groups x
                               WHERE x.group_id = ug.group_id) DESC,
@@ -104,9 +105,11 @@ async fn recompute(pool: &PgPool, user_id: Option<&UserId>) -> Result<u64, sqlx:
                  (SELECT pm.project_id
                     FROM project_members pm
                    WHERE pm.user_id = u.id
+                     AND pm.revoked_at IS NULL AND pm.valid_from <= CURRENT_TIMESTAMP
+                     AND (pm.valid_until IS NULL OR pm.valid_until > CURRENT_TIMESTAMP)
                    ORDER BY (pm.source = 'adfs') DESC,
-                            (SELECT COUNT(DISTINCT y.user_id)
-                               FROM project_members y
+                            (SELECT COUNT(*)
+                               FROM user_projects y
                               WHERE y.project_id = pm.project_id) DESC,
                             pm.project_id
                    LIMIT 1),

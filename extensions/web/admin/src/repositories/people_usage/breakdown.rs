@@ -1,9 +1,11 @@
 //! What a group or project spent its window on: models, skills, MCP tools,
 //! and the other people container each one overlaps with.
 //!
-//! Same contract as the parent module — the membership CTE is shared and its
-//! shape is bound, never interpolated — so every statement here is static and
-//! macro-verified. Tools are read from `mcp_tool_executions` rather than
+//! Same contract as the parent module — the shared CTEs are bound, never
+//! interpolated — so every statement here is static and macro-verified. The
+//! model mix joins `request_scope` like every other spend figure; skills and
+//! tools are hook-plane events with no request to stamp, so they still read
+//! membership. Tools are read from `mcp_tool_executions` rather than
 //! the pre-rolled daily table because a leaderboard an operator reads wants
 //! the server name beside the tool name, and only the raw rows carry it.
 
@@ -62,9 +64,9 @@ pub async fn list_scope_top_models(
                   COALESCE(SUM(r.input_tokens), 0)::BIGINT AS "tokens_in!",
                   COALESCE(SUM(r.output_tokens), 0)::BIGINT AS "tokens_out!",
                   COALESCE(SUM(r.cost_microdollars), 0)::BIGINT AS "cost_microdollars!"
-           FROM membership m
-           JOIN ai_requests r ON r.user_id = m.user_id
-           WHERE m.scope_id = $3
+           FROM request_scope rs
+           JOIN ai_requests r ON r.id = rs.request_id
+           WHERE rs.scope_id = $3
              AND r.created_at >= NOW() - make_interval(days => $4)
            GROUP BY 1, 2
            ORDER BY 3 DESC, 1
@@ -139,6 +141,7 @@ pub async fn list_scope_top_tools(
            JOIN mcp_tool_executions x ON x.user_id = m.user_id
            WHERE m.scope_id = $3
              AND x.started_at >= NOW() - make_interval(days => $4)
+             AND x.server_name <> x.source
            GROUP BY 1, 2
            ORDER BY 3 DESC, 2
            LIMIT $5"#,

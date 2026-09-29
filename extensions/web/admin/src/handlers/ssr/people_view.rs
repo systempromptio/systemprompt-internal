@@ -7,13 +7,16 @@
 
 use std::collections::{HashMap, HashSet};
 
+use chrono::{DateTime, Duration, Utc};
+
 use systemprompt::identifiers::UserId;
 
 use super::format::short_num;
 use super::types::{
-    MappingRowView, MemberRowView, MemberSetChipView, ModelMixRowView, NameCountRowView,
-    ProjectRowView, SourceBadgeView, StatTileView,
+    AttributionSourceRowView, MappingRowView, MemberRowView, MemberSetChipView, ModelMixRowView,
+    NameCountRowView, ProjectRowView, SourceBadgeView, StatTileView,
 };
+use crate::repositories::people_usage::attribution::AttributionSourceRow;
 use crate::repositories::people_usage::breakdown::{LinkedScopeRow, ModelUsageRow};
 use crate::repositories::people_usage::{MemberUsageRow, ScopeUsageRow};
 
@@ -36,6 +39,18 @@ pub(crate) struct MemberInput<'a> {
     pub email: Option<&'a str>,
     pub sources: &'a [String],
     pub source_ad_groups: &'a [String],
+    pub valid_until: Option<DateTime<Utc>>,
+}
+
+// Why: the window inside which a membership counts as "expiring soon" on the
+// member tables and the access-control ledger — one working week, long enough
+// to renew before the sweep acts.
+pub(crate) const EXPIRING_SOON_DAYS: i64 = 7;
+
+#[must_use]
+pub(crate) fn expires_soon(valid_until: Option<DateTime<Utc>>, now: DateTime<Utc>) -> bool {
+    valid_until
+        .is_some_and(|until| until > now && until <= now + Duration::days(EXPIRING_SOON_DAYS))
 }
 
 pub(crate) struct MemberContext<'a> {
@@ -45,9 +60,16 @@ pub(crate) struct MemberContext<'a> {
 }
 
 #[must_use]
-pub(crate) fn format_usd(microdollars: i64) -> String {
-    format!("${:.2}", microdollars as f64 / 1_000_000.0)
+// Why: the listings have ten columns at 1440px and the model name is the
+// widest thing that is not a sentence. The vendor prefix is the same on every
+// row of an Anthropic estate, so it carries no information there; the cell
+// keeps the full id on its title.
+pub(crate) fn short_model(model: &str) -> String {
+    let tail = model.rsplit('/').next().unwrap_or(model);
+    tail.strip_prefix("claude-").unwrap_or(tail).to_owned()
 }
+
+pub(crate) use systemprompt_web_shared::format::format_cost as format_usd;
 
 #[must_use]
 pub(crate) fn share(value: i64, total: i64) -> i64 {
@@ -88,6 +110,25 @@ pub(crate) fn stat_tiles(usage: &ScopeUsageRow, member_count: i64) -> Vec<StatTi
             value: format_usd(usage.cost_microdollars),
         },
     ]
+}
+
+// Why: the source column is the stamp's own vocabulary; the label says what
+// each value meant for the request it was written on.
+pub(crate) fn attribution_rows(rows: &[AttributionSourceRow]) -> Vec<AttributionSourceRowView> {
+    let total: i64 = rows.iter().map(|r| r.requests).sum();
+    rows.iter()
+        .map(|r| AttributionSourceRowView {
+            label: match r.source.as_str() {
+                "primary" => "Person's primary at the time",
+                "header" => "Named by the request",
+                _ => "Current membership",
+            },
+            source: r.source.clone(),
+            requests: r.requests,
+            cost_microdollars: r.cost_microdollars,
+            share_pct: share(r.requests, total),
+        })
+        .collect()
 }
 
 pub(crate) fn model_rows(models: &[ModelUsageRow]) -> Vec<ModelMixRowView> {
@@ -152,6 +193,7 @@ pub(crate) fn member_rows(
     members: &[MemberInput<'_>],
     ctx: &MemberContext<'_>,
 ) -> Vec<MemberRowView> {
+    let now = Utc::now();
     members
         .iter()
         .map(|m| {
@@ -169,6 +211,8 @@ pub(crate) fn member_rows(
                 sources: m.sources.iter().map(|s| source_badge(s)).collect(),
                 source_ad_groups: m.source_ad_groups.to_vec(),
                 can_remove: ctx.can_manage && manual,
+                expires_at: m.valid_until.map(|t| t.to_rfc3339()),
+                expires_soon: expires_soon(m.valid_until, now),
                 user_id: UserId::new(m.user_id.to_owned()),
             }
         })
@@ -179,15 +223,15 @@ fn source_badge(source: &str) -> SourceBadgeView {
     match source {
         DIRECTORY_SOURCE => SourceBadgeView {
             source: source.to_owned(),
-            label: "Directory".to_owned(),
+            label: "Active Directory".to_owned(),
             color: "info",
-            title: "Written by the directory at sign-in and replaced on every sign-in".to_owned(),
+            title: "Written from the mapped Active Directory group at sign-in and replaced on every sign-in".to_owned(),
         },
         "manual" => SourceBadgeView {
             source: source.to_owned(),
-            label: "Manual".to_owned(),
+            label: "Assigned here".to_owned(),
             color: "gray",
-            title: "Added by an operator in the dashboard".to_owned(),
+            title: "Added by an operator on this dashboard; stays until removed here".to_owned(),
         },
         other => SourceBadgeView {
             source: other.to_owned(),

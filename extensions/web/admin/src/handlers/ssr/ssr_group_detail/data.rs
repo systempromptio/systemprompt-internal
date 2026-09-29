@@ -11,6 +11,9 @@ use crate::repositories;
 use crate::services::marketplaces::load_marketplaces;
 use crate::types::groups::{GroupAdMappingRow, GroupMemberRow};
 
+use crate::repositories::people_usage::attribution::{
+    AttributionSourceRow, list_scope_attribution_sources,
+};
 use crate::repositories::people_usage::breakdown::{
     LinkedScopeRow, ModelUsageRow, list_linked_scopes, list_scope_top_models,
     list_scope_top_skills, list_scope_top_tools,
@@ -20,7 +23,6 @@ use crate::repositories::people_usage::{
     list_daily_requests, list_member_usage,
 };
 use crate::repositories::scope::{Attribution, ScopeQuery, ScopeTarget};
-use systemprompt::identifiers::MarketplaceId;
 use systemprompt_web_shared::GroupId;
 
 use super::super::people_view::or_default;
@@ -35,6 +37,7 @@ pub(super) struct MembersData {
 }
 
 pub(super) struct UsageTabData {
+    pub attribution: Vec<AttributionSourceRow>,
     pub models: Vec<ModelUsageRow>,
     pub daily: Vec<i64>,
     pub skills: Vec<(String, i64)>,
@@ -42,25 +45,15 @@ pub(super) struct UsageTabData {
     pub leaderboard: Vec<MemberUsageRow>,
 }
 
-// Why: One marketplace and whether this group is entitled to it.
-pub(super) struct MarketplaceOption {
-    pub id: String,
-    pub name: String,
-    pub description: String,
-    pub assigned: bool,
-}
-
 pub(super) async fn load_counts(pool: &PgPool, group_id: &GroupId) -> TabCounts {
     let q = member_query(group_id);
-    let (members, projects, mappings, marketplaces) = tokio::join!(
+    let (members, projects, mappings) = tokio::join!(
         repositories::groups::members::list_group_members(pool, group_id),
         list_linked_scopes(pool, &q),
         repositories::groups::mappings::list_group_ad_mappings(pool, group_id),
-        repositories::groups::marketplaces::list_group_marketplace_ids(pool, group_id),
     );
     TabCounts {
         members: members.map(|m| m.len() as i64).unwrap_or_default(),
-        marketplaces: marketplaces.map(|m| m.len() as i64).unwrap_or_default(),
         projects: projects.map(|p| p.len() as i64).unwrap_or_default(),
         mappings: mappings.map(|m| m.len() as i64).unwrap_or_default(),
     }
@@ -94,35 +87,11 @@ pub(super) async fn load_usage(pool: &PgPool, group_id: &GroupId) -> ScopeUsageR
     or_default("group usage", get_scope_usage(pool, &q).await)
 }
 
-// Why: Which marketplaces this group is entitled to, against the whole catalog.
-//
-// The unassigned rows matter as much as the assigned ones: the tab is an
-// editor, and an editor that lists only what is already granted cannot grant
-// anything.
-pub(super) async fn load_marketplace_options(
-    pool: &PgPool,
-    group_id: &GroupId,
-) -> Vec<MarketplaceOption> {
-    let assigned: Vec<MarketplaceId> =
-        repositories::groups::marketplaces::list_group_marketplace_ids(pool, group_id)
-            .await
-            .inspect_err(|e| tracing::warn!(error = %e, "group marketplace ids failed"))
-            .unwrap_or_default();
-
-    load_marketplaces()
-        .into_iter()
-        .map(|m| MarketplaceOption {
-            assigned: assigned.contains(&m.id),
-            id: m.id.to_string(),
-            name: m.name,
-            description: m.description,
-        })
-        .collect()
-}
-
 pub(super) async fn load_usage_tab(pool: &PgPool, group_id: &GroupId) -> UsageTabData {
     let q = member_query(group_id);
-    let (models, daily, skills, tools, members) = tokio::join!(
+    let exclusive = exclusive_query(group_id);
+    let (attribution, models, daily, skills, tools, members) = tokio::join!(
+        list_scope_attribution_sources(pool, &exclusive),
         list_scope_top_models(pool, &q, LEADERBOARD_LIMIT),
         list_daily_requests(pool, &q),
         list_scope_top_skills(pool, &q, LEADERBOARD_LIMIT),
@@ -157,6 +126,7 @@ pub(super) async fn load_usage_tab(pool: &PgPool, group_id: &GroupId) -> UsageTa
         })
         .collect();
     UsageTabData {
+        attribution: or_default("group attribution", attribution),
         models,
         daily,
         skills,

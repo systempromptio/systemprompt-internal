@@ -6,6 +6,7 @@
 //! what an admin added by hand — so a member row carries the set of sources
 //! that put it there rather than a single one.
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use systemprompt::identifiers::{MarketplaceId, UserId};
@@ -40,6 +41,9 @@ pub struct GroupMemberRow {
     pub email: Option<String>,
     pub sources: Vec<String>,
     pub source_ad_groups: Vec<String>,
+    // Why: the manual row's expiry, or None for an open-ended membership. A
+    // directory row never carries one — the directory decides its own end.
+    pub valid_until: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
@@ -65,6 +69,8 @@ pub struct UpdateGroupRequest {
 #[derive(Debug, Clone, Deserialize)]
 pub struct AddGroupMemberRequest {
     pub user_id: UserId,
+    #[serde(default)]
+    pub valid_until: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -83,14 +89,4 @@ pub struct GroupUsageSummary {
     pub tokens: i64,
     pub cost_microdollars: i64,
     pub active_users: i64,
-}
-
-/// Per-group user counts and activity, for the access-control overview.
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
-pub struct GroupStats {
-    pub group_id: GroupId,
-    pub user_count: i64,
-    pub active_count: i64,
-    pub total_events: i64,
-    pub active_24h: i64,
 }
