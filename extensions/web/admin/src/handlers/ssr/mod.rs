@@ -153,3 +153,9 @@ fn sanitize_login_redirect(raw: Option<&str>) -> Option<String> {
     let raw = raw?.trim();
     (raw.starts_with('/') && !raw.starts_with("//")).then(|| raw.to_owned())
 }
+
+// Why: the Platform pages ported in the lifecycle/configuration stage.
+mod configuration;
+mod ssr_lifecycle;
+
+pub(crate) use ssr_lifecycle::{lifecycle_archive_download, lifecycle_page};

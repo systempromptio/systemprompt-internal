@@ -65,11 +65,21 @@ scheduler:
       schedule: "0 0 * * * *"
       enabled: true
 
+    # The one retention job. Windows come from `retention:` in the profile
+    # (defaults: logs 30 d, analytics_events 90 d, ai_request_messages =
+    # ai.history.retention_days, mcp_tool_executions 365 d, processed
+    # event_outbox 7 d); deletes run in 5 000-row batches. `enforce: true`
+    # is what makes it delete — without it the job only reports what it
+    # would remove, which is how a self-hosted instance grew a history no
+    # analytics rebuild could fit in memory. The console shows the windows
+    # and the last run at /admin/lifecycle; the manual trigger is
+    # `systemprompt infra jobs run database_cleanup`.
     - name: database_cleanup
       extension: core
       owner: admin
       schedule: "0 0 4 * * *"
       enabled: true
+      enforce: true
 
     # Refreshes the managed marketplace/plugin/skill inventory from the
     # composed services tree (every minute), so a skill edit or a kit import
@@ -268,6 +278,39 @@ scheduler:
       extension: web
       owner: admin
       enabled: false
+
+    # Expires raw evidence older than 90 days — hook events, gateway
+    # requests and what hangs off them — in one transaction (web extension).
+    # conversation_facts and conversation_skill_facts are kept, as are this
+    # instance's session_transcripts, session_analyses and
+    # session_cost_snapshots.
+    - name: plugin_usage_retention
+      extension: web
+      owner: admin
+      enabled: true
+
+    # Data lifecycle: measure daily, archive raw weeks before they expire,
+    # archive the rollups monthly (kept forever) and run the health check.
+    # Archives land under storage/exports/{weekly,monthly}/ and are listed on
+    # /admin/lifecycle. Parameters: weeks_back / keep_weeks (26) on the weekly
+    # job, months_back / keep_months (0 = forever) on the monthly one.
+    - name: retention_daily_report
+      extension: web
+      owner: admin
+      schedule: "0 30 4 * * *"
+      enabled: true
+
+    - name: retention_export_weekly
+      extension: web
+      owner: admin
+      schedule: "0 0 2 * * 0"
+      enabled: true
+
+    - name: retention_export_monthly
+      extension: web
+      owner: admin
+      schedule: "0 30 2 1 * *"
+      enabled: true
 
   # Run once, serially, at startup before the cron loop begins.
   #

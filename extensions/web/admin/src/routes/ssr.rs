@@ -228,6 +228,14 @@ fn platform_routes() -> Router<Arc<PgPool>> {
             "/reports/internal.csv",
             get(handlers::ssr::report_internal_csv),
         )
+        // Why: the retention ledger — measurements, archives and the health
+        // report the retention_* jobs write — beside Configuration, where the
+        // windows and the cleanup job's last run are shown.
+        .route("/lifecycle", get(handlers::ssr::lifecycle_page))
+        .route(
+            "/lifecycle/archive/{tier}/{period}/{file}",
+            get(handlers::ssr::lifecycle_archive_download),
+        )
 }
 
 fn account_routes() -> Router<Arc<PgPool>> {

@@ -100,6 +100,19 @@ Conventions (strict — hold every entry to them):
 - **User detail:** the Access tab is the `components/user-access` overview — allowed
   workspaces and their content, connections needing attention, device activity — with the
   per-entity overrides (reason and expiry) behind "Permission details".
+- **Data lifecycle:** `/admin/lifecycle` (Platform → Data lifecycle) shows what the retention
+  jobs measured, archived and found: the windows `database_cleanup` enforces with the profile
+  key behind each and what its last run deleted, the latest size, dead tuples, oldest row and
+  week-on-week growth of every managed table, every weekly and monthly archive with its
+  SHA-256 and a download link (`/admin/lifecycle/archive/{tier}/{period}/{file}`, path
+  segments validated against the shapes the jobs write), and the last health check's ranked
+  findings. Three web-extension jobs write it (`extensions/web/jobs/src/retention/`):
+  `retention_daily_report` (04:30 daily, into `retention_runs`), `retention_export_weekly`
+  (Sunday 02:00, the previous ISO week of the raw request tables to
+  `storage/exports/weekly/<yyyy>-W<ww>/` as gzipped JSON Lines plus a manifest) and
+  `retention_export_monthly` (1st at 02:30, the rollups to `storage/exports/monthly/`, then
+  `VACUUM (ANALYZE)` and the health check into `retention_health_reports`). Runbook:
+  `docs/ops/retention-and-backups.md`.
 
 ### Changed
 
@@ -120,6 +133,13 @@ Conventions (strict — hold every entry to them):
   context reader carries the cache-token and tool-call-id columns the gateway records.
   `/admin/history` rows can be bounded by a window (`HistoryFilter::since`/`until`), which the
   export uses.
+- **Retention:** `plugin_usage_retention` now calls `expire_raw_evidence` (schema
+  `32_raw_retention.sql`) and is scheduled: hook events, gateway requests (`ai_requests`) and
+  what hangs off them expire after 90 days in one transaction, where it used to delete only
+  `plugin_usage_events`. The weekly archive keeps a copy of every expired week;
+  `conversation_facts`, the daily rollups and this instance's `session_transcripts`,
+  `session_analyses` and `session_cost_snapshots` are kept. `database_cleanup` now runs with
+  `enforce: true`, so the profile's `retention:` windows actually delete.
 
 ### Removed
 
