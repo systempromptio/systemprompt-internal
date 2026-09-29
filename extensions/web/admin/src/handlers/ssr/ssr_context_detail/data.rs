@@ -87,7 +87,7 @@ pub(super) fn build_detail_data(
     let back_url = header
         .session_id
         .as_ref()
-        .map_or_else(|| "/admin/contexts".to_owned(), session_detail_url);
+        .map_or_else(|| "/admin/conversations".to_owned(), session_detail_url);
     let back_label = header
         .session_id
         .as_ref()
@@ -141,7 +141,10 @@ fn tab_links(
 }
 
 fn breadcrumbs(h: &ContextHeader, title: &str) -> Vec<BreadcrumbView> {
-    let mut crumbs = vec![BreadcrumbView::link("Conversations", "/admin/contexts")];
+    let mut crumbs = vec![BreadcrumbView::link(
+        "Conversations",
+        "/admin/conversations",
+    )];
     if let Some(session) = h.session_id.as_ref() {
         crumbs.push(BreadcrumbView::link(
             format!("Session {}", short_id(session.as_str())),
