@@ -14,6 +14,13 @@ after_reading_this:
   - "Connect Claude Code with one command"
   - "Verify the connect path from a clean state"
   - "Know what the host-install path writes, and how to undo it"
+related_playbooks:
+  - title: "Install the Desktop Bridge"
+    url: "/documentation/bridge-install"
+  - title: "Connect Cowork"
+    url: "/documentation/connect-cowork"
+  - title: "Connect OpenCode"
+    url: "/documentation/connect-opencode"
 ---
 
 # Connect Claude Code
