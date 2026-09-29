@@ -242,7 +242,7 @@ _clippy-uncoordinated *FLAGS: lint-no-synthesis lint-no-untyped-admin lint-gates
     cargo clippy --manifest-path bridge/Cargo.toml --all-targets {{FLAGS}} -- -D warnings
     # Why: the GUI is cfg'd to windows|macos, so a Linux clippy never compiles
     # it and a core API break there first surfaces in release.yml's mac/win
-    # jobs (astound 0.53.0). Clippy does not link, so the Windows cfg set checks
+    # jobs (first seen at 0.53.0). Clippy does not link, so the Windows cfg set checks
     # on Linux with no mingw toolchain; macOS-only code needs a mac runner.
     if [ "$(uname -s)" = "Linux" ]; then
         rustup target add x86_64-pc-windows-gnu

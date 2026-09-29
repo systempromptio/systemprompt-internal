@@ -335,10 +335,10 @@ fn marker_parsing_handles_nested_brackets_inside_strings() {
 #[test]
 fn system_reminder_blocks_are_cut_from_a_prompt() {
     use systemprompt_web_admin::test_support::strip_system_reminders;
-    let body = "<system-reminder>\nhousekeeping\n</system-reminder>\n\n//astound-admin:demonstrate-rag <system-reminder>more</system-reminder>";
+    let body = "<system-reminder>\nhousekeeping\n</system-reminder>\n\n//systemprompt-admin:demonstrate-rag <system-reminder>more</system-reminder>";
     assert_eq!(
         strip_system_reminders(body),
-        "//astound-admin:demonstrate-rag"
+        "//systemprompt-admin:demonstrate-rag"
     );
     assert_eq!(
         strip_system_reminders("plain <system-reminder>unterminated"),

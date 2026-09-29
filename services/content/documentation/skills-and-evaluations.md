@@ -1,7 +1,7 @@
 ---
 title: "Skills, Evaluations & Controlled Experiments"
-description: "Maintainer guide to the Astound skill lifecycle, evaluation architecture, recorded-traffic judge loop, and current controlled-experiment workflow."
-author: "Astound Digital"
+description: "Maintainer guide to the skill lifecycle, evaluation architecture, recorded-traffic judge loop, and current controlled-experiment workflow."
+author: "systemprompt.io"
 slug: "skills-and-evaluations"
 keywords: "skills, evaluations, experiments, rubrics, benchmark, revisions, workers, evidence, budgets"
 kind: "guide"
@@ -23,15 +23,13 @@ related_playbooks:
     url: "/documentation/enterprise-audit-observability"
 related_code:
   - title: "Evaluation delivery contract and progress ledger"
-    url: "https://github.com/systempromptio/systemprompt-astound/blob/next/docs/evals.md"
-  - title: "Super Admin benchmark configuration"
-    url: "https://github.com/systempromptio/systemprompt-astound/tree/next/services/evaluations/super-admin"
+    url: "https://github.com/systempromptio/systemprompt-internal/blob/next/docs/evals.md"
 ---
 
 # Skills, Evaluations & Controlled Experiments
 
 **TL;DR:** A skill is a versionable package of instructions and supporting files,
-not a model or a permission grant. Astound discovers skills from `services/skills/`,
+not a model or a permission grant. This instance discovers skills from `services/skills/`,
 projects eligible skills into signed client bundles, and records authenticated
 invocations for analysis. There are two separate evaluation paths: the runnable
 `systemprompt admin evals` loop judges recorded gateway traffic, while controlled
@@ -73,7 +71,7 @@ remain under integration or intentionally idle without evaluator configuration.
 | Understand how skills are authored, distributed, loaded, and measured | [How a skill works](#how-a-skill-works) |
 | Check what is actually complete | [What is ready now](#what-is-ready-now) |
 
-Astound supplies configuration, benchmark content, admin presentation, and acceptance
+This repository supplies configuration, benchmark content, admin presentation, and acceptance
 checks. The pinned `systemprompt-core` crates supply skill loading, catalog and bundle
 assembly, evaluation services, experiment repositories, worker transport, evidence,
 and accounting. PostgreSQL is the persistent store for requests, runs, revisions,
@@ -458,7 +456,7 @@ background execution began or completed correctly.
 Use `just evals-test` and `just evals-integration` for component validation and
 `just evals-probe` for client availability. None is a substitute for the missing
 end-to-end, fault, and live acceptance commands described in the
-[evaluation architecture and readiness guide](https://github.com/systempromptio/systemprompt-astound/blob/next/docs/evals.md).
+[evaluation architecture and readiness guide](https://github.com/systempromptio/systemprompt-internal/blob/next/docs/evals.md).
 
 ## Evidence required for a future experiment claim
 
