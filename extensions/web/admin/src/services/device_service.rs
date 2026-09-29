@@ -6,6 +6,14 @@ use systemprompt::identifiers::UserId;
 
 use crate::error::{AdminError, AdminResult};
 use crate::repositories::bridge::{self, EnrollDeviceParams, EnrolledDevice, IssuedApiKey};
+use crate::repositories::config::security_policy::{SecurityPolicy, bound_pat_expiry};
+
+// Why: both minting paths write a `user_api_keys` row, so both go through the
+// policy — a device enrolment is a token with a hostname attached.
+fn policy_bounded(expires_at: Option<DateTime<Utc>>) -> AdminResult<DateTime<Utc>> {
+    bound_pat_expiry(expires_at, Utc::now(), SecurityPolicy::get())
+        .map_err(|e| AdminError::BadRequest(e.to_string()))
+}
 
 pub(crate) struct EnrollDeviceInput<'a> {
     pub name: &'a str,
@@ -19,6 +27,7 @@ pub(crate) async fn enroll_device(
     user_id: &UserId,
     req: EnrollDeviceInput<'_>,
 ) -> AdminResult<EnrolledDevice> {
+    let expires_at = policy_bounded(req.expires_at)?;
     let enrolled = bridge::enroll_device(
         pool,
         user_id,
@@ -26,7 +35,7 @@ pub(crate) async fn enroll_device(
             name: req.name,
             platform: req.platform,
             hostname: req.hostname,
-            expires_at: req.expires_at,
+            expires_at: Some(expires_at),
         },
     )
     .await?;
@@ -39,7 +48,8 @@ pub(crate) async fn issue_pat(
     name: &str,
     expires_at: Option<DateTime<Utc>>,
 ) -> AdminResult<IssuedApiKey> {
-    let issued = bridge::issue_api_key(pool, user_id, name, expires_at).await?;
+    let expires_at = policy_bounded(expires_at)?;
+    let issued = bridge::issue_api_key(pool, user_id, name, Some(expires_at)).await?;
     Ok(issued)
 }
 

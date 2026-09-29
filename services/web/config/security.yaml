@@ -1,0 +1,14 @@
+# Credential lifetime policy for this installation.
+#
+# Read by the admin console at boot (extensions/web/admin/src/repositories/
+# config/security_policy.rs). A missing file means the defaults below.
+
+security:
+  # Longest a personal access token may live from the moment it is issued,
+  # in days. Enforced at issuance on every path that mints a token — the
+  # console form on /admin/devices, the JSON route behind it, and device
+  # enrolment. A request with no expiry gets exactly this; a request asking
+  # for more is refused, never silently clamped, so the person issuing it
+  # knows the policy said no. Tokens issued before the policy changed keep
+  # the expiry they were issued with.
+  max_pat_lifetime_days: 90

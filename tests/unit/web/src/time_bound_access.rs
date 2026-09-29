@@ -1,8 +1,9 @@
-//! Time-bound access, the pure halves: the `valid_until` that rides through
-//! `rules.yaml` (projection, expiry, drift, export), and the manage-role test
-//! the expiry sweep revokes on.
+//! Time-bound access, the pure halves: the PAT lifetime bound every issuance
+//! path applies, the `security.yaml` policy it reads, the `valid_until` that
+//! rides through `rules.yaml` (projection, expiry, drift, export), and the
+//! manage-role test the expiry sweep revokes on.
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, TimeZone, Utc};
 use systemprompt_security::authz::{Access, RegisteredEntities};
 use systemprompt_web_admin::repositories::access_control::declared::{
     DeclaredInputs, DeclaredKey, DeclaredSet, build_declared_set,
@@ -12,12 +13,71 @@ use systemprompt_web_admin::repositories::access_control::drift::{
 };
 use systemprompt_web_admin::repositories::access_control::export::{Owners, render_export};
 use systemprompt_web_admin::repositories::config::rules_yaml_loader::parse_rules_doc;
+use systemprompt_web_admin::repositories::config::security_policy::{
+    DEFAULT_MAX_PAT_LIFETIME_DAYS, PatExpiryError, SecurityPolicy, bound_pat_expiry,
+};
 use systemprompt_web_extension::jobs::lost_manage_role;
 
 fn at(rfc3339: &str) -> DateTime<Utc> {
     DateTime::parse_from_rfc3339(rfc3339)
         .expect("rfc3339")
         .with_timezone(&Utc)
+}
+
+fn now() -> DateTime<Utc> {
+    Utc.with_ymd_and_hms(2026, 9, 17, 12, 0, 0)
+        .single()
+        .expect("now")
+}
+
+fn policy(days: u32) -> SecurityPolicy {
+    SecurityPolicy {
+        max_pat_lifetime_days: days,
+    }
+}
+
+#[test]
+fn no_requested_expiry_takes_the_policy_maximum_never_forever() {
+    let bounded = bound_pat_expiry(None, now(), policy(90)).expect("bounded");
+    assert_eq!(bounded, now() + Duration::days(90));
+}
+
+#[test]
+fn an_expiry_inside_the_policy_is_kept_as_asked() {
+    let asked = now() + Duration::days(30);
+    assert_eq!(bound_pat_expiry(Some(asked), now(), policy(90)), Ok(asked));
+}
+
+#[test]
+fn an_expiry_beyond_the_policy_is_refused_not_clamped() {
+    let asked = now() + Duration::days(91);
+    assert_eq!(
+        bound_pat_expiry(Some(asked), now(), policy(90)),
+        Err(PatExpiryError::BeyondPolicy { max_days: 90 })
+    );
+}
+
+#[test]
+fn an_expiry_in_the_past_is_refused() {
+    assert_eq!(
+        bound_pat_expiry(Some(now()), now(), policy(90)),
+        Err(PatExpiryError::InPast)
+    );
+}
+
+#[test]
+fn the_policy_defaults_to_ninety_days_and_refuses_zero_or_unknown_keys() {
+    assert_eq!(DEFAULT_MAX_PAT_LIFETIME_DAYS, 90);
+    assert_eq!(
+        SecurityPolicy::from_yaml("security: {}").expect("empty"),
+        policy(90)
+    );
+    assert_eq!(
+        SecurityPolicy::from_yaml("security:\n  max_pat_lifetime_days: 30\n").expect("thirty"),
+        policy(30)
+    );
+    assert!(SecurityPolicy::from_yaml("security:\n  max_pat_lifetime_days: 0\n").is_err());
+    assert!(SecurityPolicy::from_yaml("security:\n  max_pat_lifetime: 30\n").is_err());
 }
 
 fn project(yaml: &str) -> DeclaredSet {
