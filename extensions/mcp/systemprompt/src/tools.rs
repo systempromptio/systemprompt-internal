@@ -10,8 +10,18 @@ use systemprompt::mcp::{
 use systemprompt::models::artifacts::CliArtifact;
 
 pub const SERVER_NAME: &str = "systemprompt";
+
+// Why: every tool name is a `pub const TOOL_*` so
+// scripts/check-mcp-tool-names.sh can build its catalog from source; an inline
+// literal is invisible to it.
 pub const TOOL_SYSTEMPROMPT: &str = "systemprompt";
 pub const TOOL_ADMIN_REPORT: &str = "admin_report";
+pub const TOOL_USER_ACTIVITY: &str = "user_activity";
+pub const TOOL_CONVERSATION_LIST: &str = "conversation_list";
+pub const TOOL_USAGE_BY_USER: &str = "usage_by_user";
+pub const TOOL_REQUEST_LOG: &str = "request_log";
+pub const TOOL_CONVERSATION_AUDIT: &str = "conversation_audit";
+pub const TOOL_USERS: &str = "users";
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct CliInput {
@@ -81,13 +91,22 @@ fn create_tool(def: &ToolDef<'_>) -> Tool {
 pub fn list_tools() -> Vec<Tool> {
     let desc = format!(
         "Execute SystemPrompt CLI commands. Pass the command WITHOUT the 'systemprompt' prefix.\n\n\
+        For people's activity, conversations, spend, request logs, audits and the user roster use \
+        the typed tools instead — user_activity, conversation_list, usage_by_user, request_log, \
+        conversation_audit, users — they carry their \
+        flags in the schema, page, and never return more than a model can read.\n\n\
         Common commands:\n  \
         - core skills list: List installed skills\n  \
         - core skills show <id>: Show a skill's config and instruction body\n  \
         - core content list: List markdown content\n  \
-        - plugins run discord send \"message\": Send Discord notification\n  \
-        - plugins run discord send \"message\" --channel <id>: Send to specific channel\n  \
-        - admin agents list: List agents\n\n\
+        - analytics costs summary --since 7d: Spend totals\n  \
+        - infra logs request list --since 7d --user <id> --limit 50: Requests (also --until, \
+        --model, --provider, --before <cursor>)\n  \
+        - infra logs audit <request-id> --messages --limit 20 --max-content 400: One request's \
+        transcript, paged\n  \
+        - admin users role promote <id>: Grant admin\n\n\
+        Never pass --json, --format or --export (they are stripped). On an unknown-flag error \
+        run '<command> --help' once; do not guess flags.\n\n\
         Example: {{\"command\": \"core skills list\"}}\n\n\
         Full documentation: {WEBSITE_URL}/docs"
     );
@@ -103,12 +122,14 @@ pub fn list_tools() -> Vec<Tool> {
         bin: std::path::PathBuf::default(),
         workdir: std::path::PathBuf::default(),
     };
-    tools.push(
-        crate::reports::ReportHandler {
-            cli: &location,
-            token: "",
-        }
-        .tool_definition(SERVER_NAME),
-    );
+    let cli = &location;
+    let token = "";
+    tools.push(crate::reports::ReportHandler { cli, token }.tool_definition(SERVER_NAME));
+    tools.push(crate::typed::UserActivityHandler { cli, token }.tool_definition(SERVER_NAME));
+    tools.push(crate::typed::ConversationListHandler { cli, token }.tool_definition(SERVER_NAME));
+    tools.push(crate::typed::UsageByUserHandler { cli, token }.tool_definition(SERVER_NAME));
+    tools.push(crate::typed::RequestLogHandler { cli, token }.tool_definition(SERVER_NAME));
+    tools.push(crate::typed::ConversationAuditHandler { cli, token }.tool_definition(SERVER_NAME));
+    tools.push(crate::typed::UsersHandler { cli, token }.tool_definition(SERVER_NAME));
     tools
 }

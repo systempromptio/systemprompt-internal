@@ -45,6 +45,10 @@ mod mcp_cli;
 #[cfg(test)]
 mod mcp_dispatch;
 #[cfg(test)]
+mod mcp_protocol;
+#[cfg(test)]
+mod mcp_report_handler;
+#[cfg(test)]
 mod mcp_server;
 #[cfg(test)]
 mod web_router;

@@ -1,17 +1,16 @@
 //! The `systemprompt` MCP tool driven end to end against a stand-in CLI.
 //!
-//! `SystempromptToolHandler::handle` shells out to whatever binary
-//! `SYSTEMPROMPT_CLI_PATH` names, so pointing that variable at a shell script
-//! written into a tempdir makes every branch of `cli::execute` and the handler
-//! above it reachable without running the real CLI against the machine's
-//! profile: the spawn failure, the argument-parse failure, the non-zero exit,
-//! and both artifact arms (stdout that deserialises into a `CliArtifact` and
-//! stdout that does not).
+//! `SystempromptToolHandler::handle` shells out to the binary its `CliLocation`
+//! names, so handing dispatch a location pointing at a shell script written
+//! into a tempdir makes every branch of `cli::execute` and the handler above it
+//! reachable without running the real CLI against the machine's profile: the
+//! spawn failure, the argument-parse failure, the non-zero exit, and both
+//! artifact arms (stdout that deserialises into a `CliArtifact` and stdout that
+//! does not).
 //!
-//! The environment is process-global, so these tests rely on nextest's
-//! process-per-test execution: each one owns its process and cannot race
-//! another. The variable is read inside `cli::execute` on every call, so
-//! setting it before dispatch is enough.
+//! The location is passed per call rather than read from the environment, so
+//! these tests share no process-global state and are correct however the
+//! harness schedules them.
 
 use std::sync::Arc;
 
@@ -21,32 +20,34 @@ use systemprompt::database::Database;
 use systemprompt::identifiers::{AgentName, ContextId, SessionId, TraceId};
 use systemprompt::mcp::repository::ToolUsageRepository;
 use systemprompt::mcp::{ArtifactIngest, McpToolExecutor};
-use systemprompt::models::artifacts::{CliArtifact, TextArtifact};
+use systemprompt::models::artifacts::{
+    CliArtifact, Column, ColumnType, TableArtifact, TextArtifact,
+};
 use systemprompt::models::execution::context::RequestContext as SysRequestContext;
-use systemprompt_mcp_agent::{CliLocation, filter_hallucinated_args};
+use systemprompt_mcp_agent::{CliError, CliLocation, filter_hallucinated_args};
 
 use crate::tempdb::TempDb;
 
-fn db_pool(pool: &Arc<PgPool>) -> Arc<Database> {
+fn db_pool(pool: &Arc<PgPool>) -> systemprompt::database::DbPool {
     Arc::new(Database::from_pools(
         Arc::clone(pool),
         Some(Arc::clone(pool)),
     ))
 }
 
-fn executor(pool: &Arc<PgPool>) -> McpToolExecutor {
-    let db_pool = db_pool(pool);
-    let usage = Arc::new(ToolUsageRepository::new(&db_pool).expect("tool usage repository"));
-    let artifacts = Arc::new(ArtifactIngest::from_db(&db_pool, None).expect("artifact ingest"));
-    McpToolExecutor::new(usage, artifacts, "systemprompt")
+fn executor(db_pool: &systemprompt::database::DbPool) -> McpToolExecutor {
+    let usage = Arc::new(ToolUsageRepository::new(db_pool).expect("tool usage repository"));
+    let ingest = Arc::new(ArtifactIngest::from_db(db_pool, None).expect("artifact ingest"));
+    McpToolExecutor::new(usage, ingest, "systemprompt")
 }
 
 fn request_context() -> SysRequestContext {
     SysRequestContext::new(
         SessionId::new("cli-session"),
         TraceId::new("cli-trace"),
-        ContextId::try_new("00000000-0000-4000-8000-00000000c11e").expect("a valid v4 uuid"),
-        AgentName::try_new("cli-agent").expect("a valid agent name"),
+        ContextId::try_new("00000000-0000-4000-8000-00000000c11e")
+            .expect("valid fixture identifier"),
+        AgentName::try_new("cli-agent").expect("valid fixture agent name"),
     )
 }
 
@@ -69,11 +70,15 @@ fn fake_cli(dir: &tempfile::TempDir, body: &str) -> CliLocation {
 }
 
 fn call(command: &str) -> CallToolRequestParams {
-    let arguments = serde_json::json!({ "command": command })
+    typed_call("systemprompt", serde_json::json!({ "command": command }))
+}
+
+fn typed_call(tool: &str, arguments: serde_json::Value) -> CallToolRequestParams {
+    let arguments = arguments
         .as_object()
         .expect("tool arguments are a JSON object")
         .clone();
-    CallToolRequestParams::new("systemprompt").with_arguments(arguments)
+    CallToolRequestParams::new(tool.to_owned()).with_arguments(arguments)
 }
 
 async fn run(
@@ -81,22 +86,31 @@ async fn run(
     cli: &CliLocation,
     command: &str,
 ) -> Result<rmcp::model::CallToolResult, rmcp::ErrorData> {
-    let executor = executor(&db.pool);
+    run_tool(db, cli, call(command)).await
+}
+
+async fn run_tool(
+    db: &TempDb,
+    cli: &CliLocation,
+    request: CallToolRequestParams,
+) -> Result<rmcp::model::CallToolResult, rmcp::ErrorData> {
     let db_pool = db_pool(&db.pool);
-    let request = call(command);
+    let executor = executor(&db_pool);
+    let ingest = Arc::new(ArtifactIngest::from_db(&db_pool, None).expect("artifact ingest"));
     let profile = client();
+    let tool_name = request.name.to_string();
     systemprompt_mcp_agent::server::tool::dispatch_tool(
         &systemprompt_mcp_agent::server::tool::Dispatch {
             service_id: "systemprompt",
-            role: systemprompt_mcp_agent::server::ServerRole::Console,
+            db_pool: &db_pool,
             executor: &executor,
             request: &request,
             request_context: &request_context(),
             client: &profile,
             cli,
-            db_pool: &db_pool,
+            ingest: &ingest,
         },
-        "systemprompt",
+        &tool_name,
         "test-bearer-token",
     )
     .await
@@ -208,9 +222,7 @@ async fn stdout_that_is_not_an_artifact_falls_back_to_a_text_artifact() {
     assert_eq!(
         summary_of(&result),
         "Ran `core skills list`\n\nplain human output",
-        "for a host without the UI extension the text block folds the body \
-         under the summary; since core 0.32 the CLI handler summarises with \
-         the command it ran rather than repeating raw stdout"
+        "the text block names the command and carries the raw stdout exactly once"
     );
 
     db.cleanup().await;
@@ -258,7 +270,7 @@ async fn a_cli_path_that_does_not_exist_is_reported_as_a_spawn_failure() {
         .expect_err("a missing binary cannot be executed");
 
     assert!(
-        error.message.contains("Failed to execute CLI command"),
+        error.message.contains("CLI command could not be executed"),
         "the failure distinguishes a spawn failure from a CLI error: {}",
         error.message
     );
@@ -279,7 +291,7 @@ async fn an_unbalanced_quote_is_refused_before_anything_is_spawned() {
         .expect_err("a command that does not tokenise is refused");
 
     assert!(
-        error.message.contains("Failed to parse command arguments"),
+        error.message.contains("command arguments do not parse"),
         "the argument parse failure is reported as such: {}",
         error.message
     );
@@ -370,8 +382,241 @@ fn the_location_comes_from_the_profile_and_says_so_when_there_is_none() {
         CliLocation::from_profile().expect_err("no profile is bootstrapped in a test process");
 
     assert!(
-        error.message.contains("Failed to get profile"),
-        "the missing profile is named as the reason the CLI could not be located: {}",
-        error.message
+        matches!(error, CliError::Profile(_)),
+        "the missing profile is named as the reason the CLI could not be located: {error:?}"
     );
+}
+
+fn table_json(rows: &[serde_json::Value]) -> String {
+    let table = TableArtifact::new(vec![
+        Column::new("request_id", ColumnType::String),
+        Column::new("cursor", ColumnType::String),
+    ])
+    .with_title("AI Requests")
+    .with_rows(rows.to_vec());
+    serde_json::to_string(&CliArtifact::Table { artifact: table }).expect("a table serialises")
+}
+
+fn structured(result: &rmcp::model::CallToolResult) -> &serde_json::Value {
+    result
+        .structured_content
+        .as_ref()
+        .expect("typed tools return structured content")
+}
+
+// The stand-in records its argv so a test can pin the exact flags each typed
+// tool hands the CLI, and replies with whatever table the test staged.
+fn recording_cli(dir: &tempfile::TempDir, stdout: &str) -> CliLocation {
+    let argv = dir.path().join("argv");
+    fake_cli(
+        dir,
+        &format!(
+            "printf '%s\\n' \"$@\" > {}\ncat <<'ARTIFACT'\n{stdout}\nARTIFACT",
+            argv.display()
+        ),
+    )
+}
+
+fn recorded_argv(dir: &tempfile::TempDir) -> Vec<String> {
+    std::fs::read_to_string(dir.path().join("argv"))
+        .expect("the stand-in recorded its argv")
+        .lines()
+        .map(str::to_owned)
+        .collect()
+}
+
+#[tokio::test]
+async fn request_log_pages_backwards_with_the_last_rows_cursor() {
+    let Some(db) = TempDb::create().await else {
+        return;
+    };
+    let dir = tempfile::tempdir().expect("tempdir");
+    let rows: Vec<serde_json::Value> = (0..3)
+        .map(|i| {
+            serde_json::json!({
+                "request_id": format!("req_{i}"),
+                "cursor": format!("2026-09-1{i}T00:00:00.000000Z@req_{i}"),
+                "cost_microdollars": 1500
+            })
+        })
+        .collect();
+    let cli = recording_cli(&dir, &table_json(&rows));
+
+    let result = run_tool(
+        &db,
+        &cli,
+        typed_call(
+            "request_log",
+            serde_json::json!({"since": "2026-09-08", "until": "2026-09-12", "limit": 3, "user": "u1"}),
+        ),
+    )
+    .await
+    .expect("a staged page succeeds");
+
+    assert_eq!(
+        recorded_argv(&dir),
+        [
+            "infra",
+            "logs",
+            "request",
+            "list",
+            "--since",
+            "2026-09-08",
+            "--limit",
+            "3",
+            "--until",
+            "2026-09-12",
+            "--user",
+            "u1"
+        ]
+    );
+    let out = structured(&result);
+    assert_eq!(out["returned"], 3);
+    assert_eq!(
+        out["next_cursor"], "2026-09-12T00:00:00.000000Z@req_2",
+        "a full page hands back the last row's cursor"
+    );
+    assert_eq!(
+        out["rows"][0]["cost_usd"], 0.0015,
+        "microdollar cells gain a _usd sibling"
+    );
+
+    let short = run_tool(
+        &db,
+        &cli,
+        typed_call(
+            "request_log",
+            serde_json::json!({"limit": 50, "cursor": "2026-09-12T00:00:00.000000Z@req_2"}),
+        ),
+    )
+    .await
+    .expect("a short page succeeds");
+    assert!(recorded_argv(&dir).ends_with(&[
+        "--before".to_owned(),
+        "2026-09-12T00:00:00.000000Z@req_2".to_owned()
+    ]));
+    assert_eq!(
+        structured(&short)["next_cursor"],
+        "",
+        "a short page is the last page"
+    );
+
+    db.cleanup().await;
+}
+
+#[tokio::test]
+async fn an_empty_list_is_zero_rows_not_an_error() {
+    let Some(db) = TempDb::create().await else {
+        return;
+    };
+    let dir = tempfile::tempdir().expect("tempdir");
+    let message = serde_json::json!({
+        "x-artifact-type": "message",
+        "lines": [{"level": "info", "text": "No AI requests found"}]
+    });
+    let cli = recording_cli(&dir, &message.to_string());
+
+    let result = run_tool(
+        &db,
+        &cli,
+        typed_call("usage_by_user", serde_json::json!({})),
+    )
+    .await
+    .expect("an empty window is a valid answer");
+    let out = structured(&result);
+    assert_eq!(out["returned"], 0);
+    assert_eq!(out["next_cursor"], "");
+
+    db.cleanup().await;
+}
+
+#[tokio::test]
+async fn conversation_audit_folds_the_card_and_reports_the_next_offset() {
+    let Some(db) = TempDb::create().await else {
+        return;
+    };
+    let dir = tempfile::tempdir().expect("tempdir");
+    let card = serde_json::json!({
+        "x-artifact-type": "presentation_card",
+        "title": "AI Request Audit",
+        "sections": [
+            {"heading": "request_id", "content": "req_1"},
+            {"heading": "message_count", "content": 45},
+            {"heading": "tool_call_count", "content": 3},
+            {"heading": "has_more", "content": true},
+            {"heading": "messages", "content": [{"sequence": 20, "role": "user", "content": "hi"}]}
+        ]
+    });
+    let cli = recording_cli(&dir, &card.to_string());
+
+    let result = run_tool(
+        &db,
+        &cli,
+        typed_call(
+            "conversation_audit",
+            serde_json::json!({"request_id": "req_1", "offset": 20, "limit": 5, "max_chars": 300, "tools": true}),
+        ),
+    )
+    .await
+    .expect("a staged audit succeeds");
+
+    assert_eq!(
+        recorded_argv(&dir),
+        [
+            "infra",
+            "logs",
+            "audit",
+            "req_1",
+            "--offset",
+            "20",
+            "--limit",
+            "5",
+            "--max-content",
+            "300",
+            "--messages",
+            "--tools"
+        ]
+    );
+    let out = structured(&result);
+    assert_eq!(out["fields"]["message_count"], 45);
+    assert_eq!(out["fields"]["messages"][0]["content"], "hi");
+    assert_eq!(out["has_more"], true);
+    assert_eq!(out["next_offset"], 25);
+
+    db.cleanup().await;
+}
+
+#[tokio::test]
+async fn an_oversized_passthrough_result_is_stored_whole_and_pointed_at() {
+    let Some(db) = TempDb::create().await else {
+        return;
+    };
+    let dir = tempfile::tempdir().expect("tempdir");
+    let filler = "x".repeat(16 * 1024);
+    let rows: Vec<serde_json::Value> = (0..100)
+        .map(|i| serde_json::json!({"request_id": format!("req_{i}"), "cursor": filler}))
+        .collect();
+    let cli = fake_cli(
+        &dir,
+        &format!("cat <<'ARTIFACT'\n{}\nARTIFACT", table_json(&rows)),
+    );
+
+    let result = run(&db, &cli, "infra logs request list -n 100")
+        .await
+        .expect("a zero-exit CLI call succeeds");
+
+    let summary = summary_of(&result);
+    assert!(summary.contains("(100 rows)"), "{summary}");
+    assert!(summary.contains("over the"), "{summary}");
+    assert!(summary.contains("stored whole as artifact"), "{summary}");
+    assert!(summary.contains("/admin/artifacts/"), "{summary}");
+    let out = structured(&result);
+    assert_eq!(out["artifact_type"], "text", "the pointer is a text card");
+    assert!(
+        serde_json::to_vec(&result).expect("serialises").len()
+            < systemprompt_mcp_agent::bounds::MAX_RESULT_BYTES,
+        "the wire result is bounded"
+    );
+
+    db.cleanup().await;
 }
