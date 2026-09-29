@@ -6,7 +6,7 @@
             <span>Read-only: services/skills/&lt;id&gt;/config.yaml</span>
         {{/inline}}
         {{#*inline "header_actions"}}
-            <a class="sp-btn sp-btn--sm sp-btn--outline" href="/admin/analytics?tab=skills">Skill activity</a>
+            <a class="sp-btn sp-btn--sm sp-btn--outline" href="/admin/analysis/skills">Skill activity</a>
             <a class="sp-btn sp-btn--sm sp-btn--outline" href="{{access_control_url}}">Who can run these</a>
         {{/inline}}
     {{/components/page-header}}
@@ -40,7 +40,7 @@
         {{#each skills}}
         <tr data-skill-id="{{id}}">
             <td class="sp-table__cell--primary"><a class="sp-table__link" href="{{detail_url}}" title="{{description}}">{{name}}</a></td>
-            <td>{{#if enabled}}{{> components/badge tone="ok" text="enabled"}}{{else}}{{> components/badge tone="muted" text="disabled"}}{{/if}}</td>
+            <td>{{#if enabled}}{{> components/badge tone="ok" text="enabled"}}{{else}}{{> components/badge tone="muted" text="disabled"}}{{/if}} {{> components/badge tone=source_tone text=source}}</td>
             <td class="sp-table__cell--num sp-u-num">{{plugin_count}}</td>
             <td>{{> components/visibility-badge visibility}}</td>
             <td class="sp-table__cell--num sp-u-num">{{#if assignment_count}}<a class="sp-table__link" href="{{access_url}}">{{assignment_count}}</a>{{else}}<span class="sp-u-text-tertiary">0</span>{{/if}}</td>

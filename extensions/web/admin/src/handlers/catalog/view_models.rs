@@ -73,6 +73,8 @@ pub(super) fn plugin_rows(
             version: p.version,
             enabled: p.enabled,
             source_path: p.source_path,
+            source: String::new(),
+            source_tone: "",
         })
         .collect()
 }
@@ -205,6 +207,8 @@ pub(super) fn skill_rows(
                 description: s.description.clone(),
                 enabled: s.enabled,
                 source_path: s.source_path.clone(),
+                source: String::new(),
+                source_tone: "",
             }
         })
         .collect()
@@ -224,9 +228,20 @@ pub(super) fn skill_detail(
         .unwrap_or_default();
     Some(SkillDetailData {
         breadcrumbs: trail("Skills", "/admin/skills", &entry.name),
-        // Why: the catalog page defines the skill; the analytics tab says who
-        // actually runs it. They are different pages and this is the hop.
-        activity_url: "/admin/skills".to_owned(),
+        // Why: the catalog page defines the skill; its Analysis page says how
+        // it performs. The facts key a skill as `plugin:skill`, so the hop
+        // goes through the first plugin that carries it, or to the list
+        // when none does.
+        activity_url: included_by.first().map_or_else(
+            || crate::handlers::ssr::analysis_urls::ANALYSIS_SKILLS_URL.to_owned(),
+            |plugin| {
+                crate::handlers::ssr::analysis_urls::analysis_skill_url(&format!(
+                    "{}:{}",
+                    plugin.id,
+                    id.replace('_', "-")
+                ))
+            },
+        ),
         page: "skill-detail",
         title: entry.name.clone(),
         access_url: access_url(&skill_url(id)),

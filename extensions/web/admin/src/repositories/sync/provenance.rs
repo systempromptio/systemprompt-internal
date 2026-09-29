@@ -118,8 +118,6 @@ pub enum OwnedKind {
     Skill,
 }
 
-// Why: lint-ok: unused-pub — the catalog list pages' provenance column reads
-// it; astound's catalog delta lands in the Stage 4 parity sweep.
 #[must_use]
 pub fn owned_by(sources: &SourcesView, kind: OwnedKind, id: &str) -> Provenance {
     sources

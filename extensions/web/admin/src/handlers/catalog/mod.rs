@@ -35,6 +35,8 @@ use sqlx::PgPool;
 use crate::error::{AdminError, AdminHtmlResult};
 use crate::handlers::shared;
 use crate::repositories;
+use crate::repositories::sync::provenance::{OwnedKind, Provenance, owned_by};
+use crate::repositories::sync::sources::build_sources;
 use crate::templates::AdminTemplateEngine;
 use crate::types::{ENTITY_PLUGIN, ENTITY_SKILL, MarketplaceContext, UserContext};
 
@@ -101,6 +103,15 @@ pub(crate) async fn plugins_page(
             rules: &rules,
         },
     );
+    // Why: discard-ok: an unreadable profile leaves every row as base
+    let sources = build_sources().ok();
+    for row in &mut plugins {
+        let p = sources.as_ref().map_or_else(Provenance::base, |s| {
+            owned_by(s, OwnedKind::Plugin, row.id.as_str())
+        });
+        row.source = p.source;
+        row.source_tone = p.tone;
+    }
     let search = query.q.unwrap_or_default();
     plugins.retain(|p| {
         matches(
@@ -175,6 +186,15 @@ pub(crate) async fn skills_page(
             rules: &rules,
         },
     );
+    // Why: discard-ok: an unreadable profile leaves every row as base
+    let sources = build_sources().ok();
+    for row in &mut skills {
+        let p = sources
+            .as_ref()
+            .map_or_else(Provenance::base, |s| owned_by(s, OwnedKind::Skill, &row.id));
+        row.source = p.source;
+        row.source_tone = p.tone;
+    }
     let search = query.q.unwrap_or_default();
     skills.retain(|s| matches(&[&s.id, &s.name, &s.description], &search));
     let sort_key = query.sort.unwrap_or_else(|| "name".to_owned());

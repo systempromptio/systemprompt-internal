@@ -40,7 +40,7 @@
         {{#each plugins}}
         <tr data-plugin-id="{{id}}">
             <td class="sp-table__cell--primary"><a class="sp-table__link" href="{{detail_url}}" title="{{description}}">{{name}}</a></td>
-            <td title="v{{version}}{{#if category}} · {{category}}{{/if}}">{{#if enabled}}{{> components/badge tone="ok" text="enabled"}}{{else}}{{> components/badge tone="muted" text="disabled"}}{{/if}}</td>
+            <td title="v{{version}}{{#if category}} · {{category}}{{/if}}">{{#if enabled}}{{> components/badge tone="ok" text="enabled"}}{{else}}{{> components/badge tone="muted" text="disabled"}}{{/if}} {{> components/badge tone=source_tone text=source}}</td>
             <td class="sp-table__cell--num sp-u-num" title="{{skills_count}} skills · {{mcp_count}} MCP · {{agents_count}} agents">{{skills_count}}</td>
             <td>{{> components/visibility-badge visibility}}</td>
             <td class="sp-table__cell--num sp-u-num">{{#if assignment_count}}<a class="sp-table__link" href="{{access_url}}">{{assignment_count}}</a>{{else}}<span class="sp-u-text-tertiary">0</span>{{/if}}</td>

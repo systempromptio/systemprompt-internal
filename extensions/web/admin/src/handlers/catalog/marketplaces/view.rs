@@ -14,6 +14,7 @@ use systemprompt::identifiers::MarketplaceId;
 use systemprompt_web_shared::GroupId;
 
 use crate::handlers::ssr::entity_panel::EntityAccessView;
+use crate::handlers::ssr::sync_plane::HashView;
 
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct MarketplaceCardView {
@@ -34,6 +35,11 @@ pub(crate) struct MarketplaceCardView {
     pub assigned_groups: Vec<GroupId>,
     pub assigned_group_count: usize,
     pub allowed_subjects: usize,
+    // Why: provenance — which source ships it — and the content hash that
+    // is its version, from the same record the Versions page reads.
+    pub source: String,
+    pub source_tone: &'static str,
+    pub content_hash: Option<HashView>,
 }
 
 #[derive(Debug, Clone, Serialize)]
