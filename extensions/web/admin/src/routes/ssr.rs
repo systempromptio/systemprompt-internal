@@ -153,6 +153,7 @@ fn ai_activity_routes() -> Router<Arc<PgPool>> {
             get(handlers::ssr::governance_audit_detail_page),
         )
         .route("/sessions", get(handlers::ssr::sessions_list_page))
+        .route("/conversations", get(handlers::ssr::conversations_page))
         .route(
             "/sessions/{session_id}",
             get(handlers::ssr::session_detail_page),

@@ -1,10 +1,10 @@
-//! `/admin/history` — the searchable conversation listing.
+//! `/admin/history` and `/admin/conversations` — the same searchable listing
+//! at two scopes.
 //!
 //! `/admin/history` is "My conversations" and shows the viewer's own, whoever
-//! is looking. [`HistoryView::Org`] is the org-wide scope, with the User
-//! column; the user detail page renders its rows, and its own page
-//! (`/admin/conversations`) is not mounted until the history window and
-//! search it reads land (Stage 3 phase 11).
+//! is looking. `/admin/conversations` is the console-gated org-wide listing,
+//! and carries the User column and the per-user filter. One set of rows, one
+//! search, one pagination; [`HistoryView`] is the whole of the difference.
 //!
 //! The one analytics surface a non-admin may reach: every viewer sees their
 //! own conversations, and admin/auditor keep the unrestricted view. Both ways
@@ -211,6 +211,26 @@ pub(crate) async fn history_page(
         },
         &query,
         HistoryView::Own,
+    )
+    .await
+}
+
+pub(crate) async fn conversations_page(
+    Extension(user_ctx): Extension<UserContext>,
+    Extension(mkt_ctx): Extension<MarketplaceContext>,
+    Extension(engine): Extension<AdminTemplateEngine>,
+    State(pool): State<Arc<PgPool>>,
+    Query(query): Query<HistoryQuery>,
+) -> AdminHtmlResult<Response> {
+    render_listing(
+        &ListingRequest {
+            user_ctx: &user_ctx,
+            mkt_ctx: &mkt_ctx,
+            engine: &engine,
+            pool: &pool,
+        },
+        &query,
+        HistoryView::Org,
     )
     .await
 }
