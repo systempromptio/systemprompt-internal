@@ -9,25 +9,30 @@ use tower_http::normalize_path::NormalizePathLayer;
 
 use super::super::templates::AdminTemplateEngine;
 use super::super::{handlers, middleware};
+use super::managed_state::StateError;
 use super::ssr_redirects;
 use crate::handlers::adfs_auth::AdfsDeps;
+use systemprompt::database::DbPool;
 
 pub fn admin_ssr_router(
+    db: &DbPool,
     pool: Arc<PgPool>,
-    _write_pool: &PgPool,
     engine: AdminTemplateEngine,
     sso_deps: AdfsDeps,
-    _owner: systemprompt::identifiers::UserId,
-) -> Router {
+    owner: systemprompt::identifiers::UserId,
+) -> Result<Router, StateError> {
+    let managed = Arc::new(super::managed_state::ManagedState::new(db, owner)?);
     let inner = overview_routes()
         .merge(people_routes())
         .merge(ai_activity_routes())
         .merge(governance_routes())
         .merge(platform_routes())
+        .merge(super::ssr_platform::routes())
         .merge(account_routes())
         .merge(api_routes())
         .merge(ssr_redirects::legacy_routes())
         .layer(Extension(engine.clone()))
+        .layer(Extension(managed))
         .layer(Extension(sso_deps.clone()))
         .layer(axum_middleware::from_fn_with_state(
             Arc::clone(&pool),
@@ -51,11 +56,11 @@ pub fn admin_ssr_router(
         .with_state(pool)
         .fallback_service(inner);
 
-    Router::new().fallback_service(
+    Ok(Router::new().fallback_service(
         tower::ServiceBuilder::new()
             .layer(NormalizePathLayer::trim_trailing_slash())
             .service(combined),
-    )
+    ))
 }
 
 fn public_routes(pool: Arc<PgPool>) -> Router<Arc<PgPool>> {
@@ -227,14 +232,6 @@ fn platform_routes() -> Router<Arc<PgPool>> {
         .route(
             "/reports/internal.csv",
             get(handlers::ssr::report_internal_csv),
-        )
-        // Why: the retention ledger — measurements, archives and the health
-        // report the retention_* jobs write — beside Configuration, where the
-        // windows and the cleanup job's last run are shown.
-        .route("/lifecycle", get(handlers::ssr::lifecycle_page))
-        .route(
-            "/lifecycle/archive/{tier}/{period}/{file}",
-            get(handlers::ssr::lifecycle_archive_download),
         )
 }
 

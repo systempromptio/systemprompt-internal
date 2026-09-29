@@ -26,6 +26,10 @@ const EXPORT_SRC: &str = include_str!("../../../../extensions/web/admin/src/rout
 // is exactly as much a contract change as a page that stops rendering.
 const SSR_REDIRECT_SRC: &str =
     include_str!("../../../../extensions/web/admin/src/routes/ssr_redirects.rs");
+// The console's operating pages (lifecycle, configuration, observability,
+// tools and artifacts), merged into the SSR router from their own module.
+const PLATFORM_SRC: &str =
+    include_str!("../../../../extensions/web/admin/src/routes/ssr_platform.rs");
 
 const METHODS: [&str; 5] = ["get", "post", "put", "patch", "delete"];
 
@@ -75,6 +79,7 @@ pub(crate) fn mounted_routes() -> Vec<MountedRoute> {
         (SSR_SRC, SSR_PREFIX),
         (EXPORT_SRC, SSR_PREFIX),
         (SSR_REDIRECT_SRC, SSR_PREFIX),
+        (PLATFORM_SRC, SSR_PREFIX),
     ] {
         parse(src, prefix, &mut routes);
     }

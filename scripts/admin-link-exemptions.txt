@@ -2,3 +2,7 @@
 # redirect stubs, aliases, or targets served by other means. One path per line,
 # `#` comments. Never list a genuinely dead link here — fix the href or add the
 # route instead.
+
+# Stage 3 phase 7 (analysis suite, ported in a parallel branch) mounts this;
+# delete the line once that branch is merged. Linked from artifacts.hbs.
+/admin/analysis/skills

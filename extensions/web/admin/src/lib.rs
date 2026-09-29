@@ -53,6 +53,7 @@ pub use handlers::dev_login::{
     DEV_LOGIN_PATH, dev_login_allowed, dev_login_enabled, dev_login_url,
 };
 pub use handlers::salesforce_auth::{SalesforceConfig, SalesforceDeps, SalesforceError};
+pub use routes::managed_state::StateError;
 pub use routes::{admin_ssr_router, bridge_auth_ssr_router};
 pub use services::salesforce_orgs::salesforce_orgs_boot_check;
 pub use services::{connector_oauth, salesforce_orgs};

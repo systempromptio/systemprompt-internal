@@ -8,7 +8,7 @@
 use crate::handlers::catalog::sorting::SortColumn;
 use crate::handlers::ssr::format::short_num;
 
-use super::rows::error_rate;
+use super::rows::{delta, error_rate, ms_display};
 use super::view::{McpKpiView, McpServerRow};
 
 // Why: The columns `/admin/mcp` can be ordered by.
@@ -24,31 +24,49 @@ pub(super) fn columns() -> Vec<SortColumn> {
             key: "status",
             label: "Status",
             class: "",
-            hint: "Alive when a session has spoken inside the heartbeat window",
+            hint: "Alive when a connection or a call got through inside the heartbeat window",
         },
         SortColumn {
-            key: "sessions",
-            label: "Sessions",
+            key: "connected",
+            label: "Connected",
             class: "sp-table__cell--num",
-            hint: "Open sessions, and how many of them are still beating",
-        },
-        SortColumn {
-            key: "identities",
-            label: "Ident",
-            class: "sp-table__cell--num",
-            hint: "Unexpired proxy identities a live session is acting as",
+            hint: "Unexpired client connections right now, and the people behind them",
         },
         SortColumn {
             key: "calls",
             label: "Calls",
             class: "sp-table__cell--num",
-            hint: "Tool executions in the last 24 hours, against the 24 before",
+            hint: "Tool executions the server recorded in the window, against the window before",
+        },
+        SortColumn {
+            key: "tools",
+            label: "Tools",
+            class: "sp-table__cell--num",
+            hint: "Distinct tools called in the window",
+        },
+        SortColumn {
+            key: "users",
+            label: "Users",
+            class: "sp-table__cell--num",
+            hint: "Distinct people who called it in the window",
         },
         SortColumn {
             key: "errors",
             label: "Errors",
             class: "sp-table__cell--num",
             hint: "Failed and timed-out calls as a share of the window",
+        },
+        SortColumn {
+            key: "p95",
+            label: "p95",
+            class: "sp-table__cell--num",
+            hint: "95th-percentile execution time in the window",
+        },
+        SortColumn {
+            key: "attested",
+            label: "Attested",
+            class: "sp-table__cell--num",
+            hint: "Calls the client's completion hook also confirmed, as a share of all calls",
         },
         SortColumn {
             key: "last",
@@ -65,59 +83,80 @@ pub(super) fn columns() -> Vec<SortColumn> {
     ]
 }
 
-// Why: The five headline facts, plus the two that only matter when they are
+// Why: The five headline facts, plus the one that only matters when it is
 // wrong.
 pub(super) fn kpis(rows: &[McpServerRow]) -> Vec<McpKpiView> {
     let configured = rows.iter().filter(|r| r.configured).count();
     let alive = rows.iter().filter(|r| r.alive).count();
-    let sessions: i64 = rows.iter().map(|r| r.sessions_open).sum();
-    let identities: i64 = rows.iter().map(|r| r.proxy_identities).sum();
+    let connections: i64 = rows.iter().map(|r| r.connections).sum();
+    let connected_users: i64 = rows.iter().map(|r| r.connected_users).sum();
     let calls: i64 = rows.iter().map(|r| r.calls).sum();
+    let prior: i64 = rows.iter().map(|r| r.prior_calls).sum();
     let errors: i64 = rows.iter().map(|r| r.errors).sum();
     let unconfigured = rows.len() - configured;
     let (rate, rate_tone) = error_rate(calls, errors);
+    let (delta_display, _) = delta(calls, prior);
+
+    // Why: one server's p95 is its own; the fleet's is the worst server's,
+    // because the tile answers "how slow can a call get".
+    let p95 = rows
+        .iter()
+        .filter_map(|r| r.p95_ms)
+        .fold(None, |acc: Option<f64>, v| {
+            Some(acc.map_or(v, |a| a.max(v)))
+        });
+    let avg = rows
+        .iter()
+        .filter_map(|r| r.avg_ms)
+        .fold(None, |acc: Option<f64>, v| {
+            Some(acc.map_or(v, |a| a.max(v)))
+        });
 
     vec![
         McpKpiView {
             label: "Declared",
             value: configured.to_string(),
-            sub: format!("{unconfigured} serving undeclared"),
+            note: format!("{unconfigured} serving undeclared"),
             tone: if unconfigured > 0 { "warn" } else { "" },
             unit: "",
         },
         McpKpiView {
             label: "Alive now",
             value: alive.to_string(),
-            sub: format!("of {configured} declared"),
+            note: format!("of {configured} declared"),
             tone: if alive == 0 { "warn" } else { "ok" },
             unit: "",
         },
         McpKpiView {
-            label: "Open sessions",
-            value: short_num(sessions),
-            sub: format!("{identities} proxy identities"),
+            label: "Connected",
+            value: short_num(connections),
+            note: format!("{connected_users} people attached"),
             tone: "",
             unit: "",
         },
         McpKpiView {
-            label: "Calls 24h",
+            label: "Calls",
             value: short_num(calls),
-            sub: "tool executions".to_owned(),
+            note: if delta_display.is_empty() {
+                "tool executions in the window".to_owned()
+            } else {
+                format!("{delta_display} vs the window before")
+            },
             tone: "",
             unit: "",
         },
         McpKpiView {
-            label: "Errors 24h",
+            label: "Errors",
             value: short_num(errors),
-            sub: "failed or timed out".to_owned(),
-            tone: if errors > 0 { "err" } else { "ok" },
+            note: format!("{rate} of calls"),
+            tone: rate_tone,
             unit: "",
         },
         McpKpiView {
-            label: "Error rate",
-            value: rate,
-            sub: "of calls in the window".to_owned(),
-            tone: rate_tone,
+            label: "p95 latency",
+            value: ms_display(p95),
+            note: format!("slowest average {}", ms_display(avg)),
+            tone: "",
             unit: "",
         },
     ]

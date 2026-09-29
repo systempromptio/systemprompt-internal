@@ -113,6 +113,33 @@ Conventions (strict — hold every entry to them):
   `retention_export_monthly` (1st at 02:30, the rollups to `storage/exports/monthly/`, then
   `VACUUM (ANALYZE)` and the health check into `retention_health_reports`). Runbook:
   `docs/ops/retention-and-backups.md`.
+- **Tools & artifacts:** `/admin/tools` lists every tool call the platform saw as the ledger
+  records it — tool and server, what it was about, whether it ran and how long it took, what
+  governance decided, who made it, the conversation and session it belongs to, and the
+  artifact it produced — with breakdown tiles, a filter ribbon, a trend chart and an export
+  (`tools`, `tools-breakdown`). `/admin/artifacts` is the same page through the artifact lens
+  (schema 46's one artifact rule), and `/admin/artifacts/{id}` shows one artifact with its
+  stored body, execution, ledger row, governance decision and scanner findings, with a
+  sandboxed rendering at `/admin/artifacts/{id}/preview`. Sidebar: Developer → Tools &
+  artifacts. Styles `82-tools*.css`, `20-page-artifact-detail.css`.
+- **Configuration:** `/admin/configuration` (Platform → Configuration) is one row per kind of
+  configuration under `services/` — a projected kind shows its sync plane's state (in step,
+  drifting, never applied) and links to its Sync tab; a kind served from code shows the
+  source that ships it (base or a pinned bundle) and the hash it declares — beside the
+  retention windows `database_cleanup` enforces. The Code sync page links to it and to
+  Observability from its header, and its breadcrumb reads Admin › Platform › Code sync.
+- **Observability:** `/admin/system/observability` shows the profile's
+  `observability.otlp` block beside core's `otlp_export` ledger (`otlp_export_state`: cursor,
+  lag, last success and error per signal). **Export now** runs the job's batch out of turn;
+  **Test connection** posts an empty envelope to the collector. Both are administrator writes
+  behind the same-origin check. The SSR router now builds a `ManagedState`
+  (`routes/managed_state.rs`) from the shared `DbPool`, which carries core's
+  `OtlpExportStateRepository` and the managed-resource repository.
+- **MCP servers:** the `/admin/mcp` pages are astound's current build: every figure is for one
+  window (`?preset=` / `?from=&to=`, 24 hours by default), connections come from
+  `mcp_external_sessions` and `mcp_sessions`, the call log carries which side observed each
+  call and its conversation, the detail page lists callers, and both pages export
+  (`mcp-servers`, `mcp-calls`, `mcp-tools`).
 
 ### Changed
 
@@ -140,6 +167,10 @@ Conventions (strict — hold every entry to them):
   `conversation_facts`, the daily rollups and this instance's `session_transcripts`,
   `session_analyses` and `session_cost_snapshots` are kept. `database_cleanup` now runs with
   `enforce: true`, so the profile's `retention:` windows actually delete.
+- **Admin routing:** `admin_ssr_router` takes the shared `DbPool` first and returns
+  `Result<Router, StateError>`; the console's operating pages mount from
+  `routes/ssr_platform.rs`. `ExtensionConfigErrors` carries the underlying error as a source
+  (`push_with_source`), so a content config that cannot be read or parsed says why.
 
 ### Removed
 

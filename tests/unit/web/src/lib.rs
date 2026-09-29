@@ -218,3 +218,8 @@ mod site_org_url_extender;
 mod traces_analytics_pure;
 #[cfg(test)]
 mod util_svg_pure;
+
+#[cfg(test)]
+mod observability_view;
+#[cfg(test)]
+mod tool_schema_diff;

@@ -1,9 +1,10 @@
-//! Which MCP servers are alive, read from the session heartbeat.
+//! Whether an MCP server is alive, decided from when it last spoke.
 //!
-//! An MCP server does not report its own health; the sessions it holds do.
-//! `mcp_sessions.last_activity_at` moves whenever a client talks to a server,
-//! so the most recent activity across a server's sessions is the closest thing
-//! to a heartbeat the instance has.
+//! An MCP server does not report its own health; the traffic through it does.
+//! The MCP pages feed this rule the most recent of two facts — the last
+//! server-observed tool call and the last touch on a live connection
+//! (`mcp_external_sessions` for proxied servers, `mcp_sessions` for in-process
+//! ones) — so "alive" means a client actually got through recently.
 //!
 //! The rule is deliberately generous: alive within two heartbeat intervals,
 //! because one missed beat is a slow response and two is a pattern. Anything
@@ -12,8 +13,6 @@
 //! must not make the second claim from the first's evidence.
 
 use chrono::{DateTime, Utc};
-use sqlx::PgPool;
-use systemprompt::identifiers::McpServerId;
 
 // Why: how often a busy MCP session is expected to touch its row. Not a
 // configured value — nothing in `services/mcp/*.yaml` declares a heartbeat, so
@@ -21,8 +20,8 @@ use systemprompt::identifiers::McpServerId;
 // server YAML gaining a heartbeat field would replace it.
 pub const HEARTBEAT_INTERVAL_SECS: i64 = 300;
 
-/// What the heartbeat says about one server: beat within two intervals, beat
-/// longer ago than that, or never beat at all.
+/// What the last activity says about one server: spoke within two intervals,
+/// spoke longer ago than that, or never spoke at all.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Liveness {
     Alive,
@@ -36,7 +35,7 @@ impl Liveness {
         match self {
             Self::Alive => "Alive",
             Self::Stale => "Stale",
-            Self::Silent => "No sessions",
+            Self::Silent => "Idle",
         }
     }
 
@@ -74,36 +73,4 @@ pub fn liveness_state(
     } else {
         Liveness::Stale
     }
-}
-
-/// One server's heartbeat, keyed by the id used in `services/mcp/*.yaml`.
-#[derive(Debug, Clone)]
-pub struct McpHeartbeatRow {
-    pub server_id: McpServerId,
-    pub last_heartbeat: Option<DateTime<Utc>>,
-    pub active_sessions: i64,
-}
-
-pub async fn list_mcp_server_liveness(pool: &PgPool) -> Result<Vec<McpHeartbeatRow>, sqlx::Error> {
-    let rows = sqlx::query!(
-        r#"
-        SELECT s.mcp_server_id AS "server_id!: McpServerId",
-               MAX(s.last_activity_at) AS "last_heartbeat?",
-               COUNT(*) FILTER (WHERE s.status = 'active')::BIGINT AS "active_sessions!"
-        FROM mcp_sessions s
-        WHERE s.mcp_server_id IS NOT NULL
-        GROUP BY s.mcp_server_id
-        ORDER BY s.mcp_server_id
-        "#
-    )
-    .fetch_all(pool)
-    .await?;
-    Ok(rows
-        .into_iter()
-        .map(|row| McpHeartbeatRow {
-            server_id: row.server_id,
-            last_heartbeat: row.last_heartbeat,
-            active_sessions: row.active_sessions,
-        })
-        .collect())
 }

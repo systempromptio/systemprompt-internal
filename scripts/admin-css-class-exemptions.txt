@@ -30,3 +30,20 @@ is-ancestor
 is-error
 is-rejected
 is-warn
+
+# Stage 3 phase 7 (the analysis suite, ported in a parallel branch) defines
+# these in 74-analysis-inventory.css and 79-analysis-conversations.css; the
+# Tools and Artifacts pages share them. Delete this block once that branch is
+# merged.
+sp-aconv-bar
+sp-aconv-bar__label
+sp-aconv-block
+sp-aconv-chart
+sp-aconv-charts
+sp-aconv-meta
+sp-aconv-num
+sp-aconv-num--warn
+sp-aconv-range
+sp-aconv-skill
+sp-aconv-skill--hooked
+sp-kpi-grid--compact
