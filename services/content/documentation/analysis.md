@@ -8,17 +8,21 @@ kind: "guide"
 public: true
 tags: ["enterprise", "admin", "analytics"]
 published_at: "2026-09-16"
-updated_at: "2026-09-28"
+updated_at: "2026-09-18"
 after_reading_this:
   - "Name what each Analysis page answers, and open the right one for a given question"
   - "Say which planes a conversation's row is built from, and how a hook session attaches to a gateway conversation"
   - "Read the one judge score for what it is — a label on the record, not the record"
   - "Explain install rate, activation and reach on the Skills page"
 related_docs:
+  - title: "Measure Which Skills Are Used"
+    url: "/documentation/analysis-measure-skills"
+  - title: "Create a Conversation and See It Land"
+    url: "/documentation/analysis-test-conversation"
+  - title: "Versions: Marketplace Hashes, History and Compare"
+    url: "/documentation/analysis-versions"
   - title: "Code ↔ Instance: Sources, Planes and Sync"
     url: "/documentation/services-sync"
-  - title: "Access control"
-    url: "/documentation/access-control"
 ---
 
 # Analysis: the record of every conversation and skill
@@ -44,6 +48,7 @@ Every Analysis page lives at `/admin/analysis/<noun>`, the same noun and identit
 | **Skills** | `/admin/analysis/skills`, `/admin/analysis/skills/{plugin:skill}` | Every skill invoked in the window, grouped by marketplace: invocations with a fourteen-day sparkline, people over entitled, installs, conversations, tokens, cost per invocation, tools, errors and denials, p95, models and clients seen, and the judge's mean completion. Above the table, marketplace adoption: entitled → installed → active, by host. A skill's own page splits its invocations by model, client, group, project, person, version or outcome, and lists the conversations behind them. |
 | **Reports** | `/admin/analysis/reports`, `/admin/analysis/reports/{id}` | On-demand AI reports over the record: a headline, an `ok / watch / degraded` assessment, themes with evidence links and recommendations, written the moment they are asked for from a SQL digest — never a transcript. The latest global report's headline sits in a banner under the Conversations and Skills headers; **Report on this view** writes one over the page's current filters. |
 | **Versions** | `/admin/analysis/versions`, `/admin/analysis/versions/{marketplace_id}` | Every marketplace by content hash: its history with mean completion per version, what changed between versions, how each performed, and what devices received. |
+| **Tools & artifacts** | `/admin/tools`, `/admin/artifacts` | Under AI activity, not Analysis, but counted the same way: every tool call the ledger recorded (kind, server, input summary, state, duration, governance decision, person, session and conversation), and the subset that produced an *artifact* — something a person can view or retrieve afterwards. |
 
 Every list page shares the same furniture: KPI tiles with an icon and a trend slot, charts padded to the whole window, a filter ribbon whose pills list only the values the filtered set contains (with counts and removable chips), a breakdown whose rows link into the list and download as CSV, row checkboxes that enable a bulk bar (**Export selected**, and on Conversations **Judge selected**), and a `?` beside the title that opens the page's glossary.
 
@@ -52,7 +57,7 @@ Every list page shares the same furniture: KPI tiles with an icon and a trend sl
 A conversation is a gateway context. The `conversation_rollup` job keeps one row per context — `conversation_facts`, with a row per skill it invoked in `conversation_skill_facts` — re-derived within two minutes of any change on any plane:
 
 - **Gateway** (`ai_requests`): turns and side calls, provider and model per request, input, output, cache-read, cache-write and reasoning tokens, cost, latency percentiles, status and finish reason, client kind, attestation and wire protocol, group and project stamped at insert.
-- **Tool ledger**: the model's tool intents joined to their executions and results, so a row can say "asked for 5, executed 4, 1 failed, 2 artifacts". A tool call and an artifact are different things even when they are counted alike: `artifact_kind` (schema `46_tool_artifacts.sql`) marks a call as an artifact only when a person can view or retrieve what it produced — a file the assistant edited, wrote or read (`file`), an MCP Apps UI resource (`ui`), a typed card such as a table, chart or report (`card`), or a retained structured body with a preview (`body`). A shell command, a search, a listing, a Skill or Task call, or an untyped result is a plain tool call. The `tool_activity` view applies the rule to every ledger row, and the conversation record and the Skills figures read it.
+- **Tool ledger**: the model's tool intents joined to their executions and results, so a row can say "asked for 5, executed 4, 1 failed, 2 artifacts". A tool call and an artifact are different things even when they are counted alike: `artifact_kind` (schema `46_tool_artifacts.sql`) marks a call as an artifact only when a person can view or retrieve what it produced — a file the assistant edited, wrote or read (`file`), an MCP Apps UI resource (`ui`), a typed card such as a table, chart or report (`card`), or a retained structured body with a preview (`body`). A shell command, a search, a listing, a Skill or Task call, or an untyped result is a plain tool call. The `tool_activity` view applies the rule to every ledger row, and the Tools page, the Artifacts page, the conversation record and the Skills figures all read it.
 - **Governance**: every allow, warn and deny the chain took on the conversation's tool calls; the gateway safety scanners' findings and blocks.
 - **Hooks**: prompts, events and skill invocations from the harness, attached through the Claude Code session id the gateway records on each request.
 
@@ -60,9 +65,9 @@ The Skills page counts invocations from the hooks and reads everything else from
 
 ## The judge
 
-One job, `conversation_judge`, runs every five minutes. It queues every conversation with at least one turn that has been quiet for thirty minutes or whose harness session has ended, reads the transcript (credentials redacted) and asks the configured model (Anthropic's `claude-haiku-4-5` here, set in the `conversation_judge` scheduler entry) — in one structured call whose schema the provider enforces — for a title, a summary, the intent (development, business analysis, operations, admin & config, writing & comms, research & learning, other), an outcome (achieved, partial, abandoned, unclear) and the completion score. A conversation that keeps growing is judged again. The job's own gateway calls are audited under its identity and never counted as conversations; a daily cost cap stops a run rather than letting a backlog burn budget.
+One job, `conversation_judge`, runs every five minutes. It queues every conversation with at least one turn that has been quiet for thirty minutes or whose harness session has ended, reads the transcript (credentials redacted) and asks the configured model — in one structured call whose schema the provider enforces — for a title, a summary, the intent (development, business analysis, operations, admin & config, writing & comms, research & learning, other), an outcome (achieved, partial, abandoned, unclear) and the completion score. A conversation that keeps growing is judged again. The job's own gateway calls are audited under its identity and never counted as conversations; a daily cost cap stops a run rather than letting a backlog burn budget.
 
-The judge is switched on by `hooks.judge: true` on the plugin that carries the governance hooks (`systemprompt-business` on this instance), and runs automatically only when the profile sets `judge.automatic: true`. With that switch off, a manual request still queues the conversation and the next tick reads it: **Judge now** on a conversation's page, the **Judge** button on any unjudged row of the Conversations or Skills lists, **Judge N unjudged** in the Conversations header (every unjudged conversation the current filters select, up to 200), or **Judge selected** in the bulk bar after ticking rows. A judged row shows its verdict — intent, outcome, summary and rationale — in a card on hover or keyboard focus of the title.
+The judge is switched on by `hooks.judge: true` on the plugin that carries the governance hooks, and runs automatically only when the profile sets `judge.automatic: true`. With that switch off, a manual request still queues the conversation and the next tick reads it: **Judge now** on a conversation's page, the **Judge** button on any unjudged row of the Conversations or Skills lists, **Judge N unjudged** in the Conversations header (every unjudged conversation the current filters select, up to 200), or **Judge selected** in the bulk bar after ticking rows. A judged row shows its verdict — intent, outcome, summary and rationale — in a card on hover or keyboard focus of the title.
 
 ## Reports
 
@@ -70,11 +75,11 @@ A report is a one-off, on-demand reading of the record by the judge model. Reque
 
 ## Versions
 
-A marketplace version is the sha256 of everything it delivers — its own config, every plugin it includes and every skill those plugins ship. It is recorded at boot and on every inventory sync, and a conversation is tied to the version being served when it first invoked one of the marketplace's skills, never to when the judge ran. Versions has three views per marketplace — **History**, **Compare** and **Distribution** — and an **Evaluation** tab that scores each version's conversations by fixed rules.
+A marketplace version is the sha256 of everything it delivers — its own config, every plugin it includes and every skill those plugins ship. It is recorded at boot and on every inventory sync, and a conversation is tied to the version being served when it first invoked one of the marketplace's skills, never to when the judge ran. Versions has three views per marketplace — **History**, **Compare** and **Distribution** — described in [Versions: Marketplace Hashes, History and Compare](/documentation/analysis-versions).
 
 ## Access
 
-Every Analysis page needs a console seat (admin, platform admin or project manager); this instance has no marketplace participation tier. The manual review form, the inventory sync and the withdrawal decisions on a marketplace's Distribution view require manage rights; without them the pages render read-only. See [Access control](/documentation/access-control).
+Conversations and Versions are open to marketplace participants for the people in their scope; Skills and the conversation detail's **Judge now** need console access. The manual review form and the withdrawal decisions on a marketplace's Distribution view require manage rights; without them the pages render read-only. See [User & Access Management](/documentation/enterprise-user-access).
 
 ## Troubleshooting
 
@@ -94,9 +99,12 @@ Every Analysis page needs a console seat (admin, platform admin or project manag
 
 **Symptom:** The skill row counts invocations and people, but conversations, tokens and cost are zero.
 **Cause:** The sessions that invoked it produced no gateway conversation with the same session id — the inference went elsewhere, or the client did not send its session id.
-**Solution:** Confirm the client sends its session id (Claude Code through the bridge does) and that the conversation ran through this gateway; then run `systemprompt infra jobs run conversation_rollup` to fold it in without waiting for the next minute.
+**Solution:** See [Create a Conversation and See It Land](/documentation/analysis-test-conversation#when-it-does-not-appear).
 
 ## Related pages
 
+- [Measure Which Skills Are Used](/documentation/analysis-measure-skills)
+- [Create a Conversation and See It Land](/documentation/analysis-test-conversation)
+- [Versions: Marketplace Hashes, History and Compare](/documentation/analysis-versions)
+- [Evaluate a Plugin: Fixed Suite, PAT Export, Deterministic Metrics](/documentation/analysis-evaluate-plugins)
 - [Code ↔ Instance: Sources, Planes and Sync](/documentation/services-sync)
-- [Access control](/documentation/access-control)

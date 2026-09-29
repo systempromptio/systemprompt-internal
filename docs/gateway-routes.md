@@ -4,9 +4,11 @@
 
 - **SDK- and Claude-Desktop-compatible.** Authenticated with a systemprompt JWT in `x-api-key` (falls back to `Authorization: Bearer`). No new credential type — existing user JWTs serve as the gateway credential.
 - **Routes by `model_pattern`.** Built-in tags: `anthropic`, `openai`, `moonshot` (Kimi), `qwen`, `gemini`, `minimax`. Anthropic is a transparent byte proxy (extended thinking, cache-control headers, SSE events preserved verbatim). OpenAI-compatible providers get full Anthropic↔OpenAI request/response/SSE conversion. Upstream API keys resolve from the secrets file by name.
-- **Zero overhead when disabled.** The `/v1` router mounts only if `gateway.enabled: true` in the active profile.
+- **Zero overhead when disabled.** The `/v1` router mounts only if `gateway.enabled: true` in `services/ai/gateway.yaml`.
 
-## Profile YAML
+## Services YAML
+
+The catalog and the routes are services configuration, shipped in the image beside the agents and MCP servers — `services/ai/providers.yaml` and `services/ai/gateway.yaml`, both listed in `services/config/config.yaml` `includes:`. They are not profile sections: a profile that still carries `providers:` or `gateway:` fails to load with a message naming these files. Nothing in either file varies per environment; the credentials they name by `api_key_secret` live in each environment's secret store.
 
 ```yaml
 providers:
@@ -15,7 +17,7 @@ providers:
     endpoint: https://api.anthropic.com/v1
     api_key_secret: anthropic
     models:
-      - id: claude-sonnet-4-20250514
+      - id: claude-sonnet-5
   - name: minimax
     protocol: anthropic
     endpoint: https://api.minimax.io/anthropic/v1
@@ -38,10 +40,10 @@ Routes evaluate in order; first `model_pattern` match wins. On a model entry, `u
 
 ## Configuring routes from the CLI
 
-Worked example: proxy every Anthropic model to Gemini Flash. Instead of hand-editing the profile, use `admin config`. To make a client that asks for `claude-*` actually serve Google Gemini Flash:
+Worked example: proxy every Anthropic model to Gemini Flash. Instead of hand-editing the services files, use `admin config`, which edits them, validates against the merged catalog, and reconciles access control. To make a client that asks for `claude-*` actually serve Google Gemini Flash:
 
 ```bash
-# 1. Store the upstream key and register the provider + model in the profile registry
+# 1. Store the upstream key and register the provider + model in services/ai/providers.yaml
 systemprompt admin config secret set gemini <GEMINI_API_KEY>
 systemprompt admin config catalog provider add --name gemini --protocol gemini \
   --endpoint https://generativelanguage.googleapis.com/v1beta --api-key-secret gemini
@@ -54,11 +56,24 @@ systemprompt admin config gateway route add --model-pattern 'claude-*' \
 
 A client `POST /v1/messages` with `model: claude-haiku-4-5` then returns `model: gemini-2.5-flash`.
 
+## Client attribution
+
+Every `/v1/messages` row names the client that sent it (`ai_requests.client_kind`) and how
+strongly that is evidenced (`ai_requests.client_attestation`). Hosts the bridge provisions —
+Claude Code, Claude Desktop, Codex, OpenCode, Hermes — are attested by the bridge's per-host
+token with nothing to configure; a direct client (Pi, a raw SDK, curl) declares itself with
+`x-systemprompt-client: <kind>` from the closed vocabulary, or is recorded as `other` with its
+User-Agent and SDK headers kept as evidence. The full tier table, the header names, the 400
+behaviour for a malformed declaration, and copy-paste SDK examples are on the hosted page:
+[Gateway → Client attribution](https://systemprompt.io/documentation/services/gateway#client-attribution).
+On this instance the tier is the tone of the client chip on every conversation page, and
+`systemprompt infra logs request list` shows it as the `attestation` column.
+
 ## Routes are access-controlled
 
-Each route is gated by an `access_control_entities` row keyed on its id, which is content-addressed (`hash(model_pattern, provider)`). Changing a route's provider mints a *new* id, so a freshly-edited route is denied (`unknown to access control`) until the catalog is reconciled. Reconciliation makes the catalog equal to the live profile's routes — new ids are registered, and rows no route produces any more are deleted along with their grants — and it happens in two places:
+Each route is gated by an `access_control_entities` row keyed on its id, which is content-addressed (`hash(model_pattern, provider)`). Changing a route's provider mints a *new* id, so a freshly-edited route is denied (`unknown to access control`) until the catalog is reconciled. Reconciliation makes the catalog equal to the live gateway.yaml's routes — new ids are registered, and rows no route produces any more are deleted along with their grants — and it happens in two places:
 
-- **At boot** — the `governance_bootstrap` job reconciles the catalog from the running profile, then seeds an empty `access_control_rules` from `services/access-control/rules.yaml`, expanding its `gateway_route/*` glob against that catalog (a non-empty table is only compared and its drift reported).
+- **At boot** — the `governance_bootstrap` job reconciles the catalog from the loaded services config, then seeds an empty `access_control_rules` from `services/access-control/rules.yaml`, expanding its `gateway_route/*` glob against that catalog (a non-empty table is only compared and its drift reported).
 - **After a CLI edit** — `systemprompt admin config gateway route …` reconciles immediately, so the edit takes effect without a restart.
 
 Routes are granted by a glob, never by a literal id:
@@ -111,7 +126,7 @@ gateway:
     repo: systempromptio/systemprompt-internal
     # Named, not inlined, so the token never lands in a config file or a
     # profile dump. Needs `contents: read` on the repo.
-    token_env: SYSTEMPROMPT_BRIDGE_RELEASES_TOKEN
+    token_secret: SYSTEMPROMPT_BRIDGE_RELEASES_TOKEN
     tag_prefix: bridge-v
     assets:
       macos: systemprompt-internal-bridge-macos.zip

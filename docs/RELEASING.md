@@ -210,7 +210,13 @@ On the push to `main`, `release.yml`:
 2. `checks` → `build` → `release` — bridge fmt/clippy, the four platform
    builds (macOS universal, signed + notarized), cosign-signed assets, GitHub
    Release `bridge-vX.Y.Z` at the merge commit, then a probe that every
-   published download link resolves (versioned and `releases/latest`).
+   published download link resolves (versioned and `releases/latest`). The
+   Windows leg refuses an exe that imports `WebView2Loader.dll` or lost its
+   `.rsrc` (`scripts/check-bridge-windows-exe.sh`); a signed macOS leg runs
+   `tests/release/macos-smoke.sh` on the DMG (Developer ID team, stapled
+   ticket, Gatekeeper, universal binary, gateway selection via
+   `scripts/verify-bridge-macos.sh`) and `tests/release/macos-updater-zip.sh`
+   on the updater zip. An unsigned fork build skips both macOS checks.
 3. `publish-image` — `docker.yml`: multi-arch image pushed by digest, merged
    and cosign-signed as **`:sha-<short>` only**.
 4. `smoke` and `upgrade-boot` prove that digest: `--version` reports `X.Y.Z`,

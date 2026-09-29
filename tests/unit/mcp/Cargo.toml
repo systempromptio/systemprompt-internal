@@ -21,6 +21,9 @@ systemprompt-web-admin = { workspace = true }
 systemprompt = { workspace = true, features = ["full"] }
 axum = { workspace = true }
 rmcp = { workspace = true }
+tokio = { workspace = true }
+serde = { version = "1", features = ["derive"] }
+tempfile = { workspace = true }
 base64 = { workspace = true }
 serde_json = { workspace = true }
 # The knowledge bank's rendering helpers take rows carrying a uuid id and a

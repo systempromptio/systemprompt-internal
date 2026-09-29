@@ -1450,6 +1450,25 @@ bridge-package-linux:
 bridge-package-windows: core-checkout
     @scripts/build-coordinator.sh run bridge-package-windows "" -- scripts/package-bridge-windows.sh
 
+# The release workflow runs this (via tests/release/macos-smoke.sh) on every
+# signed build; run it by hand on a DMG downloaded from a bridge-v* release.
+# Executes nothing from the image.
+# Verify a macOS bridge DMG as a customer's Mac will (team, notarization, Gatekeeper)
+[macos]
+bridge-verify-macos DMG="storage/files/downloads/systemprompt-internal-bridge-macos.dmg":
+    @bash scripts/verify-bridge-macos.sh "{{DMG}}"
+
+# storage/files/downloads/ is served at /files/downloads and linked by the admin
+# Bridge Setup page and the profile connect snippet. It is gitignored and no
+# one host can build every platform's bridge, so the rest comes from the
+# bridge-v<version> GitHub release, falling back to the deployed host; local
+# files win. `DOWNLOADS_STRICT=1 just downloads-fetch` takes every asset from
+# the release, verified against its SHA256SUMS — do that before baking a
+# release image.
+# Backfill storage/files/downloads/ from the bridge-v<version> release
+downloads-fetch:
+    @scripts/fetch-remote-downloads.sh
+
 # Installs the client if it is not there yet; re-running it with a fresh code
 # re-binds the machine to whoever that code belongs to.
 # Point Claude Code on THIS host at the gateway (CODE comes from /admin/profile)

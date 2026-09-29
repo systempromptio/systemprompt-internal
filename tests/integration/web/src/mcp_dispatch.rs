@@ -376,13 +376,13 @@ async fn an_unknown_systemprompt_tool_points_the_caller_at_the_cli_skill() {
     };
     let executor = executor(&db.pool, "systemprompt");
     let db_pool = db_pool(&db.pool);
+    let ingest = Arc::new(ArtifactIngest::from_db(&db_pool, None).expect("artifact ingest"));
 
     let request = call("not_a_tool", serde_json::json!({}));
     let profile = client();
     let error = systemprompt_mcp_agent::server::tool::dispatch_tool(
         &systemprompt_mcp_agent::server::tool::Dispatch {
             service_id: "systemprompt",
-            role: systemprompt_mcp_agent::server::ServerRole::Console,
             executor: &executor,
             request: &request,
             request_context: &request_context(),
@@ -394,6 +394,7 @@ async fn an_unknown_systemprompt_tool_points_the_caller_at_the_cli_skill() {
                 workdir: std::path::PathBuf::from("/nonexistent"),
             },
             db_pool: &db_pool,
+            ingest: &ingest,
         },
         "not_a_tool",
         "unused-token",

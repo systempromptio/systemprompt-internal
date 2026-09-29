@@ -26,6 +26,8 @@ systemprompt-web-jobs = { workspace = true }
 systemprompt-web-site = { workspace = true }
 systemprompt-mcp-agent = { workspace = true }
 systemprompt-mcp-knowledge-bank = { workspace = true }
+# `mcp_protocol` writes its fixture profile under the repo root.
+internal-test-common = { workspace = true }
 
 chrono = { workspace = true }
 serde_json = { workspace = true }

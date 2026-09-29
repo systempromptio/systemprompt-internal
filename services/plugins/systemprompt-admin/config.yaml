@@ -1,8 +1,8 @@
 plugin:
   id: systemprompt-admin
   name: "Systemprompt Admin — Control Plane"
-  description: "Admin-only: first-run setup, the only skill that installs dashboards. Ships the systemprompt CLI and knowledge-bank servers and the two control-plane dashboards — recent request activity, and spend by model."
-  version: "7.0.0"
+  description: "Admin-only: first-run setup (the only skill that installs dashboards), the CLI reference, and the AI-usage and person-activity reports over the typed admin tools. Ships the systemprompt CLI and knowledge-bank servers and the two control-plane dashboards — recent request activity, and spend by model."
+  version: "7.1.0"
   # Admin-scoped: rules.yaml grants this plugin to [admin] with
   # default_included: false. That single rule closes every skill and artifact
   # below to every other role — they carry no rule of their own, and the
@@ -26,6 +26,13 @@ plugin:
       # systemprompt-business pages — because installing artifacts is an
       # admin job; no other plugin ships a setup skill.
       - systemprompt_setup_admin
+      # The admin control plane, over the systemprompt server's typed tools.
+      # Admin-only by this plugin's grant: admin_person_activity reads every
+      # user's conversation history, and all three call a server a non-admin
+      # can never reach.
+      - systemprompt_cli
+      - admin_ai_usage
+      - admin_person_activity
       # The business skill (manage_leads) that moved to systemprompt-business,
       # and the governance demo, moved to systemprompt-demo, are not repeated
       # here — every role including admins holds them through the user-scoped

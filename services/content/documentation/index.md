@@ -78,6 +78,32 @@ consultancy, brand, and governance.
 - [Connect Odoo](/documentation/odoo) — instance requirements, server config, per-user API keys
 - [Dashboard Usage](/documentation/dashboard) — real-time metrics, activity feed, and health indicators
 - [Gateway API](/documentation/gateway-api) — the `/v1/messages` endpoint and its governance
+- [Install the Desktop Bridge](/documentation/bridge-install) — install, trust the manifest key, sign in, sync and verify
+- [Connect Cowork](/documentation/connect-cowork) — route Claude Desktop's Cowork through the bridge
+- [Connect OpenCode](/documentation/connect-opencode) — enrol OpenCode against the gateway's OpenAI-compatible endpoint
+- [Access Control](/documentation/access-control) — who reaches what, and why
+- [Code ↔ Instance](/documentation/services-sync) — reconcile declared configuration with the running instance
+
+**Enterprise capabilities:**
+
+- [User & Access Management](/documentation/enterprise-user-access) — accounts, roles, revocation and time-bound access
+- [Usage, Adoption & Productivity Analytics](/documentation/enterprise-analytics) — who uses the platform and how much
+- [Cost Management, Budgets & FinOps](/documentation/enterprise-cost-management) — attribution, quota windows and spend reports
+- [Model Gateway, Routing & Data Residency](/documentation/enterprise-model-routing) — routes, model access, failover and residency
+- [Audit Trail, Traceability & Observability](/documentation/enterprise-audit-observability) — the per-call audit and trace chain
+- [Conversation History & Search](/documentation/enterprise-conversation-history) — search your own conversations
+- [Content Safety, PII & Guardrails](/documentation/enterprise-safety-guardrails) — the gateway scanners and warn mode
+- [MCP, Tool Governance & Distribution](/documentation/enterprise-tool-governance) — the governance chain, the MCP registry and signed distribution
+- [Enterprise Roadmap & Known Limitations](/documentation/enterprise-roadmap) — what is not yet available
+
+**Analysis and the skill lifecycle:**
+
+- [Analysis](/documentation/analysis) — the record of every conversation and skill
+- [Measure Which Skills Are Used](/documentation/analysis-measure-skills) — invocations, people and cost per skill
+- [Versions](/documentation/analysis-versions) — marketplace hashes, history and compare
+- [Evaluate a Plugin](/documentation/analysis-evaluate-plugins) — fixed suite, PAT export, deterministic metrics
+- [Create a Conversation and See It Land](/documentation/analysis-test-conversation) — an end-to-end check
+- [Skills: Lifecycle & Managed Revisions](/documentation/skills-lifecycle) — from `services/skills/` to invocation analytics
 
 ## Under the Hood
 

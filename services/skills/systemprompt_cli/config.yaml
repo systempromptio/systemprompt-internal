@@ -1,0 +1,12 @@
+id: systemprompt_cli
+name: systemprompt CLI Reference
+description: "Operate and inspect the Systemprompt Internal platform through the admin systemprompt MCP server and CLI - is the instance healthy, services status, which MCP servers are configured or running, recent errors, list skills, plugins or users, who is using AI, or run any CLI command"
+enabled: true
+file: SKILL.md
+tags:
+  - cli
+  - reference
+  - admin
+  - systemprompt
+category: cli-reference
+display_category: "Platform & Operations"

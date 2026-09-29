@@ -1,10 +1,10 @@
 //! `SystempromptServer` constructed against a real pool.
 //!
-//! As with the knowledge bank, construction is what needs a database: the
-//! server builds a `ToolUsageRepository` and an `ArtifactIngest` off the
+//! Construction is what needs a database: the
+//! server builds a `ToolUsageRepository` and an `McpArtifactRepository` off the
 //! pool before it can serve anything. The advertised identity and capability
-//! set are asserted on the constructed server, and the tools it exposes are
-//! pinned against `tools::list_tools`.
+//! set are asserted on the constructed server, and the CLI and reporting tools
+//! it exposes is pinned against `tools::list_tools`.
 
 use std::sync::Arc;
 
@@ -26,10 +26,15 @@ fn server(pool: &Arc<PgPool>) -> SystempromptServer {
         Arc::clone(pool),
         Some(Arc::clone(pool)),
     ));
+    let ingest = Arc::new(
+        systemprompt::mcp::ArtifactIngest::from_db(&db_pool, None)
+            .expect("construct the artifact ingest against a live pool"),
+    );
     SystempromptServer::new(
         db_pool,
-        McpServerId::try_new("systemprompt").expect("a valid server id"),
+        McpServerId::try_new("systemprompt").expect("valid fixture identifier"),
         hook(),
+        ingest,
     )
     .expect("construct the systemprompt server against a live pool")
 }
@@ -62,7 +67,7 @@ async fn get_info_advertises_both_tools_and_resources() {
     assert!(info.capabilities.tools.is_some(), "it serves tools");
     assert!(
         info.capabilities.resources.is_some(),
-        "it also serves the artifact-viewer resource, unlike the knowledge bank"
+        "it serves the artifact-viewer resource"
     );
 
     db.cleanup().await;
@@ -111,10 +116,15 @@ async fn a_different_service_id_only_changes_the_server_name() {
         Arc::clone(&db.pool),
         Some(Arc::clone(&db.pool)),
     ));
+    let ingest = Arc::new(
+        systemprompt::mcp::ArtifactIngest::from_db(&db_pool, None)
+            .expect("construct the artifact ingest against a live pool"),
+    );
     let renamed = SystempromptServer::new(
         db_pool,
-        McpServerId::try_new("sp-staging").expect("a valid server id"),
+        McpServerId::try_new("sp-staging").expect("valid fixture identifier"),
         hook(),
+        ingest,
     )
     .expect("construct with a different service id");
 
@@ -130,6 +140,47 @@ async fn a_different_service_id_only_changes_the_server_name() {
     db.cleanup().await;
 }
 
+#[tokio::test]
+async fn the_server_exposes_the_cli_and_read_only_reporting_tools() {
+    let Some(db) = TempDb::create().await else {
+        return;
+    };
+    let _built = server(&db.pool);
+
+    let listed = tools::list_tools();
+
+    // The CLI plus one read-only report and six typed analytics tools, all
+    // over this platform's own data. The two Atlassian-backed tools that used
+    // to sit here are gone: the client reaches Jira and Confluence through the
+    // `atlassian` server it already holds, rather than through a proxy here
+    // that re-translated an unversioned shape.
+    assert_eq!(listed.len(), 8);
+    for report in &listed[1..] {
+        assert_eq!(
+            report.annotations.as_ref().and_then(|a| a.read_only_hint),
+            Some(true),
+            "{} must advertise readOnlyHint",
+            report.name
+        );
+    }
+    assert_eq!(listed[0].name.as_ref(), tools::SERVER_NAME);
+    assert_eq!(listed[0].title.as_deref(), Some("SystemPrompt CLI"));
+    assert_eq!(listed[1].name.as_ref(), "admin_report");
+    let typed: Vec<&str> = listed[2..].iter().map(|t| t.name.as_ref()).collect();
+    assert_eq!(
+        typed,
+        [
+            "user_activity",
+            "conversation_list",
+            "usage_by_user",
+            "request_log",
+            "conversation_audit",
+            "users"
+        ]
+    );
+
+    db.cleanup().await;
+}
 
 #[tokio::test]
 async fn the_cli_tool_requires_a_command_string() {

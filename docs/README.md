@@ -21,6 +21,7 @@ Choose the channel that fits your environment. Each doc is a copy-paste recipe.
 
 | Channel | Doc | Audience |
 |---|---|---|
+| Docker (published image) | [install/docker.md](install/docker.md) | Compose install from the signed release image, bridge downloads, manifest-key pinning |
 | GitHub Container Registry | [install/ghcr.md](install/ghcr.md) | Primary public image surface |
 | Binary (`curl \| sh`) | [install/binary.md](install/binary.md) | Bare-metal, VM, one-shot installs |
 | Homebrew tap | [install/homebrew.md](install/homebrew.md) | macOS servers / development |
@@ -36,6 +37,8 @@ Choose the channel that fits your environment. Each doc is a copy-paste recipe.
 | Zeabur template | [install/zeabur.md](install/zeabur.md) | Zeabur PaaS |
 | Northflank stack | [install/northflank.md](install/northflank.md) | Northflank PaaS |
 | DigitalOcean 1-Click | [install/digitalocean.md](install/digitalocean.md) | Single-VM droplet (bundled Postgres) |
+
+Before first boot, provide the credentials in [install/required-secrets.md](install/required-secrets.md).
 
 Maintainers: the release process (versioning, tag scheme, retention, rollback) is documented in [RELEASING.md](RELEASING.md).
 
@@ -64,3 +67,14 @@ just setup-local <anthropic_key> "" "" 8081 5433
 ### Gateway configuration
 
 - [gateway-routes.md](gateway-routes.md): `/v1/messages` provider routing, CLI route configuration, route access control, and the extensible provider registry.
+
+### Connectors
+
+- [CONFIGURED-CONNECTORS.md](CONFIGURED-CONNECTORS.md): personal MCP accounts and the connector YAML.
+- [integrations/centralized-mcp.md](integrations/centralized-mcp.md): the server-owned connection model, provisioning secrets and acceptance checks.
+
+## Maintain the repository
+
+- [BRANCHING.md](BRANCHING.md) and [RELEASING.md](RELEASING.md): the branch model and the release and rollback procedure.
+- [kits-on-another-instance.md](kits-on-another-instance.md): shipping services content as a kit.
+- [tech-debt.md](tech-debt.md): recorded debt in the data lifecycle and the artifact chain, with a local-reset runbook.

@@ -413,11 +413,31 @@ jobs:
           NOTARY_KEY="$RUNNER_TEMP/notary.p8" \
             systemprompt-internal/bridge/scripts/sign-mac-app.sh "${{ matrix.asset }}"
 
+      # Verify the exact artifacts users download, as a customer's Mac would:
+      # Developer ID team, notarization ticket stapled, Gatekeeper assessment,
+      # a universal binary, and the packaged CLI selecting its gateway. Only a
+      # signed build can pass, so an unsigned fork build skips it.
+      - name: Verify the macOS download (macos)
+        if: steps.signing.outputs.enabled == 'true'
+        run: |
+          dmg="${{ matrix.asset }}"
+          bash systemprompt-internal/tests/release/macos-smoke.sh "$dmg" "$(shasum -a 256 "$dmg" | cut -d' ' -f1)"
+          bash systemprompt-internal/tests/release/macos-updater-zip.sh "${{ matrix.updater_asset }}"
+
       - name: Tear down signing keychain (macos)
         if: always() && runner.os == 'macOS'
         run: |
           rm -f "$RUNNER_TEMP/notary.p8" "$RUNNER_TEMP/cert.p12"
           security delete-keychain "$RUNNER_TEMP/signing.keychain-db" 2>/dev/null || true
+
+      # A dynamically imported WebView2Loader.dll dies at process start on a
+      # user's machine, and a missing .rsrc drops the branded icon and version
+      # info; both pass the build. scripts/package-bridge-windows.sh runs the
+      # same check on the cross-compiled exe.
+      - name: Check the Windows exe (windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: bash systemprompt-internal/scripts/check-bridge-windows-exe.sh systemprompt-internal/bridge/target/release/systemprompt-internal-bridge.exe
 
       - name: Rename output (windows)
         if: runner.os == 'Windows'

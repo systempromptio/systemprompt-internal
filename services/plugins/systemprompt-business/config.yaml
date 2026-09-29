@@ -2,7 +2,7 @@ plugin:
   id: systemprompt-business
   name: "Systemprompt Business — Run the Pipeline on Odoo"
   description: "What every signed-in user gets: read what's happening on Odoo — a business-wide brief or your own day — create and update leads against real customers, walk them to a decision, close them won or lost and raise the quotation that follows, and sweep everything outstanding one item at a time, all as you. Two live dashboards back the four skills, and both act as well as read: My Day (the briefing, what is waiting on you, and the team's chatter — tick an activity, star a task, move a lead, log a note) and Sales Pipeline (every lead and open deal — move a stage, close won or lost, log a note, schedule a follow-up)."
-  version: "4.0.0"
+  version: "4.1.0"
   # User-scoped and shared by every role: rules.yaml grants this plugin to
   # [user] with default_included: true, and admins hold the user role too
   # (services/access-control/odoo-rules.yaml default_roles). The four skills
@@ -30,6 +30,11 @@ plugin:
       # overdue/due activities, open tasks, stale leads — that writes back
       # the moment you answer for each one.
       - pending_task
+      # Who the caller is here: identity, the workspaces, skills and connectors
+      # their access actually grants, and where to read their own usage. It
+      # lives on this plugin because every signed-in user receives it — the
+      # same reason this plugin owns the governance hooks below.
+      - who_am_i
   agents:
     source: explicit
     include: []

@@ -53,16 +53,8 @@ fi
 [ -f "$BIN" ] || { echo "ERROR: $BIN missing. Run without SKIP_BUILD=1." >&2; exit 1; }
 
 # The two failure modes this script exists to prevent — refuse to ship either.
-if strings "$BIN" | grep -q "WebView2Loader.dll"; then
-    echo "ERROR: built exe dynamically imports WebView2Loader.dll — the loader" >&2
-    echo "was not statically linked (wrong target?). Refusing to stage it." >&2
-    exit 1
-fi
-if ! objdump -h "$BIN" | grep -qi '\.rsrc'; then
-    echo "ERROR: built exe has no .rsrc section — the branded icon/version" >&2
-    echo "resource was dropped (llvm-rc failure?). Refusing to stage it." >&2
-    exit 1
-fi
+# Shared with the release workflow's native windows-latest build.
+"$REPO_ROOT/scripts/check-bridge-windows-exe.sh" "$BIN"
 
 install -m 0644 "$BIN" "$DOWNLOADS_DIR/$ASSET"
 (cd "$DOWNLOADS_DIR" && sha256sum "$ASSET" > "$ASSET.sha256")
