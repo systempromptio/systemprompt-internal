@@ -278,6 +278,8 @@ mod history_scope;
 #[cfg(test)]
 mod ingestion_identity;
 #[cfg(test)]
+mod jobs_finops;
+#[cfg(test)]
 mod marketplace_catalog_pure;
 #[cfg(test)]
 mod marketplace_hooks_pure;
