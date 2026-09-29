@@ -250,9 +250,31 @@ Conventions (strict — hold every entry to them):
   to their page, and shows each tool call's ledger state and artifact.
 - **Sign-in:** `admin-login.js` names why a single-sign-on round trip failed
   (`/admin/login?sso=<code>`).
+- **Conversations:** `/admin/conversations`, the org-wide twin of My conversations (User
+  column, per-user filter, same search, window and export), under AI activity. The analysis
+  conversations page, the sessions ledger and the context detail breadcrumb open it.
+- **Roles:** `/admin/roles` has Members and Entitlements tabs; role-band rules are grouped by
+  role and entity kind, a kind collapsed to one line when the role reaches all of it.
+- **Catalog:** the marketplace, plugin and skill lists show where each entry comes from
+  (`base` or `bundle:<name>`), and each marketplace its current content hash.
+- **Quotas:** `role` is a working quota subject (the policy form already offered it), and a
+  person's primary group and project lead their membership lists, so the quota bucket and
+  cost attribution name the same container.
+- **Tokens:** `services/web/config/security.yaml` `max_pat_lifetime_days` (default 90) bounds
+  every personal access token and device enrolment; no expiry means the maximum, more is a 400.
 
 ### Changed
 
+- **Catalog pages** read the composed services root (baked tree plus pinned bundles), so a
+  bundled marketplace appears in the console; the gateway editor still writes the baked tree.
+- **Hook entity detection:** a plugin-installed MCP tool (`mcp__plugin_<marketplace>_<server>__…`)
+  is credited to its declared server, not to `plugin_<marketplace>_<server>`.
+- **Response secret scan:** compiled once from the governance `secret_scan` block instead of
+  building a governance engine per scanned response.
+- **Activity descriptions** are cut on characters at a word boundary and end in `…`.
+- **Client classification:** migration 097 re-derives `client_kind`/`wire_protocol` for Claude
+  Code and Cowork requests core ai/034 stored as `opencode`, and rewinds the conversation
+  rollup so the facts rebuild off the boot path.
 - **Conversation classification:** `conversation_request_kind` takes a fourth argument,
   `harness_bound`: a single-request, tool-less thread is a side call only inside a context keyed
   on a client session, so an SDK or OpenCode one-prompt thread counts as a conversation.
