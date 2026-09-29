@@ -262,13 +262,7 @@ test-unit:
 # nextest filter rather than -p. A -p set unifies features for that set alone,
 # so each tier recompiled systemprompt-web-admin and everything above it;
 # --workspace unifies once and later tiers reuse the build.
-#
-# The two root-workspace runs are the in-crate test dirs this repo still has
-# (extensions/web/admin/tests, extensions/web/tests); they move into tests/
-# with the test-foundation stage of the astound backport.
 _test-unit-uncoordinated:
-    cargo nextest run --no-fail-fast --no-tests=pass -p systemprompt-web-admin --tests
-    cargo nextest run --no-fail-fast --no-tests=pass -p systemprompt-web-extension --tests
     cargo nextest run --no-fail-fast --manifest-path tests/Cargo.toml --workspace -E 'package(mcp-unit-tests) | package(web-unit-tests)'
 
 # DB-backed integration tests. Creates/drops throwaway mcp_ext_test_*

@@ -1,7 +1,7 @@
 # Handlebars references that resolved to nothing when check-template-fields
-# was adopted (Stage 1 of the astound backport). Known debt, suppressed so the
-# gate guards every OTHER template today; the admin UI port (Stage 3) deletes
-# these one by one. An entry that stops reproducing fails the gate as stale.
+# was adopted. Known debt, suppressed so the gate guards every OTHER template
+# today; delete each line as its template or context is fixed. An entry that
+# stops reproducing fails the gate as stale.
 # Never add a line here for new code: define the field or fix the template.
 storage/files/admin/partials/components/month-selector.hbs: org_slug
 storage/files/admin/templates/approvals.hbs: ingestion_count

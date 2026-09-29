@@ -17,14 +17,6 @@
 # `DROP TABLE IF EXISTS t`, with or without `public.`. A table re-created
 # under the same name by a surviving schema file (here or in core) is not
 # dead and is skipped.
-#
-# Known debt, listed by table so nothing else can hide behind it. Each is a
-# finding, not an exemption. The list adopted with this gate (odoo_identity,
-# email_outbox and the four comms_* tables) was cleared by restoring
-# 15_odoo_identity.sql and by migration 084. An entry whose table becomes
-# declared or dropped fails the gate as stale.
-KNOWN_UNDROPPED=()
-
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -47,7 +39,6 @@ dropped="$({ grep -rhoiE 'DROP TABLE (IF EXISTS )?[a-z_.]+' extensions --include
     | awk '{print tolower($NF)}' | sed 's/^public\.//' | sort -u)"
 
 status=0
-known_seen=" "
 while IFS=$'\t' read -r commit path; do
     [ -n "$path" ] || continue
     case "$path" in */migrations/*|*/migrations-pending/*|*/seeds/*) continue ;; esac
@@ -57,26 +48,11 @@ while IFS=$'\t' read -r commit path; do
     for t in $tables; do
         if grep -qx "$t" <<<"$declared_now"; then continue; fi
         if grep -qx "$t" <<<"$dropped"; then continue; fi
-        if printf '%s\n' ${KNOWN_UNDROPPED[@]+"${KNOWN_UNDROPPED[@]}"} | grep -qx "$t"; then
-            known_seen="$known_seen$t "
-            echo "check-dropped-schema: known debt (TODO stage-2): '$t' from $path"
-            continue
-        fi
         echo "check-dropped-schema: $path (deleted in ${commit:0:8}) declared table '$t' and no migration drops it" >&2
         status=1
     done
 done < <(git log --diff-filter=D --name-only --format='%H' HEAD -- 'extensions/**/schema/*.sql' 'extensions/**/schema/**/*.sql' \
     | awk 'NF==1 && /^[0-9a-f]{40}$/ {c=$1; next} NF {print c "\t" $0}')
-
-# A shallow clone has no deletion history to find the debt in, so staleness
-# is only judged with full history (gates.yml checks out with fetch-depth 0).
-[ "$(git rev-parse --is-shallow-repository)" = "true" ] && known_seen=" ${KNOWN_UNDROPPED[*]} "
-for t in ${KNOWN_UNDROPPED[@]+"${KNOWN_UNDROPPED[@]}"}; do
-    case "$known_seen" in
-        *" $t "*) ;;
-        *) echo "check-dropped-schema: stale KNOWN_UNDROPPED entry '$t' (declared or dropped now) — delete it" >&2; status=1 ;;
-    esac
-done
 
 if [ "$status" -ne 0 ]; then
     echo "check-dropped-schema: add DROP TABLE IF EXISTS … CASCADE to a migration under extensions/web/schema/migrations/" >&2
