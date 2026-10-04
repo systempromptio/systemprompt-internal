@@ -72,7 +72,7 @@ pub(crate) async fn marketplaces_page(
     Extension(mkt_ctx): Extension<MarketplaceContext>,
     Extension(engine): Extension<AdminTemplateEngine>,
     State(pool): State<Arc<PgPool>>,
-    axum::extract::Query(query): axum::extract::Query<super::CatalogListQuery>,
+    Query(query): Query<super::CatalogListQuery>,
 ) -> AdminHtmlResult<Response> {
     console_only(&user_ctx)?;
     let path = shared::get_services_path()?;

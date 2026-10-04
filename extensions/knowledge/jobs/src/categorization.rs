@@ -71,13 +71,9 @@ impl Job for KnowledgeCategorizationJob {
     ) -> Result<JobResult, systemprompt::traits::ProviderError> {
         let start = std::time::Instant::now();
 
-        let db = ctx
-            .db_pool::<DbPool>()
-            .ok_or(KnowledgeJobError::MissingContext("DbPool"))?;
+        let db = ctx.get::<DbPool>()?;
         let pool = db.write_pool();
-        let app_context = ctx
-            .app_context::<Arc<AppContext>>()
-            .ok_or(KnowledgeJobError::MissingContext("AppContext"))?;
+        let app_context = ctx.get::<Arc<AppContext>>()?;
 
         let batch_size = ctx
             .get_parameter_parsed::<i64>("batch_size")?
@@ -194,8 +190,8 @@ async fn categorize_one(
         TraceId::generate(),
         ContextId::generate(),
         AgentName::try_new(AGENT).expect("static agent name is valid"),
-    )
-    .with_actor(run.actor.clone());
+        run.actor.clone(),
+    );
 
     let request = AiRequest::builder(
         vec![AiMessage::user(user_prompt(
@@ -233,8 +229,8 @@ async fn categorize_one(
                     TraceId::generate(),
                     ContextId::generate(),
                     AgentName::try_new(AGENT).expect("static agent name is valid"),
-                )
-                .with_actor(run.actor.clone()),
+                    run.actor.clone(),
+                ),
             )
             .with_system_prompt(system_prompt())
             .with_structured_output(structured_output_options())

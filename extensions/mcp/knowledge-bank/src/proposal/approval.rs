@@ -53,12 +53,12 @@ pub async fn open_proposal_hold(
     ApprovalRepository::new(pool.clone())
         .open(&NewApprovalRequest {
             call_id: &call_id,
-            tool_name: TOOL_APPLY_PROPOSAL,
-            server_name: SERVER_NAME,
+            tool_name: &systemprompt::identifiers::McpToolName::new(TOOL_APPLY_PROPOSAL),
+            server_name: &systemprompt::identifiers::McpServerId::new(SERVER_NAME),
             arguments: &arguments,
             requested_by: owner,
             session_id: None,
-            trace_id: Some(&trace_id),
+            trace_id: Some(&systemprompt::identifiers::TraceId::new(&trace_id)),
             rule: RULE_BRAIN_EMAIL_INGEST,
             expires_in_seconds: PROPOSAL_EXPIRY_SECONDS,
         })

@@ -54,6 +54,9 @@ async fn repo(db: &TempDb) -> ApprovalRepository {
 // without returning references into a temporary.
 struct Fixture {
     requester: UserId,
+    tool_name: systemprompt::identifiers::McpToolName,
+    server_name: systemprompt::identifiers::McpServerId,
+    trace_id: systemprompt::identifiers::TraceId,
     arguments: serde_json::Value,
 }
 
@@ -61,6 +64,9 @@ impl Fixture {
     fn new() -> Self {
         Self {
             requester: UserId::new("e2e-sales"),
+            tool_name: systemprompt::identifiers::McpToolName::new("note_add"),
+            server_name: systemprompt::identifiers::McpServerId::new("odoo"),
+            trace_id: systemprompt::identifiers::TraceId::new("trace-1"),
             arguments: serde_json::json!({"lead_id": 7, "body": "hi"}),
         }
     }
@@ -68,12 +74,12 @@ impl Fixture {
     fn held<'a>(&'a self, call_id: &'a CallId, expires_in_seconds: u64) -> NewApprovalRequest<'a> {
         NewApprovalRequest {
             call_id,
-            tool_name: "note_add",
-            server_name: "odoo",
+            tool_name: &self.tool_name,
+            server_name: &self.server_name,
             arguments: &self.arguments,
             requested_by: &self.requester,
             session_id: None,
-            trace_id: Some("trace-1"),
+            trace_id: Some(&self.trace_id),
             rule: "note_add",
             expires_in_seconds,
         }

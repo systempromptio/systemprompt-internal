@@ -13,7 +13,7 @@ use std::sync::Arc;
 use rmcp::model::CallToolRequestParams;
 use sqlx::PgPool;
 use systemprompt::database::Database;
-use systemprompt::identifiers::{AgentName, ContextId, SessionId, TraceId};
+use systemprompt::identifiers::{AgentName, ContextId, McpServerId, SessionId, TraceId, UserId};
 use systemprompt::mcp::repository::ToolUsageRepository;
 use systemprompt::mcp::{ArtifactIngest, McpToolExecutor};
 use systemprompt::models::auth::{AuthenticatedUser, Permission};
@@ -27,10 +27,20 @@ use crate::tempdb::TempDb;
 const PROJECT: &str = "acme-storefront";
 
 fn executor(pool: &Arc<PgPool>) -> McpToolExecutor {
-    let usage = Arc::new(ToolUsageRepository::new(&db_pool(pool)).expect("tool usage repository"));
-    let artifacts =
-        Arc::new(ArtifactIngest::from_db(&db_pool(pool), None).expect("artifact ingest"));
-    McpToolExecutor::new(usage, artifacts, "knowledge-bank")
+    let usage = Arc::new(ToolUsageRepository::new(&db_pool(pool)));
+    let artifacts = Arc::new(ArtifactIngest::new(
+        systemprompt::mcp::repository::ArtifactIngestRepositories::new(&db_pool(pool)),
+        None,
+    ));
+    let intents = Arc::new(systemprompt::ai::repository::AiRequestRepository::new(
+        &db_pool(pool),
+    ));
+    McpToolExecutor::new(
+        usage,
+        intents,
+        artifacts,
+        McpServerId::new("knowledge-bank"),
+    )
 }
 
 fn db_pool(pool: &Arc<PgPool>) -> systemprompt::database::DbPool {
@@ -50,12 +60,13 @@ fn request_context() -> SysRequestContext {
         TraceId::new("kb-edge-trace"),
         ContextId::try_new("00000000-0000-4000-8000-00000000e46e").expect("a valid v4 uuid"),
         AgentName::try_new("kb-edge-agent").expect("a valid agent name"),
+        systemprompt::identifiers::Actor::anonymous(systemprompt::identifiers::UserId::generate()),
     )
 }
 
 fn admin_context() -> SysRequestContext {
     request_context().with_user(AuthenticatedUser::new(
-        uuid::Uuid::new_v4(),
+        UserId::generate(),
         "kb-admin".to_owned(),
         "kb-admin@example.com".to_owned(),
         vec![Permission::Admin],

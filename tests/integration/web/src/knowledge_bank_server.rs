@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 use rmcp::ServerHandler;
 use sqlx::PgPool;
-use systemprompt::database::Database;
+use systemprompt::database::{Database, DbPool};
 use systemprompt::identifiers::McpServerId;
 use systemprompt::security::authz::{DenyAllHook, SharedAuthzHook};
 use systemprompt_mcp_knowledge_bank::store::{KnowledgeStore, ReadScope};
@@ -21,17 +21,25 @@ fn hook() -> SharedAuthzHook {
     Arc::new(DenyAllHook::null())
 }
 
+fn artifact_ingest(db_pool: &DbPool) -> Arc<systemprompt::mcp::ArtifactIngest> {
+    Arc::new(systemprompt::mcp::ArtifactIngest::new(
+        systemprompt::mcp::repository::ArtifactIngestRepositories::new(db_pool),
+        None,
+    ))
+}
+
 fn server(pool: &Arc<PgPool>) -> KnowledgeBankServer {
     let db_pool = Arc::new(Database::from_pools(
         Arc::clone(pool),
         Some(Arc::clone(pool)),
     ));
+    let ingest = artifact_ingest(&db_pool);
     KnowledgeBankServer::new(
         db_pool,
         McpServerId::try_new("knowledge-bank").expect("a valid server id"),
         hook(),
+        ingest,
     )
-    .expect("construct the knowledge-bank server against a live pool")
 }
 
 #[tokio::test]
@@ -92,12 +100,13 @@ async fn get_info_is_stable_across_service_ids_apart_from_the_name() {
         Arc::clone(&db.pool),
         Some(Arc::clone(&db.pool)),
     ));
+    let ingest = artifact_ingest(&db_pool);
     let renamed = KnowledgeBankServer::new(
         db_pool,
         McpServerId::try_new("kb-staging").expect("a valid server id"),
         hook(),
-    )
-    .expect("construct with a different service id");
+        ingest,
+    );
 
     let info = renamed.get_info();
 

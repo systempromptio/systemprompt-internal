@@ -5,13 +5,12 @@
 //! One prompt produces both the category and the `crm_intent` the proposal
 //! job plans from. The schema is derived from [`Categorization`] itself, so
 //! the struct is the contract; the response is validated against that same
-//! schema by core's [`StructuredOutputProcessor`] and only then deserialized.
+//! schema locally and only then deserialized.
 //! Nothing is coerced: an off-enum category or a missing field is a failure
 //! the job records and retries, never a value it quietly repairs.
 
 use schemars::JsonSchema;
 use serde::Deserialize;
-use systemprompt::ai::services::structured_output::StructuredOutputProcessor;
 use systemprompt::models::ai::{ResponseFormat, StructuredOutputOptions};
 pub use systemprompt_mcp_knowledge_bank::proposal::intent::CATEGORIES;
 use systemprompt_mcp_knowledge_bank::proposal::intent::{
@@ -149,16 +148,23 @@ pub fn structured_output_options() -> StructuredOutputOptions {
 }
 
 // Why: the provider was told to honour the schema; this is where that claim
-// is checked. Core's processor extracts the JSON and validates it strictly
+// is checked. The response is parsed as JSON and validated strictly
 // against the very schema the provider was given, so a violation names the
 // path that broke rather than surfacing as a serde error three layers down.
 pub fn parse_output(raw: &str) -> Result<Categorization, String> {
-    let value = StructuredOutputProcessor::process_response(
-        raw,
-        &response_format(),
-        &structured_output_options(),
-    )
-    .map_err(|e| format!("response violates the categorization schema: {e}"))?;
+    // JSON: validate the provider's raw response against its wire schema before
+    // typing it.
+    let value: serde_json::Value =
+        serde_json::from_str(raw).map_err(|e| format!("response is not valid JSON: {e}"))?;
+    let schema = response_schema();
+    let validator = jsonschema::validator_for(&schema)
+        .map_err(|e| format!("invalid categorization schema: {e}"))?;
+    validator.validate(&value).map_err(|e| {
+        format!(
+            "response violates the categorization schema at {}: {e}",
+            e.instance_path()
+        )
+    })?;
     serde_json::from_value(value)
         .map_err(|e| format!("validated response did not deserialize: {e}"))
 }

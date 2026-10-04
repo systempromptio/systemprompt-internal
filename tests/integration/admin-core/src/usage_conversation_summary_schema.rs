@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use systemprompt::database::{Database, install_extension_schemas};
+use systemprompt::database::{Database, install_extension_schemas_full};
 use systemprompt::extension::ExtensionRegistry;
 
 use crate::fixtures::{insert_user, unclaimed_email};
@@ -43,9 +43,14 @@ async fn existing_transcripts_gain_search_before_the_declarative_index() {
 
     let database = Database::from_pools(Arc::clone(&db.pool), Some(Arc::clone(&db.pool)));
     let registry = ExtensionRegistry::discover().expect("discover the production extensions");
-    install_extension_schemas(&registry, database.write())
-        .await
-        .expect("upgrade runs pending migration before dependent indexes");
+    install_extension_schemas_full(
+        &registry,
+        database.write(),
+        &[],
+        systemprompt::database::MigrationConfig::default(),
+    )
+    .await
+    .expect("upgrade runs pending migration before dependent indexes");
 
     let restored: bool = sqlx::query_scalar(
         "SELECT to_regclass('idx_session_transcripts_fts') IS NOT NULL

@@ -56,12 +56,14 @@ pub fn open_api_key(key: &[u8; 32], sealed: &str) -> Result<String, OdooError> {
         ));
     }
     let (nonce_bytes, ciphertext) = blob.split_at(NONCE_LEN);
+    let nonce: [u8; NONCE_LEN] = nonce_bytes.try_into().map_err(|_e| {
+        OdooError::Internal("stored Odoo API key has an invalid nonce length".to_owned())
+    })?;
+    let nonce = Nonce::from(nonce);
     let cipher = ChaCha20Poly1305::new(key.into());
-    let plaintext = cipher
-        .decrypt(Nonce::from_slice(nonce_bytes), ciphertext)
-        .map_err(|_e| {
-            OdooError::Internal("stored Odoo API key could not be decrypted".to_owned())
-        })?;
+    let plaintext = cipher.decrypt(&nonce, ciphertext).map_err(|_e| {
+        OdooError::Internal("stored Odoo API key could not be decrypted".to_owned())
+    })?;
     String::from_utf8(plaintext)
         .map_err(|_e| OdooError::Internal("decrypted Odoo API key is not UTF-8".to_owned()))
 }

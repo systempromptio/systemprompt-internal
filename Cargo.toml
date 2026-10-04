@@ -98,7 +98,7 @@ tempfile = "3.0"
 url = "2.5"
 zip = { version = "8", default-features = false, features = ["deflate-flate2"] }
 urlencoding = "2.1"
-jsonwebtoken = "10"
+jsonwebtoken = { version = "11", features = ["rust_crypto"] }
 saml = { version = "0.0.1-alpha.2", default-features = false, features = ["rsa-sha", "xmlenc"] }
 
 # Security
@@ -264,14 +264,13 @@ anyhow = { workspace = true }
 
 [lints]
 workspace = true
-# Core 0.47.0 is published; the patch below is dormant. Uncomment (together with the mirror in
-# tests/Cargo.toml — [patch] only applies per-workspace) to work against
-# ../systemprompt-core. Published releases resolve from crates.io; this retained
-# metadata documents the full override set for the next unreleased-core cycle.
+# Next builds use the sibling checkout pinned by bridge/CORE_REF. Root and
+# test workspaces each need these overrides because patches are workspace-local.
 # The version requirements above must track whatever the patch points at: a
 # patch whose version does not satisfy them is silently ignored and the build
 # falls back to the last published release.
-[workspace.metadata.unreleased-core-patch]
+# ACTIVE: core 0.62.0 is unreleased
+[patch.crates-io]
 systemprompt = { path = "../systemprompt-core/systemprompt" }
 systemprompt-models = { path = "../systemprompt-core/crates/shared/models" }
 systemprompt-traits = { path = "../systemprompt-core/crates/shared/traits" }
@@ -304,7 +303,8 @@ systemprompt-scheduler = { path = "../systemprompt-core/crates/app/scheduler" }
 systemprompt-generator = { path = "../systemprompt-core/crates/app/generator" }
 systemprompt-api = { path = "../systemprompt-core/crates/entry/api" }
 systemprompt-cli = { path = "../systemprompt-core/crates/entry/cli" }
-
-# Published macro dependency compatibility fix; see vendor/README.md.
-[patch.crates-io.proc-macro-error2]
-path = "vendor/proc-macro-error2"
+systemprompt-wire = { path = "../systemprompt-core/crates/shared/wire" }
+systemprompt-manifest = { path = "../systemprompt-core/crates/shared/manifest" }
+systemprompt-storage = { path = "../systemprompt-core/crates/infra/storage" }
+systemprompt-oauth-issuance = { path = "../systemprompt-core/crates/app/oauth-issuance" }
+systemprompt-gateway = { path = "../systemprompt-core/crates/app/gateway" }

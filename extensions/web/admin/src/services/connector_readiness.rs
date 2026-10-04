@@ -114,20 +114,33 @@ pub(crate) async fn probe_session_connection(
         |error: systemprompt::mcp::McpDomainError| AdminError::Upstream(error.to_string());
     let probe: AdminResult<McpConnectionResult> =
         match (server.server_type, server.port, server.endpoint.as_deref()) {
-            (McpServerType::Internal, Some(port), _) => {
-                validate_connection_with_auth(provider.slug(), "127.0.0.1", port, true)
-                    .await
-                    .map_err(upstream)
-            },
-            (McpServerType::External, _, Some(endpoint)) => {
-                validate_connection_by_url(provider.slug(), endpoint)
-                    .await
-                    .map_err(upstream)
-            },
+            (McpServerType::Internal, Some(port), _) => validate_connection_with_auth(
+                &systemprompt::identifiers::ServiceName::new(provider.slug()),
+                "127.0.0.1",
+                port,
+                true,
+            )
+            .await
+            .map_err(upstream),
+            (McpServerType::External, _, Some(endpoint)) => validate_connection_by_url(
+                &systemprompt::identifiers::ServiceName::new(provider.slug()),
+                endpoint,
+            )
+            .await
+            .map_err(upstream),
             _ => Err(AdminError::Unavailable(
                 "Connector declares neither a port nor an endpoint".into(),
             )),
         };
+    record_server_probe(&mut report, started, probe);
+    Ok(report.finish())
+}
+
+fn record_server_probe(
+    report: &mut VerificationReport,
+    started: Instant,
+    probe: AdminResult<McpConnectionResult>,
+) {
     let reachable = match &probe {
         Ok(result) if result.success => Ok(format!(
             "Server answered in {} ms",
@@ -149,5 +162,4 @@ pub(crate) async fn probe_session_connection(
         );
         report.record("tools", started, &Ok(tools));
     }
-    Ok(report.finish())
 }

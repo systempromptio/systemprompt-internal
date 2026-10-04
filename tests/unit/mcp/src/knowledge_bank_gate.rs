@@ -7,7 +7,7 @@
 //! yaml describes, and it is asserted here rather than through dispatch
 //! because it is a pure function of the request context.
 
-use systemprompt::identifiers::{AgentName, ContextId, SessionId, TraceId};
+use systemprompt::identifiers::{AgentName, ContextId, SessionId, TraceId, UserId};
 use systemprompt::models::auth::{AuthenticatedUser, Permission};
 use systemprompt::models::execution::context::RequestContext;
 use systemprompt_mcp_knowledge_bank::server::tool::require_admin;
@@ -19,12 +19,13 @@ fn anonymous() -> RequestContext {
         TraceId::new("kb-gate-trace"),
         ContextId::try_new("00000000-0000-4000-8000-00000000e46e").expect("a valid v4 uuid"),
         AgentName::try_new("kb-gate-agent").expect("a valid agent name"),
+        systemprompt::identifiers::Actor::anonymous(systemprompt::identifiers::UserId::generate()),
     )
 }
 
 fn signed_in_as(permission: Permission) -> RequestContext {
     anonymous().with_user(AuthenticatedUser::new(
-        uuid::Uuid::new_v4(),
+        UserId::generate(),
         "kb-caller".to_owned(),
         "kb-caller@example.com".to_owned(),
         vec![permission],

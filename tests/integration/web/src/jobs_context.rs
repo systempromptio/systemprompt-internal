@@ -11,10 +11,10 @@ use systemprompt::config::AppPaths;
 use systemprompt::database::Database;
 use systemprompt::extension::{AssetDefinition, AssetType, ExtensionRegistry};
 use systemprompt::identifiers::{Actor, UserId};
-use systemprompt::models::profile::{
+use systemprompt::manifest::profile::{
     ContentNegotiationConfig, PathsConfig, RateLimitsConfig, RetentionConfig, SecurityHeadersConfig,
 };
-use systemprompt::models::{Config, PathResolution};
+use systemprompt::manifest::{Config, PathResolution};
 use systemprompt::traits::{Job, JobContext};
 use systemprompt_web_jobs::{
     BundleAdminCssJob, ContentIngestionJob, ContentPrerenderJob as SiteContentPrerenderJob,
@@ -24,6 +24,24 @@ use systemprompt_web_jobs::{
 use tempfile::TempDir;
 
 use crate::tempdb::TempDb;
+
+fn assert_missing_database(error: &systemprompt::traits::ProviderError) {
+    use systemprompt::traits::ProviderError;
+    use systemprompt_web_jobs::JobError;
+
+    let missing = match error {
+        ProviderError::MissingDependency(missing) => missing,
+        ProviderError::Internal(source) => match source.downcast_ref::<JobError>() {
+            Some(JobError::MissingContext(missing)) => missing,
+            other => panic!("expected a typed missing dependency, got {other:?}"),
+        },
+        other => panic!("expected a typed missing dependency, got {other:?}"),
+    };
+    assert_eq!(
+        missing.type_name(),
+        std::any::type_name::<systemprompt::database::DbPool>()
+    );
+}
 
 // Every `PublishPipelineJob` stage plus its unconditional success record;
 // the total pins that no stage is silently dropped.
@@ -76,7 +94,7 @@ pub(crate) fn install_config() {
         return;
     }
     let installed = Config::install(Config {
-        instance_id: "jobs-context-tests".to_owned(),
+        instance_id: systemprompt::identifiers::InstanceId::new("jobs-context-tests"),
         metrics_port: None,
         max_concurrent_streams: 16,
         sitename: "internal-test".to_owned(),
@@ -173,18 +191,16 @@ impl Harness {
         // `DbPool` / `Arc<AppPaths>`, so each value is wrapped in a second `Arc`.
         JobContext::new(
             Actor::user(UserId::new("jobs-context-test")),
-            Arc::new(database),
-            Arc::new(()),
-            Arc::new(Arc::clone(&self.paths)),
+            systemprompt::traits::Dependencies::new()
+                .with(database)
+                .with(Arc::clone(&self.paths)),
         )
     }
 
     fn empty_context() -> JobContext {
         JobContext::new(
             Actor::user(UserId::new("jobs-context-test")),
-            Arc::new(()),
-            Arc::new(()),
-            Arc::new(()),
+            systemprompt::traits::Dependencies::new(),
         )
     }
 
@@ -195,9 +211,7 @@ impl Harness {
         ));
         JobContext::new(
             Actor::user(UserId::new("jobs-context-test")),
-            Arc::new(database),
-            Arc::new(()),
-            Arc::new(()),
+            systemprompt::traits::Dependencies::new().with(database),
         )
     }
 
@@ -412,10 +426,7 @@ async fn llms_txt_refuses_a_context_with_no_database() {
         .await
         .expect_err("the manifest is built from content rows");
 
-    assert!(
-        error.to_string().contains("DbPool"),
-        "the error names the missing context entry: {error}"
-    );
+    assert_missing_database(&error);
 
     h.cleanup().await;
 }
@@ -431,7 +442,7 @@ async fn sitemap_generation_refuses_a_context_with_no_database() {
         .await
         .expect_err("the sitemap is built from content rows");
 
-    assert!(error.to_string().contains("DbPool"));
+    assert_missing_database(&error);
 
     h.cleanup().await;
 }
@@ -648,7 +659,7 @@ async fn site_content_prerender_refuses_a_context_with_no_database() {
         .await
         .expect_err("prerendering reads content out of the database");
 
-    assert!(error.to_string().contains("DbPool"));
+    assert_missing_database(&error);
 }
 
 #[tokio::test]
@@ -753,7 +764,7 @@ async fn secret_migration_refuses_a_context_with_no_database() {
         .await
         .expect_err("the migration reads and rewrites database rows");
 
-    assert!(error.to_string().contains("Database not available"));
+    assert_missing_database(&error);
 }
 
 #[tokio::test]
@@ -795,7 +806,7 @@ async fn publish_pipeline_refuses_a_context_with_no_database() {
         .await
         .expect_err("the pipeline needs a database before it runs a single stage");
 
-    assert!(error.to_string().contains("Database not available"));
+    assert_missing_database(&error);
 }
 
 #[tokio::test]
@@ -937,7 +948,7 @@ async fn content_ingestion_refuses_a_context_with_no_database() {
         .await
         .expect_err("ingestion writes rows and so needs a write pool");
 
-    assert!(error.to_string().contains("Database not available"));
+    assert_missing_database(&error);
 }
 
 fn single_source_config(tree: &Path) -> String {

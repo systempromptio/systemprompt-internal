@@ -15,6 +15,7 @@ systemprompt-web-extension = { workspace = true }
 systemprompt-web-site = { workspace = true }
 systemprompt = { workspace = true, features = ["full"] }
 tokio = { workspace = true }
+reqwest = { workspace = true }
 serde_json = { workspace = true }
 chrono = { workspace = true }
 tempfile = { workspace = true }

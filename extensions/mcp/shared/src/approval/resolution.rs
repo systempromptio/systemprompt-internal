@@ -177,7 +177,7 @@ async fn write(
             client_id: principal.client_id.cloned(),
         },
         target: AuditTarget {
-            tool_name: subject.tool_name.to_owned(),
+            tool_name: McpToolName::new(subject.tool_name),
             plugin_id: None,
             tool_use_id: None,
         },
@@ -190,7 +190,9 @@ async fn write(
         approver,
         act_chain: principal.act_chain.to_vec(),
         context_id: None,
-        trace_id: principal.trace_id.map(str::to_owned),
+        trace_id: principal
+            .trace_id
+            .map(systemprompt::identifiers::TraceId::new),
     };
     if let Err(err) = record_decision(pool, &audit).await {
         tracing::error!(

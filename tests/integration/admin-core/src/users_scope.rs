@@ -147,6 +147,34 @@ async fn the_effective_roles_are_the_union_of_both_writers() {
     db.cleanup().await;
 }
 
+#[tokio::test]
+async fn a_project_filter_cannot_widen_a_callers_group_visibility() {
+    let Some(db) = TempDb::create().await else {
+        return;
+    };
+    let project = unique("restricted-project");
+    let user = insert_user(
+        &db.pool,
+        &unique("project-member"),
+        &unclaimed_email("project"),
+    )
+    .await;
+    crate::fixtures::insert_project(&db.pool, &project, "Restricted").await;
+    crate::fixtures::insert_project_member(&db.pool, &project, &user, "manual").await;
+    let scope = get_subject_scope(
+        &db.pool,
+        &ScopeRequest {
+            visibility: Visibility::Groups(Vec::new()),
+            group: None,
+            project: Some(project),
+        },
+    )
+    .await
+    .expect("resolve project scope");
+    assert_eq!(scope, SubjectScope::Users(Vec::new()));
+    db.cleanup().await;
+}
+
 // Why: revoking a manual grant must not take a role the directory also holds.
 #[tokio::test]
 async fn dropping_a_manual_role_leaves_the_directory_half_standing() {

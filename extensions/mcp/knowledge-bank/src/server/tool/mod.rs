@@ -61,7 +61,12 @@ pub(super) async fn authenticate_tool_request(
     ctx: &RequestContext<RoleServer>,
     authz_hook: &SharedAuthzHook,
 ) -> Result<SysRequestContext, McpError> {
-    let rbac_result = enforce_rbac_from_registry(ctx, service_id, authz_hook).await;
+    let rbac_result = enforce_rbac_from_registry(
+        ctx,
+        &systemprompt::identifiers::McpServerId::new(service_id),
+        authz_hook,
+    )
+    .await;
 
     match rbac_result {
         Ok(result) => {

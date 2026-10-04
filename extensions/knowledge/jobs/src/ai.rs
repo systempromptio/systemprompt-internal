@@ -25,11 +25,10 @@ pub(crate) fn build_ai_service(
         &services_config.ai.mcp.resilience,
     ));
     let session_provider = Arc::new(UsersAiSessionProvider::from_repository(
-        SessionRepository::new(db_pool).map_err(other)?,
+        SessionRepository::new(db_pool),
     ));
     Ok(Arc::new(
         AiService::new(
-            db_pool,
             &services_config.providers,
             &services_config.ai,
             AiServiceProviders {

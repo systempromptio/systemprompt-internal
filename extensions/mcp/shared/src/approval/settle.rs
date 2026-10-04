@@ -77,5 +77,11 @@ pub(super) async fn settle(
         ApprovalOutcome::StillPending(_) => GateOutcome::Held(Box::new(
             InputRequiredResult::from_request_state(held.call_id.as_str().to_owned()),
         )),
+        ApprovalOutcome::Missing => {
+            tracing::error!(tool_name, call_id = %held.call_id, "approval request missing; refusing call");
+            GateOutcome::Refused(Box::new(refusal(
+                "The approval request is unavailable. No action was performed; try again once governance is ready.",
+            )))
+        },
     }
 }

@@ -158,7 +158,7 @@ pub(crate) fn create_tool(def: &ToolDef<'_>) -> Tool {
         Effect::Destructive => Some(ToolAnnotations::new().destructive(true)),
     };
     tool.meta = Some(MetaObject(tool_ui_meta(
-        SERVER_NAME,
+        &systemprompt::identifiers::McpServerId::new(SERVER_NAME),
         &default_tool_visibility(),
     )));
     tool

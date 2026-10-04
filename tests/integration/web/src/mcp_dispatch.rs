@@ -15,7 +15,7 @@ use std::sync::Arc;
 use rmcp::model::CallToolRequestParams;
 use sqlx::PgPool;
 use systemprompt::database::Database;
-use systemprompt::identifiers::{AgentName, ContextId, SessionId, TraceId};
+use systemprompt::identifiers::{AgentName, ContextId, McpServerId, SessionId, TraceId, UserId};
 use systemprompt::mcp::repository::ToolUsageRepository;
 use systemprompt::mcp::{ArtifactIngest, McpToolExecutor};
 use systemprompt::models::auth::{AuthenticatedUser, Permission};
@@ -34,9 +34,15 @@ fn db_pool(pool: &Arc<PgPool>) -> Arc<Database> {
 
 fn executor(pool: &Arc<PgPool>, server_name: &str) -> McpToolExecutor {
     let db_pool = db_pool(pool);
-    let usage = Arc::new(ToolUsageRepository::new(&db_pool).expect("tool usage repository"));
-    let artifacts = Arc::new(ArtifactIngest::from_db(&db_pool, None).expect("artifact ingest"));
-    McpToolExecutor::new(usage, artifacts, server_name)
+    let usage = Arc::new(ToolUsageRepository::new(&db_pool));
+    let artifacts = Arc::new(ArtifactIngest::new(
+        systemprompt::mcp::repository::ArtifactIngestRepositories::new(&db_pool),
+        None,
+    ));
+    let intents = Arc::new(systemprompt::ai::repository::AiRequestRepository::new(
+        &db_pool,
+    ));
+    McpToolExecutor::new(usage, intents, artifacts, McpServerId::new(server_name))
 }
 
 fn request_context() -> SysRequestContext {
@@ -45,12 +51,13 @@ fn request_context() -> SysRequestContext {
         TraceId::new("dispatch-trace"),
         ContextId::try_new("00000000-0000-4000-8000-00000000d15b").expect("a valid v4 uuid"),
         AgentName::try_new("dispatch-agent").expect("a valid agent name"),
+        systemprompt::identifiers::Actor::anonymous(systemprompt::identifiers::UserId::generate()),
     )
 }
 
 fn user_with(permission: Permission) -> AuthenticatedUser {
     AuthenticatedUser::new(
-        uuid::Uuid::new_v4(),
+        UserId::generate(),
         "dispatcher".to_owned(),
         "dispatcher@example.com".to_owned(),
         vec![permission],
@@ -376,7 +383,10 @@ async fn an_unknown_systemprompt_tool_points_the_caller_at_the_cli_skill() {
     };
     let executor = executor(&db.pool, "systemprompt");
     let db_pool = db_pool(&db.pool);
-    let ingest = Arc::new(ArtifactIngest::from_db(&db_pool, None).expect("artifact ingest"));
+    let ingest = Arc::new(ArtifactIngest::new(
+        systemprompt::mcp::repository::ArtifactIngestRepositories::new(&db_pool),
+        None,
+    ));
 
     let request = call("not_a_tool", serde_json::json!({}));
     let profile = client();

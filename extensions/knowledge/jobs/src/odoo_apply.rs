@@ -45,9 +45,7 @@ impl Job for KnowledgeOdooApplyJob {
         ctx: &JobContext,
     ) -> Result<JobResult, systemprompt::traits::ProviderError> {
         let start = std::time::Instant::now();
-        let db = ctx
-            .db_pool::<DbPool>()
-            .ok_or(KnowledgeJobError::MissingContext("DbPool"))?;
+        let db = ctx.get::<DbPool>()?;
         let store = KnowledgeStore::new(Arc::clone(db));
         let pg = store.write_pool().map_err(KnowledgeJobError::from)?;
         let repo = ApprovalRepository::new((*pg).clone());

@@ -265,19 +265,3 @@ pub async fn find_api_key_user(pool: &PgPool, presented: &str) -> Result<Option<
         email: r.email,
     }))
 }
-
-fn generate_secret() -> (String, String, String) {
-    let mut raw = [0u8; SECRET_BYTES];
-    rand::rng().fill_bytes(&mut raw);
-    let encoded = hex::encode(raw);
-    let key_prefix = format!("{API_KEY_PREFIX}{}", &encoded[..PREFIX_ID_BYTES * 2]);
-    let secret = format!("{key_prefix}.{}", &encoded[PREFIX_ID_BYTES * 2..]);
-    let key_hash = hash_secret(&secret);
-    (secret, key_prefix, key_hash)
-}
-
-fn hash_secret(secret: &str) -> String {
-    let mut hasher = Sha256::new();
-    hasher.update(secret.as_bytes());
-    hex::encode(hasher.finalize())
-}

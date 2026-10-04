@@ -106,69 +106,24 @@ async fn resolve_subject_scope(
     pool: &PgPool,
     request: &super::ScopeRequest,
 ) -> Result<super::SubjectScope, sqlx::Error> {
-    let explicit_group = request.group.is_some();
-    let explicit_project = request.project.is_some();
-    // Why: a scoped caller naming one container asks about that container
-    // alone; the other dimension must not silently intersect it away.
-    let (groups, projects) = match (request.is_scoped(), explicit_group, explicit_project) {
-        (true, true, false) => (request.group_filter(), None),
-        (true, false, true) => (None, request.project_filter()),
-        _ => (request.group_filter(), request.project_filter()),
-    };
-    if groups.is_none() && projects.is_none() {
+    let groups = request.group_filter();
+    if groups.is_none() && request.project.is_none() {
         return Ok(super::SubjectScope::All);
     }
 
-    // Why: an explicit `?group=` / `?project=` filter is a question about the
-    // container's spend, so it also admits anyone with a request stamped to
-    // it — a person who has since moved keeps showing under the container
-    // their history was attributed to. The visibility narrowing a scoped
-    // caller gets without asking stays on current membership, so leaving a
-    // group ends what its peers can see of you. A scoped caller's own id is
-    // always admitted: their view can narrow to nothing but themselves.
-    //
-    // A console caller filtering on both containers asks for their
-    // intersection; a scoped caller's containers are a union — every person
-    // their marketplaces reach, by whichever container reaches them.
-    let union = request.is_scoped() && !explicit_group && !explicit_project;
+    // Why: a scoped caller's group restriction remains in force even when the
+    // query names a project; a query string cannot widen visibility.
     let ids = sqlx::query_scalar!(
-        r#"WITH in_groups AS (
-               SELECT u.id
-               FROM users u
-               WHERE $1::TEXT[] IS NOT NULL AND (
-                     EXISTS (SELECT 1 FROM user_groups ug
-                             WHERE ug.user_id = u.id AND ug.group_id = ANY($1))
-                  OR ($3::BOOLEAN AND EXISTS (
-                             SELECT 1 FROM ai_request_scopes s
-                             WHERE s.user_id = u.id AND s.group_id = ANY($1))))
-           ),
-           in_projects AS (
-               SELECT u.id
-               FROM users u
-               WHERE $2::TEXT[] IS NOT NULL AND (
-                     EXISTS (SELECT 1 FROM user_projects pm
-                             WHERE pm.user_id = u.id AND pm.project_id = ANY($2))
-                  OR ($4::BOOLEAN AND EXISTS (
-                             SELECT 1 FROM ai_request_scopes s
-                             WHERE s.user_id = u.id AND s.project_id = ANY($2))))
-           )
-           SELECT u.id AS "id!"
+        r#"SELECT u.id AS "id!"
            FROM users u
-           WHERE u.id = $6::TEXT
-              OR CASE
-                   WHEN $5::BOOLEAN THEN
-                        u.id IN (SELECT id FROM in_groups)
-                     OR u.id IN (SELECT id FROM in_projects)
-                   ELSE
-                        ($1::TEXT[] IS NULL OR u.id IN (SELECT id FROM in_groups))
-                    AND ($2::TEXT[] IS NULL OR u.id IN (SELECT id FROM in_projects))
-                 END"#,
+           WHERE ($1::TEXT[] IS NULL OR EXISTS (
+                     SELECT 1 FROM user_groups ug
+                     WHERE ug.user_id = u.id AND ug.group_id = ANY($1)))
+             AND ($2::TEXT IS NULL OR EXISTS (
+                     SELECT 1 FROM project_members pm
+                     WHERE pm.user_id = u.id AND pm.project_id = $2))"#,
         groups.as_deref(),
-        projects.as_deref(),
-        explicit_group,
-        explicit_project,
-        union,
-        request.self_id()
+        request.project.as_deref()
     )
     .fetch_all(pool)
     .await?;

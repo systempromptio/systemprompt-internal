@@ -59,7 +59,7 @@ fn try_init() -> bool {
 
     let key = systemprompt_security::keys::RsaSigningKey::generate()
         .expect("generate an ephemeral RSA signing key");
-    systemprompt_security::keys::authority::install_for_test(key);
+    systemprompt_security::keys::authority::install(key).expect("install fixture signing key");
     true
 }
 
@@ -143,7 +143,7 @@ fn copy_tree(from: &std::path::Path, to: &std::path::Path) {
 }
 
 pub(crate) fn jwt_issuer() -> String {
-    systemprompt::models::Config::get()
+    systemprompt::manifest::Config::get()
         .expect("config installed by init()")
         .jwt_issuer
         .clone()

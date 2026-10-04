@@ -102,6 +102,7 @@ build-force *FLAGS:
 _build-uncoordinated *FLAGS:
     #!/usr/bin/env bash
     set -euo pipefail
+    bash scripts/check-core-ref.sh
     # Explicit offline validation must never migrate an existing database.
     if [ "${SQLX_OFFLINE:-}" = "true" ]; then
         export CC="${CC:-clang}"

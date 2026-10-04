@@ -10,6 +10,7 @@ trap 'rm -rf "$state_dir"' EXIT
 export head base merge version state_dir
 mock_git() {
     case "$*" in
+        '-C ../systemprompt-core rev-parse HEAD') tr -d '[:space:]' < bridge/CORE_REF ;;
         'status --porcelain'|'branch --show-current'|"merge-base --is-ancestor $base $head") ;;
         'rev-parse HEAD'|'rev-parse origin/next') echo "$head" ;;
         'rev-parse origin/main')

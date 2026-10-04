@@ -6,7 +6,7 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum KnowledgeJobError {
     #[error("Job context missing required value: {0}")]
-    MissingContext(&'static str),
+    MissingContext(#[from] systemprompt::traits::MissingDependency),
 
     #[error("Configuration error: {0}")]
     Config(String),
@@ -29,6 +29,6 @@ pub enum KnowledgeJobError {
 
 impl From<KnowledgeJobError> for ProviderError {
     fn from(err: KnowledgeJobError) -> Self {
-        Self::Internal(err.to_string())
+        Self::Internal(Box::new(err))
     }
 }

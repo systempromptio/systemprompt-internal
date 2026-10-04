@@ -52,7 +52,7 @@ fi
 mapfile -t overlay_files < <(
     cd "$OVERLAY" && find . -type f \
         \( -name '*.css' -o -name '*.js' -o -name '*.html' -o -name '*.ftl' \) \
-        -printf '%P\n' | sort
+        -print | sed 's|^\./||' | sort
 )
 
 if [ "${#overlay_files[@]}" -eq 0 ]; then

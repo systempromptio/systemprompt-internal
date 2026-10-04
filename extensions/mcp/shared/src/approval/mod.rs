@@ -187,15 +187,15 @@ fn held_call<'a>(
 async fn open_hold(
     repo: &ApprovalRepository,
     held: &Held<'_>,
-) -> Result<(), systemprompt::database::RepositoryError> {
+) -> Result<(), systemprompt::traits::RepositoryError> {
     repo.open(&NewApprovalRequest {
         call_id: &held.call_id,
-        tool_name: held.tool_name,
-        server_name: held.server_name,
+        tool_name: &McpToolName::new(held.tool_name),
+        server_name: &systemprompt::identifiers::McpServerId::new(held.server_name),
         arguments: &held.arguments,
         requested_by: held.ctx.user_id(),
         session_id: Some(held.ctx.session_id()),
-        trace_id: Some(held.ctx.trace_id().as_str()),
+        trace_id: Some(held.ctx.trace_id()),
         rule: &held.rule,
         expires_in_seconds: held.settings.expiry_seconds,
     })

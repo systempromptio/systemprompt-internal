@@ -25,6 +25,7 @@ tracing = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 schemars = { workspace = true }
+jsonschema = { version = "0.56", default-features = false }
 uuid = { workspace = true }
 thiserror = { workspace = true }
 inventory = { workspace = true }

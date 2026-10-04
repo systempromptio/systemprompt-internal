@@ -1,0 +1,132 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH membership AS (\n                 SELECT ug.user_id, ug.group_id AS scope_id\n                   FROM user_groups ug\n                  WHERE $1::TEXT = 'group' AND NOT $2::BOOLEAN\n                 UNION\n                 SELECT pm.user_id, pm.project_id AS scope_id\n                   FROM user_projects pm\n                  WHERE $1::TEXT = 'project' AND NOT $2::BOOLEAN\n                 UNION\n                 SELECT d.user_id, d.primary_group_id AS scope_id\n                   FROM user_scope_defaults d\n                  WHERE $1::TEXT = 'group' AND $2::BOOLEAN\n                    AND d.primary_group_id IS NOT NULL\n                 UNION\n                 SELECT d.user_id, d.primary_project_id AS scope_id\n                   FROM user_scope_defaults d\n                  WHERE $1::TEXT = 'project' AND $2::BOOLEAN\n                    AND d.primary_project_id IS NOT NULL\n             ), request_scope AS (\n                 SELECT s.request_id, s.user_id,\n                        CASE WHEN $1::TEXT = 'group' THEN s.group_id\n                             ELSE s.project_id END AS scope_id,\n                        s.source\n                   FROM ai_request_scopes s\n                  WHERE $2::BOOLEAN\n                 UNION ALL\n                 SELECT r.id AS request_id, r.user_id, m.scope_id, 'member' AS source\n                   FROM ai_requests r\n                   JOIN membership m ON m.user_id = r.user_id\n                  WHERE NOT $2::BOOLEAN AND r.actor_kind = 'user'\n             ) SELECT p.id AS \"id!: ProjectId\",\n                  p.name AS \"name!\",\n                  p.description AS \"description?\",\n                  (SELECT COUNT(DISTINCT pm.user_id) FROM project_members pm\n                    WHERE pm.project_id = p.id)::BIGINT AS \"member_count!\",\n                  (SELECT COUNT(DISTINCT ug.group_id)\n                     FROM project_members pm\n                     JOIN user_groups ug ON ug.user_id = pm.user_id\n                    WHERE pm.project_id = p.id)::BIGINT AS \"group_count!\",\n                  (SELECT COUNT(DISTINCT m.user_id) FROM membership m\n                    WHERE m.scope_id = p.id)::BIGINT AS \"attributed_members!\",\n                  COALESCE(r.requests, 0)::BIGINT AS \"requests!\",\n                  COALESCE(r.active_members, 0)::BIGINT AS \"active_members!\",\n                  COALESCE(r.tokens, 0)::BIGINT AS \"tokens!\",\n                  COALESCE(r.cost_microdollars, 0)::BIGINT AS \"cost_microdollars!\",\n                  COALESCE(r.models_used, 0)::BIGINT AS \"models_used!\",\n                  r.top_model AS \"top_model?\",\n                  COALESCE(r.clients_used, 0)::BIGINT AS \"clients_used!\",\n                  r.top_client AS \"top_client?\"\n           FROM projects p\n           LEFT JOIN (\n               SELECT rs.scope_id, COUNT(x.id) AS requests,\n                      COUNT(DISTINCT x.user_id) AS active_members,\n                      COALESCE(SUM(COALESCE(x.tokens_used, COALESCE(x.input_tokens, 0) + COALESCE(x.output_tokens, 0) + COALESCE(x.cache_read_tokens, 0) + COALESCE(x.cache_creation_tokens, 0))), 0) AS tokens,\n                      COALESCE(SUM(x.cost_microdollars), 0) AS cost_microdollars,\n                      COUNT(DISTINCT x.model) AS models_used,\n                      MODE() WITHIN GROUP (ORDER BY x.model) AS top_model,\n                      COUNT(DISTINCT x.client_kind) FILTER (WHERE x.client_kind NOT IN ('unknown', 'internal')) AS clients_used,\n                      MODE() WITHIN GROUP (ORDER BY x.client_kind) FILTER (WHERE x.client_kind NOT IN ('unknown', 'internal')) AS top_client\n               FROM request_scope rs\n               JOIN ai_requests x ON x.id = rs.request_id\n                AND x.created_at >= NOW() - make_interval(days => $3)\n               GROUP BY rs.scope_id\n           ) r ON r.scope_id = p.id\n           ORDER BY p.name\n           LIMIT $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!: ProjectId",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "projects",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "projects",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "description?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "projects",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "member_count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "group_count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "attributed_members!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "requests!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "active_members!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "tokens!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
+        "name": "cost_microdollars!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 10,
+        "name": "models_used!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 11,
+        "name": "top_model?",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 12,
+        "name": "clients_used!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 13,
+        "name": "top_client?",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Bool",
+        "Int4",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "e47e242b3cbf95f07bc55e0f5924e1a2284b3e43bac1d4cac1236360eb85cb14"
+}

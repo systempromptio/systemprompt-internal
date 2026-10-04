@@ -1,15 +1,13 @@
-use systemprompt::ai::SafetyScanner;
+use systemprompt::gateway::SafetyScanner;
 use systemprompt::identifiers::{CallId, ModelId, SessionId, UserId};
-use systemprompt::models::wire::canonical::{
-    CanonicalContent, CanonicalMessage, CanonicalRequest, Role,
-};
-use systemprompt::models::wire::inspect::{SurfaceBudget, string_leaves};
+use systemprompt::wire::canonical::{CanonicalContent, CanonicalMessage, CanonicalRequest, Role};
+use systemprompt::wire::inspect::{SurfaceBudget, string_leaves};
 use systemprompt_security::authz::types::Decision;
 use systemprompt_security::policy::secrets::redact_spans;
 use systemprompt_security::policy::types::AccessScope;
 use systemprompt_security::policy::{
     AgentScope, GovernanceConfig, GovernanceEngine, GovernedInput, GovernedTarget, McpToolInput,
-    PolicyContext,
+    PolicyContext, PolicyMode,
 };
 use systemprompt_web_admin::gateway_safety::PiiScanner;
 
@@ -188,23 +186,39 @@ async fn historical_pii_is_separate_in_canonical_and_forwarded_requests() {
         if forwarded {
             request.forwarded_surface = string_leaves(br#"{"messages":[{"role":"user","content":"Phone +442079460100"},{"role":"user","content":"Summarize"}]}"#, SurfaceBudget::default());
         }
-        assert!(PiiScanner::new().scan_request(&request).await.is_empty());
-        let history = PiiScanner::new().scan_request_history(&request).await;
+        assert!(
+            PiiScanner::new()
+                .scan_request(&request)
+                .await
+                .expect("configured scanner succeeds")
+                .is_empty()
+        );
+        let history = PiiScanner::new()
+            .scan_request_history(&request)
+            .await
+            .expect("configured scanner succeeds");
         assert_eq!(history.len(), 1);
         assert_eq!(history[0].phase, "request_history");
     }
 }
 
 #[test]
-fn installation_omits_aws_and_keeps_warn_mode() {
+fn installation_warns_on_secrets_and_enforces_explicit_approval() {
     let cfg = GovernanceConfig::parse(include_str!("../../../../services/governance/config.yaml"))
         .unwrap();
-    assert_eq!(cfg.mode.to_string(), "warn");
-    assert!(
-        cfg.policies
-            .iter()
-            .all(|policy| policy.mode.to_string() == "warn")
-    );
+    assert_eq!(cfg.mode, PolicyMode::Warn);
+    let approval = cfg
+        .policies
+        .iter()
+        .find(|policy| policy.id == "require_approval")
+        .expect("outbound writes require explicit approval");
+    assert!(approval.enabled);
+    assert_eq!(approval.mode, PolicyMode::Enforce);
+    for policy in &cfg.policies {
+        if policy.id != "require_approval" {
+            assert_eq!(policy.mode, PolicyMode::Warn, "{}", policy.id);
+        }
+    }
     let engine = GovernanceEngine::from_config(&cfg).unwrap();
     assert!(!engine.enforces_prompt_secrets());
     let secret_scan = cfg
@@ -218,5 +232,6 @@ fn installation_omits_aws_and_keeps_warn_mode() {
         .iter()
         .filter_map(|pattern| pattern["id"].as_str())
         .collect::<Vec<_>>();
-    assert!(ids.iter().all(|id| !id.starts_with("aws-")));
+    assert!(ids.contains(&"aws-access-key"));
+    assert!(ids.contains(&"aws-secret-key"));
 }

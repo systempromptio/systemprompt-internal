@@ -2,12 +2,12 @@
 // model emits inside a tool call never appears in a `Text` block, so a scanner
 // reading only that variant lets it out; these tests pin the widened surface.
 
-use systemprompt::ai::SafetyScanner;
+use systemprompt::gateway::SafetyScanner;
 use systemprompt::identifiers::ModelId;
-use systemprompt::models::wire::canonical::{
+use systemprompt::wire::canonical::{
     CanonicalContent, CanonicalMessage, CanonicalRequest, CanonicalResponse, Role,
 };
-use systemprompt::models::wire::inspect::{SurfaceBudget, string_leaves};
+use systemprompt::wire::inspect::{SurfaceBudget, string_leaves};
 use systemprompt_security::policy::{GovernanceConfig, GovernanceEngine};
 use systemprompt_web_admin::gateway_safety::SecretsScanner;
 
@@ -41,7 +41,10 @@ async fn credential_in_a_tool_use_argument_is_flagged() {
         cache_control: None,
     }]);
 
-    let findings = configured_scanner().scan_response_final(&resp).await;
+    let findings = configured_scanner()
+        .scan_response_final(&resp)
+        .await
+        .expect("configured scanner succeeds");
 
     assert_eq!(findings.len(), 1, "got {findings:?}");
     assert_eq!(findings[0].category, "secret");
@@ -59,7 +62,10 @@ async fn credential_in_a_tool_result_is_flagged() {
         cache_control: None,
     }]);
 
-    let findings = configured_scanner().scan_response_final(&resp).await;
+    let findings = configured_scanner()
+        .scan_response_final(&resp)
+        .await
+        .expect("configured scanner succeeds");
 
     assert_eq!(findings.len(), 1, "got {findings:?}");
     assert_eq!(findings[0].category, "secret");
@@ -73,7 +79,10 @@ async fn credential_only_in_the_received_surface_is_flagged() {
         SurfaceBudget::default(),
     );
 
-    let findings = configured_scanner().scan_response_final(&resp).await;
+    let findings = configured_scanner()
+        .scan_response_final(&resp)
+        .await
+        .expect("configured scanner succeeds");
 
     assert_eq!(findings.len(), 1, "got {findings:?}");
     assert_eq!(findings[0].category, "secret");
@@ -94,7 +103,13 @@ async fn a_credential_in_a_request_is_left_to_the_governance_chain() {
         256,
     );
 
-    assert!(configured_scanner().scan_request(&req).await.is_empty());
+    assert!(
+        configured_scanner()
+            .scan_request(&req)
+            .await
+            .expect("configured scanner succeeds")
+            .is_empty()
+    );
 }
 
 #[tokio::test]
@@ -107,6 +122,7 @@ async fn a_clean_response_yields_nothing() {
         configured_scanner()
             .scan_response_final(&resp)
             .await
+            .expect("configured scanner succeeds")
             .is_empty()
     );
 }
@@ -122,6 +138,7 @@ async fn an_aws_access_key_in_a_response_is_flagged() {
         !configured_scanner()
             .scan_response_final(&resp)
             .await
+            .expect("configured scanner succeeds")
             .is_empty()
     );
 }

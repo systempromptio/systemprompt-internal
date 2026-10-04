@@ -146,6 +146,7 @@ async fn raw_call_as(
         TraceId::generate(),
         ContextId::generate(),
         AgentName::try_new("e2e-tests").expect("a valid agent name"),
+        systemprompt::identifiers::Actor::anonymous(systemprompt::identifiers::UserId::generate()),
     );
     // Why: the transport calls `bearer_auth` on this value, which prepends
     // "Bearer " itself — passing a full header here reaches the server as
@@ -254,6 +255,7 @@ pub async fn list_tools(port: u16, bearer: &str) -> Result<Vec<rmcp::model::Tool
         TraceId::generate(),
         ContextId::generate(),
         AgentName::try_new("e2e-tests").expect("a valid agent name"),
+        systemprompt::identifiers::Actor::anonymous(systemprompt::identifiers::UserId::generate()),
     );
     let config =
         StreamableHttpClientTransportConfig::with_uri(format!("http://127.0.0.1:{port}/mcp"))

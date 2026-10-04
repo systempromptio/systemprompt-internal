@@ -114,11 +114,11 @@ fn install_profile(secrets: &FixtureSecrets<'_>, govern_port: u16) {
         .expect("generate an ephemeral RSA signing key");
     key.write_pem_file(&dir.join("signing_key.pem"))
         .expect("write the signing key beside the profile");
-    systemprompt_security::keys::authority::install_for_test(key);
+    systemprompt_security::keys::authority::install(key).expect("install test signing key");
 }
 
 fn jwt_issuer() -> String {
-    systemprompt::models::Config::get()
+    systemprompt::manifest::Config::get()
         .expect("config installed")
         .jwt_issuer
         .clone()
@@ -226,9 +226,14 @@ async fn reapply_seeds(pool: &Arc<PgPool>) {
         systemprompt::database::Database::from_pools(Arc::clone(pool), Some(Arc::clone(pool)));
     let registry = systemprompt::extension::ExtensionRegistry::discover()
         .expect("discover extension registrations");
-    systemprompt::database::install_extension_schemas(&registry, database.write())
-        .await
-        .expect("re-apply extension seeds after provisioning the admin");
+    systemprompt::database::install_extension_schemas_full(
+        &registry,
+        database.write(),
+        &[],
+        systemprompt::database::MigrationConfig::default(),
+    )
+    .await
+    .expect("re-apply extension seeds after provisioning the admin");
 }
 
 // The real logins, matching the live suite and the production clone. This

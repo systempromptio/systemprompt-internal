@@ -11,7 +11,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use systemprompt::extension::prelude::{PagePrepareContext, PagePrerenderer};
-use systemprompt::models::services::WebConfig;
+use systemprompt::manifest::services::WebConfig;
 use systemprompt_web_site::skills_page::{SkillsPageConfig, SkillsPagePrerenderer};
 
 const WEB_CONFIG_PATH: &str = concat!(
@@ -45,9 +45,9 @@ fn skills(entries: &[(&str, Option<&str>)]) -> Arc<SkillsPageConfig> {
 
 fn prepare(config: Arc<SkillsPageConfig>) -> systemprompt::extension::prelude::PageRenderSpec {
     let web = web_config();
-    let erased = ();
+    let erased = systemprompt::traits::Dependencies::new();
     let dist = std::path::Path::new("/nonexistent-dist");
-    let ctx = PagePrepareContext::new(&web, &erased, &erased, dist);
+    let ctx = PagePrepareContext::new(&web, &erased, dist);
 
     tokio::runtime::Builder::new_current_thread()
         .build()

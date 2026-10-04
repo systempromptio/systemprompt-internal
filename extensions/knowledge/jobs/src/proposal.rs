@@ -78,9 +78,7 @@ impl Job for KnowledgeProposalJob {
         ctx: &JobContext,
     ) -> Result<JobResult, systemprompt::traits::ProviderError> {
         let start = std::time::Instant::now();
-        let db = ctx
-            .db_pool::<DbPool>()
-            .ok_or(KnowledgeJobError::MissingContext("DbPool"))?;
+        let db = ctx.get::<DbPool>()?;
         let store = KnowledgeStore::new(Arc::clone(db));
         let batch_size = ctx
             .get_parameter_parsed::<i64>("batch_size")?

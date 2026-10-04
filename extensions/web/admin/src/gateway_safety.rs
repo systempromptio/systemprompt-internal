@@ -16,8 +16,8 @@
 //! no such overlap: the governance chain is request-only, so this is the sole
 //! thing standing between a model that echoes a credential and the client.
 
-use systemprompt::ai::{Finding, SafetyScanner, Severity, register_safety_scanner};
-use systemprompt::models::wire::canonical::{CanonicalRequest, CanonicalResponse};
+use systemprompt::gateway::{Finding, SafetyScanner, ScanError, Severity, register_safety_scanner};
+use systemprompt::wire::canonical::{CanonicalRequest, CanonicalResponse};
 
 use std::sync::LazyLock;
 
@@ -28,24 +28,32 @@ use systemprompt_security::policy::{GovernanceConfig, GovernedInput, SecretScann
 // rate limiter would double every budget). The secret catalog is stateless,
 // so it is compiled once here from the same `secret_scan` block the chain
 // reads — one configuration, two consumers, no second budget.
-static CONFIGURED_SCANNER: LazyLock<Option<SecretScanner>> = LazyLock::new(|| {
-    let profile = systemprompt::config::ProfileBootstrap::get()
-        .inspect_err(|error| tracing::error!(%error, "response secret scanner: no profile"))
-        .ok()?;
-    let path = std::path::Path::new(&profile.paths.services).join("governance/config.yaml");
-    let config = GovernanceConfig::load(&path)
-        .inspect_err(
-            |error| tracing::error!(%error, "response secret scanner configuration rejected"),
-        )
-        .ok()?;
-    let policy = config
-        .policies
-        .into_iter()
-        .find(|policy| policy.id == "secret_scan" && policy.enabled)?;
-    SecretScanner::from_policy_yaml(&policy.params)
-        .inspect_err(|error| tracing::error!(%error, "response secret scanner patterns rejected"))
-        .ok()
-});
+static CONFIGURED_SCANNER: LazyLock<Result<Option<SecretScanner>, ScanError>> =
+    LazyLock::new(|| {
+        let profile =
+            systemprompt::config::ProfileBootstrap::get().map_err(|error| ScanError::Failed {
+                scanner: "secrets",
+                reason: error.to_string(),
+            })?;
+        let path = std::path::Path::new(&profile.paths.services).join("governance/config.yaml");
+        let config = GovernanceConfig::load(&path).map_err(|error| ScanError::Failed {
+            scanner: "secrets",
+            reason: error.to_string(),
+        })?;
+        let Some(policy) = config
+            .policies
+            .into_iter()
+            .find(|policy| policy.id == "secret_scan" && policy.enabled)
+        else {
+            return Ok(None);
+        };
+        SecretScanner::from_policy_yaml(&policy.params)
+            .map(Some)
+            .map_err(|error| ScanError::Failed {
+                scanner: "secrets",
+                reason: error.to_string(),
+            })
+    });
 
 #[derive(Debug, Clone, Default)]
 pub struct SecretsScanner {
@@ -72,25 +80,37 @@ impl SafetyScanner for SecretsScanner {
         "secrets"
     }
 
-    async fn scan_request(&self, _req: &CanonicalRequest) -> Vec<Finding> {
-        Vec::new()
+    async fn scan_request(&self, _req: &CanonicalRequest) -> Result<Vec<Finding>, ScanError> {
+        Ok(Vec::new())
     }
 
-    async fn scan_response_final(&self, response: &CanonicalResponse) -> Vec<Finding> {
+    async fn scan_response_final(
+        &self,
+        response: &CanonicalResponse,
+    ) -> Result<Vec<Finding>, ScanError> {
         let mut findings = Vec::new();
         for unit in response.content_units() {
-            findings.extend(self.scan(&unit));
+            findings.extend(self.scan(&unit)?);
         }
-        findings
+        Ok(findings)
     }
 }
 
 impl SecretsScanner {
-    fn scan(&self, text: &str) -> Vec<Finding> {
+    fn scan(&self, text: &str) -> Result<Vec<Finding>, ScanError> {
         let configured = self.scanner.as_ref();
-        let scanner = configured.or_else(|| CONFIGURED_SCANNER.as_ref());
+        let scanner = match configured {
+            Some(scanner) => Some(scanner),
+            None => CONFIGURED_SCANNER
+                .as_ref()
+                .map_err(|error| ScanError::Failed {
+                    scanner: "secrets",
+                    reason: error.to_string(),
+                })?
+                .as_ref(),
+        };
         let input = GovernedInput::prompt_text(text.to_owned());
-        scanner
+        Ok(scanner
             .and_then(|scanner| scanner.detect(&input))
             .map_or_else(Vec::new, |hit| {
                 let observation = hit.observation;
@@ -110,7 +130,7 @@ impl SecretsScanner {
                     excerpt: Some(format!("{}: {}", hit.pattern.id, hit.redacted)),
                     scanner: "secrets",
                 }]
-            })
+            }))
     }
 }
 
@@ -141,26 +161,34 @@ impl SafetyScanner for PiiScanner {
         "pii_extended"
     }
 
-    async fn scan_request(&self, req: &CanonicalRequest) -> Vec<Finding> {
-        req.safety_parts(false)
+    async fn scan_request(&self, req: &CanonicalRequest) -> Result<Vec<Finding>, ScanError> {
+        Ok(req
+            .safety_parts(false)
             .into_iter()
             .flat_map(|(_, text)| pii_findings(&text, "request"))
-            .collect()
+            .collect())
     }
 
-    async fn scan_request_history(&self, req: &CanonicalRequest) -> Vec<Finding> {
-        req.safety_parts(true)
+    async fn scan_request_history(
+        &self,
+        req: &CanonicalRequest,
+    ) -> Result<Vec<Finding>, ScanError> {
+        Ok(req
+            .safety_parts(true)
             .into_iter()
             .flat_map(|(_, text)| pii_findings(&text, "request_history"))
-            .collect()
+            .collect())
     }
 
-    async fn scan_response_final(&self, response: &CanonicalResponse) -> Vec<Finding> {
-        response
+    async fn scan_response_final(
+        &self,
+        response: &CanonicalResponse,
+    ) -> Result<Vec<Finding>, ScanError> {
+        Ok(response
             .content_units()
             .into_iter()
             .flat_map(|unit| pii_findings(&unit, "response"))
-            .collect()
+            .collect())
     }
 }
 

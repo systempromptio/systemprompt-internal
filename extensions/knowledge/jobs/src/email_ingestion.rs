@@ -50,9 +50,7 @@ impl Job for EmailIngestionJob {
     ) -> Result<JobResult, systemprompt::traits::ProviderError> {
         let start = std::time::Instant::now();
 
-        let db = ctx
-            .db_pool::<DbPool>()
-            .ok_or(KnowledgeJobError::MissingContext("DbPool"))?;
+        let db = ctx.get::<DbPool>()?;
         let pool = db.write_pool();
 
         let Some(config) = load_config(ctx)? else {

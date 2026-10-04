@@ -7,9 +7,8 @@
 #[doc(hidden)]
 pub mod tool;
 
-use crate::error::KnowledgeBankError;
 use crate::store::KnowledgeStore;
-use crate::tools::{self, SERVER_NAME};
+use crate::tools;
 use rmcp::model::{
     CallToolRequestParams, CallToolResponse, Implementation, InitializeRequestParams,
     InitializeResult, ListResourceTemplatesResult, ListResourcesResult, ListToolsResult,
@@ -39,6 +38,7 @@ pub struct KnowledgeBankServer {
     service_id: McpServerId,
     db_pool: DbPool,
     executor: McpToolExecutor,
+    artifact_ingest: Arc<ArtifactIngest>,
     authz_hook: SharedAuthzHook,
     store: KnowledgeStore,
 }
@@ -48,25 +48,27 @@ impl KnowledgeBankServer {
         db_pool: DbPool,
         service_id: McpServerId,
         authz_hook: SharedAuthzHook,
-    ) -> Result<Self, KnowledgeBankError> {
-        let tool_usage_repo = Arc::new(
-            ToolUsageRepository::new(&db_pool)
-                .map_err(|e| KnowledgeBankError::Internal(e.to_string()))?,
+        artifact_ingest: Arc<ArtifactIngest>,
+    ) -> Self {
+        let tool_usage_repo = Arc::new(ToolUsageRepository::new(&db_pool));
+        let executor = McpToolExecutor::new(
+            tool_usage_repo,
+            Arc::new(systemprompt::ai::repository::AiRequestRepository::new(
+                &db_pool,
+            )),
+            Arc::clone(&artifact_ingest),
+            service_id.clone(),
         );
-        let artifact_ingest = Arc::new(
-            ArtifactIngest::from_db(&db_pool, None)
-                .map_err(|e| KnowledgeBankError::Internal(e.to_string()))?,
-        );
-        let executor = McpToolExecutor::new(tool_usage_repo, artifact_ingest, SERVER_NAME);
         let store = KnowledgeStore::new(Arc::clone(&db_pool));
 
-        Ok(Self {
+        Self {
             service_id,
             db_pool,
             executor,
+            artifact_ingest,
             authz_hook,
             store,
-        })
+        }
     }
 }
 
@@ -170,7 +172,7 @@ impl ServerHandler for KnowledgeBankServer {
         _ctx: RequestContext<RoleServer>,
     ) -> impl Future<Output = Result<ListResourcesResult, McpError>> + MaybeSendFuture + '_ {
         std::future::ready(Ok(build_artifact_viewer_resource(&ArtifactViewerConfig {
-            server_name: SERVER_NAME,
+            server_name: &self.service_id,
             title: "Knowledge Bank Artifact Viewer",
             description: "Interactive UI viewer for knowledge-bank artifacts. Receives the \
                           tool result via the MCP Apps ui/notifications/tool-result protocol \
@@ -186,14 +188,16 @@ impl ServerHandler for KnowledgeBankServer {
         _ctx: RequestContext<RoleServer>,
     ) -> Result<ReadResourceResponse, McpError> {
         if parse_artifact_resource_uri(&request.uri).is_some() {
-            let ingest = ArtifactIngest::from_db(&self.db_pool, None)
-                .map_err(|e| McpError::internal_error(e.to_string(), None))?;
-            return read_artifact_resource(&request, SERVER_NAME, ingest.artifacts())
-                .await
-                .map(Into::into);
+            return read_artifact_resource(
+                &request,
+                &self.service_id,
+                self.artifact_ingest.artifacts(),
+            )
+            .await
+            .map(Into::into);
         }
 
-        read_artifact_viewer_resource(&request, SERVER_NAME, &artifact_shell_template())
+        read_artifact_viewer_resource(&request, &self.service_id, &artifact_shell_template())
             .map(Into::into)
     }
 }

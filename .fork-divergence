@@ -24,6 +24,7 @@
 # ---------------------------------------------------------------------
 src/lib.rs	# brand: crate doc names the product
 src/main.rs	# brand: binary entry names the product
+extensions/web/admin/src/handlers/ssr/ssr_history/window.rs # internal history export retains its bounded 365-day export dialog contract
 
 # ---------------------------------------------------------------------
 # PRODUCT - surface the two forks deliberately do not share. Each fork

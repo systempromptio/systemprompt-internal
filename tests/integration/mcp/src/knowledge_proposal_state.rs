@@ -165,7 +165,12 @@ async fn proposing_is_a_compare_and_set_and_opens_one_approval_row() {
         assert_eq!(row.rule, "brain_email_ingest");
         assert_eq!(row.tool_name, "odoo_apply_proposal");
         assert_eq!(row.status, ApprovalStatus::Pending);
-        assert_eq!(row.trace_id.as_deref(), Some(id.to_string().as_str()));
+        assert_eq!(
+            row.trace_id
+                .as_ref()
+                .map(systemprompt::identifiers::TraceId::as_str),
+            Some(id.to_string().as_str())
+        );
 
         // A second worker racing the same document loses the CAS.
         assert!(
