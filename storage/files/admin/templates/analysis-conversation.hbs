@@ -1,4 +1,4 @@
-{{#> layout title=title page=page}}
+{{#> layout}}
 {{#*inline "content"}}
 {{#> components/page-header title=heading help=help subtitle=(concat display_name " · " client.label " · " first_display " → " last_display " · " duration_display)}}
 {{#*inline "header_actions"}}<a class="sp-btn sp-btn--sm sp-btn--outline" href="{{context_href}}">Read transcript &rarr;</a> {{#if session_href}}<a class="sp-btn sp-btn--sm sp-btn--outline" href="{{session_href}}">Session</a> {{/if}}<a class="sp-btn sp-btn--sm sp-btn--outline" href="{{back_url}}">&larr; Conversations</a> {{> components/export-button export}}{{/inline}}

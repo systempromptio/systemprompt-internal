@@ -1,4 +1,4 @@
-{{#> layout title=title page=page}}{{#*inline "content"}}
+{{#> layout}}{{#*inline "content"}}
 <section class="sp-p-versions">
 {{#> components/page-header title=title subtitle="Every marketplace by the content hash of what it serves. A version is its hash; open one to see its history, compare two, or check what devices received."}}
 {{#*inline "header_actions"}}<form method="get" action="/admin/analysis/versions" class="sp-inventory-inline"><label class="sp-u-sr-only" for="mv-days">Window</label><select class="sp-select" id="mv-days" name="days"><option value="7"{{#if (eq days 7)}} selected{{/if}}>7 days</option><option value="30"{{#if (eq days 30)}} selected{{/if}}>30 days</option><option value="90"{{#if (eq days 90)}} selected{{/if}}>90 days</option><option value="365"{{#if (eq days 365)}} selected{{/if}}>365 days</option></select><button class="sp-btn sp-btn--sm sp-btn--outline" type="submit">Apply</button></form> {{> components/export-button export}}{{/inline}}

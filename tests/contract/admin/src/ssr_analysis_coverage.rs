@@ -124,7 +124,7 @@ async fn populated_analysis_pages_render_facts_and_skill_totals() {
     assert!(body.contains(&context), "conversation context is rendered");
     assert!(
         body.contains("Contract analysis"),
-        "judge title is rendered"
+        "judge title is rendered rather than shadowed by the page title"
     );
 
     let (status, body) = app

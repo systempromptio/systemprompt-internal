@@ -1,4 +1,4 @@
-{{#> layout title=title page=page}}
+{{#> layout}}
 {{#*inline "content"}}
 {{#> components/page-header title=scope_label help=help subtitle=(concat window_display " · requested by " requested_by)}}
 {{#*inline "header_actions"}}<form method="post" action="{{regenerate_url}}" class="sp-inventory-inline"><button class="sp-btn sp-btn--sm {{#if failed}}sp-btn--primary{{else}}sp-btn--outline{{/if}}" type="submit" title="Write a fresh report over the same scope, anchored to now">{{> components/icon name="sparkle"}} {{#if failed}}Retry{{else}}Regenerate{{/if}}</button></form> <a class="sp-btn sp-btn--sm sp-btn--outline" href="{{back_url}}">&larr; Reports</a>{{/inline}}

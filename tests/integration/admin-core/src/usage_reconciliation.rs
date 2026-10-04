@@ -110,6 +110,13 @@ async fn the_profile_and_the_dashboard_agree_when_the_provider_reported_no_total
     request.tokens_used = None;
     request.created_at = Utc::now() - Duration::hours(1);
     insert_request(&db.pool, &request).await;
+    // Why: the general fixture supplies a component total when none is specified;
+    // this case must exercise an actual NULL provider total in the ledger.
+    sqlx::query("UPDATE ai_requests SET tokens_used = NULL WHERE id = $1")
+        .bind(&request.id)
+        .execute(db.pool.as_ref())
+        .await
+        .expect("clear the provider total");
 
     let profile = get_usage_window(&db.pool, &user, WINDOW_DAYS)
         .await

@@ -1,4 +1,4 @@
-{{#> layout title=title page=page}}{{#*inline "content"}}
+{{#> layout}}{{#*inline "content"}}
 <section class="sp-p-versions">
 {{#> components/page-header title=name subtitle="Every version of this marketplace by content hash — what changed between them, how each performed, and what devices received."}}
 {{#*inline "header_actions"}}<form method="get" action="/admin/analysis/versions/{{marketplace_id}}" class="sp-inventory-inline"><input type="hidden" name="tab" value="{{tab}}"><label class="sp-u-sr-only" for="mv-days">Window</label><select class="sp-select" id="mv-days" name="days"><option value="7"{{#if (eq days 7)}} selected{{/if}}>7 days</option><option value="30"{{#if (eq days 30)}} selected{{/if}}>30 days</option><option value="90"{{#if (eq days 90)}} selected{{/if}}>90 days</option><option value="365"{{#if (eq days 365)}} selected{{/if}}>365 days</option></select><button class="sp-btn sp-btn--sm sp-btn--outline" type="submit">Apply</button></form> <a class="sp-btn sp-btn--sm sp-btn--primary" href="/admin/analysis/skills?marketplace={{marketplace_id}}&amp;days={{days}}">Skills</a> {{> components/export-button export}}{{/inline}}

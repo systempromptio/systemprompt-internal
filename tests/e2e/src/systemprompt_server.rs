@@ -33,8 +33,17 @@ async fn the_admin_server_offers_the_cli_and_report_tools_and_refuses_a_user() {
     let names: Vec<&str> = tools.iter().map(|t| t.name.as_ref()).collect();
     assert_eq!(
         names,
-        ["systemprompt", "admin_report"],
-        "the CLI passthrough plus the admin report tool: {names:?}"
+        [
+            "systemprompt",
+            "admin_report",
+            "user_activity",
+            "conversation_list",
+            "usage_by_user",
+            "request_log",
+            "conversation_audit",
+            "users",
+        ],
+        "the CLI passthrough and complete admin reporting surface: {names:?}"
     );
 
     let denied = mcp::call_tool(

@@ -1,4 +1,4 @@
-{{#> layout title=title page=page}}
+{{#> layout}}
 {{#*inline "content"}}
 {{#> components/page-header title=skill_name help=help subtitle=(concat "Skill " skill_key " from plugin " plugin_name " in " marketplaces_display " — its record over the last " days " days.")}}
 {{#*inline "header_actions"}}<a class="sp-btn sp-btn--sm sp-btn--outline" href="{{catalog_href}}" title="Open this skill in the Platform catalog, where its contents and entitlement live">Catalog</a> <a class="sp-btn sp-btn--sm sp-btn--outline" href="/admin/analysis/conversations?skill={{skill_key}}">Conversations</a> <a class="sp-btn sp-btn--sm sp-btn--primary" href="{{skills_href}}">All skills &rarr;</a> {{> components/export-button export}}{{/inline}}

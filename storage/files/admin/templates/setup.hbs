@@ -1,4 +1,4 @@
-{{#> layout title=title page=page}}
+{{#> layout}}
     {{#*inline "head_extra"}}{{/inline}}
     {{#*inline "content"}}
     {{> components/page-header title=title}}
@@ -27,7 +27,7 @@
                 </div>
                 <div class="sp-setup-phase-content">
                     <div class="sp-setup-phase-header">
-                        <h3>Phase {{number}}: {{title}}</h3>
+                        <h3>Phase {{number}}: {{phase_title}}</h3>
                         {{#if complete}}
                         <span class="sp-setup-badge sp-setup-badge--complete">Complete</span>
                         {{else}}
