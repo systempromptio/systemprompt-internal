@@ -29,5 +29,4 @@ axum = { workspace = true }
 tower = { workspace = true }
 anyhow = { workspace = true }
 handlebars = { version = "6" }
-serde = { version = "1", features = ["derive"] }
 systemprompt-kit-export = { workspace = true }

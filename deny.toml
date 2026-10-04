@@ -36,6 +36,13 @@ allow = [
 ]
 confidence-threshold = 0.8
 
+# MIT-0 is MIT without attribution; jsonschema's URI dependency uses this
+# permissive license. Keep the exception limited to this reviewed package.
+[[licenses.exceptions]]
+name = "borrow-or-share"
+version = "0.2.4"
+allow = ["MIT-0"]
+
 [bans]
 multiple-versions = "warn"
 wildcards = "allow"

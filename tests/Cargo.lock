@@ -25,7 +25,6 @@ dependencies = [
  "systemprompt-security",
  "systemprompt-web-admin",
  "systemprompt-web-extension",
- "systemprompt-web-jobs",
  "systemprompt-web-shared",
  "tokio",
  "tower",
@@ -65,12 +64,9 @@ dependencies = [
  "systemprompt",
  "systemprompt-security",
  "systemprompt-web-admin",
- "systemprompt-web-extension",
- "systemprompt-web-jobs",
  "systemprompt-web-shared",
  "tempfile",
  "tokio",
- "url",
  "uuid",
 ]
 
@@ -2864,14 +2860,11 @@ dependencies = [
 name = "mcp-integration-tests"
 version = "0.0.0"
 dependencies = [
- "reqwest 0.13.5",
  "serde_json",
  "sqlx",
  "systemprompt",
- "systemprompt-knowledge-jobs",
  "systemprompt-mcp-knowledge-bank",
  "systemprompt-mcp-shared",
- "systemprompt-models",
  "tokio",
  "url",
  "uuid",
@@ -7447,7 +7440,6 @@ dependencies = [
  "chrono",
  "handlebars",
  "reqwest 0.13.5",
- "serde",
  "serde_json",
  "serde_yaml_ng",
  "sqlx",
