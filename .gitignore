@@ -261,3 +261,7 @@ storage/files/css/admin-bundle.css
 
 # Local-only credential scratch file (see users.md header)
 users.md
+
+# Cargo build output under any target-dir suffix, at any depth
+target-*/
+**/target-*/
